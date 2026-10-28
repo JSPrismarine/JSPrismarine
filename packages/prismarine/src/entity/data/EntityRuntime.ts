@@ -1177,10 +1177,30 @@ export class EntityRuntime implements EntityScene {
 
         if (other !== undefined) {
             this.hurt(other, attacker.id, 'entity_attack', damage);
+            if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
             return;
         }
 
         hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
+        if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+    }
+
+    /** Applies the active attack component's configured effect after a melee hit. */
+    private applyAttackStatusEffect(attacker: DataEntity, targetId: number): void {
+        const params = attacker.instance.componentParams('minecraft:attack');
+        if (
+            !isRecord(params) ||
+            typeof params.effectName !== 'string' ||
+            typeof params.effectDuration !== 'number' ||
+            params.effectDuration <= 0
+        )
+            return;
+
+        this.host.applyStatusEffect?.(targetId, {
+            id: params.effectName,
+            durationTicks: Math.round(params.effectDuration * TICKS_PER_SECOND),
+            amplifier: typeof params.effectAmplifier === 'number' ? params.effectAmplifier : 0
+        });
     }
 
     /**

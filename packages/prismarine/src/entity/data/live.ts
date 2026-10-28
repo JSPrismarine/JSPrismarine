@@ -239,6 +239,10 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         const source = attacker === null ? DamageSource.of(DamageCause.Attack) : DamageSource.entity(attacker);
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
     },
+    applyStatusEffect: (id, effect) => {
+        const target = options.liveWorld()?.getEntity(BigInt(id));
+        if (target !== null && target !== undefined) target.addStatusEffect(effect);
+    },
     hurtByProjectile: (id, amount, projectileId, ownerId) => {
         const world = options.liveWorld();
         const target = world?.getEntity(BigInt(id));

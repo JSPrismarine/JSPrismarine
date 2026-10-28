@@ -84,6 +84,8 @@ export interface AttackParams {
     readonly effectName?: string;
     /** How long the effect lasts, in seconds. */
     readonly effectDuration: number;
+    /** One below the displayed potency of the effect. */
+    readonly effectAmplifier: number;
 }
 
 /**
@@ -99,7 +101,8 @@ export const attack: ComponentFactory<EntityHooks, AttackParams> = {
         return accepted({
             damage: parseDamageRange(value.damage),
             effectName: stringAt(value, 'effect_name'),
-            effectDuration: numberAt(value, 'effect_duration', 0)
+            effectDuration: numberAt(value, 'effect_duration', 0),
+            effectAmplifier: numberAt(value, 'effect_amplifier', 0)
         });
     },
     create: (params) => ({

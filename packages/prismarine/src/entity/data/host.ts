@@ -13,6 +13,7 @@
  * `src/content/world/notWired.ts` applies at the other seam.
  */
 import type { FilterEntityView } from '@jsprismarine/entities';
+import type { StatusEffectInput } from '../StatusEffect';
 import type {
     ContentBlockAccess,
     ContentEffectSink,
@@ -108,6 +109,8 @@ export interface EntityHostFacts {
      * @param sourceId - The runtime id of the entity answerable for the blow.
      */
     hurt?(id: number, amount: number, cause: string, sourceId: number | undefined): void;
+    /** Applies a data-defined melee effect to a live entity or player. */
+    applyStatusEffect?(id: number, effect: StatusEffectInput): void;
     /** Deals damage to an entity with the projectile and its owner preserved as the source. */
     hurtByProjectile?(id: number, amount: number, projectileId: number, ownerId: number | undefined): void;
     /**

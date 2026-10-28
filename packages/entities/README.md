@@ -207,7 +207,8 @@ Components come in two kinds, and the difference matters when reading the covera
 Components with behavior contribute hooks. The nine attribute components (`health`, `movement`,
 `underwater_movement`, `lava_movement`, `flying_speed`, `follow_range`, `knockback_resistance`,
 `attack_damage`, `horse.jump_strength`) and `minecraft:attack` write their attribute when they
-initialize, which is what makes a re-added group reset the stat it carries. The rest:
+initialize, which is what makes a re-added group reset the stat it carries. `minecraft:attack` also
+applies its configured status effect after a melee hit. The rest:
 
 | Component | What it does |
 | --- | --- |
