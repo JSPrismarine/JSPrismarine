@@ -328,7 +328,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         container.targetSlot,
                         inventory.getItem(container.targetSlot)
                     );
-                    await player.getWorld().dropContents(player.getPosition(), [dropped]);
+                    await player.getWorld().dropFromPlayer(player, [dropped]);
                     return;
                 }
             }

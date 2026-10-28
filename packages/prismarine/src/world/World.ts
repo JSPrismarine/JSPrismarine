@@ -187,6 +187,8 @@ interface DropStart {
     readonly position: Vector3;
     /** Its speed in blocks per tick, or still when absent. */
     readonly motion?: Vector3;
+    /** Ticks before a player may pick it up, or the item entity's default when absent. */
+    readonly pickupDelay?: number;
 }
 
 /**
@@ -2041,8 +2043,38 @@ export class World implements Service {
     }
 
     /**
-     * What {@link World.dropContents} and {@link World.dropFromBlock} share, up to where each
-     * stack starts.
+     * Drops player-held stacks from the player's eyes, with Java's forward toss and pickup delay.
+     *
+     * Java places the item at eye height minus 0.3 blocks and gives it a 0.3-block-per-tick
+     * velocity along the view, with its small vanilla spread. The spawn position passed to
+     * {@link World.spill} is the item's feet; the item actor reports 0.125 blocks above it.
+     * @param player - The player who dropped the stacks.
+     * @param contents - The stacks to drop; nulls and empty stacks are skipped.
+     */
+    public async dropFromPlayer(player: Player, contents: Array<Block | Item | null>): Promise<void> {
+        const eyes = player.getPosition();
+        const random = randomOf(this.server);
+        const pitch = (player.pitch * Math.PI) / 180;
+        const yaw = (player.yaw * Math.PI) / 180;
+        const horizontal = Math.cos(pitch) * 0.3;
+        const feet = new Vector3(eyes.getX(), eyes.getY() - 0.3 - ITEM_POSITION_OFFSET, eyes.getZ());
+
+        await this.spill(eyes, contents, () => {
+            const angle = random() * Math.PI * 2;
+            const spread = random() * 0.02;
+            const motion = new Vector3(
+                -Math.sin(yaw) * horizontal + Math.cos(angle) * spread,
+                -Math.sin(pitch) * 0.3 + 0.1 + (random() - random()) * 0.1,
+                Math.cos(yaw) * horizontal + Math.sin(angle) * spread
+            );
+
+            return { position: feet, motion, pickupDelay: 40 };
+        });
+    }
+
+    /**
+     * What {@link World.dropContents}, {@link World.dropFromBlock}, and {@link World.dropFromPlayer}
+     * share, up to where each stack starts.
      * @param {Vector3} position - where the drop happened, for the log.
      * @param {Array} contents - what to drop.
      * @param {Function} start - where one stack starts and how fast, asked once per stack.
@@ -2079,8 +2111,8 @@ export class World implements Service {
         // ground costs no roll.
         await Promise.all(
             wanted.slice(0, room).map(async (drop) => {
-                const { position: at, motion } = start();
-                await this.dropItem(at, drop, motion);
+                const { position: at, motion, pickupDelay } = start();
+                await this.dropItem(at, drop, motion, pickupDelay);
             })
         );
     }
@@ -2112,7 +2144,12 @@ export class World implements Service {
      * wire, and `Block` has no serialisation of its own - which is exactly the cast
      * `ContainerEntry` warns about, made honestly here instead.
      */
-    private async dropItem(position: Vector3, drop: Block | Item, motion?: Vector3): Promise<void> {
+    private async dropItem(
+        position: Vector3,
+        drop: Block | Item,
+        motion?: Vector3,
+        pickupDelay?: number
+    ): Promise<void> {
         const item =
             drop instanceof Item ? drop : new Item({ name: drop.getName(), content: this.server.getContent() });
 
@@ -2144,7 +2181,8 @@ export class World implements Service {
         const entity = new ItemEntity({
             item: new ContainerEntry({ item: grounded, count: grounded.getAmount() }),
             position: new Position(position.getX(), position.getY() + ITEM_POSITION_OFFSET, position.getZ(), this),
-            motion
+            motion,
+            pickupDelay
         });
 
         await this.addEntity(entity);

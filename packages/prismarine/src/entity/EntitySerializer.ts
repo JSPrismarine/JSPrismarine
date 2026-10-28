@@ -1,3 +1,4 @@
+import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -46,6 +47,7 @@ export class EntitySerializer {
         const identifier = nbt.getString('identifier', '');
         const [x, y, z] = readFloats(nbt, 'Pos', 3);
         const [yaw, pitch] = readFloats(nbt, 'Rotation', 2);
+        const [motionX, motionY, motionZ] = readFloats(nbt, 'Motion', 3);
 
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
         const modeled = writtenEntities().get(identifier);
@@ -56,6 +58,8 @@ export class EntitySerializer {
                 ? new Item({
                       ...options,
                       age: nbt.getShort('Age', 0),
+                      motion: new Vector3(motionX ?? 0, motionY ?? 0, motionZ ?? 0),
+                      pickupDelay: nbt.getShort('PickupDelay', 10),
                       ...itemEntryFrom(nbt, world)
                   })
                 : modeled
@@ -97,6 +101,9 @@ export class EntitySerializer {
 
         if (entity instanceof Item) {
             nbt.addValue('Age', new Types.ShortVal(entity.getAge()));
+            nbt.addValue('PickupDelay', new Types.ShortVal(entity.getPickupDelay()));
+            const motion = entity.getMotion();
+            nbt.addValue('Motion', doubles([motion.getX(), motion.getY(), motion.getZ()]));
             const entry = entity.getItem();
             const stack = entry === undefined ? null : storedItem(entry.getItem(), entry.getCount());
             if (stack === null) {

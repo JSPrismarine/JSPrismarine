@@ -86,7 +86,7 @@ const fake = (
         },
         getEntity: (runtimeId) => (runtimeId === 42n ? zombie : null),
         getDimension: () => Dimensions.Overworld,
-        dropContents: async (_position, contents) => {
+        dropFromPlayer: async (_player, contents) => {
             for (const content of contents) if (content instanceof Item) dropped.push(content);
         }
     });

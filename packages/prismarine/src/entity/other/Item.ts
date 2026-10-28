@@ -39,13 +39,8 @@ export const ITEM_POSITION_OFFSET = 0.125;
  */
 const GROUND_PROBE = 0.01;
 
-/**
- * Ticks an item lies untouchable after it appears.
- *
- * Without it the block a player just broke would be back in their inventory before they ever
- * saw it fall, since they are standing right on top of it.
- */
-const PICKUP_DELAY = 10;
+/** How many ticks a normal world drop waits before a player can pick it up. */
+const DEFAULT_PICKUP_DELAY = 10;
 
 /** How long a dropped stack stays in the world, matching Java's five-minute item age. */
 const DESPAWN_AGE = 6000;
@@ -80,8 +75,11 @@ export class Item extends Entity {
     /** Speed in blocks per tick. All zero once it has settled, which is also how it knows it has. */
     private motion: Vector3;
 
-    /** Ticks since it appeared, counted only for {@link PICKUP_DELAY}. */
+    /** Ticks since it appeared, counted toward despawning. */
     private age = 0;
+
+    /** Ticks left before a player may take it. Java gives player drops forty ticks. */
+    private pickupDelay: number;
 
     /** Set the moment a player takes it, so two ticks cannot both collect the same stack. */
     private taken = false;
@@ -91,22 +89,26 @@ export class Item extends Entity {
      * @param options.item - The stack it is.
      * @param options.age - Ticks it has already lain in the world, for a stack read from a save.
      * @param options.motion - The speed it starts with, in blocks per tick; still by default.
+     * @param options.pickupDelay - Ticks before a player may take it; normal drops wait ten.
      */
     public constructor({
         item,
         age = 0,
         motion = new Vector3(0, 0, 0),
+        pickupDelay = DEFAULT_PICKUP_DELAY,
         ...options
     }: ConstructorParameters<typeof Entity>[0] & {
         item?: ContainerEntry;
         age?: number;
         motion?: Vector3;
+        pickupDelay?: number;
     }) {
         super(options);
 
         this.item = item;
         this.age = age;
         this.motion = motion;
+        this.pickupDelay = pickupDelay;
     }
 
     /** The speed it is moving at, in blocks per tick, which the client is told when it appears. */
@@ -130,6 +132,11 @@ export class Item extends Entity {
     /** The number of ticks this dropped stack has spent in a loaded chunk. */
     public getAge(): number {
         return this.age;
+    }
+
+    /** Ticks left before a player may take the stack. */
+    public getPickupDelay(): number {
+        return this.pickupDelay;
     }
 
     /**
@@ -167,6 +174,7 @@ export class Item extends Entity {
             await this.getWorld().removeEntity(this);
             return;
         }
+        if (this.pickupDelay > 0) this.pickupDelay--;
 
         await this.move();
         await this.tryMerge();
@@ -289,7 +297,7 @@ export class Item extends Entity {
      * and the inventory both follow from the one packet.
      */
     private async tryPickup(): Promise<void> {
-        if (!this.item || this.age < PICKUP_DELAY) return;
+        if (!this.item || this.pickupDelay > 0) return;
 
         const taker = this.getWorld()
             .getPlayers()

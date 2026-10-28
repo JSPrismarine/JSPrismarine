@@ -167,7 +167,7 @@ describe('network', () => {
             );
             const dropped: Item[] = [];
             const world = stub<World>({
-                dropContents: async (_position, contents) => {
+                dropFromPlayer: async (_player, contents) => {
                     for (const content of contents) if (content instanceof Item) dropped.push(content);
                 }
             });
@@ -208,7 +208,7 @@ describe('network', () => {
             );
             const dropped: Item[] = [];
             const world = stub<World>({
-                dropContents: async (_position, contents) => {
+                dropFromPlayer: async (_player, contents) => {
                     for (const content of contents) if (content instanceof Item) dropped.push(content);
                 }
             });

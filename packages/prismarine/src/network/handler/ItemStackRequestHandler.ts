@@ -247,7 +247,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         await session.send(response);
 
-        if (drops.length > 0) await player.getWorld().dropContents(player.getPosition(), drops);
+        if (drops.length > 0) await player.getWorld().dropFromPlayer(player, drops);
 
         // Redrawn whenever the item in the table changed, which is what `showEnchantingTable`
         // says it has to be called for: the three rows are a function of the stack.

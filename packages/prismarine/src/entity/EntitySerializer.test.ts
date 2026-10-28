@@ -68,6 +68,11 @@ describe('entity', () => {
         it('restores an item actor with its Bedrock stack fields', () => {
             const item = EntitySerializer.fromNBT(
                 actor('minecraft:item', (root) => {
+                    root.addValue(
+                        'Motion',
+                        new Set([new Types.DoubleVal(-0.01), new Types.DoubleVal(0.1), new Types.DoubleVal(0.3)])
+                    );
+                    root.addValue('PickupDelay', new Types.ShortVal(27));
                     const stack = new NBTTagCompound('Item');
                     stack.addValue('Name', new Types.StringVal('minecraft:stone'));
                     stack.addValue('Count', new Types.ByteVal(2));
@@ -81,6 +86,16 @@ describe('entity', () => {
             if (!(item instanceof ItemEntity)) throw new Error('the item actor was not restored as an item');
             expect(item.getItem()?.getItem().getName()).toBe('minecraft:stone');
             expect(item.getItem()?.getCount()).toBe(2);
+            expect(item.getPickupDelay()).toBe(27);
+            expect([item.getMotion().getX(), item.getMotion().getY(), item.getMotion().getZ()]).toEqual([
+                -0.01, 0.1, 0.3
+            ]);
+
+            const written = EntitySerializer.toNBT(item);
+            expect(written.getShort('PickupDelay', 0)).toBe(27);
+            expect([...(written.getList('Motion', false) ?? [])].map((value) => value.getValue())).toEqual([
+                -0.01, 0.1, 0.3
+            ]);
         });
 
         it('writes the position and rotation back', () => {

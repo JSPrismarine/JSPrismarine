@@ -65,6 +65,9 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
 
     const player: any = {
         gamemode: Gametype.SURVIVAL,
+        pitch: 0,
+        yaw: 0,
+        getRuntimeId: () => 99n,
         getInventory: () => ({ getItemInHand: () => null }),
         getNetworkSession: () => session,
         getPosition: () => new Vector3(10, 64, -20),
@@ -174,6 +177,23 @@ describe('world', () => {
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             expect(entities.size).toBe(1);
+        });
+
+        it('throws a player drop from eye height and delays pickup for forty ticks', async () => {
+            const { world, player, entities } = fakeWorld(new BlockState('minecraft:stone'));
+
+            await world.dropFromPlayer(player, [new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 })]);
+
+            const dropped = [...entities.values()].find((entity) => entity instanceof ItemEntity);
+            if (!(dropped instanceof ItemEntity)) throw new Error('the player drop did not create an item entity');
+
+            expect([dropped.getPosition().getX(), dropped.getPosition().getY(), dropped.getPosition().getZ()]).toEqual([
+                10, 63.7, -20
+            ]);
+            expect(dropped.getMotion().getX()).toBeCloseTo(-0.01);
+            expect(dropped.getMotion().getY()).toBeCloseTo(0.1);
+            expect(dropped.getMotion().getZ()).toBeCloseTo(0.3);
+            expect(dropped.getPickupDelay()).toBe(40);
         });
 
         it('drops nothing for a block whose drop has no item id, rather than air', async () => {

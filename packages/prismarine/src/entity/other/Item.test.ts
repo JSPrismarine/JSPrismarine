@@ -84,11 +84,12 @@ const fakePlayer = (x: number, y: number, z: number) => {
 };
 
 /** A dirt item lying at `y`, reported 0.125 higher as BDS reports one. */
-const droppedAt = (world: any, y: number, motion?: Vector3) =>
+const droppedAt = (world: any, y: number, motion?: Vector3, pickupDelay?: number) =>
     new Item({
         item: new ContainerEntry({ item: new ItemStack({ runtimeId: 1, name: 'minecraft:dirt' }), count: 1 }),
         position: new Position(0.5, y + 0.125, 0.5, world),
-        motion
+        motion,
+        pickupDelay
     });
 
 /** Runs `n` ticks, the way the world does. */
@@ -368,6 +369,25 @@ describe('entity', () => {
 
                 expect(player.held).toHaveLength(0);
                 expect(world.removed).toHaveLength(0);
+            });
+
+            it('waits forty ticks before a player can take a player-dropped stack', async () => {
+                const world = fakeWorld(63);
+                const player = fakePlayer(0.5, 64, 0.5);
+                world.players.push(player);
+                const item = droppedAt(world, 64, undefined, 40);
+
+                await tick(item, 39);
+
+                expect(player.held).toHaveLength(0);
+                expect(item.getPickupDelay()).toBe(1);
+                expect(world.removed).toHaveLength(0);
+
+                await tick(item, 1);
+
+                expect(player.held).toHaveLength(1);
+                expect(item.getPickupDelay()).toBe(0);
+                expect(world.removed).toContain(item);
             });
 
             it('is taken once, however many ticks run afterwards', async () => {
