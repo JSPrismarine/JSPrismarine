@@ -107,7 +107,7 @@ are what lets a block behavior answer a question about the hand rather than defe
 
 | What the item decides | Where |
 | --- | --- |
-| Honeycomb waxes copper, an axe scrapes it | `copper`, `slab`, `double_slab`, `stairs`, `fence`, `lantern` |
+| Honeycomb waxes copper, an axe scrapes it | `copper`, `slab`, `double_slab`, `stairs`, `fence`, `lantern`, `door`, `trapdoor` |
 | Honeycomb seals a sign against edits | `sign` |
 | Silk touch takes glass and ice whole | `glass`, `ice` |
 | Shears or silk touch take leaves, vines and lichens whole | `leaves`, `climbing` |
@@ -120,6 +120,10 @@ are what lets a block behavior answer a question about the hand rather than defe
 name or an enchantment id is written down once. Neither imports `@jsprismarine/items`: a `HookItem`
 is whatever the server hands the hook, and that package's `ItemStack` satisfies the interface
 structurally.
+
+The interaction hook also receives whether the player was sneaking. Sneaking with a placeable block
+skips the block hook so the block can be placed against a chest or door. Other items reach the hook:
+a copper door opens before an axe can scrape it normally, while sneaking lets the same axe scrape it.
 
 ## The shared rules
 
@@ -185,8 +189,8 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `wall` | 32 | onPlace, onBreak, onNeighborChanged | Recomputes the four wall_connection_type states and wall_post_bit from its neighbors and what sits on it. |
 | `redstone` | 31 | onPlace, onBreak, onNeighborChanged, onTick, onPlayerInteract, onRedstoneUpdate, onBlockStateChange | Branches by name over the 31 redstone blocks: initializes wire and diode state, handles piston placement and movement, schedules repeater and comparator delays, pulses the observer, updates lit and unlit pairs and triggered containers, and primes TNT with flint and steel. |
 | `container` | 22 | onPlace, onBreak, onPlayerInteract | Gives a container its block entity, pairs a chest with the chest beside it, spills its contents on break unless it is a shulker box, and marks a barrel open while a player uses it. |
-| `door` | 22 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract, onRedstoneUpdate | Places the upper half, picks the hinge from its neighbors, toggles both halves on interact unless it is iron, follows redstone, and breaks with its other half. |
-| `trapdoor` | 22 | onBreak, onRandomTick, onPlayerInteract, onRedstoneUpdate | Toggles open_bit on interact unless it is iron, follows redstone, and oxidizes when it is copper. |
+| `door` | 22 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract, onRedstoneUpdate | Places the upper half, picks the hinge from its neighbors, toggles both halves on interact unless it is iron or the player sneaks with an item, lets sneaking wax or scrape copper doors, follows redstone, and breaks with its other half. |
+| `trapdoor` | 22 | onBreak, onRandomTick, onPlayerInteract, onRedstoneUpdate | Toggles open_bit on interact unless it is iron or the player sneaks with an item, lets sneaking wax or scrape copper trapdoors, follows redstone, and oxidizes when it is copper. |
 | `ore` | 20 | onBreak | Drops the ore item and its experience; an unlisted ore drops itself. |
 | `pressure_plate` | 17 | onPlace, onNeighborChanged, onTick, onStepOn | Checks support on placement and puts out redstone_signal while something stands on it, with the weighted plates counting entities, and releases on a scheduled tick. |
 | `button` | 15 | onPlace, onNeighborChanged, onTick, onPlayerInteract | Checks support on placement, presses on interact, powers for 30 ticks on wood and 20 on stone, then releases on the scheduled tick. |
@@ -225,14 +229,9 @@ pane connection rule is what a custom thin block wants.
 
 ## What is deliberately partial
 
-The remaining limits are either information the hook interface does not carry or behavior owned by
-another runtime.
+The remaining limits need a world event or data this package does not own, or behavior from another
+runtime.
 
-- **No hook says whether the player was sneaking.** Vanilla runs the block's own use before the
-  item's, so an axe on a copper door opens it and only a sneaking player scrapes it. Without the
-  sneak flag the door and the trapdoor always open, and their copper variants cannot be waxed or
-  scraped through the hook. Every other copper family can, because nothing else claims the
-  interaction first.
 - **Drops are a stopgap.** The ore table, the leaf sapling chance and the snow layer count are
   written here so a break produces the right item today. Java's 1447 loot tables arrive with the
   loot package and should replace all of it.

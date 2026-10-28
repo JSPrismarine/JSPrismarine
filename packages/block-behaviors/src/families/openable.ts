@@ -15,7 +15,7 @@ import { placementFacing } from '../rules/placement';
 import { isSolidSupport, popBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateBoolean, stateString } from '../state';
 import type { WorldActions } from '../world';
-import { dropSelf, isIronOperated, weatherOnRandomTick } from './shared';
+import { dropSelf, isIronOperated, waxOrScrapeOnInteract, weatherOnRandomTick } from './shared';
 
 /** The direction a block with `minecraft:cardinal_direction` faces. */
 export const cardinalFacing = (block: HookBlock): HorizontalFace => {
@@ -83,6 +83,9 @@ export const doorFamily = defineFamily(
             });
         },
         onPlayerInteract: (event, world, context) => {
+            if (event.sneaking && event.itemStack !== undefined) {
+                return waxOrScrapeOnInteract(world, event.block, event.itemStack) ? true : undefined;
+            }
             if (isIronOperated(context.identifier)) return undefined;
             setDoorOpen(world, event.block, !stateBoolean(event.block, 'open_bit'));
             return true;
@@ -124,6 +127,9 @@ export const trapdoorFamily = defineFamily(
     'Toggles open_bit on interact unless it is iron, follows redstone, and oxidizes when it is copper.',
     {
         onPlayerInteract: (event, world, context) => {
+            if (event.sneaking && event.itemStack !== undefined) {
+                return waxOrScrapeOnInteract(world, event.block, event.itemStack) ? true : undefined;
+            }
             if (isIronOperated(context.identifier)) return undefined;
             const open = !stateBoolean(event.block, 'open_bit');
             setStates(world, event.block, { open_bit: open });

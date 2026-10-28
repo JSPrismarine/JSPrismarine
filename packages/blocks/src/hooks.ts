@@ -163,6 +163,8 @@ export interface BlockTickEvent extends BlockEvent {
 /** A player used the block. */
 export interface BlockPlayerInteractEvent extends BlockEvent {
     readonly player: HookActor;
+    /** Whether the player was sneaking when the interaction began. */
+    readonly sneaking?: boolean;
     /** The face the player clicked, absent when the interaction has no face. */
     readonly face: BlockFace | undefined;
     /** Where on the face the click landed. */

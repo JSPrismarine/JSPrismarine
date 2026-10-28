@@ -358,15 +358,16 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
 
     const held = player.getInventory().getItemInHand();
     const stack = contentStackOf(content, held);
+    const placedBlock = placedBlockOf(content, held);
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
     const position = player.getPosition();
 
     // A block interaction landed on no entity, which is what `targetOf` has to say while the
     // hooks below run. Recorded for the length of the click rather than kept.
     return actors.duringInteraction(source, undefined, () => {
-        // Vanilla's rule: sneaking with something in hand skips the block, which is how a player
-        // places a block against a chest instead of opening it.
-        const skipBlock = player.isSneaking() && stack !== undefined;
+        // Sneaking with a placeable block skips the block, which is how a player places against
+        // a chest instead of opening it. Other items reach the block hook with their sneak state.
+        const skipBlock = player.isSneaking() && placedBlock !== undefined;
 
         if (!skipBlock) {
             const hooks = content.blocks.types.get(block.identifier)?.state(block.states).content.hooks;
@@ -376,6 +377,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                     identifier: 'minecraft:player',
                     position: { x: position.getX(), y: position.getY(), z: position.getZ() }
                 },
+                sneaking: player.isSneaking(),
                 face,
                 faceLocation: interaction.faceLocation,
                 itemStack: stack
@@ -412,7 +414,6 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             }
         }
 
-        const placedBlock = placedBlockOf(content, held);
         if (placedBlock === undefined) return 'declined';
 
         const placedAt = placeBlock(interaction, held, placedBlock, face);
