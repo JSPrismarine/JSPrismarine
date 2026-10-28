@@ -18,7 +18,7 @@
  * import('./notWired').NotWiredError} naming the subsystem that owes it.
  */
 import type { BlockFace, BlockStateValue } from '@jsprismarine/blocks';
-import type { BlockEntityData, BlockProperties, ItemDrop } from '@jsprismarine/block-behaviors';
+import type { BlockDestroyOptions, BlockEntityData, BlockProperties, ItemDrop } from '@jsprismarine/block-behaviors';
 import type { CommandHost } from '@jsprismarine/commands';
 import type { Difficulty, TickKind, Weather } from '@jsprismarine/engine-systems';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
@@ -38,7 +38,7 @@ import type {
     SourceState
 } from '@jsprismarine/item-behaviors';
 
-export type { BlockEntityData, BlockProperties, Difficulty, RandomSource, TickKind, Weather };
+export type { BlockDestroyOptions, BlockEntityData, BlockProperties, Difficulty, RandomSource, TickKind, Weather };
 
 /** An integer block position in world coordinates, within one dimension. */
 export interface ContentPosition {
@@ -105,9 +105,11 @@ export interface ContentBlockAccess {
      * Left out by an adapter with no live world behind it, which sends the caller back to
      * the drop it would have made on its own.
      *
+     * @param at - The block to destroy.
+     * @param options - Whether the block's own loot is rolled. Defaults to true.
      * @returns True when the world took the drops, so the caller owes nothing more for them.
      */
-    destroy?(at: ContentPosition): boolean;
+    destroy?(at: ContentPosition, options?: BlockDestroyOptions): boolean;
     /** Tells the six neighbors of a position that it changed. */
     notifyNeighbors(at: ContentPosition): void;
     /** A block entity's stored data, or undefined when the position has none. */

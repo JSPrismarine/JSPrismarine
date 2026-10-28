@@ -91,6 +91,26 @@ export interface WorldEntity extends HookActor {
  */
 export type BlockProperties = Parameters<typeof blockProperties.create>[0];
 
+/** The chance modifiers a resolved `minecraft:flammable` component carries. */
+export interface BlockFlammability {
+    /** Fire's odds of catching the block alight. */
+    readonly igniteOdds: number;
+    /** Fire's odds of consuming the block after it catches. */
+    readonly burnOdds: number;
+}
+
+/** Whether the sky and weather report rain, thunder or clear. */
+export type WorldWeather = 'clear' | 'rain' | 'thunder';
+
+/** The four vanilla difficulty levels, in increasing order. */
+export type WorldDifficulty = 'peaceful' | 'easy' | 'normal' | 'hard';
+
+/** Options for removing a block without asking the family to guess its drops. */
+export interface BlockDestroyOptions {
+    /** Whether to roll the block's own loot, defaulting to true. */
+    readonly drops?: boolean;
+}
+
 /** One of the four values `jsprismarine:block_properties.push_reaction` takes. */
 export type PushReaction = BlockProperties['pushReaction'];
 
@@ -116,12 +136,17 @@ export interface WorldActions {
      *
      * @param states - The whole state record, not a patch. Absent means the
      *   block's default state.
+     * @param notifyNeighbors - Whether to run block behavior and engine neighbor updates.
      */
-    setBlock(position: BlockPosition, identifier: string, states?: BlockStates): void;
+    setBlock(position: BlockPosition, identifier: string, states?: BlockStates, notifyNeighbors?: boolean): void;
     /** The `jsprismarine:block_properties` of a block type, defaults included. */
     propertiesOf(identifier: string): BlockProperties;
     /** The block state's vanilla `minecraft:light_dampening` value, when the host can report it. */
     lightDampeningOf?(block: HookBlock): number;
+    /** The resolved block state's `minecraft:flammable` odds, when content exposes them. */
+    flammabilityOf?(block: HookBlock): BlockFlammability | undefined;
+    /** Whether this block has a sturdy top face, when the host can report its collision shape. */
+    hasSturdyTopFace?(block: HookBlock): boolean;
     /** Drops an item stack as an entity at a position. */
     dropItem(position: BlockPosition, drop: ItemDrop): void;
     /**
@@ -138,9 +163,11 @@ export interface WorldActions {
      * Left out by a world with no loot behind it, such as the test voxel world, which
      * sends the caller back to the drop it would have made on its own.
      *
+     * @param position - The block to destroy.
+     * @param options - Whether the block's own loot is rolled. Defaults to true.
      * @returns True when the world took the drops, so the caller owes nothing more for them.
      */
-    destroyBlock?(position: BlockPosition): boolean;
+    destroyBlock?(position: BlockPosition, options?: BlockDestroyOptions): boolean;
     /**
      * Spawns an entity.
      *
@@ -167,6 +194,20 @@ export interface WorldActions {
     scheduleTick(position: BlockPosition, delay: number, kind?: 'block' | 'fluid', priority?: BlockTickPriority): void;
     /** Whether this block's scheduled tick is due in the batch currently running. */
     willTickThisTick?(position: BlockPosition): boolean;
+    /** A random integer in `[0, bound)`, using the host's world random when available. */
+    randomInt?(bound: number): number;
+    /** A random float in `[0, 1)`, using the host's world random when available. */
+    randomFloat?(): number;
+    /** The current world difficulty, which controls fire spread odds. */
+    difficulty?(): WorldDifficulty;
+    /** The current weather. */
+    weather?(): WorldWeather;
+    /** Whether rain reaches this position. */
+    isRainingAt?(position: BlockPosition): boolean;
+    /** Whether fire may spread around this position under the current world rule. */
+    canFireSpreadAround?(position: BlockPosition): boolean;
+    /** Whether this position has the humid biome attribute that increases fire burnout. */
+    increasedFireBurnout?(position: BlockPosition): boolean;
     /** A block entity's data, or undefined when the position has none. */
     getBlockData(position: BlockPosition): BlockEntityData | undefined;
     /** Replaces a block entity's data whole. */

@@ -251,11 +251,11 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
      * torch's family was holding and then writes air over it. Nothing is awaited: every
      * caller is inside the world tick and the item entity is read by nobody this tick.
      */
-    destroy: (position) => {
+    destroy: (position, options) => {
         const loaded = world();
         if (loaded === undefined) return false;
 
-        destroyBlock({ world: loaded, position });
+        destroyBlock({ world: loaded, position, dropsBlock: options?.drops ?? true });
         return true;
     }
 });

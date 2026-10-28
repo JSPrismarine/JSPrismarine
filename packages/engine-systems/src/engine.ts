@@ -263,10 +263,11 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             return;
         }
         if (to.name === FIRE) {
-            // `FireBlock.onPlace` books the new fire's first tick, 30 to 40 game ticks out.
-            // Nothing else ever books one, so without this a fire sits where it was lit:
-            // it never ages, never spreads and never burns out.
-            world.scheduleTick('block', at, FIRE, fireTickDelay(world));
+            // `FireBlock.onPlace` books the new fire's first tick, 30 to 39 game ticks out.
+            // The content family may already have booked it, so preserve the scheduler's
+            // deduplication without consuming a second random draw. A world without content
+            // still gets the engine fallback's first tick here.
+            if (!world.hasScheduledTick('block', at, FIRE)) world.scheduleTick('block', at, FIRE, fireTickDelay(world));
             return;
         }
         // `LiquidBlock.onPlace` schedules the new fluid's own first tick.
@@ -338,4 +339,4 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
 };
 
 /** Identifiers whose scheduled block ticks remain reserved for engine handling. */
-export const SCHEDULED_TICK_BLOCKS: readonly string[] = [FIRE];
+export const SCHEDULED_TICK_BLOCKS: readonly string[] = [];

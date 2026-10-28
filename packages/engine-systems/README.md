@@ -182,10 +182,11 @@ block above the first one overhead. Rain puts it out and blocks the spread. The 
 sources are the `infiniburn` block tags: netherrack and magma in the overworld and the nether, plus
 bedrock in the end.
 
-Fire runs on scheduled ticks 30 to 40 game ticks apart, as Java does, and is not affected by the
+Fire runs on scheduled ticks 30 to 39 game ticks apart, as Java does, and is not affected by the
 random tick speed. Bedrock drives fire from random ticks instead; that is a deliberate divergence.
-The first of those ticks comes from `FireBlock.onPlace`, which `Engine.setBlockAndUpdate` runs, and
-every tick books the next one before it does anything else.
+The data-driven fire family books the first tick when its `onPlace` hook runs. The engine keeps the
+same placement fallback for worlds without that family and skips its random draw when the tick is
+already booked. Every scheduled tick books the next one before doing anything else.
 
 Whether a fire tick does anything past that booking is `ServerLevel.canSpreadFireAround`, which
 reads the 1.21.11 game rule `minecraft:fire_spread_radius_around_player`. The rule is an integer, a

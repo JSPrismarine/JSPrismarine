@@ -69,8 +69,6 @@ export const contentBlockTickHandlers = (
     };
 
     for (const [identifier, type] of content.blocks.types) {
-        // Fire still has engine-owned scheduled behavior; the data family owns
-        // repeater and comparator transitions.
         if (engineOwned.has(identifier)) continue;
         if (!type.states.some((state) => state.content.hooks.has('onTick'))) continue;
 

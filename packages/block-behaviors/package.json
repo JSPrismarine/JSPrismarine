@@ -61,7 +61,8 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/block-behaviors",
     "dependencies": {
         "@jsprismarine/blocks": "workspace:*",
-        "@jsprismarine/content": "workspace:*"
+        "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/mapping": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "24.19.2",

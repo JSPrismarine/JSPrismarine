@@ -373,6 +373,9 @@ importers:
       '@jsprismarine/content':
         specifier: workspace:*
         version: link:../content
+      '@jsprismarine/mapping':
+        specifier: workspace:*
+        version: link:../mapping
     devDependencies:
       '@types/node':
         specifier: 24.19.2

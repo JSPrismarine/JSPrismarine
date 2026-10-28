@@ -26,7 +26,13 @@ import {
 } from '@jsprismarine/engine-systems';
 
 import type { ContentLookup } from '../content/world/views';
-import type { BlockEntityData, ContentBlock, ContentBlockAccess, ContentPosition } from '../content/world/adapter';
+import type {
+    BlockDestroyOptions,
+    BlockEntityData,
+    ContentBlock,
+    ContentBlockAccess,
+    ContentPosition
+} from '../content/world/adapter';
 
 /** The eleven members of `ContentBlockAccess` the block and item subsystem implements. */
 export type ContentBlockGroup = Pick<
@@ -70,7 +76,7 @@ export interface BlockStorageAccess {
      * while the hook runs have to be told apart from the table's own roll, which needs the
      * world those drops go to.
      */
-    destroy?(position: ContentPosition): boolean;
+    destroy?(position: ContentPosition, options?: BlockDestroyOptions): boolean;
 }
 
 /** The block entity records of one dimension, which `data` and `setData` read and write. */
@@ -257,7 +263,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         // Passed through rather than reimplemented: the hook, the roll and the ground all
         // belong to the world the storage is over. Absent when the storage cannot do it,
         // which is what makes a family fall back to its own drop.
-        destroy: destroy && ((at) => destroy(at)),
+        destroy: destroy && ((at, options) => destroy(at, options)),
         executeEntityEvent: (at, entity, name) => {
             const block = hookBlockAt(storage, dimension, at);
             if (block === undefined) return;

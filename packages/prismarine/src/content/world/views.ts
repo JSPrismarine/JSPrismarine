@@ -9,10 +9,15 @@
  * Nothing here invents a value.
  */
 import { DEFAULT_BLOCK_PROPERTIES } from '@jsprismarine/block-behaviors';
-import type { BlockWorld, WorldActions as BlockWorldActions, WorldEntity } from '@jsprismarine/block-behaviors';
-import { DEFAULT_LIGHT_DAMPENING, blockProperties } from '@jsprismarine/blocks';
+import type {
+    BlockFlammability,
+    BlockWorld,
+    WorldActions as BlockWorldActions,
+    WorldEntity
+} from '@jsprismarine/block-behaviors';
+import { DEFAULT_LIGHT_DAMPENING, blockProperties, flammable } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
-import { AIR, TICK_PRIORITIES } from '@jsprismarine/engine-systems';
+import { AIR, hasSturdyTopFace as engineHasSturdyTopFace, TICK_PRIORITIES } from '@jsprismarine/engine-systems';
 import type { BlockRef, Dimension, WorldAccess } from '@jsprismarine/engine-systems';
 import type { BlockTickPriority } from '@jsprismarine/block-behaviors';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
@@ -26,6 +31,7 @@ import type { SpawnWorld } from '@jsprismarine/spawning';
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import { CONTENT_AREAS, notWired } from './notWired';
+import { FIRE_SPREAD_RADIUS, UNLIMITED_FIRE_SPREAD_RADIUS, fireSpreadRadius } from './gameRules';
 
 /**
  * Reads the built content.
@@ -115,6 +121,29 @@ const lightDampeningOf = (content: ServerContent, block: HookBlock): number => {
     return runtimeId === undefined ? DEFAULT_LIGHT_DAMPENING : content.blocks.table.lightFilter[runtimeId]!;
 };
 
+/** The default chance modifiers `minecraft:flammable` supplies when set to true. */
+const DEFAULT_FLAMMABLE = (() => {
+    const parsed = flammable.schema({});
+    if (!parsed.ok || typeof parsed.value === 'boolean') {
+        throw new Error('the minecraft:flammable schema rejected its own defaults');
+    }
+    return parsed.value;
+})();
+
+/** Reads the active state's Bedrock flammability component, including permutations. */
+const flammabilityOf = (content: ServerContent, block: HookBlock): BlockFlammability | undefined => {
+    const component = content.blocks.types.get(block.identifier)?.state(block.states).content.params(flammable);
+    if (component === undefined) return undefined;
+    if (component === false) return { igniteOdds: 0, burnOdds: 0 };
+    if (component === true) {
+        return {
+            igniteOdds: DEFAULT_FLAMMABLE.catchChanceModifier,
+            burnOdds: DEFAULT_FLAMMABLE.destroyChanceModifier
+        };
+    }
+    return { igniteOdds: component.catchChanceModifier, burnOdds: component.destroyChanceModifier };
+};
+
 /** `WorldActions` as `@jsprismarine/block-behaviors` declares it, for one dimension. */
 const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): BlockWorldActions => {
     const dimension = adapter.level.dimension;
@@ -125,6 +154,7 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
     };
 
     const destroy = adapter.blocks.destroy;
+    const engineWorld = engineWorldOf(adapter);
     const tickPriority: Record<BlockTickPriority, number> = {
         extremely_high: TICK_PRIORITIES.EXTREMELY_HIGH,
         very_high: TICK_PRIORITIES.VERY_HIGH,
@@ -134,13 +164,16 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
 
     return {
         getBlock: hookBlock,
-        setBlock: (position, identifier, states = {}) => adapter.blocks.set(position, { identifier, states }, true),
+        setBlock: (position, identifier, states = {}, notifyNeighbors = true) =>
+            adapter.blocks.set(position, { identifier, states }, notifyNeighbors),
         propertiesOf: (identifier) => propertiesOf(content(), identifier),
         lightDampeningOf: (block) => lightDampeningOf(content(), block),
+        flammabilityOf: (block) => flammabilityOf(content(), block),
+        hasSturdyTopFace: (block) => engineHasSturdyTopFace(engineWorld.getBlock(block.position)),
         dropItem: (position, drop) => adapter.entities.drop(position, drop),
         // Left out rather than made to throw when the adapter cannot destroy, because a
         // family that cannot reach the table still has its own drop to fall back on.
-        destroyBlock: destroy && ((position) => destroy(position)),
+        destroyBlock: destroy && ((position, options) => destroy(position, options)),
         spawnEntity: (position, identifier, data) => adapter.entities.spawn(identifier, position, data),
         removeEntity: (entity) => adapter.entities.remove(entity),
         entitiesAt: (position) =>
@@ -163,6 +196,23 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
             ),
         willTickThisTick: (position) =>
             adapter.ticks.runsThisTick('block', position, adapter.blocks.get(position)?.identifier ?? 'minecraft:air'),
+        randomInt: (bound) => adapter.random.nextInt(bound),
+        randomFloat: () => adapter.random.nextFloat(),
+        difficulty: () => adapter.level.difficulty(),
+        weather: () => adapter.level.weather(),
+        isRainingAt: (position) => adapter.level.isRainingAt(position),
+        canFireSpreadAround: (position) => {
+            const radius = fireSpreadRadius(adapter.level.gameRule(FIRE_SPREAD_RADIUS));
+            if (radius === UNLIMITED_FIRE_SPREAD_RADIUS) return true;
+
+            return adapter.entities.players().some((player) => {
+                if (player.spectator === true) return false;
+                const dx = player.position.x - position.x;
+                const dy = player.position.y - position.y;
+                const dz = player.position.z - position.z;
+                return Math.sqrt(dx * dx + dy * dy + dz * dz) < radius;
+            });
+        },
         getBlockData: (position) => adapter.blocks.data(position),
         setBlockData: (position, data) => adapter.blocks.setData(position, data),
         notifyNeighbors: (position) => adapter.blocks.notifyNeighbors(position),

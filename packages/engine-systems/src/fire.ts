@@ -6,7 +6,7 @@
  * here: `@jsprismarine/mapping` already holds them per block state, dumped from
  * the same jar, and {@link igniteOddsOf} and {@link burnOddsOf} read them.
  *
- * Fire runs on scheduled ticks in Java, 30 to 40 game ticks apart, and is not
+ * Fire runs on scheduled ticks in Java, 30 to 39 game ticks apart, and is not
  * affected by `random_tick_speed`. Bedrock drives fire from random ticks
  * instead; this package follows Java.
  */

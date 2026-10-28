@@ -1,6 +1,7 @@
 export * from './connection';
 export * from './container';
 export * from './fluid';
+export * from './fire';
 export * from './gravity';
 export * from './growth';
 export * from './heldItem';

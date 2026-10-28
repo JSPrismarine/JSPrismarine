@@ -33,40 +33,43 @@ one. It is a `BlockWorld`, described below.
 
 | Group | Methods |
 | --- | --- |
-| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf` |
+| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasSturdyTopFace` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
 | Scheduling | `scheduleTick(position, delay, kind?, priority?)`, `willTickThisTick` |
 | Block entities | `getBlockData`, `setBlockData` |
 | Updates | `notifyNeighbors`, `redstonePower`, `redstoneSignal`, `redstoneDirectSignal`, `redstoneConductor`, `lightLevel` |
-| Chance | `random` |
+| Environment and chance | `difficulty`, `weather`, `isRainingAt`, `canFireSpreadAround`, `random`, `randomInt`, `randomFloat` |
 
-Four of those are there for reasons worth stating. `propertiesOf` returns another block's
+Several of those are there for reasons worth stating. `propertiesOf` returns another block's
 `jsprismarine:block_properties`, which is how the piston and the falling blocks read `push_reaction`
 instead of carrying a list. `random` is on the interface rather than inside the families so a test
-drives a probabilistic rule to either outcome without patching a global. `destroyBlock` is how a
-family takes a block out that it is not itself: the host raises the block's `onBreak` and rolls
-Java's loot table for it, where this package would otherwise have to guess that the block drops one
-of itself. It is optional, and a host that leaves it out gets that guess, which is what the test
-voxel world does. `popBlock` is the one rule that uses it, and the piston's popped block, a block
-that lost its support and a block a falling anvil cleared out of the way all go through it.
+`flammabilityOf` reads the resolved state's `minecraft:flammable` component, so a pack can change
+fire odds in a permutation. When a host cannot resolve components, fire reads the same vanilla odds
+from `@jsprismarine/mapping`. `hasSturdyTopFace` lets the host answer from the block's collision
+shape. `destroyBlock` is how a family takes a block out that it is not itself: the host raises its
+`onBreak` and rolls Java's loot table for it, where this package would otherwise have to guess that
+the block drops one of itself. It is optional, and a host that leaves it out gets that guess, which
+is what the test voxel world does. Fire passes `drops: false` so a burned block leaves no loot while
+still running its break hook. `popBlock` is the one rule that uses the default drop behavior, and the
+piston's popped block, a block that lost its support and a block a falling anvil cleared out of the
+way all go through it.
 
 `lightDampeningOf` can read a block state's vanilla `minecraft:light_dampening` value, so rules can
 check how much light a cover blocks without treating every support block as opaque. When a host
 cannot report dampening, the shared rule treats it as unknown and does not convert the ground block.
 
-For migrated families, scheduled hooks run from the active block state before the engine fallback.
-Observer pulses, redstone torch burnout, repeater transitions, and comparator output updates run
-through their family hooks; fire remains engine-owned. `kind` selects the block or fluid tick list
-and defaults to `block`; water and lava use the fluid list so their family tick shares the engine's
-existing liquid schedule.
+Scheduled hooks run from the active block state before the engine fallback. Observer pulses,
+redstone torch burnout, repeater transitions, comparator output updates, and fire spread run
+through their family hooks. `kind` selects the block or fluid tick list and defaults to `block`;
+water and lava use the fluid list so their family tick shares the engine's existing liquid schedule.
 
 A `BlockWorld` is a set of dimensions, and `at(dimension)` returns the `WorldActions` for one. Each
 handler receives the actions for its own event's dimension already resolved, so the dimension never
 appears in a family's code. A server with one world passes `singleDimensionWorld(actions)`.
 
 Nothing here names a server class. The events are structural, the world is an interface, and the
-package depends only on `@jsprismarine/blocks` and `@jsprismarine/content`.
+package depends on `@jsprismarine/blocks`, `@jsprismarine/content`, and `@jsprismarine/mapping`.
 
 ## Testing a family
 
@@ -243,8 +246,6 @@ The rest are scoped to this phase:
   reports a death. The shrieker and the sensor are implemented.
 - **Portals.** The nether portal counts an entity down and the end portal frame takes an eye, but
   the destination search and the 8:1 coordinate link need the dimension list, which the server owns.
-- **Fire spread.** Fire ages out and goes out without support. Spreading to flammable neighbors
-  needs each block's flame and burn odds, which the overlay does not publish yet.
 - **Redstone wire topology.** A wire fades one step per block from its neighbors. Stepping up and
   down over blocks, and the strong and weak distinction a solid block makes, need the solidity
   column the overlay is still missing.

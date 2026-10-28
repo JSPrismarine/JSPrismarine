@@ -6,6 +6,7 @@ import { defineFamily } from '../family';
 import { offset } from '../geometry';
 import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { applyLavaWaterReaction, spreadLiquid, spreadTicks } from '../rules/fluid';
+import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
 import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
 import { breakBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateNumber } from '../state';
@@ -93,8 +94,13 @@ export const PORTAL_DELAY_TICKS = 80;
 /** The portal blocks, the portal frames and the two fires. */
 export const portalFamily = defineFamily(
     'jsprismarine:portal',
-    'Counts an entity down to a nether portal trip, ages fire out, and fills an end portal frame. The destination search across dimensions is left to the server, which owns the dimension list.',
+    'Counts an entity down to a nether portal trip, spreads and burns with fire, ages soul fire, and fills an end portal frame. The destination search across dimensions is left to the server, which owns the dimension list.',
     {
+        onPlace: (event, world) => {
+            const name = bareName(event.block.identifier);
+            if (name !== 'fire' && name !== 'soul_fire') return;
+            world.scheduleTick(event.block.position, fireTickDelay(world));
+        },
         onStepOn: (event, world) => {
             const name = bareName(event.block.identifier);
             if (name !== 'portal' && name !== 'end_portal') return;
@@ -102,7 +108,11 @@ export const portalFamily = defineFamily(
         },
         onTick: (event, world) => {
             const name = bareName(event.block.identifier);
-            if (name === 'fire' || name === 'soul_fire') {
+            if (name === 'fire') {
+                fireTick(world, event.block.position, event.block.dimension);
+                return;
+            }
+            if (name === 'soul_fire') {
                 const age = stateNumber(event.block, 'age');
                 if (age >= 15) {
                     breakBlock(world, event.block);
@@ -119,9 +129,11 @@ export const portalFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             const name = bareName(event.block.identifier);
             if (name !== 'fire' && name !== 'soul_fire') return;
+            if (name === 'fire' && canFireSurvive(world, event.block.position)) return;
             const below = world.getBlock(offset(event.block.position, 'down'));
-            if (below !== undefined && below.identifier !== AIR) return;
-            breakBlock(world, event.block);
+            if (name === 'soul_fire' && below !== undefined && below.identifier !== AIR) return;
+            world.setBlock(event.block.position, AIR, {}, false);
+            world.notifyNeighbors(event.block.position);
         },
         onPlayerInteract: (event, world) => {
             if (bareName(event.block.identifier) !== 'end_portal_frame') return undefined;
