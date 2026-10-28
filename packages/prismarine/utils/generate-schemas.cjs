@@ -11,7 +11,6 @@ const schemaFiles = [
     ['PermissionsFile', 'permissions.schema.json'],
     ['OpsFile', 'ops.schema.json'],
     ['BannedPlayersFile', 'banned-players.schema.json'],
-    ['LevelData', 'level.schema.json'],
     ['WorldPlayerData', 'player-data.schema.json']
 ];
 

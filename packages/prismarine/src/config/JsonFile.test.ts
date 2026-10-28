@@ -68,7 +68,6 @@ describe('config', () => {
             { file: 'permissions.json', empty: '{}' as const, schema: 'permissions.schema.json' },
             { file: 'ops.json', empty: '[]' as const, schema: 'ops.schema.json' },
             { file: 'banned-players.json', empty: '[]' as const, schema: 'banned-players.schema.json' },
-            { file: 'worlds/main/level.json', empty: '{}' as const, schema: 'level.schema.json' },
             {
                 file: 'worlds/main/playerdata/123.json',
                 empty: '{}' as const,

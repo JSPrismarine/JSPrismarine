@@ -11,7 +11,6 @@ const schemaFiles = [
     'permissions.schema.json',
     'ops.schema.json',
     'banned-players.schema.json',
-    'level.schema.json',
     'player-data.schema.json'
 ];
 
@@ -86,15 +85,6 @@ describe('JSON schemas', () => {
             file: 'banned-players.schema.json',
             valid: [{ name: 'alice', reason: 'griefing' }],
             invalid: [{ reason: 'griefing' }]
-        },
-        {
-            file: 'level.schema.json',
-            valid: {
-                spawn: { x: 0, y: 64, z: 0 },
-                gameRules: [['keepInventory', [true, false]]],
-                entities: [{ type: 'minecraft:pig', position: { x: 1, y: 64, z: 2, pitch: 0, yaw: 90, headYaw: 90 } }]
-            },
-            invalid: { gameRules: [['keepInventory', ['yes', false]]] }
         },
         {
             file: 'player-data.schema.json',

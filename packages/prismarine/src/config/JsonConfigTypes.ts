@@ -137,8 +137,9 @@ export interface BannedPlayerEntry {
 export type BannedPlayersFile = BannedPlayerEntry[];
 
 /**
- * Data written to a world's `level.json` file.
+ * Legacy shape imported once from older worlds' `level.json` files.
  * @title JSPrismarine world level data
+ * @deprecated World state is stored by the world provider.
  */
 export interface LevelData {
     spawn?: { x: number; y: number; z: number };

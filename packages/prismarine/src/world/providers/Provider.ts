@@ -2,6 +2,7 @@ import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Service } from '../../utils';
 import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
+import type { WorldPersistenceData } from '../WorldPersistence';
 
 export default interface Provider extends Service {
     /** True only when `writeChunk` persists terrain, block entities, and actors for later reload. */
@@ -35,6 +36,15 @@ export default interface Provider extends Service {
      * @param chunk - chunk x
      */
     writeChunk(chunk: Chunk): Promise<void>;
+
+    /** Reads world state outside the chunk records, or null when the provider has none. */
+    readWorldData(): Promise<WorldPersistenceData | null>;
+
+    /** Writes world state outside the chunk records. */
+    writeWorldData(data: WorldPersistenceData): Promise<void>;
+
+    /** Imports the one-time world state written by older versions to `level.json`. */
+    migrateLegacyWorldData(data: WorldPersistenceData): Promise<void>;
 
     /** Persists provider-specific world metadata, such as the spawn position. */
     saveLevelData?(spawn: { x: number; y: number; z: number }): void;

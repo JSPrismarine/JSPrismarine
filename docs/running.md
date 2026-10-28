@@ -181,15 +181,17 @@ its `String.hashCode`, so `"glacier"` is seed 108181935 here and in Java. An
 absent or empty seed is 0.
 
 The same applies to the JSON files beside it (`banned-players.json`,
-`ops.json`, `permissions.json`) and to each world's `level.json` and player
-data: the server changes the entry it means to and leaves your comments in
-place. All of them may hold `//` and `/* */` comments and trailing commas.
+`ops.json`, and `permissions.json`) and player data: the server changes the
+entry it means to and leaves your comments in place. These files may hold
+`//` and `/* */` comments and trailing commas. On startup, the server imports
+an older world's `level.json` once into its provider and removes the file after
+the migration succeeds.
 
 The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that
 wrote the file, served from UNPKG, so a standalone server or binary does not
 need a separate npm install to make the schema available. Object files such as
-`config.json`, `permissions.json`, `level.json`, and fallback player data contain
+`config.json`, `permissions.json`, and fallback player data contain
 a `$schema` property. The root of `ops.json` and `banned-players.json` is an array, so those
 files instead start with a `JSPrismarine schema` comment holding the versioned
 URL. To validate those arrays in VS Code, map the file names in

@@ -22,6 +22,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
 import type { World } from '../../World';
 import type { WorldPlayerData } from '../../World';
+import type { WorldPersistenceData } from '../../WorldPersistence';
 
 const directories: string[] = [];
 
@@ -219,6 +220,40 @@ describe('world', () => {
             const reopened = harness(worldPath);
             await reopened.provider.enable();
             expect((await reopened.provider.readPlayerData('player-xuid'))?.spawn).toEqual(data.spawn);
+            await reopened.provider.disable();
+        });
+
+        it('stores world state in LevelDB and the spawn in level.dat', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const data = {
+                spawn: { x: 10, y: 65, z: -3 },
+                gameRules: [['keepInventory', [true, false]]],
+                weather: {
+                    clearWeatherTime: 0,
+                    rainTime: 120,
+                    thunderTime: 60,
+                    raining: true,
+                    thundering: false
+                }
+            } satisfies WorldPersistenceData;
+
+            await provider.enable();
+            await provider.writeWorldData(data);
+
+            expect(await provider.readWorldData()).toEqual(data);
+
+            const level = decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat')));
+            expect(level.root.getNumber('SpawnX', 0)).toBe(10);
+            expect(level.root.getNumber('SpawnY', 0)).toBe(65);
+            expect(level.root.getNumber('SpawnZ', 0)).toBe(-3);
+            expect(level.root.getByte('JSPrismarineSpawnKnown', 0)).toBe(1);
+
+            await provider.disable();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect(await reopened.provider.readWorldData()).toEqual(data);
             await reopened.provider.disable();
         });
 

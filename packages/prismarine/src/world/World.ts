@@ -43,7 +43,7 @@ import { placePlayerSpawn } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionDefinition } from './Dimension';
 import type { BlockMining } from './BlockMining';
-import type { LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
+import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
@@ -56,7 +56,7 @@ import { createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { sectionTakesRandomTicks } from './randomTickSections';
-import { WorldWeather, savedWeatherOf } from './Weather';
+import { WorldWeather } from './Weather';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
@@ -66,6 +66,8 @@ import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
+import type { WorldPersistenceData } from './WorldPersistence';
+import { legacyWorldPersistenceDataOf } from './WorldPersistence';
 
 export type {
     FlatLayer,
@@ -221,7 +223,7 @@ const CRACK_PARTICLES: readonly LevelEvent[] = [
     LevelEvent.PARTICLES_CRACK_BLOCK_EAST
 ];
 
-const LEVEL_DATA_FILE_NAME = 'level.json';
+const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
 const WORLDS_FOLDER_NAME = 'worlds';
 
 export interface WorldData {
@@ -483,15 +485,30 @@ export class World implements Service {
         // whole of the reason - the tick event is awaited inside the tick's budget now too,
         // so subscribing would buy nothing and cost a second update.
 
-        const level = await this.getLevelData();
+        this.provider.setWorld(this);
+        await this.provider.enable();
+
+        const legacy = await this.getLegacyWorldData();
+        if (legacy !== null) {
+            await this.provider.migrateLegacyWorldData(legacy);
+
+            try {
+                await fs.promises.unlink(withCwd(WORLDS_FOLDER_NAME, this.name, LEGACY_LEVEL_DATA_FILE_NAME));
+            } catch (error: unknown) {
+                this.server.getLogger().error(`Failed to remove migrated level data for ${this.name}`);
+                this.server.getLogger().error(error);
+            }
+        }
+
+        const level = (await this.provider.readWorldData()) ?? {};
         if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
-        this.weatherCycle().restore(savedWeatherOf(level.weather));
+        this.weatherCycle().restore(level.weather);
         if (level.gameRules) {
             level.gameRules.forEach(([name, [value, editable]]) =>
                 this.gameRuleManager.setGameRule(name, value, editable)
             );
         }
-        if (level.entities) {
+        if (level.entities && this.provider.supportsChunkUnload !== true) {
             for (const entityData of level.entities) {
                 // The saved coordinates are actually used now. They used to be spread into
                 // an options object that had no place for them, so every entity restored
@@ -515,9 +532,6 @@ export class World implements Service {
                 if (!this.restoreDataEntity(body)) await this.addEntity(body);
             }
         }
-
-        this.provider.setWorld(this);
-        await this.provider.enable();
 
         this.startingRegion = this.prepareStartRegion();
         try {
@@ -1014,9 +1028,8 @@ export class World implements Service {
                 continue;
             }
 
-            // Before the restore, not after: `level.json` holds a copy of every entity and
-            // `enable` rebuilds those as written classes, so the actor record has to displace
-            // that copy whichever path ends up holding the mob.
+            // Before the restore, not after: providers without actor storage may keep a
+            // lightweight entity snapshot, which the full actor record replaces on load.
             const legacyEntity = this.getEntities().find((candidate) => this.isLegacyEntity(candidate, entity));
             if (legacyEntity) await this.removeEntity(legacyEntity);
 
@@ -2691,23 +2704,23 @@ export class World implements Service {
         return this.dimension;
     }
 
-    private async getLevelData(): Promise<Partial<LevelData>> {
-        const path = withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME);
-        if (!fs.existsSync(path)) return {};
+    private async getLegacyWorldData(): Promise<WorldPersistenceData | null> {
+        const file = withCwd(WORLDS_FOLDER_NAME, this.name, LEGACY_LEVEL_DATA_FILE_NAME);
+        if (!fs.existsSync(file)) return null;
 
         try {
-            // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
-            const data: unknown = (await readJsonFile(path, '{}')).get([]);
-            return data as Partial<LevelData>;
+            const data: unknown = (await readJsonFile(file, '{}')).get([]);
+            return legacyWorldPersistenceDataOf(data);
         } catch (error: unknown) {
-            // Something went wrong while reading or parsing the level data.
+            // Keep an unreadable legacy file so a later startup can retry the migration.
+            this.server.getLogger().error(`Failed to read legacy world data for ${this.name}`);
             this.server.getLogger().error(error);
+            return null;
         }
-
-        return {};
     }
+
     /**
-     * Writes `level.json` and whatever level metadata the provider keeps of its own.
+     * Writes world metadata through the provider.
      *
      * The spawn point written is the one the world already knows. Resolving it is a search
      * for dry land, and that generates terrain - which this used to do from inside the
@@ -2726,42 +2739,32 @@ export class World implements Service {
                 .debug(`No spawn point to save for ${this.getFormattedName()}`, 'World/saveLevelData');
         }
 
-        const data = {
-            ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
-            gameRules: Array.from(this.getGameRuleManager().getGameRules()),
-            weather: this.weatherCycle().saved(),
-            entities: this.getEntities()
-                .filter((entity) => !(entity instanceof Player))
-                .map((entity) => ({
-                    type: entity.getType(),
-                    position: {
-                        x: entity.getPosition().getX(),
-                        y: entity.getPosition().getY(),
-                        z: entity.getPosition().getZ(),
-                        pitch: entity.pitch,
-                        yaw: entity.yaw,
-                        headYaw: entity.headYaw
-                    }
-                }))
-        };
+        const entities = this.getEntities()
+            .filter((entity) => !(entity instanceof Player))
+            .map((entity) => ({
+                type: entity.getType(),
+                position: {
+                    x: entity.getPosition().getX(),
+                    y: entity.getPosition().getY(),
+                    z: entity.getPosition().getZ(),
+                    pitch: entity.pitch,
+                    yaw: entity.yaw,
+                    headYaw: entity.headYaw
+                }
+            }));
 
         try {
-            // Written key by key, so a comment somebody left in the file stays with its key.
-            const file = withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME);
-            const document = await readJsonFile(file, '{}');
-            for (const [key, value] of Object.entries(data)) document.set([key], value);
-            await writeJsonFile(file, document);
+            const stored = (await this.provider.readWorldData()) ?? {};
+            const data: WorldPersistenceData = {
+                ...stored,
+                ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
+                gameRules: Array.from(this.getGameRuleManager().getGameRules()),
+                weather: this.weatherCycle().saved(),
+                ...(this.provider.supportsChunkUnload === true ? {} : { entities })
+            };
+            await this.provider.writeWorldData(data);
         } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save level data`);
-            this.server.getLogger().error(error);
-        }
-
-        if (!spawn) return;
-
-        try {
-            this.provider.saveLevelData({ x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() });
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save provider level data`);
+            this.server.getLogger().error(`Failed to save world data for ${this.getFormattedName()}`);
             this.server.getLogger().error(error);
         }
     }

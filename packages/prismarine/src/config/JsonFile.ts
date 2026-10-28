@@ -9,8 +9,7 @@ const SCHEMA_FILE_BY_CONFIG = new Map([
     ['config.json', 'config.schema.json'],
     ['permissions.json', 'permissions.schema.json'],
     ['ops.json', 'ops.schema.json'],
-    ['banned-players.json', 'banned-players.schema.json'],
-    ['level.json', 'level.schema.json']
+    ['banned-players.json', 'banned-players.schema.json']
 ]);
 const ARRAY_SCHEMA_COMMENT = /^[\t ]*\/\/ JSPrismarine schema:.*(?:\r?\n|$)/gm;
 
@@ -55,8 +54,8 @@ export const toJsonFileContents = (filePath: string, document: ConfigDocument): 
  * Reads a JSON data file the server owns into a document it can edit in place.
  *
  * For the files beside `config.json` that hold lists or records rather than settings: the
- * ban list, the operators, each world's level data. They are rewritten by the server, and
- * going through a document keeps whatever a person added to them by hand.
+ * ban list, the operators, and player data. They are rewritten by the server, and going
+ * through a document keeps whatever a person added to them by hand.
  *
  * @param filePath - Where the file is.
  * @param empty - What a missing file reads as: `[]` for a list, `{}` for a record.

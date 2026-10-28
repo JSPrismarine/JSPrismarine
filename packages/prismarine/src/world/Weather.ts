@@ -4,7 +4,7 @@
  * The rules are `@jsprismarine/engine-systems`' - Java's `ServerLevel.advanceWeatherCycle`
  * over `WeatherData`, three counters and two flags - and nothing about them is repeated here.
  * This is the half that needs a world: whether the cycle runs at all, which is the
- * `doWeatherCycle` game rule, when to tell the clients, and the five numbers `level.json`
+ * `doWeatherCycle` game rule, when to tell the clients, and the five numbers the provider
  * keeps between one run and the next.
  *
  * Sending is the awkward part and the reason this is a module rather than four fields on
@@ -36,10 +36,10 @@ export interface WeatherWorld {
     broadcast(event: LevelEvent, data: number): void;
 }
 
-/** The weather as `level.json` holds it, which is Java's `WeatherData` field for field. */
+/** The weather stored by the provider, which is Java's `WeatherData` field for field. */
 export type SavedWeather = WeatherState;
 
-/** Whether a value read back out of `level.json` is a weather record this can use. */
+/** Whether a value read from world storage is a weather record this can use. */
 export const savedWeatherOf = (value: unknown): SavedWeather | undefined => {
     if (typeof value !== 'object' || value === null) return undefined;
 

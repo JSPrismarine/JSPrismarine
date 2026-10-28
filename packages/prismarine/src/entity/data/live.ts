@@ -556,8 +556,8 @@ export class LiveEntityRuntime {
      * Removes a body's data entity when the world removes the body directly.
      *
      * Detaching first lets the runtime's removal callback run without asking the world to remove
-     * the same body recursively. This covers copies from `level.json` that a chunk actor record
-     * replaces, and explicit world removals such as `/kill`.
+     * the same body recursively. This covers a provider's lightweight entity snapshot when a
+     * chunk actor record replaces it, and explicit world removals such as `/kill`.
      *
      * @param body - The body being removed from its world.
      * @param reason - Why the runtime entity is being removed.
@@ -603,9 +603,9 @@ export class LiveEntityRuntime {
      * Migrates an existing body without runtime state when its pack type is available.
      *
      * This covers entities saved by an older class-based runtime as well as generic actors rebuilt
-     * from `level.json`. The type's spawn event initializes current components, goals, and physics,
-     * while the original actor tags stay on the replacement body for fields the runtime does not
-     * model yet.
+     * from a provider's lightweight entity snapshot. The type's spawn event initializes current
+     * components, goals, and physics, while the original actor tags stay on the replacement body
+     * for fields the runtime does not model yet.
      */
     public restoreExisting(stored: Entity): DataEntity | undefined {
         const identifier = stored.getType();
