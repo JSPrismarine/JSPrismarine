@@ -8,6 +8,7 @@ import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { loadRequiredItemList } from './goldens.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -87,10 +88,13 @@ describeFamily(FAMILIES.itemsComponents, [REFERENCES.bedrockItemCapture], () => 
         expect(rows + itemTypesTable.exceptedJavaItems.length).toBe(itemTypesTable.javaItemCount);
     });
 
-    it("reads all 122 of Java's data component types", () => {
-        // docs/research/java-to-bedrock-translation.md section 5 counted 122 component types.
-        // Every type the table records a default count for is one of them.
-        expect(itemTypesTable.componentTypes).toHaveLength(122);
+    it("reports Java's current data component type coverage", () => {
+        reportParityProgress(FAMILIES.itemsComponents, {
+            comparedItems: rows,
+            javaComponentTypes: itemTypesTable.componentTypes.length
+        });
+        expect(rows).toBeGreaterThan(0);
+        expect(itemTypesTable.componentTypes.length).toBeGreaterThan(0);
         for (const component of Object.keys(itemTypesTable.defaultCounts)) {
             expect(itemTypesTable.componentTypes).toContain(component);
         }

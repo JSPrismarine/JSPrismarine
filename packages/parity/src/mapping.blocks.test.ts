@@ -6,6 +6,7 @@ import { FAMILIES } from './families.ts';
 import { loadBlockPaletteCapture, loadJavaBlockProperties } from './goldens.ts';
 import { javaStateCounts, loadJavaBlockStates } from './javaBlockStates.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -74,6 +75,11 @@ describeFamily(FAMILIES.mappingBlocks, [REFERENCES.javaBlockProperties], () => {
     it('walks the whole Java block registry, not a subset of it', () => {
         const dumped = Object.values(loadJavaBlockProperties()).reduce((sum, row) => sum + row.stateCount, 0);
 
+        reportParityProgress(FAMILIES.mappingBlocks, {
+            javaBlocks: Object.keys(loadJavaBlockProperties()).length,
+            javaBlockStates: dumped,
+            mappedBlockStates: states
+        });
         expect(states).toBe(dumped);
     });
 });

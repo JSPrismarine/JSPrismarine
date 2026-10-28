@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { AllowListEntry } from '../allowlist.ts';
 import { ALL_FAMILIES, FAMILIES } from '../families.ts';
+import type { ParityMeasurement } from '../progress.ts';
 import type { VitestJsonReport } from './render.ts';
-import { renderDashboard, statusOf } from './render.ts';
+import { familiesWithoutTests, renderDashboard, statusOf } from './render.ts';
 
 const fixtureReport: VitestJsonReport = {
     testResults: [
@@ -51,6 +52,24 @@ describe('dashboard renderer', () => {
         for (const family of ALL_FAMILIES) expect(rowFor(markdown, family)).toContain('no tests');
     });
 
+    it('identifies declared rows with no test for the CI coverage guard', () => {
+        const report: VitestJsonReport = {
+            testResults: [
+                {
+                    assertionResults: [
+                        { ancestorTitles: [FAMILIES.registryBlocks], status: 'passed', title: 'resolves a block' },
+                        { ancestorTitles: ['allow list'], status: 'passed', title: 'checks its entries' }
+                    ]
+                }
+            ]
+        };
+
+        const missing = familiesWithoutTests(report);
+
+        expect(missing).not.toContain(FAMILIES.registryBlocks);
+        expect(missing).toContain(FAMILIES.integrationTags);
+    });
+
     it('counts passed, failed, not-measured, accepted and defect columns separately', () => {
         const markdown = renderDashboard(fixtureReport, fixtureAllowList);
 
@@ -66,6 +85,17 @@ describe('dashboard renderer', () => {
 
         expect(markdown).toContain('A row is green only when every one of its tests compared real reference data');
         expect(markdown).toContain('`not measured` means a comparison found no reference data');
+    });
+
+    it('renders non-gating coverage measurements for the PR trend comment', () => {
+        const measurements: ParityMeasurement[] = [
+            { family: FAMILIES.integrationTags, name: 'block_memberships', value: 18 }
+        ];
+
+        const markdown = renderDashboard(fixtureReport, fixtureAllowList, measurements);
+
+        expect(markdown).toContain('## Coverage measurements');
+        expect(markdown).toContain('| integration.tags | block_memberships | 18 |');
     });
 
     it('reads a defect-only family as defects rather than green', () => {

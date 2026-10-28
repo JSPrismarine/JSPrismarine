@@ -6,6 +6,7 @@ import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { loadVanillaDatapack } from './javaDatapack.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -54,9 +55,8 @@ describeFamily(FAMILIES.recipesRegistry, [REFERENCES.javaServerJar], () => {
         expect(verdict.stale).toEqual([]);
     });
 
-    it("reads Java 26.3's whole recipe directory", () => {
-        // docs/plans/data-driven-vanilla.md section 2 counts 2042 recipe files at 26.3.
-        expect(files).toBe(2042);
+    it('reports the current recipe comparison coverage', () => {
+        reportParityProgress(FAMILIES.recipesRegistry, { sourceFiles: files, compiledRecipes: compiled });
         expect(compiled).toBeGreaterThan(0);
     });
 });

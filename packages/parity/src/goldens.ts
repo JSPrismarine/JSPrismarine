@@ -179,7 +179,7 @@ export interface JavaBlockPropertyRow {
     stateOverrides?: Record<string, Record<string, string | number | boolean>>;
 }
 
-/** Reads the Java 26.3 block property dump: 1286 blocks over 35723 states. */
+/** Reads the Java 26.3 block property dump. */
 export const loadJavaBlockProperties = (): Record<string, JavaBlockPropertyRow> =>
     // Parsed JSON boundary; JavaBlockPropertyRow is the dumper's documented shape.
     readJson(join(bedrockDataRoot, 'src/jsp/java/block_properties.json')) as Record<string, JavaBlockPropertyRow>;
@@ -194,7 +194,7 @@ export interface JavaEntityAttributeRow {
     attributes: Record<string, number>;
 }
 
-/** Reads the Java 26.3 attribute supplier dump: 93 entity types with their sizes. */
+/** Reads the Java 26.3 attribute supplier dump. */
 export const loadJavaEntityAttributes = (): Record<string, JavaEntityAttributeRow> =>
     // Parsed JSON boundary; JavaEntityAttributeRow is the dumper's documented shape.
     readJson(join(bedrockDataRoot, 'src/jsp/java/entity_attributes.json')) as Record<string, JavaEntityAttributeRow>;

@@ -106,18 +106,18 @@ const firstMatching = (root: string, depth: number, holds: (path: string) => boo
 
 /** Every reference source the parity comparisons read, with how this checkout gets it. */
 export const REFERENCES = {
-    /** The Java 26.3 jar dump: hardness, light, friction and the rest for all 1286 blocks. */
+    /** The Java 26.3 jar dump: per-state hardness, light, friction and related properties. */
     javaBlockProperties: committed(
         'java-block-properties',
         'packages/bedrock-data/src/jsp/java/block_properties.json',
-        'per-state block properties for 1286 Java blocks'
+        'per-state properties for Java blocks'
     ),
 
-    /** The Java 26.3 attribute supplier dump: 93 entity types with their sizes and attributes. */
+    /** The Java 26.3 attribute supplier dump: entity sizes and attributes. */
     javaEntityAttributes: committed(
         'java-entity-attributes',
         'packages/bedrock-data/src/jsp/java/entity_attributes.json',
-        'attribute suppliers for 93 Java entity types'
+        'attribute suppliers for Java entity types'
     ),
 
     /** The `ItemRegistryPacket` capture: every item identifier a 1.26.51 server advertises. */
@@ -131,7 +131,7 @@ export const REFERENCES = {
     bedrockActorIdentifiers: committed(
         'bedrock-actor-identifiers',
         'packages/bedrock-data/src/resources/entity_identifiers.dat',
-        'the 136 actor types a Bedrock Dedicated Server advertises'
+        'the actor types a Bedrock Dedicated Server advertises'
     ),
 
     /** The `BiomeDefinitionListPacket` capture: the biomes a 1.26.51 client is told about. */
@@ -152,7 +152,7 @@ export const REFERENCES = {
     bedrockCommandMetadata: committed(
         'bedrock-command-metadata',
         'packages/commands/src/tables/bedrockCommands.json',
-        "Mojang's 84 Bedrock commands with their overloads and enums"
+        "Mojang's Bedrock commands with their overloads and enums"
     ),
 
     /** The Java worldgen registries the oracle dumper copied out of the jar. */
@@ -162,7 +162,7 @@ export const REFERENCES = {
         "Java's density functions, noises, noise settings and biome climates"
     ),
 
-    /** Nine whole overworld columns Java generated for seed 1234, as block runs. */
+    /** Whole overworld columns Java generated for seed 1234, as block runs. */
     worldgenColumns: committed(
         'worldgen-columns',
         'packages/worldgen/vectors/chunk.json',
@@ -198,7 +198,7 @@ export const REFERENCES = {
     javaWorldgenData: {
         id: 'java-worldgen-data',
         kind: 'fetched',
-        holds: "Java's density functions, biomes, features, structures and the 7594 climate boxes",
+        holds: "Java's density functions, biomes, features, structures and climate boxes",
         howToGet:
             'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
             '`pnpm --filter @jsprismarine/bedrock-data run datagen:java`',
@@ -209,7 +209,7 @@ export const REFERENCES = {
     javaServerJar: {
         id: 'java-server-jar',
         kind: 'fetched',
-        holds: "Java's 1447 loot tables and 2042 recipe files",
+        holds: "Java's loot tables and recipe files",
         howToGet: 'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`',
         locate: () => {
             const version = pinnedJavaVersion();

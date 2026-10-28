@@ -66,6 +66,10 @@ Use American English spelling in prose and documentation. Do not use British spe
   adding a packet or changing its wire layout.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
+- Whenever a change adds or changes data-driven compatibility behavior or a parity comparison
+  surface, extend `packages/parity` with a test under a declared family. Exercise the public
+  behavior through the parity suite's real data fixtures, and keep the family represented by a
+  tested dashboard row. CI fails when a declared family has no test.
 
 ## Tests and verification
 

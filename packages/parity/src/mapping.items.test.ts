@@ -7,6 +7,7 @@ import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { loadRequiredItemList } from './goldens.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -59,9 +60,10 @@ describeFamily(FAMILIES.mappingItems, [REFERENCES.bedrockItemCapture], () => {
         expect(verdict.stale).toEqual([]);
     });
 
-    it('covers as many Java items as the independently generated item type table counts', () => {
+    it('reports Java item coverage and agrees with the independently generated component table', () => {
         // Two generators read Java's item registry: this mapping table and the component table
         // of `@jsprismarine/items`. They agree on the registry size or one of them lost items.
+        reportParityProgress(FAMILIES.mappingItems, { javaItems: items });
         expect(items).toBe(itemTypesTable.javaItemCount);
     });
 });

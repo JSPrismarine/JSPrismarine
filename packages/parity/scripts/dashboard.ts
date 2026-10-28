@@ -2,8 +2,8 @@
  * Runs the parity suite with the Vitest JSON reporter and renders the dashboard.
  *
  * Writes the Markdown table to `dist/dashboard.md`, prints it to stdout, and appends it to
- * `$GITHUB_STEP_SUMMARY` when a CI job provides one. Exits 0 even when tests fail - the
- * dashboard's job is to report the failures, and the test run itself gates CI separately.
+ * `$GITHUB_STEP_SUMMARY` when a CI job provides one. The test run gates test failures separately;
+ * this script also fails when a declared dashboard family has no test.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
@@ -12,7 +12,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { VitestJsonReport } from '../src/dashboard/render.ts';
-import { renderDashboard } from '../src/dashboard/render.ts';
+import type { ParityMeasurement } from '../src/progress.ts';
+import { ALL_FAMILIES } from '../src/families.ts';
+import { familiesWithoutTests, renderDashboard } from '../src/dashboard/render.ts';
 
 /**
  * Teaches node how the workspace's own packages spell an import.
@@ -50,11 +52,14 @@ const { allowList } = await import('../src/allowlist.ts');
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const reportPath = join(packageRoot, 'dist', 'parity-report.json');
+const progressPath = join(packageRoot, 'dist', 'parity-progress.jsonl');
 
 mkdirSync(join(packageRoot, 'dist'), { recursive: true });
+writeFileSync(progressPath, '');
 
 const run = spawnSync('pnpm', ['exec', 'vitest', 'run', '--reporter=json', `--outputFile=${reportPath}`], {
     cwd: packageRoot,
+    env: { ...process.env, PARITY_PROGRESS_FILE: progressPath },
     stdio: ['ignore', 'ignore', 'inherit']
 });
 
@@ -65,7 +70,26 @@ if (!existsSync(reportPath)) {
 
 // Parsed JSON boundary; VitestJsonReport documents the fields the renderer reads.
 const report = JSON.parse(readFileSync(reportPath, 'utf-8')) as VitestJsonReport;
-const markdown = renderDashboard(report, allowList);
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const isFamily = (value: string): value is (typeof ALL_FAMILIES)[number] =>
+    ALL_FAMILIES.some((family) => family === value);
+const isParityMeasurement = (value: unknown): value is ParityMeasurement =>
+    isRecord(value) &&
+    typeof value.family === 'string' &&
+    isFamily(value.family) &&
+    typeof value.name === 'string' &&
+    typeof value.value === 'number' &&
+    Number.isFinite(value.value);
+const measurements = readFileSync(progressPath, 'utf-8')
+    .split(/\r?\n/)
+    .filter((line) => line !== '')
+    .map((line): ParityMeasurement => {
+        const value: unknown = JSON.parse(line);
+        if (!isParityMeasurement(value)) throw new Error(`Invalid parity measurement: ${line}`);
+        return value;
+    });
+const markdown = renderDashboard(report, allowList, measurements);
+const missingFamilies = familiesWithoutTests(report);
 
 const outputPath = join(packageRoot, 'dist', 'dashboard.md');
 writeFileSync(outputPath, markdown);
@@ -73,3 +97,8 @@ console.log(markdown);
 console.error(`Dashboard written to ${outputPath}`);
 
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${markdown}\n`);
+
+if (missingFamilies.length > 0) {
+    console.error(`Parity dashboard families have no tests: ${missingFamilies.join(', ')}`);
+    process.exitCode = 1;
+}

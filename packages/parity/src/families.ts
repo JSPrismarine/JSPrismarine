@@ -20,7 +20,7 @@ export const FAMILIES = {
     /** Biome names and numeric ids against the biome definitions golden. */
     registryBiomes: 'registry.biomes',
 
-    /** Chunker's totality property over all 35723 Java block states (plan section 5). */
+    /** Chunker's totality property over every Java block state (plan section 5). */
     mappingBlocks: 'mapping.blocks',
     /** Chunker's totality property over Java's item registry. */
     mappingItems: 'mapping.items',
@@ -47,10 +47,17 @@ export const FAMILIES = {
     /** Rolled item counts against the distribution each table's own weights predict (phase 2 exit). */
     lootDistribution: 'loot.distribution',
 
-    /** Entity stats against the Java attribute dump over 93 entity types (phase 3 exit). */
+    /** Entity stats against the Java attribute dump for each mapped mob (phase 3 exit). */
     entitiesStats: 'entities.stats',
     /** The `AddActorPacket` payload per advertised actor type (phase 3 exit). */
     entitiesAddActor: 'entities.addactor',
+
+    /** Java and Bedrock tag data through the resolved runtime registries. */
+    integrationTags: 'integration.tags',
+    /** A representative vanilla data-driven entity through an event, tick, and physics step. */
+    integrationEntityRuntime: 'integration.entity-runtime',
+    /** Registry, creative, and crafting payloads built for a joining Bedrock client. */
+    integrationClientPackets: 'integration.client-packets',
 
     /** The multi-noise biome source against Java's biome parameter vectors (phase 4 exit). */
     worldgenBiomes: 'worldgen.biomes',

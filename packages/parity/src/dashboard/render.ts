@@ -1,5 +1,6 @@
 import type { AllowListEntry } from '../allowlist.ts';
 import { ALL_FAMILIES, familyOf } from '../families.ts';
+import type { ParityMeasurement } from '../progress.ts';
 
 /** One test as the Vitest JSON reporter records it. */
 export interface ReportedTest {
@@ -18,6 +19,20 @@ export interface ReportedFile {
 export interface VitestJsonReport {
     testResults: ReportedFile[];
 }
+
+/** Returns declared dashboard rows that have no Vitest assertion under their family describe. */
+export const familiesWithoutTests = (report: VitestJsonReport): readonly string[] => {
+    const covered = new Set<string>();
+
+    for (const file of report.testResults) {
+        for (const test of file.assertionResults) {
+            const title = familyOf(test.ancestorTitles[0] ?? '');
+            if (title !== undefined && ALL_FAMILIES.some((family) => family === title)) covered.add(title);
+        }
+    }
+
+    return ALL_FAMILIES.filter((family) => !covered.has(family));
+};
 
 /** What one family's row claims. */
 export type FamilyStatus =
@@ -67,7 +82,11 @@ const emptyCounts = (): FamilyCounts => ({ passed: 0, failed: 0, notMeasured: 0,
  * Pure: feed it a report and a list, get Markdown. The CI job pipes the result into the step
  * summary; the weekly job writes it to a file.
  */
-export const renderDashboard = (report: VitestJsonReport, allowList: readonly AllowListEntry[]): string => {
+export const renderDashboard = (
+    report: VitestJsonReport,
+    allowList: readonly AllowListEntry[],
+    measurements: readonly ParityMeasurement[] = []
+): string => {
     const rows = new Map<string, FamilyCounts>();
 
     const row = (family: string): FamilyCounts => {
@@ -123,6 +142,16 @@ export const renderDashboard = (report: VitestJsonReport, allowList: readonly Al
         '`not measured` means a comparison found no reference data to stand on, so it compared',
         'nothing; the skipped test names what is missing. `defects` means the comparison passes',
         'only because the allow list records a gap as an unfixed defect.',
+        '',
+        '## Coverage measurements',
+        '',
+        '| Family | Measurement | Current |',
+        '| --- | --- | ---: |',
+        ...measurements
+            .toSorted((left, right) =>
+                `${left.family}/${left.name}`.localeCompare(`${right.family}/${right.name}`, 'en')
+            )
+            .map((measurement) => `| ${measurement.family} | ${measurement.name} | ${measurement.value} |`),
         ''
     ];
 

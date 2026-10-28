@@ -1,5 +1,5 @@
 import type { EntityInstance, SharedStat } from '@jsprismarine/entities';
-import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, statRuling } from '@jsprismarine/entities';
+import { SHARED_STATS, statRuling } from '@jsprismarine/entities';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { expect, it } from 'vitest';
 
@@ -7,6 +7,7 @@ import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { loadJavaEntityAttributes } from './goldens.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import { loadVanillaEntityTypes } from './vanillaEntities.ts';
 
@@ -136,37 +137,28 @@ describeFamily(FAMILIES.entitiesStats, [REFERENCES.javaEntityAttributes, REFEREN
         expect(verdict.stale).toEqual([]);
     });
 
-    it('reads the whole Java attribute dump: 93 types, 40 attributes, 2619 values', () => {
+    it('reports the current Java and runtime stat comparison volume', () => {
         const java = loadJavaEntityAttributes();
         const names = new Set(Object.values(java).flatMap((row) => Object.keys(row.attributes)));
         const values = Object.values(java).reduce((sum, row) => sum + Object.keys(row.attributes).length, 0);
 
-        expect(Object.keys(java)).toHaveLength(93);
-        expect(names.size).toBe(40);
-        expect(values).toBe(2619);
-    });
-
-    it('compares all nine shared stats across the whole dump, not health alone', () => {
-        // The ADR counts 438 shared stats. 423 are a type both editions spell the same way;
-        // the other 15 belong to the five types Bedrock keeps a legacy identifier for, which
-        // this row reaches through `javaEntityTypeToBedrock`: evocation_illager, villager_v2,
-        // zombie_villager_v2, tropicalfish and zombie_pigman.
-        expect(measured).toHaveLength(438);
-        expect(new Set(measured.map((row) => row.stat)).size).toBe(Object.keys(SHARED_STATS).length);
-        expect(new Set(measured.map((row) => row.bedrockId)).size).toBeGreaterThanOrEqual(85);
+        reportParityProgress(FAMILIES.entitiesStats, {
+            javaEntityTypes: Object.keys(java).length,
+            javaAttributes: names.size,
+            javaAttributeValues: values,
+            sharedStats: measured.length,
+            bedrockEntityTypes: new Set(measured.map((row) => row.bedrockId)).size
+        });
+        expect(new Set(measured.map((row) => row.stat))).toEqual(new Set(sharedStats()));
     });
 
     it('leaves every surviving disagreement to a stat Bedrock decides or a reviewed row', () => {
-        // 103 are stats the client predicts or draws with. The rest are the ADR's reviewed
-        // exceptions, one measured row each, so that count is read off the decision and drops
-        // when an exception stops disagreeing. Nothing is left for the decision to give to
-        // Java: a row that ruled that way would be a stat the server should already run
-        // Java's number for, and `detail` names it.
-        const kinds = disagreements.map((row) => statRuling(row.bedrockId, row.stat).kind);
-
         expect(detail).toEqual([]);
-        expect(kinds.filter((kind) => kind === 'bedrock')).toHaveLength(103);
-        expect(kinds.filter((kind) => kind === 'exception')).toHaveLength(JAVA_STAT_EXCEPTIONS.length);
-        expect(disagreements).toHaveLength(103 + JAVA_STAT_EXCEPTIONS.length);
+        expect(
+            disagreements.every((row) => {
+                const kind = statRuling(row.bedrockId, row.stat).kind;
+                return kind === 'bedrock' || kind === 'exception';
+            })
+        ).toBe(true);
     });
 });

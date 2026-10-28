@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
 import { loadRequiredItemList, loadRuntimeItemStates } from './goldens.ts';
+import { reportParityProgress } from './progress.ts';
 
 /**
  * Compares the two independent item sources with each other first - the capture from a 1.26.51
@@ -55,5 +56,13 @@ describe(FAMILIES.registryItems, () => {
 
     it('carries no stale allow-list entry', () => {
         expect(verdict.stale).toEqual([]);
+    });
+
+    it('reports the current item catalog comparison volume', () => {
+        reportParityProgress(FAMILIES.registryItems, {
+            capturedItems: Object.keys(loadRequiredItemList()).length,
+            dumpedItems: loadRuntimeItemStates().length,
+            shippedItems: Object.keys(item_table).length
+        });
     });
 });

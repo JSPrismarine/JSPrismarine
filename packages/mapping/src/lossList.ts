@@ -988,11 +988,9 @@ export const BEDROCK_BIOME_LOSSES = [
  *
  * The row is registry-wide rather than one row per entry because the gap is
  * the same for every entry: the value travels in Bedrock, and nothing here
- * decides what it travels as. Two things keep the row from growing into a
- * blanket pass. The identifier still has to be an entry of the pinned Java
- * 26.3 registry, so a typo fails the load; and `entries.count` pins how many
- * entries that is, so a version that adds one fails the property test and
- * comes back for review.
+ * decides what it travels as. The identifier still has to be an entry of the
+ * pinned Java 26.3 registry, so a typo fails the load. `entries.count` is a
+ * review baseline reported by the parity dashboard, not a gate on registry size.
  */
 export interface UntranslatedRegistry {
     /** The registry as a datapack reference names it. */

@@ -85,8 +85,8 @@ The reviewed loss list is exported alongside the functions (`BLOCK_LOSSES`, `ITE
 `UNTRANSLATED_REGISTRIES`, the merge lists and the dropped-property lists). Every known loss
 carries a reason and a reference, and the property tests fail both when an unlisted loss appears
 and when a listed one stops occurring. `UNTRANSLATED_REGISTRIES` is the one registry-wide row
-shape; it pins how many entries the registry has, so a version that adds one fails the property
-test rather than widening the row in silence.
+shape; its entry count is a review baseline surfaced by the parity dashboard, while the loader
+still verifies each referenced identifier against the generated census.
 
 ## The tables
 

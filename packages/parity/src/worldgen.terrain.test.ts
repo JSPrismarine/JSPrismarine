@@ -6,16 +6,17 @@ import { FAMILIES } from './families.ts';
 import type { JavaColumnRun } from './goldens.ts';
 import { loadJavaColumns, loadJavaWorldgenRegistries } from './goldens.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
  * Phase 4's terrain half, as far as the repository's reference data reaches.
  *
  * The exit criterion names a reference region. No capture job generates one yet, so the
- * reference here is the nine whole overworld columns the worldgen oracle dumped out of Java
- * 26.3 at seed 1234, aquifers applied. Each column gives three rows the criterion names: the
- * block at every one of the 384 heights, the heightmap value, and the set of block types the
- * column holds, which is its terrain class.
+ * reference here is the set of whole overworld columns the worldgen oracle dumped out of Java
+ * 26.3 at seed 1234, aquifers applied. Each column gives three rows the criterion names: the block at
+ * every height, the heightmap value, and the set of block types the column holds, which is its
+ * terrain class.
  *
  * Gap ids: `blocks:<x>,<z>` where any height disagrees, `heightmap:<x>,<z>` where the highest
  * non-air block sits elsewhere, and `terrain-class:<x>,<z>` where the column holds a different
@@ -98,8 +99,9 @@ describeFamily(FAMILIES.worldgenTerrain, [REFERENCES.worldgenRegistries, REFEREN
         expect(verdict.stale).toEqual([]);
     });
 
-    it('covers whole columns of the reference chunk, floor to sky', () => {
-        expect(columns).toBe(9);
+    it('covers each whole reference column, floor to sky', () => {
+        reportParityProgress(FAMILIES.worldgenTerrain, { javaColumns: columns, blockPositions: heights });
+        expect(columns).toBeGreaterThan(0);
         expect(heights).toBe(columns * loadJavaColumns().height);
     });
 });

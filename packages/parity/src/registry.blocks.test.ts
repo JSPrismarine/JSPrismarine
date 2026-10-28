@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
 import { loadBlockPaletteCapture } from './goldens.ts';
+import { reportParityProgress } from './progress.ts';
 
 /**
  * Compares the block catalog the server ships (`blockSchemas`, generated from the capture by
@@ -49,6 +50,7 @@ const compareBlocks = (): string[] => {
 };
 
 describe(FAMILIES.registryBlocks, () => {
+    const capture = loadBlockPaletteCapture();
     const verdict = checkAllowList(FAMILIES.registryBlocks, compareBlocks());
 
     it('ships every block, property and value the palette capture contains', () => {
@@ -57,5 +59,21 @@ describe(FAMILIES.registryBlocks, () => {
 
     it('carries no stale allow-list entry', () => {
         expect(verdict.stale).toEqual([]);
+    });
+
+    it('reports the current block catalog comparison volume', () => {
+        const properties = Object.values(capture.states).reduce((total, block) => total + Object.keys(block).length, 0);
+        const domainValues = Object.values(capture.domains).reduce(
+            (total, block) => total + Object.values(block).reduce((sum, property) => sum + property.values.length, 0),
+            0
+        );
+
+        reportParityProgress(FAMILIES.registryBlocks, {
+            capturedBlocks: Object.keys(capture.states).length,
+            shippedBlocks: Object.keys(blockSchemas.blocks).length,
+            capturedProperties: properties,
+            capturedPropertyValues: domainValues
+        });
+        expect(properties).toBeGreaterThan(0);
     });
 });

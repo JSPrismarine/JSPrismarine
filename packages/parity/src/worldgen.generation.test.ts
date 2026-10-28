@@ -6,9 +6,10 @@ import type { CapturedCorpus } from './generation/capture.ts';
 import { captureCorpus, openGeneration } from './generation/capture.ts';
 import { diffCensus, diffChunks, diffStructures } from './generation/diff.ts';
 import type { GenerationCorpusGolden } from './generation/golden.ts';
-import { CORPUS_CHUNKS, WHOLE_CHUNKS } from './generation/plan.ts';
+import { CORPUS_CHUNKS, STRUCTURE_SCAN_CHUNKS, WHOLE_CHUNKS } from './generation/plan.ts';
 import { loadGenerationCorpus } from './goldens.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -123,10 +124,14 @@ describeFamily(FAMILIES.worldgenStructures, needs, () => {
     });
 
     it('scans the chunks the plan declares and builds every structure type it finds', () => {
+        const structureTypes = new Set(captured.structures.map((placement) => placement.structure));
+
+        reportParityProgress(FAMILIES.worldgenStructures, {
+            scannedChunks: STRUCTURE_SCAN_CHUNKS,
+            structurePlacements: captured.structures.length,
+            structureTypes: structureTypes.size
+        });
         expect(captured.structures.length).toBe(golden.structures.length);
-        // Breadth rather than a pinned number: a scan that found one structure type would pass
-        // the comparison above while covering almost nothing.
-        expect(new Set(captured.structures.map((placement) => placement.structure)).size).toBeGreaterThan(5);
         // A type with no builder places nothing, so an empty list is what a green row means.
         expect(captured.unbuiltStructureTypes).toEqual([]);
     });

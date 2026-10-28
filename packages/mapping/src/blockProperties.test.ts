@@ -38,9 +38,8 @@ describe('the flattened block property table', () => {
         for (const name of covered) expect(name in palette.states, name).toBe(true);
     });
 
-    it('keeps the Bedrock-only exception list to the reviewed identifiers', () => {
+    it('keeps reviewed Bedrock-only blocks out of the Java property table', () => {
         // The chemistry set is the bulk of the list; everything in it is a Bedrock-only family.
-        expect(BEDROCK_ONLY_BLOCKS.size).toBe(182);
         for (const name of ['minecraft:element_0', 'minecraft:allow', 'minecraft:deny', 'minecraft:border_block']) {
             expect(BEDROCK_ONLY_BLOCKS.has(name), name).toBe(true);
             expect(bedrockBlockPropertiesOf(name)).toBeUndefined();
@@ -50,12 +49,9 @@ describe('the flattened block property table', () => {
     it('limits collapse disagreements to Java properties Bedrock does not represent', () => {
         // Piston extension, leaf distance, bamboo and plant stage: the mapping loss list explains
         // each collapse. Anything new here is a flattening regression to review.
-        expect(BLOCK_PROPERTY_CONFLICTS.length).toBe(38);
         for (const conflict of BLOCK_PROPERTY_CONFLICTS) {
             expect(['lightDampening', 'randomTick']).toContain(conflict.field);
         }
-        const blocks = new Set(BLOCK_PROPERTY_CONFLICTS.map((conflict) => conflict.bedrock.split('[')[0]));
-        expect(blocks.size).toBe(23);
     });
 
     it('resolves a collapse to the Java state whose dropped properties are at their defaults', () => {

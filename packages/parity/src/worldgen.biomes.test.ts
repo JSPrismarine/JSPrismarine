@@ -7,6 +7,7 @@ import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { loadJavaBiomePoints, loadNetworkBiomes, unpackClimatePoint } from './goldens.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /** Reads one dumped target, which the oracle writes in quantized units already. */
@@ -86,7 +87,13 @@ describeFamily(FAMILIES.worldgenBiomes, [REFERENCES.worldgenBiomePoints, REFEREN
     });
 
     it("replays Java's whole lookup dump rather than a sample", () => {
-        expect(lookups).toBeGreaterThan(0);
-        expect(boxes).toBeGreaterThan(1000);
+        const vectors = loadJavaBiomePoints();
+        const expectedLookups = vectors.parameterLists.reduce((total, list) => total + list.lookups.length, 0);
+        const expectedBoxes = vectors.parameterLists.reduce((total, list) => total + list.points.length, 0);
+
+        reportParityProgress(FAMILIES.worldgenBiomes, { javaLookupPoints: lookups, javaParameterBoxes: boxes });
+        expect(vectors.parameterLists.length).toBeGreaterThan(0);
+        expect(lookups).toBe(expectedLookups);
+        expect(boxes).toBe(expectedBoxes);
     });
 });

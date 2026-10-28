@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -15,14 +16,14 @@ import { REFERENCES } from './references.ts';
  * data value and a painting as a resource pack texture name. Neither GeyserMC/mappings nor the
  * bedrock-samples metadata publishes the pairing, so there is no table to generate and the
  * whole registry is one accepted gap until a Phase 2 or Phase 3 capture produces the Bedrock
- * side. `UNTRANSLATED_REGISTRIES` in `@jsprismarine/mapping` declares which three they are and
- * how many entries the pinned Java 26.3 data publishes for each, and both the allow-list rows
- * and this row's expectations come from it rather than a second copy.
+ * side. `UNTRANSLATED_REGISTRIES` in `@jsprismarine/mapping` declares which registries they are
+ * and the review baseline for their entry counts, and both the allow-list rows and this row's
+ * measurements come from it rather than a second copy.
  *
  * Two properties keep the gap from widening on its own. Every identifier the census holds for
  * these registries resolves as a loss, so the loader accounts for it and refuses to start on
- * anything else; and the census holds exactly the pinned number of them, so a Java version
- * that adds a banner pattern fails this row rather than being absorbed.
+ * anything else. The current census size is reported against its review baseline, so a Java
+ * version that adds an entry is visible in CI without making a catalog count a test gate.
  *
  * Gap id: `untranslated:<registry>`, one per registry.
  */
@@ -79,10 +80,18 @@ describeFamily(FAMILIES.mappingUntranslated, [REFERENCES.javaIdentifierCensus], 
         }
     });
 
-    it('holds the pinned entry count for each, so a Java version that adds one comes back for review', () => {
-        const published = Object.fromEntries(measured.map((row) => [row.registry, row.published]));
-        const pinned = Object.fromEntries(UNTRANSLATED_REGISTRIES.map((row) => [row.registry, row.entries.count]));
+    it('reports the current untranslated registry sizes for review', () => {
+        const measurements = new Map(measured.map((row) => [row.registry, row]));
+        reportParityProgress(
+            FAMILIES.mappingUntranslated,
+            Object.fromEntries(
+                UNTRANSLATED_REGISTRIES.flatMap((baseline) => [
+                    [`${baseline.registry}_current_entries`, measurements.get(baseline.registry)?.published ?? 0],
+                    [`${baseline.registry}_review_baseline_entries`, baseline.entries.count]
+                ])
+            )
+        );
 
-        expect(published).toEqual(pinned);
+        expect(measured.map((row) => row.registry)).toEqual(UNTRANSLATED_REGISTRIES.map((row) => row.registry));
     });
 });

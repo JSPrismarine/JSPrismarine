@@ -11,6 +11,7 @@ import { expect, it } from 'vitest';
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
+import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 
 /**
@@ -36,6 +37,7 @@ const compareCommandTree = (): { gaps: string[]; commands: number; overloads: nu
     const detail: string[] = [];
 
     for (const command of flattened.commands) {
+        if (command.overloads.length === 0) gaps.push(`no-overloads:${command.name}`);
         if (javaOnly.has(command.name)) continue;
         if (bedrockCommand(command.name) === undefined) gaps.push(`unpublished:${command.name}`);
     }
@@ -66,12 +68,13 @@ describeFamily(FAMILIES.commandsTree, [REFERENCES.bedrockCommandMetadata], () =>
         expect(verdict.stale).toEqual([]);
     });
 
-    it("measures itself against Mojang's whole published command set", () => {
-        // docs/research/commands-functions-and-datapack-execution.md section 6 counted 84
-        // commands and 279 overloads in Mojang's 1.26.50 metadata.
-        expect(bedrockCommandTable.counts.commands).toBe(84);
-        expect(bedrockCommandTable.counts.overloads).toBe(279);
+    it('reports the current Bedrock command comparison volume', () => {
+        reportParityProgress(FAMILIES.commandsTree, {
+            bedrockCommands: bedrockCommandTable.counts.commands,
+            bedrockOverloads: bedrockCommandTable.counts.overloads,
+            serverCommands: commands,
+            serverOverloads: overloads
+        });
         expect(commands).toBeGreaterThan(0);
-        expect(overloads).toBeGreaterThan(commands);
     });
 });

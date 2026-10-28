@@ -298,6 +298,17 @@ export const allowList: readonly AllowListEntry[] = [
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
 
+    // Bedrock's own item tag and required item capture contain these entries, but the runtime
+    // item registry does not expose a type that can carry their Bedrock tag yet.
+    ...['minecraft:agent_spawn_egg', 'minecraft:npc_spawn_egg', 'minecraft:spawn_egg'].map((identifier) => ({
+        family: 'integration.tags' as const,
+        id: `bedrock-item-tag:minecraft:spawn_egg:missing:${identifier}`,
+        kind: 'defect' as const,
+        reason: `The Bedrock item tag and required item capture include ${identifier}, but the runtime item registry has no type for it.`,
+        reference:
+            'packages/bedrock-data/src/vendor/item_tags.json and packages/bedrock-data/src/jsp/required_item_list.json'
+    })),
+
     // Two vanilla recipes make an item Bedrock has no identifier for, so the recipe compiles
     // onto the fallback item the reviewed item loss names. The loss is in `ITEM_LOSSES`; these
     // rows record that a recipe carries it, which is what a player would see in the book.

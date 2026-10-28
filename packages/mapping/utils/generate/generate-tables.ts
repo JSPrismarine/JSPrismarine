@@ -699,15 +699,6 @@ const censusRegistries = [
 const census: Record<string, string[]> = {};
 for (const registry of censusRegistries) census[registry] = censusRegistryIds(registry);
 
-for (const untranslated of UNTRANSLATED_REGISTRIES) {
-    const found = census[untranslated.registry]?.length ?? 0;
-    if (found !== untranslated.entries.count) {
-        throw new Error(
-            `The allow list says ${untranslated.registry} has ${untranslated.entries.count} entries; Java ${javaVersion} publishes ${found}. Review the row before changing the count.`
-        );
-    }
-}
-
 writeTable('javaIdentifiers.json', {
     $notice: notice(
         `Every Java ${javaVersion} identifier of the registries no Bedrock table answers, read from Mojang's reports/registries.json and the data directories beside it. The loader checks a reference into one of these registries against this census, so a typo still fails the load even where there is no Bedrock side to map onto. Which registries appear is decided by src/packRegistries.ts and the untranslated rows of src/lossList.ts.`

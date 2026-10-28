@@ -7,8 +7,8 @@ import { dirname, join } from 'node:path';
 import { FETCH_CACHE, REFERENCES } from './references.ts';
 
 /**
- * Loads Java Edition's vanilla datapack out of the pinned server jar, which is where the 1447
- * loot tables and 2042 recipe files the loot and recipe rows compare against live.
+ * Loads Java Edition's vanilla datapack out of the pinned server jar, which carries the loot
+ * tables and recipe files the corresponding parity rows compare against.
  *
  * Mojang ships the datapack inside the jar rather than as a download, so the first call
  * unpacks the JSON into the fetch cache beside the jar and later calls read the unpacked copy.

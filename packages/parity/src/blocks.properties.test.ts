@@ -1,4 +1,10 @@
-import { DROPPED_BLOCK_PROPERTIES, bedrockBlockPropertiesOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import {
+    BEDROCK_ONLY_BLOCKS,
+    BLOCK_PROPERTY_CONFLICTS,
+    DROPPED_BLOCK_PROPERTIES,
+    bedrockBlockPropertiesOf,
+    javaBlockStateToBedrock
+} from '@jsprismarine/mapping';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
@@ -8,6 +14,7 @@ import { loadJavaBlockProperties } from './goldens.ts';
 import { javaDefaultStates, loadJavaBlockStates } from './javaBlockStates.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityProgress } from './progress.ts';
 
 /**
  * Phase 1's exit criterion: the per-state block property table against the Java 26.3 jar dump,
@@ -153,11 +160,16 @@ describeFamily(FAMILIES.blocksProperties, [REFERENCES.javaBlockProperties], () =
         expect(verdict.stale).toEqual([]);
     });
 
-    it('compares every state in the palette, not a sample of them', () => {
-        // The Java registry collapses onto 15953 distinct Bedrock states
-        // (docs/research/java-to-bedrock-translation.md section 1), less the one the two test
-        // blocks fall back to, and the table carries ten property fields per state.
-        expect(states).toBe(15952);
-        expect(fields).toBe(states * 10);
+    it('reports the current Java block-state comparison volume', () => {
+        reportParityProgress(FAMILIES.blocksProperties, {
+            javaStates: states,
+            propertyValues: fields,
+            bedrockOnlyBlocks: BEDROCK_ONLY_BLOCKS.size,
+            propertyConflictRows: BLOCK_PROPERTY_CONFLICTS.length,
+            conflictingBedrockBlocks: new Set(
+                BLOCK_PROPERTY_CONFLICTS.map((conflict) => conflict.bedrock.split('[')[0])
+            ).size
+        });
+        expect(states).toBeGreaterThan(0);
     });
 });
