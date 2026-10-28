@@ -77,6 +77,13 @@ const parseDamageRange = (value: unknown): DamageRange => {
     return { min: 0, max: 0 };
 };
 
+/** Reads a non-negative safe integer from a component body. */
+const nonNegativeIntegerAt = (body: ComponentRecord, key: string, fallback: number): number | undefined => {
+    const value = body[key];
+    if (value === undefined) return fallback;
+    return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+};
+
 /** What `minecraft:attack` declares. */
 export interface AttackParams {
     readonly damage: DamageRange;
@@ -725,6 +732,39 @@ export const inventory: ComponentFactory<EntityHooks, InventoryParams> = {
             : rejected('expected an object'),
     create: () => ({})
 };
+
+/** What `minecraft:strength` declares. */
+export interface StrengthParams {
+    /** The current strength value, which increases an entity's inventory capacity. */
+    readonly value: number;
+    /** The maximum strength value this entity can reach. */
+    readonly max: number;
+}
+
+/** `minecraft:strength`, which contributes slots to an entity's inventory. */
+export const strength: ComponentFactory<EntityHooks, StrengthParams> = {
+    name: 'minecraft:strength',
+    hooks: [],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        const current = nonNegativeIntegerAt(value, 'value', 1);
+        const max = nonNegativeIntegerAt(value, 'max', 5);
+        if (current === undefined || max === undefined)
+            return rejected('strength values must be non-negative integers');
+        return accepted({ value: current, max });
+    },
+    create: () => ({})
+};
+
+/** Whether a value has the normalized shape produced by `minecraft:strength`. */
+export const isStrengthParams = (value: unknown): value is StrengthParams =>
+    isRecord(value) &&
+    typeof value.value === 'number' &&
+    Number.isSafeInteger(value.value) &&
+    value.value >= 0 &&
+    typeof value.max === 'number' &&
+    Number.isSafeInteger(value.max) &&
+    value.max >= 0;
 
 /** One entry of `minecraft:equipment.slot_drop_chance`. */
 export interface SlotDropChance {

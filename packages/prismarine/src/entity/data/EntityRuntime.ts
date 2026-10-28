@@ -48,6 +48,7 @@ import {
     isDyeableParams,
     isAreaAttackParams,
     isRecord,
+    isStrengthParams,
     javaEntityNavigation,
     MAX_BLOCK_SENSOR_RADIUS,
     noEffects,
@@ -2220,13 +2221,20 @@ export class EntityRuntime implements EntityScene {
         return { accepted: true };
     }
 
-    /** The slot count declared by the active inventory component. */
+    /** The active inventory size, including slots contributed by entity strength. */
     private containerCapacityOf(instance: EntityInstance): number {
         const inventory = instance.componentParams('minecraft:inventory');
         if (!isRecord(inventory) || typeof inventory.inventorySize !== 'number') return 0;
-        return Number.isSafeInteger(inventory.inventorySize) && inventory.inventorySize >= 0
-            ? inventory.inventorySize
-            : 0;
+        if (!Number.isSafeInteger(inventory.inventorySize) || inventory.inventorySize < 0) return 0;
+
+        const slotsPerStrength = inventory.additionalSlotsPerStrength;
+        const strengthValue = instance.componentParams('minecraft:strength');
+        const extraSlots =
+            Number.isSafeInteger(slotsPerStrength) && typeof slotsPerStrength === 'number' && slotsPerStrength > 0
+                ? (isStrengthParams(strengthValue) ? strengthValue.value : 0) * slotsPerStrength
+                : 0;
+        const capacity = inventory.inventorySize + extraSlots;
+        return Number.isSafeInteger(capacity) ? capacity : 0;
     }
 
     /** Whether a slot name is a canonical numeric index into this entity's declared container. */

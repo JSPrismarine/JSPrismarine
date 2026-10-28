@@ -256,6 +256,8 @@ records; `minecraft:fire_immune` and `minecraft:freezing_immune` turn their caus
 attacker's `minecraft:ignore_cannot_be_attacked` filter allows the target. `minecraft:fire_immune`
 also sets the Bedrock actor's `FIRE_IMMUNE` flag. `minecraft:body_rotation_blocked` projects to
 `BODY_ROTATION_BLOCKED`. `minecraft:out_of_control` projects to `OUT_OF_CONTROL`.
+`minecraft:strength` is parsed as `value` (default 1) and `max` (default 5); the entity runtime adds
+`value * additional_slots_per_strength` to an inventory's declared size.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`.
 The separate breeding runtime reads compatible mates and offspring pairs from

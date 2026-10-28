@@ -57,6 +57,7 @@ import {
     spawnEntity,
     spawnEggInteraction,
     spellEffects,
+    strength,
     tameable,
     targetNearbySensor,
     timer,
@@ -201,7 +202,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:shooter',
     'minecraft:sittable',
     'minecraft:spell_effects',
-    'minecraft:strength',
     'minecraft:suspect_tracking',
     'minecraft:tamemount',
     'minecraft:tick_world',
@@ -275,6 +275,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(interact);
     register(instantDespawn);
     register(inventory);
+    register(strength);
     register(jumpStatic);
     register(loot);
     register(mobEffect);
