@@ -111,6 +111,7 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
         headless: remote || args.headless,
         profile: devtools !== undefined
     });
+    if (devtools) server.releaseOnShutdown(() => devtools.close());
     attach?.(server);
 
     if (devtools) {
