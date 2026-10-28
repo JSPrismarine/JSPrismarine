@@ -97,14 +97,20 @@ const flag = (body: Record<string, unknown>, key: string, fallback: boolean): bo
 
 /** The identifiers of `blocks_to_avoid`, which vanilla writes as names or as `{name}` objects. */
 const avoidedBlocks = (value: unknown): readonly string[] => {
-    const members = Array.isArray(value) ? value : value === undefined ? [] : [value];
-    return members
-        .map((member) => {
-            if (typeof member === 'string') return member;
-            if (isRecord(member) && typeof member.name === 'string') return member.name;
-            return undefined;
-        })
-        .filter((name) => name !== undefined);
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) {
+        if (typeof value === 'string') return [value];
+        if (isRecord(value) && typeof value.name === 'string') return [value.name];
+        return [];
+    }
+
+    const avoided: string[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+        const member = value[index];
+        if (typeof member === 'string') avoided.push(member);
+        else if (isRecord(member) && typeof member.name === 'string') avoided.push(member.name);
+    }
+    return avoided;
 };
 
 /** How tall an entity is, from `minecraft:collision_box`, rounded up to whole blocks. */
