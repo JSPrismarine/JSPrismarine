@@ -60,6 +60,14 @@ export interface GoalItem {
     readonly filterView?: FilterItemView;
 }
 
+/** Item behavior selected from `minecraft:shareables` during pickup. */
+export interface GoalPickupOptions {
+    /** Whether a piglin should admire the item after taking it. */
+    readonly admire: boolean;
+    /** Whether a piglin should barter for the item after taking it. */
+    readonly barter: boolean;
+}
+
 /** One block a block search found. */
 export interface GoalBlock {
     readonly position: EntityPosition;
@@ -153,7 +161,7 @@ export interface GoalWorld {
     /** Takes the entity off whatever it rides. */
     dismount?(): void;
     /** Takes up to `count` items from the stack into the entity's inventory or hand. */
-    pickUp?(item: GoalItem, count?: number): void;
+    pickUp?(item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Drops an item at a position, or at the entity when none is given. */
     dropItem?(identifier: string, position: EntityPosition | undefined): void;
     /** Hands items to another entity, for the sharing and gift goals. */

@@ -7,7 +7,14 @@
  * projections know only this.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
-import type { BlockQuery, GoalBlock, GoalItem, GoalMob, NavigationView } from '@jsprismarine/entity-goals';
+import type {
+    BlockQuery,
+    GoalBlock,
+    GoalItem,
+    GoalMob,
+    GoalPickupOptions,
+    NavigationView
+} from '@jsprismarine/entity-goals';
 
 import type { ServerContent } from '../../content/ServerContent';
 import type { DataEntity, MobBody } from './DataEntity';
@@ -91,7 +98,7 @@ export interface EntityScene {
     /** Who rides an entity, in the order they got on. */
     ridersOf(vehicle: MobBody): readonly GoalMob[];
     /** Takes an item stack lying in the world into an entity's inventory. */
-    pickUp(taker: MobBody, item: GoalItem, count?: number): void;
+    pickUp(taker: MobBody, item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Moves one item from an entity's inventory to another entity. */
     giveItem(giver: MobBody, taker: GoalMob, identifier: string, count?: number): void;
     /** Breaks a block and drops what its loot table rolls. */

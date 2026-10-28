@@ -56,7 +56,15 @@ import {
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import { admireGoldItem, canAdmire, isBarterCurrency, MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
-import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
+import type {
+    BlockQuery,
+    GoalBlock,
+    GoalItem,
+    GoalMob,
+    GoalPickupOptions,
+    GoalWorld,
+    NavigationView
+} from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
@@ -1778,11 +1786,16 @@ export class EntityRuntime implements EntityScene {
     }
 
     /** Takes up to `count` items from a stack lying in the world into an entity's inventory. */
-    public pickUp(taker: MobBody, item: GoalItem, count = item.count()): void {
+    public pickUp(taker: MobBody, item: GoalItem, count = item.count(), options?: GoalPickupOptions): void {
         if (typeof item.id !== 'number') return;
         const taken = this.host.takeItem?.(item.id, count);
         if (taken === undefined) return;
-        for (let index = 0; index < taken.count; index += 1) taker.inventory.push(taken.identifier);
+        const entity = this.entities.get(taker.id);
+        const piglinStarted =
+            entity !== undefined &&
+            (options?.admire === true || options?.barter === true) &&
+            this.startPiglinInteraction(entity, taken.identifier, options.admire, options.barter);
+        for (let index = piglinStarted ? 1 : 0; index < taken.count; index += 1) taker.inventory.push(taken.identifier);
     }
 
     /**
@@ -2278,16 +2291,21 @@ export class EntityRuntime implements EntityScene {
     }
 
     /** Starts the piglin behavior requested by a successful data-driven interaction. */
-    private startPiglinInteraction(entity: DataEntity, itemIdentifier: string, admire: boolean, barter: boolean): void {
-        if (entity.brain === undefined || entity.brainMob?.id !== 'minecraft:piglin') return;
+    private startPiglinInteraction(
+        entity: DataEntity,
+        itemIdentifier: string,
+        admire: boolean,
+        barter: boolean
+    ): boolean {
+        if (entity.brain === undefined || entity.brainMob?.id !== 'minecraft:piglin') return false;
 
         const offered = { id: itemIdentifier, tags: new Set<string>() };
-        if (!isBarterCurrency(offered) || entity.body.equipment.offhand !== undefined) return;
+        if (!isBarterCurrency(offered) || entity.body.equipment.offhand !== undefined) return false;
 
         const admireParams = entity.instance.componentParams('minecraft:admire_item');
         const barterParams = entity.instance.componentParams('minecraft:barter');
         const context = { world: this.brainWorld(), body: brainMobOf(entity, entity.brain, this) };
-        if (context.body.baby) return;
+        if (context.body.baby) return false;
         const canStartAdmiring =
             admire &&
             entity.instance.hasComponent('minecraft:admire_item') &&
@@ -2295,7 +2313,7 @@ export class EntityRuntime implements EntityScene {
             canAdmire(context.body, offered) &&
             this.damageCooldownElapsed(entity, admireParams.cooldownAfterBeingAttacked);
         const canStartBartering = barter && entity.instance.hasComponent('minecraft:barter') && isRecord(barterParams);
-        if (!canStartAdmiring && !canStartBartering) return;
+        if (!canStartAdmiring && !canStartBartering) return false;
 
         entity.body.setEquipment({
             ...entity.body.equipment,
@@ -2307,6 +2325,7 @@ export class EntityRuntime implements EntityScene {
             admireGoldItem(context, Math.ceil(duration * TICKS_PER_SECOND));
         }
         if (canStartBartering) this.pendingBarters.add(entity);
+        return true;
     }
 
     /** Completes a requested piglin barter after its admire behavior releases the gold ingot. */

@@ -19,12 +19,14 @@ import {
     ticksAt
 } from '../params';
 import type { GoalSupport } from '../support';
-import type { GoalItem } from '../world';
+import type { GoalItem, GoalPickupOptions } from '../world';
 
 interface PickupRule {
     readonly priority: number;
     readonly maxAmount: number;
     readonly pickupLimit: number;
+    readonly admire: boolean;
+    readonly barter: boolean;
 }
 
 /** Matches a shareable name, auxiliary value, or Bedrock item tag. */
@@ -51,11 +53,24 @@ const shareableRuleFor = (
 ): PickupRule | undefined => {
     const matching = rules?.items.find((rule) => rule.items.some((name) => itemMatches(item, item.filterView, name)));
     if (matching !== undefined) {
-        return { priority: matching.priority, maxAmount: matching.maxAmount, pickupLimit: matching.pickupLimit };
+        return {
+            priority: matching.priority,
+            maxAmount: matching.maxAmount,
+            pickupLimit: matching.pickupLimit,
+            admire: matching.admire,
+            barter: matching.barter
+        };
     }
     if (rules?.allItems === true)
-        return { priority: Number.MAX_SAFE_INTEGER, maxAmount: rules.allItemsMaxAmount, pickupLimit: -1 };
-    if (canPickupAnyItem) return { priority: Number.MAX_SAFE_INTEGER, maxAmount: -1, pickupLimit: -1 };
+        return {
+            priority: Number.MAX_SAFE_INTEGER,
+            maxAmount: rules.allItemsMaxAmount,
+            pickupLimit: -1,
+            admire: false,
+            barter: false
+        };
+    if (canPickupAnyItem)
+        return { priority: Number.MAX_SAFE_INTEGER, maxAmount: -1, pickupLimit: -1, admire: false, barter: false };
     return undefined;
 };
 
@@ -125,6 +140,7 @@ export const pickupItems = goal<PickupItemsParams>({
     create: (params, support) => {
         let item: GoalItem | undefined;
         let itemCount = 0;
+        let pickupOptions: GoalPickupOptions | undefined;
 
         const heldCount = (identifier: string): number => {
             const inventory = support.world.inventory?.() ?? [];
@@ -163,16 +179,18 @@ export const pickupItems = goal<PickupItemsParams>({
                         const rule = shareableRuleFor(candidate, rules, params.canPickupAnyItem);
                         if (rule === undefined) return [];
                         const count = pickupCount(candidate, rule, rules?.singularPickup === true);
-                        return count <= 0 ? [] : [{ candidate, count, priority: rule.priority }];
+                        return count <= 0 ? [] : [{ candidate, count, rule }];
                     });
                 candidates.sort(
                     (left, right) =>
-                        left.priority - right.priority ||
+                        left.rule.priority - right.rule.priority ||
                         support.distanceTo(left.candidate.position()) - support.distanceTo(right.candidate.position())
                 );
                 const selected = candidates[0];
                 item = selected?.candidate;
                 itemCount = selected?.count ?? 0;
+                pickupOptions =
+                    selected === undefined ? undefined : { admire: selected.rule.admire, barter: selected.rule.barter };
                 return item !== undefined;
             },
             canContinue: () => item !== undefined && support.navigator.walking,
@@ -183,14 +201,16 @@ export const pickupItems = goal<PickupItemsParams>({
             },
             tick: () => {
                 if (support.navigator.tick()) return;
-                if (item !== undefined) support.world.pickUp?.(item, itemCount);
+                if (item !== undefined) support.world.pickUp?.(item, itemCount, pickupOptions);
                 support.fire(params.onPickupItemEnd);
                 item = undefined;
                 itemCount = 0;
+                pickupOptions = undefined;
             },
             stop: () => {
                 item = undefined;
                 itemCount = 0;
+                pickupOptions = undefined;
                 support.navigator.stop();
             }
         };
