@@ -1792,17 +1792,24 @@ export class EntityRuntime implements EntityScene {
      * dropped at its feet, which is what the allay and the villager do in
      * vanilla: they throw the item rather than reaching into a container.
      */
-    public giveItem(giver: MobBody, taker: GoalMob, identifier: string): void {
-        const held = giver.inventory.indexOf(identifier);
-        if (held === -1) return;
-        giver.inventory.splice(held, 1);
+    public giveItem(giver: MobBody, taker: GoalMob, identifier: string, count = 1): void {
+        let remaining = Math.max(0, Math.floor(count));
+        let taken = 0;
+        while (remaining > 0) {
+            const held = giver.inventory.indexOf(identifier);
+            if (held === -1) break;
+            giver.inventory.splice(held, 1);
+            taken += 1;
+            remaining -= 1;
+        }
+        if (taken === 0) return;
 
         const other = typeof taker.id === 'number' ? this.entities.get(taker.id) : undefined;
         if (other === undefined) {
-            this.host.drop(blockPositionOf(taker.position()), { identifier, count: 1 });
+            this.host.drop(blockPositionOf(taker.position()), { identifier, count: taken });
             return;
         }
-        other.body.inventory.push(identifier);
+        for (let index = 0; index < taken; index += 1) other.body.inventory.push(identifier);
     }
 
     /**

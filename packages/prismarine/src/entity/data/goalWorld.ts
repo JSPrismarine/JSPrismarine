@@ -12,7 +12,7 @@
  * until the runtime can answer it, rather than quietly putting 52 goals to
  * sleep.
  */
-import { canEntityAttack, canEntityAttackView } from '@jsprismarine/entities';
+import { canEntityAttack, canEntityAttackView, isShareablesParams } from '@jsprismarine/entities';
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
@@ -47,6 +47,11 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
         view: (): FilterEntityView => entity.instance.filterContext().self,
         identifier: () => entity.identifier,
         heldItem: () => entity.carried,
+        inventory: () => entity.body.inventory,
+        shareables: () => {
+            const rules = entity.instance.componentParams('minecraft:shareables');
+            return isShareablesParams(rules) ? rules : undefined;
+        },
         health: () => entity.instance.attributes.get('health')?.current,
         // Through `mobById` rather than `byId`, because a target is as often a player as a mob
         // and the two live in different indexes.
@@ -212,7 +217,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             entity.carried = identifier;
         },
         inventory: () => [...entity.inventory],
-        giveItem: (mob, identifier) => scene.giveItem(entity, mob, identifier),
+        giveItem: (mob, identifier, count) => scene.giveItem(entity, mob, identifier, count),
         dropItem: (identifier, position) =>
             scene.host.drop(blockPositionOf(position ?? entity.position), { identifier, count: 1 }),
         setBlock: (position, identifier) =>

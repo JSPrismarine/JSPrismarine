@@ -1,4 +1,5 @@
-import type { Goal } from '@jsprismarine/entities';
+import type { Goal, ShareablesParams } from '@jsprismarine/entities';
+import { isShareablesParams } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
@@ -743,11 +744,57 @@ export const shareItems = goal<ShareItemsParams>({
     })),
     create: (params, support) => {
         let recipient: GoalMob | undefined;
+        let hasOffer = false;
+
+        const rulesOf = (value: unknown): ShareablesParams | undefined =>
+            isShareablesParams(value) ? value : undefined;
+
+        const shareRule = (rules: ShareablesParams, identifier: string) => {
+            const matching = rules.items.find((item) => item.items.includes(identifier));
+            if (matching !== undefined) return matching;
+            if (!rules.allItems) return undefined;
+            return {
+                pickupOnly: false,
+                surplusAmount: rules.allItemsSurplusAmount,
+                wantAmount: rules.allItemsWantAmount
+            };
+        };
+
+        const offerFor = (candidate: GoalMob): { readonly identifier: string; readonly count: number } | undefined => {
+            const ownRules = rulesOf(support.entity.componentParams('minecraft:shareables'));
+            const recipientRules = candidate.shareables?.();
+            const inventory = support.world.inventory?.() ?? [];
+            if (ownRules === undefined || recipientRules === undefined)
+                return ownRules === undefined && recipientRules === undefined && inventory[0] !== undefined
+                    ? { identifier: inventory[0], count: 1 }
+                    : undefined;
+
+            for (const identifier of new Set(inventory)) {
+                const senderRule = shareRule(ownRules, identifier);
+                const takerRule = shareRule(recipientRules, identifier);
+                if (
+                    senderRule === undefined ||
+                    takerRule === undefined ||
+                    senderRule.pickupOnly ||
+                    senderRule.surplusAmount < 0 ||
+                    takerRule.wantAmount < 0
+                )
+                    continue;
+                const senderHas = inventory.filter((item) => item === identifier).length;
+                const takerHas = (candidate.inventory?.() ?? []).filter((item) => item === identifier).length;
+                const count = Math.min(senderHas - senderRule.surplusAmount, takerRule.wantAmount - takerHas);
+                if (count > 0) return { identifier, count };
+            }
+            return undefined;
+        };
+
         return {
             canStart: () => {
                 if ((support.world.inventory?.() ?? []).length === 0) return false;
                 recipient = support.findTarget(params.entityTypes, params.maxDistance);
-                return recipient !== undefined;
+                const offer = recipient === undefined ? undefined : offerFor(recipient);
+                hasOffer = offer !== undefined;
+                return recipient !== undefined && hasOffer;
             },
             canContinue: () => recipient !== undefined && support.navigator.walking,
             start: () => {
@@ -757,12 +804,15 @@ export const shareItems = goal<ShareItemsParams>({
             tick: () => {
                 if (support.navigator.tick()) return;
                 const taker = recipient;
-                const item = support.world.inventory?.()[0];
-                if (taker !== undefined && item !== undefined) support.world.giveItem?.(taker, item);
+                const offer = taker === undefined || !hasOffer ? undefined : offerFor(taker);
+                if (taker !== undefined && offer !== undefined)
+                    support.world.giveItem?.(taker, offer.identifier, offer.count);
                 recipient = undefined;
+                hasOffer = false;
             },
             stop: () => {
                 recipient = undefined;
+                hasOffer = false;
                 support.navigator.stop();
             }
         };

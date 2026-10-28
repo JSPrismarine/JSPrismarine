@@ -93,7 +93,7 @@ export interface EntityScene {
     /** Takes an item stack lying in the world into an entity's inventory. */
     pickUp(taker: MobBody, item: GoalItem, count?: number): void;
     /** Moves one item from an entity's inventory to another entity. */
-    giveItem(giver: MobBody, taker: GoalMob, identifier: string): void;
+    giveItem(giver: MobBody, taker: GoalMob, identifier: string, count?: number): void;
     /** Breaks a block and drops what its loot table rolls. */
     breakBlock(at: EntityPosition): void;
     /** Opens one entity's trade screen for a player. */

@@ -1,4 +1,10 @@
-import type { EntityInstance, EntityPosition, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type {
+    EntityInstance,
+    EntityPosition,
+    FilterEntityView,
+    FilterItemView,
+    ShareablesParams
+} from '@jsprismarine/entities';
 
 import type { NavigationView } from './navigation/view';
 
@@ -30,6 +36,10 @@ export interface GoalMob {
     identifier?(): string | undefined;
     /** What it holds in its main hand, for tempt, beg, barter and the item goals. */
     heldItem?(): string | undefined;
+    /** Its inventory, when the world can read it, for data-driven item sharing. */
+    inventory?(): readonly string[];
+    /** Its active item-sharing rules, when it has `minecraft:shareables`. */
+    shareables?(): ShareablesParams | undefined;
     /** Its current health, for the attack goals that stop at a threshold. */
     health?(): number | undefined;
     /** What it is attacking, which is what the owner-revenge goals read. */
@@ -146,8 +156,8 @@ export interface GoalWorld {
     pickUp?(item: GoalItem, count?: number): void;
     /** Drops an item at a position, or at the entity when none is given. */
     dropItem?(identifier: string, position: EntityPosition | undefined): void;
-    /** Hands an item to another entity, for the sharing and gift goals. */
-    giveItem?(mob: GoalMob, identifier: string): void;
+    /** Hands items to another entity, for the sharing and gift goals. */
+    giveItem?(mob: GoalMob, identifier: string, count?: number): void;
     /** What the entity holds in its main hand. */
     carriedItem?(): string | undefined;
     /** Puts an item in the entity's main hand, or empties it. */
