@@ -120,7 +120,11 @@ const playerFilterView = (player: Player): FilterEntityView => {
     return {
         id: () => Number(player.getRuntimeId()),
         names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.getTags() : undefined),
-        flag: (name) => (name === 'is_sneaking' || name === 'is_sneak_held' ? player.isSneaking() : undefined),
+        flag: (name) => {
+            if (name === 'is_sneaking' || name === 'is_sneak_held') return player.isSneaking();
+            if (name === 'is_sleeping') return player.isSleeping();
+            return undefined;
+        },
         equipment,
         slotFill: (slot) => {
             const slots = capacity(slot);

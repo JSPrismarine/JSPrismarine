@@ -171,6 +171,7 @@ export default class Player extends Human {
     private onGround = false;
     private flying = false;
     private sneaking = false;
+    private sleeping = false;
 
     /** Ticks spent with no breath left, counting towards the next lungful of damage. */
     private drowningTicks = 0;
@@ -1075,13 +1076,14 @@ export default class Player extends Human {
             this.sentBreathing = true;
             this.drowningTicks = 0;
 
-            // A fresh body is not running, crouching or flying, and carries no leftover hurt.
+            // A fresh body is not running, crouching, flying or sleeping, and carries no leftover hurt.
             // These survive a death because nothing resets them, and the client draws what it
             // is told: still red, still lying down.
             this.metadata.setSprinting(false);
             this.metadata.setPropertyValue(MetadataFlag.HURT_TIME, FlagType.INT, 0);
             this.metadata.setPropertyValue(MetadataFlag.HURT_DIRECTION, FlagType.INT, 0);
             this.sneaking = false;
+            this.sleeping = false;
             this.flying = false;
 
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
@@ -1290,6 +1292,16 @@ export default class Player extends Human {
     public async setSneaking(val: boolean): Promise<void> {
         if (val === this.sneaking) return;
         this.sneaking = val;
+    }
+
+    /** Whether the client has reported this player asleep in a bed. */
+    public isSleeping(): boolean {
+        return this.sleeping;
+    }
+
+    /** Records the client's bed-sleeping action for entity filters and goals. */
+    public setSleeping(sleeping: boolean): void {
+        this.sleeping = sleeping;
     }
 
     public isOnGround(): boolean {

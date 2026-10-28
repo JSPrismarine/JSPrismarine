@@ -1121,7 +1121,13 @@ export class EntityRuntime implements EntityScene {
         const player = this.host.players().find((candidate) => candidate.id === id);
         return player === undefined
             ? undefined
-            : playerGoalMob(player.id, player.identifier, player.position, player.tags);
+            : playerGoalMob(
+                  player.id,
+                  player.identifier,
+                  player.position,
+                  player.tags,
+                  this.host.playerView?.(player.id)
+              );
     }
 
     /** The nearest point of interest of a kind, for the eleven goals that ask. */

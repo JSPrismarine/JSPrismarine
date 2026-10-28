@@ -282,6 +282,15 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 return;
             }
 
+            case PlayerActionType.StartSleeping: {
+                player.setSleeping(true);
+                return;
+            }
+            case PlayerActionType.StopSleeping: {
+                player.setSleeping(false);
+                return;
+            }
+
             // The docs expect an `UpdateAbilitiesPacket` back, accepting or refusing the
             // toggle. `setFlying` sends one either way: the new abilities when the player may
             // fly, the old ones when they may not.
@@ -295,7 +304,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             // Accepted, and nothing done. The client has already done what each of these
-            // says, and the server keeps no swimming, gliding, crawling, sleeping, spin attack
+            // says, and the server keeps no swimming, gliding, crawling, spin attack
             // or dimension change state to bring up to date; the docs' expected answers (a
             // `SetActorDataPacket` flag for most) wait on that state existing.
             // `DenyDestroyBlock` is EDU only.
@@ -306,8 +315,6 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             case PlayerActionType.StopGliding:
             case PlayerActionType.StartCrawling:
             case PlayerActionType.StopCrawling:
-            case PlayerActionType.StartSleeping:
-            case PlayerActionType.StopSleeping:
             case PlayerActionType.StartSpinAttack:
             case PlayerActionType.StopSpinAttack:
             case PlayerActionType.StartItemUseOn:

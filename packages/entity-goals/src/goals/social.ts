@@ -475,7 +475,12 @@ export const petSleepWithOwner = goal<{
                 support.world.setSleeping?.(true);
             },
             stop: () => {
-                if (sleeping) support.world.setSleeping?.(false);
+                if (sleeping) {
+                    const owner = support.world.owner?.();
+                    const wokeWithOwner = owner?.view().flag?.('is_sleeping') === false;
+                    support.world.setSleeping?.(false);
+                    if (wokeWithOwner) support.entity.trigger('minecraft:on_wake_with_owner');
+                }
                 sleeping = false;
                 support.navigator.stop();
             }

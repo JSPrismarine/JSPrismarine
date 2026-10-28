@@ -187,11 +187,11 @@ applies both rules during entity target checks, melee, projectile, and explosion
 
 The ten event-shaped `minecraft:on_*` components fire through `EntityInstance.trigger`, which
 evaluates the component's filters, queues a `self` event for the next tick and routes any other
-target. Eight fire at fixed points the runtime owns: `on_hurt`, `on_hurt_by_player` and `on_death`
+target. Nine fire at fixed points the runtime owns: `on_hurt`, `on_hurt_by_player` and `on_death`
 from a damage event, `on_target_acquired` and `on_target_escape` from `setAttackTarget`,
 `on_friendly_anger` from the anger broadcast, `on_start_landing` when an airborne entity lands, and
-`on_start_takeoff` after a successful ground jump. Prismarine also fires `on_ignite` when daylight
-starts a fire. A caller supplies `on_wake_with_owner` when that transition happens. The slot-specific
+`on_start_takeoff` after a successful ground jump, and `on_wake_with_owner` when a sleeping cat's
+owner wakes. Prismarine also fires `on_ignite` when daylight starts a fire. The slot-specific
 `minecraft:on_equipment_changed` raises the first matching `on_equip` or `on_unequip` event when a
 default equipment slot changes; inventory slots are outside its scope.
 
@@ -378,12 +378,6 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   and `transform` for despawn and transformation, `effects` for the six event actions that leave the
   package, `route` for a trigger aimed at another entity, `molang` for the expressions in component
   bodies, and `filterContext` for everything about the world a filter asks.
-- **The remaining event-shaped triggers whose state is outside the package.** `on_wake_with_owner`
-  needs sleep state the package does not own and parses and runs through `EntityInstance.trigger`
-  when a caller reaches its fixed point. Prismarine fires `on_ignite` when daylight starts a fire,
-  `on_start_landing` when an airborne entity lands, and `on_equipment_changed` on default equipment
-  slot changes; successful ground jumps fire `on_start_takeoff`, and the anger broadcast fires
-  `on_friendly_anger`.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
   107 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.
