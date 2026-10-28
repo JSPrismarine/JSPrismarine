@@ -44,12 +44,14 @@ import {
     jumpStatic,
     loot,
     movementComponent,
+    mobEffect,
     navigationComponent,
     physics,
     pushable,
     rideable,
     spawnEntity,
     spawnEggInteraction,
+    spellEffects,
     tameable,
     targetNearbySensor,
     timer,
@@ -267,6 +269,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(inventory);
     register(jumpStatic);
     register(loot);
+    register(mobEffect);
     register(nameable);
     register(physics);
     register(dataComponent('jsprismarine:falling_block'));
@@ -274,6 +277,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(rideable);
     register(spawnEntity);
     register(spawnEggInteraction);
+    register(spellEffects);
     register(tameable);
     register(targetNearbySensor);
     register(timer);

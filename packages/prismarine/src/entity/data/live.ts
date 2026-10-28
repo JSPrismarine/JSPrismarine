@@ -243,6 +243,14 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         const target = options.liveWorld()?.getEntity(BigInt(id));
         if (target !== null && target !== undefined) target.addStatusEffect(effect);
     },
+    applyStatusEffectIfChanged: (id, effect) => {
+        const target = options.liveWorld()?.getEntity(BigInt(id));
+        return target !== null && target !== undefined ? target.addStatusEffect(effect) : false;
+    },
+    removeStatusEffect: (id, identifier) => {
+        const target = options.liveWorld()?.getEntity(BigInt(id));
+        return target !== null && target !== undefined ? target.removeStatusEffect(identifier) : false;
+    },
     hurtByProjectile: (id, amount, projectileId, ownerId) => {
         const world = options.liveWorld();
         const target = world?.getEntity(BigInt(id));

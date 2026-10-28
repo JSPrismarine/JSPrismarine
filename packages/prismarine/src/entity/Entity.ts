@@ -22,7 +22,12 @@ import { boxOf } from './data/facts';
 import { Metadata, MetadataFlag } from './Metadata';
 import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
-import { bedrockMobEffectId, normalizeStatusEffectId } from './StatusEffect';
+import {
+    bedrockMobEffectId,
+    mergeStatusEffect,
+    normalizeStatusEffectId,
+    removeStatusEffectFromMap
+} from './StatusEffect';
 
 /**
  * Re-exported so that `import { DamageCause } from './entity/Entity'` keeps resolving.
@@ -50,9 +55,6 @@ const BASE_KNOCKBACK = 0.4;
 
 /** What each level of sprint-or-Knockback adds on top. */
 const KNOCKBACK_PER_LEVEL = 0.5;
-
-/** Compares finite durations and treats the infinite sentinel as longest. */
-const remainingDuration = (ticks: number): number => (ticks < 0 ? Number.POSITIVE_INFINITY : ticks);
 
 /**
  * How much of what an entity was already doing survives a shove.
@@ -560,40 +562,11 @@ export class Entity {
     public addStatusEffect(input: StatusEffectInput, notify = true): boolean {
         const id = normalizeStatusEffectId(input.id);
         if (bedrockMobEffectId(id) === undefined || !this.acceptsStatusEffect(id)) return false;
-
-        const durationTicks = Math.trunc(input.durationTicks);
-        if (
-            !Number.isFinite(durationTicks) ||
-            durationTicks === 0 ||
-            durationTicks < -1 ||
-            !Number.isFinite(input.amplifier)
-        )
-            return false;
-
-        const next: StatusEffect = {
-            id,
-            amplifier: Math.max(0, Math.min(255, Math.trunc(input.amplifier))),
-            durationTicks,
-            ambient: input.ambient ?? false,
-            showParticles: input.showParticles ?? true,
-            showIcon: input.showIcon ?? true
-        };
         const effects = this.statusEffectMap();
-        const previous = effects.get(id);
-        if (previous !== undefined) {
-            if (next.amplifier < previous.amplifier) return false;
-            if (
-                next.amplifier === previous.amplifier &&
-                remainingDuration(next.durationTicks) <= remainingDuration(previous.durationTicks) &&
-                next.ambient === previous.ambient &&
-                next.showParticles === previous.showParticles &&
-                next.showIcon === previous.showIcon
-            )
-                return false;
-        }
-
-        effects.set(id, next);
-        if (notify) this.announceStatusEffect(next, previous === undefined ? 'add' : 'update');
+        const change = mergeStatusEffect(effects, input);
+        if (change === undefined) return false;
+        const effect = effects.get(id);
+        if (effect !== undefined && notify) this.announceStatusEffect(effect, change);
         return true;
     }
 
@@ -605,11 +578,9 @@ export class Entity {
      */
     public removeStatusEffect(identifier: string, notify = true): boolean {
         const effects = this.statusEffectMap();
-        const id = normalizeStatusEffectId(identifier);
-        const previous = effects.get(id);
+        const previous = removeStatusEffectFromMap(effects, identifier);
         if (previous === undefined) return false;
 
-        effects.delete(id);
         if (notify) this.announceStatusEffect(previous, 'remove');
         return true;
     }

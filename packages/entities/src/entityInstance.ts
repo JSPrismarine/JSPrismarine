@@ -35,6 +35,7 @@ import type {
     EntityEffects,
     EntityItemInteractionEffect,
     EntityItemInteractionState,
+    EntityStatusEffect,
     EntityHooks,
     EntityPosition,
     EntitySpawnRequest
@@ -182,6 +183,8 @@ export interface EntityInstanceOptions {
     /** A stable identity, which the filter tests that compare two entities read. */
     id?: string | number;
     environment?: EntityEnvironment;
+    /** Whether this instance is being restored from saved state instead of spawned. */
+    restoring?: boolean;
 }
 
 /**
@@ -199,6 +202,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private readonly typeHolder: Holder<EntityType>;
     private readonly environment: EntityEnvironment;
     private readonly identity: string | number;
+    /** Whether this instance is being restored from saved state. */
+    public readonly restoring: boolean;
     private active = new Map<string, ActiveComponent>();
     private table = new HookTable<EntityHooks>([]);
     private pending: EventEffects[] = [];
@@ -226,6 +231,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.typeHolder = holder;
         this.environment = environment;
         this.identity = options.id ?? 0;
+        this.restoring = options.restoring ?? false;
         this.rebuild([], []);
     }
 
@@ -928,6 +934,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** Returns entities in the configured range for the active `minecraft:entity_sensor`. */
     public entitySensorCandidates(query: EntitySensorQuery): readonly EntitySensorCandidate[] {
         return this.environment.entitySensorCandidates?.(this, query) ?? [];
+    }
+
+    /** Applies a status effect to the entity represented by a filter view. */
+    public applyStatusEffect(target: FilterEntityView, effect: EntityStatusEffect): boolean {
+        return this.environment.effects?.applyStatusEffect?.(this, target, effect) ?? false;
+    }
+
+    /** Removes a status effect from the entity represented by a filter view. */
+    public removeStatusEffect(target: FilterEntityView, identifier: string): boolean {
+        return this.environment.effects?.removeStatusEffect?.(this, target, identifier) ?? false;
     }
 
     /**

@@ -219,6 +219,8 @@ applies its configured status effect after a melee hit. The rest:
 | `minecraft:breedable` | Matches `breed_items`, checks tame, health, baby, love, and cooldown requirements, enters the love state, and replaces the consumed item with its per-item `result_item` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_breedable?view=minecraft-bedrock-stable)) |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, pauses or resets it through the configured items and events, applies `result_item`, drops `drop_items` on growth, honors `interact_filters`, and raises `grow_up` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
 | `minecraft:healable` | Matches a configured item and filter, restores health when the entity is injured or `force_use` is set, applies each configured effect with its chance, duration, and amplifier, and replaces the consumed item with `result_item` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_healable?view=minecraft-bedrock-stable)) |
+| `minecraft:mob_effect` | Applies the configured effect to nearby mobs and players that pass `entity_filter`, honoring `effect_range`, `effect_time`, `cooldown_time`, and `ambient` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_mob_effect?view=minecraft-bedrock-stable)) |
+| `minecraft:spell_effects` | Applies its configured effects and then removes the named effects when the component is added; restored entities do not repeat the one-time operation ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_spell_effects?view=minecraft-bedrock-stable)) |
 | `minecraft:tameable` | Accepts configured `tame_items`, rolls `probability` for each attempt, and on success records the owner, raises `tame_event`, and replaces the consumed item with `result_item`; failed attempts are accepted and consume one item outside creative mode ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_tameable?view=minecraft-bedrock-stable)) |
 | `minecraft:interact` | Applies `on_interact.filters` and events, enforces cooldowns, projects `interact_text` to touch-screen clients, plays `play_sounds`, emits `vibration`, adjusts health, emits `particle_on_start` at the entity with its configured offsets, repairs entity inventory or equipment items, moves an entity's main-hand item into an empty player hand, creates configured entities, rolls `add_items` and `spawn_items` loot tables, uses or transforms the live player's item, equips or drops named equipment and `minecraft:inventory` slots, and gives items to the entity's main hand. Piglin interactions can start admiration and request a barter when the matching components are active. Successful interactions relay the player's arm swing to other viewers tracking them by default; set `swing: false` to suppress it. Non-`none` `particle_on_start.copper_event` still reports as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
 | `minecraft:admire_item` | Sets the piglin's admiration duration and the cooldown after damage, which ends current admiration and disables new attempts |
@@ -279,8 +281,8 @@ events, and projects the configured visibility and custom name to the client. `m
 gates dye use, updates the entity's palette color, and projects its touch-screen prompt.
 
 Every non-goal key in the vanilla pack has a component factory, so the loader preserves its body
-and exposes it through `EntityInstance.componentParams`. Of the 34 keys used by only one entity,
-29 have no runtime behavior yet. Their factories preserve their bodies, and the corpus test counts
+and exposes it through `EntityInstance.componentParams`. Some of the 34 keys used by only one entity
+still have no runtime behavior. Their factories preserve their bodies, and the corpus test counts
 them as parsed rather than behaviorally implemented.
 
 ## Measured coverage
@@ -294,8 +296,8 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a component hook | 81 |
-| Non-goal keys with a runtime effect across the server | 90 |
+| Non-goal keys with a component hook | 83 |
+| Non-goal keys with a runtime effect across the server | 92 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -337,9 +339,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 81 component factories have hooks, and 90
+measures name coverage rather than complete simulation: 83 component factories have hooks, and 92
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 112 bodies are available as data for behavior that still needs to be added.
+included. The remaining 110 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
 visibility as being within `follow_range`; it does not test block occlusion.
@@ -371,5 +373,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  112 currently expose data without runtime behavior. The component bodies remain accessible to the
+  110 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

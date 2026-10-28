@@ -83,20 +83,17 @@ export interface EntityActuator {
     nearestPlayer(maxDistance: number): EntityPosition | undefined;
 }
 
-/**
- * What an event action asks of the world outside this package.
- *
- * Three of the nine actions need nothing here: `set_home_position` and
- * `stop_movement` go through {@link EntityActuator}, and `reset_target` moves
- * state the entity owns. The six below leave the package, and an action whose
- * member a caller leaves out is reported rather than silently dropped.
- */
+/** Operations an entity component delegates to the world outside this package. */
 export interface EntityEffects {
     /** Plays a sound at the entity; the name is the pack's own, such as `saddle`. */
     playSound?(entity: EntityInstance, sound: string): void;
     emitParticle?(entity: EntityInstance, particle: string): void;
     /** Emits a game-event vibration sculk sensors and wardens listen for. */
     emitVibration?(entity: EntityInstance, vibration: VibrationKind): void;
+    /** Adds or refreshes an effect on an entity selected by a component. */
+    applyStatusEffect?(entity: EntityInstance, target: FilterEntityView, effect: EntityStatusEffect): boolean;
+    /** Removes an effect from an entity selected by a component. */
+    removeStatusEffect?(entity: EntityInstance, target: FilterEntityView, identifier: string): boolean;
     /**
      * Runs one command with the named subject as its executor.
      *
@@ -223,15 +220,24 @@ export interface EntityItemInteractionState {
     };
 }
 
-/** A status effect an accepted data-driven item interaction applies to its target. */
-export interface EntityItemStatusEffect {
+/** One status effect request passed across the entity runtime boundary. */
+export interface EntityStatusEffect {
     /** The Bedrock status effect name. */
     readonly id: string;
     /** Ticks remaining, or `-1` for an effect that never expires. */
     readonly durationTicks: number;
     /** One below the displayed potency. */
     readonly amplifier: number;
+    /** Whether the effect has the ambient visual style. */
+    readonly ambient?: boolean;
+    /** Whether the effect draws particles. */
+    readonly showParticles?: boolean;
+    /** Whether the effect has a HUD icon. */
+    readonly showIcon?: boolean;
 }
+
+/** A status effect an accepted data-driven item interaction applies to its target. */
+export type EntityItemStatusEffect = EntityStatusEffect;
 
 /** The effects requested by a data-defined item interaction. */
 export interface EntityItemInteractionEffect {

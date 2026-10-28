@@ -34,6 +34,7 @@ import type {
     EntityRepairItemRequest,
     EntitySpawnRequest,
     EntitySpawnItemsRequest,
+    EntityStatusEffect,
     EventTarget,
     FilterEntityView,
     OutgoingTrigger,
@@ -103,6 +104,8 @@ import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
+import type { StatusEffectInput } from '../StatusEffect';
+import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -146,6 +149,16 @@ const groundDragWithModifier = (drag: number, modifier: number): number =>
 /** Resolves an entity name through the shared Java-to-Bedrock table and the active content registry. */
 const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): string | undefined =>
     bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
+
+/** Whether an active data-driven entity accepts the named status effect. */
+const acceptsStatusEffect = (entity: EntityInstance, identifier: string): boolean => {
+    const immunity = entity.componentParams('minecraft:mob_effect_immunity');
+    if (!isRecord(immunity) || !Array.isArray(immunity.mob_effects)) return true;
+    const normalized = normalizeStatusEffectId(identifier);
+    return !immunity.mob_effects.some(
+        (effect) => typeof effect === 'string' && normalizeStatusEffectId(effect) === normalized
+    );
+};
 
 /** The default eye position as a fraction of a non-player entity's hitbox height. */
 export const PROJECTILE_EYE_HEIGHT_FRACTION = ENTITY_EYE_HEIGHT_FRACTION;
@@ -517,7 +530,8 @@ export class EntityRuntime implements EntityScene {
                 pitch: record.pitch,
                 data: record.spawnData
             },
-            record.persistentIdentity
+            record.persistentIdentity,
+            true
         );
         if (entity === undefined) return undefined;
         if (!this.hasValidFallingBlockData(entity)) {
@@ -565,7 +579,8 @@ export class EntityRuntime implements EntityScene {
         identifier: string,
         at: EntityPosition,
         options: SpawnOptions,
-        persistentIdentity?: string
+        persistentIdentity?: string,
+        restoring = false
     ): DataEntity | undefined {
         const content = this.content();
         const registry = content.entities.registry;
@@ -593,6 +608,7 @@ export class EntityRuntime implements EntityScene {
         const goalWorld = goalWorldOf(body, this);
         const instance = new EntityInstance(registry.holder(reference), {
             id,
+            restoring,
             environment: {
                 actuator: actuatorOf(body, this),
                 broadcastAnger: (entity, request) => this.broadcastAnger(entity, request),
@@ -602,6 +618,10 @@ export class EntityRuntime implements EntityScene {
                         this.world.effects.spawnParticle(blockPositionOf(body.position), particle),
                     emitVibration: (_source, vibration) =>
                         this.world.effects.emitGameEvent(`minecraft:${vibration}`, blockPositionOf(body.position), id),
+                    applyStatusEffect: (source, target, effect) =>
+                        this.applyComponentStatusEffect(source, target, effect),
+                    removeStatusEffect: (source, target, identifier) =>
+                        this.removeComponentStatusEffect(source, target, identifier),
                     ...(executeEntityEvent === undefined
                         ? {}
                         : {
@@ -1196,11 +1216,62 @@ export class EntityRuntime implements EntityScene {
         )
             return;
 
-        this.host.applyStatusEffect?.(targetId, {
+        this.applyStatusEffectToId(attacker.instance, targetId, {
             id: params.effectName,
             durationTicks: Math.round(params.effectDuration * TICKS_PER_SECOND),
             amplifier: typeof params.effectAmplifier === 'number' ? params.effectAmplifier : 0
         });
+    }
+
+    /** Applies a component effect to a selected entity, using the live body when it is present. */
+    private applyComponentStatusEffect(
+        source: EntityInstance,
+        target: FilterEntityView,
+        effect: EntityStatusEffect
+    ): boolean {
+        const targetId = target.id?.();
+        return typeof targetId === 'number' ? this.applyStatusEffectToId(source, targetId, effect) : false;
+    }
+
+    /** Removes a component effect from a selected entity, using the live body when it is present. */
+    private removeComponentStatusEffect(
+        _source: EntityInstance,
+        target: FilterEntityView,
+        identifier: string
+    ): boolean {
+        const targetId = target.id?.();
+        if (typeof targetId !== 'number') return false;
+
+        if (this.host.removeStatusEffect?.(targetId, identifier)) return true;
+        const recipient = this.entities.get(targetId);
+        if (recipient !== undefined)
+            return removeStatusEffectFromMap(recipient.body.statusEffects, identifier) !== undefined;
+        const spawning = this.spawning;
+        return spawning?.id === targetId
+            ? removeStatusEffectFromMap(spawning.statusEffects, identifier) !== undefined
+            : false;
+    }
+
+    /** Adds an effect through the host, or updates an indexed body before it is mirrored. */
+    private applyStatusEffectToId(
+        source: EntityInstance,
+        targetId: number,
+        effect: EntityStatusEffect | StatusEffectInput
+    ): boolean {
+        const recipient = this.entities.get(targetId);
+        if (recipient !== undefined && !acceptsStatusEffect(recipient.instance, effect.id)) return false;
+
+        const spawning = this.spawning;
+        if (recipient === undefined && spawning?.id === targetId && !acceptsStatusEffect(source, effect.id))
+            return false;
+        if (this.host.applyStatusEffectIfChanged !== undefined) {
+            if (this.host.applyStatusEffectIfChanged(targetId, effect)) return true;
+        } else {
+            this.host.applyStatusEffect?.(targetId, effect);
+            if (recipient === undefined && spawning?.id !== targetId) return this.host.applyStatusEffect !== undefined;
+        }
+        if (recipient !== undefined) return mergeStatusEffect(recipient.body.statusEffects, effect) !== undefined;
+        return spawning?.id === targetId ? mergeStatusEffect(spawning.statusEffects, effect) !== undefined : false;
     }
 
     /**

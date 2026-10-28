@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Ninety keys carry
-runtime behavior. The remaining 112 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Ninety-two keys carry
+runtime behavior. The remaining 110 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -185,6 +185,12 @@ matching block-state condition starts or stops matching.
 `minecraft:target_nearby_sensor` reads the entity's current target and uses `follow_range` as its
 visibility test. The host does not currently test whether blocks occlude the target.
 
+`minecraft:mob_effect` searches nearby mobs and players, applies `entity_filter` with the source as
+`self` and each candidate as `other`, then applies the configured effect and duration. Its cooldown
+starts after at least one target accepts the effect. `minecraft:spell_effects` adds its configured
+effects and then removes its named effects when activated; restoring a saved entity does not repeat
+that one-time operation.
+
 `minecraft:nameable` controls name-tag renaming, queues its `default_trigger` and matching
 `name_actions`, and projects `always_show` and the custom name to actor metadata. Data-driven names
 are included in the entity's saved runtime record.
@@ -192,7 +198,7 @@ are included in the entity's saved runtime record.
 `minecraft:is_dyeable` gates dye use, updates `minecraft:color` in the data-driven entity's runtime
 state, and projects its `interact_text` to actor metadata. The changed color is persisted.
 
-The 90 with runtime effects include components that change entity state, decide an outcome, or
+The 92 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -209,7 +215,8 @@ custom name and visibility flag;
 `minecraft:leashable_to`, which attach, retrieve, and cut leash links;
 `minecraft:spawn_entity`, `minecraft:interact`, `minecraft:spawn_egg_interaction`,
 `minecraft:offspring_data`,
-`minecraft:breedable`, `minecraft:healable`, `minecraft:tameable`, `minecraft:admire_item`, `minecraft:barter`, and
+`minecraft:breedable`, `minecraft:healable`, `minecraft:mob_effect`, `minecraft:spell_effects`,
+`minecraft:tameable`, `minecraft:admire_item`, `minecraft:barter`, and
 `minecraft:vibration_listener`, which connects its entity to world game-event delivery;
 `minecraft:variant`, `minecraft:color`, and `minecraft:color2`, which project their values to actor metadata;
 the actor metadata markers `minecraft:is_charged`,

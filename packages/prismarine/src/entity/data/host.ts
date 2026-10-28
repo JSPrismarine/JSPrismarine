@@ -111,6 +111,10 @@ export interface EntityHostFacts {
     hurt?(id: number, amount: number, cause: string, sourceId: number | undefined): void;
     /** Applies a data-defined melee effect to a live entity or player. */
     applyStatusEffect?(id: number, effect: StatusEffectInput): void;
+    /** Applies an effect and reports whether its active state changed. */
+    applyStatusEffectIfChanged?(id: number, effect: StatusEffectInput): boolean;
+    /** Removes one effect from a live entity or player. */
+    removeStatusEffect?(id: number, identifier: string): boolean;
     /** Deals damage to an entity with the projectile and its owner preserved as the source. */
     hurtByProjectile?(id: number, amount: number, projectileId: number, ownerId: number | undefined): void;
     /**

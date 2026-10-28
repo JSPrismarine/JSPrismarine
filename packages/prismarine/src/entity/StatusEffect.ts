@@ -72,6 +72,67 @@ export const normalizeStatusEffectId = (identifier: string): string => {
     return namespaced === 'minecraft:hero_of_the_village' ? 'minecraft:village_hero' : namespaced;
 };
 
+/**
+ * Adds or refreshes one effect in a status-effect map using Bedrock's precedence rules.
+ * @param effects - The active effects to update.
+ * @param input - The requested effect state.
+ * @returns The packet change, or undefined when the effect was invalid or unchanged.
+ */
+export const mergeStatusEffect = (
+    effects: Map<string, StatusEffect>,
+    input: StatusEffectInput
+): StatusEffectChange | undefined => {
+    const id = normalizeStatusEffectId(input.id);
+    if (bedrockMobEffectId(id) === undefined) return undefined;
+
+    const durationTicks = Math.trunc(input.durationTicks);
+    if (
+        !Number.isFinite(durationTicks) ||
+        durationTicks === 0 ||
+        durationTicks < -1 ||
+        !Number.isFinite(input.amplifier)
+    )
+        return undefined;
+
+    const next: StatusEffect = {
+        id,
+        amplifier: Math.max(0, Math.min(255, Math.trunc(input.amplifier))),
+        durationTicks,
+        ambient: input.ambient ?? false,
+        showParticles: input.showParticles ?? true,
+        showIcon: input.showIcon ?? true
+    };
+    const previous = effects.get(id);
+    if (previous !== undefined) {
+        const previousDuration = previous.durationTicks < 0 ? Number.POSITIVE_INFINITY : previous.durationTicks;
+        const nextDuration = next.durationTicks < 0 ? Number.POSITIVE_INFINITY : next.durationTicks;
+        if (next.amplifier < previous.amplifier) return undefined;
+        if (
+            next.amplifier === previous.amplifier &&
+            nextDuration <= previousDuration &&
+            next.ambient === previous.ambient &&
+            next.showParticles === previous.showParticles &&
+            next.showIcon === previous.showIcon
+        )
+            return undefined;
+    }
+
+    effects.set(id, next);
+    return previous === undefined ? 'add' : 'update';
+};
+
+/** Removes one effect from a status-effect map. */
+export const removeStatusEffectFromMap = (
+    effects: Map<string, StatusEffect>,
+    identifier: string
+): StatusEffect | undefined => {
+    const id = normalizeStatusEffectId(identifier);
+    const previous = effects.get(id);
+    if (previous === undefined) return undefined;
+    effects.delete(id);
+    return previous;
+};
+
 /** The MobEffectPacket id for a Bedrock effect, or undefined for an unsupported effect. */
 export const bedrockMobEffectId = (identifier: string): number | undefined =>
     BEDROCK_MOB_EFFECT_IDS.get(normalizeStatusEffectId(identifier));
