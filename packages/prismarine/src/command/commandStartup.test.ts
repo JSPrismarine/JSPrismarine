@@ -277,8 +277,8 @@ describe('the command layer on a booted server', () => {
         await expect(run('/testfor @e[type=wolf]')).resolves.toBe(false);
     });
 
-    it('refuses a command whose subsystem is missing', async () => {
-        await expect(run('/effect give @s minecraft:speed')).resolves.toBe(false);
+    it('reports an unregistered command as unknown', async () => {
+        await expect(run('/jsprismarine_test_command_does_not_exist')).resolves.toBe(false);
 
         expect(answers.some((line) => line.includes('Unknown command'))).toBe(true);
     });

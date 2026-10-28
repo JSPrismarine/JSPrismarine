@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { facingDirectionOf, popBlock } from '@jsprismarine/block-behaviors';
+import { popBlock } from '@jsprismarine/block-behaviors';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { bedrockBlockStates } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
-import { Difficulty } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import type { RandomSource } from '@jsprismarine/predicates';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +16,9 @@ import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
 import { buildServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
+import { inertEntityRuntime } from '../testing/entityServer';
+import { stub } from '../testing/stub.test.helper';
+import type Player from '../Player';
 import type { ContentPosition } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import { explode } from '../entity/Explosion';
@@ -24,6 +29,7 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
+import { Position } from './Position';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { contentBlockTickHandlers } from './blockTicks';
@@ -75,6 +81,9 @@ const ITEMS = [
 ];
 
 const DIMENSION = 'minecraft:overworld';
+const EAST_FACING_PISTON = {
+    facing_direction: bedrockBlockStates('minecraft:piston', { facing_direction: 'east' }).facing_direction
+};
 
 /**
  * The Java loot tables this fixture rolls, copied from the 26.3 datapack.
@@ -193,9 +202,6 @@ const overlayBlock = (identifier: string) => {
 const fixturePalette = (): BlockPalette =>
     new BlockPalette(BLOCKS.map((identifier) => [identifier, vanillaBlockPalette().entry(identifier)!.model]));
 
-/** Where the fixture's one player stands, which is what keeps fire ticking around it. */
-const WATCHER = { getPosition: () => ({ getX: () => 8, getY: () => 64, getZ: () => 8 }), gamemode: 0 };
-
 /** What the fixture's world gives a test back. */
 interface Fixture {
     world: World;
@@ -226,10 +232,18 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
             findGameRule: (name: string) => rules.get(name.toLowerCase())
         },
         getChunkAt: async () => chunk,
-        // One player standing in the middle of the fixture. Fire reads the player list
-        // through `minecraft:fire_spread_radius_around_player`, and an empty world is
-        // outside every radius.
-        getPlayers: () => [WATCHER],
+        // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.
+        // The content adapter reads the same player fields as it does for a live player.
+        getPlayers: () => [
+            stub<Player>({
+                getPosition: () => new Position(8, 64, 8, world),
+                getRuntimeId: () => 1n,
+                getType: () => 'minecraft:player',
+                getFeetY: () => 64,
+                getTags: () => [],
+                gamemode: Gametype.SURVIVAL
+            })
+        ],
         sendWorldEvent: async () => {},
         sendActorSound: async () => {},
         removeEntity: async () => {},
@@ -238,7 +252,15 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
         addEntity: async (entity: Entity) => void spawned.push(entity),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
-            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
+            getLogger: () => ({
+                debug: () => {},
+                error: (error: unknown) => {
+                    throw error;
+                },
+                verbose: () => {},
+                warn: () => {}
+            }),
+            getEntityRuntime: () => inertEntityRuntime(),
             getContent: content
         }
     });
@@ -268,11 +290,19 @@ describe('a block the world destroyed', () => {
     let spawned: Entity[];
     let rules: Map<string, readonly [boolean | number, boolean]>;
     let content: ServerContent;
+    let random: RandomSource;
 
     beforeEach(() => {
         let built: ServerContent | undefined;
         ({ world, chunk, spawned, rules } = liveWorld(() => built));
 
+        const source = serverWorldSource({
+            worldFor: () => world,
+            content: () => built!,
+            seed: 1234n,
+            difficulty: () => Difficulty.NORMAL
+        });
+        random = source.at(DIMENSION).random;
         content = buildServerContent({
             load: () => ({
                 definitions: definitionsOf({
@@ -289,12 +319,7 @@ describe('a block the world destroyed', () => {
             blockPalette: fixturePalette(),
             itemDefinitions: vanillaItemDefinitions().filter((definition) => ITEMS.includes(definition.identifier)),
             seed: 1234n,
-            world: serverWorldSource({
-                worldFor: () => world,
-                content: () => built!,
-                seed: 1234n,
-                difficulty: () => Difficulty.NORMAL
-            })
+            world: source
         });
         built = content;
         Object.assign(world, {
@@ -305,7 +330,13 @@ describe('a block the world destroyed', () => {
                     loadedChunks: () => [{ x: 0, z: 0 }]
                 },
                 world: createEngineWorld(world),
-                blockTickHandlers: contentBlockTickHandlers({ content, world: () => world, report: () => {} })
+                blockTickHandlers: contentBlockTickHandlers({
+                    content,
+                    world: () => world,
+                    report: (_identifier, error) => {
+                        throw error;
+                    }
+                })
             })
         });
     });
@@ -448,10 +479,8 @@ describe('a block the world destroyed', () => {
 
     describe('by fire', () => {
         beforeEach(() => {
-            // Every draw returns its lowest value, so each roll that can succeed does and
-            // the fire burns on its first tick rather than on an average of fifteen. The
-            // tick delay is then its minimum of 30 rather than a draw from 30 to 40.
-            vi.spyOn(Math, 'random').mockReturnValue(0);
+            // The bounded source drives both the tick delay and the chance of burning fuel.
+            vi.spyOn(random, 'nextInt').mockReturnValue(0);
         });
 
         /**
@@ -480,6 +509,12 @@ describe('a block the world destroyed', () => {
             place(chunk, { x: 8, y: 63, z: 8 }, 'minecraft:stone');
             place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:oak_planks');
             place(chunk, { x: 8, y: 65, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
+
+            const actions = content.world.blockWorld.at(DIMENSION);
+            const plank = actions.getBlock({ x: 8, y: 64, z: 8 });
+            expect(actions.canFireSpreadAround?.({ x: 7, y: 64, z: 8 })).toBe(true);
+            if (plank === undefined) throw new Error('the fire fixture has no plank to burn');
+            expect(actions.flammabilityOf?.(plank)?.burnOdds).toBeGreaterThan(0);
 
             content.world.blockWorld.at(DIMENSION).setBlock({ x: 7, y: 64, z: 8 }, 'minecraft:fire', { age: 0 });
             runTicks(world, 60);
@@ -533,7 +568,7 @@ describe('a block the world destroyed', () => {
 
     describe('by a piston', () => {
         it('carries the chest it pushed, and what the chest held, to the new position', () => {
-            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: facingDirectionOf('east') });
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', EAST_FACING_PISTON);
             chestHolding({ x: 9, y: 64, z: 8 }, [{ identifier: 'minecraft:stick', count: 3 }]);
             place(chunk, { x: 8, y: 62, z: 8 }, 'minecraft:stone');
 
@@ -566,7 +601,7 @@ describe('a block the world destroyed', () => {
         });
 
         it('updates its piston-arm actor when it retracts', () => {
-            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: 5 });
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', EAST_FACING_PISTON);
             place(chunk, { x: 8, y: 62, z: 8 }, 'minecraft:stone');
             world.setLoadedBlockState(
                 8,
@@ -599,7 +634,7 @@ describe('a block the world destroyed', () => {
         });
 
         it('rolls the popped block through Java’s table rather than dropping one of it', () => {
-            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: facingDirectionOf('east') });
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', EAST_FACING_PISTON);
             place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:stone');
 
             const blocks = content.world.blockWorld.at(DIMENSION);

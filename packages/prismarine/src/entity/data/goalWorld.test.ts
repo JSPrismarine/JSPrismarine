@@ -73,7 +73,13 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
     'jsprismarine:avenger': mob({ 'minecraft:behavior.owner_hurt_target': { priority: 0 } }),
     'jsprismarine:collector': mob({
         'minecraft:inventory': { inventory_size: 5 },
-        'minecraft:behavior.pickup_items': { priority: 1, max_dist: 8, goal_radius: 2, can_pickup_any_item: true }
+        'minecraft:behavior.pickup_items': {
+            priority: 1,
+            max_dist: 8,
+            goal_radius: 2,
+            can_pickup_any_item: true,
+            can_pickup_to_hand_or_equipment: false
+        }
     }),
     'jsprismarine:giver': mob({
         'minecraft:inventory': { inventory_size: 5 },

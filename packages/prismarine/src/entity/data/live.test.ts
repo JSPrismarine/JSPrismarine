@@ -637,6 +637,7 @@ const playerAt = (world: World, x: number, z: number): Player => {
         connected: true,
         tags: new Set<string>(),
         server: world.getServer(),
+        gamemode: Gametype.SURVIVAL,
         statusEffects: new Map(),
         metadata: { sprinting: false },
         attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
@@ -1931,13 +1932,12 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(live.runtime.all()).toEqual([]);
         });
 
-        it('still builds the written class for an identifier the content has no type for', () => {
-            // A lit TNT has a class and no entity file here. It is one of the seven entities
-            // whose behavior is not a component set, so `/summon` falls through to the class
-            // rather than refusing.
+        it('does not build a written class for an identifier the content has no type for', () => {
+            // TNT runs through its data-driven definition when vanilla content is loaded.
+            // Without a declared type, `/summon` refuses it instead of creating a class body.
             const ref = summon('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
 
-            expect(ref?.type).toBe('minecraft:tnt');
+            expect(ref).toBeUndefined();
             expect(live.runtime.all()).toEqual([]);
         });
     });
@@ -2637,7 +2637,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 await live.tick(1);
                 expect(zombie.position.y).toBe(GROUND_Y);
                 expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
-                expect(pig.position.y).toBeLessThan(GROUND_Y);
+                expect(Math.abs(pig.position.y - GROUND_Y)).toBeLessThan(0.1);
                 for (let tick = 2; tick <= 30; tick += 1) await live.tick(tick);
 
                 expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
@@ -2645,7 +2645,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(zombie.position.x).toBeGreaterThan(6);
                 expect(zombie.position.y).toBe(GROUND_Y);
                 expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
-                expect(pig.position.y).toBeLessThan(GROUND_Y);
+                expect(Math.abs(pig.position.y - GROUND_Y)).toBeLessThan(0.1);
                 expect(villager.position.y).toBe(GROUND_Y);
                 expect(typesIn(world)).toContain('minecraft:zombie');
                 expect(typesIn(world)).toContain('minecraft:villager_v2');

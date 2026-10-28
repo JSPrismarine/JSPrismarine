@@ -343,6 +343,8 @@ describe('world', () => {
                 const transient = stub<Entity>({
                     getType: () => 'minecraft:fishing_hook',
                     getPosition: () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 1 }),
+                    getTags: () => [],
+                    getStatusEffects: () => [],
                     shouldPersist: () => persistent,
                     yaw: 0,
                     pitch: 0

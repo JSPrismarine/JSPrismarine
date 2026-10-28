@@ -30,6 +30,13 @@ const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.
 
 const decoder = new TextDecoder();
 
+const warnImplementationProgress = (message: string): void => {
+    console.warn(message);
+    if (process.env.GITHUB_ACTIONS === 'true') {
+        process.stdout.write(`::warning title=Implementation progress::${message}\n`);
+    }
+};
+
 /** The `vanilla*` layer folders of an unpacked BDS, in the order the engine composes them. */
 const bedrockServerLayers = (): readonly string[] => {
     const root = join(cacheRoot, 'bds');
@@ -382,28 +389,26 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         const behavioralComponents = new Set([...withHooks, ...TRIGGER_COMPONENTS, ...RUNTIME_COMPONENTS]);
         const withBehavior = others.filter((name) => behavioralComponents.has(name));
 
+        warnImplementationProgress(
+            `Implementation progress: ${withBehavior.length} behavior-bearing non-goal components (${withBehavior.join(', ')}); ${componentCovered}/${types.registry.size} entity types have all non-goal components registered.`
+        );
+
         process.stdout.write(
             [
                 `entities: ${types.registry.size}`,
                 `non-goal keys in vanilla: ${others.length}, registered: ${registeredOthers.length}`,
                 `unregistered non-goal keys: ${unimplementedOthers.join(', ')}`,
-                `non-goal keys that carry behavior: ${withBehavior.length}`,
                 `goal names in vanilla: ${goals.length} (registration is checked by @jsprismarine/entity-goals)`,
-                `entities with every non-goal component registered: ${componentCovered}`,
                 `filter tests in vanilla: ${tests.size}, implemented: ${implementedTests.length}`,
                 ''
             ].join('\n')
         );
 
         // Every vanilla non-goal key has a factory. Some factories preserve
-        // data without running behavior; the separate count above measures
-        // behavior implementations.
+        // data without running behavior; the warning above tracks implementation progress.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(86);
-        expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
 

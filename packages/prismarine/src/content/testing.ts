@@ -7,7 +7,7 @@
  * behavior families and the real flattening, so a test exercises the
  * composition rather than a mock of it.
  */
-import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
+import { BlockPalette, BlockStateModel, behaviorFor } from '@jsprismarine/blocks';
 import type { Definition as ContentDefinition } from '@jsprismarine/content';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import type { Definitions } from '@jsprismarine/packs';
@@ -42,7 +42,7 @@ const blockFile = (identifier: string, hardness: number, lightEmission: number):
             'minecraft:light_emission': lightEmission,
             'minecraft:light_dampening': 15,
             'minecraft:friction': 0.6,
-            ...(identifier === 'minecraft:redstone_lamp' ? { 'jsprismarine:behavior': 'jsprismarine:redstone' } : {}),
+            'jsprismarine:behavior': behaviorFor(identifier),
             'jsprismarine:block_properties': {
                 friction: 0.6,
                 random_tick: false,

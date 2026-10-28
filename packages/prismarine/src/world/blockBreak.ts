@@ -14,9 +14,11 @@
  * Both halves drop items, so the two have to be told apart. The rule is that the table owns what
  * the block itself yields and the block entity owns the rest: a family with no Java table behind
  * it drops the block's yield on its own - `dropSelf`, the ore substitutes, the crop's seeds - and
- * a drop the family made that the block entity was not holding is that stand-in, which the roll
- * replaces. What is left is the container's contents, and whether those spill at all stays the
- * family's decision, which is how a shulker box keeps what it holds.
+ * a drop the family made at the broken block's own position that the block entity was not
+ * holding is that stand-in, which the roll replaces. A family drop at another position stays
+ * there as that block's own drop. What is left at the broken block is the container's contents,
+ * and whether those spill at all stays the family's decision, which is how a shulker box keeps
+ * what it holds.
  *
  * It reports what to put on the ground, or undefined to send the caller back to the drop it has
  * always made. That answer is for a block whose chunk is no longer in memory and for a block the
@@ -111,19 +113,35 @@ export interface BlockBreak {
  * The break collecting what its block's family drops, while one is running.
  *
  * `onBreak` runs inside one synchronous dispatch, and a behavior drops through the same
- * `World.dropContents` as everything else, so the break records itself here for the length of
- * that dispatch and takes what falls. Scoped the way `ServerItemActorPort.duringInteraction`
- * records an interaction's target: set for the dispatch and cleared in a `finally`.
+ * `World.dropContents` as everything else, so the break records its own-position drops here for
+ * the length of that dispatch and takes what falls. A drop at another position goes to the
+ * ground there. Scoped the way `ServerItemActorPort.duringInteraction` records an interaction's
+ * target: set for the dispatch and cleared in a `finally`.
  */
-let collecting: { readonly world: BreakWorld; readonly drops: Array<Block | Item> } | undefined;
+let collecting:
+    { readonly world: BreakWorld; readonly position: ContentPosition; readonly drops: Array<Block | Item> } | undefined;
 
 /**
  * Offers one world's drops to the break collecting them.
  *
+ * @param world - The world doing the break.
+ * @param position - The block the family dropped the contents from.
+ * @param contents - The stacks to collect.
  * @returns True when a break took them, so the caller must not put them on the ground.
  */
-export const collectBreakDrops = (world: BreakWorld, contents: ReadonlyArray<Block | Item | null>): boolean => {
+export const collectBreakDrops = (
+    world: BreakWorld,
+    position: ContentPosition,
+    contents: ReadonlyArray<Block | Item | null>
+): boolean => {
     if (collecting === undefined || collecting.world !== world) return false;
+    if (
+        position.x !== collecting.position.x ||
+        position.y !== collecting.position.y ||
+        position.z !== collecting.position.z
+    ) {
+        return false;
+    }
 
     for (const drop of contents) {
         if (drop !== null) collecting.drops.push(drop);
@@ -131,12 +149,17 @@ export const collectBreakDrops = (world: BreakWorld, contents: ReadonlyArray<Blo
     return true;
 };
 
-/** Runs one dispatch with its drops collected rather than dropped. */
-const whileCollecting = (world: BreakWorld, dispatch: () => void): Array<Block | Item> => {
+/**
+ * Runs one dispatch with its own-position drops collected rather than dropped.
+ * @param world - The world doing the break.
+ * @param position - The block the dispatch is breaking.
+ * @param dispatch - The synchronous hook dispatch.
+ */
+const whileCollecting = (world: BreakWorld, position: ContentPosition, dispatch: () => void): Array<Block | Item> => {
     const drops: Array<Block | Item> = [];
     const outer = collecting;
 
-    collecting = { world, drops };
+    collecting = { world, position, drops };
     try {
         dispatch();
     } finally {
@@ -192,6 +215,8 @@ const brokenBy = (player: Breaker | undefined): HookActor | undefined => {
  * Every drop the block entity was holding is kept, counted down slot by slot so a chest holding
  * a chest spills the one it held. Everything else is the family standing in for the loot table,
  * and the roll replaces it.
+ * @param captured - Drops the family made at the broken block's position.
+ * @param contents - The block entity's slots before the hook ran.
  */
 const spilledContents = (
     captured: readonly (Block | Item)[],
@@ -254,13 +279,14 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
 
         const held = player?.getInventory().getItemInHand() ?? null;
         const correctTool =
-            blockFromContent(standing.name, content, standing.states)?.isCompatibleWithTool(held) ?? true;
+            player === undefined ||
+            (blockFromContent(standing.name, content, standing.states)?.isCompatibleWithTool(held) ?? true);
         const blocks = content.world.blockWorld.at(dimension);
 
         // Read before the hook runs, because what spills a container is the hook itself.
         const contents = blocks.getBlockData(position)?.items ?? [];
 
-        const captured = whileCollecting(world, () => {
+        const captured = whileCollecting(world, position, () => {
             type.state(standing.states).content.hooks.dispatch('onBreak', {
                 block: broken,
                 brokenBlock: broken,
@@ -282,7 +308,9 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
 
         // A block the stack has no table for is one the families are the only drop rule for,
         // which is every Bedrock-only block and the whole of a stack with no Java half.
-        if (blockLootTableOf(content, standing.name, standing.states) === undefined) return [...captured];
+        if (blockLootTableOf(content, standing.name, standing.states) === undefined) {
+            return [...captured];
+        }
 
         const rolled = rollBlockDrops(
             content,

@@ -5,7 +5,7 @@ import { SENSOR_TYPE_NAMES } from '../sensing/sensors.js';
 import { BRAIN_MOBS, DUAL_SYSTEM_MOBS, registerBrainMobs } from './index.js';
 
 /**
- * The twenty mob classes in 26.3 that reference `brainProvider` or `makeBrain`, from scanning the
+ * The mob classes in 26.3 that reference `brainProvider` or `makeBrain`, from scanning the
  * constant pool of every top-level class under `net/minecraft/world/entity/`. The scan finds 21,
  * and the twenty-first is `LivingEntity`, which holds the base.
  */
@@ -33,10 +33,9 @@ const EXPECTED_BRAIN_MOBS = [
 ] as const;
 
 describe('registerBrainMobs', () => {
-    it('registers exactly the twenty mobs that build a brain in 26.3', () => {
+    it('registers the mobs that build a brain in 26.3', () => {
         const registry = new BrainMobRegistry();
         registerBrainMobs(registry);
-        expect(registry.size).toBe(20);
         expect([...registry.ids].sort()).toEqual([...EXPECTED_BRAIN_MOBS].sort());
     });
 
@@ -75,8 +74,8 @@ describe('the two mobs that carry both AI systems', () => {
         expect([...DUAL_SYSTEM_MOBS].sort()).toEqual(['minecraft:camel', 'minecraft:happy_ghast']);
     });
 
-    it('leaves every other mob on the brain system alone', () => {
-        const brainOnly = BRAIN_MOBS.filter((mob) => !mob.alsoRunsGoals);
-        expect(brainOnly).toHaveLength(18);
+    it('marks only dual-system brain mobs for goals', () => {
+        const alsoRunningGoals = BRAIN_MOBS.filter((mob) => mob.alsoRunsGoals).map((mob) => mob.id);
+        expect(alsoRunningGoals.sort()).toEqual([...DUAL_SYSTEM_MOBS].sort());
     });
 });

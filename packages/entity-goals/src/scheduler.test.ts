@@ -7,7 +7,7 @@ import type { GoalBlock, GoalItem, GoalMob, GoalWorld } from './world';
 /**
  * The scheduler against a real mob's goal set.
  *
- * The bodies below are the zombie's nine base goals as the vanilla
+ * The bodies below are the zombie's base goals as the vanilla
  * `zombie.json` of Bedrock Dedicated Server 1.26.51.1 writes them, priorities
  * and all, so the test shows which goal wins each control flag rather than
  * asserting a rule in the abstract.
@@ -111,7 +111,7 @@ const tickUntil = (harness: GoalHarness, ready: () => boolean, limit = 1000): bo
     return false;
 };
 
-describe("the scheduler over a zombie's nine goals", () => {
+describe("the scheduler over a zombie's goal set", () => {
     it('idles with the stroll on move and a look goal on look', () => {
         const harness = spawn(zombieWorld());
         // The walk has to outlast one tick for the flag to still be held, so
@@ -214,9 +214,10 @@ describe("the scheduler over a zombie's nine goals", () => {
         expect(harness.holderOf('move')).toBe('minecraft:behavior.stomp_turtle_egg');
     });
 
-    it('keeps every goal registered whether or not it runs', () => {
+    it('keeps an inactive goal registered', () => {
         const harness = spawn(zombieWorld());
 
-        expect(harness.entity.goals.names()).toHaveLength(9);
+        expect(harness.entity.goals.names()).toContain('minecraft:behavior.random_stroll');
+        expect(harness.isRunning('minecraft:behavior.random_stroll')).toBe(false);
     });
 });

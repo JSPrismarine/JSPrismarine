@@ -7,6 +7,7 @@
  */
 import { createCommandSource } from '@jsprismarine/commands';
 import type { CommandSource } from '@jsprismarine/commands';
+import type { BlockType } from '@jsprismarine/blocks';
 import { Gametype, TitleType } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,6 +22,7 @@ import { Entity } from '../../entity/Entity';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
+import { vanillaItemTypes } from '../../item/vanillaItemTypes';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
 import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
@@ -987,6 +989,8 @@ describe('the server command host', () => {
                 ])
             });
             return stub<ServerContent>({
+                blocks: stub<ServerContent['blocks']>({ types: new Map<string, BlockType>() }),
+                items: stub<ServerContent['items']>({ types: vanillaItemTypes() }),
                 loot: new LootRegistry(
                     { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
                     { worldSeed: 1n }

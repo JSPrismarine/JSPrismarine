@@ -244,18 +244,16 @@ describe('command', () => {
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('minecraft:fall_damage = true'));
         });
 
-        it('should refuse a vanilla command whose subsystem is missing', async () => {
-            // `/effect` is not registered at all, so the client is never offered it and the
-            // dispatcher reports it unknown rather than accepting it and doing nothing.
+        it('should refuse a command that is not registered', async () => {
             const { commandManager } = managerWithPermissionSpy();
             await commandManager.enable();
 
             const console = new Console(server);
             const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
 
-            await expect(commandManager.dispatchCommand(console, console, '/effect give @s speed')).resolves.toBe(
-                false
-            );
+            await expect(
+                commandManager.dispatchCommand(console, console, '/jsprismarine_test_command_does_not_exist')
+            ).resolves.toBe(false);
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('Unknown command'));
         });
 

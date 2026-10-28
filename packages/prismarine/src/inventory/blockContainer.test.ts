@@ -76,6 +76,13 @@ const ITEMS = [
     'minecraft:diamond_sword'
 ] as const;
 
+/** Behavior families whose place hooks initialize fixture block entities. */
+const BLOCK_BEHAVIORS: ReadonlyMap<string, string> = new Map([
+    ['minecraft:chest', 'jsprismarine:container'],
+    ['minecraft:furnace', 'jsprismarine:furnace'],
+    ['minecraft:black_shulker_box', 'jsprismarine:container']
+]);
+
 /**
  * The states each block carries, which have to match the server's own catalog.
  *
@@ -103,26 +110,31 @@ const STATES_OF: Readonly<Record<string, readonly BlockStateDefinition[]>> = {
 };
 
 /** One block file in the shape the `jsprismarine_vanilla` overlay writes. */
-const blockFile = (identifier: string): unknown => ({
-    format_version: '1.26.20',
-    'minecraft:block': {
-        description: { identifier },
-        components: {
-            'minecraft:destructible_by_mining': { seconds_to_destroy: 2.5 },
-            'minecraft:destructible_by_explosion': { explosion_resistance: 2.5 },
-            'minecraft:light_emission': 0,
-            'minecraft:light_dampening': 15,
-            'minecraft:friction': 0.6,
-            'jsprismarine:block_properties': {
-                friction: 0.6,
-                random_tick: false,
-                requires_correct_tool: false,
-                push_reaction: 'push_pull',
-                source: 'java'
+const blockFile = (identifier: string): unknown => {
+    const behavior = BLOCK_BEHAVIORS.get(identifier);
+
+    return {
+        format_version: '1.26.20',
+        'minecraft:block': {
+            description: { identifier },
+            components: {
+                ...(behavior === undefined ? {} : { 'jsprismarine:behavior': behavior }),
+                'minecraft:destructible_by_mining': { seconds_to_destroy: 2.5 },
+                'minecraft:destructible_by_explosion': { explosion_resistance: 2.5 },
+                'minecraft:light_emission': 0,
+                'minecraft:light_dampening': 15,
+                'minecraft:friction': 0.6,
+                'jsprismarine:block_properties': {
+                    friction: 0.6,
+                    random_tick: false,
+                    requires_correct_tool: false,
+                    push_reaction: 'push_pull',
+                    source: 'java'
+                }
             }
         }
-    }
-});
+    };
+};
 
 let scratch: string;
 let previousDirectory: string | undefined;

@@ -54,7 +54,7 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // The fixture build, so a caller that asks the runtime what the stack declares - which
         // is what `/summon` does before it spawns - gets an answer rather than a crash. The
         // fixture declares no entity, so every such question answers no.
-        runtime: stub<EntityRuntime>({ content: () => testContent() }),
+        runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {} }),
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
         tick: async () => {},
         persist: () => {},

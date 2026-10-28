@@ -262,6 +262,7 @@ const scene = () => {
         getWorld: () => world,
         getInventory: () => inventory,
         getEquipment: () => ({}),
+        getStatusEffects: () => [],
         attributes: new Attributes(Attributes.getPlayerDefaults()),
         metadata: { sprinting: false } as never,
         gamemode: 0,

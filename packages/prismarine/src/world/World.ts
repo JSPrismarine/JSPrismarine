@@ -2087,7 +2087,19 @@ export class World implements Service {
         // A break running its block's `onBreak` takes what the family drops, so a container's
         // contents can be told from the family's stand-in for the loot table rather than
         // landing beside the roll; see {@link import('./blockBreak')}.
-        if (collectBreakDrops(this, contents)) return;
+        if (
+            collectBreakDrops(
+                this,
+                {
+                    x: Math.floor(position.getX()),
+                    y: Math.floor(position.getY()),
+                    z: Math.floor(position.getZ())
+                },
+                contents
+            )
+        ) {
+            return;
+        }
 
         // A block that promises a drop the server cannot make yields `null` here - most often
         // because it names an item nothing has registered. Silently filtered, that is a break

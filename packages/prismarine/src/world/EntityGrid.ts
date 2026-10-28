@@ -54,10 +54,7 @@ export class EntityGrid {
             const z = position.getZ();
             const chunkX = CoordinateUtils.fromBlockToChunk(x);
             const chunkZ = CoordinateUtils.fromBlockToChunk(z);
-            const key = EntityGrid.key(
-                chunkX,
-                chunkZ
-            );
+            const key = EntityGrid.key(chunkX, chunkZ);
 
             const cell = this.cells.get(key);
             if (cell) cell.push(entity);
@@ -136,8 +133,7 @@ export class EntityGrid {
         }
 
         found.sort(
-            (left, right) =>
-                left.chunkX - right.chunkX || left.chunkZ - right.chunkZ || left.order - right.order
+            (left, right) => left.chunkX - right.chunkX || left.chunkZ - right.chunkZ || left.order - right.order
         );
 
         return found.map(({ entity }) => entity);

@@ -8,13 +8,11 @@
  * generic body that has no data-driven state behind it.
  */
 import { Gametype } from '@jsprismarine/minecraft';
-import { Vector3 } from '@jsprismarine/math';
 
 import type { BlockEntityData, ContentEntity, ContentEntityAccess, ContentPosition } from '../content/world/adapter';
 import type { ContentLookup } from '../content/world/views';
 import { itemOfDrop } from '../inventory/persistence';
 import { itemFromContent } from '../item/itemFromContent';
-import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type { Entity } from './Entity';
 import { applyBlockEntityRecord } from '../blockentity/contentRecord';
