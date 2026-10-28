@@ -1308,8 +1308,17 @@ export class EntityRuntime implements EntityScene {
             if (options.feedback !== false) this.host.hurtFeedback?.(entity.id);
         }
         if (result.died) {
+            const killer = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
+            if (killer !== undefined) this.notifyAttackTargetKilled(entity, killer);
             if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
             else this.kill(entity);
+        }
+    }
+
+    /** Notifies combat-regeneration components watching the target that just died. */
+    private notifyAttackTargetKilled(target: DataEntity, killer: FilterEntityView): void {
+        for (const observer of this.entities.values()) {
+            if (observer.target === target.id) observer.instance.notifyAttackTargetKilled(killer);
         }
     }
 

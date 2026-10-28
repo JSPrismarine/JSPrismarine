@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Ninety-two keys carry
-runtime behavior. The remaining 110 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Ninety-three keys carry
+runtime behavior. The remaining 109 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -184,6 +184,11 @@ matching block-state condition starts or stops matching.
 
 `minecraft:target_nearby_sensor` reads the entity's current target and uses `follow_range` as its
 visibility test. The host does not currently test whether blocks occlude the target.
+
+`minecraft:combat_regeneration` observes the deaths of the entity's active attack target. It gives
+Regeneration I to the killer when `apply_to_self` names the source or `apply_to_family` names a
+shared type family, removes Mining Fatigue, and honors the configured duration, including
+`"infinite"`.
 
 `minecraft:mob_effect` searches nearby mobs and players, applies `entity_filter` with the source as
 `self` and each candidate as `other`, then applies the configured effect and duration. Its cooldown

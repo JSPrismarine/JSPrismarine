@@ -752,6 +752,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.dispatch('onAttack', this, target);
     }
 
+    /** Notifies active components that this entity's current attack target was killed. */
+    public notifyAttackTargetKilled(killer: FilterEntityView): void {
+        this.dispatch('onAttackTargetKilled', this, killer);
+    }
+
     /** Asks the world to carry out one `minecraft:angry.broadcast_anger` request. */
     public broadcastAnger(request: EntityAngerBroadcast): void {
         if (this.environment.broadcastAnger === undefined) {

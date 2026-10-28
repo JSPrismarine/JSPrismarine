@@ -24,6 +24,7 @@ import {
     breedable,
     bounciness,
     collisionBox,
+    combatRegeneration,
     damageOverTime,
     damageSensor,
     despawn,
@@ -120,7 +121,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:can_stand_on_powder_snow',
     'minecraft:celebrate_hunt',
     'minecraft:cannot_be_attacked',
-    'minecraft:combat_regeneration',
     'minecraft:conditional_bandwidth_optimization',
     'minecraft:custom_hit_test',
     'minecraft:dash_action',
@@ -252,6 +252,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(burnsInDaylight);
     register(breedable);
     register(collisionBox);
+    register(combatRegeneration);
     register(damageOverTime);
     register(damageSensor);
     register(dyeable);

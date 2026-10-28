@@ -316,6 +316,8 @@ export interface EntityHooks {
     onEquipmentChanged: (entity: EntityInstance, slot: EntityEquipmentSlot, equipped: boolean) => void;
     /** Runs when the entity attacks another entity. */
     onAttack: (entity: EntityInstance, target: FilterEntityView) => void;
+    /** Runs when the entity's current attack target is killed. */
+    onAttackTargetKilled: (entity: EntityInstance, killer: FilterEntityView) => void;
     /** Decides what one damage event does; the first handler that answers wins. */
     onDamage: (entity: EntityInstance, damage: DamageEvent) => DamageOutcome | undefined;
     /** Observes the result after sensors, immunities, and health changes without altering it. */

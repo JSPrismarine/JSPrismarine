@@ -112,6 +112,63 @@ export const attack: ComponentFactory<EntityHooks, AttackParams> = {
     })
 };
 
+/** What `minecraft:combat_regeneration` declares. */
+export interface CombatRegenerationParams {
+    /** Whether a same-family mob that kills this entity's attack target receives the buffs. */
+    readonly applyToFamily: boolean;
+    /** Whether this entity receives the buffs when it kills its attack target. */
+    readonly applyToSelf: boolean;
+    /** Regeneration duration in ticks, or `-1` when it never expires. */
+    readonly regenerationDurationTicks: number;
+}
+
+/**
+ * `minecraft:combat_regeneration`, which rewards the killer of the entity's
+ * current attack target with Regeneration I and removes Mining Fatigue.
+ */
+export const combatRegeneration: ComponentFactory<EntityHooks, CombatRegenerationParams> = {
+    name: 'minecraft:combat_regeneration',
+    hooks: ['onAttackTargetKilled'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+
+        const duration = value.regeneration_duration ?? 5;
+        const regenerationDurationTicks =
+            duration === 'infinite'
+                ? -1
+                : typeof duration === 'number' && Number.isInteger(duration) && duration > 0
+                  ? duration * TICKS_PER_SECOND
+                  : undefined;
+        if (regenerationDurationTicks === undefined)
+            return rejected('regeneration_duration must be a positive integer or "infinite"');
+
+        return accepted({
+            applyToFamily: booleanAt(value, 'apply_to_family', false),
+            applyToSelf: booleanAt(value, 'apply_to_self', false),
+            regenerationDurationTicks
+        });
+    },
+    create: (params) => ({
+        onAttackTargetKilled: (entity, killer) => {
+            const self = entity.filterContext().self;
+            const selfId = self.id?.();
+            const killerId = killer.id?.();
+            const isSelf = selfId !== undefined && killerId === selfId;
+            const sameFamily = entity.families().some((family) => killer.names?.('is_family')?.includes(family));
+            const recipient =
+                (isSelf && params.applyToSelf) || (!isSelf && sameFamily && params.applyToFamily) ? killer : undefined;
+            if (recipient === undefined) return;
+
+            entity.applyStatusEffect(recipient, {
+                id: 'minecraft:regeneration',
+                durationTicks: params.regenerationDurationTicks,
+                amplifier: 0
+            });
+            entity.removeStatusEffect(recipient, 'minecraft:mining_fatigue');
+        }
+    })
+};
+
 /** What `minecraft:collision_box` declares, in blocks. */
 export interface CollisionBoxParams {
     readonly width: number;
