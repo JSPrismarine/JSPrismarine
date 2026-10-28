@@ -1203,7 +1203,7 @@ export const spawnEggInteraction: ComponentFactory<EntityHooks, ComponentRecord>
     create: () => ({
         onInteractWithItem: (entity, _itemIdentifier, _other, state?: EntityItemInteractionState) => {
             const spawnEgg = state?.spawnEgg;
-            if (spawnEgg === undefined || spawnEgg.identifier !== entity.type.identifier) return false;
+            if (spawnEgg === undefined || spawnEgg.identifier !== entity.type.identifier) return undefined;
             return { spawnOffspring: spawnEgg.offspringIdentifier };
         }
     })

@@ -133,6 +133,22 @@ describe('minecraft:ageable', () => {
         expect(entity.hasComponent('minecraft:is_baby')).toBe(false);
     });
 
+    it('lets ageable handle items when spawn egg interaction is also active', () => {
+        const data = {
+            ...calf,
+            'minecraft:entity': {
+                ...calf['minecraft:entity'],
+                components: {
+                    ...calf['minecraft:entity'].components,
+                    'minecraft:spawn_egg_interaction': {}
+                }
+            }
+        };
+        const entity = spawn(data, 'test:calf');
+
+        expect(entity.interactWithItem('wheat')).toBe(true);
+    });
+
     it('keeps a baby forever when duration is -1', () => {
         const entity = spawn(
             {
