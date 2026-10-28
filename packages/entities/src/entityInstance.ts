@@ -100,6 +100,26 @@ export interface EntityTargetProximity {
     readonly visible: boolean;
 }
 
+/** The spatial and entity-type limits for one `minecraft:entity_sensor` search. */
+export interface EntitySensorQuery {
+    /** Maximum horizontal distance from the sensor, in blocks. */
+    readonly horizontalRange: number;
+    /** Maximum vertical distance from the sensor, in blocks. */
+    readonly verticalRange: number;
+    /** Vertical offset applied to the sensor's position before measuring range. */
+    readonly yOffset: number;
+    /** Whether the sensor's dimensions extend the configured ranges. */
+    readonly relativeRange: boolean;
+    /** Whether to search only live players. */
+    readonly findPlayersOnly: boolean;
+}
+
+/** One live entity within a sensor's search range. */
+export interface EntitySensorCandidate {
+    /** The facts filters can read about the sensed entity as `other`. */
+    readonly view: FilterEntityView;
+}
+
 /** What an entity needs from the world around it. */
 export interface EntityEnvironment {
     /**
@@ -110,6 +130,8 @@ export interface EntityEnvironment {
     filterContext?(entity: EntityInstance): FilterContext;
     /** The current target's range and visibility, for `minecraft:target_nearby_sensor`. */
     targetProximity?(entity: EntityInstance): EntityTargetProximity | undefined;
+    /** Finds live entities a `minecraft:entity_sensor` can sense. */
+    entitySensorCandidates?(entity: EntityInstance, query: EntitySensorQuery): readonly EntitySensorCandidate[];
     /** Delivers an angry component's broadcast to nearby matching entities. */
     broadcastAnger?(entity: EntityInstance, request: EntityAngerBroadcast): void;
     /** Moves, looks and jumps on behalf of the goals. */
@@ -869,6 +891,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** The current target's range and visibility, or undefined when no world target is known. */
     public targetProximity(): EntityTargetProximity | undefined {
         return this.environment.targetProximity?.(this);
+    }
+
+    /** Returns entities in the configured range for the active `minecraft:entity_sensor`. */
+    public entitySensorCandidates(query: EntitySensorQuery): readonly EntitySensorCandidate[] {
+        return this.environment.entitySensorCandidates?.(this, query) ?? [];
     }
 
     /** Wraps a caller's view so the entity answers the facts it owns itself. */

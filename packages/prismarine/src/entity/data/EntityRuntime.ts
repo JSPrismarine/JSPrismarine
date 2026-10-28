@@ -27,6 +27,8 @@ import type {
     EntityEffects,
     EntityEquipmentSlot,
     EntityPosition,
+    EntitySensorCandidate,
+    EntitySensorQuery,
     EntityRepairItemRequest,
     EntitySpawnRequest,
     EntitySpawnItemsRequest,
@@ -575,6 +577,7 @@ export class EntityRuntime implements EntityScene {
                               visible: goalWorld.canSee(target)
                           };
                 },
+                entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
                 random: { next: () => this.world.random.nextFloat() },
                 javaStats: content.entities.javaStats,
                 javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
@@ -1217,6 +1220,39 @@ export class EntityRuntime implements EntityScene {
 
             candidate.instance.trigger('minecraft:on_friendly_anger', subjects);
         }
+    }
+
+    /** Finds live entities in one entity sensor's horizontal and vertical search bounds. */
+    private entitySensorCandidates(body: MobBody, query: EntitySensorQuery): readonly EntitySensorCandidate[] {
+        const center = { ...body.position, y: body.position.y + query.yOffset };
+        const horizontalRange = query.horizontalRange + (query.relativeRange ? body.facts.box.width : 0);
+        const verticalRange = query.verticalRange + (query.relativeRange ? body.facts.box.height : 0);
+        const radius = Math.hypot(horizontalRange, verticalRange);
+        const candidates: EntitySensorCandidate[] = [];
+        const include = (position: EntityPosition, view: EntitySensorCandidate['view']): void => {
+            const dx = position.x - center.x;
+            const dy = Math.abs(position.y - center.y);
+            const dz = position.z - center.z;
+            if (Math.hypot(dx, dz) > horizontalRange || dy > verticalRange) return;
+            candidates.push({ view });
+        };
+
+        if (!query.findPlayersOnly) {
+            for (const candidate of this.near(center, radius)) {
+                if (candidate.id === body.id) continue;
+                include(candidate.position, candidate.instance.filterContext().self);
+            }
+        }
+
+        for (const player of this.host.players()) {
+            const position = player.position;
+            const view = this.host.playerView?.(player.id) ?? {
+                id: () => player.id,
+                names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.tags : undefined)
+            };
+            include(position, view);
+        }
+        return candidates;
     }
 
     /** Knocks a mob away from the entity, scaled by what the target resists. */

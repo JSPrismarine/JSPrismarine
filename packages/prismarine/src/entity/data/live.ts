@@ -193,6 +193,10 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
 /** The host facts over one live world. */
 const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFacts => ({
     players: () => options.entities.players(),
+    playerView: (id) => {
+        const player = options.liveWorld()?.getEntity(BigInt(id));
+        return player instanceof Player ? playerFilterView(player) : undefined;
+    },
     playerIdentityOf: (id) => {
         const player = options.liveWorld()?.getEntity(BigInt(id));
         return player instanceof Player ? player.getUUID().toString() : undefined;

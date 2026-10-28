@@ -223,6 +223,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:barter` | Rolls `barter_table` with the `barter` loot context after the piglin releases its gold ingot, honoring the cooldown after damage |
 | `minecraft:angry` | Counts down over `duration` plus or minus `duration_delta`, raises `calm_event`, excludes targets with `filters`, broadcasts on activation, attack, being attacked, or death as configured, and plays `angry_sound` on its `sound_interval` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_angry?view=minecraft-bedrock-stable)) |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
+| `minecraft:entity_sensor` | Searches nearby mobs and players for each subsensor, applies `event_filters`, count bounds, `require_all`, range offsets, and cooldowns, then raises its event ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_entity_sensor?view=minecraft-bedrock-stable)) |
 | `minecraft:target_nearby_sensor` | Tracks the current target through `inside_range` and `outside_range`, honors `must_see` for inside events, and fires its vision-loss event while the target is inside range |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
@@ -329,9 +330,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 78 component factories have hooks, and 84
+measures name coverage rather than complete simulation: 79 component factories have hooks, and 85
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 118 bodies are available as data for behavior that still needs to be added.
+included. The remaining 117 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
 visibility as being within `follow_range`; it does not test block occlusion.
@@ -363,5 +364,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  118 currently expose data without runtime behavior. The component bodies remain accessible to the
+  117 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

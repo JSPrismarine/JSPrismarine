@@ -1909,6 +1909,171 @@ export const environmentSensor: ComponentFactory<EntityHooks, EnvironmentSensorP
     })
 };
 
+/** One range and event rule within `minecraft:entity_sensor.subsensors`. */
+export interface EntitySensorSubsensor {
+    /** Additional seconds to wait after the base one-tick sensing delay. */
+    readonly cooldown: number;
+    /** Event to raise when the matching entity count is in range. */
+    readonly event?: SensorTrigger;
+    /** Filter evaluated with the sensor owner as `self` and each candidate as `other`. */
+    readonly eventFilters?: Filter;
+    /** Largest matching candidate count, or `-1` for no upper bound. */
+    readonly maximumCount: number;
+    /** Smallest matching candidate count required to raise the event. */
+    readonly minimumCount: number;
+    /** Horizontal and vertical search limits, in blocks. */
+    readonly range: readonly [horizontal: number, vertical: number];
+    /** Whether every nearby candidate must pass `event_filters`. */
+    readonly requireAll: boolean;
+    /** Vertical offset applied before testing the candidate range. */
+    readonly yOffset: number;
+}
+
+/** What `minecraft:entity_sensor` declares. */
+export interface EntitySensorParams {
+    readonly findPlayersOnly: boolean;
+    readonly relativeRange: boolean;
+    readonly subsensors: readonly EntitySensorSubsensor[];
+}
+
+interface EntitySensorState {
+    readonly cooldowns: number[];
+}
+
+const isEntitySensorRange = (value: unknown): value is readonly [number, number] =>
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === 'number' &&
+    Number.isFinite(value[0]) &&
+    value[0] >= 0 &&
+    typeof value[1] === 'number' &&
+    Number.isFinite(value[1]) &&
+    value[1] >= 0;
+
+const sensorNumber = (record: ComponentRecord, key: string, fallback: number): number | undefined => {
+    const value = record[key];
+    if (value === undefined) return fallback;
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+};
+
+const hasValidSensorBoolean = (record: ComponentRecord, key: string): boolean =>
+    record[key] === undefined || typeof record[key] === 'boolean';
+
+const parseEntitySensor = (
+    value: unknown
+): { readonly ok: true; readonly params: EntitySensorParams } | { readonly ok: false; readonly message: string } => {
+    if (!isRecord(value)) return { ok: false, message: 'expected an object' };
+    if (!hasValidSensorBoolean(value, 'find_players_only') || !hasValidSensorBoolean(value, 'relative_range'))
+        return { ok: false, message: 'find_players_only and relative_range must be booleans' };
+    const subsensors: EntitySensorSubsensor[] = [];
+    for (const [index, raw] of asList(value.subsensors).entries()) {
+        if (!isRecord(raw)) return { ok: false, message: `subsensors[${index}] must be an object` };
+        if (!hasValidSensorBoolean(raw, 'require_all'))
+            return { ok: false, message: `subsensors[${index}].require_all must be a boolean` };
+        const rangeValue = raw.range;
+        if (rangeValue !== undefined && !isEntitySensorRange(rangeValue)) {
+            return { ok: false, message: `subsensors[${index}].range must be two non-negative numbers` };
+        }
+        const range: readonly [number, number] = rangeValue ?? [10, 10];
+        const maximumCount = sensorNumber(raw, 'maximum_count', -1);
+        const minimumCount = sensorNumber(raw, 'minimum_count', 1);
+        const cooldown = sensorNumber(raw, 'cooldown', -1);
+        const yOffset = sensorNumber(raw, 'y_offset', 0);
+        if (maximumCount === undefined || minimumCount === undefined || cooldown === undefined || yOffset === undefined)
+            return { ok: false, message: `subsensors[${index}] count, cooldown, and offset values must be finite` };
+        if (!Number.isInteger(maximumCount) || !Number.isInteger(minimumCount) || maximumCount < -1 || minimumCount < 0)
+            return {
+                ok: false,
+                message: `subsensors[${index}] counts must be non-negative, with -1 allowed for maximum_count`
+            };
+
+        let eventFilters: Filter | undefined;
+        if (raw.event_filters !== undefined) {
+            const parsed = parseFilterValue(raw.event_filters, `subsensors[${index}].event_filters`);
+            if (!parsed.ok) return { ok: false, message: parsed.message };
+            eventFilters = parsed.value;
+        }
+        const event = parseComponentTrigger(raw.event);
+        if (raw.event !== undefined && event === undefined)
+            return { ok: false, message: `subsensors[${index}].event must name an event` };
+        subsensors.push({
+            cooldown,
+            ...(event === undefined ? {} : { event }),
+            ...(eventFilters === undefined ? {} : { eventFilters }),
+            maximumCount,
+            minimumCount,
+            range,
+            requireAll: booleanAt(raw, 'require_all', false),
+            yOffset
+        });
+    }
+    return {
+        ok: true,
+        params: {
+            findPlayersOnly: booleanAt(value, 'find_players_only', false),
+            relativeRange: booleanAt(value, 'relative_range', true),
+            subsensors
+        }
+    };
+};
+
+/** `minecraft:entity_sensor`, which emits events when nearby entity filters and count bounds pass. */
+export const entitySensor: ComponentFactory<EntityHooks, EntitySensorParams> = {
+    name: 'minecraft:entity_sensor',
+    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    schema: (value) => {
+        const parsed = parseEntitySensor(value);
+        return parsed.ok ? accepted(parsed.params) : rejected(parsed.message);
+    },
+    create: (params) => {
+        const states = new WeakMap<EntityInstance, EntitySensorState>();
+        return {
+            onInitialize: (entity) => states.set(entity, { cooldowns: params.subsensors.map(() => 0) }),
+            onRemove: (entity) => states.delete(entity),
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+
+                for (const [index, subsensor] of params.subsensors.entries()) {
+                    const remaining = state.cooldowns[index] ?? 0;
+                    if (remaining > 0) {
+                        state.cooldowns[index] = remaining - 1;
+                        continue;
+                    }
+
+                    const [horizontalRange, verticalRange] = subsensor.range;
+                    const candidates = entity.entitySensorCandidates({
+                        horizontalRange,
+                        verticalRange,
+                        yOffset: subsensor.yOffset,
+                        relativeRange: params.relativeRange,
+                        findPlayersOnly: params.findPlayersOnly
+                    });
+                    let matchingCount = 0;
+                    for (const candidate of candidates) {
+                        const matches =
+                            subsensor.eventFilters === undefined ||
+                            evaluateFilter(subsensor.eventFilters, {
+                                ...entity.filterContext(),
+                                other: candidate.view
+                            });
+                        if (matches) matchingCount += 1;
+                        else if (subsensor.requireAll) break;
+                    }
+                    if (subsensor.requireAll && matchingCount !== candidates.length) continue;
+                    if (matchingCount < subsensor.minimumCount) continue;
+                    if (subsensor.maximumCount >= 0 && matchingCount > subsensor.maximumCount) continue;
+                    if (subsensor.event?.event === undefined) continue;
+
+                    entity.raise(subsensor.event.event, subsensor.event.target, 'minecraft:entity_sensor');
+                    if (subsensor.cooldown >= 0)
+                        state.cooldowns[index] = Math.ceil(subsensor.cooldown * TICKS_PER_SECOND);
+                }
+            }
+        };
+    }
+};
+
 /** What `minecraft:target_nearby_sensor` declares. */
 export interface TargetNearbySensorParams {
     readonly insideRange: number;

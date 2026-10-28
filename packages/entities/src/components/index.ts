@@ -24,6 +24,7 @@ import {
     damageOverTime,
     damageSensor,
     despawn,
+    entitySensor,
     environmentSensor,
     equipment,
     equipmentChanged,
@@ -120,7 +121,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:drying_out_timer',
     'minecraft:dweller',
     'minecraft:economy_trade_table',
-    'minecraft:entity_sensor',
     'minecraft:equip_item',
     'minecraft:equippable',
     'minecraft:exhaustion_values',
@@ -251,6 +251,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(damageOverTime);
     register(damageSensor);
     register(despawn);
+    register(entitySensor);
     register(environmentSensor);
     register(equipment);
     register(experienceReward);
