@@ -162,21 +162,24 @@ const normalizeId = (value: string): string | undefined => {
 /** One counted identifier: how often it is referenced, and where it was first seen. */
 interface Reference {
     count: number;
+    required: boolean;
     pack: string;
     path: string;
 }
 
 type Counts = Map<string, Map<string, Reference>>;
 
-const count = (counts: Counts, registry: string, value: unknown, from: Definition): void => {
+const count = (counts: Counts, registry: string, value: unknown, from: Definition, required = true): void => {
     if (typeof value !== 'string') return;
     const id = normalizeId(value);
     if (!id) return;
     const byId = counts.get(registry) ?? new Map<string, Reference>();
     counts.set(registry, byId);
     const held = byId.get(id);
-    if (held) held.count += 1;
-    else byId.set(id, { count: 1, pack: from.pack, path: from.path });
+    if (held) {
+        held.count += 1;
+        held.required ||= required;
+    } else byId.set(id, { count: 1, required, pack: from.pack, path: from.path });
 };
 
 /** Walks a definition, counting the values of identifier-valued fields. */
@@ -203,9 +206,15 @@ const walkTag = (data: unknown, counts: Counts, from: Definition): void => {
     const taggedRegistry = prefix.split('/').slice(0, -1).join('/');
     if (!taggedRegistry || !isRecord(data) || !Array.isArray(data.values)) return;
 
+    const seen = new Set<string>();
     for (const entry of data.values) {
-        if (typeof entry === 'string') count(counts, taggedRegistry, entry, from);
-        else if (isRecord(entry)) count(counts, taggedRegistry, entry.id, from);
+        const id = typeof entry === 'string' ? entry : isRecord(entry) ? entry.id : undefined;
+        if (typeof id !== 'string') continue;
+        const normalized = normalizeId(id);
+        if (!normalized || seen.has(normalized)) continue;
+        seen.add(normalized);
+        const required = typeof entry === 'string' || !isRecord(entry) || entry.required !== false;
+        count(counts, taggedRegistry, normalized, from, required);
     }
 };
 
@@ -261,9 +270,10 @@ export const reportIdentifiers = (
     for (const registry of [...counts.keys()].sort()) {
         const byId = counts.get(registry)!;
         for (const id of [...byId.keys()].sort()) {
-            const { count: references, pack, path } = byId.get(id)!;
+            const { count: references, required, pack, path } = byId.get(id)!;
             const resolved = resolver.resolve(registry, id);
             const closed = resolved === 'unknown' && inPackStack(definitions, registry, id);
+            if (resolved === 'unknown' && !closed && !required) continue;
             report.push({
                 registry,
                 id,

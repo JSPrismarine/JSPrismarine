@@ -29,8 +29,9 @@ import { flattenItemFacts, loadItemTypes, maxDamage, maxStackSize, vanillaItemDe
 import { defaultItemStackOps } from '@jsprismarine/predicates';
 import type { ItemStackOps, ReferenceResolver } from '@jsprismarine/predicates';
 import { LootRegistry, bedrockLootTables, javaLootTables } from '@jsprismarine/loot';
+import { createPackIdentifierResolver } from '@jsprismarine/mapping';
 import { load as loadPacks } from '@jsprismarine/packs';
-import type { Definition, Definitions } from '@jsprismarine/packs';
+import type { Definition, Definitions, IdentifierResolver } from '@jsprismarine/packs';
 import { loadRecipes } from '@jsprismarine/recipes';
 import type { RecipeBook } from '@jsprismarine/recipes';
 import { parseSpawnRule } from '@jsprismarine/spawning';
@@ -221,7 +222,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // Plan section 5's rule: a Java identifier with no Bedrock mapping and no
     // reviewed loss stops a strict build here, before any domain resolves
     // around the hole it would leave.
-    diagnostics.push(...checkIdentifiers(definitions, { strict, resolver: options.identifiers }));
+    const identifierResolver = options.identifiers ?? createPackIdentifierResolver();
+    diagnostics.push(...checkIdentifiers(definitions, { strict, resolver: identifierResolver }));
 
     // The world views read the built content, and the behavior families read the world, so the
     // two are tied together before either exists. `built` closes the loop: nothing dereferences
@@ -269,7 +271,9 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const brains = new BrainMobRegistry();
     registerBrainMobs(brains);
 
-    const tags = buildContentTags(definitions.tags);
+    const tags = buildContentTags(definitions.tags, (registry, identifier) =>
+        isKnownTagMember(registry, identifier, definitions, identifierResolver, blocks.types, items.types, entityTypes)
+    );
     diagnostics.push(...tags.diagnostics);
 
     // The loader wraps each file in a record carrying its pack and path; the recipe grammar
@@ -494,6 +498,51 @@ const parseEnchantments = (
  */
 const enchantmentTagsFor = (tags: ContentTags): ReadonlyMap<string, readonly string[]> =>
     new Map(tags.tags('enchantment').map((tag) => [tag, tags.members('enchantment', tag)]));
+
+/** Whether one loaded content domain or the Java registry census declares this tag member. */
+const isKnownTagMember = (
+    registry: string,
+    identifier: string,
+    definitions: Definitions,
+    resolver: IdentifierResolver,
+    blocks: ReadonlyMap<string, BlockType>,
+    items: ReadonlyMap<string, ItemType>,
+    entities: EntityTypes
+): boolean => {
+    const declared = (() => {
+        switch (registry) {
+            case 'block':
+                return blocks.has(identifier);
+            case 'item':
+                return items.has(identifier);
+            case 'entity_type':
+                return entities.registry.has(identifier);
+            case 'enchantment':
+                return definitions.enchantments.has(identifier);
+            case 'damage_type':
+                return definitions.damageTypes.has(identifier);
+            case 'worldgen/biome':
+                return definitions.biomes.has(identifier);
+            case 'loot_table':
+                return definitions.lootTablesJava.has(identifier);
+            case 'recipe':
+                return definitions.recipesJava.has(identifier);
+            case 'advancement':
+                return definitions.advancements.has(identifier);
+            case 'predicate':
+                return definitions.predicates.has(identifier);
+            case 'item_modifier':
+                return definitions.itemModifiers.has(identifier);
+            case 'function':
+                return definitions.functions.has(identifier);
+            default:
+                return undefined;
+        }
+    })();
+    if (declared === true) return true;
+    if (declared === false && !identifier.startsWith('minecraft:')) return false;
+    return resolver.resolve(registry, identifier) !== 'unknown';
+};
 
 /**
  * Item id to the `item` tags it carries, inverted once per content build.

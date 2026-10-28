@@ -46,15 +46,24 @@ export interface ContentTags {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/** Resolves the default `minecraft` namespace on tag members and references. */
+const normalizeTagId = (identifier: string): string => {
+    if (identifier.startsWith('#')) {
+        const tag = identifier.slice(1);
+        return tag.includes(':') ? `#${tag}` : `#minecraft:${tag}`;
+    }
+    return identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+};
+
 /** Reads one tag file's `replace` flag and member list, ignoring anything else it carries. */
 const parseTagFile = (data: unknown): { replace: boolean; values: readonly TagMember[] } => {
     if (!isRecord(data) || !Array.isArray(data.values)) return { replace: false, values: [] };
 
     const values: TagMember[] = [];
     for (const entry of data.values) {
-        if (typeof entry === 'string') values.push(entry);
+        if (typeof entry === 'string') values.push(normalizeTagId(entry));
         else if (isRecord(entry) && typeof entry.id === 'string') {
-            values.push({ id: entry.id, required: entry.required !== false });
+            values.push({ id: normalizeTagId(entry.id), required: entry.required !== false });
         }
     }
     return { replace: data.replace === true, values };
@@ -88,8 +97,14 @@ interface RegistryTags {
  * instead.
  *
  * @param definitions - The `tags` map `@jsprismarine/packs` produced.
+ * @param hasMember - Whether the tagged registry contains a member. Missing optional members are
+ *   dropped, while missing required members are reported by the tag resolver. Defaults to
+ *   accepting every plain identifier for callers that build tags without a registry census.
  */
-export const buildContentTags = (definitions: ReadonlyMap<string, Definition>): ContentTags => {
+export const buildContentTags = (
+    definitions: ReadonlyMap<string, Definition>,
+    hasMember: (registry: string, identifier: string) => boolean = () => true
+): ContentTags => {
     const sources = new Map<string, TagSource[]>();
     const identifiers = new Map<string, Set<string>>();
 
@@ -113,7 +128,7 @@ export const buildContentTags = (definitions: ReadonlyMap<string, Definition>): 
         const known = identifiers.get(split.registry) ?? new Set<string>();
         for (const member of values) {
             const id = typeof member === 'string' ? member : member.id;
-            if (!id.startsWith('#')) known.add(id);
+            if (!id.startsWith('#') && hasMember(split.registry, id)) known.add(id);
         }
         identifiers.set(split.registry, known);
     }
