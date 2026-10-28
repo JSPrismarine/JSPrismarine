@@ -1,4 +1,3 @@
-import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
 import { blockProperties, replaceable } from '@jsprismarine/blocks';
 import { isFullCube } from '@jsprismarine/engine-systems';
 import type { BlockStateValue, BlockType } from '@jsprismarine/blocks';
@@ -118,7 +117,6 @@ export class Block {
     private readonly placedStateName: string | undefined;
     private readonly facts: BlockFacts;
     private readonly content: ServerContent | undefined;
-    private readonly networkId: number | undefined;
 
     public constructor({ name, states = {}, stateName, facts, content }: BlockProps) {
         this.name = name;
@@ -126,7 +124,6 @@ export class Block {
         this.placedStateName = stateName;
         this.content = content;
         this.facts = facts ?? javaBlockFactsOf(stateName ?? name, states);
-        this.networkId = BlockIdMap[name];
     }
 
     public get [Symbol.toStringTag]() {
@@ -144,11 +141,6 @@ export class Block {
     /** The vanilla block state to place, which is {@link name} unless overridden. */
     public getStateName(): string {
         return this.placedStateName ?? this.name;
-    }
-
-    /** The id the client resolves the block's item form by. */
-    public getNetworkId(): number {
-        return this.networkId ?? 0;
     }
 
     /** The Bedrock tags attached to this block state, or an empty list when it has no type. */
