@@ -46,9 +46,10 @@ power to `onRedstoneUpdate`; `@jsprismarine/block-behaviors` owns the redstone c
 changes and scheduled behavior. The engine no longer owns their scheduled ticks or state
 transitions; it keeps the signal output rules needed to calculate the shared network.
 
-The block facts behind conduction, full-cube checks, and piston push reactions come from
-`@jsprismarine/mapping` where the Java server publishes them. Collision shapes are not published,
-so full-cube checks remain an approximation for partial blocks.
+Resolved `minecraft:redstone_conductivity` values override the Java full-cube conductor default.
+The vanilla overlay supplies the 28 exceptions extracted from Java's block registrations, and
+data-driven packs can declare the same component for their blocks. Collision shapes are not
+published, so the full-cube fallback remains an approximation for partial blocks.
 
 ## Random ticking
 

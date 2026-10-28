@@ -282,6 +282,11 @@ the committed files to a fresh run so the two cannot drift. The overlay preserve
 tag table comes from the pinned Bedrock samples and is regenerated with
 `pnpm --filter @jsprismarine/blocks run generate:block-tags`.
 
+`minecraft:redstone_conductivity` is written for the 28 vanilla blocks whose Java registration
+overrides the full-cube conductor default. The boolean values live in
+`src/tables/vanillaRedstoneConductivity.json`; the content adapter passes the resolved component
+value to redstone calculations. Blocks without an override use the full-cube default.
+
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,
 packed ice and frosted ice at 0.98. `vanilla_overlay/report.json` lists them.

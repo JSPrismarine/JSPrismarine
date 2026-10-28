@@ -17,6 +17,9 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:redstone_conductivity": {
+                "redstone_conductor": false
+            },
             "jsprismarine:behavior": "jsprismarine:dripstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

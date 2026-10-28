@@ -2,9 +2,11 @@ import type { BedrockBlockProperties } from '@jsprismarine/mapping';
 
 import { behaviorFor } from './families';
 import containerOpenSounds from './tables/containerOpenSounds.json';
+import vanillaRedstoneConductivity from './tables/vanillaRedstoneConductivity.json';
 import vanillaBlockTags from './tables/vanillaBlockTags.json';
 
 const BEDROCK_BLOCK_TAGS = new Map(Object.entries(vanillaBlockTags));
+const VANILLA_REDSTONE_CONDUCTIVITY = new Map(Object.entries(vanillaRedstoneConductivity));
 
 /**
  * Where the generator reads a block's properties from.
@@ -274,6 +276,11 @@ export const generateVanillaOverlay = (
 
         const tags = BEDROCK_BLOCK_TAGS.get(identifier);
         if (tags !== undefined) components['minecraft:tags'] = tags;
+
+        const redstoneConductor = VANILLA_REDSTONE_CONDUCTIVITY.get(identifier);
+        if (redstoneConductor !== undefined) {
+            components['minecraft:redstone_conductivity'] = { redstone_conductor: redstoneConductor };
+        }
 
         if (row.igniteOdds > 0 || row.burnOdds > 0) {
             components['minecraft:flammable'] = {

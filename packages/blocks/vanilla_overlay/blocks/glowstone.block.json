@@ -17,6 +17,9 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:redstone_conductivity": {
+                "redstone_conductor": false
+            },
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

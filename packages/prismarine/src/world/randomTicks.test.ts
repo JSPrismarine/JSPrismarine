@@ -100,6 +100,7 @@ describe('contentRandomTickHandlers', () => {
             players: new Map(),
             server: {
                 getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
+                getContent: () => content,
                 getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} })
             }
         });

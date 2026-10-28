@@ -15,6 +15,9 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:redstone_conductivity": {
+                "redstone_conductor": false
+            },
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:inert",
             "jsprismarine:block_properties": {

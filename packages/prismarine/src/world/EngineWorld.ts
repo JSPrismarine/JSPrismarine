@@ -11,6 +11,7 @@
  * allowed to know that two editions exist.
  */
 import { containerSignal } from '@jsprismarine/block-behaviors';
+import { redstoneConductivity } from '@jsprismarine/blocks';
 import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import type { BlockPosition, BlockRef, ExplosionWorld } from '@jsprismarine/engine-systems';
 import { AIR } from '@jsprismarine/engine-systems';
@@ -46,7 +47,18 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
         const block = world.loadedBlockAt(at.x, at.y, at.z);
         if (block === undefined) return AIR;
 
-        return { name: block.name, states: javaBlockStates(block.name, block.states) };
+        const conductivity = world
+            .getServer()
+            .getContent()
+            .blocks.types.get(block.name)
+            ?.state(block.states)
+            .content.params(redstoneConductivity);
+
+        return {
+            name: block.name,
+            states: javaBlockStates(block.name, block.states),
+            ...(conductivity === undefined ? {} : { redstoneConductor: conductivity.redstoneConductor })
+        };
     };
 
     /**

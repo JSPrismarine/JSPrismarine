@@ -96,10 +96,12 @@ export const positionKey = (at: BlockPosition): string => `${at.x},${at.y},${at.
 
 /** The block at one position: what it is, and the state values its rules read. */
 export interface BlockRef {
-    /** The namespaced Bedrock block identifier, such as `minecraft:redstone_wire`. */
+    /** The namespaced Bedrock block identifier, such as `minecraft:stone`. */
     readonly name: string;
     /** Every state value the block carries, keyed by state name. */
     readonly states: Readonly<Record<string, BlockStateValue>>;
+    /** The resolved `minecraft:redstone_conductivity.redstone_conductor`, when the block defines it. */
+    readonly redstoneConductor?: boolean;
 }
 
 /** A block with no states, which is what most of this package writes. */
