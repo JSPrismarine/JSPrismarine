@@ -8,6 +8,7 @@ import { Difficulty } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { blockLootTableOf } from '../block/blockLoot';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
@@ -52,7 +53,10 @@ const BLOCKS = [
     'minecraft:piston',
     'minecraft:piston_arm_collision',
     'minecraft:lever',
-    'minecraft:anvil'
+    'minecraft:anvil',
+    'minecraft:kelp',
+    'minecraft:cave_vines_body_with_berries',
+    'minecraft:cave_vines_head_with_berries'
 ] as const;
 
 /** The items the destructions below yield. */
@@ -65,7 +69,9 @@ const ITEMS = [
     'minecraft:poppy',
     'minecraft:oak_planks',
     'minecraft:stick',
-    'minecraft:anvil'
+    'minecraft:anvil',
+    'minecraft:kelp',
+    'minecraft:glow_berries'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -133,6 +139,47 @@ const LOOT_TABLES: Readonly<Record<string, unknown>> = {
             }
         ],
         random_sequence: 'minecraft:blocks/oak_planks'
+    },
+    'minecraft:blocks/kelp': {
+        type: 'minecraft:block',
+        pools: [
+            {
+                condition: { type: 'minecraft:survives_explosion' },
+                entries: [{ type: 'minecraft:item', name: 'minecraft:kelp' }],
+                rolls: 1
+            }
+        ],
+        random_sequence: 'minecraft:blocks/kelp'
+    },
+    'minecraft:blocks/cave_vines': {
+        type: 'minecraft:block',
+        pools: [
+            {
+                condition: {
+                    type: 'minecraft:match_block',
+                    blocks: 'minecraft:cave_vines',
+                    state: { berries: 'true' }
+                },
+                entries: [{ type: 'minecraft:item', name: 'minecraft:glow_berries' }],
+                rolls: 1
+            }
+        ],
+        random_sequence: 'minecraft:blocks/cave_vines'
+    },
+    'minecraft:blocks/cave_vines_plant': {
+        type: 'minecraft:block',
+        pools: [
+            {
+                condition: {
+                    type: 'minecraft:match_block',
+                    blocks: 'minecraft:cave_vines_plant',
+                    state: { berries: 'true' }
+                },
+                entries: [{ type: 'minecraft:item', name: 'minecraft:glow_berries' }],
+                rolls: 1
+            }
+        ],
+        random_sequence: 'minecraft:blocks/cave_vines_plant'
     }
 };
 
@@ -304,6 +351,52 @@ describe('a block the world destroyed', () => {
             world.setLoadedBlockState(8, 63, 8, { name: 'minecraft:air', states: {} }, false);
 
             expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:torch');
+        });
+
+        it('drops every kelp segment when its ground support breaks', async () => {
+            expect(blockLootTableOf(content, 'minecraft:kelp')).toBe('minecraft:blocks/kelp');
+            place(chunk, { x: 8, y: 63, z: 8 }, 'minecraft:stone');
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:kelp');
+            place(chunk, { x: 8, y: 65, z: 8 }, 'minecraft:kelp');
+
+            // A water neighbor update must preserve planted kelp. Removing its ground
+            // support afterwards must still route both segments through Java's kelp loot table.
+            content.world.blockWorld.at(DIMENSION).setBlock({ x: 7, y: 64, z: 8 }, 'minecraft:water', {
+                liquid_depth: 0
+            });
+
+            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:kelp');
+            expect(drops().filter((drop) => drop.identifier === 'minecraft:kelp')).toEqual([]);
+
+            await world.breakBlock(new Vector3(8, 63, 8));
+
+            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:air');
+            expect(world.loadedBlockAt(8, 65, 8)?.name).toBe('minecraft:air');
+            expect(drops().filter((drop) => drop.identifier === 'minecraft:kelp')).toEqual([
+                { identifier: 'minecraft:kelp', count: 1 },
+                { identifier: 'minecraft:kelp', count: 1 }
+            ]);
+        });
+
+        it('drops berries from each cave vine segment when its ceiling support breaks', async () => {
+            expect(blockLootTableOf(content, 'minecraft:cave_vines_head_with_berries')).toBe(
+                'minecraft:blocks/cave_vines'
+            );
+            expect(blockLootTableOf(content, 'minecraft:cave_vines_body_with_berries')).toBe(
+                'minecraft:blocks/cave_vines_plant'
+            );
+            place(chunk, { x: 8, y: 67, z: 8 }, 'minecraft:stone');
+            place(chunk, { x: 8, y: 66, z: 8 }, 'minecraft:cave_vines_head_with_berries');
+            place(chunk, { x: 8, y: 65, z: 8 }, 'minecraft:cave_vines_body_with_berries');
+
+            await world.breakBlock(new Vector3(8, 67, 8));
+
+            expect(world.loadedBlockAt(8, 66, 8)?.name).toBe('minecraft:air');
+            expect(world.loadedBlockAt(8, 65, 8)?.name).toBe('minecraft:air');
+            expect(drops().filter((drop) => drop.identifier === 'minecraft:glow_berries')).toEqual([
+                { identifier: 'minecraft:glow_berries', count: 1 },
+                { identifier: 'minecraft:glow_berries', count: 1 }
+            ]);
         });
     });
 
