@@ -50,8 +50,9 @@ export type TriggerComponentName = (typeof EVENT_TRIGGER_COMPONENTS)[number];
  *
  * {@link EntityInstance.damage} fires the hurt and death triggers,
  * {@link EntityInstance.setAttackTarget} fires the target triggers, and the
- * entity runtime fires friendly anger and landing. Callers fire the remaining
- * ignition, takeoff, and wake triggers when those transitions happen.
+ * entity runtime fires friendly anger, landing, and successful ground takeoff.
+ * Callers fire the remaining ignition and wake triggers when those transitions
+ * happen.
  */
 export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_death',
@@ -60,7 +61,8 @@ export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_friendly_anger',
     'minecraft:on_target_acquired',
     'minecraft:on_target_escape',
-    'minecraft:on_start_landing'
+    'minecraft:on_start_landing',
+    'minecraft:on_start_takeoff'
 ];
 
 /** What an event-shaped `minecraft:on_*` component declares. */

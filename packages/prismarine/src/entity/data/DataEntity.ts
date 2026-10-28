@@ -355,6 +355,7 @@ export class MobBody {
         this.push({ x: 0, y: jumpPower, z: 0 });
         this.conditions.delete('on_ground');
         this.conditions.add('jumping');
+        if (jumpPower > 0) instance.trigger('minecraft:on_start_takeoff');
     }
 
     /** Starts walking towards a position at a multiple of the entity's own speed. */
