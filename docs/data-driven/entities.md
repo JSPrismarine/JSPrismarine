@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Eighty-six keys carry
-runtime behavior. The remaining 116 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Eighty-seven keys carry
+runtime behavior. The remaining 115 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -178,10 +178,14 @@ Each matching `on_break.block_list` entry raises its `on_block_broken` event. Wh
 present, its filters see the breaker as `other`, the player subject for a player breaker, and the
 broken block as `block`.
 
+`minecraft:inside_block_notifier` checks the blocks overlapped by the entity's collision box, including
+the block's named state values. It raises `entered_block_event` and `exited_block_event` only when a
+matching block-state condition starts or stops matching.
+
 `minecraft:target_nearby_sensor` reads the entity's current target and uses `follow_range` as its
 visibility test. The host does not currently test whether blocks occlude the target.
 
-The 86 with runtime effects include components that change entity state, decide an outcome, or
+The 87 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -190,7 +194,7 @@ initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angr
 `minecraft:burns_in_daylight`); the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:transient`, which keeps its entity out of saved actor records;
-`minecraft:environment_sensor`, `minecraft:entity_sensor`, `minecraft:block_sensor`, `minecraft:target_nearby_sensor`,
+`minecraft:environment_sensor`, `minecraft:entity_sensor`, `minecraft:block_sensor`, `minecraft:inside_block_notifier`, `minecraft:target_nearby_sensor`,
 `minecraft:ambient_sound_interval`, `minecraft:rideable`, `minecraft:leashable` and
 `minecraft:leashable_to`, which attach, retrieve, and cut leash links;
 `minecraft:spawn_entity`, `minecraft:interact`, `minecraft:spawn_egg_interaction`,

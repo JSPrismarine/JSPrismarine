@@ -2172,6 +2172,138 @@ export const blockSensor: ComponentFactory<EntityHooks, BlockSensorParams> = {
     })
 };
 
+/** One block state and its enter and exit events in `minecraft:inside_block_notifier`. */
+export interface InsideBlockNotifierEntry {
+    /** The block identifier to watch. */
+    readonly blockName: string;
+    /** Boolean block states that must match; omitted states accept every state. */
+    readonly states: Readonly<Record<string, boolean>>;
+    /** Event raised when the entity enters a matching block. */
+    readonly enteredBlockEvent?: SensorTrigger;
+    /** Event raised when the entity leaves a matching block. */
+    readonly exitedBlockEvent?: SensorTrigger;
+}
+
+/** What `minecraft:inside_block_notifier` declares. */
+export interface InsideBlockNotifierParams {
+    readonly blockList: readonly InsideBlockNotifierEntry[];
+}
+
+const parseInsideBlockNotifier = (
+    value: unknown
+):
+    | { readonly ok: true; readonly params: InsideBlockNotifierParams }
+    | { readonly ok: false; readonly message: string } => {
+    if (!isRecord(value)) return { ok: false, message: 'expected an object' };
+    const blockList: InsideBlockNotifierEntry[] = [];
+    for (const [index, raw] of asList(value.block_list).entries()) {
+        if (!isRecord(raw) || !isRecord(raw.block))
+            return { ok: false, message: `block_list[${index}].block must be an object` };
+        const blockName = stringAt(raw.block, 'name');
+        if (blockName === undefined || blockName.length === 0)
+            return { ok: false, message: `block_list[${index}].block.name must name a block` };
+
+        const states: Record<string, boolean> = {};
+        if (raw.block.states !== undefined) {
+            if (!isRecord(raw.block.states))
+                return { ok: false, message: `block_list[${index}].block.states must be an object` };
+            for (const [name, state] of Object.entries(raw.block.states)) {
+                if (typeof state !== 'boolean')
+                    return { ok: false, message: `block_list[${index}].block.states values must be booleans` };
+                states[name] = state;
+            }
+        }
+
+        const enteredBlockEvent =
+            raw.entered_block_event === undefined ? undefined : parseComponentTrigger(raw.entered_block_event);
+        if (raw.entered_block_event !== undefined && enteredBlockEvent === undefined)
+            return { ok: false, message: `block_list[${index}].entered_block_event must name an event` };
+        const exitedBlockEvent =
+            raw.exited_block_event === undefined ? undefined : parseComponentTrigger(raw.exited_block_event);
+        if (raw.exited_block_event !== undefined && exitedBlockEvent === undefined)
+            return { ok: false, message: `block_list[${index}].exited_block_event must name an event` };
+
+        blockList.push({
+            blockName,
+            states,
+            ...(enteredBlockEvent === undefined ? {} : { enteredBlockEvent }),
+            ...(exitedBlockEvent === undefined ? {} : { exitedBlockEvent })
+        });
+    }
+    return { ok: true, params: { blockList } };
+};
+
+const insideBlockNotifierState = new WeakMap<EntityInstance, ReadonlySet<number>>();
+
+/** `minecraft:inside_block_notifier`, which raises events on block-state transitions. */
+export const insideBlockNotifier: ComponentFactory<EntityHooks, InsideBlockNotifierParams> = {
+    name: 'minecraft:inside_block_notifier',
+    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    schema: (value) => {
+        const parsed = parseInsideBlockNotifier(value);
+        return parsed.ok ? accepted(parsed.params) : rejected(parsed.message);
+    },
+    create: (params) => ({
+        onInitialize: (entity) => insideBlockNotifierState.set(entity, new Set()),
+        onRemove: (entity) => insideBlockNotifierState.delete(entity),
+        onTick: (entity) => {
+            const previous = insideBlockNotifierState.get(entity);
+            const position = entity.actuator?.position();
+            if (previous === undefined || position === undefined) return;
+
+            const collisionBox = entity.componentParams('minecraft:collision_box');
+            const width = isRecord(collisionBox) ? numberAt(collisionBox, 'width', 1) : 1;
+            const height = isRecord(collisionBox) ? numberAt(collisionBox, 'height', 1) : 1;
+            const minX = Math.floor(position.x - width / 2);
+            const maxX = Math.ceil(position.x + width / 2) - 1;
+            const minY = Math.floor(position.y);
+            const maxY = Math.ceil(position.y + height) - 1;
+            const minZ = Math.floor(position.z - width / 2);
+            const maxZ = Math.ceil(position.z + width / 2) - 1;
+            const blocks: Array<ReturnType<EntityInstance['blockAt']>> = [];
+            let unknownBlock = false;
+            for (let x = minX; x <= maxX; x += 1) {
+                for (let y = minY; y <= maxY; y += 1) {
+                    for (let z = minZ; z <= maxZ; z += 1) {
+                        const block = entity.blockAt({ x, y, z });
+                        blocks.push(block);
+                        if (block === undefined) unknownBlock = true;
+                    }
+                }
+            }
+
+            const next = new Set<number>();
+            for (const [index, entry] of params.blockList.entries()) {
+                const matches = blocks.some(
+                    (block) =>
+                        block !== undefined &&
+                        block.identifier === entry.blockName &&
+                        Object.entries(entry.states).every(([name, expected]) => block.states[name] === expected)
+                );
+                const wasInside = previous.has(index);
+                if (matches) {
+                    next.add(index);
+                    if (!wasInside && entry.enteredBlockEvent?.event !== undefined)
+                        entity.raise(
+                            entry.enteredBlockEvent.event,
+                            entry.enteredBlockEvent.target,
+                            'minecraft:inside_block_notifier'
+                        );
+                } else if (wasInside && !unknownBlock && entry.exitedBlockEvent?.event !== undefined) {
+                    entity.raise(
+                        entry.exitedBlockEvent.event,
+                        entry.exitedBlockEvent.target,
+                        'minecraft:inside_block_notifier'
+                    );
+                } else if (wasInside && unknownBlock) {
+                    next.add(index);
+                }
+            }
+            insideBlockNotifierState.set(entity, next);
+        }
+    })
+};
+
 /** What `minecraft:target_nearby_sensor` declares. */
 export interface TargetNearbySensorParams {
     readonly insideRange: number;

@@ -34,6 +34,7 @@ import {
     healable,
     hurtOnCondition,
     ignoreCannotBeAttacked,
+    insideBlockNotifier,
     instantDespawn,
     integerStateComponents,
     interact,
@@ -140,7 +141,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:home',
     'minecraft:input_ground_controlled',
     'minecraft:insomnia',
-    'minecraft:inside_block_notifier',
     'minecraft:is_baby',
     'minecraft:is_charged',
     'minecraft:is_chested',
@@ -259,6 +259,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(healable);
     register(hurtOnCondition);
     register(ignoreCannotBeAttacked);
+    register(insideBlockNotifier);
     register(interact);
     register(instantDespawn);
     register(inventory);

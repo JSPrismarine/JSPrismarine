@@ -569,6 +569,7 @@ export class EntityRuntime implements EntityScene {
                     }
                 } satisfies EntityEffects,
                 filterContext: () => filterContext,
+                blockAt: (position) => this.world.blocks.get(position),
                 targetProximity: () => {
                     const target = goalWorld.target();
                     return target === undefined

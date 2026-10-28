@@ -41,6 +41,14 @@ export interface EntityBlockBreakEvent {
     readonly source?: FilterEntityView;
 }
 
+/** One block state as an entity component reads it from the world. */
+export interface EntityBlockState {
+    /** The namespaced block identifier. */
+    readonly identifier: string;
+    /** The block's state values. */
+    readonly states: Readonly<Record<string, string | number | boolean>>;
+}
+
 /** A Bedrock equipment slot watched by `minecraft:on_equipment_changed`. */
 export type EntityEquipmentSlot =
     | 'slot.armor.body'

@@ -29,6 +29,7 @@ import type {
     DamageResult,
     EntityActuator,
     EntityAngerBroadcast,
+    EntityBlockState,
     EntityEffects,
     EntityItemInteractionEffect,
     EntityItemInteractionState,
@@ -132,6 +133,11 @@ export interface EntityEnvironment {
     targetProximity?(entity: EntityInstance): EntityTargetProximity | undefined;
     /** Finds live entities a `minecraft:entity_sensor` can sense. */
     entitySensorCandidates?(entity: EntityInstance, query: EntitySensorQuery): readonly EntitySensorCandidate[];
+    /**
+     * Reads a block at an integer world position, or leaves it unknown when the chunk is unloaded.
+     * @param position - The integer block position to read.
+     */
+    blockAt?(position: EntityPosition): EntityBlockState | undefined;
     /** Delivers an angry component's broadcast to nearby matching entities. */
     broadcastAnger?(entity: EntityInstance, request: EntityAngerBroadcast): void;
     /** Moves, looks and jumps on behalf of the goals. */
@@ -896,6 +902,15 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** Returns entities in the configured range for the active `minecraft:entity_sensor`. */
     public entitySensorCandidates(query: EntitySensorQuery): readonly EntitySensorCandidate[] {
         return this.environment.entitySensorCandidates?.(this, query) ?? [];
+    }
+
+    /**
+     * Reads one block for a component that watches blocks overlapping this entity.
+     * @param position - The integer block position to read.
+     * @returns The block, or undefined when the environment cannot answer.
+     */
+    public blockAt(position: EntityPosition): EntityBlockState | undefined {
+        return this.environment.blockAt?.(position);
     }
 
     /** Wraps a caller's view so the entity answers the facts it owns itself. */

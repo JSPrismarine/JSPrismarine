@@ -225,6 +225,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
 | `minecraft:entity_sensor` | Searches nearby mobs and players for each subsensor, applies `event_filters`, count bounds, `require_all`, range offsets, and cooldowns, then raises its event ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_entity_sensor?view=minecraft-bedrock-stable)) |
 | `minecraft:block_sensor` | Raises every matching `on_block_broken` event when a listed block breaks within `sensor_radius`, applying `sources` to the breaker ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_block_sensor?view=minecraft-bedrock-stable)) |
+| `minecraft:inside_block_notifier` | Tracks block states overlapped by the entity and raises the configured events when it enters or leaves a match ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_inside_block_notifier?view=minecraft-bedrock-stable)) |
 | `minecraft:target_nearby_sensor` | Tracks the current target through `inside_range` and `outside_range`, honors `must_see` for inside events, and fires its vision-loss event while the target is inside range |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
@@ -274,7 +275,7 @@ with no caller view.
 
 Every non-goal key in the vanilla pack has a component factory, so the loader preserves its body
 and exposes it through `EntityInstance.componentParams`. Of the 34 keys used by only one entity,
-30 have no runtime behavior yet. Their factories preserve their bodies, and the corpus test counts
+29 have no runtime behavior yet. Their factories preserve their bodies, and the corpus test counts
 them as parsed rather than behaviorally implemented.
 
 ## Measured coverage
@@ -288,8 +289,8 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a component hook | 80 |
-| Non-goal keys with a runtime effect across the server | 86 |
+| Non-goal keys with a component hook | 81 |
+| Non-goal keys with a runtime effect across the server | 87 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -331,9 +332,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 80 component factories have hooks, and 86
+measures name coverage rather than complete simulation: 81 component factories have hooks, and 87
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 116 bodies are available as data for behavior that still needs to be added.
+included. The remaining 115 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
 visibility as being within `follow_range`; it does not test block occlusion.
@@ -365,5 +366,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  116 currently expose data without runtime behavior. The component bodies remain accessible to the
+  115 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.
