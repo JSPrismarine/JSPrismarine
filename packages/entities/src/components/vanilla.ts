@@ -1597,6 +1597,18 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     }
 };
 
+/** One status effect a `minecraft:healable` item may apply. */
+export interface HealableEffectParams {
+    /** The Bedrock status effect name. */
+    readonly name: string;
+    /** Duration in seconds, or `infinite` for an effect that never expires. */
+    readonly duration: number | 'infinite';
+    /** One below the displayed potency. */
+    readonly amplifier: number;
+    /** The chance in [0, 1] that this effect is applied. */
+    readonly chance: number;
+}
+
 /** One item `minecraft:healable` accepts. */
 export interface HealableItemParams {
     /** The item identifier, normalized to the default Minecraft namespace. */
@@ -1605,8 +1617,8 @@ export interface HealableItemParams {
     readonly healAmount: number;
     /** Item replacing the consumed item, if the definition names one. */
     readonly resultItem?: string;
-    /** Effect entries, which the runtime currently leaves unapplied. */
-    readonly effects: readonly unknown[];
+    /** Status effects applied when the item is accepted. */
+    readonly effects: readonly HealableEffectParams[];
 }
 
 /** What `minecraft:healable` declares. */
@@ -1734,13 +1746,46 @@ export const healable: ComponentFactory<EntityHooks, HealableParams> = {
             if (raw.effects !== undefined && !Array.isArray(raw.effects))
                 return rejected(`items[${index}].effects must be an array`);
 
+            const effects: HealableEffectParams[] = [];
+            for (const [effectIndex, rawEffect] of (Array.isArray(raw.effects) ? raw.effects : []).entries()) {
+                if (!isRecord(rawEffect) || typeof rawEffect.name !== 'string' || rawEffect.name.length === 0)
+                    return rejected(`items[${index}].effects[${effectIndex}].name must be a non-empty string`);
+                if (
+                    rawEffect.duration !== undefined &&
+                    rawEffect.duration !== 'infinite' &&
+                    (typeof rawEffect.duration !== 'number' ||
+                        !Number.isFinite(rawEffect.duration) ||
+                        rawEffect.duration < 0)
+                )
+                    return rejected(
+                        `items[${index}].effects[${effectIndex}].duration must be a non-negative number or 'infinite'`
+                    );
+                if (
+                    rawEffect.amplifier !== undefined &&
+                    (typeof rawEffect.amplifier !== 'number' || !Number.isFinite(rawEffect.amplifier))
+                )
+                    return rejected(`items[${index}].effects[${effectIndex}].amplifier must be a finite number`);
+                if (
+                    rawEffect.chance !== undefined &&
+                    (typeof rawEffect.chance !== 'number' || !Number.isFinite(rawEffect.chance))
+                )
+                    return rejected(`items[${index}].effects[${effectIndex}].chance must be a finite number`);
+
+                effects.push({
+                    name: rawEffect.name,
+                    duration: rawEffect.duration === 'infinite' ? 'infinite' : numberAt(rawEffect, 'duration', 0),
+                    amplifier: numberAt(rawEffect, 'amplifier', 0),
+                    chance: numberAt(rawEffect, 'chance', 1)
+                });
+            }
+
             items.push({
                 item: normalizedItemIdentifier(raw.item),
                 healAmount: numberAt(raw, 'heal_amount', 1),
                 ...(typeof raw.result_item === 'string'
                     ? { resultItem: normalizedItemIdentifier(raw.result_item) }
                     : {}),
-                effects: Array.isArray(raw.effects) ? raw.effects : []
+                effects
             });
         }
 
@@ -1750,7 +1795,7 @@ export const healable: ComponentFactory<EntityHooks, HealableParams> = {
         onInteractWithItem: (entity, itemIdentifier, other) => {
             const normalizedItem = normalizedItemIdentifier(itemIdentifier);
             const item = params.items.find((entry) => entry.item === normalizedItem);
-            if (item === undefined || item.effects.length > 0) return undefined;
+            if (item === undefined) return undefined;
 
             const heldItem = other?.equipment?.('hand', 0) ?? { identifier: () => normalizedItem };
             const context = {
@@ -1763,9 +1808,23 @@ export const healable: ComponentFactory<EntityHooks, HealableParams> = {
             const health = entity.attributes.get('health');
             if (health === undefined || (health.current >= health.max && !params.forceUse)) return undefined;
 
+            const statusEffects = item.effects.flatMap((effect) => {
+                const chance = Math.max(0, Math.min(1, effect.chance));
+                if (entity.random.next() >= chance) return [];
+                return [
+                    {
+                        id: effect.name,
+                        durationTicks:
+                            effect.duration === 'infinite' ? -1 : Math.round(effect.duration * TICKS_PER_SECOND),
+                        amplifier: effect.amplifier
+                    }
+                ];
+            });
+
             return {
                 ...(item.healAmount > 0 ? { healthAmount: item.healAmount } : {}),
-                ...(item.resultItem === undefined ? {} : { resultItem: item.resultItem })
+                ...(item.resultItem === undefined ? {} : { resultItem: item.resultItem }),
+                ...(statusEffects.length === 0 ? {} : { statusEffects })
             };
         }
     })

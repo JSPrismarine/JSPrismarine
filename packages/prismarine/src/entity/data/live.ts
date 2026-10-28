@@ -455,6 +455,9 @@ export class LiveEntityRuntime {
             player instanceof Player ? playerFilterView(player) : undefined,
             heldItem
         );
+        if (interaction.accepted) {
+            for (const effect of interaction.statusEffects ?? []) target.addStatusEffect(effect);
+        }
         const particle = interaction.accepted ? interaction.particleOnStart : undefined;
         if (particle !== undefined && particle.particleType !== 'none') {
             const targetPosition = target.getPosition();

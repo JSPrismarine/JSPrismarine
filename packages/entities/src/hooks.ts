@@ -223,6 +223,16 @@ export interface EntityItemInteractionState {
     };
 }
 
+/** A status effect an accepted data-driven item interaction applies to its target. */
+export interface EntityItemStatusEffect {
+    /** The Bedrock status effect name. */
+    readonly id: string;
+    /** Ticks remaining, or `-1` for an effect that never expires. */
+    readonly durationTicks: number;
+    /** One below the displayed potency. */
+    readonly amplifier: number;
+}
+
 /** The effects requested by a data-defined item interaction. */
 export interface EntityItemInteractionEffect {
     /** Health gained, or lost when negative, when the interaction succeeds. */
@@ -237,6 +247,8 @@ export interface EntityItemInteractionEffect {
     readonly resultItemData?: number;
     /** Whether the live inventory should consume one item from the held stack. */
     readonly consumeItem?: boolean;
+    /** Status effects to apply when the interaction is accepted. */
+    readonly statusEffects?: readonly EntityItemStatusEffect[];
     /** A Bedrock loot table and drop offset to run as part of a successful interaction. */
     readonly spawnItems?: EntitySpawnItemsRequest;
     /** Sounds the world plays when this interaction succeeds. */

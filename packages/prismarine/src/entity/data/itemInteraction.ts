@@ -1,4 +1,5 @@
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
+import type { EntityItemStatusEffect } from '@jsprismarine/entities';
 
 /** The outcome of applying a player's held item to a data-driven entity. */
 export type EntityItemInteraction =
@@ -22,4 +23,6 @@ export type EntityItemInteraction =
               readonly offsetTowardsInteractor: boolean;
           };
           readonly consumeItem?: boolean;
+          /** Status effects applied by the accepted entity interaction. */
+          readonly statusEffects?: readonly EntityItemStatusEffect[];
       };

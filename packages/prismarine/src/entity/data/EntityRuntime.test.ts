@@ -696,7 +696,7 @@ describe('EntityRuntime', () => {
             expect(filtered.instance.attributes.get('health')?.current).toBe(12);
         });
 
-        it('declines healable item effects the entity runtime does not apply', () => {
+        it('returns configured healable item effects with the accepted interaction', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
                 {},
@@ -714,7 +714,10 @@ describe('EntityRuntime', () => {
             );
             const effectful = runtime.spawn('jsprismarine:effect_healing', GROUND);
             if (effectful === undefined) throw new Error('the fixture declares no entity with a healable effect');
-            expect(runtime.interactWithItem(effectful.id, 42, 'minecraft:cookie')).toEqual({ accepted: false });
+            expect(runtime.interactWithItem(effectful.id, 42, 'minecraft:cookie')).toEqual({
+                accepted: true,
+                statusEffects: [{ id: 'fatal_poison', durationTicks: 20_000, amplifier: 0 }]
+            });
         });
 
         it('returns the configured result item after a successful tame', () => {
