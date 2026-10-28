@@ -44,6 +44,7 @@ import { resolvePackStack } from './packStack';
 import { buildContentTags } from './tags';
 import type { ContentTags } from './tags';
 import { bedrockEntityTypeTagsFor } from './entityTypeTags';
+import { javaBlockTagsForBedrock, javaItemTagsForBedrock } from './javaTags';
 import { checkIdentifiers } from './unmappedIdentifiers';
 import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
@@ -226,6 +227,20 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const identifierResolver = options.identifiers ?? createPackIdentifierResolver();
     diagnostics.push(...checkIdentifiers(definitions, { strict, resolver: identifierResolver }));
 
+    const blockPalette = options.blockPalette ?? vanillaBlockPalette();
+    const itemDefinitions = [...(options.itemDefinitions ?? vanillaItemDefinitions())];
+    const blockIdentifiers = new Set([
+        ...blockPalette.entries.map((entry) => entry.identifier),
+        ...definitions.blocks.keys()
+    ]);
+    const itemIdentifiers = new Set([
+        ...itemDefinitions.map((definition) => definition.identifier),
+        ...definitions.items.keys()
+    ]);
+    const tags = buildContentTags(definitions.tags, (registry, identifier) =>
+        isKnownTagMember(registry, identifier, definitions, identifierResolver, blockIdentifiers, itemIdentifiers)
+    );
+
     // The world views read the built content, and the behavior families read the world, so the
     // two are tied together before either exists. `built` closes the loop: nothing dereferences
     // it until a hook runs, which is after this function has returned.
@@ -239,7 +254,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     registerVanillaBlockBehaviors(blockBehaviors, world.blockWorld);
     const blocks = resolveBlocks(definitions.blocks.values(), {
         behaviors: blockBehaviors,
-        statePalette: options.blockPalette ?? vanillaBlockPalette(),
+        statePalette: blockPalette,
+        javaTags: (identifier, values) => javaBlockTagsForBedrock(tags, identifier, values),
         strict
     });
     diagnostics.push(...blocks.diagnostics);
@@ -249,17 +265,15 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     registerVanillaItemBehaviors(itemBehaviors, { world: world.itemActions, items: itemFactory });
     const items = loadItemTypes({
         behaviors: itemBehaviors,
-        definitions: options.itemDefinitions ?? vanillaItemDefinitions(),
+        definitions: itemDefinitions,
         bedrockDefinitions: definitions.items.values(),
         bedrockTags: item_tags,
+        javaTags: (identifier) => javaItemTagsForBedrock(tags, identifier),
         strict
     });
     itemFactory.bind(items.registry);
     diagnostics.push(...items.diagnostics);
 
-    const tags = buildContentTags(definitions.tags, (registry, identifier) =>
-        isKnownTagMember(registry, identifier, definitions, identifierResolver, blocks.types, items.types)
-    );
     diagnostics.push(...tags.diagnostics);
 
     const entityComponents = createGoalEntityRegistry({ world: (entity) => world.goalWorld(entity) });
@@ -509,8 +523,8 @@ const isKnownTagMember = (
     identifier: string,
     definitions: Definitions,
     resolver: IdentifierResolver,
-    blocks: ReadonlyMap<string, BlockType>,
-    items: ReadonlyMap<string, ItemType>
+    blocks: ReadonlySet<string>,
+    items: ReadonlySet<string>
 ): boolean => {
     const declared = (() => {
         switch (registry) {

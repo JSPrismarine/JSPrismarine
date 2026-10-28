@@ -127,6 +127,8 @@ palette.stateOf(1234); // { entry, values }
 
 The Bedrock `minecraft:tags` component is available on each resolved `BlockState` as `tags` and
 `hasTag(name)`. Permutations resolve first, so a state reads the tags of its active component set.
+Java datapack memberships are available as `javaTags` and `hasJavaTag(name)` on both `BlockType` and
+`BlockState`; the content build maps the Java tag members onto Bedrock block identifiers.
 
 ## Resolving
 

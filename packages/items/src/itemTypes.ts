@@ -96,6 +96,8 @@ export interface LoadItemTypesOptions {
      * with an explicit `minecraft:tags` component replace their own entries.
      */
     bedrockTags?: BedrockItemTagSource;
+    /** Java datapack tags mapped to each resolved Bedrock item identifier. */
+    javaTags?: (identifier: string) => readonly string[];
     /** Fail the load when any diagnostic is reported, which the test suites do. */
     strict?: boolean;
 }
@@ -153,12 +155,15 @@ export const loadItemTypes = (options: LoadItemTypesOptions = {}): LoadedItemTyp
     for (const [identifier, type] of resolved.types) {
         const bedrock = bedrockById.get(identifier);
         const tags = bedrockTags.tagsOf(identifier);
+        const javaTags = [...new Set(options.javaTags?.(identifier) ?? [])];
         types.set(identifier, {
             ...type,
             ...(bedrock === undefined ? {} : { bedrockDefinition: bedrock.definition }),
             bedrockComponents: bedrock?.components ?? new Map(),
             tags,
-            hasTag: (tag) => bedrockTags.includes(tag, identifier)
+            hasTag: (tag) => bedrockTags.includes(tag, identifier),
+            javaTags,
+            hasJavaTag: (tag) => javaTags.includes(tag)
         });
     }
 

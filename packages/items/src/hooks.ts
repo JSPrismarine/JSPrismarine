@@ -187,6 +187,10 @@ export interface ItemType extends Type<ItemHooks, ItemFlag> {
     readonly tags: readonly string[];
     /** Whether this item identity carries one of its Bedrock tags. */
     hasTag(tag: string): boolean;
+    /** The Java datapack tags attached to this Bedrock item identity. */
+    readonly javaTags: readonly string[];
+    /** Whether a Java datapack tag includes this item identity. */
+    hasJavaTag(tag: string): boolean;
 }
 
 /** The dispatch table one item type binds at load. */

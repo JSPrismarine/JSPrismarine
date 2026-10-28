@@ -63,6 +63,10 @@ export interface BlockState {
     readonly tags: readonly string[];
     /** Whether this state carries one of its Bedrock `minecraft:tags`. */
     hasTag(tag: string): boolean;
+    /** The Java datapack tags attached to this block type. */
+    readonly javaTags: readonly string[];
+    /** Whether a Java datapack tag includes this block type. */
+    hasJavaTag(tag: string): boolean;
     /**
      * The resolved content type for this state: its bound components, its
      * behaviors and its hook table, with the matching permutations applied
@@ -75,6 +79,10 @@ export interface BlockState {
 export interface BlockType {
     readonly identifier: string;
     readonly definition: BlockDefinitionDocument;
+    /** The Java datapack tags attached to this block type. */
+    readonly javaTags: readonly string[];
+    /** Whether a Java datapack tag includes this block type. */
+    hasJavaTag(tag: string): boolean;
     /** The states the block carries, which the palette or the definition supplied. */
     readonly model: BlockStateModel;
     /** Every state of the block, in canonical index order. */
@@ -104,6 +112,8 @@ export interface BlockResolveOptions {
     components?: ComponentRegistry<BlockHooks>;
     /** The behavior families to attach by identifier. */
     behaviors?: BehaviorRegistry<BlockHooks>;
+    /** Java datapack tags for each resolved Bedrock block identifier and state. */
+    javaTags?: (identifier: string, values: Readonly<Record<string, BlockStateValue>>) => readonly string[];
     /** The engine permutation conditions compile through; a fresh one by default. */
     molang?: Molang;
     /**
@@ -251,10 +261,16 @@ export const resolveBlocks = (
         const firstRuntimeId = palette.entry(identifier)!.firstRuntimeId;
         const byMask = new Map<string, Type<BlockHooks, keyof BlockFlags>>();
         const ownStates: BlockState[] = new Array(model.size);
+        const javaTagsByState = Array.from({ length: model.size }, (_, index) => [
+            ...new Set(options.javaTags?.(identifier, model.decode(index)) ?? [])
+        ]);
+        const javaTags = [...new Set(javaTagsByState.flat())];
 
         const type: BlockType = {
             identifier,
             definition: document,
+            javaTags,
+            hasJavaTag: (tag) => javaTags.includes(tag),
             model,
             states: ownStates,
             state: (values = {}) => ownStates[model.encode(values)]!
@@ -288,7 +304,9 @@ export const resolveBlocks = (
                 permutations: mask,
                 content,
                 tags: stateTags,
-                hasTag: (tag) => stateTags.includes(tag)
+                hasTag: (tag) => stateTags.includes(tag),
+                javaTags: javaTagsByState[index]!,
+                hasJavaTag: (tag) => javaTagsByState[index]!.includes(tag)
             };
             ownStates[index] = state;
             states[state.runtimeId] = state;

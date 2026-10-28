@@ -100,6 +100,18 @@ export class ItemStack extends Instance<ItemHooks, ItemStackState, ItemFlag> {
         return this.getTags().includes(tag);
     }
 
+    /** The Java datapack tags attached to this stack's item type. */
+    public getJavaTags(): readonly string[] {
+        const type = this.type;
+        if (!('javaTags' in type) || !Array.isArray(type.javaTags)) return [];
+        return type.javaTags.filter((tag): tag is string => typeof tag === 'string');
+    }
+
+    /** Whether a Java datapack tag includes this stack's item type. */
+    public hasJavaTag(tag: string): boolean {
+        return this.getJavaTags().includes(tag);
+    }
+
     /** How many items the stack holds. */
     public get count(): number {
         return this.state.count;

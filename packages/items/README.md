@@ -27,6 +27,8 @@ the raw component bodies, and `ItemType.tags` plus `hasTag(name)` expose the act
 `ItemStack.getTags()` and `ItemStack.hasTag(name)` read the same tags from the stack's type. These
 do not replace or reinterpret Java's default components, and retaining a body does not imply that
 the server executes its behavior.
+Java datapack item memberships are available as `ItemType.javaTags` and `hasJavaTag(name)`, and as
+`ItemStack.getJavaTags()` and `hasJavaTag(name)` on a stack.
 
 ## The Java component model
 

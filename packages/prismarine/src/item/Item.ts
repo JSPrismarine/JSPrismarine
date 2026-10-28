@@ -217,12 +217,17 @@ export class Item {
 
     /** The Java datapack tags attached to this Bedrock item type. */
     public getJavaTags(): readonly string[] {
+        const type = this.type();
+        if (type !== undefined) return type.javaTags;
+
         const tags = this.content?.tags;
         return tags === undefined ? [] : javaItemTagsForBedrock(tags, this.name);
     }
 
     /** Whether a Java datapack tag includes this item type. */
     public hasJavaTag(tag: string): boolean {
+        const type = this.type();
+        if (type !== undefined) return type.hasJavaTag(tag);
         return this.getJavaTags().includes(tag);
     }
 

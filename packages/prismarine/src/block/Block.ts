@@ -156,13 +156,18 @@ export class Block {
 
     /** The Java datapack tags attached to this Bedrock block type. */
     public getJavaTags(): readonly string[] {
+        const state = this.content?.blocks.types.get(this.name)?.state(this.states);
+        if (state !== undefined) return state.javaTags;
+
         const tags = this.content?.tags;
         if (tags === undefined) return [];
-        return javaBlockTagsForBedrock(tags, this.name);
+        return javaBlockTagsForBedrock(tags, this.name, this.states);
     }
 
     /** Whether a Java datapack tag includes this block type. */
     public hasJavaTag(tag: string): boolean {
+        const state = this.content?.blocks.types.get(this.name)?.state(this.states);
+        if (state !== undefined) return state.hasJavaTag(tag);
         return this.getJavaTags().includes(tag);
     }
 

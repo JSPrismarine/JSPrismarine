@@ -1,4 +1,10 @@
-import { bedrockBlockToJava, javaItemToBedrock } from '@jsprismarine/mapping';
+import {
+    bedrockBlockStateToJava,
+    bedrockBlockToJava,
+    javaBlockStateToBedrock,
+    javaItemToBedrock
+} from '@jsprismarine/mapping';
+import type { BlockStateValue } from '@jsprismarine/blocks';
 
 import type { ContentTags } from './tags';
 
@@ -24,14 +30,18 @@ const indexOf = (tags: ContentTags): JavaTagIndexes => {
 
     const blocks = new Map<string, string[]>();
     for (const tag of tags.tags('block')) {
-        for (const identifier of tags.members('block', tag)) addMembership(blocks, identifier, tag);
+        for (const identifier of tags.members('block', tag)) {
+            const mapping = javaBlockStateToBedrock(identifier);
+            if (mapping.kind === 'mapped' || mapping.kind === 'passthrough') addMembership(blocks, identifier, tag);
+        }
     }
 
     const items = new Map<string, string[]>();
     for (const tag of tags.tags('item')) {
         for (const javaIdentifier of tags.members('item', tag)) {
             const mapping = javaItemToBedrock(javaIdentifier);
-            if (mapping.kind !== 'unknown') addMembership(items, mapping.bedrock.identifier, tag);
+            if (mapping.kind === 'mapped' || mapping.kind === 'passthrough')
+                addMembership(items, mapping.bedrock.identifier, tag);
         }
     }
 
@@ -43,12 +53,21 @@ const indexOf = (tags: ContentTags): JavaTagIndexes => {
     return index;
 };
 
-/** Java block tags that apply to one or more Bedrock block identifiers. */
-export const javaBlockTagsForBedrock = (tags: ContentTags, ...identifiers: readonly string[]): readonly string[] => {
+/** Java block tags that apply to one Bedrock block identifier and state. */
+export const javaBlockTagsForBedrock = (
+    tags: ContentTags,
+    identifier: string,
+    states?: Readonly<Record<string, BlockStateValue>>
+): readonly string[] => {
     const memberships = indexOf(tags).blocks;
-    const javaIdentifiers = identifiers.flatMap((identifier) =>
-        identifier.startsWith('minecraft:') ? bedrockBlockToJava(identifier) : [identifier]
-    );
+    const exact = bedrockBlockStateToJava(identifier, states);
+    const candidates = bedrockBlockToJava(identifier);
+    const javaIdentifiers =
+        exact.kind === 'mapped' && states !== undefined
+            ? [exact.java.name]
+            : candidates.length > 0
+              ? candidates
+              : [identifier];
     return [...new Set(javaIdentifiers.flatMap((identifier) => memberships.get(identifier) ?? []))];
 };
 
