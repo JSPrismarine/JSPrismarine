@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.stonecutter_block.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 9, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:utility",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

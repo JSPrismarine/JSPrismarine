@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.waxed_copper_golem_statue.name",
+            "minecraft:collision_box": {
+                "origin": [-5, 0, -5],
+                "size": [10, 14, 10]
+            },
             "jsprismarine:behavior": "jsprismarine:copper",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

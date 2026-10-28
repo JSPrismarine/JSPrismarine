@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.border_block.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 24, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:inert",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

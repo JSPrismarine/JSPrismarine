@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.gray_candle_cake.name",
+            "minecraft:collision_box": {
+                "origin": [-7, 0, -7],
+                "size": [14, 8, 14]
+            },
             "jsprismarine:behavior": "jsprismarine:candle",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

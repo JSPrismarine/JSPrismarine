@@ -10,12 +10,11 @@
  * `packages/bedrock-data/src/resources/blocks.json` and flattened by
  * `utils/generate-geometry.mjs`.
  *
- * It is the column `@jsprismarine/mapping` does not have. The overlay
- * generator says so in as many words - it can give only 22 named blocks
- * `"minecraft:collision_box": false` because no property table publishes
- * solidity - and physics and pathfinding outside the content runtime had the
- * same hole, filled with hand-written name lists that knew eighty of the
- * twelve hundred blocks.
+ * It is the column `@jsprismarine/mapping` does not have. Physics and
+ * pathfinding use this capture for every palette block, and the overlay uses
+ * it to emit `minecraft:collision_box` for blocks that never collide and for
+ * blocks with one fixed partial shape. Shapes that change by state still need
+ * overlay permutations.
  */
 import table from './tables/blockGeometry.json';
 
@@ -36,6 +35,8 @@ interface GeometryRow {
     liquid: string;
     /** Whether any captured state of this block has a collision box. */
     hasCollision: boolean;
+    /** Exact boxes when every state shares one shape other than a full cube. */
+    collisionBoxes?: readonly (readonly [number, number, number, number, number, number])[];
     /** The states that differ, keyed by their runtime id as an unsigned 32-bit number. */
     states?: Record<string, number>;
 }
@@ -99,6 +100,20 @@ export const bedrockCollisionTopOf = (identifier: string, runtimeId?: number): n
  * @returns {boolean | undefined} Whether a captured state has collision geometry, or undefined when uncaptured.
  */
 export const bedrockHasCollisionOf = (identifier: string): boolean | undefined => blocks[identifier]?.hasCollision;
+
+/**
+ * The captured collision boxes when every state of a block shares one partial shape.
+ *
+ * Full cubes use Bedrock's default component, blocks without collision use `false`, and blocks
+ * whose shape changes by state need a component permutation, so those cases return undefined.
+ * Coordinates are normalized to the block cell and ordered min X/Y/Z, then max X/Y/Z.
+ * @param identifier - The namespaced Bedrock block identifier.
+ * @returns The shared partial shape, or undefined when the default, false, or a state permutation applies.
+ */
+export const bedrockStaticCollisionBoxesOf = (
+    identifier: string
+): readonly (readonly [number, number, number, number, number, number])[] | undefined =>
+    blocks[identifier]?.collisionBoxes;
 
 /**
  * What a liquid flowing into this block's cell does to it.

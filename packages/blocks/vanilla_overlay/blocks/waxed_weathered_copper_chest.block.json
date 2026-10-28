@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.waxed_weathered_copper_chest.name",
+            "minecraft:collision_box": {
+                "origin": [-7.6, 0, -7.6],
+                "size": [15.2, 15.2, 15.2]
+            },
             "jsprismarine:behavior": "jsprismarine:copper",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.flower_pot.name",
+            "minecraft:collision_box": {
+                "origin": [-3, 0, -3],
+                "size": [6, 6, 6]
+            },
             "jsprismarine:behavior": "jsprismarine:flower_pot",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

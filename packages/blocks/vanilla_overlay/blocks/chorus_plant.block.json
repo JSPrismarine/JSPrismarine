@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.chorus_plant.name",
+            "minecraft:collision_box": {
+                "origin": [-6, 2, -6],
+                "size": [12, 12, 12]
+            },
             "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

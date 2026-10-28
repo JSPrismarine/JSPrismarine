@@ -25,6 +25,7 @@ packages/bedrock-data/src/vendor/*
 packages/entity-goals/src/generated/*
 packages/mapping/src/tables/*
 packages/minecraft/src/generated/*
+packages/blocks/src/tables/blockGeometry.json
 packages/minecraft/datagen/snapshot/*
 packages/parity/goldens/*
 

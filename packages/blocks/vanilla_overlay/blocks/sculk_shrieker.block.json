@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.sculk_shrieker.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 8, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:sculk",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

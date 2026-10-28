@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.grass_path.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 15, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:soil",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

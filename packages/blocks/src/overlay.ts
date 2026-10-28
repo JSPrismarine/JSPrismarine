@@ -5,7 +5,7 @@ import { bedrockBlockDisplayNameOf } from './displayNames';
 import containerOpenSounds from './tables/containerOpenSounds.json';
 import vanillaRedstoneConductivity from './tables/vanillaRedstoneConductivity.json';
 import vanillaBlockTags from './tables/vanillaBlockTags.json';
-import { bedrockHasCollisionOf } from './geometry';
+import { bedrockHasCollisionOf, bedrockStaticCollisionBoxesOf } from './geometry';
 
 const BEDROCK_BLOCK_TAGS = new Map(Object.entries(vanillaBlockTags));
 const VANILLA_REDSTONE_CONDUCTIVITY = new Map(Object.entries(vanillaRedstoneConductivity));
@@ -141,6 +141,8 @@ export interface OverlayPack {
     readonly nonCollidingBlocks: readonly string[];
     /** How many blocks received their captured Bedrock display name. */
     readonly displayNameCount: number;
+    /** Blocks whose fixed partial collision shape was written as a component. */
+    readonly collisionShapeCount: number;
     /** How many blocks each behavior family claimed, highest first. */
     readonly behaviorCounts: Readonly<Record<string, number>>;
 }
@@ -216,6 +218,7 @@ export const generateVanillaOverlay = (
     const exceptions: OverlayException[] = [];
     const frictionClamps: FrictionClamp[] = [];
     const nonCollidingBlocks: string[] = [];
+    const collisionShapeBlocks: string[] = [];
     const behaviorCounts = new Map<string, number>();
 
     files.push({
@@ -280,6 +283,17 @@ export const generateVanillaOverlay = (
         if (!hasCollision) {
             components['minecraft:collision_box'] = false;
             nonCollidingBlocks.push(identifier);
+        } else {
+            const boxes = bedrockStaticCollisionBoxesOf(identifier);
+            if (boxes !== undefined) {
+                const componentBoxes = boxes.map(([minX, minY, minZ, maxX, maxY, maxZ]) => ({
+                    origin: [minX * 16 - 8, minY * 16, minZ * 16 - 8],
+                    size: [(maxX - minX) * 16, (maxY - minY) * 16, (maxZ - minZ) * 16]
+                }));
+                components['minecraft:collision_box'] =
+                    componentBoxes.length === 1 ? componentBoxes[0] : componentBoxes;
+                collisionShapeBlocks.push(identifier);
+            }
         }
 
         components['jsprismarine:behavior'] = behavior;
@@ -324,6 +338,7 @@ export const generateVanillaOverlay = (
                 'Generated beside the pack by `pnpm --filter @jsprismarine/blocks run generate:overlay`. Not read at runtime.',
             blockCount: identifiers.length,
             displayNameCount: identifiers.length,
+            collisionShapeCount: collisionShapeBlocks.length,
             exceptionCount: exceptions.length,
             frictionClamps,
             nonCollidingBlocks,
@@ -337,6 +352,7 @@ export const generateVanillaOverlay = (
         frictionClamps,
         nonCollidingBlocks,
         displayNameCount: identifiers.length,
+        collisionShapeCount: collisionShapeBlocks.length,
         behaviorCounts: counts
     };
 };

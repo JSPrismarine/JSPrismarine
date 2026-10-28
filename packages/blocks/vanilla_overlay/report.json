@@ -2,6 +2,7 @@
     "$comment": "Generated beside the pack by `pnpm --filter @jsprismarine/blocks run generate:overlay`. Not read at runtime.",
     "blockCount": 1477,
     "displayNameCount": 1477,
+    "collisionShapeCount": 88,
     "exceptionCount": 182,
     "frictionClamps": [
         {

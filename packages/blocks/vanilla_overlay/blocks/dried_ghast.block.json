@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.dried_ghast.name",
+            "minecraft:collision_box": {
+                "origin": [-5, 0, -5],
+                "size": [10, 10, 10]
+            },
             "jsprismarine:behavior": "jsprismarine:utility",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

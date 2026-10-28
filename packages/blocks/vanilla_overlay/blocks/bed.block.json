@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.bed.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 9, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:bed",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -22,6 +22,10 @@
                 "catch_chance_modifier": 60,
                 "destroy_chance_modifier": 20
             },
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 1, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.conduit.name",
+            "minecraft:collision_box": {
+                "origin": [-4, 0, -4],
+                "size": [8, 8, 8]
+            },
             "jsprismarine:behavior": "jsprismarine:utility",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

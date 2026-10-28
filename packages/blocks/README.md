@@ -297,8 +297,10 @@ value to redstone calculations. Blocks without an override use the full-cube def
 
 `minecraft:collision_box: false` is written for blocks whose captured Bedrock states never have a
 collision box. This comes from the same Bedrock block geometry capture as
-`bedrockCollisionTopOf`, rather than a hand-maintained exception list. Blocks whose collision
-changes by state still need overlay permutations to express the per-state shape.
+`bedrockCollisionTopOf`, rather than a hand-maintained exception list. Blocks with one fixed partial
+shape also receive the exact captured boxes, converted into Bedrock's component coordinates. The
+overlay report records how many fixed shapes it writes. Blocks whose collision changes by state
+still need overlay permutations to express the per-state shape.
 
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,
@@ -313,8 +315,8 @@ list is exactly those 182 and that no entry falls through to a generic reason.
 ## What is left
 
 - **Per-state collision components.** The overlay marks blocks with no collision in any captured
-  state as non-colliding. It does not yet emit `minecraft:collision_box` permutations for blocks
-  whose captured collision changes by state, or the exact box coordinates for partial shapes.
+  state as non-colliding and writes fixed partial shapes. Blocks whose captured collision changes
+  by state still need `minecraft:collision_box` permutations.
 - **Loot and menu categories.** Behavior-pack `minecraft:loot` components and mapped Java loot
   tables drive block drops in Prismarine. The vanilla overlay does not declare loot components;
   creative menu categories come from the item registry.

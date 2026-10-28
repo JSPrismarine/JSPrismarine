@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.turtle_egg.name",
+            "minecraft:collision_box": {
+                "origin": [-4.800015999999999, 0, -4.800015999999999],
+                "size": [9.600016, 7.2, 9.600016]
+            },
             "jsprismarine:behavior": "jsprismarine:egg",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.moss_carpet.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 1, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:soil",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

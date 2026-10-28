@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.sniffer_egg.name",
+            "minecraft:collision_box": {
+                "origin": [-7, 0, -6],
+                "size": [14, 16, 12]
+            },
             "jsprismarine:behavior": "jsprismarine:egg",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -18,6 +18,16 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "item.brewing_stand.name",
+            "minecraft:collision_box": [
+                {
+                    "origin": [-1, 0, -1],
+                    "size": [2, 14, 2]
+                },
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [16, 2, 16]
+                }
+            ],
             "jsprismarine:behavior": "jsprismarine:furnace",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

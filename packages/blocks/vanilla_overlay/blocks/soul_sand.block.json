@@ -21,6 +21,10 @@
             "minecraft:redstone_conductivity": {
                 "redstone_conductor": true
             },
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 14, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:soil",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

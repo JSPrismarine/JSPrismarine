@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.honey_block.name",
+            "minecraft:collision_box": {
+                "origin": [-7, 0, -7],
+                "size": [14, 16, 14]
+            },
             "jsprismarine:behavior": "jsprismarine:utility",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

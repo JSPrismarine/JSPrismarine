@@ -18,6 +18,28 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.cauldron.name",
+            "minecraft:collision_box": [
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [16, 5, 16]
+                },
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [2, 16, 16]
+                },
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [16, 16, 2]
+                },
+                {
+                    "origin": [6, 0, -8],
+                    "size": [2, 16, 16]
+                },
+                {
+                    "origin": [-8, 0, 6],
+                    "size": [16, 16, 2]
+                }
+            ],
             "jsprismarine:behavior": "jsprismarine:cauldron",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.waterlily.name",
+            "minecraft:collision_box": {
+                "origin": [-7, 0, -7],
+                "size": [14, 1.5, 14]
+            },
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

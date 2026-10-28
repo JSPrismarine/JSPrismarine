@@ -16,6 +16,10 @@
                 "movement_type": "immovable"
             },
             "minecraft:display_name": "tile.end_portal.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 4, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:portal",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
