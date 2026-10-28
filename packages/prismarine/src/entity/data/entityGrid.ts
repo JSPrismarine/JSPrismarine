@@ -123,13 +123,20 @@ export class EntityGrid {
         if (key === undefined) return;
 
         const previous = this.filedFamilies.get(entity.id) ?? [];
-        const families = [...new Set(entity.instance.families())];
+        const families = entity.instance.families();
         if (previous.length === families.length && previous.every((family, index) => family === families[index]))
             return;
 
+        const uniqueFamilies = [...new Set(families)];
+        if (
+            previous.length === uniqueFamilies.length &&
+            previous.every((family, index) => family === uniqueFamilies[index])
+        )
+            return;
+
         for (const family of previous) this.unfileFamily(entity, family, key);
-        for (const family of families) this.fileFamily(entity, family, key);
-        this.filedFamilies.set(entity.id, families);
+        for (const family of uniqueFamilies) this.fileFamily(entity, family, key);
+        this.filedFamilies.set(entity.id, uniqueFamilies);
     }
 
     /**
