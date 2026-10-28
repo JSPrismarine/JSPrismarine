@@ -6,6 +6,7 @@ import type { EntityHooks } from '../hooks';
 import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
 import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
+import { nameable } from './nameable';
 import { dataComponent } from './schemas';
 import {
     ageable,
@@ -57,6 +58,7 @@ import {
 } from './vanilla';
 
 export * from './schemas';
+export * from './nameable';
 export * from './vanilla';
 
 /** The navigation flavors vanilla uses. */
@@ -165,7 +167,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:mob_effect',
     'minecraft:mob_effect_immunity',
     'minecraft:movement_sound_distance_offset',
-    'minecraft:nameable',
     'minecraft:not_pickable_from_inside',
     'minecraft:npc',
     'minecraft:offspring_data',
@@ -264,6 +265,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(inventory);
     register(jumpStatic);
     register(loot);
+    register(nameable);
     register(physics);
     register(dataComponent('jsprismarine:falling_block'));
     register(pushable);

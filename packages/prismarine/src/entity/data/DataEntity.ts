@@ -88,6 +88,9 @@ export class MobBody {
     /** The entity's dynamic string tags, shared with `/tag` and `has_tag` filters. */
     public readonly tags = new Set<string>();
 
+    /** The custom name set by an accepted name tag. */
+    public nameTag: string | undefined;
+
     /** Who the entity is fighting, by runtime id, or undefined when it is fighting nobody. */
     public target: number | undefined;
 

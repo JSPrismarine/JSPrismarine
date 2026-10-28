@@ -50,6 +50,8 @@ export interface ItemActorPortOptions {
     readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
     /** Attaches a live holder to a leashable data-driven entity. */
     readonly attachLead?: (holder: ItemSource, target: ItemSource) => boolean;
+    /** Whether the target is a data-driven entity that accepts a name tag. */
+    readonly canNameEntity?: (target: Entity) => boolean;
     /** Applies a player's held item to a data-driven entity, when its components accept it. */
     readonly interactWithEntity?: (
         target: Entity,
@@ -57,6 +59,8 @@ export interface ItemActorPortOptions {
         itemIdentifier: string,
         heldItem: ContentItemDrop
     ) => EntityItemInteraction;
+    /** Names a data-driven entity after its active `minecraft:nameable` component accepts it. */
+    readonly nameEntity?: (target: Entity, name: string) => boolean;
 }
 
 /**
@@ -71,6 +75,8 @@ export interface ServerItemActorPort extends ItemActorPort {
     duringInteraction<T>(source: ItemSource, target: ItemSource | undefined, body: () => T): T;
     /** Runs the target entity's data-defined item interaction and consumes or replaces its item. */
     interactWithEntity(source: ItemSource): boolean;
+    /** Whether a live data-driven entity accepts a name tag. */
+    canNameEntity?(target: ItemSource): boolean;
 }
 
 /** The armor inventory index each `minecraft:equippable` slot name writes into. */
@@ -118,7 +124,8 @@ const inWater = (world: World, entity: Entity): boolean => {
 
 /** Builds the port over one live world. */
 export const createItemActorPort = (options: ItemActorPortOptions): ServerItemActorPort => {
-    const { world, entities, level, launchProjectile, attachLead, interactWithEntity } = options;
+    const { world, entities, level, launchProjectile, attachLead, canNameEntity, interactWithEntity, nameEntity } =
+        options;
 
     /** Game tick each cooldown runs out at. */
     const cooldowns = new Map<string, number>();
@@ -399,19 +406,27 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 return;
             }
             case 'give-item':
-                return give(action.source, action.item);
+                give(action.source, action.item);
+                return;
             case 'equip':
                 if (!equip(action.target, action.slot, action.item))
                     missing(action, `an equipment slot for ${action.slot}`);
                 return;
             case 'consume-durability':
-                return spend(action.source, action.amount, action.broke);
+                spend(action.source, action.amount, action.broke);
+                return;
             case 'name-entity': {
-                entityOf(action.target)?.metadata.setNameTag(action.name);
+                const target = entityOf(action.target);
+                if (target === null || nameEntity === undefined) {
+                    missing(action, 'a live data-driven nameable entity');
+                    return;
+                }
+                if (!nameEntity(target, action.name)) return;
                 return;
             }
             case 'teleport-randomly':
-                return teleportRandomly(action.target, action.radius);
+                teleportRandomly(action.target, action.radius);
+                return;
             case 'start-cooldown':
                 cooldowns.set(cooldownKey(action.source.runtimeId, action.group), level.gameTime() + action.ticks);
                 return;
@@ -496,6 +511,10 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             };
         },
         targetOf: (source) => targets.get(source.runtimeId),
+        canNameEntity: (source) => {
+            const target = entityOf(source);
+            return target !== null && (canNameEntity?.(target) ?? false);
+        },
         interactWithEntity: useItemOnEntity,
         perform,
         duringInteraction: (source, target, body) => {

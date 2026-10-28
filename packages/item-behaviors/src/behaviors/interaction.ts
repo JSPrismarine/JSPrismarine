@@ -29,6 +29,7 @@ export const nameTagBehavior: ItemBehaviorSpec = {
             const name = itemStack.get('minecraft:custom_name');
             if (typeof name !== 'string') return undefined;
 
+            if (context.world.canNameEntity?.(target) === false) return undefined;
             context.world.perform({ kind: 'name-entity', target, name });
             return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
         };

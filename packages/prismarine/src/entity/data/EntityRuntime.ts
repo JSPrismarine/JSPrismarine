@@ -387,6 +387,31 @@ export class EntityRuntime implements EntityScene {
         return this.near(at, radius).filter((entity) => entity.identifier === identifier).length;
     }
 
+    /**
+     * Names an entity only when its active `minecraft:nameable` component accepts the name tag.
+     *
+     * @param id - The runtime id.
+     * @param name - The custom name being assigned.
+     * @returns Whether the entity accepted the name tag.
+     */
+    public nameEntity(id: number, name: string): boolean {
+        const entity = this.byId(id);
+        if (entity === undefined || !entity.instance.nameWithNameTag(name)) return false;
+        entity.body.nameTag = name;
+        return true;
+    }
+
+    /**
+     * Whether an entity has active nameable data that permits name-tag renaming.
+     *
+     * @param id - The runtime id.
+     * @returns Whether the entity can be renamed with a name tag.
+     */
+    public canNameEntity(id: number): boolean {
+        const nameable = this.byId(id)?.instance.componentParams('minecraft:nameable');
+        return isRecord(nameable) && nameable.allowNameTagRenaming === true;
+    }
+
     /** How many live entities count against one population pool's cap. */
     public poolCount(pool: string): number {
         let count = 0;

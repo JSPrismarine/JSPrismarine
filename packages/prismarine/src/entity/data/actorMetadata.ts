@@ -66,12 +66,14 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         navigation.isAmphibious ||
         instance.hasComponent('minecraft:behavior.float');
     const physics = instance.componentParams('minecraft:physics');
+    const nameable = instance.componentParams('minecraft:nameable');
     const scale = instance.componentParams('minecraft:scale');
     const variant = instance.componentParams('minecraft:variant');
     const color = instance.componentParams('minecraft:color');
     const color2 = instance.componentParams('minecraft:color2');
     const flags: ActorFlagProjection[] = [
         { flag: ActorFlags.CANCLIMB, value: navigation.canClimbLadders === true },
+        { flag: ActorFlags.ALWAYS_SHOW_NAME, value: isRecord(nameable) && nameable.alwaysShow === true },
         { flag: MetadataFlag.ONFIRE, value: body.fireTicks > 0 },
         { flag: ActorFlags.CANSWIM, value: canSwim },
         { flag: ActorFlags.CANFLY, value: navigation.canFly },
@@ -143,6 +145,7 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         { kind: 'float', id: MetadataFlag.SCALE, value: typeof scale === 'number' ? scale : 1 },
         { kind: 'int', id: MetadataFlag.FUSE_TIME, value: body.fuseTicks ?? 0 },
         { kind: 'long', id: MetadataFlag.ENTITY_LEAD_HOLDER_ID, value: BigInt(leashHolderId ?? -1) },
+        { kind: 'string', id: MetadataFlag.NAMETAG, value: body.nameTag ?? '' },
         { kind: 'string', id: ActorDataID.INTERACT_TEXT, value: interactTextOf(entity) }
     ];
 

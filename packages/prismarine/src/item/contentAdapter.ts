@@ -82,6 +82,8 @@ export interface ItemActorPort {
     stateOf(source: ItemSource): SourceState;
     /** The entity an interaction landed on, or undefined when it landed on a block or nothing. */
     targetOf(source: ItemSource): ItemSource | undefined;
+    /** Whether a target entity accepts a name tag, when the host can answer. */
+    canNameEntity?(target: ItemSource): boolean;
     /** Does one thing to an entity, an inventory or a screen. */
     perform(action: ActorItemAction): void;
 }
@@ -170,23 +172,28 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
     const perform = (action: ItemWorldAction): void => {
         switch (action.kind) {
             case 'place-block':
-                return blocks.set(action.position, asBlock(action.placement), true);
+                blocks.set(action.position, asBlock(action.placement), true);
+                return;
             case 'break-block':
                 // No loot: this is a bucket taking a fluid or a shovel taking
                 // the top off, not a block being mined.
-                return blocks.set(action.position, AIR, true);
+                blocks.set(action.position, AIR, true);
+                return;
             case 'fertilize':
-                return fertilize(action);
+                fertilize(action);
+                return;
             case 'ignite': {
                 // The fire goes on the face that was clicked, and only where
                 // nothing stands. Whether it then survives is the fire
                 // family's rule rather than the item's.
                 const at = relative(action.position, action.face);
                 if (blocks.get(at)?.identifier !== 'minecraft:air') return;
-                return blocks.set(at, { identifier: FIRE, states: {} }, true);
+                blocks.set(at, { identifier: FIRE, states: {} }, true);
+                return;
             }
             case 'play-sound':
-                return effects.playSound(action.position, action.sound);
+                effects.playSound(action.position, action.sound);
+                return;
             case 'spawn-entity': {
                 const built = content();
                 const identifier = bedrockEntityIdentifierOf(action.identifier, (candidate) =>
@@ -203,6 +210,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
     return {
         stateOf: (source) => actors.stateOf(source),
         targetOf: (source) => actors.targetOf(source),
+        canNameEntity: (target) => actors.canNameEntity?.(target) ?? true,
         environment: (): EnvironmentState => ({
             dimension: level.dimension,
             timeOfDay: level.dayTime(),

@@ -390,6 +390,29 @@ export class LiveEntityRuntime {
         return this.runtime.attachLead(holderId, targetId);
     }
 
+    /**
+     * Whether this live body is a data-driven entity that accepts a name tag.
+     *
+     * @param target - The client-facing body.
+     * @returns Whether its runtime entity accepts name tags.
+     */
+    public canNameEntity(target: Entity): boolean {
+        const id = this.bodies.entityIdOf(target);
+        return id !== undefined && this.runtime.canNameEntity(id);
+    }
+
+    /**
+     * Names a live body through its data-driven runtime entity.
+     *
+     * @param target - The client-facing body.
+     * @param name - The custom name being assigned.
+     * @returns Whether the runtime accepted the name tag.
+     */
+    public nameEntity(target: Entity, name: string): boolean {
+        const id = this.bodies.entityIdOf(target);
+        return id !== undefined && this.runtime.nameEntity(id, name);
+    }
+
     /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */
     public interactWithItem(
         target: Entity,
@@ -518,6 +541,7 @@ export class LiveEntityRuntime {
         const body = this.bodies.bodyOf(entity.id);
         if (body !== undefined) {
             body.persistentNbt = stored.persistentNbt;
+            entity.body.nameTag ??= stored.metadata.nameTag || undefined;
             for (const tag of stored.getTags()) body.addTag(tag);
         }
         return entity;
@@ -572,6 +596,7 @@ export class LiveEntityRuntime {
         const body = this.bodies.bodyOf(entity.id);
         if (body !== undefined) {
             body.persistentNbt = stored.persistentNbt;
+            entity.body.nameTag = stored.metadata.nameTag || undefined;
             for (const tag of stored.getTags()) body.addTag(tag);
         }
         return entity;

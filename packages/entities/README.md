@@ -269,11 +269,12 @@ physics values from the active component set: `minecraft:air_drag_modifier` chan
 impact velocity a collision returns. `minecraft:collision_box`, `minecraft:type_family`,
 `minecraft:loot`, `minecraft:experience_reward`, `minecraft:inventory`, `minecraft:equipment`,
 `minecraft:physics`, `minecraft:pushable`, `minecraft:air_drag_modifier`,
-`minecraft:friction_modifier`, `minecraft:bounciness`, the seven `minecraft:navigation.*` flavors,
+`minecraft:friction_modifier`, `minecraft:bounciness`, `minecraft:nameable`, the seven `minecraft:navigation.*` flavors,
 the nine `minecraft:movement.*` flavors and the six integer state components are written out; the
 rest are parsed structurally. `minecraft:type_family` and the integer state components are data a filter
 reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is_skin_id` from them
-with no caller view.
+with no caller view. `minecraft:nameable` gates name-tag use, queues its default and matching name
+events, and projects the configured visibility and custom name to the client.
 
 Every non-goal key in the vanilla pack has a component factory, so the loader preserves its body
 and exposes it through `EntityInstance.componentParams`. Of the 34 keys used by only one entity,
@@ -292,7 +293,7 @@ test in `src/vanillaEntities.test.ts`:
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
 | Non-goal keys with a component hook | 81 |
-| Non-goal keys with a runtime effect across the server | 88 |
+| Non-goal keys with a runtime effect across the server | 89 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -334,9 +335,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 81 component factories have hooks, and 88
+measures name coverage rather than complete simulation: 81 component factories have hooks, and 89
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 114 bodies are available as data for behavior that still needs to be added.
+included. The remaining 113 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
 visibility as being within `follow_range`; it does not test block occlusion.
@@ -368,5 +369,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  114 currently expose data without runtime behavior. The component bodies remain accessible to the
+  113 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

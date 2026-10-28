@@ -55,6 +55,8 @@ export interface DataEntityRecord {
     readonly attributes: Readonly<Partial<Record<AttributeName, number>>>;
     readonly yaw: number;
     readonly pitch: number;
+    /** Custom name set through an accepted name tag. */
+    readonly nameTag?: string;
     /** Where `minecraft:home` or a `set_home_position` event pinned the entity. */
     readonly home?: EntityPosition;
     /** Stable identity of the player who tamed or launched this entity. */
@@ -123,6 +125,7 @@ export const dataEntityRecordOf = (
         attributes,
         yaw: body.yaw,
         pitch: body.pitch,
+        ...(body.nameTag === undefined ? {} : { nameTag: body.nameTag }),
         ...(body.home === undefined ? {} : { home: body.home }),
         ...(body.ownerIdentity === undefined ? {} : { ownerIdentity: body.ownerIdentity }),
         ...(body.carried === undefined ? {} : { carried: body.carried }),
@@ -334,6 +337,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         attributes: attributesOf(parsed['attributes']),
         yaw: numberOf(parsed['yaw'], 0),
         pitch: numberOf(parsed['pitch'], 0),
+        ...(typeof parsed['nameTag'] === 'string' ? { nameTag: parsed['nameTag'] } : {}),
         ...(home === undefined ? {} : { home }),
         ...(typeof ownerIdentity === 'string' ? { ownerIdentity } : {}),
         ...(typeof carried === 'string' ? { carried } : {}),
@@ -381,6 +385,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
 
     body.yaw = record.yaw;
     body.pitch = record.pitch;
+    body.nameTag = record.nameTag;
     body.home = record.home;
     instance.setHomePosition(record.home);
     body.ownerIdentity = record.ownerIdentity;

@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Eighty-eight keys carry
-runtime behavior. The remaining 114 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Eighty-nine keys carry
+runtime behavior. The remaining 113 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -185,7 +185,11 @@ matching block-state condition starts or stops matching.
 `minecraft:target_nearby_sensor` reads the entity's current target and uses `follow_range` as its
 visibility test. The host does not currently test whether blocks occlude the target.
 
-The 88 with runtime effects include components that change entity state, decide an outcome, or
+`minecraft:nameable` controls name-tag renaming, queues its `default_trigger` and matching
+`name_actions`, and projects `always_show` and the custom name to actor metadata. Data-driven names
+are included in the entity's saved runtime record.
+
+The 89 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -194,6 +198,8 @@ initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angr
 `minecraft:burns_in_daylight`); the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:transient`, which keeps its entity out of saved actor records;
+`minecraft:nameable`, which gates name-tag use, raises configured naming events, and projects the
+custom name and visibility flag;
 `minecraft:environment_sensor`, `minecraft:entity_sensor`, `minecraft:block_sensor`, `minecraft:inside_block_notifier`, `minecraft:target_nearby_sensor`,
 `minecraft:ambient_sound_interval`, `minecraft:rideable`, `minecraft:leashable` and
 `minecraft:leashable_to`, which attach, retrieve, and cut leash links;

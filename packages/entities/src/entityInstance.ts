@@ -4,6 +4,8 @@ import type { MolangValue } from '@jsprismarine/molang';
 
 import { Attributes } from './attributes';
 import type { EquipmentParams, SlotDropChance } from './components/vanilla';
+import { isNameableParams } from './components/nameable';
+import type { NameableTrigger } from './components/nameable';
 import type { EntityType } from './entityType';
 import type { EventEffects, OutgoingTrigger, SpawnCause } from './eventEngine';
 import { determineEvent, noEffects, spawnEventFor } from './eventEngine';
@@ -280,6 +282,30 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         state?: EntityItemInteractionState
     ): boolean {
         return this.interactWithItemResult(itemIdentifier, other, state) !== false;
+    }
+
+    /**
+     * Applies a name tag through the active `minecraft:nameable` component.
+     *
+     * @param name - The custom name being assigned.
+     * @returns Whether the active component accepts name-tag renaming.
+     */
+    public nameWithNameTag(name: string): boolean {
+        const params = this.componentParams('minecraft:nameable');
+        if (!isNameableParams(params) || !params.allowNameTagRenaming) return false;
+
+        const fire = (trigger: NameableTrigger | undefined, source: string): void => {
+            if (trigger === undefined) return;
+            if (trigger.filters !== undefined && !evaluateFilter(trigger.filters, this.filterContext())) return;
+            this.raise(trigger.event, trigger.target, source);
+        };
+
+        fire(params.defaultTrigger, 'minecraft:nameable.default_trigger');
+        for (const action of params.nameActions) {
+            if (action.nameFilter === name) fire(action.onNamed, 'minecraft:nameable.name_actions');
+        }
+
+        return true;
     }
 
     /**

@@ -406,6 +406,8 @@ export interface WorldActions {
     effectsOf(potion: string): readonly EffectApplication[];
     /** A number in [0, 1), which is every random roll a behavior makes. */
     random(): number;
-    /** Do one thing to the world. */
+    /** Whether a target entity accepts a name tag, when the host can answer. */
+    canNameEntity?(target: ItemSource): boolean;
+    /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }

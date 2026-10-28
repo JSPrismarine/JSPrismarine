@@ -262,6 +262,8 @@ export interface ContentItemAccess {
      * so the server answers rather than the item package.
      */
     effectsOf(potion: string): readonly EffectApplication[];
+    /** Whether a target entity accepts a name tag, when the actor port can answer. */
+    canNameEntity?(target: ItemSource): boolean;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }
