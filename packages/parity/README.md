@@ -18,10 +18,11 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `registry.*`    | blocks, items, entities, biomes     | The catalogs the server ships against the Bedrock captures                                                            |
 | `mapping.*`     | blocks, items, entities, registries, untranslated | Chunker's totality property per mapping domain, with the reviewed losses; the banner pattern, instrument and painting registries no pairing covers |
 | `blocks.*`      | properties                          | Every Bedrock block state's property row against the Java 26.3 jar dump                                               |
-| `items.*`       | components                          | Java's 1658 items and 122 component types against the Bedrock item capture                                            |
-| `recipes.*`     | registry                            | Java's 2042 recipe files, parsed and compiled through the mapping                                                     |
-| `loot.*`        | tables, distribution                | Java's 1447 loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
-| `entities.*`    | stats, addactor                     | All nine shared mob stats against Java's attribute dump; a packet row per advertised actor                            |
+| `items.*`       | components                          | Java item components carried on mapped Bedrock identities against the item capture                                    |
+| `recipes.*`     | registry                            | Java recipe files parsed and compiled through the mapping                                                             |
+| `loot.*`        | tables, distribution                | Java loot tables parsed with references resolved; rolled counts against each table's declared weights                |
+| `entities.*`    | stats, addactor                     | Shared mob stats against Java's attribute dump; a packet row per advertised actor                                     |
+| `integration.*` | tags, entity-runtime, client-packets | Every loaded tag through resolved registries and biome world views; a data-driven mob tick; content-derived join payloads |
 | `worldgen.*`    | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns; and the generation corpus, this server's own output recorded at a named commit |
 | `commands.*`    | tree                                | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `conformance.*` | claim, classification, exclusions   | The claim, the table it counts, and the eight exclusions                                                              |
@@ -144,8 +145,8 @@ plain weighted choice between named items, 54 of which draw between two or more;
 `random_chance` condition has a distribution its weights alone do not determine, so
 `declaredDistribution` refuses it rather than guessing.
 
-`worldgen.terrain` compares all 3456 heights of the nine whole overworld columns Java's oracle
-dumped at seed 1234, plus each column's heightmap and terrain class. Phase 4's exit criterion
+`worldgen.terrain` compares every height in each whole overworld column Java's oracle dumped at
+seed 1234, plus each column's heightmap and terrain class. Phase 4's exit criterion
 names a reference region, which is wider than nine columns, so the terrain row is green over the
 columns and silent about the rest of a chunk. The generation corpus covers the rest of the
 chunk, against this server's own earlier output rather than against Java.
@@ -167,7 +168,11 @@ pnpm --filter @jsprismarine/parity run dashboard
 Runs the suite with the JSON reporter and renders a Markdown table to stdout and
 `dist/dashboard.md`, one row per declared family with its status and its passed, failed,
 not-measured, accepted-gap and defect counts. In CI the real-data job appends the table to
-`$GITHUB_STEP_SUMMARY`. The renderer is a pure function with its own tests,
+`$GITHUB_STEP_SUMMARY`. On same-repository pull requests, the job also creates or updates one
+comment with the current dashboard and its change from the previous report on that PR. The first
+report establishes the baseline; later reports call out whether open gaps or measured coverage
+increased or fell. The updater searches every comment page for its marker and edits the existing
+bot comment in place. The renderer is a pure function with its own tests,
 [`src/dashboard/render.ts`](src/dashboard/render.ts).
 
 ## Adding a comparison
@@ -180,4 +185,6 @@ not-measured, accepted-gap and defect counts. In CI the real-data job appends th
    `checkAllowList` are empty.
 4. Give each accepted gap an allow-list entry with a reason and a reference, and each gap the
    suite found and nobody fixed an entry of kind `defect`.
-5. Run the suite and the dashboard; the new family appears as its own row.
+5. Run the suite and the dashboard; the new family appears as its own row. CI fails when a
+   declared family has no test, so any new parity surface needs a comparison that reaches the
+   dashboard.

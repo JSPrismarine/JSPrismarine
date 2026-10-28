@@ -66,6 +66,14 @@ jobs:
         name: 🗃️ Real data suites
         runs-on: ubuntu-latest
         timeout-minutes: 90
+        # Keep a pull request's dashboard/comment updates serial so concurrent first runs
+        # cannot both see no prior report and create duplicate comments.
+        concurrency:
+            group: parity-${{ github.event.pull_request.number || github.ref }}
+            cancel-in-progress: false
+        permissions:
+            contents: read
+            pull-requests: write
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -116,6 +124,13 @@ jobs:
               run: pnpm run test
 
             - name: 📊 Publish the parity dashboard
+              id: parity_dashboard
               if: ${{ !cancelled() }}
               run: pnpm --filter @jsprismarine/parity run dashboard
+
+            - name: 💬 Comment on parity changes
+              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: pnpm --filter @jsprismarine/parity run comment:pr
 

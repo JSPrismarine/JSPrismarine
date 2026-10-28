@@ -10,6 +10,7 @@
         "test": "vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "dashboard": "node scripts/dashboard.ts",
+        "comment:pr": "node scripts/post-pr-comment.ts",
         "capture:corpus": "node scripts/capture-corpus.ts"
     },
     "repository": {
