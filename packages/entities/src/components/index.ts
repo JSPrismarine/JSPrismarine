@@ -9,6 +9,7 @@ import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
 import { dyeable } from './dyeable';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
+import { teleport } from './teleport';
 import {
     ageable,
     admireItem,
@@ -65,6 +66,7 @@ import {
 export * from './schemas';
 export * from './dyeable';
 export * from './nameable';
+export * from './teleport';
 export * from './vanilla';
 
 /** The navigation flavors vanilla uses. */
@@ -200,7 +202,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:strength',
     'minecraft:suspect_tracking',
     'minecraft:tamemount',
-    'minecraft:teleport',
     'minecraft:tick_world',
     'minecraft:trade_resupply',
     'minecraft:trade_table',
@@ -240,6 +241,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     for (const name of EVENT_TRIGGER_COMPONENTS) register(triggerComponent(name));
     register(equipmentChanged);
     for (const name of DATA_COMPONENTS) register(dataComponent(name));
+    register(teleport);
 
     register(ageable);
     register(admireItem);

@@ -2784,8 +2784,14 @@ export class EntityRuntime implements EntityScene {
                 z: from.z + (to.z - from.z) * fraction
             };
             const target = this.projectileTargetAt(entity, at, state);
-            if (target !== undefined && this.hitProjectile(entity, target, params, at)) {
-                if (entity.removed !== undefined) return;
+            if (target !== undefined) {
+                const evaded =
+                    'instance' in target && target.instance.notifyProjectileHit(entity.instance.filterContext().self);
+                if (evaded) {
+                    state.hitEntities.add(target.id);
+                    continue;
+                }
+                if (this.hitProjectile(entity, target, params, at) && entity.removed !== undefined) return;
             }
 
             if (

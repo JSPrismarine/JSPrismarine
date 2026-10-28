@@ -1835,13 +1835,13 @@ export default class PlayerSession {
      * faced north the whole way, and a herd of cows all faced the same direction whatever they were
      * doing - which reads as broken however smooth the movement underneath it is.
      *
-     * The teleport flag is deliberately not set. A client interpolates an ordinary move over the
-     * ticks until the next one and snaps to a teleport, so setting it on a mob that is simply
-     * walking is exactly what turns smooth movement into a stutter.
+     * Ordinary movement stays interpolated. A teleport sets the snap flag so a client does not
+     * animate the actor across the distance between its old and new positions.
      * @param {Entity} entity - The entity that moved.
+     * @param {boolean} teleport - Whether clients should snap to the new position.
      * @returns {MoveActorAbsolutePacket} The packet, not yet sent.
      */
-    private static movePacketFor(entity: Entity): MoveActorAbsolutePacket {
+    private static movePacketFor(entity: Entity, teleport = false): MoveActorAbsolutePacket {
         const packet = new MoveActorAbsolutePacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.position = entity.getPosition();
@@ -1855,7 +1855,9 @@ export default class PlayerSession {
         // spending itself, and `coast` ends that by landing it on the first cell it cannot fall
         // into. Everything else reports false and is drawn from the client's own guess, which is
         // what every entity got while the flag was never set.
-        packet.flags = entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0;
+        packet.flags =
+            (entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0) |
+            (teleport ? MoveActorAbsolutePacket.FLAG_TELEPORT : 0);
 
         return packet;
     }
@@ -1885,12 +1887,12 @@ export default class PlayerSession {
      * lot of them.
      * @param {Entity} entity - The entity that moved.
      */
-    public queueMoveActor(entity: Entity): void {
+    public queueMoveActor(entity: Entity, teleport = false): void {
         // Keyed by entity, so an entity that moved more than once this tick goes out once, at
         // where it ended up. `Entity.setX`, `setY` and `setZ` each announce a move of their
         // own, so a diagonal step produced three identical packets naming the same
         // destination. A `Map` keeps insertion order, so the batch is ordered as before.
-        this.queuedMoves.set(entity.getRuntimeId(), PlayerSession.movePacketFor(entity));
+        this.queuedMoves.set(entity.getRuntimeId(), PlayerSession.movePacketFor(entity, teleport));
     }
 
     /**

@@ -79,6 +79,9 @@ export class MobBody {
      */
     public onMove: (() => void) | undefined;
 
+    /** Whether the next client movement update must snap to this body's position. */
+    public teleportPending = false;
+
     /** Where the entity faces, in degrees. */
     public yaw = 0;
     public pitch = 0;
@@ -365,6 +368,15 @@ export class MobBody {
     /** Abandons the current walk. */
     public stopMoving(): void {
         this.destination = undefined;
+    }
+
+    /** Moves instantly, clears the current impulse, and marks the client update as a teleport. */
+    public teleportTo(position: EntityPosition): void {
+        this.velocity = { x: 0, y: 0, z: 0 };
+        this.conditions.delete('jumping');
+        this.stopMoving();
+        this.position = position;
+        this.teleportPending = true;
     }
 
     /** Points the entity's head at a position. */

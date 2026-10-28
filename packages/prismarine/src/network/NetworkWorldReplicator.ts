@@ -452,7 +452,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public entityMoved(entity: Entity): void {
+    public entityMoved(entity: Entity, teleport = false): void {
         // Only to the clients that have this entity. A move for a runtime id a client was
         // never sent a spawn for is discarded at the other end, so tracking is both the
         // correct gate and the cheaper one - a set lookup instead of any distance arithmetic
@@ -460,7 +460,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const runtimeId = entity.getRuntimeId();
         for (const player of this.world.getPlayers()) {
             const session = player.getNetworkSession();
-            if (session.tracks(runtimeId)) session.queueMoveActor(entity);
+            if (session.tracks(runtimeId)) session.queueMoveActor(entity, teleport);
         }
     }
 

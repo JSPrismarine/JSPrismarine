@@ -461,14 +461,21 @@ export class LiveBodies {
             Math.abs(here.getZ() - at.z) < MOVEMENT_EPSILON &&
             body.yaw === entity.body.yaw &&
             body.pitch === entity.body.pitch;
-        if (still) return undefined;
+        if (still) {
+            entity.body.teleportPending = false;
+            return undefined;
+        }
 
-        return body.setPosition({
+        const teleport = entity.body.teleportPending;
+        const move = body.setPosition({
             position: new Vector3(at.x, at.y, at.z),
             yaw: entity.body.yaw,
             headYaw: entity.body.yaw,
-            pitch: entity.body.pitch
+            pitch: entity.body.pitch,
+            teleport
         });
+        entity.body.teleportPending = false;
+        return move;
     }
 
     private failed(what: string, error: unknown): void {

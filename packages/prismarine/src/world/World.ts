@@ -2395,10 +2395,11 @@ export class World implements Service {
      * mobs move in fits and starts. A move outside the tick waits at most one tick, which is
      * fifty milliseconds and below anything a player can see.
      * @param {Entity} entity - The entity that moved.
+     * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
-    public async broadcastMove(entity: Entity): Promise<void> {
+    public async broadcastMove(entity: Entity, teleport = false): Promise<void> {
         this.markEntityChunkChanged(entity);
-        this.changes.entityMoved(entity);
+        this.changes.entityMoved(entity, teleport);
     }
 
     private markEntityChunkChanged(entity: Entity): void {

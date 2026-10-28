@@ -757,6 +757,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.dispatch('onAttackTargetKilled', this, killer);
     }
 
+    /** Lets active components evade a projectile before its hit effects are applied. */
+    public notifyProjectileHit(projectile: FilterEntityView): boolean {
+        return this.dispatchFirst('onProjectileHit', this, projectile) ?? false;
+    }
+
     /** Asks the world to carry out one `minecraft:angry.broadcast_anger` request. */
     public broadcastAnger(request: EntityAngerBroadcast): void {
         if (this.environment.broadcastAnger === undefined) {

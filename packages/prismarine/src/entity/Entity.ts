@@ -1066,6 +1066,7 @@ export class Entity {
      * @param {number} [options.pitch] - The pitch.
      * @param {number} [options.yaw] - The yaw.
      * @param {number} [options.headYaw] - The head yaw.
+     * @param {boolean} [options.teleport] - Whether clients should snap to the new position.
      * @returns {Promise<void>} A promise that resolves when the position is set.
      * @throws {RangeError} When a coordinate is NaN or infinite. The entity stays where it was,
      * since a position like that cannot be encoded for the client anyway.
@@ -1076,12 +1077,14 @@ export class Entity {
         position,
         pitch = this.pitch,
         yaw = this.yaw,
-        headYaw = this.headYaw
+        headYaw = this.headYaw,
+        teleport = false
     }: {
         position: Vector3;
         pitch?: number;
         yaw?: number;
         headYaw?: number;
+        teleport?: boolean;
     }): Promise<void> {
         const coordinates = [position.getX(), position.getY(), position.getZ()];
         if (!coordinates.every(Number.isFinite))
@@ -1094,7 +1097,7 @@ export class Entity {
         this.position =
             position instanceof Position ? position : Position.fromVector3(position, this.position.getWorld());
 
-        await this.getWorld().broadcastMove(this);
+        await this.getWorld().broadcastMove(this, teleport);
     }
 
     /**

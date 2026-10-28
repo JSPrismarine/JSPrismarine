@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Ninety-three keys carry
-runtime behavior. The remaining 109 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Ninety-four keys carry
+runtime behavior. The remaining 108 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -190,6 +190,11 @@ and death-message override through the entity runtime.
 a block ray between the observer's and target's eyes. Solid blocks occlude the target for its
 visibility events and for goals that require line of sight.
 
+`minecraft:teleport` tries timed random destinations in the configured cube, teleports toward a
+distant attack target within `target_distance`, and lets an entity evade a matching projectile
+before its hit effects apply. Random attempts use the configured light or dark chance, and both
+random and target teleports require a reachable destination.
+
 `minecraft:combat_regeneration` observes the deaths of the entity's active attack target. It gives
 Regeneration I to the killer when `apply_to_self` names the source or `apply_to_family` names a
 shared type family, removes Mining Fatigue, and honors the configured duration, including
@@ -208,7 +213,7 @@ are included in the entity's saved runtime record.
 `minecraft:is_dyeable` gates dye use, updates `minecraft:color` in the data-driven entity's runtime
 state, and projects its `interact_text` to actor metadata. The changed color is persisted.
 
-The 93 with runtime effects include components that change entity state, decide an outcome, or
+The 94 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -248,8 +253,9 @@ Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_P
 `minecraft:bounciness`, which the shared body physics reads from the active component set; the ten
 event-shaped `minecraft:on_*` trigger components; `minecraft:on_equipment_changed`, which raises
 the first matching event when one of its default equipment slots changes; `minecraft:cannot_be_attacked`,
-which blocks entity attacks; and `minecraft:combat_regeneration`, which gives the killer of its
-attack target Regeneration I and removes Mining Fatigue.
+which blocks entity attacks; `minecraft:combat_regeneration`, which gives the killer of its
+attack target Regeneration I and removes Mining Fatigue; and `minecraft:teleport`, which uses its
+configured random, target, and projectile settings to move the entity.
 `minecraft:burns_in_daylight` ignites an entity in direct sunlight unless its configured protection
 slot is occupied or it is wet. The runtime maintains fire while exposed, deals
 `fire_tick` damage every second, honors the fire-damage gamerule and `minecraft:fire_immune`, fires
@@ -305,10 +311,9 @@ trade-table components to build a merchant. The shared body physics reads `minec
 the active entity's drag, ground friction, and collision response.
 
 Every non-goal key in the vanilla pack is registered, including keys used by only one entity such as
-the enderman's `minecraft:teleport`, the shulker's `minecraft:peek`, and the warden's
-`minecraft:anger_level`. Registration makes a component's data available; it does not promise that
-the server simulates its behavior. The corpus test checks the 202 names and counts the keys that
-currently carry behavior.
+the shulker's `minecraft:peek` and the warden's `minecraft:anger_level`. Registration makes a
+component's data available; it does not promise that the server simulates its behavior. The corpus
+test checks the 202 names and counts the keys that currently carry behavior.
 
 An unknown component name writes a `component.unknown` warning to the server log and
 `ServerContent.diagnostics`, and appears in `EntityType.unimplementedComponents`. A registered

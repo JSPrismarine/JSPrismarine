@@ -81,6 +81,17 @@ export interface EntityActuator {
     randomTarget(xzDistance: number, yDistance: number): EntityPosition | undefined;
     /** The position of the nearest player within the distance, or undefined when there is none. */
     nearestPlayer(maxDistance: number): EntityPosition | undefined;
+    /** A reachable random position around a point, or undefined when the navigator finds none. */
+    randomPosition?(
+        center: EntityPosition,
+        xDistance: number,
+        yDistance: number,
+        zDistance: number
+    ): EntityPosition | undefined;
+    /** The current attack target's position, or undefined when the entity has no live target. */
+    targetPosition?(): EntityPosition | undefined;
+    /** Moves the entity instantly, stopping its current path. */
+    teleportTo?(position: EntityPosition): void;
 }
 
 /** Operations an entity component delegates to the world outside this package. */
@@ -322,6 +333,8 @@ export interface EntityHooks {
     onDamage: (entity: EntityInstance, damage: DamageEvent) => DamageOutcome | undefined;
     /** Observes the result after sensors, immunities, and health changes without altering it. */
     onDamageProcessed: (entity: EntityInstance, damage: DamageEvent, result: DamageResult) => void;
+    /** Lets the entity evade a projectile before its hit effects are applied. */
+    onProjectileHit: (entity: EntityInstance, projectile: FilterEntityView) => boolean;
     /** Applies one held item; the first handler that answers wins. */
     onInteractWithItem: (
         entity: EntityInstance,

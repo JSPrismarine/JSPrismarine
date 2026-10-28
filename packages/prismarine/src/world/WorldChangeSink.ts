@@ -194,7 +194,7 @@ export interface WorldChangeSink {
      * sent, and put on the wire once by {@link WorldChangeSink.flushMovement}.
      * @param {Entity} entity - The entity that moved.
      */
-    entityMoved(entity: Entity): void;
+    entityMoved(entity: Entity, teleport?: boolean): void;
 
     /**
      * The world's clock has been read for broadcasting.

@@ -74,7 +74,11 @@ export const actuatorOf = (body: MobBody, scene: EntityScene): EntityActuator =>
     lookAt: (position) => body.lookAt(position),
     jump: () => body.jump(),
     randomTarget: (xzDistance, yDistance) => randomTarget(body.position, scene, xzDistance, yDistance),
-    nearestPlayer: (maxDistance) => nearestPlayerTo(body.position, scene, maxDistance)?.position
+    nearestPlayer: (maxDistance) => nearestPlayerTo(body.position, scene, maxDistance)?.position,
+    randomPosition: (center, xDistance, yDistance, zDistance) =>
+        randomPosition(center, scene, xDistance, yDistance, zDistance),
+    targetPosition: () => (body.target === undefined ? undefined : scene.mobById(body.target)?.position()),
+    teleportTo: (position) => body.teleportTo(position)
 });
 
 /** A reachable position in the box around a point, drawn from the world's own random source. */
@@ -84,12 +88,23 @@ const randomTarget = (
     xzDistance: number,
     yDistance: number
 ): EntityPosition | undefined => {
+    return randomPosition(here, scene, xzDistance, yDistance, xzDistance);
+};
+
+/** A reachable position in a rectangular box around a point. */
+const randomPosition = (
+    center: EntityPosition,
+    scene: EntityScene,
+    xDistance: number,
+    yDistance: number,
+    zDistance: number
+): EntityPosition | undefined => {
     const random = scene.world.random;
     for (let attempt = 0; attempt < RANDOM_TARGET_ATTEMPTS; attempt += 1) {
         const candidate = {
-            x: Math.floor(here.x) + Math.round((random.nextFloat() * 2 - 1) * xzDistance) + 0.5,
-            y: Math.floor(here.y) + Math.round((random.nextFloat() * 2 - 1) * yDistance),
-            z: Math.floor(here.z) + Math.round((random.nextFloat() * 2 - 1) * xzDistance) + 0.5
+            x: Math.floor(center.x) + Math.round((random.nextFloat() * 2 - 1) * xDistance) + 0.5,
+            y: Math.floor(center.y) + Math.round((random.nextFloat() * 2 - 1) * yDistance),
+            z: Math.floor(center.z) + Math.round((random.nextFloat() * 2 - 1) * zDistance) + 0.5
         };
         if (scene.navigation().isPassable(candidate)) return candidate;
     }
@@ -187,10 +202,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         knockback: (mob, horizontal, vertical) => scene.knockback(entity, mob, horizontal, vertical),
         push: (velocity) => entity.push(velocity),
         explode: () => scene.explode(entity),
-        teleportTo: (position) => {
-            entity.position = position;
-            entity.stopMoving();
-        },
+        teleportTo: (position) => entity.teleportTo(position),
         removeSelf: () => scene.remove(entity.id, 'death_behavior'),
         mount: (mob) => scene.mount(entity, mob),
         dismount: () => scene.dismount(entity),
