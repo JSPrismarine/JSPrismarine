@@ -27,6 +27,7 @@ interface PickupRule {
     readonly pickupLimit: number;
     readonly admire: boolean;
     readonly barter: boolean;
+    readonly consumeItem: boolean;
 }
 
 /** Matches a shareable name, auxiliary value, or Bedrock item tag. */
@@ -58,7 +59,8 @@ const shareableRuleFor = (
             maxAmount: matching.maxAmount,
             pickupLimit: matching.pickupLimit,
             admire: matching.admire,
-            barter: matching.barter
+            barter: matching.barter,
+            consumeItem: matching.consumeItem
         };
     }
     if (rules?.allItems === true)
@@ -67,10 +69,18 @@ const shareableRuleFor = (
             maxAmount: rules.allItemsMaxAmount,
             pickupLimit: -1,
             admire: false,
-            barter: false
+            barter: false,
+            consumeItem: false
         };
     if (canPickupAnyItem)
-        return { priority: Number.MAX_SAFE_INTEGER, maxAmount: -1, pickupLimit: -1, admire: false, barter: false };
+        return {
+            priority: Number.MAX_SAFE_INTEGER,
+            maxAmount: -1,
+            pickupLimit: -1,
+            admire: false,
+            barter: false,
+            consumeItem: false
+        };
     return undefined;
 };
 
@@ -145,7 +155,7 @@ export const pickupItems = goal<PickupItemsParams>({
         const heldCount = (identifier: string): number => {
             const inventory = support.world.inventory?.() ?? [];
             const count = inventory.filter((held) => held === identifier).length;
-            return count + (count === 0 && support.world.carriedItem?.() === identifier ? 1 : 0);
+            return count + (support.world.carriedItem?.() === identifier ? 1 : 0);
         };
 
         const pickupCount = (candidate: GoalItem, rule: PickupRule, singularPickup: boolean): number => {
@@ -190,7 +200,13 @@ export const pickupItems = goal<PickupItemsParams>({
                 item = selected?.candidate;
                 itemCount = selected?.count ?? 0;
                 pickupOptions =
-                    selected === undefined ? undefined : { admire: selected.rule.admire, barter: selected.rule.barter };
+                    selected === undefined
+                        ? undefined
+                        : {
+                              admire: selected.rule.admire,
+                              barter: selected.rule.barter,
+                              consumeItem: selected.rule.consumeItem
+                          };
                 return item !== undefined;
             },
             canContinue: () => item !== undefined && support.navigator.walking,

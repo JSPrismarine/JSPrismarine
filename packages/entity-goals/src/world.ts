@@ -66,6 +66,8 @@ export interface GoalPickupOptions {
     readonly admire: boolean;
     /** Whether a piglin should barter for the item after taking it. */
     readonly barter: boolean;
+    /** Whether the item should become the carried item for `eat_carried_item`. */
+    readonly consumeItem: boolean;
 }
 
 /** One block a block search found. */

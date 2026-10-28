@@ -1795,7 +1795,10 @@ export class EntityRuntime implements EntityScene {
             entity !== undefined &&
             (options?.admire === true || options?.barter === true) &&
             this.startPiglinInteraction(entity, taken.identifier, options.admire, options.barter);
-        for (let index = piglinStarted ? 1 : 0; index < taken.count; index += 1) taker.inventory.push(taken.identifier);
+        const carriedForConsumption = !piglinStarted && options?.consumeItem === true && taker.carried === undefined;
+        if (carriedForConsumption) taker.carried = taken.identifier;
+        for (let index = piglinStarted || carriedForConsumption ? 1 : 0; index < taken.count; index += 1)
+            taker.inventory.push(taken.identifier);
     }
 
     /**
