@@ -22,6 +22,7 @@ import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jspri
 import { facingDirectionOf, facingFromYaw } from '@jsprismarine/block-behaviors';
 import { relative } from '@jsprismarine/engine-systems';
 import type { ItemSource } from '@jsprismarine/items';
+import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, WindowTypes } from '@jsprismarine/minecraft';
 
@@ -93,7 +94,12 @@ const ITEM_PLACE_TARGETS: ReadonlyMap<string, string> = new Map([['minecraft:red
 
 /** The block an item places, or undefined for an item with no block placement. */
 const placedBlockOf = (content: ServerContent, placed: Item): string | undefined => {
-    const identifier = ITEM_PLACE_TARGETS.get(placed.getName()) ?? placed.getName();
+    let identifier = ITEM_PLACE_TARGETS.get(placed.getName()) ?? placed.getName();
+    if (BlockRuntimeIds.tryGetByName(identifier) === null) {
+        const mapped = javaBlockStateToBedrock(identifier);
+        if (mapped.kind !== 'mapped') return undefined;
+        identifier = mapped.bedrock.name;
+    }
     if (BlockRuntimeIds.tryGetByName(identifier) === null) return undefined;
     if (blockFromContent(identifier, content)?.canBePlaced() !== true) return undefined;
     return identifier;

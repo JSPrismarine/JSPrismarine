@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { bedrockBlockStates } from '@jsprismarine/mapping';
+
 import { facingDirectionOf } from '../geometry';
 import { bindFamily, heldItem } from '../harness';
 import { AIR } from '../identifiers';
@@ -15,6 +17,13 @@ import {
 } from './redstone';
 
 const origin = { x: 0, y: 0, z: 0 };
+const pistonFacingDirection = (identifier: string) => {
+    const facingDirection = bedrockBlockStates(identifier, { facing_direction: 'east' }).facing_direction;
+    if (facingDirection === undefined) throw new Error(`No east facing direction for ${identifier}`);
+    return facingDirection;
+};
+const PISTON_EAST = pistonFacingDirection('minecraft:piston');
+const STICKY_PISTON_EAST = pistonFacingDirection('minecraft:sticky_piston');
 
 describe('redstoneFamily: tnt', () => {
     it('primes to flint and steel and ignores a bare hand', () => {
@@ -35,7 +44,7 @@ describe('redstoneFamily: tnt', () => {
 describe('redstoneFamily: pistons', () => {
     it('pushes the run in front and puts its head down', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:piston');
-        harness.dimension.set(origin, 'minecraft:piston', { facing_direction: facingDirectionOf('east') });
+        harness.dimension.set(origin, 'minecraft:piston', { facing_direction: PISTON_EAST });
         harness.dimension.set({ x: 1, y: 0, z: 0 }, 'minecraft:stone');
 
         harness.redstone(origin, 15);
@@ -54,7 +63,7 @@ describe('redstoneFamily: pistons', () => {
     it('refuses to push an immovable block and leaves everything in place', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:piston');
         harness.dimension.defineProperties('minecraft:obsidian', { pushReaction: 'immovable' });
-        harness.dimension.set(origin, 'minecraft:piston', { facing_direction: facingDirectionOf('east') });
+        harness.dimension.set(origin, 'minecraft:piston', { facing_direction: PISTON_EAST });
         harness.dimension.set({ x: 1, y: 0, z: 0 }, 'minecraft:obsidian');
 
         harness.redstone(origin, 15);
@@ -64,7 +73,7 @@ describe('redstoneFamily: pistons', () => {
 
     it('pulls the block back when a sticky piston retracts', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:sticky_piston');
-        harness.dimension.set(origin, 'minecraft:sticky_piston', { facing_direction: facingDirectionOf('east') });
+        harness.dimension.set(origin, 'minecraft:sticky_piston', { facing_direction: STICKY_PISTON_EAST });
         harness.dimension.set({ x: 1, y: 0, z: 0 }, 'minecraft:sticky_piston_arm_collision');
         harness.dimension.set({ x: 2, y: 0, z: 0 }, 'minecraft:stone');
 

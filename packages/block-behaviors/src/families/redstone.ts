@@ -8,6 +8,7 @@
  */
 import { BLOCK_FACES } from '@jsprismarine/blocks';
 import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
+import { javaBlockStates } from '@jsprismarine/mapping';
 
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite, rotateClockwise, rotateCounterClockwise } from '../geometry';
@@ -76,9 +77,13 @@ const swapPair = (
     world.notifyNeighbors(block.position);
 };
 
-/** The face a piston points along, from its numeric `facing_direction`. */
-const pistonFacing = (block: HookBlock): ReturnType<typeof faceOfFacingDirection> =>
-    faceOfFacingDirection(stateNumber(block, 'facing_direction'));
+/** The Java-facing side of a piston, whose legacy Bedrock values reverse its horizontal direction. */
+const pistonFacing = (block: HookBlock): BlockFace | undefined => {
+    const facing = javaBlockStates(block.identifier, { facing_direction: stateNumber(block, 'facing_direction') })[
+        'facing_direction'
+    ];
+    return typeof facing === 'string' ? BLOCK_FACES.find((face) => face === facing) : undefined;
+};
 
 /** Whether this is one of the two piston bases. */
 const isPiston = (identifier: string): boolean => {

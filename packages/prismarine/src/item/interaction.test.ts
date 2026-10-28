@@ -65,7 +65,9 @@ const BLOCKS = [
     'minecraft:snow_layer',
     'minecraft:piston',
     'minecraft:redstone_wire',
-    'minecraft:redstone_torch'
+    'minecraft:redstone_torch',
+    'minecraft:unpowered_repeater',
+    'minecraft:unpowered_comparator'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
@@ -81,6 +83,8 @@ const ITEMS = [
     'minecraft:piston',
     'minecraft:redstone',
     'minecraft:redstone_torch',
+    'minecraft:repeater',
+    'minecraft:comparator',
     'minecraft:flint_and_steel'
 ];
 
@@ -610,6 +614,17 @@ describe('useItemOnBlock', () => {
             expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
         });
 
+        it.each([
+            ['minecraft:repeater', 'minecraft:unpowered_repeater'],
+            ['minecraft:comparator', 'minecraft:unpowered_comparator']
+        ])('places the %s item as %s', (item, block) => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+
+            expect(click(playerHolding(world, item), { x: 6, y: 63, z: 6 })).toBe('handled');
+
+            expect(world.loadedBlockAt(6, 64, 6)?.name).toBe(block);
+        });
+
         it('powers existing redstone wire when a torch is placed beside it', () => {
             place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
             place(chunk, { x: 6, y: 63, z: 7 }, 'minecraft:stone');
@@ -621,13 +636,14 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(6, 64, 7)?.states['redstone_signal']).toBe(15);
         });
 
-        it('extends an adjacent piston when a torch is placed', () => {
+        it('extends toward the Java-mapped facing when a torch is placed', () => {
             place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
             place(chunk, { x: 6, y: 63, z: 7 }, 'minecraft:stone');
-            click(
-                playerHolding(world, 'minecraft:piston', false, Gametype.SURVIVAL, { pitch: 0, yaw: 90 }),
-                { x: 6, y: 63, z: 7 }
-            );
+            click(playerHolding(world, 'minecraft:piston', false, Gametype.SURVIVAL, { pitch: 0, yaw: 90 }), {
+                x: 6,
+                y: 63,
+                z: 7
+            });
 
             expect(click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 })).toBe('handled');
 
@@ -640,8 +656,9 @@ describe('useItemOnBlock', () => {
             });
             expect(world.loadedBlockAt(6, 64, 7)?.name).toBe('minecraft:piston');
             expect(world.loadedBlockAt(6, 64, 7)?.states['facing_direction']).toBe(4);
+            expect(javaBlockStates('minecraft:piston', { facing_direction: 4 }).facing_direction).toBe('east');
             expect(sounds).toContain('minecraft:piston.out');
-            expect(world.loadedBlockAt(5, 64, 7)?.name).toBe('minecraft:piston_arm_collision');
+            expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:piston_arm_collision');
         });
 
         it('replaces leaf litter rather than building on top of it', () => {
