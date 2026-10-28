@@ -188,6 +188,8 @@ export interface GoalWorld {
     dropItem?(identifier: string, position: EntityPosition | undefined): void;
     /** Hands items to another entity, for the sharing and gift goals. */
     giveItem?(mob: GoalMob, identifier: string, count?: number): void;
+    /** Whether an item type carries one of the active Bedrock item tags. */
+    itemHasTag?(identifier: string, tag: string): boolean;
     /** Finds a loaded crafting recipe that converts one item into another. */
     craftInto?(
         inputIdentifier: string,

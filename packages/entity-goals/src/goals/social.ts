@@ -753,7 +753,13 @@ export const shareItems = goal<ShareItemsParams>({
             isShareablesParams(value) ? value : undefined;
 
         const shareRule = (rules: ShareablesParams, identifier: string): ShareRule | undefined => {
-            const matching = rules.items.find((item) => item.items.includes(identifier));
+            const matching = rules.items.find((item) =>
+                item.items.some((name) => {
+                    if (name === identifier) return true;
+                    const tag = name.startsWith('#') ? name.slice(1) : name;
+                    return support.world.itemHasTag?.(identifier, tag) === true;
+                })
+            );
             if (matching !== undefined) return matching;
             if (!rules.allItems) return undefined;
             return {

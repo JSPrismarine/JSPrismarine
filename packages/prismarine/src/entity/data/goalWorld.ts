@@ -225,6 +225,12 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
                 (count, item) => count + (item?.identifier === identifier ? item.count : 0),
                 0
             ),
+        itemHasTag: (identifier, tag) => {
+            const name = tag.startsWith('#') ? tag.slice(1) : tag;
+            const namespaced = name.includes(':') ? name : `minecraft:${name}`;
+            const type = scene.content().items.types.get(identifier);
+            return type?.hasTag(name) === true || type?.hasTag(namespaced) === true;
+        },
         setCarriedItem: (identifier) => {
             entity.carried = identifier;
         },
