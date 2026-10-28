@@ -1,9 +1,10 @@
 # @jsprismarine/engine-systems
 
-The engine systems neither edition publishes as data: the tick scheduler, redstone, flowing fluids,
-fire spread with the random tick driver, explosions and the weather cycle. Every other package in
-this repository is built from Mojang's own data. These are not, because Mojang keeps them in code in both editions, so
-this package is written against the code instead.
+The engine systems neither edition publishes as data: the tick scheduler, redstone, fire spread,
+random ticking, explosions and the weather cycle. Liquid behavior belongs to
+`@jsprismarine/block-behaviors`, which owns fluid placement, neighbor updates and scheduled ticks.
+Every other package in this repository is built from Mojang's own data. These are not, because
+Mojang keeps them in code in both editions, so this package is written against the code instead.
 
 The code it is written against is the pinned Java 26.3 server jar in
 `node_modules/.cache/jsprismarine/java-server/`. Mojang removed obfuscation in release 26.1, so the
@@ -11,8 +12,7 @@ jar carries original class, field and method names, and every constant and order
 read out of it rather than from a wiki page. The classes are named in the source comments:
 `LevelTicks`, `ScheduledTick`, `TickPriority`, `RedstoneWireBlock`, `DefaultRedstoneWireEvaluator`,
 `DiodeBlock`, `RepeaterBlock`, `ComparatorBlock`, `ObserverBlock`, `PistonBaseBlock`,
-`PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `FlowingFluid`,
-`WaterFluid`, `LavaFluid`, `LiquidBlock`, `FireBlock`, `ServerExplosion`,
+`PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `FireBlock`, `ServerExplosion`,
 `ExplosionDamageCalculator`, `ApplyExplosionDecay`, `WeatherData`, `WeatherCommand` and
 `ServerLevel`.
 
@@ -38,13 +38,14 @@ are `onPlace` and none of them is a neighbor update.
 `WorldAccess` covers block state, block entity data, tick scheduling and its two queries, item
 drops, sounds, difficulty, weather, rain, dimension, game time, the world random and the height
 bounds. Explosions take `ExplosionWorld`, which is the six members of it a blast actually uses, so
-a host can set one off without standing up the rest of the engine. The random source and the height bounds are not in the brief's list but are needed:
-fire spread, lava's spread delay and the random tick driver all draw from the random source, and
-`PistonBaseBlock.isPushable` and `FlowingFluid` both read the height bounds.
+a host can set one off without standing up the rest of the engine. The random source and the height
+bounds are not in the brief's list but are needed: fire spread and the random tick driver draw from
+the random source, while `PistonBaseBlock.isPushable` reads the height bounds.
 
 Scheduling sits behind `WorldAccess` rather than beside it, so a system never needs two objects. The
-host owns the scheduler, drains it, and calls `Engine.runScheduledTick` for each due tick. That
-matches Java, where the tick lists are part of the level and are serialized to disk.
+host owns the scheduler and drains it. Block ticks go to `Engine.runScheduledTick`; fluid ticks go to
+the active block family's `onTick` hook. That matches Java, where the tick lists are part of the
+level and are serialized to disk.
 
 `createTestWorld` is a real implementation of the interface over a map of positions, not a mock.
 `createTestEngine` returns a world and an engine already wired to each other, which is the shape the
@@ -135,39 +136,9 @@ by Mojang's own account, and the zero-tick family was patched out of Java in 20w
 
 ## 3. Fluids
 
-`FlowingFluid` over Bedrock's two blocks per fluid. A fluid state is a kind, an amount of 1 to 8, a
-falling flag and a source flag, encoded into Bedrock's own `liquid_depth` state by Java's
-`getLegacyLevel` rule: 0 is a source, 1 to 7 count down from full, and adding 8 marks falling.
-
-The three numbers that decide how far and how fast a fluid travels are the jar's, and they are the
-only place in this package where the dimension changes an answer.
-
-| Fluid | Drop-off | Hole search | Tick delay | Reach from a source |
-| --- | --- | --- | --- | --- |
-| Water, every dimension | 1 | 4 | 5 | 7 blocks |
-| Lava, overworld and the end | 2 | 2 | 30 | 3 blocks |
-| Lava, nether | 1 | 4 | 10 | 7 blocks |
-
-The hole search is `getSlopeDistance`, which scores each candidate side by how many blocks away the
-nearest hole is and sends fluid only to the sides tied for the lowest score. Two sources touching
-make a third where `water_source_conversion` allows it, and `lava_source_conversion` is off by
-default, which is why water is infinite and lava is not. The interactions are `LiquidBlock`'s: lava
-touching water becomes obsidian when it is a source and cobblestone when it is flowing, lava falling
-into water becomes stone, and lava over soul soil next to blue ice becomes basalt.
-
-### What is not reproduced
-
-- **Java's `FluidState` on an arbitrary block.** Java attaches a fluid to any block, which is why
-  `waterlogged` is a block state there. Bedrock's palette has no `waterlogged` anywhere and uses a
-  second block layer instead, so this package keeps Java's algorithm over Bedrock's two blocks. A
-  host that wants waterlogging puts the fluid in the second layer and calls this package for the
-  layer's own position.
-- **Bedrock's `minecraft:liquid_detection` component.** Which blocks a fluid may occupy is answered
-  from the push reaction here, because `popped` is the reaction every block in Java's
-  `washed_away_by_fluids` tag carries.
-- **Collision-shape face occlusion.** Java's `canPassThroughWall` merges two collision shapes and
-  asks whether the shared face is occluded. Neither edition publishes collision shapes, so this
-  answers from the full-cube test described under "What has no published source" below.
+Fluid ticks remain in the shared scheduler, but `@jsprismarine/block-behaviors` owns liquid flow.
+Its `liquidFamily` handles placement, neighbor changes, scheduled flow, source conversion, lava
+reactions, and bucket interaction. `createEngine` does not provide fluid handlers.
 
 ## 4. Fire and random ticking
 
@@ -209,8 +180,9 @@ exact number", with no published mapping between the two. This package implement
 three.
 
 Which blocks take random ticks comes from the mapping table's `randomTick` flag. What a random tick
-does to a block is not this package's business past the fluids: `EngineOptions.randomTickHandlers`
-is the hook `@jsprismarine/block-behaviors` fills with crop growth, ice melting and the rest.
+does to a block is not this package's business: `EngineOptions.randomTickHandlers` is the hook
+`@jsprismarine/block-behaviors` fills with crop growth, ice melting and the rest. The same package
+owns liquid movement through its block family.
 
 ## 5. Explosions
 
@@ -251,8 +223,8 @@ That is where a host rolls the block's loot table with Java's `explosion_radius`
 
 - **Collision-shape clipping for the exposure rays.** Java clips with `ClipContext.Block.COLLIDER`.
   Neither edition publishes collision shapes, so the exposure rays treat `isFullCube` as the only
-  thing that casts a shadow, and a fence or a slab casts none. The same approximation the fluids
-  and redstone make, listed under "What has no published source" below.
+  thing that casts a shadow, and a fence or a slab casts none. The same approximation the redstone
+  systems make, listed under "What has no published source" below.
 - **Waterlogging.** Java takes the higher of the block's and the fluid's resistance at a position,
   which is how a waterlogged block resists like water. Bedrock keeps its water in a second block
   layer, so a host that wants that calls `explosionResistanceOf` for the second layer itself.
@@ -316,8 +288,7 @@ have weather.
 
 One input to this package has no published source in either edition, and it is called out rather
 than hidden: whether a block's collision shape fills its cube, which Java calls
-`isCollisionShapeFullBlock`. Redstone conductivity defaults to it, the sturdy-face test uses it, and
-fluid flow through a wall uses it.
+`isCollisionShapeFullBlock`. Redstone conductivity defaults to it, and the sturdy-face test uses it.
 
 `isFullCube` derives it from the mapping table's light dampening, which is 15 for every opaque cube
 and 0 or 1 for the slabs, stairs, fences and plates that are not cubes, plus a short list of
@@ -344,4 +315,4 @@ call sites. The other 39 dampen light by less than 15 and are not named as trans
 - The redstone torch's 160-tick burnout restart is implemented, but Java's "might or might not turn
   itself back on depending on the update chain" (MC-120938) is not, because the behavior is a bug
   with no specified outcome.
-- Bubble columns, which `LiquidBlock` schedules alongside the fluid tick.
+- Bubble columns, which the liquid family does not yet schedule.

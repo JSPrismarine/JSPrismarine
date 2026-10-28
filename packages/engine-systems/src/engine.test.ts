@@ -74,13 +74,6 @@ describe('a block placed through setBlockAndUpdate', () => {
         test.runGameTicks(FIRE_TICK_DELAY_SPREAD + 1);
         expect(test.world.nameAt(at(1))).toBe(FIRE);
     });
-
-    it('books a fluid its first tick', () => {
-        test.engine.setBlockAndUpdate(at(0), block('minecraft:water', { liquid_depth: 0 }));
-
-        // A fluid tick is filed under the flowing block, which is the type `fluidTick` runs.
-        expect(test.world.hasScheduledTick('fluid', at(0), 'minecraft:flowing_water')).toBe(true);
-    });
 });
 
 describe('fire with the spread radius against it', () => {

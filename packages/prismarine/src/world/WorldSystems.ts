@@ -156,7 +156,7 @@ export class WorldSystems {
     /** The server's own light, which no packet carries; see `@jsprismarine/lighting`. */
     public readonly lighting: LightEngine;
 
-    /** Redstone, fluid flow, fire spread and the random tick driver. */
+    /** Redstone, fire spread and the random tick driver. */
     private readonly engine: Engine;
 
     private readonly view: WorldSystemsView;
@@ -196,13 +196,12 @@ export class WorldSystems {
 
     /**
      * Runs every update a block change causes: the neighbor updates, the extra updates a
-     * signal source or a new fluid raises, and the shape updates around the position.
+     * signal source raises, and the shape updates around the position.
      *
      * Java's `Level.setBlockAndUpdate` with the write already done. A world calls it after
-     * writing a block, which is what starts a circuit when a lever goes down and what gives
-     * a placed bucket of water its first fluid tick. The engine writes the block again on the
-     * way through, which costs a palette read and changes nothing, because the block it would
-     * write is the one standing there.
+     * writing a block, which is what starts a circuit when a lever goes down. The engine writes
+     * the block again on the way through, which costs a palette read and changes nothing,
+     * because the block it would write is the one standing there.
      */
     public updateAround(at: BlockPosition, block: SystemBlock): void {
         this.engine.setBlockAndUpdate(at, { name: block.name, states: block.states });
@@ -253,16 +252,16 @@ export class WorldSystems {
                 if (contentHandler !== undefined) {
                     if (kind === 'block' && contentHandler(tick.at)) return;
                     if (kind === 'fluid') {
-                        // A liquid family uses the block hook's scheduler. If both the
-                        // engine fluid list and the active block's list queued the same tick,
-                        // the earlier block pass already advanced it. Resolve by the block
-                        // now standing there because an engine entry can name `flowing_water`
-                        // while the family has since replaced it with source `water`.
+                        // The block list runs first. If both lists contain a tick for the
+                        // same active liquid, that earlier pass already advanced it. Resolve
+                        // by the current block because queued ticks can name a previous
+                        // source or flowing state.
                         if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
                         if (contentHandler(tick.at)) return;
                     }
                 }
-                this.engine.runScheduledTick(kind, tick.at, tick.type);
+                if (kind === 'fluid') return;
+                this.engine.runScheduledTick(tick.at, tick.type);
             },
             SCHEDULED_TICK_BUDGET_PER_TICK
         );

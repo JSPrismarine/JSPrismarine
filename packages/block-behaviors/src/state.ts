@@ -10,7 +10,7 @@ import type { BlockStateValue, HookBlock } from '@jsprismarine/blocks';
 import type { BlockStates, WorldActions } from './world';
 
 /** A state value as a number, with 0 and 1 for a boolean. */
-export const stateNumber = (block: HookBlock, name: string, fallback = 0): number => {
+export const stateNumber = (block: Pick<HookBlock, 'states'>, name: string, fallback = 0): number => {
     const value = block.states[name];
     if (typeof value === 'number') return value;
     if (typeof value === 'boolean') return value ? 1 : 0;

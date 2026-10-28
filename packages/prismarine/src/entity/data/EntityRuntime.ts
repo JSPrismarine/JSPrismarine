@@ -53,7 +53,7 @@ import {
     noEffects,
     parseEventTarget
 } from '@jsprismarine/entities';
-import { fluidStateOf } from '@jsprismarine/engine-systems';
+import { liquidStateOf } from '@jsprismarine/block-behaviors';
 import { admireGoldItem, canAdmire, isBarterCurrency, MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
@@ -3067,7 +3067,7 @@ export class EntityRuntime implements EntityScene {
                 for (let y = minY; y <= maxY; y += 1) {
                     const block = this.world.blocks.get({ x, y, z });
                     if (block === undefined || !names.has(block.identifier)) continue;
-                    const fluid = fluidStateOf({ name: block.identifier, states: block.states });
+                    const fluid = liquidStateOf({ identifier: block.identifier, states: block.states });
                     if (fluid === undefined) continue;
 
                     const surface = y + (fluid.source || fluid.falling ? 1 : fluid.amount / 9);

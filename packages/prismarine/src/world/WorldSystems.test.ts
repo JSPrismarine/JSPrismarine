@@ -205,11 +205,24 @@ describe('world', () => {
 
             it('runs the block list before the fluid list, as ServerLevel.tick does', () => {
                 const { blocks, written, systemsOf } = worldOf();
-                const systems = systemsOf();
 
                 blocks.set(key(0, 1, 0), { name: 'minecraft:stone', states: {} });
                 blocks.set(key(0, 2, 0), { name: 'minecraft:unlit_redstone_torch', states: {} });
                 blocks.set(key(8, 8, 8), { name: 'minecraft:water', states: { liquid_depth: 0 } });
+
+                const systems = systemsOf({
+                    blockTickHandlers: {
+                        'minecraft:water': (at) => {
+                            const flowing: SystemBlock = {
+                                name: 'minecraft:flowing_water',
+                                states: { liquid_depth: 1 }
+                            };
+                            written.push(flowing.name);
+                            blocks.set(key(at.x, at.y, at.z), flowing);
+                            return true;
+                        }
+                    }
+                });
 
                 systems.ticks.list('fluid').schedule({ x: 8, y: 8, z: 8 }, 'minecraft:water', 1);
                 systems.ticks.list('block').schedule({ x: 0, y: 2, z: 0 }, 'minecraft:unlit_redstone_torch', 1);
@@ -221,33 +234,8 @@ describe('world', () => {
             });
         });
 
-        describe('fluids', () => {
-            it('spreads a water source across the floor it stands on', () => {
-                const { blocks, engineWorld, systemsOf } = worldOf();
-                const systems = systemsOf();
-
-                for (let x = 0; x < 5; x++) {
-                    for (let z = 0; z < 5; z++) blocks.set(key(x, 63, z), STONE);
-                }
-                const source: SystemBlock = { name: 'minecraft:water', states: { liquid_depth: 0 } };
-                blocks.set(key(2, 64, 2), source);
-
-                // Placing the source is what gives it its first tick, which is
-                // `LiquidBlock.onPlace`.
-                systems.updateAround({ x: 2, y: 64, z: 2 }, source);
-                expect(systems.ticks.list('fluid').count()).toBe(1);
-
-                runTicks(engineWorld, systems, 1, 40);
-
-                // One step thinner than the source, in every direction it can reach.
-                expect(blocks.get(key(3, 64, 2))?.name).toBe('minecraft:flowing_water');
-                expect(blocks.get(key(3, 64, 2))?.states['liquid_depth']).toBe(1);
-                expect(blocks.get(key(1, 64, 2))?.name).toBe('minecraft:flowing_water');
-            });
-        });
-
         describe('content block ticks', () => {
-            it('does not run the engine fluid fallback after the content handler advances the same tick', () => {
+            it('does not run a duplicate fluid tick after the block list advances the same liquid', () => {
                 const at = { x: 0, y: 1, z: 0 };
                 const { systemsOf } = worldOf();
                 let systems: WorldSystems | undefined;

@@ -1,8 +1,8 @@
 /**
  * A small voxel world that satisfies {@link WorldAccess}.
  *
- * It exists so the four systems can be tested as they run in the server: real
- * circuits, real fluid columns, real fire. Positions live in a map, so the world
+ * It exists so the engine systems can be tested as they run in the server: real
+ * circuits, real block states, and real fire. Positions live in a map, so the world
  * is unbounded in x and z and bounded in y by `minY` and `maxY`. Nothing here is
  * a mock; every call does the thing a chunk would do.
  */

@@ -71,11 +71,15 @@ export const applyLavaWaterReaction = (world: WorldActions, lava: HookBlock): Bl
     return undefined;
 };
 
-/** What one fluid state carries between its block name and Bedrock's depth. */
-interface FluidState {
+/** A liquid's source and flow state as represented by Bedrock block states. */
+export interface LiquidState {
+    /** Whether the block contains water or lava. */
     readonly kind: 'water' | 'lava';
+    /** The amount carried by the flowing state, from 1 through 8. */
     readonly amount: number;
+    /** Whether the liquid is falling from above. */
     readonly falling: boolean;
+    /** Whether this is a source block. */
     readonly source: boolean;
 }
 
@@ -86,8 +90,8 @@ interface FluidRates {
     readonly tickDelay: number;
 }
 
-/** Reads one liquid block into the Java fluid state it represents. */
-const fluidStateOf = (block: HookBlock | undefined): FluidState | undefined => {
+/** Reads a liquid block's kind, depth, falling state, and source state. */
+export const liquidStateOf = (block: Pick<HookBlock, 'identifier' | 'states'> | undefined): LiquidState | undefined => {
     if (block === undefined || !isLiquid(block.identifier)) return undefined;
 
     const kind = isLava(block.identifier) ? 'lava' : 'water';
@@ -101,7 +105,7 @@ const fluidStateOf = (block: HookBlock | undefined): FluidState | undefined => {
 };
 
 /** Encodes a Java fluid state as one of Bedrock's source and flowing blocks. */
-const fluidBlockOf = (state: FluidState): { readonly identifier: string; readonly depth: number } => {
+const fluidBlockOf = (state: LiquidState): { readonly identifier: string; readonly depth: number } => {
     if (state.source) return { identifier: state.kind === 'water' ? WATER : LAVA, depth: 0 };
     const depth = 8 - Math.min(state.amount, 8) + (state.falling ? 8 : 0);
     return {
@@ -111,11 +115,11 @@ const fluidBlockOf = (state: FluidState): { readonly identifier: string; readonl
 };
 
 /** Whether two fluid states would write the same block state. */
-const sameState = (a: FluidState | undefined, b: FluidState | undefined): boolean =>
+const sameState = (a: LiquidState | undefined, b: LiquidState | undefined): boolean =>
     a?.kind === b?.kind && a?.amount === b?.amount && a?.falling === b?.falling && a?.source === b?.source;
 
 /** The Java spread depth, hole-search distance, and tick delay in a dimension. */
-const ratesFor = (kind: FluidState['kind'], dimension: string): FluidRates => {
+const ratesFor = (kind: LiquidState['kind'], dimension: string): FluidRates => {
     if (kind === 'water') return { dropOff: 1, slopeFindDistance: 4, tickDelay: WATER_SPREAD_TICKS };
     return dimension === NETHER
         ? { dropOff: 1, slopeFindDistance: 4, tickDelay: NETHER_LAVA_SPREAD_TICKS }
@@ -140,8 +144,8 @@ const canFluidOccupy = (block: HookBlock | undefined): boolean => block !== unde
 
 /** Whether the fluid already at a position can be replaced from this direction. */
 const canBeReplacedWith = (
-    existing: FluidState | undefined,
-    incoming: FluidState['kind'],
+    existing: LiquidState | undefined,
+    incoming: LiquidState['kind'],
     direction: BlockFace
 ): boolean => {
     if (existing === undefined) return true;
@@ -150,27 +154,27 @@ const canBeReplacedWith = (
 };
 
 /** Whether a fluid state is a source of the requested kind. */
-const isSourceOf = (state: FluidState | undefined, kind: FluidState['kind']): boolean =>
+const isSourceOf = (state: LiquidState | undefined, kind: LiquidState['kind']): boolean =>
     state?.kind === kind && state.source;
 
 /** Whether Java's source conversion rule lets two sources create another. */
-const sourceConversionEnabled = (world: WorldActions, kind: FluidState['kind']): boolean =>
+const sourceConversionEnabled = (world: WorldActions, kind: LiquidState['kind']): boolean =>
     world.fluidSourceConversion?.(kind) ?? kind === 'water';
 
 /** Recomputes the fluid that belongs at a position from its current neighbors. */
 const newLiquidAt = (
     world: WorldActions,
     at: BlockPosition,
-    kind: FluidState['kind'],
+    kind: LiquidState['kind'],
     dimension: string
-): FluidState | undefined => {
+): LiquidState | undefined => {
     const rates = ratesFor(kind, dimension);
     let highestNeighbor = 0;
     let neighborSources = 0;
 
     for (const direction of HORIZONTAL_FACES) {
         const neighborAt = offset(at, direction);
-        const neighbor = fluidStateOf(world.getBlock(neighborAt));
+        const neighbor = liquidStateOf(world.getBlock(neighborAt));
         if (neighbor?.kind !== kind || !canPassThroughWall(world, at, neighborAt)) continue;
         if (neighbor.source) neighborSources++;
         highestNeighbor = Math.max(highestNeighbor, neighbor.amount);
@@ -179,13 +183,13 @@ const newLiquidAt = (
     if (neighborSources >= 2 && sourceConversionEnabled(world, kind)) {
         const belowAt = offset(at, 'down');
         const below = world.getBlock(belowAt);
-        if (below !== undefined && (isFullCube(world, below) || isSourceOf(fluidStateOf(below), kind))) {
+        if (below !== undefined && (isFullCube(world, below) || isSourceOf(liquidStateOf(below), kind))) {
             return { kind, amount: 8, falling: false, source: true };
         }
     }
 
     const aboveAt = offset(at, 'up');
-    const above = fluidStateOf(world.getBlock(aboveAt));
+    const above = liquidStateOf(world.getBlock(aboveAt));
     if (above?.kind === kind && canPassThroughWall(world, at, aboveAt)) {
         return { kind, amount: 8, falling: true, source: false };
     }
@@ -196,24 +200,24 @@ const newLiquidAt = (
 };
 
 /** A source of one kind, which the incoming fluid cannot overwrite. */
-const isSourceBlockOf = (world: WorldActions, at: BlockPosition, kind: FluidState['kind']): boolean =>
-    isSourceOf(fluidStateOf(world.getBlock(at)), kind);
+const isSourceBlockOf = (world: WorldActions, at: BlockPosition, kind: LiquidState['kind']): boolean =>
+    isSourceOf(liquidStateOf(world.getBlock(at)), kind);
 
 /** Whether fluid may enter a target cell from one position. */
 const canMaybePassThrough = (
     world: WorldActions,
     from: BlockPosition,
     to: BlockPosition,
-    kind: FluidState['kind']
+    kind: LiquidState['kind']
 ): boolean =>
     !isSourceBlockOf(world, to, kind) && canFluidOccupy(world.getBlock(to)) && canPassThroughWall(world, from, to);
 
 /** Whether fluid at this position has an opening to fall through. */
-const isHole = (world: WorldActions, at: BlockPosition, kind: FluidState['kind']): boolean => {
+const isHole = (world: WorldActions, at: BlockPosition, kind: LiquidState['kind']): boolean => {
     const belowAt = offset(at, 'down');
     if (!canPassThroughWall(world, at, belowAt)) return false;
     const below = world.getBlock(belowAt);
-    return fluidStateOf(below)?.kind === kind || canFluidOccupy(below);
+    return liquidStateOf(below)?.kind === kind || canFluidOccupy(below);
 };
 
 /** Searches sideways for the nearest hole, without doubling back. */
@@ -222,7 +226,7 @@ const slopeDistance = (
     at: BlockPosition,
     pass: number,
     from: BlockFace,
-    kind: FluidState['kind'],
+    kind: LiquidState['kind'],
     dimension: string,
     limit: number,
     holeCache: Map<string, boolean>
@@ -261,11 +265,11 @@ const slopeDistance = (
 const fluidSpreadDirections = (
     world: WorldActions,
     at: BlockPosition,
-    kind: FluidState['kind'],
+    kind: LiquidState['kind'],
     dimension: string
-): Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, FluidState> => {
+): Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState> => {
     const rates = ratesFor(kind, dimension);
-    const result = new Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, FluidState>();
+    const result = new Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState>();
     const holeCache = new Map<string, boolean>();
     let lowest = 1000;
 
@@ -286,7 +290,7 @@ const fluidSpreadDirections = (
             : slopeDistance(world, testAt, 1, opposite(direction), kind, dimension, rates.slopeFindDistance, holeCache);
         if (distance < lowest) result.clear();
         if (distance <= lowest) {
-            if (canBeReplacedWith(fluidStateOf(world.getBlock(testAt)), kind, direction)) {
+            if (canBeReplacedWith(liquidStateOf(world.getBlock(testAt)), kind, direction)) {
                 result.set(direction, next);
             }
             lowest = distance;
@@ -298,7 +302,7 @@ const fluidSpreadDirections = (
 /** Changes lava to obsidian, cobblestone, stone, or basalt when water reaches it. */
 export const applyLavaReactions = (world: WorldActions, at: BlockPosition): boolean => {
     const lava = world.getBlock(at);
-    const state = fluidStateOf(lava);
+    const state = liquidStateOf(lava);
     if (lava === undefined || state?.kind !== 'lava') return true;
 
     const overSoulSoil = bareName(world.getBlock(offset(at, 'down'))?.identifier ?? AIR) === 'soul_soil';
@@ -327,7 +331,7 @@ const spreadTo = (
     world: WorldActions,
     at: BlockPosition,
     direction: BlockFace,
-    target: FluidState,
+    target: LiquidState,
     dimension: string
 ): void => {
     const existing = world.getBlock(at);
@@ -352,10 +356,10 @@ const spreadTo = (
 };
 
 /** Counts same-kind source blocks beside one position. */
-const sourceNeighborCount = (world: WorldActions, at: BlockPosition, kind: FluidState['kind']): number => {
+const sourceNeighborCount = (world: WorldActions, at: BlockPosition, kind: LiquidState['kind']): number => {
     let count = 0;
     for (const direction of HORIZONTAL_FACES) {
-        if (isSourceOf(fluidStateOf(world.getBlock(offset(at, direction))), kind)) count++;
+        if (isSourceOf(liquidStateOf(world.getBlock(offset(at, direction))), kind)) count++;
     }
     return count;
 };
@@ -364,7 +368,7 @@ const sourceNeighborCount = (world: WorldActions, at: BlockPosition, kind: Fluid
 const spreadToSides = (
     world: WorldActions,
     at: BlockPosition,
-    state: FluidState,
+    state: LiquidState,
     dimension: string
 ): HorizontalFace[] => {
     const neighborAmount = state.falling ? 7 : state.amount - ratesFor(state.kind, dimension).dropOff;
@@ -379,7 +383,7 @@ const spreadToSides = (
 };
 
 /** Runs `FlowingFluid.spread`: down first, then toward the lowest sideways holes. */
-const spreadFluid = (world: WorldActions, at: BlockPosition, state: FluidState, dimension: string): SpreadResult => {
+const spreadFluid = (world: WorldActions, at: BlockPosition, state: LiquidState, dimension: string): SpreadResult => {
     const belowAt = offset(at, 'down');
     if (canMaybePassThrough(world, at, belowAt, state.kind)) {
         const nextBelow = newLiquidAt(world, belowAt, state.kind, dimension) ?? {
@@ -388,7 +392,7 @@ const spreadFluid = (world: WorldActions, at: BlockPosition, state: FluidState, 
             falling: true,
             source: false
         };
-        if (canBeReplacedWith(fluidStateOf(world.getBlock(belowAt)), state.kind, 'down')) {
+        if (canBeReplacedWith(liquidStateOf(world.getBlock(belowAt)), state.kind, 'down')) {
             spreadTo(world, belowAt, 'down', { ...nextBelow, falling: true }, dimension);
             const sides =
                 sourceNeighborCount(world, at, state.kind) >= 3 ? spreadToSides(world, at, state, dimension) : [];
@@ -414,7 +418,7 @@ export interface SpreadResult {
 export const canFlowInto = (world: WorldActions, position: BlockPosition, liquid: string, depth: number): boolean => {
     const block = world.getBlock(position);
     if (!canFluidOccupy(block) || block === undefined) return false;
-    const existing = fluidStateOf(block);
+    const existing = liquidStateOf(block);
     if (existing === undefined) return true;
     if (isLava(liquid) !== (existing.kind === 'lava')) return true;
     if (existing.source) return false;
@@ -423,7 +427,7 @@ export const canFlowInto = (world: WorldActions, position: BlockPosition, liquid
 
 /** Recomputes a flowing block's depth, removes it when empty, and spreads it. */
 export const fluidTick = (world: WorldActions, block: HookBlock): SpreadResult => {
-    let state = fluidStateOf(block);
+    let state = liquidStateOf(block);
     if (state === undefined || !applyLavaReactions(world, block.position)) return { down: false, sides: [] };
 
     if (!state.source) {

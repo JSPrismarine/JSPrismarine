@@ -1,7 +1,7 @@
 /**
  * The one seam every system in this package reads and writes the world through.
  *
- * Redstone, fluids, fire, random ticking and explosions never touch a chunk, a
+ * Redstone, fire, random ticking and explosions never touch a chunk, a
  * palette or a block entity directly. They call {@link WorldAccess}, so a test
  * drives a whole circuit with a small voxel double and the server implements the
  * interface once.
@@ -141,13 +141,13 @@ export type Difficulty = (typeof DIFFICULTIES)[number];
 /** The Java difficulty id, 0 for peaceful through 3 for hard. */
 export const difficultyId = (difficulty: Difficulty): number => DIFFICULTIES.indexOf(difficulty);
 
-/** The three weather states the fire and fluid rules read. */
+/** The three weather states fire reads. */
 export const WEATHER = ['clear', 'rain', 'thunder'] as const;
 
 /** One of {@link WEATHER}. */
 export type Weather = (typeof WEATHER)[number];
 
-/** The three vanilla dimensions, which set the lava flow rate and the infinite fire source. */
+/** The three vanilla dimensions, which choose the infinite fire source. */
 export const DIMENSIONS = ['overworld', 'nether', 'the_end'] as const;
 
 /** One of {@link DIMENSIONS}. */
@@ -163,9 +163,8 @@ export interface BlockRemoval {
      * `Level.destroyBlock`.
      *
      * False for fire, which leaves nothing of the plank it burned. True for a
-     * piston popping a torch and for a stream of water washing one away. It
-     * says nothing about what the block was holding: a chest spills either
-     * way, because that is the block entity's and not the block's.
+     * piston popping a torch. This says nothing about what the block was holding: a chest spills
+     * either way, because that is the block entity's and not the block's.
      */
     readonly drops: boolean;
     /** What stands in its place, air unless the caller names something else. */
@@ -223,7 +222,7 @@ export interface WorldAccess {
      * A system calls this instead of {@link WorldAccess.setBlock} whenever the
      * block that stood there is meant to be gone rather than rewritten. The
      * host raises the block's break hooks before it writes, which is what
-     * spills a chest a piston popped or a stream of water reached, and decides
+     * spills a chest a piston popped, and decides
      * what the block yields from its loot table rather than from a guess here.
      * This package holds no drop rule of its own for that reason.
      *
@@ -256,20 +255,20 @@ export interface WorldAccess {
     getWeather(): Weather;
     /** Whether rain is falling on one position, which needs the host's heightmap. */
     isRainingAt(at: BlockPosition): boolean;
-    /** The dimension, which sets the lava flow rate and the infinite fire source. */
+    /** The dimension, which chooses the infinite fire source. */
     getDimension(): Dimension;
     /** The current game time in ticks, which the scheduler counts from. */
     getGameTime(): number;
     /**
      * A random integer in `[0, bound)`, from the host's world random.
      *
-     * Fire spread, lava spread delay and the random tick driver all draw from
+     * Fire spread and the random tick driver both draw from
      * it, so a test gets a deterministic run by injecting a seeded source.
      */
     randomInt(bound: number): number;
     /** A random float in `[0, 1)`, Java's `RandomSource.nextFloat`. */
     randomFloat(): number;
-    /** The lowest y the world holds, which bounds piston pushes and fluid flow. */
+    /** The lowest y the world holds, which bounds piston pushes. */
     getMinY(): number;
     /** The highest y the world holds. */
     getMaxY(): number;

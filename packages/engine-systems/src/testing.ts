@@ -52,7 +52,10 @@ export const createTestEngine = (options: TestWorldOptions & { engine?: EngineOp
         runGameTicks(ticks = 1) {
             let ran = 0;
             for (let i = 0; i < ticks; i++) {
-                ran += world.runGameTick((kind, at, type) => engine.runScheduledTick(kind, at, type));
+                ran += world.runGameTick((kind, at, type) => {
+                    if (kind === 'fluid') return;
+                    engine.runScheduledTick(at, type);
+                });
             }
             return ran;
         }

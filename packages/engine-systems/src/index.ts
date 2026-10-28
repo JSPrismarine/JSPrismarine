@@ -113,29 +113,6 @@ export {
     type FireTickOptions
 } from './fire';
 export {
-    DEFAULT_SOURCE_RULES,
-    FALLING_AMOUNT,
-    FLUID_BLOCKS,
-    FLUID_RATES,
-    LIQUID_DEPTH_STATE,
-    SOURCE_AMOUNT,
-    applyLavaReactions,
-    canFluidOccupy,
-    fluidBlockOf,
-    fluidKindOf,
-    fluidNeighborChanged,
-    fluidSpreadDirections,
-    fluidStateOf,
-    fluidTick,
-    newLiquidAt,
-    ratesFor,
-    spreadFluid,
-    type FluidKind,
-    type FluidRates,
-    type FluidSourceRules,
-    type FluidState
-} from './fluids';
-export {
     MAX_CHAINED_NEIGHBOR_UPDATES,
     createNeighborUpdates,
     type NeighborUpdateTarget,

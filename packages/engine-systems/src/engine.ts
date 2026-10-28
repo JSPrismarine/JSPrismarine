@@ -1,5 +1,5 @@
 /**
- * The driver that wires the four systems to one world.
+ * The driver that wires the engine systems to one world.
  *
  * It owns the three things the systems share: the neighbor updater, the
  * dispatch from a block identifier to the behavior that handles it, and the
@@ -29,8 +29,6 @@ import {
     updateDiodeNeighborsInFront
 } from './diodes';
 import { FIRE, fireTick, fireTickDelay } from './fire';
-import type { FluidSourceRules } from './fluids';
-import { DEFAULT_SOURCE_RULES, fluidKindOf, fluidNeighborChanged, fluidTick } from './fluids';
 import type { NeighborUpdates } from './neighborUpdates';
 import { MAX_CHAINED_NEIGHBOR_UPDATES, createNeighborUpdates } from './neighborUpdates';
 import { pistonNeighborChanged } from './pistons';
@@ -46,21 +44,17 @@ import {
     torchIsSuppressed,
     updateWirePower
 } from './redstone';
-import type { BlockPosition, BlockRef, TickKind, WorldAccess } from './world';
+import type { BlockPosition, BlockRef, WorldAccess } from './world';
 import { DIRECTIONS, positionKey, relative } from './world';
 
 /** How to build an {@link Engine}. */
 export interface EngineOptions {
-    /** The two source-conversion game rules, defaulting to vanilla. */
-    sourceRules?: FluidSourceRules;
     /** The neighbor update chain limit, defaulting to Java's 1000000. */
     maxChainedNeighborUpdates?: number;
     /**
      * What to run when a random tick lands on a block, keyed by identifier.
      *
-     * The engine handles the fluids and leaves the rest open, which is the
-     * hook `@jsprismarine/block-behaviors` fills with crop growth, ice melting
-     * and the rest of the randomly ticking blocks.
+     * The engine supplies the draws; the handler owns the block behavior.
      *
      * The block is passed along with the position because the engine has just
      * read it to find the handler, and reading it again is a chunk lookup and
@@ -98,8 +92,8 @@ export interface Engine {
     readonly updates: NeighborUpdates;
     /** Java's `Level.setBlockAndUpdate`: write a block and run every update it causes. */
     setBlockAndUpdate(at: BlockPosition, to: BlockRef): void;
-    /** Run one tick the host drained from its scheduler. */
-    runScheduledTick(kind: TickKind, at: BlockPosition, type: string): void;
+    /** Run a scheduled block tick; fluid behavior is dispatched through block families. */
+    runScheduledTick(at: BlockPosition, type: string): void;
     /**
      * Run one chunk tick's random ticks.
      *
@@ -134,7 +128,6 @@ interface TorchToggle {
  * placed into a powered position never extends, and fire never burns anything.
  */
 export const createEngine = (world: WorldAccess, options: EngineOptions = {}): Engine => {
-    const sourceRules = options.sourceRules ?? DEFAULT_SOURCE_RULES;
     const randomTickHandlers = options.randomTickHandlers ?? {};
     const increasedFireBurnout = options.increasedFireBurnout ?? (() => false);
     const canSpreadFireAround = options.canSpreadFireAround ?? (() => true);
@@ -173,10 +166,6 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
                 }
                 if (isPiston(name)) {
                     pistonNeighborChanged(updates, world, at);
-                    return;
-                }
-                if (fluidKindOf(block) !== undefined) {
-                    fluidNeighborChanged(world, at);
                     return;
                 }
                 void fromBlock;
@@ -221,8 +210,8 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
      * The generic six tell the neighbors about the new block. What they do not
      * do is tell the new block about its neighbors, so everything that reads
      * the world it landed in has to be run here: dust works out its own power,
-     * a piston that landed already powered extends, and fire and a fluid book
-     * the first tick that drives them. A system whose tick handler is right and
+     * a piston that landed already powered extends, and fire books the first
+     * tick that drives it. A system whose tick handler is right and
      * whose first tick is never booked looks exactly like one that does not
      * work at all.
      *
@@ -271,10 +260,6 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             if (!world.hasScheduledTick('block', at, FIRE)) world.scheduleTick('block', at, FIRE, fireTickDelay(world));
             return;
         }
-        // A resolved liquid family books its own first tick from `onPlace`.
-        if (fluidKindOf(to) !== undefined && !world.hasScheduledTick('fluid', at, to.name)) {
-            fluidNeighborChanged(world, at);
-        }
     };
 
     const setBlockAndUpdate = (at: BlockPosition, to: BlockRef): void => {
@@ -287,12 +272,7 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
         updates.shapeUpdatesAround(at);
     };
 
-    const runScheduledTick = (kind: TickKind, at: BlockPosition, type: string): void => {
-        if (kind === 'fluid') {
-            fluidTick(updates, world, at, sourceRules);
-            return;
-        }
-
+    const runScheduledTick = (at: BlockPosition, type: string): void => {
         const block = world.getBlock(at);
         const { name } = block;
         if (isRedstoneTorch(name)) {

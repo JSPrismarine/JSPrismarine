@@ -3,7 +3,7 @@
  *
  * `ServerLevel.tickChunk` draws `random_tick_speed` positions from every
  * randomly ticking 16 by 16 by 16 section of a chunk and calls `randomTick` on
- * each block and fluid it lands on. Positions are drawn with replacement, so
+ * each block it lands on. Positions are drawn with replacement, so
  * one block can be picked twice in a chunk tick, which Java's own documentation
  * calls out.
  *
