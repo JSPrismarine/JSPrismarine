@@ -20,7 +20,8 @@ import {
     creative_groups,
     creativeitems,
     item_components,
-    item_table
+    item_table,
+    item_tags
 } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
@@ -60,6 +61,12 @@ const capturedItemComponents = Object.fromEntries(
         NBTTagCompound.readFromStream(new BinaryStream(data), ByteOrder.LITTLE_ENDIAN, true)
     ])
 );
+
+/** A stable key for an exact item set, independent of the order its tags declare. */
+const itemSetKey = (items: readonly string[]): string => JSON.stringify([...new Set(items)].sort());
+
+/** Vanilla Bedrock tags the client already knows, indexed by their exact members. */
+const bedrockItemTagsByItems = new Map(Object.entries(item_tags).map(([tag, items]) => [itemSetKey(items), tag]));
 
 /** What the server had to invent or could not say, so a startup line can report it. */
 export interface ContentPayloadReport {
@@ -244,7 +251,12 @@ export const buildNetworkContentPayloads = (
     const itemIds = itemIdsOf(items.entries);
     const creative = buildCreativeContent(itemIds, catalog);
     const compiled = compileRecipeBook(content.recipes, javaItemToBedrock);
-    const crafting = buildCraftingData(compiled.recipes, { items: itemIds });
+    const crafting = buildCraftingData(compiled.recipes, {
+        items: itemIds,
+        // The Bedrock recipe descriptor has room for one item or one item tag. Keep every
+        // Java tag alternative only when a known Bedrock tag names the exact same set.
+        bedrockTagFor: (items) => bedrockItemTagsByItems.get(itemSetKey(items))
+    });
     const output = resultStack(itemIds, content);
 
     return {

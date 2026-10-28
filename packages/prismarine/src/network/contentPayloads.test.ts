@@ -1,7 +1,8 @@
-import { block_definitions, item_components, item_table } from '@jsprismarine/bedrock-data';
+import { block_definitions, item_components, item_table, item_tags } from '@jsprismarine/bedrock-data';
 import { BlockPalette, BlockStateModel, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
+import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { blockRuntimeId } from '@jsprismarine/protocol';
 import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/wire';
 import { describe, expect, it, vi } from 'vitest';
@@ -114,6 +115,41 @@ describe('network', () => {
             expect(creative.entries.every((entry) => entry.item.runtimeId !== 0)).toBe(true);
             expect(creative.groups.length).toBeGreaterThan(0);
             expect(report.unknownCreativeItems.length).toBeGreaterThan(0);
+        });
+
+        it('uses an exact Bedrock item tag for the Java plank ingredient', () => {
+            const base = fixtureDefinitions();
+            const definitions = definitionsOf({
+                ...base,
+                recipesJava: recipesJava('minecraft:crafting_table', {
+                    type: 'minecraft:crafting_shaped',
+                    pattern: ['PP', 'PP'],
+                    key: { P: '#minecraft:planks' },
+                    result: { id: 'minecraft:crafting_table' }
+                }),
+                tags: new Map([
+                    ...base.tags,
+                    [
+                        'item/minecraft:planks',
+                        definitionOf('tags', 'item/minecraft:planks', { values: item_tags['minecraft:planks'] })
+                    ]
+                ])
+            });
+            const content = buildServerContent({
+                ...fixtureContentOptions(),
+                itemDefinitions: vanillaItemDefinitions(),
+                load: () => ({ definitions, diagnostics: [] })
+            });
+            // The fixture resolves only its few blocks. The payload still uses the complete
+            // client palette, and the content has every plank item so tag membership is exact.
+            const wireContent = { ...content, blocks: { ...content.blocks, palette: vanillaBlockPalette() } };
+            const { crafting, report } = buildNetworkContentPayloads(wireContent);
+            const recipe = crafting.shaped.find((candidate) => candidate.id === 'minecraft:crafting_table');
+
+            expect(recipe?.pattern.map(({ descriptor }) => descriptor)).toEqual(
+                Array.from({ length: 4 }, () => ({ kind: 'tag', tag: 'minecraft:planks' }))
+            );
+            expect(report.widenedIngredients).toBe(0);
         });
 
         it('gives a block output the hashed runtime id of its default state', () => {

@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
-import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable, item_tags as ItemTags } from '@jsprismarine/bedrock-data';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
@@ -656,7 +656,7 @@ describe('network', () => {
             expect(craftingInput.isEmpty()).toBe(true);
         });
 
-        it('crafts with birch planks in the content recipe path', async () => {
+        it('crafts with jungle planks in the lower rows of a table grid', async () => {
             const base = fixtureDefinitions();
             const definitions = definitionsOf({
                 ...base,
@@ -677,7 +677,7 @@ describe('network', () => {
                     [
                         'item/minecraft:planks',
                         definitionOf('tags', 'item/minecraft:planks', {
-                            values: ['minecraft:oak_planks', 'minecraft:birch_planks']
+                            values: ItemTags['minecraft:planks']
                         })
                     ]
                 ])
@@ -705,8 +705,8 @@ describe('network', () => {
             });
             const craftingInput = new CraftingInput();
             craftingInput.useGrid(CraftingInput.LARGE);
-            for (const index of [0, 1, 3, 4]) {
-                craftingInput.set(index, new Item({ name: 'minecraft:birch_planks', meta: 0 }));
+            for (const index of [3, 4, 6, 7]) {
+                craftingInput.set(index, new Item({ name: 'minecraft:jungle_planks', meta: 0 }));
             }
             const inventory = new HumanInventory();
 
@@ -720,7 +720,7 @@ describe('network', () => {
                                 recipeNetId: content.recipes.netIds.get('minecraft:crafting_table'),
                                 repetitions: 1
                             },
-                            ...[0, 1, 3, 4].map((index) => ({
+                            ...[3, 4, 6, 7].map((index) => ({
                                 type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
                                 count: 1,
                                 source: tableSlot(index)
