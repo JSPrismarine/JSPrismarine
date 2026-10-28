@@ -1,7 +1,7 @@
 import type { EntityActuator, EntityPosition } from '@jsprismarine/entities';
 
 import type { Path } from './navigation/pathfinder';
-import { canOccupy, findPath } from './navigation/pathfinder';
+import { findPath } from './navigation/pathfinder';
 import type { NavigationProfile } from './navigation/profile';
 import type { NavigationView } from './navigation/view';
 import { blockOf, centerOf, distanceBetween } from './navigation/view';
@@ -196,11 +196,6 @@ export class Navigator {
                 z: here.z + Math.round((random() * 2 - 1) * xzDistance)
             };
             if (profile.avoidWater && view.isWater(candidate)) continue;
-
-            // Cheapest test first. A candidate the entity could not stand in is most of
-            // what ten draws produce, and asking the path finder costs its whole node
-            // budget to arrive at the same answer.
-            if (!canOccupy(view, profile, candidate)) continue;
 
             const path = findPath(view, profile, { from: here, to: candidate });
             if (path !== undefined) return centerOf(candidate);
