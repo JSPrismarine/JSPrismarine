@@ -14,9 +14,6 @@ import type { ItemBehaviorSpec } from '../behavior';
 import { consumeOne, spendItemDurability } from '../behavior';
 import { againstFace } from './placement';
 
-/** The blocks a honeycomb waxes, which is every unwaxed copper block and a sign. */
-const WAXABLE_PREFIX = 'minecraft:';
-
 /** Naming an entity, which also makes it persistent. */
 export const nameTagBehavior: ItemBehaviorSpec = {
     name: 'vanilla:name_tag',
@@ -98,16 +95,14 @@ export const dyeBehavior: ItemBehaviorSpec = {
 /**
  * Waxing with a honeycomb.
  *
- * Which block a waxed one becomes is the copper family's table, so the
- * behavior asks the `minecraft:honeycomb` transformer for it rather than
- * carrying fifty-eight pairs of identifiers.
+ * The active transformer registry decides whether the clicked block can be
+ * waxed, including blocks outside the vanilla namespace.
  */
 export const waxingBehavior: ItemBehaviorSpec = {
     name: 'vanilla:waxing',
     hooks: ['onUseOn'],
     create: (context) => {
         const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block }) => {
-            if (!block.identifier.startsWith(WAXABLE_PREFIX)) return undefined;
             const placement = context.world.transform('minecraft:honeycomb', block);
             if (placement === undefined) return undefined;
 
