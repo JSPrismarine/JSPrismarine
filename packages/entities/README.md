@@ -40,6 +40,11 @@ inactive until an event adds it. Both resolve once at load: the base components 
 `resolveTypes`, the groups through the same `ComponentRegistry`, and the result is an `EntityType`
 that answers questions without parsing anything.
 
+Java datapack `entity_type` tags are mapped to Bedrock identifiers during content loading.
+`EntityType.tags` and `EntityType.hasTag()` expose those memberships to type consumers, while
+`EntityInstance.getTags()` and `EntityInstance.hasTag()` expose them on live entities. Bedrock
+`minecraft:type_family` remains separate and continues to drive family filters.
+
 ## The event engine
 
 An event runs in two steps, which is the rule the documentation states. The effects are determined

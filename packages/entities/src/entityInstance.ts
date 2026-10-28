@@ -270,6 +270,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return this.active.has(name);
     }
 
+    /** The Java datapack entity type tags on this instance's type. */
+    public getTags(): readonly string[] {
+        return this.typeHolder.value().tags;
+    }
+
+    /** Whether a Java datapack entity type tag includes this instance's type. */
+    public hasTag(tag: string): boolean {
+        return this.typeHolder.value().hasTag(tag);
+    }
+
     /** The parsed parameters of an active component, or undefined when it is not active. */
     public componentParams(name: string): unknown {
         return this.active.get(name)?.component.params;

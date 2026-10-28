@@ -7,7 +7,7 @@ import type { Diagnostic } from './diagnostics';
 import { DiagnosticCollector } from './diagnostics';
 import type { EntityInstanceOptions } from './entityInstance';
 import { EntityInstance } from './entityInstance';
-import type { EntityComponentRegistry, EntityDefinitionInput, EntityType } from './entityType';
+import type { EntityComponentRegistry, EntityDefinitionInput, EntityType, EntityTypeTagLookup } from './entityType';
 import { resolveEntityTypes } from './entityType';
 import type { SpawnCause } from './eventEngine';
 import { splitSpawnReference } from './eventEngine';
@@ -34,6 +34,8 @@ export interface EntityTypesOptions {
      * holding every component this package implements.
      */
     components?: EntityComponentRegistry;
+    /** Java datapack tags to attach to each loaded entity type. */
+    tagLookup?: EntityTypeTagLookup;
 }
 
 /** The parsed definitions, the resolved types and the registry they live in. */
@@ -44,10 +46,13 @@ export class EntityTypes {
     /** The components the types resolve against. */
     public readonly components: EntityComponentRegistry;
 
+    private readonly tagLookup: EntityTypeTagLookup | undefined;
+
     private readonly inputs: EntityDefinitionInput[] = [];
 
     public constructor(options: EntityTypesOptions = {}) {
         this.components = options.components ?? createEntityComponentRegistry();
+        this.tagLookup = options.tagLookup;
     }
 
     /**
@@ -66,7 +71,10 @@ export class EntityTypes {
             this.inputs.push({ definition: parsed.definition, pack: file.pack, path: file.path });
         }
 
-        const resolved = resolveEntityTypes(this.inputs, { components: this.components });
+        const resolved = resolveEntityTypes(this.inputs, {
+            components: this.components,
+            ...(this.tagLookup === undefined ? {} : { tagLookup: this.tagLookup })
+        });
         for (const diagnostic of resolved.diagnostics) collector.add(diagnostic);
         this.registry.rebuild(resolved.types);
 

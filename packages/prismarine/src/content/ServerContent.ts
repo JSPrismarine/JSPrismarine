@@ -43,6 +43,7 @@ import type { ContentOptions } from './ContentOptions';
 import { resolvePackStack } from './packStack';
 import { buildContentTags } from './tags';
 import type { ContentTags } from './tags';
+import { bedrockEntityTypeTagsFor } from './entityTypeTags';
 import { checkIdentifiers } from './unmappedIdentifiers';
 import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
@@ -256,8 +257,16 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     itemFactory.bind(items.registry);
     diagnostics.push(...items.diagnostics);
 
+    const tags = buildContentTags(definitions.tags, (registry, identifier) =>
+        isKnownTagMember(registry, identifier, definitions, identifierResolver, blocks.types, items.types)
+    );
+    diagnostics.push(...tags.diagnostics);
+
     const entityComponents = createGoalEntityRegistry({ world: (entity) => world.goalWorld(entity) });
-    const entityTypes = new EntityTypes({ components: entityComponents });
+    const entityTypes = new EntityTypes({
+        components: entityComponents,
+        tagLookup: (identifier) => bedrockEntityTypeTagsFor(tags, identifier)
+    });
     diagnostics.push(
         ...entityTypes.load(
             [...definitions.entities.values()].map((definition) => ({
@@ -270,11 +279,6 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
 
     const brains = new BrainMobRegistry();
     registerBrainMobs(brains);
-
-    const tags = buildContentTags(definitions.tags, (registry, identifier) =>
-        isKnownTagMember(registry, identifier, definitions, identifierResolver, blocks.types, items.types, entityTypes)
-    );
-    diagnostics.push(...tags.diagnostics);
 
     // The loader wraps each file in a record carrying its pack and path; the recipe grammar
     // reads the file itself. Tags go in because without them every `#tag` ingredient parses
@@ -506,8 +510,7 @@ const isKnownTagMember = (
     definitions: Definitions,
     resolver: IdentifierResolver,
     blocks: ReadonlyMap<string, BlockType>,
-    items: ReadonlyMap<string, ItemType>,
-    entities: EntityTypes
+    items: ReadonlyMap<string, ItemType>
 ): boolean => {
     const declared = (() => {
         switch (registry) {
@@ -516,7 +519,7 @@ const isKnownTagMember = (
             case 'item':
                 return items.has(identifier);
             case 'entity_type':
-                return entities.registry.has(identifier);
+                return definitions.entities.has(identifier);
             case 'enchantment':
                 return definitions.enchantments.has(identifier);
             case 'damage_type':

@@ -27,6 +27,9 @@ import type { EntityHooks } from './hooks';
 /** The registry an entity domain fills with component factories. */
 export type EntityComponentRegistry = ComponentRegistry<EntityHooks>;
 
+/** Looks up Java datapack tags for the Bedrock identifier of an entity type. */
+export type EntityTypeTagLookup = (identifier: string) => readonly string[];
+
 /** The load-time flags an entity type carries. */
 export type EntityTypeFlag = 'spawnable' | 'summonable' | 'experimental';
 
@@ -41,6 +44,10 @@ export interface ResolvedComponentGroup {
 export interface EntityType extends Type<EntityHooks, EntityTypeFlag> {
     /** The parsed definition the type came from. */
     readonly entity: EntityDefinition;
+    /** Java datapack entity type tags that include this Bedrock entity identifier. */
+    readonly tags: readonly string[];
+    /** Whether a Java datapack entity type tag includes this entity. */
+    hasTag(tag: string): boolean;
     /** Group name to its bound components. */
     readonly groups: ReadonlyMap<string, ResolvedComponentGroup>;
     /** Every component name the definition uses, base and groups, in name order. */
@@ -64,6 +71,8 @@ export interface ResolveEntityOptions {
     components: EntityComponentRegistry;
     /** Behaviors the server and its plugins attach by identifier. */
     behaviors?: BehaviorRegistry<EntityHooks>;
+    /** Java datapack tags, mapped to the Bedrock identifier for each type. */
+    tagLookup?: EntityTypeTagLookup;
     /** Fail the resolve when any diagnostic is reported. */
     strict?: boolean;
 }
@@ -128,7 +137,7 @@ export const resolveEntityTypes = (
     for (const [identifier, type] of resolved.types) {
         const input = parsed.get(identifier);
         if (input === undefined) continue;
-        types.set(identifier, buildEntityType(type, input, options.components, collector));
+        types.set(identifier, buildEntityType(type, input, options.components, collector, options.tagLookup));
     }
 
     return { types, diagnostics: collector.diagnostics };
@@ -138,7 +147,8 @@ const buildEntityType = (
     type: Type<EntityHooks, EntityTypeFlag>,
     input: EntityDefinitionInput,
     components: EntityComponentRegistry,
-    collector: DiagnosticCollector
+    collector: DiagnosticCollector,
+    tagLookup: EntityTypeTagLookup | undefined
 ): EntityType => {
     const entity = input.definition;
     const context: BindContext = {
@@ -154,6 +164,7 @@ const buildEntityType = (
 
     const groups = new Map<string, ResolvedComponentGroup>();
     const declared = new Set<string>(normalizeLegacyOffspring(entity.components).keys());
+    const tags = [...new Set(tagLookup?.(entity.identifier) ?? [])];
 
     for (const [name, map] of entity.componentGroups) {
         const bound: BoundComponent<EntityHooks>[] = [];
@@ -189,6 +200,8 @@ const buildEntityType = (
     return {
         ...type,
         entity,
+        tags,
+        hasTag: (tag) => tags.includes(tag),
         groups,
         declaredComponents,
         unimplementedComponents: declaredComponents.filter((name) => !components.has(name))
