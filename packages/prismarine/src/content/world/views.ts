@@ -12,8 +12,9 @@ import { DEFAULT_BLOCK_PROPERTIES } from '@jsprismarine/block-behaviors';
 import type { BlockWorld, WorldActions as BlockWorldActions, WorldEntity } from '@jsprismarine/block-behaviors';
 import { DEFAULT_LIGHT_DAMPENING, blockProperties } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
-import { AIR } from '@jsprismarine/engine-systems';
+import { AIR, TICK_PRIORITIES } from '@jsprismarine/engine-systems';
 import type { BlockRef, Dimension, WorldAccess } from '@jsprismarine/engine-systems';
+import type { BlockTickPriority } from '@jsprismarine/block-behaviors';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
 import type { BrainWorld } from '@jsprismarine/entity-brains';
 import type { GoalWorld } from '@jsprismarine/entity-goals';
@@ -124,6 +125,12 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
     };
 
     const destroy = adapter.blocks.destroy;
+    const tickPriority: Record<BlockTickPriority, number> = {
+        extremely_high: TICK_PRIORITIES.EXTREMELY_HIGH,
+        very_high: TICK_PRIORITIES.VERY_HIGH,
+        high: TICK_PRIORITIES.HIGH,
+        normal: TICK_PRIORITIES.NORMAL
+    };
 
     return {
         getBlock: hookBlock,
@@ -146,12 +153,27 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         spawnParticle: (position, particle) => adapter.effects.spawnParticle(position, particle),
         // The block hook carries no tick type, so the tick is scheduled for whatever stands
         // at the position now, which is what Java's `Block.scheduleTick` does too.
-        scheduleTick: (position, delay, kind = 'block') =>
-            adapter.ticks.schedule(kind, position, adapter.blocks.get(position)?.identifier ?? 'minecraft:air', delay),
+        scheduleTick: (position, delay, kind = 'block', priority = 'normal') =>
+            adapter.ticks.schedule(
+                kind,
+                position,
+                adapter.blocks.get(position)?.identifier ?? 'minecraft:air',
+                delay,
+                tickPriority[priority]
+            ),
+        willTickThisTick: (position) =>
+            adapter.ticks.runsThisTick('block', position, adapter.blocks.get(position)?.identifier ?? 'minecraft:air'),
         getBlockData: (position) => adapter.blocks.data(position),
         setBlockData: (position, data) => adapter.blocks.setData(position, data),
         notifyNeighbors: (position) => adapter.blocks.notifyNeighbors(position),
         redstonePower: (position) => adapter.blocks.power(position),
+        redstoneSignal: (position, directionToSource) =>
+            adapter.blocks.signal?.(position, directionToSource) ?? adapter.blocks.power(position),
+        redstoneDirectSignal: (position, directionToSource) =>
+            adapter.blocks.directSignal?.(position, directionToSource) ??
+            adapter.blocks.signal?.(position, directionToSource) ??
+            adapter.blocks.power(position),
+        redstoneConductor: (position) => adapter.blocks.isRedstoneConductor?.(position) ?? false,
         lightLevel: (position) => adapter.blocks.light(position),
         random: () => adapter.random.nextFloat()
     };

@@ -194,7 +194,7 @@ describe('comparatorInput', () => {
         harness.tick(origin);
 
         expect(harness.dimension.identifierAt(origin)).toBe('minecraft:powered_comparator');
-        expect(harness.dimension.getBlockData(origin)).toEqual({ signal: 4 });
+        expect(harness.dimension.getBlockData(origin)).toEqual({ signal: 4, comparatorOutput: 4 });
     });
 });
 

@@ -9,7 +9,7 @@
 import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
-import { faceOfFacingDirection, offset, opposite } from '../geometry';
+import { faceOfFacingDirection, offset, opposite, rotateClockwise, rotateCounterClockwise } from '../geometry';
 import { AIR } from '../identifiers';
 import { containerSignal } from '../rules/container';
 import { isIgniter } from '../rules/heldItem';
@@ -126,19 +126,48 @@ const PLATE_WEIGHTS: Readonly<Record<string, number>> = {
 };
 
 /**
- * The comparator signal of whatever sits behind a comparator.
+ * The signal from behind a comparator, including its analog block output.
  *
- * A container answers with its fill level. A block with a counter state
- * answers with the counter, which covers the cake, the cauldron, the
- * composter, the beehive and the respawn anchor without naming each one.
+ * Containers answer with their fill level, and counter states answer with
+ * their value. Redstone wire and other sources use the directional signal
+ * path so a comparator reads only the face it points toward.
  */
 export const comparatorInput = (world: WorldActions, block: HookBlock): number => {
-    const behind = offset(block.position, opposite(cardinalFacing(block)));
-    const data = world.getBlockData(behind);
-    if (data?.items !== undefined) return containerSignal(data);
+    const output = cardinalFacing(block);
+    const behind = offset(block.position, opposite(output));
+    const inputBlock = world.getBlock(behind);
+    const wireSignal =
+        inputBlock !== undefined && bareName(inputBlock.identifier) === 'redstone_wire'
+            ? stateNumber(inputBlock, 'redstone_signal')
+            : 0;
+    const signal = Math.max(
+        wireSignal,
+        world.redstoneSignal?.(behind, opposite(output)) ?? world.redstonePower(behind)
+    );
+    const analog = comparatorAnalogOutput(world, behind, inputBlock);
+    if (analog !== undefined) return analog;
 
-    const source = world.getBlock(behind);
-    if (source === undefined) return 0;
+    if (signal < MAX_POWER && (world.redstoneConductor?.(behind) ?? false)) {
+        const through = offset(behind, opposite(output));
+        const throughBlock = world.getBlock(through);
+        const throughAnalog = comparatorAnalogOutput(world, through, throughBlock);
+        if (throughAnalog !== undefined) return throughAnalog;
+    }
+
+    return signal;
+};
+
+/** The analog output a comparator reads from a block or its block entity. */
+const comparatorAnalogOutput = (
+    world: WorldActions,
+    position: HookBlock['position'],
+    block: HookBlock | undefined
+): number | undefined => {
+    const data = world.getBlockData(position);
+    if (typeof data?.analogOutput === 'number') return Math.min(MAX_POWER, Math.max(0, data.analogOutput));
+    if (data?.items !== undefined) return containerSignal(data);
+    if (block === undefined) return undefined;
+
     for (const state of [
         'composter_fill_level',
         'honey_level',
@@ -146,9 +175,136 @@ export const comparatorInput = (world: WorldActions, block: HookBlock): number =
         'fill_level',
         'respawn_anchor_charge'
     ]) {
-        if (hasState(source, state)) return Math.min(MAX_POWER, stateNumber(source, state));
+        if (hasState(block, state)) return Math.min(MAX_POWER, stateNumber(block, state));
     }
-    return 0;
+    return undefined;
+};
+
+const isRepeater = (identifier: string): boolean => {
+    const name = bareName(identifier);
+    return name === REPEATER_PAIR.off || name === REPEATER_PAIR.on;
+};
+
+const isComparator = (identifier: string): boolean => {
+    const name = bareName(identifier);
+    return name === COMPARATOR_PAIR.off || name === COMPARATOR_PAIR.on;
+};
+
+/** The signal a diode reads from the block at its input. */
+const diodeInputSignal = (world: WorldActions, block: HookBlock): number => {
+    const output = cardinalFacing(block);
+    const input = offset(block.position, opposite(output));
+    const source = world.getBlock(input);
+    const wireSignal =
+        source !== undefined && bareName(source.identifier) === 'redstone_wire'
+            ? stateNumber(source, 'redstone_signal')
+            : 0;
+    return Math.max(wireSignal, world.redstoneSignal?.(input, opposite(output)) ?? world.redstonePower(input));
+};
+
+/** The strongest direct signal from one side of a repeater or comparator. */
+const diodeSideSignal = (world: WorldActions, block: HookBlock, side: 'repeater' | 'comparator'): number => {
+    const facing = cardinalFacing(block);
+    const sides = [rotateClockwise(facing), rotateCounterClockwise(facing)];
+    let signal = 0;
+    for (const face of sides) {
+        const position = offset(block.position, face);
+        const neighbor = world.getBlock(position);
+        if (neighbor === undefined) continue;
+
+        const name = bareName(neighbor.identifier);
+        if (side === 'repeater') {
+            if (isRepeater(neighbor.identifier) || isComparator(neighbor.identifier)) {
+                signal = Math.max(
+                    signal,
+                    world.redstoneDirectSignal?.(position, face) ??
+                        world.redstoneSignal?.(position, face) ??
+                        world.redstonePower(position)
+                );
+            }
+            continue;
+        }
+
+        if (name === 'redstone_block') {
+            signal = MAX_POWER;
+        } else if (name === 'redstone_wire') {
+            signal = Math.max(signal, stateNumber(neighbor, 'redstone_signal'));
+        } else {
+            signal = Math.max(
+                signal,
+                world.redstoneDirectSignal?.(position, face) ??
+                    world.redstoneSignal?.(position, face) ??
+                    world.redstonePower(position)
+            );
+        }
+    }
+    return signal;
+};
+
+/** Whether a repeater is receiving the strong output of a diode on either side. */
+const repeaterIsLocked = (world: WorldActions, block: HookBlock): boolean =>
+    diodeSideSignal(world, block, 'repeater') > 0;
+
+/** Whether a diode's output faces into the back or side of another diode. */
+const diodeShouldPrioritize = (world: WorldActions, block: HookBlock): boolean => {
+    const facing = cardinalFacing(block);
+    const next = world.getBlock(offset(block.position, facing));
+    return (
+        next !== undefined &&
+        (isRepeater(next.identifier) || isComparator(next.identifier)) &&
+        cardinalFacing(next) !== opposite(facing)
+    );
+};
+
+/** The comparator's analog result, after compare or subtract side input. */
+const comparatorOutputSignal = (world: WorldActions, block: HookBlock): number => {
+    const input = comparatorInput(world, block);
+    if (input === 0) return 0;
+    const side = diodeSideSignal(world, block, 'comparator');
+    if (side > input) return 0;
+    return stateBoolean(block, 'output_subtract_bit') ? input - side : input;
+};
+
+/** Whether a repeater or comparator currently wants to output power. */
+const diodeShouldTurnOn = (world: WorldActions, block: HookBlock): boolean => {
+    if (isRepeater(block.identifier)) return diodeInputSignal(world, block) > 0;
+    const input = comparatorInput(world, block);
+    if (input === 0) return false;
+    const side = diodeSideSignal(world, block, 'comparator');
+    if (input > side) return true;
+    return input === side && !stateBoolean(block, 'output_subtract_bit');
+};
+
+/** Schedules a diode's delayed state transition when its current output is stale. */
+const scheduleDiodeUpdate = (world: WorldActions, block: HookBlock): void => {
+    const repeater = isRepeater(block.identifier);
+    if (repeater && repeaterIsLocked(world, block)) return;
+    if (!repeater && world.willTickThisTick?.(block.position)) return;
+
+    const powered = bareName(block.identifier) === (repeater ? REPEATER_PAIR.on : COMPARATOR_PAIR.on);
+    const shouldTurnOn = diodeShouldTurnOn(world, block);
+    const delay = repeater ? (stateNumber(block, 'repeater_delay') + 1) * REDSTONE_TICK : REDSTONE_TICK;
+
+    if (repeater) {
+        if (powered === shouldTurnOn || world.willTickThisTick?.(block.position)) return;
+        const priority = diodeShouldPrioritize(world, block) ? 'extremely_high' : powered ? 'very_high' : 'high';
+        world.scheduleTick(block.position, delay, 'block', priority);
+        return;
+    }
+
+    const output = comparatorOutputSignal(world, block);
+    const data = world.getBlockData(block.position);
+    const stored = typeof data?.comparatorOutput === 'number' ? data.comparatorOutput : 0;
+    if (output === stored && powered === shouldTurnOn) return;
+    world.scheduleTick(block.position, delay, 'block', diodeShouldPrioritize(world, block) ? 'high' : 'normal');
+};
+
+/** Changes a diode's powered identifier and notifies the output side. */
+const swapDiodePower = (world: WorldActions, block: HookBlock, powered: boolean): void => {
+    const pair = isRepeater(block.identifier) ? REPEATER_PAIR : COMPARATOR_PAIR;
+    const wasPowered = bareName(block.identifier) === pair.on;
+    if (wasPowered !== powered) swapPair(world, block, pair, powered);
+    world.notifyNeighbors(offset(block.position, cardinalFacing(block)));
 };
 
 const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActions): void => {
@@ -188,11 +344,9 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
             return;
         case 'powered_repeater':
         case 'unpowered_repeater':
-            world.scheduleTick(block.position, (stateNumber(block, 'repeater_delay') + 1) * REDSTONE_TICK);
-            return;
         case 'powered_comparator':
         case 'unpowered_comparator':
-            world.scheduleTick(block.position, REDSTONE_TICK);
+            scheduleDiodeUpdate(world, block);
             return;
         case 'dispenser':
         case 'dropper':
@@ -244,6 +398,11 @@ export const redstoneFamily = defineFamily(
             const block = event.block;
             const name = bareName(block.identifier);
 
+            if (isRepeater(block.identifier) || isComparator(block.identifier)) {
+                scheduleDiodeUpdate(world, block);
+                return;
+            }
+
             if (name === 'redstone_wire') {
                 const signal = wireSignal(world, block);
                 if (signal !== stateNumber(block, 'redstone_signal')) {
@@ -282,17 +441,39 @@ export const redstoneFamily = defineFamily(
                     return;
                 }
                 case 'powered_repeater':
-                case 'unpowered_repeater':
-                    swapPair(world, block, REPEATER_PAIR, world.redstonePower(block.position) > 0);
+                case 'unpowered_repeater': {
+                    if (repeaterIsLocked(world, block)) return;
+                    const powered = bareName(block.identifier) === REPEATER_PAIR.on;
+                    const shouldTurnOn = diodeShouldTurnOn(world, block);
+                    if (powered && !shouldTurnOn) {
+                        swapDiodePower(world, block, false);
+                    } else if (!powered) {
+                        swapDiodePower(world, block, true);
+                        if (!shouldTurnOn) {
+                            world.scheduleTick(
+                                block.position,
+                                (stateNumber(block, 'repeater_delay') + 1) * REDSTONE_TICK,
+                                'block',
+                                'very_high'
+                            );
+                        }
+                    }
                     return;
+                }
                 case 'powered_comparator':
                 case 'unpowered_comparator': {
-                    const signal = comparatorInput(world, block);
-                    world.setBlockData(block.position, { signal });
-                    swapPair(world, block, COMPARATOR_PAIR, signal > 0);
-                    if (stateBoolean(block, 'output_lit_bit') !== signal > 0) {
-                        const current = world.getBlock(block.position) ?? block;
-                        setStates(world, current, { output_lit_bit: signal > 0 });
+                    const output = comparatorOutputSignal(world, block);
+                    const previousData = world.getBlockData(block.position);
+                    const previousOutput =
+                        typeof previousData?.comparatorOutput === 'number' ? previousData.comparatorOutput : 0;
+                    world.setBlockData(block.position, { ...previousData, signal: output, comparatorOutput: output });
+
+                    if (previousOutput === output && stateBoolean(block, 'output_subtract_bit')) return;
+
+                    swapDiodePower(world, block, diodeShouldTurnOn(world, block));
+                    const current = world.getBlock(block.position) ?? block;
+                    if (stateBoolean(current, 'output_lit_bit') !== output > 0) {
+                        setStates(world, current, { output_lit_bit: output > 0 });
                     }
                     return;
                 }

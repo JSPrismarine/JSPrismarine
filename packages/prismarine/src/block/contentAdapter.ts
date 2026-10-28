@@ -2,7 +2,7 @@
  * The `blocks` group of `ServerWorldAdapter`, as the block and item
  * subsystem owes it.
  *
- * Eight of the thirteen members of `ContentBlockAccess` belong here: reading,
+ * Eleven of the sixteen members of `ContentBlockAccess` belong here: reading,
  * writing, and destroying a block; reading and writing block entity records;
  * neighbor notification; redstone power; and entity-event dispatch. The other
  * five - light, chunk loading, the surface column, and two biome reads - belong
@@ -15,15 +15,33 @@
  */
 import { BLOCK_FACES } from '@jsprismarine/blocks';
 import type { BlockStateValue, HookBlock } from '@jsprismarine/blocks';
-import { MAX_CHAINED_NEIGHBOR_UPDATES, bestNeighborSignal, opposite, relative } from '@jsprismarine/engine-systems';
+import {
+    MAX_CHAINED_NEIGHBOR_UPDATES,
+    bestNeighborSignal,
+    isRedstoneConductor,
+    opposite,
+    relative,
+    signalAt,
+    strongSignalOf
+} from '@jsprismarine/engine-systems';
 
 import type { ContentLookup } from '../content/world/views';
 import type { BlockEntityData, ContentBlock, ContentBlockAccess, ContentPosition } from '../content/world/adapter';
 
-/** The eight members of `ContentBlockAccess` the block and item subsystem implements. */
+/** The eleven members of `ContentBlockAccess` the block and item subsystem implements. */
 export type ContentBlockGroup = Pick<
     ContentBlockAccess,
-    'get' | 'set' | 'destroy' | 'data' | 'setData' | 'notifyNeighbors' | 'power' | 'executeEntityEvent'
+    | 'get'
+    | 'set'
+    | 'destroy'
+    | 'data'
+    | 'setData'
+    | 'notifyNeighbors'
+    | 'power'
+    | 'signal'
+    | 'directSignal'
+    | 'isRedstoneConductor'
+    | 'executeEntityEvent'
 >;
 
 /**
@@ -288,6 +306,9 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         // Java's `Level.getBestNeighborSignal`. The engine world is projected out
         // of the whole adapter, and none of its members reads `blocks.power`, so
         // reading it back through the content closes no loop.
-        power: (at) => bestNeighborSignal(content().world.engineWorld, at)
+        power: (at) => bestNeighborSignal(content().world.engineWorld, at),
+        signal: (at, directionToSource) => signalAt(content().world.engineWorld, at, directionToSource),
+        directSignal: (at, directionToSource) => strongSignalOf(content().world.engineWorld, at, directionToSource),
+        isRedstoneConductor: (at) => isRedstoneConductor(content().world.engineWorld.getBlock(at))
     };
 };

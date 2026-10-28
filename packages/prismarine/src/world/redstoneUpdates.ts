@@ -3,10 +3,12 @@
  *
  * The engine reports neighbor updates in the order its signal system computes
  * them. This bridge compares the new power with the previous value, then
- * dispatches the active state's `onRedstoneUpdate` hook when it changed.
+ * dispatches the active state's `onRedstoneUpdate` hook when it changed. It
+ * also dispatches repeaters and comparators on every neighbor update, because
+ * their directional inputs can change while aggregate power stays the same.
  */
 import type { BlockRef, BlockPosition } from '@jsprismarine/engine-systems';
-import { SCHEDULED_TICK_BLOCKS } from '@jsprismarine/engine-systems';
+import { COMPARATOR, REPEATER, SCHEDULED_TICK_BLOCKS } from '@jsprismarine/engine-systems';
 
 import type { ServerContent } from '../content/ServerContent';
 import type { World } from './World';
@@ -23,7 +25,7 @@ export interface ContentRedstoneUpdateOptions {
 
 /** The power-change dispatcher and the cache invalidation the world lifecycle needs. */
 export interface ContentRedstoneUpdateHandlers {
-    /** Dispatches a changed power reading when the live block has a content hook. */
+    /** Dispatches a redstone change, including diode neighbor checks, to content hooks. */
     dispatch(at: BlockPosition, block: BlockRef, power: number): boolean;
     /** Clears the cached reading after a block at this position changes. */
     forgetPosition(at: BlockPosition): void;
@@ -33,6 +35,7 @@ export interface ContentRedstoneUpdateHandlers {
 
 const chunkKey = (at: BlockPosition): string => `${at.x >> 4},${at.z >> 4}`;
 const positionKey = (at: BlockPosition): string => `${at.x},${at.y},${at.z}`;
+const diodeBlocks = new Set<string>([REPEATER.powered, REPEATER.unpowered, COMPARATOR.powered, COMPARATOR.unpowered]);
 
 /**
  * Builds the redstone hook dispatcher for one world's resolved content.
@@ -70,7 +73,10 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
             const previous = positions.get(key);
             positions.set(key, power);
             powerByChunk.set(chunk, positions);
-            if (previous === power || (previous === undefined && power === 0)) return false;
+            const changed = previous !== power && !(previous === undefined && power === 0);
+            // Diodes must inspect every neighbor change: a comparator's side input can change
+            // while its strongest neighboring signal stays the same, and a repeater can lock.
+            if (!changed && !diodeBlocks.has(block.name)) return false;
 
             dispatching.add(key);
             try {
@@ -95,8 +101,6 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
                 positions.set(key, power);
             }
 
-            // The data family declares this hook for repeaters and comparators, but
-            // their scheduled transition still belongs to the engine until parity lands.
             return !engineOwned.has(block.name);
         },
         forgetPosition(at) {

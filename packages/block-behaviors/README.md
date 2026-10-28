@@ -36,9 +36,9 @@ one. It is a `BlockWorld`, described below.
 | Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
-| Scheduling | `scheduleTick(position, delay, kind?)` |
+| Scheduling | `scheduleTick(position, delay, kind?, priority?)`, `willTickThisTick` |
 | Block entities | `getBlockData`, `setBlockData` |
-| Updates | `notifyNeighbors`, `redstonePower`, `lightLevel` |
+| Updates | `notifyNeighbors`, `redstonePower`, `redstoneSignal`, `redstoneDirectSignal`, `redstoneConductor`, `lightLevel` |
 | Chance | `random` |
 
 Four of those are there for reasons worth stating. `propertiesOf` returns another block's
@@ -56,10 +56,10 @@ check how much light a cover blocks without treating every support block as opaq
 cannot report dampening, the shared rule treats it as unknown and does not convert the ground block.
 
 For migrated families, scheduled hooks run from the active block state before the engine fallback.
-Observer pulses and redstone torch burnout run through their family hooks; repeaters, comparators,
-and fire remain engine-owned until their family handlers reach parity. `kind` selects the block or
-fluid tick list and defaults to `block`; water and lava use the fluid list so their family tick
-shares the engine's existing liquid schedule.
+Observer pulses, redstone torch burnout, repeater transitions, and comparator output updates run
+through their family hooks; fire remains engine-owned. `kind` selects the block or fluid tick list
+and defaults to `block`; water and lava use the fluid list so their family tick shares the engine's
+existing liquid schedule.
 
 A `BlockWorld` is a set of dimensions, and `at(dimension)` returns the `WorldActions` for one. Each
 handler receives the actions for its own event's dimension already resolved, so the dimension never

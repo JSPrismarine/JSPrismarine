@@ -9,11 +9,14 @@
  * visible from the other, which is how this package stays free of the
  * server's classes.
  */
-import type { BlockPosition, BlockStateValue, HookActor, HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, BlockPosition, BlockStateValue, HookActor, HookBlock } from '@jsprismarine/blocks';
 import { blockProperties } from '@jsprismarine/blocks';
 
 /** The state values a behavior writes when it places or rewrites a block. */
 export type BlockStates = Readonly<Record<string, BlockStateValue>>;
+
+/** Java tick priorities used when one block's scheduled change must precede another's. */
+export type BlockTickPriority = 'extremely_high' | 'very_high' | 'high' | 'normal';
 
 /**
  * An item stack leaving a block, as a drop, an ejection or a container's contents.
@@ -159,8 +162,11 @@ export interface WorldActions {
      *
      * @param delay - Game ticks from now, at least 1.
      * @param kind - Whether the tick belongs to the block or fluid list; defaults to `block`.
+     * @param priority - The scheduled tick's ordering priority; defaults to `normal`.
      */
-    scheduleTick(position: BlockPosition, delay: number, kind?: 'block' | 'fluid'): void;
+    scheduleTick(position: BlockPosition, delay: number, kind?: 'block' | 'fluid', priority?: BlockTickPriority): void;
+    /** Whether this block's scheduled tick is due in the batch currently running. */
+    willTickThisTick?(position: BlockPosition): boolean;
     /** A block entity's data, or undefined when the position has none. */
     getBlockData(position: BlockPosition): BlockEntityData | undefined;
     /** Replaces a block entity's data whole. */
@@ -169,6 +175,12 @@ export interface WorldActions {
     notifyNeighbors(position: BlockPosition): void;
     /** The redstone power reaching a position, 0 to 15. */
     redstonePower(position: BlockPosition): number;
+    /** The signal from a block, where direction points from the receiver to this source. */
+    redstoneSignal?(position: BlockPosition, directionToSource: BlockFace): number;
+    /** The strong signal from a block, where direction points from the receiver to this source. */
+    redstoneDirectSignal?(position: BlockPosition, directionToSource: BlockFace): number;
+    /** Whether a block carries redstone power through its direct signal. */
+    redstoneConductor?(position: BlockPosition): boolean;
     /** The light level at a position, 0 to 15, as the growth and melt rules read it. */
     lightLevel(position: BlockPosition): number;
     /**

@@ -9,12 +9,10 @@
  */
 
 import {
-    COMPARATOR,
     LEVER,
     OBSERVER,
     REDSTONE_TORCH,
     REDSTONE_WIRE,
-    REPEATER,
     attachmentOf,
     isButton,
     isComparator,
@@ -340,10 +338,4 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
 };
 
 /** Identifiers whose scheduled block ticks remain reserved for engine handling. */
-export const SCHEDULED_TICK_BLOCKS: readonly string[] = [
-    REPEATER.powered,
-    REPEATER.unpowered,
-    COMPARATOR.powered,
-    COMPARATOR.unpowered,
-    FIRE
-];
+export const SCHEDULED_TICK_BLOCKS: readonly string[] = [FIRE];

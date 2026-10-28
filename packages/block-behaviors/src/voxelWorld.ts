@@ -8,7 +8,7 @@
  * called. Chance comes off a queue, so a probabilistic rule can be driven to
  * either outcome without patching a global.
  */
-import type { BlockPosition, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, BlockPosition, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
 import { DEFAULT_LIGHT_DAMPENING } from '@jsprismarine/blocks';
 
 import { AIR } from './identifiers';
@@ -88,6 +88,9 @@ export class VoxelDimension implements WorldActions {
     private readonly unloaded = new Set<string>();
     private readonly blockData = new Map<string, BlockEntityData>();
     private readonly power = new Map<string, number>();
+    private readonly signals = new Map<string, number>();
+    private readonly directSignals = new Map<string, number>();
+    private readonly redstoneConductors = new Set<string>();
     private readonly light = new Map<string, number>();
     private readonly lightDampening = new Map<string, number>();
     private readonly properties = new Map<string, BlockProperties>();
@@ -156,6 +159,22 @@ export class VoxelDimension implements WorldActions {
     /** Sets the redstone power {@link WorldActions.redstonePower} reports. */
     public setPower(position: BlockPosition, level: number): void {
         this.power.set(keyOf(position), level);
+    }
+
+    /** Sets the directional weak redstone signal {@link WorldActions.redstoneSignal} reports. */
+    public setSignal(position: BlockPosition, directionToSource: BlockFace, level: number): void {
+        this.signals.set(`${keyOf(position)}|${directionToSource}`, level);
+    }
+
+    /** Sets the directional strong signal {@link WorldActions.redstoneDirectSignal} reports. */
+    public setDirectSignal(position: BlockPosition, directionToSource: BlockFace, level: number): void {
+        this.directSignals.set(`${keyOf(position)}|${directionToSource}`, level);
+    }
+
+    /** Sets whether a position carries redstone power through its direct signal. */
+    public setRedstoneConductor(position: BlockPosition, conductor = true): void {
+        if (conductor) this.redstoneConductors.add(keyOf(position));
+        else this.redstoneConductors.delete(keyOf(position));
     }
 
     /** Sets the light level {@link WorldActions.lightLevel} reports; unset positions read 15. */
@@ -261,6 +280,29 @@ export class VoxelDimension implements WorldActions {
     /** The power a test set at a position, or none. */
     public redstonePower(position: BlockPosition): number {
         return this.power.get(keyOf(position)) ?? 0;
+    }
+
+    /** Whether this voxel fixture marks the tick as part of the current batch. */
+    public willTickThisTick(_position: BlockPosition): boolean {
+        return false;
+    }
+
+    /** The directional signal a test set, or the power reading for this position. */
+    public redstoneSignal(position: BlockPosition, directionToSource: BlockFace): number {
+        return this.signals.get(`${keyOf(position)}|${directionToSource}`) ?? this.redstonePower(position);
+    }
+
+    /** The directional strong signal a test set, or its weak signal. */
+    public redstoneDirectSignal(position: BlockPosition, directionToSource: BlockFace): number {
+        return (
+            this.directSignals.get(`${keyOf(position)}|${directionToSource}`) ??
+            this.redstoneSignal(position, directionToSource)
+        );
+    }
+
+    /** Whether a test marked a position as conducting redstone. */
+    public redstoneConductor(position: BlockPosition): boolean {
+        return this.redstoneConductors.has(keyOf(position));
     }
 
     /** The light a test set at a position, or full daylight. */

@@ -17,7 +17,7 @@
  * every projected member that needed it throws {@link
  * import('./notWired').NotWiredError} naming the subsystem that owes it.
  */
-import type { BlockStateValue } from '@jsprismarine/blocks';
+import type { BlockFace, BlockStateValue } from '@jsprismarine/blocks';
 import type { BlockEntityData, BlockProperties, ItemDrop } from '@jsprismarine/block-behaviors';
 import type { CommandHost } from '@jsprismarine/commands';
 import type { Difficulty, TickKind, Weather } from '@jsprismarine/engine-systems';
@@ -122,6 +122,12 @@ export interface ContentBlockAccess {
     skyLight?(at: ContentPosition): number;
     /** The redstone power reaching a position, 0 to 15. */
     power(at: ContentPosition): number;
+    /** The signal from a block, where direction points from the receiver to this source. */
+    signal?(at: ContentPosition, directionToSource: BlockFace): number;
+    /** The strong signal from a block, where direction points from the receiver to this source. */
+    directSignal?(at: ContentPosition, directionToSource: BlockFace): number;
+    /** Whether a block carries redstone power through its direct signal. */
+    isRedstoneConductor?(at: ContentPosition): boolean;
     /** Whether the chunk holding a position is loaded. */
     isLoaded(at: ContentPosition): boolean;
     /**
