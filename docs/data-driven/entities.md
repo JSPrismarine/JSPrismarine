@@ -203,7 +203,7 @@ are included in the entity's saved runtime record.
 `minecraft:is_dyeable` gates dye use, updates `minecraft:color` in the data-driven entity's runtime
 state, and projects its `interact_text` to actor metadata. The changed color is persisted.
 
-The 92 with runtime effects include components that change entity state, decide an outcome, or
+The 93 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -242,8 +242,9 @@ Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_P
 `minecraft:air_drag_modifier`, `minecraft:friction_modifier`, and
 `minecraft:bounciness`, which the shared body physics reads from the active component set; the ten
 event-shaped `minecraft:on_*` trigger components; `minecraft:on_equipment_changed`, which raises
-the first matching event when one of its default equipment slots changes; and
-`minecraft:cannot_be_attacked`, which blocks entity attacks.
+the first matching event when one of its default equipment slots changes; `minecraft:cannot_be_attacked`,
+which blocks entity attacks; and `minecraft:combat_regeneration`, which gives the killer of its
+attack target Regeneration I and removes Mining Fatigue.
 `minecraft:burns_in_daylight` ignites an entity in direct sunlight unless its configured protection
 slot is occupied or it is wet. The runtime maintains fire while exposed, deals
 `fire_tick` damage every second, honors the fire-damage gamerule and `minecraft:fire_immune`, fires
@@ -602,8 +603,8 @@ item puts an eligible adult in love; a matching healing item restores its config
 Healing also checks the component's filters and `force_use` flag. Ageable babies accept configured
 feed, pause, and reset items, advancing the remaining growth time by each feed item's `growth`
 fraction. Accepted interactions consume one item outside creative mode, and a declared per-item
-`result_item` replaces it in the player's inventory. Healable item `effects` are not implemented; an
-entry that requires status effects is declined without consuming the held item.
+`result_item` replaces it in the player's inventory. Each configured healable `effects` entry rolls
+its `chance`; a successful roll applies the named effect with its configured duration and amplifier.
 
 **The dolphin's buried treasure has no source.** `GoalWorld.poi` answers the block-backed kinds
 from the world (beds, bells, the thirteen job-site blocks, doors, and whether a position is
