@@ -20,6 +20,7 @@ import {
     createEngine
 } from '@jsprismarine/engine-systems';
 import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
+import { isLiquid } from '@jsprismarine/block-behaviors';
 
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
 import type { DimensionDefinition } from './Dimension';
@@ -244,14 +245,20 @@ export class WorldSystems {
         const scheduled = this.ticks.tick(
             currentTick,
             (kind: TickKind, tick: ScheduledTick) => {
-                const contentHandler = this.blockTickHandlers?.[tick.type];
+                const activeBlock = kind === 'fluid' ? this.view.blockAt(tick.at.x, tick.at.y, tick.at.z) : undefined;
+                const activeFluidType =
+                    activeBlock !== undefined && isLiquid(activeBlock.name) ? activeBlock.name : undefined;
+                const contentType = activeFluidType ?? tick.type;
+                const contentHandler = this.blockTickHandlers?.[contentType];
                 if (contentHandler !== undefined) {
                     if (kind === 'block' && contentHandler(tick.at)) return;
                     if (kind === 'fluid') {
                         // A liquid family uses the block hook's scheduler. If both the
-                        // engine fluid list and that block list queued the same tick, the
-                        // earlier block pass already advanced it.
-                        if (this.ticks.list('block').hasScheduledTick(tick.at, tick.type)) return;
+                        // engine fluid list and the active block's list queued the same tick,
+                        // the earlier block pass already advanced it. Resolve by the block
+                        // now standing there because an engine entry can name `flowing_water`
+                        // while the family has since replaced it with source `water`.
+                        if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
                         if (contentHandler(tick.at)) return;
                     }
                 }
