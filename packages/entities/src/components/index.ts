@@ -10,6 +10,7 @@ import { dyeable } from './dyeable';
 import { home } from './home';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
+import { shareables } from './shareables';
 import { teleport } from './teleport';
 import {
     ageable,
@@ -68,6 +69,7 @@ export * from './schemas';
 export * from './dyeable';
 export * from './home';
 export * from './nameable';
+export * from './shareables';
 export * from './teleport';
 export * from './vanilla';
 
@@ -196,7 +198,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:rotation_axis_aligned',
     'minecraft:rotation_locked_to_vehicle',
     'minecraft:scheduler',
-    'minecraft:shareables',
     'minecraft:shooter',
     'minecraft:sittable',
     'minecraft:spell_effects',
@@ -242,6 +243,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     for (const name of EVENT_TRIGGER_COMPONENTS) register(triggerComponent(name));
     register(equipmentChanged);
     register(home);
+    register(shareables);
     for (const name of DATA_COMPONENTS) register(dataComponent(name));
     register(teleport);
 

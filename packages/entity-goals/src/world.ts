@@ -1,4 +1,4 @@
-import type { EntityInstance, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
+import type { EntityInstance, EntityPosition, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 
 import type { NavigationView } from './navigation/view';
 
@@ -46,6 +46,8 @@ export interface GoalItem {
     identifier(): string;
     /** How many items the stack holds. */
     count(): number;
+    /** Item tags, auxiliary data, and components for shareable item rules. */
+    readonly filterView?: FilterItemView;
 }
 
 /** One block a block search found. */
@@ -140,8 +142,8 @@ export interface GoalWorld {
     mount?(mob: GoalMob): void;
     /** Takes the entity off whatever it rides. */
     dismount?(): void;
-    /** Takes the item stack into the entity's inventory or hand. */
-    pickUp?(item: GoalItem): void;
+    /** Takes up to `count` items from the stack into the entity's inventory or hand. */
+    pickUp?(item: GoalItem, count?: number): void;
     /** Drops an item at a position, or at the entity when none is given. */
     dropItem?(identifier: string, position: EntityPosition | undefined): void;
     /** Hands an item to another entity, for the sharing and gift goals. */

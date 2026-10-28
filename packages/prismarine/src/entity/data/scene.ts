@@ -91,7 +91,7 @@ export interface EntityScene {
     /** Who rides an entity, in the order they got on. */
     ridersOf(vehicle: MobBody): readonly GoalMob[];
     /** Takes an item stack lying in the world into an entity's inventory. */
-    pickUp(taker: MobBody, item: GoalItem): void;
+    pickUp(taker: MobBody, item: GoalItem, count?: number): void;
     /** Moves one item from an entity's inventory to another entity. */
     giveItem(giver: MobBody, taker: GoalMob, identifier: string): void;
     /** Breaks a block and drops what its loot table rolls. */

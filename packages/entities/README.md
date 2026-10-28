@@ -235,6 +235,7 @@ applies its configured status effect after a melee hit. The rest:
 | `minecraft:target_nearby_sensor` | Tracks the current target through `inside_range` and `outside_range`, honors `must_see` for inside events, and fires its vision-loss event while the target is inside range |
 | `minecraft:home` | Records the entity's spawning position for home-based behavior unless an event or save already supplied one ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_home?view=minecraft-bedrock-stable)) |
 | `minecraft:teleport` | Tries timed random destinations, teleports toward a distant target, and evades matching projectiles before their hit effects apply ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_teleport?view=minecraft-bedrock-stable)) |
+| `minecraft:shareables` | Matches dropped item names and tags, chooses higher-priority rules first, and respects `max_amount`, `pickup_limit`, and `singular_pickup` during collection ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_shareables?view=minecraft-bedrock-stable)) |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
 | `minecraft:damage_over_time` | Hurts the entity every `time_between_hurt` seconds while it is active |
@@ -269,8 +270,7 @@ walk and swim abilities to `CANWALK` and `CANSWIM`, and its flight ability to `C
 `CAN_DASH`, `WASD_CONTROLLED`, `WASD_FREE_CAMERA_CONTROLLED`, and
 `CAN_USE_VERTICAL_MOVEMENT_ACTION`. These flags tell the client which controls are available; the
 server does not yet apply those inputs to entity movement. A table reference like
-`minecraft:shareables` remains data for a system to use. The outer runtime also reads
-physics values from the active component set: `minecraft:air_drag_modifier` changes air resistance,
+The outer runtime also reads physics values from the active component set: `minecraft:air_drag_modifier` changes air resistance,
 `minecraft:uses_uniform_air_drag` applies the same drag on both axes,
 `minecraft:friction_modifier` changes ground friction, and `minecraft:bounciness` changes how much
 impact velocity a collision returns. `minecraft:collision_box`, `minecraft:type_family`,
@@ -343,9 +343,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 85 component factories have hooks, and 95
+measures name coverage rather than complete simulation: 85 component factories have hooks, and 96
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 107 bodies are available as data for behavior that still needs to be added.
+included. The remaining 106 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:area_attack` has a dedicated schema here; Prismarine applies its filtered, cooldowned
 range damage from the active component set.
@@ -379,5 +379,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   package, `route` for a trigger aimed at another entity, `molang` for the expressions in component
   bodies, and `filterContext` for everything about the world a filter asks.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  107 currently expose data without runtime behavior. The component bodies remain accessible to the
+  106 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

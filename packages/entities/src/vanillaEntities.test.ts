@@ -140,7 +140,8 @@ const RUNTIME_COMPONENTS = [
     'minecraft:renders_when_invisible',
     'minecraft:rotation_axis_aligned',
     'minecraft:rotation_locked_to_vehicle',
-    'minecraft:uses_legacy_friction'
+    'minecraft:uses_legacy_friction',
+    'minecraft:shareables'
 ];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
@@ -401,7 +402,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(85);
+        expect(withBehavior).toHaveLength(86);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

@@ -188,7 +188,8 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
         found.push({
             id: Number(entity.getRuntimeId()),
             position: { x: at.getX(), y: entity.getFeetY(), z: at.getZ() },
-            item: { identifier: held.getItem().getName(), count: held.getCount() }
+            item: { identifier: held.getItem().getName(), count: held.getCount() },
+            filterView: filterItemOf(held.getItem())
         });
     }
     return found;
@@ -221,7 +222,7 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         return true;
     },
     items: () => lyingItemsIn(options.liveWorld()),
-    takeItem: (id) => {
+    takeItem: (id, count) => {
         const world = options.liveWorld();
         const entity = world?.getEntity(BigInt(id));
         if (world === undefined || !(entity instanceof ItemEntity)) return undefined;
@@ -229,8 +230,21 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         const held = entity.getItem();
         if (held === undefined) return undefined;
 
-        void world.removeEntity(entity).catch((error: unknown) => options.report(String(error)));
-        return { identifier: held.getItem().getName(), count: held.getCount() };
+        const available = held.getCount();
+        const taken = Math.min(available, count === undefined ? available : Math.max(0, Math.floor(count)));
+        if (taken <= 0) return undefined;
+
+        const remaining = available - taken;
+        if (remaining === 0) {
+            void world.removeEntity(entity).catch((error: unknown) => options.report(String(error)));
+        } else {
+            held.getItem().count = remaining;
+            held.setCount(remaining);
+            void world
+                .sendActorEvent(entity, ActorEvent.UPDATE_STACK_SIZE, remaining)
+                .catch((error: unknown) => options.report(String(error)));
+        }
+        return { identifier: held.getItem().getName(), count: taken };
     },
     hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
         const world = options.liveWorld();

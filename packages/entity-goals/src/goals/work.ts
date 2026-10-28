@@ -1,4 +1,5 @@
-import type { EntityPosition, Goal } from '@jsprismarine/entities';
+import type { EntityPosition, FilterItemView, Goal, ShareablesParams } from '@jsprismarine/entities';
+import { isShareablesParams } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
@@ -19,6 +20,44 @@ import {
 } from '../params';
 import type { GoalSupport } from '../support';
 import type { GoalItem } from '../world';
+
+interface PickupRule {
+    readonly priority: number;
+    readonly maxAmount: number;
+    readonly pickupLimit: number;
+}
+
+/** Matches a shareable name, auxiliary value, or Bedrock item tag. */
+const itemMatches = (item: GoalItem, view: FilterItemView | undefined, name: string): boolean => {
+    const identifier = view?.identifier() ?? item.identifier();
+    if (name === identifier) return true;
+
+    const split = name.lastIndexOf(':');
+    const variant = split < 0 ? undefined : Number(name.slice(split + 1));
+    if (split > 0 && Number.isInteger(variant) && name.slice(0, split) === identifier && view?.data?.() === variant)
+        return true;
+
+    return (
+        view?.tags?.().includes(name) === true ||
+        (name === 'minecraft:is_food' && view?.hasComponent?.('minecraft:food') === true)
+    );
+};
+
+/** The first shareable rule matching this item, preserving Bedrock's source-order shadowing. */
+const shareableRuleFor = (
+    item: GoalItem,
+    rules: ShareablesParams | undefined,
+    canPickupAnyItem: boolean
+): PickupRule | undefined => {
+    const matching = rules?.items.find((rule) => rule.items.some((name) => itemMatches(item, item.filterView, name)));
+    if (matching !== undefined) {
+        return { priority: matching.priority, maxAmount: matching.maxAmount, pickupLimit: matching.pickupLimit };
+    }
+    if (rules?.allItems === true)
+        return { priority: Number.MAX_SAFE_INTEGER, maxAmount: rules.allItemsMaxAmount, pickupLimit: -1 };
+    if (canPickupAnyItem) return { priority: Number.MAX_SAFE_INTEGER, maxAmount: -1, pickupLimit: -1 };
+    return undefined;
+};
 
 /**
  * The goals about jobs and items: a villager's work site, farming,
@@ -85,18 +124,55 @@ export const pickupItems = goal<PickupItemsParams>({
     })),
     create: (params, support) => {
         let item: GoalItem | undefined;
+        let itemCount = 0;
 
-        const wanted = (candidate: GoalItem): boolean => {
-            if (params.excludedItems.includes(candidate.identifier())) return false;
-            if (params.pickupSameItemsAsInHand) return support.world.carriedItem?.() === candidate.identifier();
-            return params.canPickupAnyItem || support.world.carriedItem?.() === undefined;
+        const heldCount = (identifier: string): number => {
+            const inventory = support.world.inventory?.() ?? [];
+            const count = inventory.filter((held) => held === identifier).length;
+            return count + (count === 0 && support.world.carriedItem?.() === identifier ? 1 : 0);
+        };
+
+        const pickupCount = (candidate: GoalItem, rule: PickupRule, singularPickup: boolean): number => {
+            const held = heldCount(candidate.identifier());
+            if (singularPickup && held > 0) return 0;
+            const maxAmount = rule.maxAmount < 0 ? Number.MAX_SAFE_INTEGER : rule.maxAmount;
+            const remaining = maxAmount - held;
+            if (remaining <= 0) return 0;
+
+            const limit = rule.pickupLimit < 0 ? Number.MAX_SAFE_INTEGER : rule.pickupLimit;
+            return Math.min(candidate.count(), remaining, limit);
+        };
+
+        const rulesOf = (): ShareablesParams | undefined => {
+            const value = support.entity.componentParams('minecraft:shareables');
+            return isShareablesParams(value) ? value : undefined;
         };
 
         return {
             canStart: () => {
                 if (params.stopIfHoldingItem && support.world.carriedItem?.() !== undefined) return false;
                 if (params.pickupBasedOnChance && !support.chance(0.1)) return false;
-                item = support.world.items?.(params.maxDistance)?.find(wanted);
+                const rules = rulesOf();
+                const candidates = (support.world.items?.(params.maxDistance) ?? [])
+                    .filter((candidate) => !params.excludedItems.includes(candidate.identifier()))
+                    .filter(
+                        (candidate) =>
+                            !params.pickupSameItemsAsInHand || support.world.carriedItem?.() === candidate.identifier()
+                    )
+                    .flatMap((candidate) => {
+                        const rule = shareableRuleFor(candidate, rules, params.canPickupAnyItem);
+                        if (rule === undefined) return [];
+                        const count = pickupCount(candidate, rule, rules?.singularPickup === true);
+                        return count <= 0 ? [] : [{ candidate, count, priority: rule.priority }];
+                    });
+                candidates.sort(
+                    (left, right) =>
+                        left.priority - right.priority ||
+                        support.distanceTo(left.candidate.position()) - support.distanceTo(right.candidate.position())
+                );
+                const selected = candidates[0];
+                item = selected?.candidate;
+                itemCount = selected?.count ?? 0;
                 return item !== undefined;
             },
             canContinue: () => item !== undefined && support.navigator.walking,
@@ -107,12 +183,14 @@ export const pickupItems = goal<PickupItemsParams>({
             },
             tick: () => {
                 if (support.navigator.tick()) return;
-                if (item !== undefined) support.world.pickUp?.(item);
+                if (item !== undefined) support.world.pickUp?.(item, itemCount);
                 support.fire(params.onPickupItemEnd);
                 item = undefined;
+                itemCount = 0;
             },
             stop: () => {
                 item = undefined;
+                itemCount = 0;
                 support.navigator.stop();
             }
         };

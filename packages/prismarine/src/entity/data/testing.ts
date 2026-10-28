@@ -435,7 +435,7 @@ export class TestEntityWorld {
      *
      * Dropped items are an index of their own here, which is what a server
      * with an item subsystem supplies: `drop` puts one in and `takeItem`
-     * takes it out, so a pickup goal has something real to pick up.
+     * removes or splits a stack, so a pickup goal has something real to pick up.
      */
     public get host(): EntityHostFacts {
         return {
@@ -446,10 +446,16 @@ export class TestEntityWorld {
                 this.nextItemId += 1;
             },
             items: () => [...this.lying.values()],
-            takeItem: (id) => {
+            takeItem: (id, count) => {
                 const found = this.lying.get(id);
-                this.lying.delete(id);
-                return found?.item;
+                if (found === undefined) return undefined;
+
+                const takenCount = Math.min(found.item.count, count ?? found.item.count);
+                if (takenCount <= 0) return undefined;
+                const remaining = found.item.count - takenCount;
+                if (remaining === 0) this.lying.delete(id);
+                else this.lying.set(id, { ...found, item: { ...found.item, count: remaining } });
+                return { ...found.item, count: takenCount };
             },
             hurt: (id, amount, cause, sourceId, deathMessageOverride) =>
                 this.hits.push({

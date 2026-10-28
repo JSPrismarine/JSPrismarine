@@ -12,7 +12,7 @@
  * is reported as absent rather than guessed, which is the same rule
  * `src/content/world/notWired.ts` applies at the other seam.
  */
-import type { FilterEntityView } from '@jsprismarine/entities';
+import type { FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 import type { StatusEffectInput } from '../StatusEffect';
 import type {
     ContentBlockAccess,
@@ -30,6 +30,8 @@ export interface ContentItemEntity {
     readonly id: number;
     readonly position: ContentPosition;
     readonly item: ContentItemDrop;
+    /** Tags, auxiliary data, and components the entity pickup rules read. */
+    readonly filterView?: FilterItemView;
 }
 
 /** The groups the blocks, world and network subsystems own, as the entity runtime reads them. */
@@ -90,12 +92,14 @@ export interface EntityHostFacts {
      */
     items?(): readonly ContentItemEntity[];
     /**
-     * Takes one item entity out of the world.
+     * Takes items from one item entity, removing it when the whole stack was taken.
      *
-     * @returns What it held, or undefined when nothing of that id is lying
+     * @param id - The runtime id of the dropped stack.
+     * @param count - The maximum number to take, or all items when omitted.
+     * @returns What was taken, or undefined when nothing of that id is lying
      *   there, which is what two mobs reaching for the same stack get.
      */
-    takeItem?(id: number): ContentItemDrop | undefined;
+    takeItem?(id: number, count?: number): ContentItemDrop | undefined;
     /**
      * Deals damage to something the entity index does not hold.
      *

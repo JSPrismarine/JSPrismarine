@@ -1109,7 +1109,8 @@ export class EntityRuntime implements EntityScene {
                 id: lying.id,
                 position: () => lying.position,
                 identifier: () => lying.item.identifier,
-                count: () => lying.item.count
+                count: () => lying.item.count,
+                ...(lying.filterView === undefined ? {} : { filterView: lying.filterView })
             }));
     }
 
@@ -1776,10 +1777,10 @@ export class EntityRuntime implements EntityScene {
         entity.instance.raise(value.event, target, 'minecraft:leashable');
     }
 
-    /** Takes an item stack lying in the world into an entity's inventory. */
-    public pickUp(taker: MobBody, item: GoalItem): void {
+    /** Takes up to `count` items from a stack lying in the world into an entity's inventory. */
+    public pickUp(taker: MobBody, item: GoalItem, count = item.count()): void {
         if (typeof item.id !== 'number') return;
-        const taken = this.host.takeItem?.(item.id);
+        const taken = this.host.takeItem?.(item.id, count);
         if (taken === undefined) return;
         for (let index = 0; index < taken.count; index += 1) taker.inventory.push(taken.identifier);
     }
