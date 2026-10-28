@@ -79,7 +79,7 @@ import type { Generator } from '../../world/Generator';
  */
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
-const BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:water', 'minecraft:tnt'] as const;
+const BLOCKS = ['minecraft:air', 'minecraft:dirt', 'minecraft:stone', 'minecraft:water', 'minecraft:tnt'] as const;
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -555,8 +555,8 @@ const LOOT = new Map([
         })
     ],
     [
-        'minecraft:blocks/stone',
-        definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
+        'minecraft:blocks/dirt',
+        definitionOf('lootTablesJava', 'minecraft:blocks/dirt', {
             type: 'minecraft:block',
             pools: [
                 {
@@ -637,6 +637,7 @@ const playerAt = (world: World, x: number, z: number): Player => {
         connected: true,
         tags: new Set<string>(),
         server: world.getServer(),
+        statusEffects: new Map(),
         metadata: { sprinting: false },
         attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
     });
@@ -1791,11 +1792,12 @@ describe('the data-driven entity runtime over a live world', () => {
                 .map((entity) => entity.getItem()?.getItem().getName());
 
         it('rolls Java’s table for the block a mob broke, with the position and the world', async () => {
+            expect(world.setLoadedBlockState(8, FLOOR_Y, 8, { name: 'minecraft:dirt', states: {} }, false)).toBe(true);
             live.runtime.breakBlock({ x: 8, y: FLOOR_Y, z: 8 });
             await run(1);
 
             expect(world.loadedBlockAt(8, FLOOR_Y, 8)?.name).toBe('minecraft:air');
-            // The stone table's only pool is behind a `location_check`, so cobblestone on
+            // The dirt table's only pool is behind a `location_check`, so cobblestone on
             // the ground means the roll was told where the break happened and which world
             // to read. The harvest used to roll with neither and the pool refused.
             expect(lying()).toEqual(['minecraft:cobblestone']);
