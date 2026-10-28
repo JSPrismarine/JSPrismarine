@@ -484,6 +484,7 @@ export const redstoneFamily = defineFamily(
                 return;
             }
             if (name === 'redstone_wire') {
+                if (popWithoutSupport(world, block)) return;
                 const signal = wireSignal(world, block);
                 if (signal !== stateNumber(block, 'redstone_signal'))
                     setStates(world, block, { redstone_signal: signal });
@@ -515,6 +516,7 @@ export const redstoneFamily = defineFamily(
             }
 
             if (name === 'redstone_wire') {
+                if (popWithoutSupport(world, block)) return;
                 const signal = wireSignal(world, block);
                 if (signal !== stateNumber(block, 'redstone_signal')) {
                     setStates(world, block, { redstone_signal: signal });

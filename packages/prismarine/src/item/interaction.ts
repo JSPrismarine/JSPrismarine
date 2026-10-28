@@ -19,7 +19,7 @@
  */
 import { BLOCK_FACES, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
-import { facingFromYaw } from '@jsprismarine/block-behaviors';
+import { facingDirectionOf, facingFromYaw } from '@jsprismarine/block-behaviors';
 import { relative } from '@jsprismarine/engine-systems';
 import type { ItemSource } from '@jsprismarine/items';
 import { Vector3 } from '@jsprismarine/math';
@@ -88,12 +88,18 @@ const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): Ho
     return block && { identifier: block.name, position: at, dimension, states: block.states };
 };
 
-/** Whether an item names a block it can be put down as. A sword, a bucket or a spawn egg does not. */
-const placesBlock = (content: ServerContent, placed: Item): boolean =>
-    BlockRuntimeIds.tryGetByName(placed.getName()) !== null &&
-    blockFromContent(placed.getName(), content)?.canBePlaced() === true;
+/** Items whose placed block has a different identifier. */
+const ITEM_PLACE_TARGETS: ReadonlyMap<string, string> = new Map([['minecraft:redstone', 'minecraft:redstone_wire']]);
 
-/** The block's default states, with placement-direction states set from the player's view. */
+/** The block an item places, or undefined for an item with no block placement. */
+const placedBlockOf = (content: ServerContent, placed: Item): string | undefined => {
+    const identifier = ITEM_PLACE_TARGETS.get(placed.getName()) ?? placed.getName();
+    if (BlockRuntimeIds.tryGetByName(identifier) === null) return undefined;
+    if (blockFromContent(identifier, content)?.canBePlaced() !== true) return undefined;
+    return identifier;
+};
+
+/** The block's default states, with placement-facing states set from the player's view. */
 const placementStatesOf = (content: ServerContent, identifier: string, rotation: InteractionRotation) => {
     const type = content.blocks.types.get(identifier);
     if (type === undefined) return {};
@@ -102,12 +108,12 @@ const placementStatesOf = (content: ServerContent, identifier: string, rotation:
         (candidate) => candidate.name === 'minecraft:placement_direction'
     );
     const states: Record<string, BlockStateValue> = { ...type.state().values };
-    if (trait === undefined) return states;
 
-    const enabledStates = new Set(trait.enabledStates);
-    const offset = trait.parameters.y_rotation_offset;
+    const enabledStates = new Set(trait?.enabledStates ?? []);
+    const offset = trait?.parameters.y_rotation_offset;
     const yRotationOffset = typeof offset === 'number' && Number.isFinite(offset) ? offset : 0;
     const yaw = rotation.yaw - yRotationOffset;
+    const facing = Math.abs(rotation.pitch) > 45 ? (rotation.pitch < 0 ? 'up' : 'down') : facingFromYaw(yaw);
 
     if (
         enabledStates.has('minecraft:cardinal_direction') ||
@@ -117,8 +123,10 @@ const placementStatesOf = (content: ServerContent, identifier: string, rotation:
     }
 
     if (enabledStates.has('minecraft:facing_direction')) {
-        const vertical = Math.abs(rotation.pitch) > 45;
-        states['minecraft:facing_direction'] = vertical ? (rotation.pitch < 0 ? 'up' : 'down') : facingFromYaw(yaw);
+        states['minecraft:facing_direction'] = facing;
+    } else if (identifier === 'minecraft:piston' || identifier === 'minecraft:sticky_piston') {
+        // Keep Bedrock's legacy number here; the Java state mapper reverses piston facing.
+        states['facing_direction'] = facingDirectionOf(facing);
     }
 
     if (enabledStates.has('minecraft:sixteen_way_rotation')) {
@@ -138,8 +146,12 @@ const placementStatesOf = (content: ServerContent, identifier: string, rotation:
  *
  * @returns Where the block went down, or undefined when the placement is refused.
  */
-const placeBlock = (interaction: BlockInteraction, placed: Item, face: BlockFace): ContentPosition | undefined => {
-    const identifier = placed.getName();
+const placeBlock = (
+    interaction: BlockInteraction,
+    placed: Item,
+    identifier: string,
+    face: BlockFace
+): ContentPosition | undefined => {
     const { player, content } = interaction;
     const rotation = interaction.rotation ?? { pitch: player.pitch, yaw: player.yaw };
     const world = player.getWorld();
@@ -394,16 +406,17 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             }
         }
 
-        if (!placesBlock(content, held)) return 'declined';
+        const placedBlock = placedBlockOf(content, held);
+        if (placedBlock === undefined) return 'declined';
 
-        const placedAt = placeBlock(interaction, held, face);
+        const placedAt = placeBlock(interaction, held, placedBlock, face);
         if (placedAt === undefined) {
             refusePlacement(interaction, face);
             return 'handled';
         }
 
         // Java's order: the trigger sees the stack the block came out of, then the stack pays.
-        advancementPlacedBlock(player, { origin: placedAt, block: held.getName(), tool: held });
+        advancementPlacedBlock(player, { origin: placedAt, block: placedBlock, tool: held });
         spendPlacedBlock(player);
         resendInventory(player);
         return 'handled';

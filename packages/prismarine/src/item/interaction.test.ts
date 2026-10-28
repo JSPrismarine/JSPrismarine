@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { javaBlockStates } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
@@ -58,7 +59,9 @@ const BLOCKS = [
     'minecraft:oak_stairs',
     'minecraft:crafting_table',
     'minecraft:leaf_litter',
-    'minecraft:snow_layer'
+    'minecraft:snow_layer',
+    'minecraft:piston',
+    'minecraft:redstone_wire'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
@@ -70,7 +73,9 @@ const ITEMS = [
     'minecraft:black_shulker_box',
     'minecraft:diamond_pickaxe',
     'minecraft:oak_stairs',
-    'minecraft:crafting_table'
+    'minecraft:crafting_table',
+    'minecraft:piston',
+    'minecraft:redstone'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -531,6 +536,32 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(4, 64, 4)?.states['weirdo_direction']).toBe(1);
             expect(world.loadedBlockAt(4, 64, 4)?.states['upside_down_bit']).toBe(0);
+        });
+
+        it('orients a piston from the interaction rotation', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = playerHolding(world, 'minecraft:piston', false, Gametype.SURVIVAL, {
+                pitch: 0,
+                yaw: 90
+            });
+
+            click(player, { x: 4, y: 63, z: 4 });
+
+            expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:piston');
+            expect(world.loadedBlockAt(4, 64, 4)?.states['facing_direction']).toBe(4);
+            expect(javaBlockStates('minecraft:piston', { facing_direction: 4 })).toMatchObject({
+                facing_direction: 'east'
+            });
+        });
+
+        it('places redstone dust as redstone wire', () => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+            const player = playerHolding(world, 'minecraft:redstone');
+
+            expect(click(player, { x: 6, y: 63, z: 6 })).toBe('handled');
+
+            expect(world.loadedBlockAt(6, 64, 6)?.name).toBe('minecraft:redstone_wire');
+            expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
         });
 
         it('replaces leaf litter rather than building on top of it', () => {

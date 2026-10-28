@@ -231,12 +231,36 @@ describe('redstoneFamily: the rest of the components', () => {
 
     it('fades a wire one step per block', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:redstone_wire');
+        harness.dimension.set({ x: 0, y: -1, z: 0 }, 'minecraft:stone');
+        harness.dimension.set({ x: 1, y: -1, z: 0 }, 'minecraft:stone');
         harness.dimension.set(origin, 'minecraft:redstone_wire', { redstone_signal: 0 });
         harness.dimension.set({ x: 1, y: 0, z: 0 }, 'minecraft:redstone_wire', { redstone_signal: 12 });
 
         harness.neighborChanged(origin, 'east');
 
         expect(harness.dimension.stateAt(origin, 'redstone_signal')).toBe(11);
+    });
+
+    it('pops when placed without a solid support', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:redstone_wire');
+        harness.dimension.set(origin, 'minecraft:redstone_wire', { redstone_signal: 0 });
+
+        harness.place(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe(AIR);
+    });
+
+    it('pops when its support is removed', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:redstone_wire');
+        const support = { x: 0, y: -1, z: 0 };
+        harness.dimension.set(support, 'minecraft:stone');
+        harness.dimension.set(origin, 'minecraft:redstone_wire', { redstone_signal: 0 });
+        harness.place(origin);
+
+        harness.dimension.set(support, AIR);
+        harness.neighborChanged(origin, 'down');
+
+        expect(harness.dimension.identifierAt(origin)).toBe(AIR);
     });
 
     it('turns tnt into a primed entity', () => {
