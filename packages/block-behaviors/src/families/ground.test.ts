@@ -87,6 +87,7 @@ describe('soilFamily: grass', () => {
         expect(harness.dimension.identifierAt({ x: 1, y: 4, z: 0 })).toBe('minecraft:grass_block');
 
         harness.dimension.set({ x: 0, y: 5, z: 0 }, 'minecraft:stone');
+        harness.dimension.setLight({ x: 0, y: 5, z: 0 }, 3);
         harness.randomTick(origin);
 
         expect(harness.dimension.identifierAt(origin)).toBe('minecraft:dirt');
