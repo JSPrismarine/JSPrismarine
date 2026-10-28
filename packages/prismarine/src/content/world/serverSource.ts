@@ -12,6 +12,7 @@
  * the default dimension's `level` while it is still building the registries. So every member
  * resolves its world at call time; see `src/world/contentAdapter.ts`.
  */
+import { javaBlockStates } from '@jsprismarine/mapping';
 import type { RandomSource } from '@jsprismarine/predicates';
 import { seededRandom } from '@jsprismarine/predicates';
 
@@ -102,7 +103,13 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
         updateEngineAround: (at, block) => {
             const live = world();
             if (live !== undefined) {
-                live.getSystems().updateAround(at, { name: block.identifier, states: block.states });
+                // Content hooks store Bedrock state values; the engine reads Java's words and
+                // maps them back when it writes. Passing raw torch directions through this
+                // seam made the write reverse them a second time.
+                live.getSystems().updateAround(at, {
+                    name: block.identifier,
+                    states: javaBlockStates(block.identifier, block.states)
+                });
             }
         }
     });

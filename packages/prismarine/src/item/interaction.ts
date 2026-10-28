@@ -19,10 +19,10 @@
  */
 import { BLOCK_FACES, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
-import { facingDirectionOf, facingFromYaw } from '@jsprismarine/block-behaviors';
+import { facingFromYaw, opposite } from '@jsprismarine/block-behaviors';
 import { relative } from '@jsprismarine/engine-systems';
 import type { ItemSource } from '@jsprismarine/items';
-import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import { bedrockBlockStates, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, WindowTypes } from '@jsprismarine/minecraft';
 
@@ -92,6 +92,14 @@ const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): Ho
 /** Items whose placed block has a different identifier. */
 const ITEM_PLACE_TARGETS: ReadonlyMap<string, string> = new Map([['minecraft:redstone', 'minecraft:redstone_wire']]);
 
+/** Blocks whose Java placement state faces away from their support. */
+const TORCH_BLOCKS = new Set([
+    'minecraft:torch',
+    'minecraft:redstone_torch',
+    'minecraft:soul_torch',
+    'minecraft:copper_torch'
+]);
+
 /** The block an item places, or undefined for an item with no block placement. */
 const placedBlockOf = (content: ServerContent, placed: Item): string | undefined => {
     let identifier = ITEM_PLACE_TARGETS.get(placed.getName()) ?? placed.getName();
@@ -106,7 +114,12 @@ const placedBlockOf = (content: ServerContent, placed: Item): string | undefined
 };
 
 /** The block's default states, with placement-facing states set from the player's view. */
-const placementStatesOf = (content: ServerContent, identifier: string, rotation: InteractionRotation) => {
+const placementStatesOf = (
+    content: ServerContent,
+    identifier: string,
+    rotation: InteractionRotation,
+    face: BlockFace
+) => {
     const type = content.blocks.types.get(identifier);
     if (type === undefined) return {};
 
@@ -121,18 +134,28 @@ const placementStatesOf = (content: ServerContent, identifier: string, rotation:
     const yaw = rotation.yaw - yRotationOffset;
     const facing = Math.abs(rotation.pitch) > 45 ? (rotation.pitch < 0 ? 'up' : 'down') : facingFromYaw(yaw);
 
-    if (
-        enabledStates.has('minecraft:cardinal_direction') ||
-        enabledStates.has('minecraft:corner_and_cardinal_direction')
-    ) {
-        states['minecraft:cardinal_direction'] = facingFromYaw(yaw);
-    }
+    if (identifier === 'minecraft:piston' || identifier === 'minecraft:sticky_piston') {
+        // Java pistons point opposite the nearest direction the player looks. Convert that
+        // Java-facing state through the block-specific table; Bedrock's legacy piston values
+        // reverse horizontal directions but keep up and down as written.
+        Object.assign(states, bedrockBlockStates(identifier, { facing_direction: opposite(facing) }));
+    } else if (TORCH_BLOCKS.has(identifier)) {
+        // A wall torch's Java facing points away from its support, while the click face already
+        // names that direction. `bedrockBlockStates` translates the two editions' opposing
+        // state vocabularies before the behavior hook checks the support block.
+        if (face !== 'down') {
+            const torchFacing = face === 'up' ? 'top' : face;
+            Object.assign(states, bedrockBlockStates(identifier, { torch_facing_direction: torchFacing }));
+        }
+    } else {
+        if (
+            enabledStates.has('minecraft:cardinal_direction') ||
+            enabledStates.has('minecraft:corner_and_cardinal_direction')
+        ) {
+            states['minecraft:cardinal_direction'] = facingFromYaw(yaw);
+        }
 
-    if (enabledStates.has('minecraft:facing_direction')) {
-        states['minecraft:facing_direction'] = facing;
-    } else if (identifier === 'minecraft:piston' || identifier === 'minecraft:sticky_piston') {
-        // Keep Bedrock's legacy number here; the Java state mapper reverses piston facing.
-        states['facing_direction'] = facingDirectionOf(facing);
+        if (enabledStates.has('minecraft:facing_direction')) states['minecraft:facing_direction'] = facing;
     }
 
     if (enabledStates.has('minecraft:sixteen_way_rotation')) {
@@ -177,7 +200,7 @@ const placeBlock = (
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
     const playerPosition = player.getPosition();
-    blocks.setBlock(target, identifier, placementStatesOf(content, identifier, rotation), true, {
+    blocks.setBlock(target, identifier, placementStatesOf(content, identifier, rotation, face), true, {
         placedBy: {
             identifier: 'minecraft:player',
             position: {

@@ -20,18 +20,18 @@ import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 export const CAKE_BITES = 6;
 
 /**
- * The face a torch stands on, for each `torch_facing_direction`.
+ * The support face for each Bedrock `torch_facing_direction` value.
  *
- * The state names the side of the block the torch is stuck to, so the block
- * holding it up is on the far side of the torch from that name.
+ * Bedrock names the direction from the torch back to its support; Java's wall-torch
+ * `facing` state names the direction the torch points away from that support.
  */
 export const TORCH_SUPPORT: Readonly<Record<string, BlockFace>> = {
     unknown: 'down',
     top: 'down',
-    west: 'east',
-    east: 'west',
-    north: 'south',
-    south: 'north'
+    west: 'west',
+    east: 'east',
+    north: 'north',
+    south: 'south'
 };
 
 /** The face a torch's support is on, falling back to the floor. */

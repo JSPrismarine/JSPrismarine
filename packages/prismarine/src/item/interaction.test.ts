@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
-import { javaBlockStates } from '@jsprismarine/mapping';
+import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
@@ -65,6 +65,7 @@ const BLOCKS = [
     'minecraft:snow_layer',
     'minecraft:piston',
     'minecraft:redstone_wire',
+    'minecraft:torch',
     'minecraft:redstone_torch',
     'minecraft:unpowered_repeater',
     'minecraft:unpowered_comparator'
@@ -82,6 +83,7 @@ const ITEMS = [
     'minecraft:crafting_table',
     'minecraft:piston',
     'minecraft:redstone',
+    'minecraft:torch',
     'minecraft:redstone_torch',
     'minecraft:repeater',
     'minecraft:comparator',
@@ -588,7 +590,7 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(4, 64, 4)?.states['upside_down_bit']).toBe(0);
         });
 
-        it('orients a piston from the interaction rotation', () => {
+        it("faces a piston opposite the player's nearest look direction", () => {
             place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
             const player = playerHolding(world, 'minecraft:piston', false, Gametype.SURVIVAL, {
                 pitch: 0,
@@ -598,10 +600,51 @@ describe('useItemOnBlock', () => {
             click(player, { x: 4, y: 63, z: 4 });
 
             expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:piston');
-            expect(world.loadedBlockAt(4, 64, 4)?.states['facing_direction']).toBe(4);
-            expect(javaBlockStates('minecraft:piston', { facing_direction: 4 })).toMatchObject({
+            expect(world.loadedBlockAt(4, 64, 4)?.states['facing_direction']).toBe(
+                bedrockBlockStates('minecraft:piston', { facing_direction: 'east' }).facing_direction
+            );
+            expect(javaBlockStates('minecraft:piston', world.loadedBlockAt(4, 64, 4)!.states)).toMatchObject({
                 facing_direction: 'east'
             });
+        });
+
+        it('faces a piston up when the player looks down', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = playerHolding(world, 'minecraft:piston', false, Gametype.SURVIVAL, {
+                pitch: 90,
+                yaw: 0
+            });
+
+            click(player, { x: 4, y: 63, z: 4 });
+
+            const piston = world.loadedBlockAt(4, 64, 4)!;
+            expect(javaBlockStates('minecraft:piston', piston.states)).toMatchObject({ facing_direction: 'up' });
+        });
+
+        it('places a redstone torch on the clicked wall face without losing it under an overhead block', () => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 7, y: 64, z: 6 }, 'minecraft:stone');
+            expect(click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 }, 5)).toBe('handled');
+
+            const torch = world.loadedBlockAt(7, 63, 6);
+            expect(torch?.name).toBe('minecraft:redstone_torch');
+            expect(torch?.states['torch_facing_direction']).toBe(
+                bedrockBlockStates('minecraft:redstone_torch', { torch_facing_direction: 'east' })
+                    .torch_facing_direction
+            );
+        });
+
+        it('places a regular torch on the clicked wall face under an overhead block', () => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 7, y: 64, z: 6 }, 'minecraft:stone');
+
+            expect(click(playerHolding(world, 'minecraft:torch'), { x: 6, y: 63, z: 6 }, 5)).toBe('handled');
+
+            const torch = world.loadedBlockAt(7, 63, 6);
+            expect(torch?.name).toBe('minecraft:torch');
+            expect(torch?.states['torch_facing_direction']).toBe(
+                bedrockBlockStates('minecraft:torch', { torch_facing_direction: 'east' }).torch_facing_direction
+            );
         });
 
         it('places redstone dust as redstone wire', () => {
@@ -644,6 +687,7 @@ describe('useItemOnBlock', () => {
                 y: 63,
                 z: 7
             });
+            place(chunk, { x: 7, y: 64, z: 7 }, 'minecraft:stone');
 
             expect(click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 })).toBe('handled');
 
@@ -659,6 +703,12 @@ describe('useItemOnBlock', () => {
             expect(javaBlockStates('minecraft:piston', { facing_direction: 4 }).facing_direction).toBe('east');
             expect(sounds).toContain('minecraft:piston.out');
             expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:piston_arm_collision');
+            expect(
+                javaBlockStates('minecraft:piston_arm_collision', world.loadedBlockAt(7, 64, 7)!.states)
+            ).toMatchObject({
+                facing_direction: 'east'
+            });
+            expect(world.loadedBlockAt(8, 64, 7)?.name).toBe('minecraft:stone');
         });
 
         it('replaces leaf litter rather than building on top of it', () => {

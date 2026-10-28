@@ -179,7 +179,7 @@ describe('candleFamily', () => {
 describe('torchFamily', () => {
     it('names the face its support is on', () => {
         expect(torchSupport('top')).toBe('down');
-        expect(torchSupport('west')).toBe('east');
+        expect(torchSupport('west')).toBe('west');
         expect(torchSupport('unknown')).toBe('down');
     });
 
@@ -194,7 +194,7 @@ describe('torchFamily', () => {
 
     it('stays on a wall it is stuck to', () => {
         const harness = bindFamily(torchFamily, 'minecraft:torch');
-        harness.dimension.set({ x: 1, y: 1, z: 0 }, 'minecraft:stone');
+        harness.dimension.set({ x: -1, y: 1, z: 0 }, 'minecraft:stone');
         harness.dimension.set(block, 'minecraft:torch', { torch_facing_direction: 'west' });
 
         harness.neighborChanged(block, 'down');
