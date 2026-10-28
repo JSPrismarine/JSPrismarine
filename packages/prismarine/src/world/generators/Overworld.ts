@@ -1,5 +1,5 @@
 import BaseGenerator from '../BaseGenerator';
-import type { StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../Generator';
+import type { GeneratorPosition, StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 import type { StagePoolOptions } from './datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from './datadriven/DataDrivenGenerator';
@@ -54,6 +54,11 @@ export default class Overworld extends BaseGenerator {
     /** @inheritDoc */
     public locate(request: StructureSearchRequest): StructureSearchResult | undefined {
         return this.require().locate(request);
+    }
+
+    /** @inheritDoc */
+    public structureSpawnOverrideAt(identifier: string, at: GeneratorPosition, seed?: bigint): boolean | undefined {
+        return this.require().structureSpawnOverrideAt(identifier, at, seed);
     }
 
     /** @inheritDoc */

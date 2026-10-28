@@ -17,10 +17,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import type Chunk from '../../chunk/Chunk';
+import type { Generator } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
+import Overworld from '../Overworld';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
@@ -293,6 +295,30 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
             expect(generator.structureSpawnOverrideAt('minecraft:guardian', outside, SEED)).toBe(false);
             expect(generator.structureSpawnOverrideAt('minecraft:pig', inside, SEED)).toBeUndefined();
             expect(generator.structureSpawnOverrideAt('minecraft:witch', outside, SEED)).toBeUndefined();
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'forwards guardian spawn overrides through the default overworld generator',
+        () => {
+            const monument = generator
+                .structureStartsAt(-80, -73, SEED)
+                .find((start) => start.structure === 'minecraft:monument');
+            if (monument === undefined) throw new Error('the seeded ocean monument did not start');
+
+            const inside = {
+                x: Math.floor((monument.boundingBox.minX + monument.boundingBox.maxX) / 2),
+                y: Math.floor((monument.boundingBox.minY + monument.boundingBox.maxY) / 2),
+                z: Math.floor((monument.boundingBox.minZ + monument.boundingBox.maxZ) / 2)
+            };
+            const outside = { ...inside, x: monument.boundingBox.minX - 1 };
+            const overworld: Generator = new Overworld(() => {
+                throw new Error('spawn override lookup does not read server content');
+            });
+
+            expect(overworld.structureSpawnOverrideAt?.('minecraft:guardian', inside, SEED)).toBe(true);
+            expect(overworld.structureSpawnOverrideAt?.('minecraft:guardian', outside, SEED)).toBe(false);
         },
         CHUNK_TIMEOUT
     );
