@@ -40,6 +40,10 @@ export interface ItemProps {
     customName?: string;
     /** The lines an item modifier wrote under the name. */
     lore?: readonly string[];
+    /** Bedrock block identifiers this stack may be placed on in adventure mode. */
+    canPlaceOnBlocks?: readonly string[];
+    /** Bedrock block identifiers this stack may destroy in adventure mode. */
+    canDestroyBlocks?: readonly string[];
     /**
      * What a container item holds, one entry per slot and null for an empty one.
      *
@@ -152,6 +156,8 @@ export class Item {
      */
     private readonly customName: string | undefined;
     private readonly loreLines: readonly string[];
+    private readonly canPlaceOnBlocks: readonly string[];
+    private readonly canDestroyBlocks: readonly string[];
 
     /**
      * The stack's `minecraft:container`, which is empty for all but a shulker box.
@@ -172,6 +178,8 @@ export class Item {
         enchantments,
         customName,
         lore,
+        canPlaceOnBlocks,
+        canDestroyBlocks,
         contents
     }: ItemProps) {
         this.name = name;
@@ -181,6 +189,8 @@ export class Item {
         this.enchantmentLevels = enchantmentMap(enchantments);
         this.customName = customName === '' ? undefined : customName;
         this.loreLines = lore === undefined ? [] : [...lore];
+        this.canPlaceOnBlocks = canPlaceOnBlocks === undefined ? [] : [...canPlaceOnBlocks];
+        this.canDestroyBlocks = canDestroyBlocks === undefined ? [] : [...canDestroyBlocks];
         this.heldContents = contents === undefined ? [] : [...contents];
         if (meta) this.meta = meta;
         // Zero is the empty stack's count; treating it as missing turns air into a live item.
@@ -347,6 +357,16 @@ export class Item {
         return this.heldContents;
     }
 
+    /** The Bedrock block identifiers this stack may be placed on. */
+    public getCanPlaceOnBlocks(): readonly string[] {
+        return this.canPlaceOnBlocks;
+    }
+
+    /** The Bedrock block identifiers this stack may destroy. */
+    public getCanDestroyBlocks(): readonly string[] {
+        return this.canDestroyBlocks;
+    }
+
     /**
      * A copy of this stack holding different contents.
      *
@@ -418,6 +438,8 @@ export class Item {
             enchantments: this.enchantmentLevels,
             customName: this.customName,
             lore: this.loreLines,
+            canPlaceOnBlocks: this.canPlaceOnBlocks,
+            canDestroyBlocks: this.canDestroyBlocks,
             contents: this.heldContents,
             ...changes
         });
@@ -661,9 +683,9 @@ export class Item {
      * The length prefixed `User Data Buffer`: the stack's `ItemInstanceUserData`, which
      * `@jsprismarine/protocol` lays out.
      *
-     * The blob is the stack's own compound when it has one, two empty block lists, and the
-     * blocking tick required by `minecraft:blocks_attacks`. An empty stack writes a bare zero
-     * length instead of the structure.
+     * The blob is the stack's own compound when it has one, its can-place-on and can-destroy
+     * block lists, and the blocking tick required by `minecraft:blocks_attacks`. An empty stack
+     * writes a bare zero length instead of the structure.
      *
      * A null compound used to go out here whatever the stack held, so an enchanted pickaxe,
      * a renamed sword and a lore line all arrived as the plain item. The mechanics ran on the
@@ -679,7 +701,11 @@ export class Item {
 
         const blob = new NetworkBinaryStream();
         const blocksAttacks = this.hasComponent('minecraft:blocks_attacks');
-        new ItemInstanceUserData(this.userDataTag(), blocksAttacks ? { blockingTick: 0n } : {}).serialize(blob);
+        new ItemInstanceUserData(this.userDataTag(), {
+            canPlaceOnBlocks: [...this.canPlaceOnBlocks],
+            canDestroyBlocks: [...this.canDestroyBlocks],
+            ...(blocksAttacks ? { blockingTick: 0n } : {})
+        }).serialize(blob);
 
         stream.writeUnsignedVarInt(blob.getBuffer().byteLength);
         stream.write(new Uint8Array(blob.getBuffer()));
@@ -693,9 +719,9 @@ export class Item {
      * a stack net id follows, the block runtime id, and one length prefixed blob holding the
      * nbt and the can-place-on / can-break lists. All of it, even for air.
      *
-     * That blob is stepped over rather than parsed. Nothing here uses it yet, and its length
-     * is on the wire precisely so that a reader who does not care can skip it - which is also
-     * why the two lists are no longer walked string by string.
+     * The block lists are retained so a stack the client sends can be sent back with the same
+     * adventure-mode restrictions. The NBT compound and optional shield blocking tick remain
+     * unused here; the user-data structure isolates them from the following packet fields.
      *
      * Reading the flag is what keeps every field after it aligned. It used to be read only
      * when a caller asked for `extra`, which no caller ever did, so from that byte onwards
@@ -734,16 +760,31 @@ export class Item {
         if (hasStackIdFlag) stream.readUnsignedVarInt();
         else stream.readVarInt();
 
-        stream.read(stream.readUnsignedVarInt()); // nbt, can place on, can break.
+        const userDataLength = stream.readUnsignedVarInt();
+        const userData = new ItemInstanceUserData();
+        if (userDataLength > 0) userData.deserialize(new NetworkBinaryStream(stream.read(userDataLength)));
 
         // Read to the end whatever the id, because an empty stack is no longer a bare zero -
         // it is a full stack of zeroes, and stopping at the id leaves the rest of it to be
         // read as the next field.
-        if (runtimeId === 0) return new Item({ name: 'minecraft:air' });
+        if (runtimeId === 0) {
+            return new Item({
+                name: 'minecraft:air',
+                canPlaceOnBlocks: userData.canPlaceOnBlocks,
+                canDestroyBlocks: userData.canDestroyBlocks
+            });
+        }
 
         // Keep an unknown runtime id so a custom item goes back out with the
         // number the client's item registry assigned it.
-        const item = new Item({ runtimeId, name: nameOfWireId(runtimeId) ?? 'minecraft:unknown', meta, count });
+        const item = new Item({
+            runtimeId,
+            name: nameOfWireId(runtimeId) ?? 'minecraft:unknown',
+            meta,
+            count,
+            canPlaceOnBlocks: userData.canPlaceOnBlocks,
+            canDestroyBlocks: userData.canDestroyBlocks
+        });
         item.stackNetworkId = stackNetworkId;
         return item;
     }
