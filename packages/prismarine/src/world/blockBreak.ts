@@ -60,6 +60,8 @@ export interface BreakWorld {
         getContent?(): ServerContent | undefined;
         getLogger(): { error(error: unknown): void };
     };
+    /** Notifies nearby entity sensors that this block is breaking. */
+    notifyBlockBreak?(position: ContentPosition, identifier: string, sourceId?: number): void;
 }
 
 /**
@@ -82,6 +84,8 @@ export interface BlockBreak {
     readonly position: ContentPosition;
     /** Who broke it, absent for a break the world itself performed. */
     readonly player?: Breaker;
+    /** The runtime id of the entity that caused the break, when known. */
+    readonly sourceId?: number;
     /**
      * The radius of the blast that broke it, for a block an explosion took out.
      *
@@ -225,14 +229,16 @@ const spilledContents = (
  *   what the block itself says it does.
  */
 export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item> | undefined => {
-    const { world, position, player } = breaking;
+    const { world, position, player, sourceId } = breaking;
     const server = world.getServer();
-    const content = server.getContent?.();
-    if (content === undefined) return undefined;
-
     try {
         const standing = world.loadedBlockAt(position.x, position.y, position.z);
         if (standing === undefined) return undefined;
+
+        world.notifyBlockBreak?.(position, standing.name, sourceId);
+
+        const content = server.getContent?.();
+        if (content === undefined) return undefined;
 
         const type = content.blocks.types.get(standing.name);
         if (type === undefined) return undefined;

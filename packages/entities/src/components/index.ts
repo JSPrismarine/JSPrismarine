@@ -15,6 +15,7 @@ import {
     angry,
     attack,
     attributeComponents,
+    blockSensor,
     breathable,
     barter,
     burnsInDaylight,
@@ -98,7 +99,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:balloonable',
     'minecraft:block_climber',
     'minecraft:block_movement_slowdown_immunity',
-    'minecraft:block_sensor',
     'minecraft:body_rotation_always_follows_head',
     'minecraft:body_rotation_blocked',
     'minecraft:boostable',
@@ -243,6 +243,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(ambientSoundInterval);
     register(angry);
     register(attack);
+    register(blockSensor);
     register(breathable);
     register(barter);
     register(burnsInDaylight);

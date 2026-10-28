@@ -6,7 +6,7 @@ import type { EntityInstance } from '../entityInstance';
 import { splitSpawnReference } from '../eventEngine';
 import type { EventTarget } from '../events';
 import { parseEventTarget } from '../events';
-import { damagerSubjects } from '../filterContext';
+import { damagerSubjects, isPlayerView } from '../filterContext';
 import type { FilterEntityView, FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityEquipmentSlot, EntityHooks } from '../hooks';
@@ -2072,6 +2072,104 @@ export const entitySensor: ComponentFactory<EntityHooks, EntitySensorParams> = {
             }
         };
     }
+};
+
+/** One block identifier and event within `minecraft:block_sensor.on_break`. */
+export interface BlockSensorBreak {
+    readonly blockList: readonly string[];
+    readonly event: string;
+}
+
+/** What `minecraft:block_sensor` declares. */
+export interface BlockSensorParams {
+    /** Maximum distance from the entity, capped at 32 blocks. */
+    readonly sensorRadius: number;
+    /** Filter the breaker must pass, evaluated with the breaker as `other`. */
+    readonly sources?: Filter;
+    readonly onBreak: readonly BlockSensorBreak[];
+}
+
+/** The largest radius a `minecraft:block_sensor` can search. */
+export const MAX_BLOCK_SENSOR_RADIUS = 32;
+
+const parseBlockSensor = (
+    value: unknown
+): { readonly ok: true; readonly params: BlockSensorParams } | { readonly ok: false; readonly message: string } => {
+    if (!isRecord(value)) return { ok: false, message: 'expected an object' };
+    const sensorRadius = sensorNumber(value, 'sensor_radius', 16);
+    if (sensorRadius === undefined || sensorRadius < 0)
+        return { ok: false, message: 'sensor_radius must be a non-negative number' };
+
+    const onBreak: BlockSensorBreak[] = [];
+    for (const [index, raw] of asList(value.on_break).entries()) {
+        if (!isRecord(raw)) return { ok: false, message: `on_break[${index}] must be an object` };
+        const blockList = raw.block_list;
+        if (
+            !Array.isArray(blockList) ||
+            !blockList.every((block): block is string => typeof block === 'string' && block.length > 0)
+        )
+            return { ok: false, message: `on_break[${index}].block_list must be an array of block identifiers` };
+        const event = stringAt(raw, 'on_block_broken');
+        if (event === undefined) return { ok: false, message: `on_break[${index}].on_block_broken must name an event` };
+        onBreak.push({ blockList, event });
+    }
+
+    let sources: Filter | undefined;
+    if (value.sources !== undefined) {
+        const parsed = parseFilterValue(value.sources, 'minecraft:block_sensor sources');
+        if (!parsed.ok) return { ok: false, message: parsed.message };
+        sources = parsed.value;
+    }
+    return {
+        ok: true,
+        params: {
+            sensorRadius: Math.min(sensorRadius, MAX_BLOCK_SENSOR_RADIUS),
+            ...(sources === undefined ? {} : { sources }),
+            onBreak
+        }
+    };
+};
+
+/** `minecraft:block_sensor`, which raises events for matching nearby block breaks. */
+export const blockSensor: ComponentFactory<EntityHooks, BlockSensorParams> = {
+    name: 'minecraft:block_sensor',
+    hooks: ['onBlockBroken'],
+    schema: (value) => {
+        const parsed = parseBlockSensor(value);
+        return parsed.ok ? accepted(parsed.params) : rejected(parsed.message);
+    },
+    create: (params) => ({
+        onBlockBroken: (entity, broken) => {
+            const position = entity.actuator?.position();
+            if (position === undefined) return;
+            const blockCenter = {
+                x: broken.position.x + 0.5,
+                y: broken.position.y + 0.5,
+                z: broken.position.z + 0.5
+            };
+            if (
+                Math.hypot(position.x - blockCenter.x, position.y - blockCenter.y, position.z - blockCenter.z) >
+                params.sensorRadius
+            )
+                return;
+            if (params.sources !== undefined && broken.source === undefined) return;
+
+            const context = {
+                ...entity.filterContext(),
+                block: broken.block,
+                ...(broken.source === undefined
+                    ? {}
+                    : {
+                          other: broken.source,
+                          ...(isPlayerView(broken.source) ? { player: broken.source } : {})
+                      })
+            };
+            if (params.sources !== undefined && !evaluateFilter(params.sources, context)) return;
+
+            for (const entry of params.onBreak)
+                if (entry.blockList.includes(broken.block.identifier())) entity.fire(entry.event);
+        }
+    })
 };
 
 /** What `minecraft:target_nearby_sensor` declares. */

@@ -2,7 +2,7 @@ import type { Filter } from '@jsprismarine/packs';
 
 import type { EntityInstance } from './entityInstance';
 import type { EventTarget, VibrationKind } from './events';
-import type { FilterEntityView } from './filterContext';
+import type { FilterBlockView, FilterEntityView } from './filterContext';
 
 /**
  * The hook map `@jsprismarine/content` dispatches for this domain, and the
@@ -29,6 +29,16 @@ export interface EntityAngerBroadcast {
     readonly targets?: readonly string[];
     /** The entity that caused the broadcast, which candidates may target. */
     readonly target?: FilterEntityView;
+}
+
+/** One block break an active `minecraft:block_sensor` can inspect. */
+export interface EntityBlockBreakEvent {
+    /** The block that was removed. */
+    readonly block: FilterBlockView;
+    /** The block's integer world position. */
+    readonly position: EntityPosition;
+    /** The player or entity that caused the break, when the runtime knows it. */
+    readonly source?: FilterEntityView;
 }
 
 /** A Bedrock equipment slot watched by `minecraft:on_equipment_changed`. */
@@ -274,6 +284,8 @@ export interface EntityHooks {
     onTick: (entity: EntityInstance) => void;
     /** Runs when a nearby entity with the same type broadcasts anger. */
     onFriendlyAnger: (entity: EntityInstance) => void;
+    /** Runs when a block breaks near the entity. */
+    onBlockBroken: (entity: EntityInstance, event: EntityBlockBreakEvent) => void;
     /** Runs when an item is placed into or removed from a default equipment slot. */
     onEquipmentChanged: (entity: EntityInstance, slot: EntityEquipmentSlot, equipped: boolean) => void;
     /** Runs when the entity attacks another entity. */

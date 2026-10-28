@@ -49,6 +49,8 @@ export interface BlockDestruction {
     readonly world: DestroyWorld;
     /** The block being destroyed, read before the caller writes over it. */
     readonly position: ContentPosition;
+    /** The runtime id of the entity that caused the destruction, when known. */
+    readonly sourceId?: number;
     /**
      * The radius of the blast that destroyed it, for a block an explosion took out.
      *
@@ -93,9 +95,9 @@ const catalogDrops = (destruction: BlockDestruction): Array<Block | Item> => {
  *   already run by the time this returns, so the caller may write over the block.
  */
 export const destroyedBlockDrops = (destruction: BlockDestruction): Array<Block | Item> => {
-    const { world, position, explosionRadius, dropsBlock = true } = destruction;
+    const { world, position, sourceId, explosionRadius, dropsBlock = true } = destruction;
 
-    const rolled = breakBlockWithContent({ world, position, explosionRadius, dropsBlock });
+    const rolled = breakBlockWithContent({ world, position, sourceId, explosionRadius, dropsBlock });
     if (rolled !== undefined) return rolled;
 
     // A block the content has no type for, or one whose chunk went out of memory under the

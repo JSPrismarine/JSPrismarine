@@ -24,6 +24,7 @@ import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import type {
     EntityActuator,
     EntityAngerBroadcast,
+    EntityBlockBreakEvent,
     EntityEffects,
     EntityEquipmentSlot,
     EntityPosition,
@@ -44,6 +45,7 @@ import {
     evaluateFilter,
     isRecord,
     javaEntityNavigation,
+    MAX_BLOCK_SENSOR_RADIUS,
     noEffects,
     parseEventTarget
 } from '@jsprismarine/entities';
@@ -1393,7 +1395,8 @@ export class EntityRuntime implements EntityScene {
             destroy: (at) =>
                 this.host.destroyBlock?.(at, {
                     explosionRadius: power,
-                    dropsBlock: ruleIsOn(this.world.level, BLOCK_DROPS)
+                    dropsBlock: ruleIsOn(this.world.level, BLOCK_DROPS),
+                    sourceId: source.id
                 }) ?? false
         });
 
@@ -1557,6 +1560,26 @@ export class EntityRuntime implements EntityScene {
         const table = javaBlockLootIdOf(block.identifier);
         if (this.content().loot.table(table) === undefined) return;
         for (const drop of this.rolled(table)) this.host.drop(position, drop);
+    }
+
+    /** Notifies nearby block sensors after one block is broken. */
+    public blockBroken(position: EntityPosition, identifier: string, sourceId?: number): void {
+        const source =
+            sourceId === undefined
+                ? undefined
+                : (this.entities.get(sourceId)?.instance.filterContext().self ??
+                  this.host.playerView?.(sourceId) ??
+                  this.mobById(sourceId)?.view());
+        const event: EntityBlockBreakEvent = {
+            block: { identifier: () => identifier },
+            position,
+            ...(source === undefined ? {} : { source })
+        };
+        const center = { x: position.x + 0.5, y: position.y + 0.5, z: position.z + 0.5 };
+        for (const entity of this.near(center, MAX_BLOCK_SENSOR_RADIUS)) {
+            if (entity.instance.hasComponent('minecraft:block_sensor'))
+                entity.instance.dispatch('onBlockBroken', entity.instance, event);
+        }
     }
 
     /**

@@ -77,7 +77,10 @@ export interface EntityHostFacts {
      *   `doTileDrops` game rule. It still spills what it was holding either way.
      * @returns True when the host took the drops, so the caller owes nothing more for them.
      */
-    destroyBlock?(at: ContentPosition, options: { explosionRadius?: number; dropsBlock?: boolean }): boolean;
+    destroyBlock?(
+        at: ContentPosition,
+        options: { explosionRadius?: number; dropsBlock?: boolean; sourceId?: number }
+    ): boolean;
     /**
      * Every item stack lying in the dimension.
      *

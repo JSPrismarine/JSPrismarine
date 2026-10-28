@@ -1526,7 +1526,12 @@ export class World implements Service {
         // family gets `onBreak`, which is what spills a chest, and Java's loot table for the
         // block decides what falls. Undefined for a block no content covers, and the drop
         // this server has always made is the one below.
-        const contentDrops = breakBlockWithContent({ world: this, position: { x, y, z }, player });
+        const contentDrops = breakBlockWithContent({
+            world: this,
+            position: { x, y, z },
+            player,
+            ...(player === undefined ? {} : { sourceId: Number(player.getRuntimeId()) })
+        });
 
         // TODO: run a function from block.getBreakConsequences() because the broken block may
         // place more blocks or run block related code, for example ice should replace itself
@@ -2396,6 +2401,16 @@ export class World implements Service {
      */
     public dataEntities(): LiveEntityRuntime {
         return this.server.getEntityRuntime(this.dimension.name);
+    }
+
+    /**
+     * Notifies nearby data-driven block sensors that one block broke.
+     * @param position - The integer position of the broken block.
+     * @param identifier - The namespaced identifier of the broken block.
+     * @param sourceId - The runtime id of the player or entity that broke it, when known.
+     */
+    public notifyBlockBreak(position: ContentPosition, identifier: string, sourceId?: number): void {
+        this.dataEntities().runtime.blockBroken(position, identifier, sourceId);
     }
 
     /**
