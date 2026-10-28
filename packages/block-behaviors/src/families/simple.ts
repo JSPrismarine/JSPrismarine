@@ -53,10 +53,10 @@ export const ORE_DROPS: Readonly<Record<string, OreDrop>> = {
 /** A full cube with nothing to decide but what it drops. */
 export const plainBlockFamily = defineFamily(
     'jsprismarine:plain_block',
-    'A full cube that drops itself, unless its properties say a tool decides.',
+    'A full cube that proposes itself as its drop; the content break host applies the correct-tool rule.',
     {
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -76,9 +76,9 @@ export const glassFamily = defineFamily(
     'jsprismarine:glass',
     'Drops itself to a silk touch tool and shatters into nothing otherwise.',
     {
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             if (!hasSilkTouch(event.itemStack)) return;
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -94,8 +94,8 @@ export const logFamily = defineFamily(
             if (axis === undefined) return;
             setStates(world, event.block, { pillar_axis: axis });
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -105,16 +105,16 @@ export const oreFamily = defineFamily(
     'jsprismarine:ore',
     'Drops the ore item and its experience; an unlisted ore drops itself.',
     {
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             const drop = ORE_DROPS[bareName(event.brokenBlock.identifier)];
             if (drop === undefined) {
-                dropSelf(world, context, event.brokenBlock);
+                dropSelf(world, event.brokenBlock);
                 return;
             }
 
             const drops: ItemDrop[] = [{ identifier: drop.identifier, count: drop.count }];
             dropAll(world, event.brokenBlock, drops);
-            if (drop.experience > 0) {
+            if (drop.experience > 0 && event.correctTool !== false) {
                 world.spawnEntity(event.brokenBlock.position, 'minecraft:xp_orb', { value: drop.experience });
             }
         }

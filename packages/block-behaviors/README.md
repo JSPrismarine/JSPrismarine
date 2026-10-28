@@ -143,6 +143,8 @@ blocks), `requires_correct_tool` (the drop rule) and `random_tick`. Reading it g
 component factory in `@jsprismarine/blocks`, so an absent component reads as that schema's defaults
 and a malformed one does too rather than failing the load. `friction` is published for the movement
 code and no family reads it, because friction is a decision the entity makes, not the block.
+Families emit candidate drops. The content break host checks `requires_correct_tool` against the
+held item's `minecraft:tool` rules and merged block tags before releasing loot or family drops.
 
 The state names are the palette's. `geometry.test.ts` checks `CARDINAL_DIRECTIONS` against the
 captured palette's `minecraft:cardinal_direction` domain, and `rules/weathering.test.ts` walks every
@@ -157,7 +159,7 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 
 | Family | Blocks | Hooks | What it does |
 | --- | --- | --- | --- |
-| `plain_block` | 218 | onBreak | A full cube that drops itself, unless its properties say a tool decides. |
+| `plain_block` | 218 | onBreak | A full cube that proposes itself as a drop; the content break host applies the correct-tool rule. |
 | `inert` | 203 | none | No hooks. The engine and editor blocks whose behavior is not a block behavior. |
 | `slab` | 109 | onPlace, onBreak, onRandomTick, onPlayerInteract | Takes its half from where the click landed, merges with the slab it replaced into the double block, waxes and scrapes, and oxidizes when it is copper. |
 | `stairs` | 97 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Turns to the placer, flips upside down for a click in the upper half, recomputes minecraft:corner on placement and on every neighbor change, and oxidizes when it is copper. |
@@ -214,13 +216,9 @@ pane connection rule is what a custom thin block wants.
 
 ## What is deliberately partial
 
-The first two are limits of the hook interface rather than unfinished work. They are listed first
-because they bound what any block behavior package can do.
+The remaining limits are either information the hook interface does not carry or behavior owned by
+another runtime.
 
-- **A block that requires the correct tool drops nothing here.** The event now carries the item, but
-  deciding whether that item is the right tool needs the per-item mining tiers, which live in
-  `@jsprismarine/items`. `requires_correct_tool` is still honored by refusing the drop, and the
-  server's tool check owns the other half.
 - **No hook says whether the player was sneaking.** Vanilla runs the block's own use before the
   item's, so an axe on a copper door opens it and only a sneaking player scrapes it. Without the
   sneak flag the door and the trapdoor always open, and their copper variants cannot be waxed or

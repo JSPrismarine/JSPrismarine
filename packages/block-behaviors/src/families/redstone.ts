@@ -301,8 +301,8 @@ export const redstoneFamily = defineFamily(
             // must see, which is how an observer in front of it fires.
             world.notifyNeighbors(event.block.position);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -385,8 +385,8 @@ export const railFamily = defineFamily(
                 setStates(world, event.block, { rail_data_bit: powered });
             }
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

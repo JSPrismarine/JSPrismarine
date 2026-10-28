@@ -27,6 +27,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type { BlockReference, ItemSource } from '@jsprismarine/items';
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
 
+import { blockFromContent } from '../block/Block';
 import { blockLootTableOf, rollBlockDrops } from '../block/blockLoot';
 import type { Block } from '../block/Block';
 import type { ContentPosition } from '../content/world/adapter';
@@ -252,6 +253,8 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         };
 
         const held = player?.getInventory().getItemInHand() ?? null;
+        const correctTool =
+            blockFromContent(standing.name, content, standing.states)?.isCompatibleWithTool(held) ?? true;
         const blocks = content.world.blockWorld.at(dimension);
 
         // Read before the hook runs, because what spills a container is the hook itself.
@@ -262,7 +265,8 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
                 block: broken,
                 brokenBlock: broken,
                 brokenBy: brokenBy(player),
-                itemStack: brokenWith(content, held)
+                itemStack: brokenWith(content, held),
+                correctTool
             });
         });
 
@@ -274,6 +278,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         // A block that yields nothing of itself still spills what it was holding, which is
         // the chest a fire burns through or a stream of water washes away.
         if (breaking.dropsBlock === false) return spilledContents(captured, contents);
+        if (!correctTool) return spilledContents(captured, contents);
 
         // A block the stack has no table for is one the families are the only drop rule for,
         // which is every Bedrock-only block and the whole of a stack with no Java half.

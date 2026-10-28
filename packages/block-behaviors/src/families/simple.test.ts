@@ -30,13 +30,15 @@ describe('plainBlockFamily', () => {
         ]);
     });
 
-    it('drops nothing when its properties say the tool decides', () => {
+    it('proposes the block drop for host tool validation', () => {
         const harness = bindFamily(plainBlockFamily, 'minecraft:obsidian', { components: requiresTool });
         harness.dimension.set(position, 'minecraft:obsidian');
 
         harness.breakBlock(position);
 
-        expect(harness.dimension.drops).toEqual([]);
+        expect(harness.dimension.drops.map((entry) => entry.drop)).toEqual([
+            { identifier: 'minecraft:obsidian', count: 1 }
+        ]);
     });
 });
 

@@ -122,6 +122,16 @@ describe('block', () => {
             it('lets anything harvest when the server loaded no tags to check against', () => {
                 expect(needsATool('minecraft:stone').isCompatibleWithTool(null)).toBe(true);
             });
+
+            it('uses server content to resolve tool tags when the held item has no content', () => {
+                const content = buildServerContent(fixtureContentOptions());
+                const stone = needsATool('minecraft:stone');
+                const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe' });
+
+                const drops = stone.getDrops(pickaxe, { getContent: () => content });
+
+                expect(drops.map((drop) => drop?.getName())).toEqual(['minecraft:cobblestone']);
+            });
         });
 
         describe('replacing', () => {
@@ -179,6 +189,14 @@ describe('block', () => {
                 const stone = named('minecraft:stone');
 
                 expect(stone.getDrops(null)).toEqual([stone]);
+            });
+
+            it('does not roll a block loot table when the held item cannot harvest the block', () => {
+                const content = buildServerContent(fixtureContentOptions());
+                const stone = needsATool('minecraft:stone', content);
+                const stick = new Item({ name: 'minecraft:stick', content });
+
+                expect(stone.getDrops(stick).map((drop) => drop?.getName())).toEqual([]);
             });
         });
     });

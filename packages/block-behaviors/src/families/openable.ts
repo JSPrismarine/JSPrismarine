@@ -110,12 +110,12 @@ export const doorFamily = defineFamily(
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             const other = world.getBlock(otherHalf(event.brokenBlock));
             if (other !== undefined && other.identifier === event.brokenBlock.identifier) {
                 world.setBlock(other.position, 'minecraft:air');
             }
-            if (!stateBoolean(event.brokenBlock, 'upper_block_bit')) dropSelf(world, context, event.brokenBlock);
+            if (!stateBoolean(event.brokenBlock, 'upper_block_bit')) dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -141,8 +141,8 @@ export const trapdoorFamily = defineFamily(
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -185,8 +185,8 @@ export const fenceGateFamily = defineFamily(
             if (inWall !== stateBoolean(event.block, 'in_wall_bit'))
                 setStates(world, event.block, { in_wall_bit: inWall });
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

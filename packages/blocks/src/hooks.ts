@@ -127,6 +127,8 @@ export interface BlockBreakEvent extends BlockEvent {
      * world itself performed.
      */
     readonly itemStack: HookItem | undefined;
+    /** Whether the held item satisfies this block's `requires_correct_tool` rule, when known. */
+    readonly correctTool?: boolean;
 }
 
 /** A block next to this one changed. */

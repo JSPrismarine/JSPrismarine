@@ -8,6 +8,7 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { EntityRuntimes } from '../entity/data/live';
 import type { Entity } from '../entity/Entity';
 import { Item as ItemEntity } from '../entity/other/Item';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -227,6 +228,7 @@ const liveWorld = (
         players: new Map(),
         getChunkAt: async () => chunk,
         getPlayers: () => [],
+        notifyBlockBreak: () => {},
         sendWorldEvent: async () => {},
         addEntity: async (entity: Entity) => void spawned.push(entity),
         server: {
@@ -269,6 +271,7 @@ describe('breakBlockWithContent', () => {
         // The content is built around the world and the world reads the content back, so both
         // sides reach for it through the same closure.
         let built: ServerContent | undefined;
+        const entityRuntimes = new EntityRuntimes();
         ({ world, chunk, spawned, entities } = liveWorld(() => built));
 
         content = buildServerContent({
@@ -287,6 +290,14 @@ describe('breakBlockWithContent', () => {
                             'minecraft:tool/can_silk_touch',
                             definitionOf('predicates', 'minecraft:tool/can_silk_touch', CAN_SILK_TOUCH)
                         ]
+                    ]),
+                    tags: new Map([
+                        [
+                            'block/minecraft:mineable/pickaxe',
+                            definitionOf('tags', 'block/minecraft:mineable/pickaxe', {
+                                values: ['minecraft:stone', 'minecraft:diamond_ore']
+                            })
+                        ]
                     ])
                 }),
                 diagnostics: []
@@ -298,7 +309,8 @@ describe('breakBlockWithContent', () => {
                 worldFor: () => world,
                 content: () => built!,
                 seed: 1234n,
-                difficulty: () => Difficulty.NORMAL
+                difficulty: () => Difficulty.NORMAL,
+                entityRuntimes
             })
         });
         built = content;
@@ -325,6 +337,7 @@ describe('breakBlockWithContent', () => {
             getPosition: () => new Vector3(3, 64, 3),
             getRuntimeId: () => PLAYER_ID,
             getServer: () => world.getServer(),
+            getStatusEffects: () => [],
             getFallDistance: () => 0,
             getFood: () => 20,
             isOnGround: () => true
@@ -401,6 +414,15 @@ describe('breakBlockWithContent', () => {
         await world.breakBlock(new Vector3(2, 64, 1), player(silkTouch));
 
         expect(drops()).toEqual([{ identifier: 'minecraft:stone', count: 1 }]);
+    });
+
+    it('does not drop ore or experience when the tool cannot harvest it', async () => {
+        place(chunk, { x: 3, y: 60, z: 10 }, 'minecraft:diamond_ore');
+
+        await world.breakBlock(new Vector3(3, 60, 10), player(new Item({ name: 'minecraft:stick', content })));
+
+        expect(drops()).toEqual([]);
+        expect(spawned.some((entity) => entity.getType() === 'minecraft:xp_orb')).toBe(false);
     });
 
     it('raises what an ore yields for a fortune pickaxe', async () => {

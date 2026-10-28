@@ -99,8 +99,8 @@ export const soilFamily = defineFamily(
             if (event.fallDistance < 0.5) return;
             world.setBlock(event.block.position, sibling(event.block.identifier, 'dirt'));
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -129,9 +129,9 @@ export const iceFamily = defineFamily(
             world.setBlock(event.block.position, WATER, { liquid_depth: 0 });
             world.notifyNeighbors(event.block.position);
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             if (hasSilkTouch(event.itemStack)) {
-                dropSelf(world, context, event.brokenBlock);
+                dropSelf(world, event.brokenBlock);
                 return;
             }
             world.setBlock(event.brokenBlock.position, WATER, { liquid_depth: 0 });
@@ -152,9 +152,9 @@ export const snowFamily = defineFamily(
             if (!hasState(event.block, 'height')) return;
             popWithoutSupport(world, event.block);
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             if (!hasState(event.brokenBlock, 'height')) {
-                dropSelf(world, context, event.brokenBlock);
+                dropSelf(world, event.brokenBlock);
                 return;
             }
             world.dropItem(event.brokenBlock.position, {
@@ -215,9 +215,9 @@ export const dripstoneFamily = defineFamily(
             const face = BLOCK_FACES.find((candidate) => candidate === grown);
             if (face !== undefined) popWithoutSupport(world, event.block, opposite(face));
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             if (bareName(event.brokenBlock.identifier) !== 'amethyst_cluster') {
-                dropSelf(world, context, event.brokenBlock);
+                dropSelf(world, event.brokenBlock);
                 return;
             }
             world.dropItem(event.brokenBlock.position, {

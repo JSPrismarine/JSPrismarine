@@ -161,12 +161,14 @@ export const sculkFamily = defineFamily(
                 world.notifyNeighbors(event.block.position);
             }
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             if (bareName(event.brokenBlock.identifier) === 'sculk') {
-                world.spawnEntity(event.brokenBlock.position, 'minecraft:xp_orb', { value: 1 });
+                if (event.correctTool !== false) {
+                    world.spawnEntity(event.brokenBlock.position, 'minecraft:xp_orb', { value: 1 });
+                }
                 return;
             }
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -190,8 +192,8 @@ export const copperFamily = defineFamily(
             const lit = event.block.states['lit'] === true;
             setStates(world, event.block, { powered_bit: powered, lit: powered ? !lit : lit });
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

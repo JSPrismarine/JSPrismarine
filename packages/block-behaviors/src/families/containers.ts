@@ -94,7 +94,7 @@ export const containerFamily = defineFamily(
             }
             return undefined;
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             const partner = pairedPosition(world.getBlockData(event.brokenBlock.position));
             if (partner !== undefined) {
                 const partnerData = world.getBlockData(partner);
@@ -106,12 +106,12 @@ export const containerFamily = defineFamily(
                 // Not spilled and not lost either: the box goes on the ground still holding
                 // what was in it, and putting it back down puts the items back in it.
                 const held = world.getBlockData(event.brokenBlock.position)?.items ?? [];
-                dropSelf(world, context, event.brokenBlock, 1, held.length === 0 ? {} : { contents: held });
+                dropSelf(world, event.brokenBlock, 1, held.length === 0 ? {} : { contents: held });
                 return;
             }
 
             spillContainer(world, event.brokenBlock);
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -154,9 +154,9 @@ export const furnaceFamily = defineFamily(
             if (event.block.states['extinguished'] === true) return;
             world.spawnParticle(event.entity.position, 'minecraft:campfire_smoke_particle');
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             spillContainer(world, event.brokenBlock);
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -219,8 +219,8 @@ export const cauldronFamily = defineFamily(
 
             return undefined;
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -270,9 +270,9 @@ export const flowerPotFamily = defineFamily(
             }
             return undefined;
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             spillContainer(world, event.brokenBlock);
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -349,9 +349,9 @@ export const utilityFamily = defineFamily(
             if (event.fallDistance < 1) return;
             world.playSound(event.block.position, 'random.anvil_land');
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             if (slotsOf(event.brokenBlock.identifier) > 0) spillContainer(world, event.brokenBlock);
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

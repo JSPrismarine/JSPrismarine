@@ -467,13 +467,14 @@ export class Item {
      * diamond while `#minecraft:mineable/pickaxe` lets it mine stone.
      *
      * @param block - The block identifier being mined.
+     * @param content - The content whose merged tags resolve this rule, defaulting to this stack's content.
      * @returns False for a bare name no rule covers, which is Java's answer too.
      */
-    public harvests(block: string): boolean {
+    public harvests(block: string, content = this.content): boolean {
         const rules = this.type()?.params(tool)?.rules;
         if (!rules) return false;
 
-        const tags: TagLookup | undefined = this.content?.tags;
+        const tags: TagLookup | undefined = content?.tags;
         for (const rule of rules) {
             if (rule.correct_for_drops === undefined) continue;
             if (holderSetIncludes(tags, rule.blocks, block)) return rule.correct_for_drops;

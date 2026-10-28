@@ -66,8 +66,8 @@ export const slabFamily = defineFamily(
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -78,8 +78,7 @@ export const doubleSlabFamily = defineFamily(
     'Drops two of the slab it is made of, waxes and scrapes, and oxidizes when it is copper.',
     {
         onPlayerInteract: waxOrScrapeHandler,
-        onBreak: (event, world, context) => {
-            if (context.properties.requiresCorrectTool) return;
+        onBreak: (event, world) => {
             world.dropItem(event.brokenBlock.position, {
                 identifier: singleSlabName(event.brokenBlock.identifier),
                 count: 2
@@ -128,8 +127,8 @@ export const stairsFamily = defineFamily(
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -145,8 +144,8 @@ export const wallFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             setStates(world, event.block, wallStates(world, event.block));
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -168,8 +167,8 @@ export const fenceFamily = defineFamily(
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

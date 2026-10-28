@@ -103,8 +103,8 @@ export const cropFamily = defineFamily(
             setStates(world, event.block, { growth: 1 });
             return true;
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -166,8 +166,8 @@ export const saplingFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             popWithoutGround(world, event.block, SOIL_NAMES);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -239,8 +239,8 @@ export const floraFamily = defineFamily(
             if (bareName(event.block.identifier) !== 'wither_rose') return;
             world.spawnParticle(event.entity.position, 'minecraft:wither_boss_particle');
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -333,10 +333,10 @@ export const climbingFamily = defineFamily(
             if (!hasState(event.block, 'stability')) return;
             if (stateNumber(event.block, 'stability') >= 7) popBlock(world, event.block);
         },
-        onBreak: (event, world, context) => {
+        onBreak: (event, world) => {
             const name = bareName(event.brokenBlock.identifier);
             if (SHEARED_CLIMBERS.has(name) && !cutsCleanly(event.itemStack)) return;
-            dropSelf(world, context, event.brokenBlock);
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

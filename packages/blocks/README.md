@@ -204,6 +204,8 @@ Three events carry the item in the hand, under Mojang's own field name `itemStac
 a player. Without it a block behavior cannot decide honeycomb waxing, axe scraping, silk touch,
 shears, or which bucket filled a cauldron, because every one of those is a fact about the item and
 not about the block.
+`BlockBreakEvent.correctTool` is set by a host that has item data and tags, and reports whether the
+held item satisfies the block's `requires_correct_tool` rule.
 
 `HookItem` is two members, an `identifier` and a `get(name)` component reader:
 

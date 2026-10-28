@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { definitionOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
+import { Item } from '../item/Item';
 import { lootLevelOf } from '../world/lootLevel';
 import { Block } from './Block';
 import { blockLootTableOf, rollBlockDrops } from './blockLoot';
@@ -164,8 +165,9 @@ describe('block', () => {
         it('is what a block breaking yields', () => {
             const content = buildServerContent(fixtureContentOptions());
             const stone = new Block({ name: 'minecraft:stone', content });
+            const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', content });
 
-            const drops = stone.getDrops(null);
+            const drops = stone.getDrops(pickaxe);
 
             expect(drops.map((drop) => drop?.getName())).toEqual(['minecraft:cobblestone']);
         });
@@ -218,6 +220,7 @@ describe('block', () => {
             // break in the nether proves the view arrived rather than that
             // nothing read it.
             const content = dimensionKeyed();
+            const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', content });
             const stone = new Block({ name: 'minecraft:stone', content });
             const serverIn = (dimension: string) => ({
                 getWorldManager: () => ({
@@ -225,10 +228,10 @@ describe('block', () => {
                 })
             });
 
-            expect(stone.getDrops(null, serverIn('minecraft:overworld')).map((drop) => drop?.getName())).toEqual([
+            expect(stone.getDrops(pickaxe, serverIn('minecraft:overworld')).map((drop) => drop?.getName())).toEqual([
                 'minecraft:cobblestone'
             ]);
-            expect(stone.getDrops(null, serverIn('minecraft:the_nether'))).toEqual([]);
+            expect(stone.getDrops(pickaxe, serverIn('minecraft:the_nether'))).toEqual([]);
         });
 
         /**

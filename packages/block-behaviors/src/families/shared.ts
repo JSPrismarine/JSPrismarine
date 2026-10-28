@@ -7,7 +7,7 @@
  */
 import type { HookBlock, HookItem } from '@jsprismarine/blocks';
 
-import type { FamilyContext, FamilyHandlers } from '../family';
+import type { FamilyHandlers } from '../family';
 import { isAxe, isHoneycomb } from '../rules/heldItem';
 import { bareName } from '../state';
 import type { ItemDrop, WorldActions } from '../world';
@@ -20,25 +20,18 @@ import {
 } from '../rules/weathering';
 
 /**
- * Drops one of the block itself.
- *
- * A block whose `jsprismarine:block_properties` says it requires the correct
- * tool drops nothing here. The event now carries the held item, but deciding
- * whether that item is the right tool needs the per-item mining tiers, which
- * live in `@jsprismarine/items`, so the tool check stays with whoever has
- * them.
+ * Proposes one of the block itself as a drop. The content break host checks
+ * `requires_correct_tool` against the held item's data before releasing it.
  *
  * @param carried - What the dropped stack keeps of the block it came from,
  *   which is how a shulker box leaves with the items it was holding.
  */
 export const dropSelf = (
     world: WorldActions,
-    context: FamilyContext,
     block: HookBlock,
     count = 1,
     carried: Omit<ItemDrop, 'identifier' | 'count'> = {}
 ): void => {
-    if (context.properties.requiresCorrectTool) return;
     world.dropItem(block.position, { ...carried, identifier: block.identifier, count });
 };
 

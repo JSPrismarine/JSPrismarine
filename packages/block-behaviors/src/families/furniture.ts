@@ -70,8 +70,8 @@ export const signFamily = defineFamily(
             }
             popWithoutSupport(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -92,8 +92,8 @@ export const bannerFamily = defineFamily(
             }
             popWithoutSupport(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -114,8 +114,8 @@ export const headFamily = defineFamily(
             }
             popWithoutSupport(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -156,8 +156,8 @@ export const bedFamily = defineFamily(
             // check below is what stays reliable.
             popWithoutSupport(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -219,8 +219,8 @@ export const candleFamily = defineFamily(
                 return;
             }
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock, stateNumber(event.brokenBlock, 'candles') + 1);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock, stateNumber(event.brokenBlock, 'candles') + 1);
         }
     }
 );
@@ -237,8 +237,8 @@ export const torchFamily = defineFamily(
                 torchSupport(stateString(event.block, 'torch_facing_direction', 'top'))
             );
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );
@@ -255,8 +255,8 @@ export const lanternFamily = defineFamily(
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },
-        onBreak: (event, world, context) => {
-            dropSelf(world, context, event.brokenBlock);
+        onBreak: (event, world) => {
+            dropSelf(world, event.brokenBlock);
         }
     }
 );

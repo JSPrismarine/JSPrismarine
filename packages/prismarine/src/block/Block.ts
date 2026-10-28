@@ -282,10 +282,10 @@ export class Block {
      *
      * @param item - What is in hand, or null for a bare fist.
      */
-    public isCompatibleWithTool(item: Item | null): boolean {
+    public isCompatibleWithTool(item: Item | null, content = this.content): boolean {
         if (!this.facts.requiresCorrectTool) return true;
-        if (!this.content) return true;
-        return item?.harvests(this.getStateName()) ?? false;
+        if (!content) return true;
+        return item?.harvests(this.getStateName(), content) ?? false;
     }
 
     /**
@@ -301,7 +301,8 @@ export class Block {
      */
     public getDrops(item: Item | null, server?: BlockDropServer): Array<Block | Item | null> {
         const content = this.content ?? server?.getContent?.();
-        if (!content) return this.isCompatibleWithTool(item) ? [this] : [];
+        if (!this.isCompatibleWithTool(item, content)) return [];
+        if (!content) return [this];
 
         const world = server?.getWorldManager?.().getDefaultWorld();
         const rolled = rollBlockDrops(
