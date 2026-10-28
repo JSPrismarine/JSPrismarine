@@ -269,8 +269,8 @@ walk and swim abilities to `CANWALK` and `CANSWIM`, and its flight ability to `C
 `minecraft:free_camera_controlled`, and `minecraft:vertical_movement_action` to `CAN_POWER_JUMP`,
 `CAN_DASH`, `WASD_CONTROLLED`, `WASD_FREE_CAMERA_CONTROLLED`, and
 `CAN_USE_VERTICAL_MOVEMENT_ACTION`. These flags tell the client which controls are available; the
-server does not yet apply those inputs to entity movement. A table reference like
-The outer runtime also reads physics values from the active component set: `minecraft:air_drag_modifier` changes air resistance,
+server does not yet apply those inputs to entity movement. The outer runtime also reads physics
+values from the active component set: `minecraft:air_drag_modifier` changes air resistance,
 `minecraft:uses_uniform_air_drag` applies the same drag on both axes,
 `minecraft:friction_modifier` changes ground friction, and `minecraft:bounciness` changes how much
 impact velocity a collision returns. `minecraft:collision_box`, `minecraft:type_family`,
@@ -301,7 +301,7 @@ test in `src/vanillaEntities.test.ts`:
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
 | Non-goal keys with a component hook | 85 |
-| Non-goal keys with a runtime effect across the server | 95 |
+| Non-goal keys with a runtime effect across the server | 96 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
