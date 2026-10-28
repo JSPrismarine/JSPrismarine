@@ -1,6 +1,9 @@
 name: Linting
 on:
+    # PRs test branch commits; pushes test the merged result on master.
     push:
+        branches:
+            - master
     pull_request:
 
 jobs:
