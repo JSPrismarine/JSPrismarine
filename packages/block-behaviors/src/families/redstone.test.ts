@@ -69,7 +69,7 @@ describe('redstoneFamily: pistons', () => {
 });
 
 describe('redstoneFamily: the observer', () => {
-    it('fires when the block it faces changes and clears on the scheduled tick', () => {
+    it('pulses on the scheduled tick, then clears on the next scheduled tick', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:observer');
         harness.dimension.set(origin, 'minecraft:observer', {
             'minecraft:facing_direction': 'east',
@@ -78,8 +78,16 @@ describe('redstoneFamily: the observer', () => {
 
         harness.neighborChanged(origin, 'east');
 
-        expect(harness.dimension.stateAt(origin, 'powered_bit')).toBe(true);
+        expect(harness.dimension.stateAt(origin, 'powered_bit')).toBe(false);
         expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: OBSERVER_PULSE_TICKS }]);
+
+        harness.tick(origin);
+
+        expect(harness.dimension.stateAt(origin, 'powered_bit')).toBe(true);
+        expect(harness.dimension.scheduled).toEqual([
+            { position: origin, delay: OBSERVER_PULSE_TICKS },
+            { position: origin, delay: OBSERVER_PULSE_TICKS }
+        ]);
 
         harness.tick(origin);
 

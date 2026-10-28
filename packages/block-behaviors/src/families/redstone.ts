@@ -191,7 +191,6 @@ export const redstoneFamily = defineFamily(
             if (name === 'observer') {
                 const facing = block.states['minecraft:facing_direction'];
                 if (typeof facing === 'string' && facing === event.face && !stateBoolean(block, 'powered_bit')) {
-                    setStates(world, block, { powered_bit: true });
                     world.scheduleTick(block.position, OBSERVER_PULSE_TICKS);
                 }
                 return;
@@ -202,12 +201,13 @@ export const redstoneFamily = defineFamily(
         onTick: (event, world) => {
             const block = event.block;
             switch (bareName(block.identifier)) {
-                case 'observer':
-                    if (stateBoolean(block, 'powered_bit')) {
-                        setStates(world, block, { powered_bit: false });
-                        world.notifyNeighbors(block.position);
-                    }
+                case 'observer': {
+                    const powered = stateBoolean(block, 'powered_bit');
+                    setStates(world, block, { powered_bit: !powered });
+                    world.notifyNeighbors(block.position);
+                    if (!powered) world.scheduleTick(block.position, OBSERVER_PULSE_TICKS);
                     return;
+                }
                 case 'powered_repeater':
                 case 'unpowered_repeater':
                     swapPair(world, block, REPEATER_PAIR, world.redstonePower(block.position) > 0);

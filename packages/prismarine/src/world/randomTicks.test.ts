@@ -38,6 +38,7 @@ const BLOCKS = [
     'minecraft:big_dripleaf',
     'minecraft:dirt',
     'minecraft:farmland',
+    'minecraft:observer',
     'minecraft:wheat'
 ] as const;
 
@@ -183,6 +184,28 @@ describe('contentRandomTickHandlers', () => {
 
         expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['big_dripleaf_tilt']).toBe('partial_tilt');
         expect(world.getSystems().ticks.list('block').hasScheduledTick(at, 'minecraft:big_dripleaf')).toBe(true);
+    });
+
+    it('runs both halves of an observer pulse through the resolved block family', () => {
+        const at = { x: 2, y: SOIL_Y + 1, z: 2 };
+        place(chunk, at.x, at.y, at.z, 'minecraft:observer', {
+            'minecraft:facing_direction': 'east',
+            powered_bit: false
+        });
+        const handlers = contentBlockTickHandlers({ content, world: () => world, report: () => {} });
+        expect(handlers['minecraft:observer']).toBeDefined();
+
+        world.setTicks(1);
+        world.getSystems().ticks.list('block').schedule(at, 'minecraft:observer', 1);
+        world.getSystems().tick(1);
+
+        expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['powered_bit']).toBe(1);
+        expect(world.getSystems().ticks.list('block').hasScheduledTick(at, 'minecraft:observer')).toBe(true);
+
+        world.setTicks(3);
+        world.getSystems().tick(3);
+
+        expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['powered_bit']).toBe(0);
     });
 
     it('dispatches random ticks for blocks whose Java state words differ from Bedrock', () => {
