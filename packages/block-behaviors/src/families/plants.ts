@@ -35,6 +35,13 @@ const GROWTH_STATES: Readonly<Record<string, { readonly state: string; readonly 
     bamboo: { state: 'age_bit', max: 1 }
 };
 
+/** Bedrock's cave-vine identifiers, which share Java's hanging vine support rule. */
+const CAVE_VINE_NAMES: ReadonlySet<string> = new Set([
+    'cave_vines',
+    'cave_vines_body_with_berries',
+    'cave_vines_head_with_berries'
+]);
+
 const growthOf = (identifier: string): { readonly state: string; readonly max: number } =>
     GROWTH_STATES[bareName(identifier)] ?? { state: 'growth', max: MAX_CROP_GROWTH };
 
@@ -84,7 +91,13 @@ export const cropFamily = defineFamily(
         },
         onNeighborChanged: (event, world) => {
             const name = bareName(event.block.identifier);
-            if (name === 'cocoa' || name === 'cave_vines' || name === 'nether_wart') return;
+            if (CAVE_VINE_NAMES.has(name)) {
+                const above = world.getBlock(offset(event.block.position, 'up'));
+                if (above === undefined || CAVE_VINE_NAMES.has(bareName(above.identifier))) return;
+                popWithoutSupport(world, event.block, 'up');
+                return;
+            }
+            if (name === 'cocoa' || name === 'nether_wart') return;
             if (stateBoolean(event.block, 'upper_block_bit')) return;
             popWithoutGround(world, event.block, FARMLAND_NAMES);
         },
