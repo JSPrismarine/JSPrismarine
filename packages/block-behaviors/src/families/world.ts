@@ -41,17 +41,29 @@ export const liquidFamily = defineFamily(
             return undefined;
         },
         onPlace: (event, world) => {
-            world.scheduleTick(event.block.position, spreadTicks(event.block.identifier, event.block.dimension));
+            world.scheduleTick(
+                event.block.position,
+                spreadTicks(event.block.identifier, event.block.dimension),
+                'fluid'
+            );
         },
         onNeighborChanged: (event, world) => {
             if (applyLavaWaterReaction(world, event.block) !== undefined) return;
-            world.scheduleTick(event.block.position, spreadTicks(event.block.identifier, event.block.dimension));
+            world.scheduleTick(
+                event.block.position,
+                spreadTicks(event.block.identifier, event.block.dimension),
+                'fluid'
+            );
         },
         onTick: (event, world) => {
             if (applyLavaWaterReaction(world, event.block) !== undefined) return;
             const result = spreadLiquid(world, event.block);
             if (!result.down && result.sides.length === 0) return;
-            world.scheduleTick(event.block.position, spreadTicks(event.block.identifier, event.block.dimension));
+            world.scheduleTick(
+                event.block.position,
+                spreadTicks(event.block.identifier, event.block.dimension),
+                'fluid'
+            );
         },
         onStepOn: (event, world) => {
             if (!isLava(event.block.identifier)) return;
@@ -66,7 +78,11 @@ export const liquidFamily = defineFamily(
             // source does, which the spread check reports as nothing moving.
             if (isLiquidSource(event.block.identifier)) return;
             if (stateNumber(event.block, 'liquid_depth') === 0) return;
-            world.scheduleTick(event.block.position, spreadTicks(event.block.identifier, event.block.dimension));
+            world.scheduleTick(
+                event.block.position,
+                spreadTicks(event.block.identifier, event.block.dimension),
+                'fluid'
+            );
         }
     }
 );

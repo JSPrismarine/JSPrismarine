@@ -19,6 +19,7 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { createEngineWorld } from './EngineWorld';
 import { contentRandomTickHandlers } from './randomTicks';
+import { contentBlockTickHandlers } from './blockTicks';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { WorldSystems } from './WorldSystems';
@@ -32,7 +33,13 @@ import { WorldSystems } from './WorldSystems';
  */
 
 /** The fixture's blocks, which are also the whole of its palette. */
-const BLOCKS = ['minecraft:air', 'minecraft:dirt', 'minecraft:farmland', 'minecraft:wheat'] as const;
+const BLOCKS = [
+    'minecraft:air',
+    'minecraft:big_dripleaf',
+    'minecraft:dirt',
+    'minecraft:farmland',
+    'minecraft:wheat'
+] as const;
 
 /** Blocks whose Java tick states use different words from Bedrock's palette. */
 const MAPPED_STATE_BLOCKS = ['minecraft:bamboo', 'minecraft:pointed_dripstone'] as const;
@@ -128,6 +135,13 @@ describe('contentRandomTickHandlers', () => {
                     report: (identifier, error) => {
                         throw new Error(`${identifier} threw: ${String(error)}`);
                     }
+                }),
+                blockTickHandlers: contentBlockTickHandlers({
+                    content,
+                    world: () => world,
+                    report: (identifier, error) => {
+                        throw new Error(`${identifier} threw: ${String(error)}`);
+                    }
                 })
             })
         });
@@ -158,6 +172,17 @@ describe('contentRandomTickHandlers', () => {
 
         // The crop grows, the farmland dries out and the dirt spreads grass; air does nothing.
         expect(Object.keys(handlers).sort()).toEqual(['minecraft:dirt', 'minecraft:farmland', 'minecraft:wheat']);
+    });
+
+    it('runs a scheduled content hook through the world tick', () => {
+        const at = { x: 2, y: SOIL_Y + 1, z: 2 };
+        place(chunk, at.x, at.y, at.z, 'minecraft:big_dripleaf', { big_dripleaf_tilt: 'unstable' });
+        world.getSystems().ticks.list('block').schedule(at, 'minecraft:big_dripleaf', 1);
+
+        world.getSystems().tick(1);
+
+        expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['big_dripleaf_tilt']).toBe('partial_tilt');
+        expect(world.getSystems().ticks.list('block').hasScheduledTick(at, 'minecraft:big_dripleaf')).toBe(true);
     });
 
     it('dispatches random ticks for blocks whose Java state words differ from Bedrock', () => {

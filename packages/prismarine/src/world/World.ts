@@ -243,6 +243,13 @@ export interface WorldData {
      * arrives from outside. Left out, the draws still happen and nothing answers them.
      */
     randomTickHandlers?: WorldSystemsOptions['randomTickHandlers'];
+    /**
+     * What to run when a scheduled block tick lands on a block, keyed by block identifier.
+     *
+     * Migrated content hooks answer before the engine fallback. Ticks still owned by the engine
+     * stay on that path. Left out, every scheduled tick goes straight to the engine.
+     */
+    blockTickHandlers?: WorldSystemsOptions['blockTickHandlers'];
 }
 
 /** How a broadcast narrows its audience beyond "everyone who can see the place". */
@@ -385,7 +392,17 @@ export class World implements Service {
      */
     private changes: WorldChangeSink = NULL_WORLD_CHANGE_SINK;
 
-    public constructor({ name, server, provider, seed, generator, config, dimension, randomTickHandlers }: WorldData) {
+    public constructor({
+        name,
+        server,
+        provider,
+        seed,
+        generator,
+        config,
+        dimension,
+        randomTickHandlers,
+        blockTickHandlers
+    }: WorldData) {
         this.name = name;
         this.server = server;
         this.provider = provider;
@@ -424,7 +441,8 @@ export class World implements Service {
             // `WorldManager` builds these from the content registries. They are optional
             // because a world built by hand in a test has none. The positions are drawn either
             // way, so the draw sequence - which decides where crops grow - does not shift.
-            randomTickHandlers
+            randomTickHandlers,
+            blockTickHandlers
         });
 
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);

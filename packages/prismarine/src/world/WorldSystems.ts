@@ -2,10 +2,10 @@
  * The light engine, the tick scheduler and the engine systems, driven from one world tick.
  *
  * All three are published packages with no idea a chunk exists. This is the one place that
- * owns them: it builds the light view out of the world's blocks, drains the two scheduled
- * tick lists in Java's order into `@jsprismarine/engine-systems`, hands that engine the
- * chunk sections a random tick may land in, and keeps all three inside a budget so no single
- * tick can stall on a light flood or a backlog of fluid ticks.
+ * owns them: it builds the light view out of the world's blocks, dispatches scheduled ticks
+ * through resolved content hooks before the engine fallback, hands the chunk sections a random
+ * tick may land in to the engine, and keeps all three inside a budget so no single tick can stall
+ * on a light flood or a backlog of fluid ticks.
  */
 import type { BlockPosition, LightFlushResult } from '@jsprismarine/lighting';
 import { LightEngine } from '@jsprismarine/lighting';
@@ -117,8 +117,10 @@ export type WorldSystemsAccess = Omit<WorldAccess, 'scheduleTick' | 'hasSchedule
 export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers' | 'canSpreadFireAround'> {
     /** The reads the light pass and the random tick draw need, which a chunk answers. */
     readonly view: WorldSystemsView;
-    /** Everything redstone, fluids and fire do to the world. */
+    /** Everything the engine fallback does to the world. */
     readonly world: WorldSystemsAccess;
+    /** Resolved content handlers for scheduled block ticks; unhandled ticks fall back to the engine. */
+    readonly blockTickHandlers?: Readonly<Record<string, (at: BlockPosition) => boolean>>;
 }
 
 /** The two numbers the light engine reads, for a block this server's mapping table knows. */
@@ -155,6 +157,8 @@ export class WorldSystems {
 
     private readonly view: WorldSystemsView;
 
+    private readonly blockTickHandlers: WorldSystemsOptions['blockTickHandlers'];
+
     private readonly randomPositions = new BlockRandomPositions();
 
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
@@ -162,6 +166,7 @@ export class WorldSystems {
 
     public constructor(options: WorldSystemsOptions) {
         this.view = options.view;
+        this.blockTickHandlers = options.blockTickHandlers;
         this.lighting = new LightEngine(this.lightView());
         this.engine = createEngine(
             {
@@ -226,7 +231,20 @@ export class WorldSystems {
     public tick(currentTick: number): WorldSystemsReport {
         const scheduled = this.ticks.tick(
             currentTick,
-            (kind: TickKind, tick: ScheduledTick) => this.engine.runScheduledTick(kind, tick.at, tick.type),
+            (kind: TickKind, tick: ScheduledTick) => {
+                const contentHandler = this.blockTickHandlers?.[tick.type];
+                if (contentHandler !== undefined) {
+                    if (kind === 'block' && contentHandler(tick.at)) return;
+                    if (kind === 'fluid') {
+                        // A liquid family uses the block hook's scheduler. If both the
+                        // engine fluid list and that block list queued the same tick, the
+                        // earlier block pass already advanced it.
+                        if (this.ticks.list('block').hasScheduledTick(tick.at, tick.type)) return;
+                        if (contentHandler(tick.at)) return;
+                    }
+                }
+                this.engine.runScheduledTick(kind, tick.at, tick.type);
+            },
             SCHEDULED_TICK_BUDGET_PER_TICK
         );
 

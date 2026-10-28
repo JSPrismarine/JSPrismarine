@@ -36,7 +36,7 @@ one. It is a `BlockWorld`, described below.
 | Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
-| Scheduling | `scheduleTick` |
+| Scheduling | `scheduleTick(position, delay, kind?)` |
 | Block entities | `getBlockData`, `setBlockData` |
 | Updates | `notifyNeighbors`, `redstonePower`, `lightLevel` |
 | Chance | `random` |
@@ -54,6 +54,11 @@ that lost its support and a block a falling anvil cleared out of the way all go 
 `lightDampeningOf` can read a block state's vanilla `minecraft:light_dampening` value, so rules can
 check how much light a cover blocks without treating every support block as opaque. When a host
 cannot report dampening, the shared rule treats it as unknown and does not convert the ground block.
+
+For migrated families, scheduled hooks run from the active block state before the engine fallback.
+Redstone and fire remain engine-owned until their family handlers reach parity. `kind` selects the
+block or fluid tick list and defaults to `block`; water and lava use the fluid list so their family
+tick shares the engine's existing liquid schedule.
 
 A `BlockWorld` is a set of dimensions, and `at(dimension)` returns the `WorldActions` for one. Each
 handler receives the actions for its own event's dimension already resolved, so the dimension never

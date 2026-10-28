@@ -246,6 +246,30 @@ describe('world', () => {
             });
         });
 
+        describe('content block ticks', () => {
+            it('does not run the engine fluid fallback after the content handler advances the same tick', () => {
+                const at = { x: 0, y: 1, z: 0 };
+                const { systemsOf } = worldOf();
+                let systems: WorldSystems | undefined;
+                let handled = 0;
+                systems = systemsOf({
+                    blockTickHandlers: {
+                        'minecraft:water': (position) => {
+                            handled++;
+                            systems?.ticks.list('block').schedule(position, 'minecraft:water', 2);
+                            return true;
+                        }
+                    }
+                });
+                systems.ticks.list('block').schedule(at, 'minecraft:water', 1);
+                systems.ticks.list('fluid').schedule(at, 'minecraft:water', 1);
+
+                systems.tick(1);
+
+                expect(handled).toBe(1);
+            });
+        });
+
         describe('random ticks', () => {
             it('runs the handler for the block the draw landed on', () => {
                 const { blocks, systemsOf } = worldOf();

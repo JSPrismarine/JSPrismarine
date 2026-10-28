@@ -158,8 +158,9 @@ export interface WorldActions {
      * Asks for `onTick` at a position after a delay.
      *
      * @param delay - Game ticks from now, at least 1.
+     * @param kind - Whether the tick belongs to the block or fluid list; defaults to `block`.
      */
-    scheduleTick(position: BlockPosition, delay: number): void;
+    scheduleTick(position: BlockPosition, delay: number, kind?: 'block' | 'fluid'): void;
     /** A block entity's data, or undefined when the position has none. */
     getBlockData(position: BlockPosition): BlockEntityData | undefined;
     /** Replaces a block entity's data whole. */

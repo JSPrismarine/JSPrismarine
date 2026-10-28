@@ -3,6 +3,7 @@ import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
 import { GeneratorManager } from './GeneratorManager';
 import { contentRandomTickHandlers } from './randomTicks';
+import { contentBlockTickHandlers } from './blockTicks';
 import { World } from './World';
 import type BaseProvider from './providers/BaseProvider';
 
@@ -203,6 +204,16 @@ export default class WorldManager implements Service {
                     this.server
                         .getLogger()
                         .error(`§c${identifier}§r threw on a random tick; it will not be reported again`);
+                }
+            }),
+            blockTickHandlers: contentBlockTickHandlers({
+                content,
+                world: () => built,
+                report: (identifier, error) => {
+                    this.server.getLogger().error(error);
+                    this.server
+                        .getLogger()
+                        .error(`§c${identifier}§r threw on a scheduled block tick; it will not be reported again`);
                 }
             })
         });

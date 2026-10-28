@@ -146,13 +146,8 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         spawnParticle: (position, particle) => adapter.effects.spawnParticle(position, particle),
         // The block hook carries no tick type, so the tick is scheduled for whatever stands
         // at the position now, which is what Java's `Block.scheduleTick` does too.
-        scheduleTick: (position, delay) =>
-            adapter.ticks.schedule(
-                'block',
-                position,
-                adapter.blocks.get(position)?.identifier ?? 'minecraft:air',
-                delay
-            ),
+        scheduleTick: (position, delay, kind = 'block') =>
+            adapter.ticks.schedule(kind, position, adapter.blocks.get(position)?.identifier ?? 'minecraft:air', delay),
         getBlockData: (position) => adapter.blocks.data(position),
         setBlockData: (position, data) => adapter.blocks.setData(position, data),
         notifyNeighbors: (position) => adapter.blocks.notifyNeighbors(position),
