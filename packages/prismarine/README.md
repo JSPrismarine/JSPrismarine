@@ -35,3 +35,7 @@ a `$schema` URL pinned to the package version that writes them. The files
 `ops.json` and `banned-players.json` contain arrays at the root and carry their
 pinned schema URL in a leading comment. These URLs use UNPKG, so standalone
 server users do not need to install an npm package to access the schemas.
+
+`Block.getJavaTags()` and `Item.getJavaTags()` expose Java datapack tag membership after the
+content stack loads. `hasJavaTag(name)` checks one membership. Their `getTags()` and `hasTag(name)`
+methods continue to expose Bedrock tags.

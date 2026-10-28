@@ -4,6 +4,7 @@ import type { BlockStateValue, BlockType } from '@jsprismarine/blocks';
 import { bedrockBlockPropertiesOf, bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 
 import type { ServerContent } from '../content/ServerContent';
+import { javaBlockTagsForBedrock } from '../content/javaTags';
 import { Item } from '../item/Item';
 import type { LootLevelWorld } from '../world/lootLevel';
 import { lootLevelOf } from '../world/lootLevel';
@@ -151,6 +152,18 @@ export class Block {
     /** Whether this block state carries one of its Bedrock tags. */
     public hasTag(tag: string): boolean {
         return this.content?.blocks.types.get(this.name)?.state(this.states).hasTag(tag) ?? false;
+    }
+
+    /** The Java datapack tags attached to this Bedrock block type. */
+    public getJavaTags(): readonly string[] {
+        const tags = this.content?.tags;
+        if (tags === undefined) return [];
+        return javaBlockTagsForBedrock(tags, this.name);
+    }
+
+    /** Whether a Java datapack tag includes this block type. */
+    public hasJavaTag(tag: string): boolean {
+        return this.getJavaTags().includes(tag);
     }
 
     /** Java's destroy time in seconds; `-1` marks the unbreakable blocks. */

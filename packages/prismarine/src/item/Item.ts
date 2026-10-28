@@ -7,6 +7,7 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
 
 import type { ServerContent } from '../content/ServerContent';
+import { javaItemTagsForBedrock } from '../content/javaTags';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
 import { storedItem } from '../inventory/persistence';
@@ -212,6 +213,17 @@ export class Item {
     /** Whether this item type carries one of its Bedrock tags. */
     public hasTag(tag: string): boolean {
         return this.type()?.hasTag(tag) ?? false;
+    }
+
+    /** The Java datapack tags attached to this Bedrock item type. */
+    public getJavaTags(): readonly string[] {
+        const tags = this.content?.tags;
+        return tags === undefined ? [] : javaItemTagsForBedrock(tags, this.name);
+    }
+
+    /** Whether a Java datapack tag includes this item type. */
+    public hasJavaTag(tag: string): boolean {
+        return this.getJavaTags().includes(tag);
     }
 
     /** Whether the resolved item type declares the named data component. */
