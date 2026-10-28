@@ -7,22 +7,12 @@
  */
 import type { BlockOracle, BlockState, Direction, FluidKind } from '@jsprismarine/features';
 import { hasSturdyTopFace, isFullCube } from '@jsprismarine/engine-systems';
-import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import { javaBlockFluidKindOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
 import type { JavaRegistry } from './javaWorldgenData';
 
 /** The three identifiers Java treats as air. */
 const AIR_BLOCKS = new Set(['minecraft:air', 'minecraft:cave_air', 'minecraft:void_air']);
-
-/** Blocks whose fluid state is water without a `waterlogged` property. */
-const WATER_BLOCKS = new Set([
-    'minecraft:water',
-    'minecraft:bubble_column',
-    'minecraft:kelp',
-    'minecraft:kelp_plant',
-    'minecraft:seagrass',
-    'minecraft:tall_seagrass'
-]);
 
 /** Java's `#minecraft:replaceable`, which is what `canBeReplaced` resolves to for most blocks. */
 const REPLACEABLE_TAG = 'minecraft:replaceable';
@@ -207,11 +197,7 @@ export const createJavaBlockOracle = (blockTags: JavaRegistry): BlockOracle => {
 
     const isAir = (state: BlockState): boolean => AIR_BLOCKS.has(state.name);
 
-    const fluid = (state: BlockState): FluidKind => {
-        if (state.name === 'minecraft:lava') return 'lava';
-        if (WATER_BLOCKS.has(state.name)) return 'water';
-        return state.properties['waterlogged'] === 'true' ? 'water' : 'empty';
-    };
+    const fluid = (state: BlockState): FluidKind => javaBlockFluidKindOf(state);
 
     /**
      * Java's `isSolid` is `blocksMotion`, which the Bedrock property table does not carry.

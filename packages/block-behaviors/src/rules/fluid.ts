@@ -4,6 +4,7 @@
  */
 import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { bedrockLiquidReactionOf, isWashedAway } from '@jsprismarine/blocks';
+import { bedrockBlockStateToJava, javaBlockFluidKindOf } from '@jsprismarine/mapping';
 
 import { HORIZONTAL_FACES, offset, opposite } from '../geometry';
 import type { HorizontalFace } from '../geometry';
@@ -92,7 +93,14 @@ interface FluidRates {
 
 /** Reads a liquid block's kind, depth, falling state, and source state. */
 export const liquidStateOf = (block: Pick<HookBlock, 'identifier' | 'states'> | undefined): LiquidState | undefined => {
-    if (block === undefined || !isLiquid(block.identifier)) return undefined;
+    if (block === undefined) return undefined;
+
+    if (!isLiquid(block.identifier)) {
+        const mapped = bedrockBlockStateToJava(block.identifier, block.states);
+        if (mapped.kind !== 'mapped') return undefined;
+        const kind = javaBlockFluidKindOf(mapped.java);
+        return kind === 'empty' ? undefined : { kind, amount: 8, falling: false, source: true };
+    }
 
     const kind = isLava(block.identifier) ? 'lava' : 'water';
     const depth = stateNumber(block, 'liquid_depth');

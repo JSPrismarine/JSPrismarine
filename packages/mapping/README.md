@@ -47,6 +47,14 @@ bedrockBiomeToJava('minecraft:taiga_hills');
 // { kind: 'loss', bedrock: { id: 19, identifier: 'minecraft:taiga_hills' }, loss: { reason: ... } }
 ```
 
+`javaBlockFluidKindOf()` reads the fluid carried by a Java block state. It returns `water` for
+water-bearing blocks such as kelp and seagrass, `water` for a state with `waterlogged=true`,
+`lava` for lava, and `empty` otherwise.
+
+```ts
+javaBlockFluidKindOf({ name: 'minecraft:kelp', properties: {} }); // 'water'
+```
+
 `javaDyeColorIndexOf()` gives the Java palette ordinal used by entity `minecraft:color` components.
 `bedrockDyeIndexOf()` resolves the reversed Bedrock data value used by banners from the same color
 name list.

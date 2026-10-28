@@ -9,6 +9,7 @@ export {
     type JavaBlockState,
     type JavaMappingResult
 } from './blockMapping';
+export { javaBlockFluidKindOf, type JavaBlockFluidKind } from './blockFluid';
 export {
     bedrockBannerType,
     bedrockDyeIndexOf,

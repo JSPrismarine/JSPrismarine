@@ -270,6 +270,12 @@ export const bambooFamily = defineFamily(
             }
             const below = world.getBlock(offset(event.block.position, 'down'));
             if (below !== undefined && below.identifier === event.block.identifier) return;
+            if (name === 'kelp') {
+                const supported =
+                    below !== undefined && (world.hasSturdyTopFace?.(below) ?? isSolidSupport(world, below.position));
+                if (!supported) popBlock(world, event.block);
+                return;
+            }
             popWithoutGround(world, event.block, SOIL_NAMES);
         },
         onTick: (event, world) => {
