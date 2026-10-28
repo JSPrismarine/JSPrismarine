@@ -22,6 +22,10 @@
                 "catch_chance_modifier": 5,
                 "destroy_chance_modifier": 100
             },
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 1, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:soil",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -30,6 +34,14 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('upper_block_bit') == 1",
+                "components": {
+                    "minecraft:collision_box": false
+                }
+            }
+        ]
     }
 }

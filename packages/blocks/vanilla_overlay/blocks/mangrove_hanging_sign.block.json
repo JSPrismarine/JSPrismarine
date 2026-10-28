@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.mangrove_hanging_sign.name",
+            "minecraft:collision_box": {
+                "origin": [-2, 14, -8],
+                "size": [4, 2, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:sign",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,23 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('hanging') == 1",
+                "components": {
+                    "minecraft:collision_box": false
+                }
+            },
+            {
+                "condition": "((query.block_state('facing_direction') == 2 || query.block_state('facing_direction') == 3)) && (query.block_state('hanging') == 0)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 14, -2],
+                        "size": [16, 2, 4]
+                    }
+                }
+            }
+        ]
     }
 }

@@ -18,6 +18,16 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.cinnabar_brick_stairs.name",
+            "minecraft:collision_box": [
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [16, 8, 16]
+                },
+                {
+                    "origin": [0, 8, -8],
+                    "size": [8, 8, 16]
+                }
+            ],
             "jsprismarine:behavior": "jsprismarine:stairs",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +36,537 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 1))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [8, 8, 16]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, 0],
+                            "size": [16, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 0))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, -8],
+                            "size": [8, 8, 16]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 1))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [8, 8, 16]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 0],
+                            "size": [16, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'none') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 0))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 8, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 1))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [0, 8, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, 0],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [0, 8, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [-8, 8, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 0))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 1))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 0],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [0, 0, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [-8, 0, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 0))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 8, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 1))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [0, 8, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, 0],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [0, 8, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 0))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 1))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [8, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 0],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:corner') == 'inner_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 8]
+                        },
+                        {
+                            "origin": [0, 0, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 0))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 3))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 8, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 1))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 2))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 2))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 0))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 8, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 3))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 0) && (query.block_state('weirdo_direction') == 1))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 0))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 3))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 1))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 2))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 2))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 0))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [0, 0, 0],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(((query.block_state('minecraft:corner') == 'outer_left') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 3))) || ((query.block_state('minecraft:corner') == 'outer_right') && ((query.block_state('upside_down_bit') == 1) && (query.block_state('weirdo_direction') == 1))))",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 8, -8],
+                            "size": [16, 8, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [8, 8, 8]
+                        }
+                    ]
+                }
+            }
+        ]
     }
 }

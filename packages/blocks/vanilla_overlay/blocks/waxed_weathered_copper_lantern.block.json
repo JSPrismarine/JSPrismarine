@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.waxed_weathered_copper_lantern.name",
+            "minecraft:collision_box": {
+                "origin": [-3, 0, -3],
+                "size": [6, 8, 6]
+            },
             "jsprismarine:behavior": "jsprismarine:copper",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,17 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('hanging') == 1",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 2, -3],
+                        "size": [6, 8, 6]
+                    }
+                }
+            }
+        ]
     }
 }

@@ -16,6 +16,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.end_portal_frame.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 13, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:portal",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -24,6 +28,23 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('end_portal_eye_bit') == 1",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 13, 16]
+                        },
+                        {
+                            "origin": [-3, 13, -3],
+                            "size": [6, 3, 6]
+                        }
+                    ]
+                }
+            }
+        ]
     }
 }

@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.cake.name",
+            "minecraft:collision_box": {
+                "origin": [-7, 0, -7],
+                "size": [14, 8, 14]
+            },
             "jsprismarine:behavior": "jsprismarine:cake",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,62 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('bite_counter') == 1",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-5, 0, -7],
+                        "size": [12, 8, 14]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('bite_counter') == 2",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 0, -7],
+                        "size": [10, 8, 14]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('bite_counter') == 3",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-1, 0, -7],
+                        "size": [8, 8, 14]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('bite_counter') == 4",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [1, 0, -7],
+                        "size": [6, 8, 14]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('bite_counter') == 5",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [3, 0, -7],
+                        "size": [4, 8, 14]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('bite_counter') == 6",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [5, 0, -7],
+                        "size": [2, 8, 14]
+                    }
+                }
+            }
+        ]
     }
 }

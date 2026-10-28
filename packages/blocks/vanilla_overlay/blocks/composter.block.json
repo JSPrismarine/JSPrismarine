@@ -22,6 +22,28 @@
                 "catch_chance_modifier": 5,
                 "destroy_chance_modifier": 20
             },
+            "minecraft:collision_box": [
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [16, 2, 16]
+                },
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [2, 16, 16]
+                },
+                {
+                    "origin": [-8, 0, -8],
+                    "size": [16, 16, 2]
+                },
+                {
+                    "origin": [6, 0, -8],
+                    "size": [2, 16, 16]
+                },
+                {
+                    "origin": [-8, 0, 6],
+                    "size": [16, 16, 2]
+                }
+            ],
             "jsprismarine:behavior": "jsprismarine:composter",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -30,6 +52,197 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('composter_fill_level') == 1",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 3, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('composter_fill_level') == 2",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 5, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('composter_fill_level') == 3",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 7, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('composter_fill_level') == 4",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 9, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('composter_fill_level') == 5",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 11, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('composter_fill_level') == 6",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 13, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "(query.block_state('composter_fill_level') == 7 || query.block_state('composter_fill_level') == 8)",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 15, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, -8],
+                            "size": [16, 16, 2]
+                        },
+                        {
+                            "origin": [6, 0, -8],
+                            "size": [2, 16, 16]
+                        },
+                        {
+                            "origin": [-8, 0, 6],
+                            "size": [16, 16, 2]
+                        }
+                    ]
+                }
+            }
+        ]
     }
 }

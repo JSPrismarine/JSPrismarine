@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.waxed_weathered_lightning_rod.name",
+            "minecraft:collision_box": {
+                "origin": [-2, 0, -2],
+                "size": [4, 16, 4]
+            },
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,26 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('facing_direction') == 2 || query.block_state('facing_direction') == 3)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-2, 6, -8],
+                        "size": [4, 4, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('facing_direction') == 4 || query.block_state('facing_direction') == 5)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 6, -2],
+                        "size": [16, 4, 4]
+                    }
+                }
+            }
+        ]
     }
 }

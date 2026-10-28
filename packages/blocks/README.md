@@ -271,11 +271,11 @@ property-table bump is a reviewable diff rather than a silent change at load.
 pnpm --filter @jsprismarine/blocks run generate:overlay
 ```
 
-The script refreshes the captured display-name table, builds the package, and then runs
-`utils/generate-overlay.mjs` over `dist/`. That generator is plain JavaScript on purpose: one that
-imported `src/` would have to spell its specifiers the way `node`'s resolver wants, and nothing under
-`src/` should be shaped by a build script. A dependent package needs no `allowImportingTsExtensions`
-to typecheck against this one.
+The script refreshes the captured display-name and collision geometry tables, builds the package,
+and then runs `utils/generate-overlay.mjs` over `dist/`. That generator is plain JavaScript on
+purpose: one that imported `src/` would have to spell its specifiers the way `node`'s resolver
+wants, and nothing under `src/` should be shaped by a build script. A dependent package needs no
+`allowImportingTsExtensions` to typecheck against this one.
 
 Each file carries the Bedrock-expressible properties as real Bedrock components, filled from
 `bedrockBlockPropertiesOf` in `@jsprismarine/mapping`, plus the captured `minecraft:display_name`,
@@ -296,11 +296,13 @@ overrides the full-cube conductor default. The boolean values live in
 value to redstone calculations. Blocks without an override use the full-cube default.
 
 `minecraft:collision_box: false` is written for blocks whose captured Bedrock states never have a
-collision box. This comes from the same Bedrock block geometry capture as
-`bedrockCollisionTopOf`, rather than a hand-maintained exception list. Blocks with one fixed partial
-shape also receive the exact captured boxes, converted into Bedrock's component coordinates. The
-overlay report records how many fixed shapes it writes. Blocks whose collision changes by state
-still need overlay permutations to express the per-state shape.
+collision box. This comes from the same Bedrock block geometry capture as `bedrockCollisionTopOf`,
+rather than a hand-maintained exception list. Blocks with a fixed partial shape receive the exact
+captured boxes, converted into Bedrock's component coordinates. For blocks whose collision changes
+by state, the generator matches each captured runtime hash to the vanilla state palette and emits
+`query.block_state` permutations for every non-default shape. The report records both fixed shapes
+and state-varying permutations. Geometry is regenerated with
+`pnpm --filter @jsprismarine/blocks run generate:geometry`.
 
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,
@@ -314,9 +316,6 @@ list is exactly those 182 and that no entry falls through to a generic reason.
 
 ## What is left
 
-- **Per-state collision components.** The overlay marks blocks with no collision in any captured
-  state as non-colliding and writes fixed partial shapes. Blocks whose captured collision changes
-  by state still need `minecraft:collision_box` permutations.
 - **Loot and menu categories.** Behavior-pack `minecraft:loot` components and mapped Java loot
   tables drive block drops in Prismarine. The vanilla overlay does not declare loot components;
   creative menu categories come from the item registry.

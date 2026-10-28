@@ -18,6 +18,10 @@
                 "movement_type": "immovable"
             },
             "minecraft:display_name": "tile.anvil.slightlyDamaged.name",
+            "minecraft:collision_box": {
+                "origin": [-6, 0, -8],
+                "size": [12, 16, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:utility",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,17 @@
                 "push_reaction": "immovable",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'west' || query.block_state('minecraft:cardinal_direction') == 'east')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -6],
+                        "size": [16, 16, 12]
+                    }
+                }
+            }
+        ]
     }
 }

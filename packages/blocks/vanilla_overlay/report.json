@@ -3,6 +3,8 @@
     "blockCount": 1477,
     "displayNameCount": 1477,
     "collisionShapeCount": 88,
+    "collisionPermutationBlockCount": 446,
+    "collisionPermutationCount": 4996,
     "exceptionCount": 182,
     "frictionClamps": [
         {

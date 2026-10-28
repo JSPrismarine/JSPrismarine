@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.mangrove_trapdoor.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 2.92, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:trapdoor",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,53 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('open_bit') == 0) && (query.block_state('upside_down_bit') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 13.079984, -8],
+                        "size": [16, 2.9200160000000004, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('direction') == 0) && (query.block_state('open_bit') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [2.92, 16, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('direction') == 1) && (query.block_state('open_bit') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [5.079984, 0, -8],
+                        "size": [2.9200160000000004, 16, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('direction') == 2) && (query.block_state('open_bit') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 16, 2.92]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('direction') == 3) && (query.block_state('open_bit') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, 5.079984],
+                        "size": [16, 16, 2.9200160000000004]
+                    }
+                }
+            }
+        ]
     }
 }

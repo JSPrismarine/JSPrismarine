@@ -18,6 +18,36 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.hopper.name",
+            "minecraft:collision_box": [
+                {
+                    "origin": [-8, 10, -8],
+                    "size": [16, 1, 16]
+                },
+                {
+                    "origin": [-8, 11, -8],
+                    "size": [2, 5, 16]
+                },
+                {
+                    "origin": [6, 11, -8],
+                    "size": [2, 5, 16]
+                },
+                {
+                    "origin": [-6, 11, -8],
+                    "size": [12, 5, 2]
+                },
+                {
+                    "origin": [-6, 11, 6],
+                    "size": [12, 5, 2]
+                },
+                {
+                    "origin": [-4, 4, -4],
+                    "size": [8, 6, 8]
+                },
+                {
+                    "origin": [-2, 0, -2],
+                    "size": [4, 4, 4]
+                }
+            ],
             "jsprismarine:behavior": "jsprismarine:redstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +56,148 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('facing_direction') == 2",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 10, -8],
+                            "size": [16, 1, 16]
+                        },
+                        {
+                            "origin": [-8, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [6, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [-6, 11, -8],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-6, 11, 6],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-4, 4, -4],
+                            "size": [8, 6, 8]
+                        },
+                        {
+                            "origin": [-2, 4, -8],
+                            "size": [4, 4, 4]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 3",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 10, -8],
+                            "size": [16, 1, 16]
+                        },
+                        {
+                            "origin": [-8, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [6, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [-6, 11, -8],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-6, 11, 6],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-4, 4, -4],
+                            "size": [8, 6, 8]
+                        },
+                        {
+                            "origin": [-2, 4, 4],
+                            "size": [4, 4, 4]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 4",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 10, -8],
+                            "size": [16, 1, 16]
+                        },
+                        {
+                            "origin": [-8, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [6, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [-6, 11, -8],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-6, 11, 6],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-4, 4, -4],
+                            "size": [8, 6, 8]
+                        },
+                        {
+                            "origin": [-8, 4, -2],
+                            "size": [4, 4, 4]
+                        }
+                    ]
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 5",
+                "components": {
+                    "minecraft:collision_box": [
+                        {
+                            "origin": [-8, 10, -8],
+                            "size": [16, 1, 16]
+                        },
+                        {
+                            "origin": [-8, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [6, 11, -8],
+                            "size": [2, 5, 16]
+                        },
+                        {
+                            "origin": [-6, 11, -8],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-6, 11, 6],
+                            "size": [12, 5, 2]
+                        },
+                        {
+                            "origin": [-4, 4, -4],
+                            "size": [8, 6, 8]
+                        },
+                        {
+                            "origin": [4, 4, -2],
+                            "size": [4, 4, 4]
+                        }
+                    ]
+                }
+            }
+        ]
     }
 }

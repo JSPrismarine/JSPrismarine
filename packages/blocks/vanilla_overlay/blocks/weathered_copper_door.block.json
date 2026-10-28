@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.weathered_copper_door.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [3, 16, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:door",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,35 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(((query.block_state('door_hinge_bit') == 0) && ((((query.block_state('minecraft:cardinal_direction') == 'south') && (query.block_state('open_bit') == 1)) || ((query.block_state('minecraft:cardinal_direction') == 'west') && (query.block_state('open_bit') == 0))))) || ((query.block_state('door_hinge_bit') == 1) && ((((query.block_state('minecraft:cardinal_direction') == 'west') && (query.block_state('open_bit') == 0)) || ((query.block_state('minecraft:cardinal_direction') == 'north') && (query.block_state('open_bit') == 1))))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 16, 3]
+                    }
+                }
+            },
+            {
+                "condition": "(((query.block_state('door_hinge_bit') == 0) && ((((query.block_state('minecraft:cardinal_direction') == 'west') && (query.block_state('open_bit') == 1)) || ((query.block_state('minecraft:cardinal_direction') == 'north') && (query.block_state('open_bit') == 0))))) || ((query.block_state('door_hinge_bit') == 1) && ((((query.block_state('minecraft:cardinal_direction') == 'north') && (query.block_state('open_bit') == 0)) || ((query.block_state('minecraft:cardinal_direction') == 'east') && (query.block_state('open_bit') == 1))))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [5, 0, -8],
+                        "size": [3, 16, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(((query.block_state('door_hinge_bit') == 0) && ((((query.block_state('minecraft:cardinal_direction') == 'north') && (query.block_state('open_bit') == 1)) || ((query.block_state('minecraft:cardinal_direction') == 'east') && (query.block_state('open_bit') == 0))))) || ((query.block_state('door_hinge_bit') == 1) && ((((query.block_state('minecraft:cardinal_direction') == 'south') && (query.block_state('open_bit') == 1)) || ((query.block_state('minecraft:cardinal_direction') == 'east') && (query.block_state('open_bit') == 0))))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, 5],
+                        "size": [16, 16, 3]
+                    }
+                }
+            }
+        ]
     }
 }

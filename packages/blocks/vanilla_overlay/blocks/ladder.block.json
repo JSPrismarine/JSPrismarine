@@ -18,6 +18,7 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.ladder.name",
+            "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:climbing",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +27,44 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('facing_direction') == 2",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, 5],
+                        "size": [16, 16, 3]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 3",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 16, 3]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 4",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [5, 0, -8],
+                        "size": [3, 16, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 5",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [3, 16, 16]
+                    }
+                }
+            }
+        ]
     }
 }

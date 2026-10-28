@@ -22,6 +22,10 @@
                 "catch_chance_modifier": 60,
                 "destroy_chance_modifier": 100
             },
+            "minecraft:collision_box": {
+                "origin": [-8, 11, -8],
+                "size": [16, 4, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:dripleaf",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -30,6 +34,23 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "((query.block_state('big_dripleaf_head') == 0) || ((query.block_state('big_dripleaf_head') == 1) && (query.block_state('big_dripleaf_tilt') == 'full_tilt')))",
+                "components": {
+                    "minecraft:collision_box": false
+                }
+            },
+            {
+                "condition": "(query.block_state('big_dripleaf_head') == 1) && (query.block_state('big_dripleaf_tilt') == 'partial_tilt')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 11, -8],
+                        "size": [16, 2, 16]
+                    }
+                }
+            }
+        ]
     }
 }

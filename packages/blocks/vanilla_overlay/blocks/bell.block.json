@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.bell.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -4],
+                "size": [16, 13, 8]
+            },
             "jsprismarine:behavior": "jsprismarine:redstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,80 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('attachment') == 'standing') && ((query.block_state('direction') == 1 || query.block_state('direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -8],
+                        "size": [8, 13, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('attachment') == 'hanging'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, -4],
+                        "size": [8, 12, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'side') && (query.block_state('direction') == 0)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, -8],
+                        "size": [8, 11, 13]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'side') && (query.block_state('direction') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-5, 4, -4],
+                        "size": [13, 11, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'side') && (query.block_state('direction') == 2)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, -5],
+                        "size": [8, 11, 13]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'side') && (query.block_state('direction') == 3)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 4, -4],
+                        "size": [13, 11, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'multiple') && ((query.block_state('direction') == 0 || query.block_state('direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, -8],
+                        "size": [8, 12, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'multiple') && ((query.block_state('direction') == 1 || query.block_state('direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 4, -4],
+                        "size": [16, 12, 8]
+                    }
+                }
+            }
+        ]
     }
 }

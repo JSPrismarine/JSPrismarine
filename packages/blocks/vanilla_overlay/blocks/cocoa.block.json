@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.cocoa.name",
+            "minecraft:collision_box": {
+                "origin": [-2, 7, 3],
+                "size": [4, 5, 4]
+            },
             "jsprismarine:behavior": "jsprismarine:crop",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,107 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('age') == 0) && (query.block_state('direction') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-7, 7, -2],
+                        "size": [4, 5, 4]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 0) && (query.block_state('direction') == 2)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-2, 7, -7],
+                        "size": [4, 5, 4]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 0) && (query.block_state('direction') == 3)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [3, 7, -2],
+                        "size": [4, 5, 4]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 1) && (query.block_state('direction') == 0)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 5, 1],
+                        "size": [6, 7, 6]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 1) && (query.block_state('direction') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-7, 5, -3],
+                        "size": [6, 7, 6]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 1) && (query.block_state('direction') == 2)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 5, -7],
+                        "size": [6, 7, 6]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 1) && (query.block_state('direction') == 3)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [1, 5, -3],
+                        "size": [6, 7, 6]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 2) && (query.block_state('direction') == 0)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 3, -1],
+                        "size": [8, 9, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 2) && (query.block_state('direction') == 1)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-7, 3, -4],
+                        "size": [8, 9, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 2) && (query.block_state('direction') == 2)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 3, -7],
+                        "size": [8, 9, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('age') == 2) && (query.block_state('direction') == 3)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-1, 3, -4],
+                        "size": [8, 9, 8]
+                    }
+                }
+            }
+        ]
     }
 }

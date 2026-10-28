@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.warped_fence_gate.name",
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -2],
+                "size": [16, 24, 4]
+            },
             "jsprismarine:behavior": "jsprismarine:fence_gate",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,23 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('open_bit') == 1",
+                "components": {
+                    "minecraft:collision_box": false
+                }
+            },
+            {
+                "condition": "((query.block_state('minecraft:cardinal_direction') == 'west' || query.block_state('minecraft:cardinal_direction') == 'east')) && (query.block_state('open_bit') == 0)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-2, 0, -8],
+                        "size": [4, 24, 16]
+                    }
+                }
+            }
+        ]
     }
 }

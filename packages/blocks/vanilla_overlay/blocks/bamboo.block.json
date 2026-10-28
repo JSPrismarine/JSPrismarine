@@ -25,6 +25,10 @@
                 "catch_chance_modifier": 60,
                 "destroy_chance_modifier": 60
             },
+            "minecraft:collision_box": {
+                "origin": [0, 0, 0],
+                "size": [2, 16, 2]
+            },
             "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -33,6 +37,17 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('bamboo_stalk_thickness') == 'thick'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [0, 0, 0],
+                        "size": [3, 16, 3]
+                    }
+                }
+            }
+        ]
     }
 }

@@ -18,6 +18,10 @@
                 "movement_type": "immovable"
             },
             "minecraft:display_name": "tile.grindstone.name",
+            "minecraft:collision_box": {
+                "origin": [-6, 0, -6],
+                "size": [12, 16, 12]
+            },
             "jsprismarine:behavior": "jsprismarine:utility",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,26 @@
                 "push_reaction": "immovable",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('attachment') == 'side') && ((query.block_state('direction') == 0 || query.block_state('direction') == 2))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-6, 2, -8],
+                        "size": [12, 12, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('attachment') == 'side') && ((query.block_state('direction') == 1 || query.block_state('direction') == 3))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 2, -6],
+                        "size": [16, 12, 12]
+                    }
+                }
+            }
+        ]
     }
 }

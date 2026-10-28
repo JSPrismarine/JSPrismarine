@@ -23,6 +23,10 @@
                 "catch_chance_modifier": 30,
                 "destroy_chance_modifier": 60
             },
+            "minecraft:collision_box": {
+                "origin": [-8, 0, -8],
+                "size": [16, 8, 16]
+            },
             "jsprismarine:behavior": "jsprismarine:slab",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -31,6 +35,17 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('minecraft:vertical_half') == 'top'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 8, -8],
+                        "size": [16, 8, 16]
+                    }
+                }
+            }
+        ]
     }
 }

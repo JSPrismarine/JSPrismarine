@@ -18,6 +18,7 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.snow_layer.name",
+            "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:snow",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +27,71 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('height') == 1",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 2, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('height') == 2",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 4, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('height') == 3",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 6, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('height') == 4",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 8, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('height') == 5",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 10, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('height') == 6",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 12, 16]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('height') == 7",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 14, 16]
+                    }
+                }
+            }
+        ]
     }
 }

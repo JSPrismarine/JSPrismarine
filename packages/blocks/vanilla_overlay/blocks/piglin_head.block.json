@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "item.skull.piglin.name",
+            "minecraft:collision_box": {
+                "origin": [-4, 0, -4],
+                "size": [8, 8, 8]
+            },
             "jsprismarine:behavior": "jsprismarine:head",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,44 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('facing_direction') == 2",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, 0],
+                        "size": [8, 8, 8]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 3",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, -8],
+                        "size": [8, 8, 8]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 4",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [0, 4, -4],
+                        "size": [8, 8, 8]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('facing_direction') == 5",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 4, -4],
+                        "size": [8, 8, 8]
+                    }
+                }
+            }
+        ]
     }
 }

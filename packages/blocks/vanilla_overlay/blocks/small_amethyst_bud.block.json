@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.small_amethyst_bud.name",
+            "minecraft:collision_box": {
+                "origin": [-4, 0, -4],
+                "size": [8, 3, 8]
+            },
             "jsprismarine:behavior": "jsprismarine:dripstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,53 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('minecraft:block_face') == 'down'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 13, -4],
+                        "size": [8, 3, 8]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('minecraft:block_face') == 'north'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, 5],
+                        "size": [8, 8, 3]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('minecraft:block_face') == 'south'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 4, -8],
+                        "size": [8, 8, 3]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('minecraft:block_face') == 'west'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [5, 4, -4],
+                        "size": [3, 8, 8]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('minecraft:block_face') == 'east'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 4, -4],
+                        "size": [3, 8, 8]
+                    }
+                }
+            }
+        ]
     }
 }

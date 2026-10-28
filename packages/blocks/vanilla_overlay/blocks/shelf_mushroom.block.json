@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.shelf_mushroom.name",
+            "minecraft:collision_box": {
+                "origin": [-5, 4, -8],
+                "size": [10, 7, 7]
+            },
             "jsprismarine:behavior": "jsprismarine:flora",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,71 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('growth') == 0) && (query.block_state('minecraft:cardinal_direction') == 'west')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [1, 4, -5],
+                        "size": [7, 7, 10]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('growth') == 0) && (query.block_state('minecraft:cardinal_direction') == 'north')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-5, 4, 1],
+                        "size": [10, 7, 7]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('growth') == 0) && (query.block_state('minecraft:cardinal_direction') == 'east')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 4, -5],
+                        "size": [7, 7, 10]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('growth') == 1) && (query.block_state('minecraft:cardinal_direction') == 'south')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-7, 4, -8],
+                        "size": [14, 7, 10]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('growth') == 1) && (query.block_state('minecraft:cardinal_direction') == 'west')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-2, 4, -7],
+                        "size": [10, 7, 14]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('growth') == 1) && (query.block_state('minecraft:cardinal_direction') == 'north')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-7, 4, -2],
+                        "size": [14, 7, 10]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('growth') == 1) && (query.block_state('minecraft:cardinal_direction') == 'east')",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 4, -7],
+                        "size": [10, 7, 14]
+                    }
+                }
+            }
+        ]
     }
 }

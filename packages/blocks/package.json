@@ -43,7 +43,7 @@
         "generate:block-tags": "node utils/generate-block-tags.mjs",
         "generate:display-names": "node ../../scripts/ensure-submodules.mts && node utils/generate-display-names.mjs",
         "generate:geometry": "node ../../scripts/ensure-submodules.mts && node utils/generate-geometry.mjs",
-        "generate:overlay": "pnpm run generate:display-names && vite build && node utils/generate-overlay.mjs",
+        "generate:overlay": "pnpm run generate:display-names && pnpm run generate:geometry && vite build && node utils/generate-overlay.mjs",
         "test": "vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },

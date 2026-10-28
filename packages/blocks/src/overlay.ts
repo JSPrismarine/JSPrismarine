@@ -5,7 +5,12 @@ import { bedrockBlockDisplayNameOf } from './displayNames';
 import containerOpenSounds from './tables/containerOpenSounds.json';
 import vanillaRedstoneConductivity from './tables/vanillaRedstoneConductivity.json';
 import vanillaBlockTags from './tables/vanillaBlockTags.json';
-import { bedrockHasCollisionOf, bedrockStaticCollisionBoxesOf } from './geometry';
+import {
+    bedrockCollisionDefaultBoxesOf,
+    bedrockCollisionPermutationsOf,
+    bedrockHasCollisionOf,
+    bedrockStaticCollisionBoxesOf
+} from './geometry';
 
 const BEDROCK_BLOCK_TAGS = new Map(Object.entries(vanillaBlockTags));
 const VANILLA_REDSTONE_CONDUCTIVITY = new Map(Object.entries(vanillaRedstoneConductivity));
@@ -139,6 +144,10 @@ export interface OverlayPack {
     readonly frictionClamps: readonly FrictionClamp[];
     /** Blocks whose captured Bedrock states never have collision geometry. */
     readonly nonCollidingBlocks: readonly string[];
+    /** Blocks whose collision shape changes across their vanilla states. */
+    readonly collisionPermutationBlockCount: number;
+    /** Collision shape overrides emitted across all state-varying blocks. */
+    readonly collisionPermutationCount: number;
     /** How many blocks received their captured Bedrock display name. */
     readonly displayNameCount: number;
     /** Blocks whose fixed partial collision shape was written as a component. */
@@ -191,6 +200,22 @@ const PRINT_WIDTH = 120;
 
 const json = (value: unknown): string => `${render(value, 0, '')}\n`;
 
+/** The collision-box component for captured normalized cell boxes. */
+const collisionComponentFor = (boxes: readonly (readonly [number, number, number, number, number, number])[]) => {
+    if (boxes.length === 0) return false;
+    if (boxes.length > 16) throw new Error(`Bedrock collision_box accepts at most 16 boxes, got ${boxes.length}`);
+
+    const components = boxes.map(([minX, minY, minZ, maxX, maxY, maxZ]) => ({
+        origin: [minX * 16 - 8, minY * 16, minZ * 16 - 8],
+        size: [(maxX - minX) * 16, (maxY - minY) * 16, (maxZ - minZ) * 16]
+    }));
+    return components.length === 1 ? components[0] : components;
+};
+
+/** Whether the captured shape is the component's implicit full cube. */
+const isFullCube = (boxes: readonly (readonly [number, number, number, number, number, number])[]): boolean =>
+    boxes.length === 1 && boxes[0]!.every((coordinate, index) => coordinate === [0, 0, 0, 1, 1, 1][index]);
+
 /**
  * Builds the `jsprismarine_vanilla` overlay: a Bedrock behavior pack that
  * declares one block definition for every block in the palette.
@@ -219,6 +244,8 @@ export const generateVanillaOverlay = (
     const frictionClamps: FrictionClamp[] = [];
     const nonCollidingBlocks: string[] = [];
     const collisionShapeBlocks: string[] = [];
+    let collisionPermutationBlockCount = 0;
+    let collisionPermutationCount = 0;
     const behaviorCounts = new Map<string, number>();
 
     files.push({
@@ -258,6 +285,7 @@ export const generateVanillaOverlay = (
             'minecraft:light_dampening': row.lightDampening,
             'minecraft:movable': { movement_type: MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull' }
         };
+        const permutations: { condition: string; components: Record<string, unknown> }[] = [];
 
         const displayName = bedrockBlockDisplayNameOf(identifier);
         if (displayName === undefined) throw new Error(`${identifier} has no captured Bedrock display name`);
@@ -286,13 +314,24 @@ export const generateVanillaOverlay = (
         } else {
             const boxes = bedrockStaticCollisionBoxesOf(identifier);
             if (boxes !== undefined) {
-                const componentBoxes = boxes.map(([minX, minY, minZ, maxX, maxY, maxZ]) => ({
-                    origin: [minX * 16 - 8, minY * 16, minZ * 16 - 8],
-                    size: [(maxX - minX) * 16, (maxY - minY) * 16, (maxZ - minZ) * 16]
-                }));
-                components['minecraft:collision_box'] =
-                    componentBoxes.length === 1 ? componentBoxes[0] : componentBoxes;
+                components['minecraft:collision_box'] = collisionComponentFor(boxes);
                 collisionShapeBlocks.push(identifier);
+            }
+
+            const defaultBoxes = bedrockCollisionDefaultBoxesOf(identifier);
+            if (defaultBoxes !== undefined && !isFullCube(defaultBoxes)) {
+                components['minecraft:collision_box'] = collisionComponentFor(defaultBoxes);
+            }
+
+            for (const permutation of bedrockCollisionPermutationsOf(identifier)) {
+                permutations.push({
+                    condition: permutation.condition,
+                    components: { 'minecraft:collision_box': collisionComponentFor(permutation.boxes) }
+                });
+            }
+            if (permutations.length > 0) {
+                collisionPermutationBlockCount += 1;
+                collisionPermutationCount += permutations.length;
             }
         }
 
@@ -314,7 +353,11 @@ export const generateVanillaOverlay = (
             path: `blocks/${fileNameFor(identifier)}`,
             content: json({
                 format_version: OVERLAY_FORMAT_VERSION,
-                'minecraft:block': { description: { identifier }, components }
+                'minecraft:block': {
+                    description: { identifier },
+                    components,
+                    permutations: permutations.length > 0 ? permutations : undefined
+                }
             })
         });
     }
@@ -339,6 +382,8 @@ export const generateVanillaOverlay = (
             blockCount: identifiers.length,
             displayNameCount: identifiers.length,
             collisionShapeCount: collisionShapeBlocks.length,
+            collisionPermutationBlockCount,
+            collisionPermutationCount,
             exceptionCount: exceptions.length,
             frictionClamps,
             nonCollidingBlocks,
@@ -353,6 +398,8 @@ export const generateVanillaOverlay = (
         nonCollidingBlocks,
         displayNameCount: identifiers.length,
         collisionShapeCount: collisionShapeBlocks.length,
+        collisionPermutationBlockCount,
+        collisionPermutationCount,
         behaviorCounts: counts
     };
 };

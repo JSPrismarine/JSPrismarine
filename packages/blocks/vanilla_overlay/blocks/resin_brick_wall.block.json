@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.resin_brick_wall.name",
+            "minecraft:collision_box": {
+                "origin": [-4, 0, -4],
+                "size": [8, 24, 8]
+            },
             "jsprismarine:behavior": "jsprismarine:wall",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,161 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && ((query.block_state('wall_connection_type_north') == 'none') && ((query.block_state('wall_connection_type_south') == 'none') && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -4],
+                        "size": [12, 24, 8]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && ((query.block_state('wall_connection_type_north') == 'none') && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && (query.block_state('wall_connection_type_west') == 'none')))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -4],
+                        "size": [8, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && ((query.block_state('wall_connection_type_north') == 'none') && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -4],
+                        "size": [12, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && ((query.block_state('wall_connection_type_south') == 'none') && (query.block_state('wall_connection_type_west') == 'none')))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -8],
+                        "size": [8, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && ((query.block_state('wall_connection_type_south') == 'none') && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [12, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && ((query.block_state('wall_connection_type_west') == 'none') && (query.block_state('wall_post_bit') == 0))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 0, -8],
+                        "size": [6, 24, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && ((query.block_state('wall_connection_type_west') == 'none') && (query.block_state('wall_post_bit') == 1))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -8],
+                        "size": [8, 24, 16]
+                    }
+                }
+            },
+            {
+                "condition": "(query.block_state('wall_connection_type_east') == 'none') && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [12, 24, 16]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && ((query.block_state('wall_connection_type_north') == 'none') && ((query.block_state('wall_connection_type_south') == 'none') && (query.block_state('wall_connection_type_west') == 'none')))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -4],
+                        "size": [12, 24, 8]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && ((query.block_state('wall_connection_type_north') == 'none') && ((query.block_state('wall_connection_type_south') == 'none') && (((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall')) && (query.block_state('wall_post_bit') == 0))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -3],
+                        "size": [16, 24, 6]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && ((query.block_state('wall_connection_type_north') == 'none') && ((query.block_state('wall_connection_type_south') == 'none') && (((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall')) && (query.block_state('wall_post_bit') == 1))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -4],
+                        "size": [16, 24, 8]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && ((query.block_state('wall_connection_type_north') == 'none') && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && (query.block_state('wall_connection_type_west') == 'none')))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -4],
+                        "size": [12, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && ((query.block_state('wall_connection_type_north') == 'none') && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -4],
+                        "size": [16, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && ((query.block_state('wall_connection_type_south') == 'none') && (query.block_state('wall_connection_type_west') == 'none')))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -8],
+                        "size": [12, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && ((query.block_state('wall_connection_type_south') == 'none') && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 24, 12]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && (query.block_state('wall_connection_type_west') == 'none')))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -8],
+                        "size": [12, 24, 16]
+                    }
+                }
+            },
+            {
+                "condition": "((query.block_state('wall_connection_type_east') == 'short' || query.block_state('wall_connection_type_east') == 'tall')) && (((query.block_state('wall_connection_type_north') == 'short' || query.block_state('wall_connection_type_north') == 'tall')) && (((query.block_state('wall_connection_type_south') == 'short' || query.block_state('wall_connection_type_south') == 'tall')) && ((query.block_state('wall_connection_type_west') == 'short' || query.block_state('wall_connection_type_west') == 'tall'))))",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 0, -8],
+                        "size": [16, 24, 16]
+                    }
+                }
+            }
+        ]
     }
 }

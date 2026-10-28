@@ -18,6 +18,10 @@
                 "movement_type": "push_pull"
             },
             "minecraft:display_name": "tile.waxed_oxidized_copper_chain.name",
+            "minecraft:collision_box": {
+                "origin": [-1.5, 0, -1.5],
+                "size": [3, 16, 3]
+            },
             "jsprismarine:behavior": "jsprismarine:copper",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,26 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "query.block_state('pillar_axis') == 'x'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-8, 6.5, -1.5],
+                        "size": [16, 3, 3]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('pillar_axis') == 'z'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-1.5, 6.5, -8],
+                        "size": [3, 3, 16]
+                    }
+                }
+            }
+        ]
     }
 }

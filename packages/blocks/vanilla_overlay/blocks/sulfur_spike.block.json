@@ -18,6 +18,10 @@
                 "movement_type": "popped"
             },
             "minecraft:display_name": "tile.sulfur_spike.name",
+            "minecraft:collision_box": {
+                "origin": [-3, 5, -3],
+                "size": [6, 11, 6]
+            },
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
@@ -26,6 +30,53 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('dripstone_thickness') == 'tip') && (query.block_state('hanging') == 0)",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 0, -3],
+                        "size": [6, 11, 6]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('dripstone_thickness') == 'frustum'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-4, 0, -4],
+                        "size": [8, 16, 8]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('dripstone_thickness') == 'middle'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-5, 0, -5],
+                        "size": [10, 16, 10]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('dripstone_thickness') == 'base'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-6, 0, -6],
+                        "size": [12, 16, 12]
+                    }
+                }
+            },
+            {
+                "condition": "query.block_state('dripstone_thickness') == 'merge'",
+                "components": {
+                    "minecraft:collision_box": {
+                        "origin": [-3, 0, -3],
+                        "size": [6, 16, 6]
+                    }
+                }
+            }
+        ]
     }
 }

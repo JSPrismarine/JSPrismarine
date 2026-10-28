@@ -12,9 +12,8 @@
  *
  * It is the column `@jsprismarine/mapping` does not have. Physics and
  * pathfinding use this capture for every palette block, and the overlay uses
- * it to emit `minecraft:collision_box` for blocks that never collide and for
- * blocks with one fixed partial shape. Shapes that change by state still need
- * overlay permutations.
+ * it to emit `minecraft:collision_box` for blocks that never collide, fixed
+ * partial shapes, and state-varying shapes.
  */
 import table from './tables/blockGeometry.json';
 
@@ -36,9 +35,24 @@ interface GeometryRow {
     /** Whether any captured state of this block has a collision box. */
     hasCollision: boolean;
     /** Exact boxes when every state shares one shape other than a full cube. */
-    collisionBoxes?: readonly (readonly [number, number, number, number, number, number])[];
+    collisionBoxes?: readonly BedrockCollisionBox[];
+    /** The boxes of the vanilla default state when collision changes by state. */
+    collisionDefaultBoxes?: readonly BedrockCollisionBox[];
+    /** The shape overrides for states whose boxes differ from the vanilla default state. */
+    collisionPermutations?: readonly BedrockCollisionPermutation[];
     /** The states that differ, keyed by their runtime id as an unsigned 32-bit number. */
     states?: Record<string, number>;
+}
+
+/** One normalized collision box: minimum X/Y/Z, then maximum X/Y/Z. */
+export type BedrockCollisionBox = readonly [number, number, number, number, number, number];
+
+/** The collision boxes applied when a vanilla block state condition matches. */
+export interface BedrockCollisionPermutation {
+    /** A Molang condition using `query.block_state`. */
+    readonly condition: string;
+    /** The boxes normalized to the block cell. An empty list means no collision. */
+    readonly boxes: readonly BedrockCollisionBox[];
 }
 
 // The generated table is parsed JSON; the generator guarantees this shape.
@@ -114,6 +128,29 @@ export const bedrockStaticCollisionBoxesOf = (
     identifier: string
 ): readonly (readonly [number, number, number, number, number, number])[] | undefined =>
     blocks[identifier]?.collisionBoxes;
+
+/**
+ * The captured collision boxes of a varying-shape block's default state.
+ *
+ * An empty list means the default state does not collide. A full cube is
+ * returned explicitly so a caller can override it when another state is
+ * partial or non-colliding.
+ * @param identifier - The namespaced Bedrock block identifier.
+ * @returns The default state's exact shape, or undefined when the shape is fixed.
+ */
+export const bedrockCollisionDefaultBoxesOf = (identifier: string): readonly BedrockCollisionBox[] | undefined =>
+    blocks[identifier]?.collisionDefaultBoxes;
+
+/**
+ * The captured collision-box overrides for states whose shape differs from the default.
+ *
+ * Each condition selects the state values that share the listed boxes. An
+ * empty box list means `minecraft:collision_box: false` for those states.
+ * @param identifier - The namespaced Bedrock block identifier.
+ * @returns The varying state shapes, or an empty list when the block's shape is fixed or uncaptured.
+ */
+export const bedrockCollisionPermutationsOf = (identifier: string): readonly BedrockCollisionPermutation[] =>
+    blocks[identifier]?.collisionPermutations ?? [];
 
 /**
  * What a liquid flowing into this block's cell does to it.
