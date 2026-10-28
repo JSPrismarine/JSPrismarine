@@ -125,6 +125,7 @@ const RUNTIME_COMPONENTS = [
     'minecraft:is_illager_captain',
     'minecraft:is_shaking',
     'minecraft:is_hidden_when_invisible',
+    'minecraft:is_dyeable',
     'minecraft:is_stackable',
     'minecraft:is_collidable',
     'minecraft:is_pregnant',
@@ -399,7 +400,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(78);
+        expect(withBehavior).toHaveLength(79);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

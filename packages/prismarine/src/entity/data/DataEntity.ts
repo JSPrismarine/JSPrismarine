@@ -91,6 +91,9 @@ export class MobBody {
     /** The custom name set by an accepted name tag. */
     public nameTag: string | undefined;
 
+    /** The palette color set by an accepted dye, overriding `minecraft:color` from the definition. */
+    public color: number | undefined;
+
     /** Who the entity is fighting, by runtime id, or undefined when it is fighting nobody. */
     public target: number | undefined;
 

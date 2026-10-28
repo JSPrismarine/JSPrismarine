@@ -186,6 +186,7 @@ const itemActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Ite
         environment: () => items().environment(),
         targetOf: (source) => items().targetOf(source),
         canNameEntity: (target) => items().canNameEntity?.(target) ?? true,
+        canDyeEntity: (target, color) => items().canDyeEntity?.(target, color) ?? true,
         includes: (set, member) => items().includes(set, member),
         transform: (transformer, block) => items().transform(transformer, block),
         effectsOf: (potion) => items().effectsOf(potion),

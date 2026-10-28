@@ -57,6 +57,8 @@ export interface DataEntityRecord {
     readonly pitch: number;
     /** Custom name set through an accepted name tag. */
     readonly nameTag?: string;
+    /** Palette color set through an accepted dye. */
+    readonly color?: number;
     /** Where `minecraft:home` or a `set_home_position` event pinned the entity. */
     readonly home?: EntityPosition;
     /** Stable identity of the player who tamed or launched this entity. */
@@ -126,6 +128,7 @@ export const dataEntityRecordOf = (
         yaw: body.yaw,
         pitch: body.pitch,
         ...(body.nameTag === undefined ? {} : { nameTag: body.nameTag }),
+        ...(body.color === undefined ? {} : { color: body.color }),
         ...(body.home === undefined ? {} : { home: body.home }),
         ...(body.ownerIdentity === undefined ? {} : { ownerIdentity: body.ownerIdentity }),
         ...(body.carried === undefined ? {} : { carried: body.carried }),
@@ -338,6 +341,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         yaw: numberOf(parsed['yaw'], 0),
         pitch: numberOf(parsed['pitch'], 0),
         ...(typeof parsed['nameTag'] === 'string' ? { nameTag: parsed['nameTag'] } : {}),
+        ...(typeof parsed['color'] === 'number' && Number.isInteger(parsed['color']) ? { color: parsed['color'] } : {}),
         ...(home === undefined ? {} : { home }),
         ...(typeof ownerIdentity === 'string' ? { ownerIdentity } : {}),
         ...(typeof carried === 'string' ? { carried } : {}),
@@ -386,6 +390,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.yaw = record.yaw;
     body.pitch = record.pitch;
     body.nameTag = record.nameTag;
+    body.color = record.color;
     body.home = record.home;
     instance.setHomePosition(record.home);
     body.ownerIdentity = record.ownerIdentity;

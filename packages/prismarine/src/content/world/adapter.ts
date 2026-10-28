@@ -264,6 +264,8 @@ export interface ContentItemAccess {
     effectsOf(potion: string): readonly EffectApplication[];
     /** Whether a target entity accepts a name tag, when the actor port can answer. */
     canNameEntity?(target: ItemSource): boolean;
+    /** Whether a target entity accepts this dye, when the actor port can answer. */
+    canDyeEntity?(target: ItemSource, color: string): boolean;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }

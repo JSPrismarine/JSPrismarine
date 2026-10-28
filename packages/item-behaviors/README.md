@@ -107,8 +107,9 @@ identifier, which is why the banner and map rules name a pattern as well as a co
 
 ## The world seam
 
-Nothing here imports a server class. Every behavior reaches the world through `WorldActions`, which
-is nine queries and one `perform`:
+Nothing here imports a server class. Every behavior reaches the world through `WorldActions`, which has
+nine required queries and one `perform`. Two optional capability queries let a host decline an
+entity action before the item is consumed:
 
 ```typescript
 interface WorldActions {
@@ -121,6 +122,8 @@ interface WorldActions {
     transform(transformer: string, block: BlockReference): BlockPlacement | undefined;
     effectsOf(potion: string): readonly EffectApplication[];
     random(): number;
+    canNameEntity?(target: ItemSource): boolean;
+    canDyeEntity?(target: ItemSource, color: string): boolean;
     perform(action: ItemWorldAction): void;
 }
 ```

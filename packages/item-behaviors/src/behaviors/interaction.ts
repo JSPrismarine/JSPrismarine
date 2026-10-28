@@ -86,6 +86,7 @@ export const dyeBehavior: ItemBehaviorSpec = {
             const color = itemStack.params(dye);
             if (target === undefined || color === undefined) return undefined;
 
+            if (context.world.canDyeEntity?.(target, color) === false) return undefined;
             context.world.perform({ kind: 'dye-entity', target, color });
             return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
         };

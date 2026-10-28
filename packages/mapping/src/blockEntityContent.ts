@@ -135,6 +135,17 @@ const JAVA_DYE_COLORS: readonly string[] = [
 ];
 
 /**
+ * The palette index Java assigns to one dye color.
+ *
+ * @param javaColor - The Java dye color word, for example `light_gray`.
+ * @returns The Java dye ordinal, or undefined for a word outside the palette.
+ */
+export const javaDyeColorIndexOf = (javaColor: string): number | undefined => {
+    const index = JAVA_DYE_COLORS.indexOf(javaColor);
+    return index < 0 ? undefined : index;
+};
+
+/**
  * The index Bedrock files a banner's color under, for Java's word.
  *
  * Bedrock counts the sixteen the other way round, so Java's white is 15 and Java's black is 0.

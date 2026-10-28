@@ -47,6 +47,10 @@ bedrockBiomeToJava('minecraft:taiga_hills');
 // { kind: 'loss', bedrock: { id: 19, identifier: 'minecraft:taiga_hills' }, loss: { reason: ... } }
 ```
 
+`javaDyeColorIndexOf()` gives the Java palette ordinal used by entity `minecraft:color` components.
+`bedrockDyeIndexOf()` resolves the reversed Bedrock data value used by banners from the same color
+name list.
+
 `createPackIdentifierResolver()` wraps these lookups in the `IdentifierResolver` shape that
 `reportIdentifiers` in `@jsprismarine/packs` injects, so a datapack's referenced identifiers can be
 checked against the tables without that package knowing two editions exist. This is what lets the

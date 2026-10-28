@@ -21,6 +21,7 @@
  * `BrainMobDefinition.alsoRunsGoals` is for.
  */
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
+import { javaDyeColorIndexOf } from '@jsprismarine/mapping';
 import type {
     EntityActuator,
     EntityAngerBroadcast,
@@ -43,6 +44,7 @@ import {
     canEntityAttackView,
     EntityInstance,
     evaluateFilter,
+    isDyeableParams,
     isRecord,
     javaEntityNavigation,
     MAX_BLOCK_SENSOR_RADIUS,
@@ -410,6 +412,44 @@ export class EntityRuntime implements EntityScene {
     public canNameEntity(id: number): boolean {
         const nameable = this.byId(id)?.instance.componentParams('minecraft:nameable');
         return isRecord(nameable) && nameable.allowNameTagRenaming === true;
+    }
+
+    /**
+     * Whether an entity accepts a dye that changes its current palette color.
+     *
+     * @param id - The runtime id.
+     * @param color - The dye color name.
+     * @returns Whether the active component accepts this color change.
+     */
+    public canDyeEntity(id: number, color: string): boolean {
+        const entity = this.byId(id);
+        const colorIndex = javaDyeColorIndexOf(color);
+        if (
+            entity === undefined ||
+            colorIndex === undefined ||
+            !isDyeableParams(entity.instance.componentParams('minecraft:is_dyeable'))
+        )
+            return false;
+
+        const componentColor = entity.instance.componentParams('minecraft:color');
+        const currentColor = entity.body.color ?? (typeof componentColor === 'number' ? componentColor : undefined);
+        return currentColor !== colorIndex;
+    }
+
+    /**
+     * Applies a supported dye to an entity's dynamic color state.
+     *
+     * @param id - The runtime id.
+     * @param color - The dye color name.
+     * @returns Whether the color changed.
+     */
+    public dyeEntity(id: number, color: string): boolean {
+        const entity = this.byId(id);
+        const colorIndex = javaDyeColorIndexOf(color);
+        if (entity === undefined || colorIndex === undefined || !this.canDyeEntity(id, color)) return false;
+
+        entity.body.color = colorIndex;
+        return true;
     }
 
     /** How many live entities count against one population pool's cap. */
@@ -2122,6 +2162,7 @@ export class EntityRuntime implements EntityScene {
             const value = entity.instance.componentParams(name);
             if (value !== undefined) components.set(name, value);
         }
+        if (entity.body.color !== undefined) components.set('minecraft:color', entity.body.color);
         return { type: entity.identifier, components };
     }
 

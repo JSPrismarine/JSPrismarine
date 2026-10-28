@@ -6,6 +6,7 @@ import type { EntityHooks } from '../hooks';
 import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
 import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
+import { dyeable } from './dyeable';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
 import {
@@ -58,6 +59,7 @@ import {
 } from './vanilla';
 
 export * from './schemas';
+export * from './dyeable';
 export * from './nameable';
 export * from './vanilla';
 
@@ -147,7 +149,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:is_charged',
     'minecraft:is_chested',
     'minecraft:is_collidable',
-    'minecraft:is_dyeable',
     'minecraft:is_hidden_when_invisible',
     'minecraft:is_ignited',
     'minecraft:is_illager_captain',
@@ -251,6 +252,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(collisionBox);
     register(damageOverTime);
     register(damageSensor);
+    register(dyeable);
     register(despawn);
     register(entitySensor);
     register(environmentSensor);

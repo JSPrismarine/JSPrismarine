@@ -3,10 +3,11 @@
  *
  * Everything in this package reaches the world through {@link WorldActions}
  * and nothing else, so the behavior families compile and test without the
- * server. The interface is eight members on purpose: seven queries that answer
- * what a behavior needs to decide, and one {@link WorldActions.perform} that
- * takes a tagged {@link ItemWorldAction}. Adding an effect is a new variant of
- * that union rather than a new method every adapter has to grow.
+ * server. The interface has nine required queries and one
+ * {@link WorldActions.perform}; two optional capability queries let a host
+ * decline an entity action before the item is consumed. World changes remain
+ * variants of {@link ItemWorldAction} rather than new methods every adapter
+ * has to grow.
  */
 import type { BlockFace, BlockPosition, BlockReference, HolderSet, ItemSource, ItemStack } from '@jsprismarine/items';
 
@@ -408,6 +409,8 @@ export interface WorldActions {
     random(): number;
     /** Whether a target entity accepts a name tag, when the host can answer. */
     canNameEntity?(target: ItemSource): boolean;
+    /** Whether a target entity accepts this dye, when the host can answer. */
+    canDyeEntity?(target: ItemSource, color: string): boolean;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }

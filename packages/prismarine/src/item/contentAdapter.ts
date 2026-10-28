@@ -73,9 +73,10 @@ export type ActorItemAction = Exclude<ItemWorldAction, WorldItemAction>;
  * What only the subsystems holding the entity index and the player sessions
  * can answer or do.
  *
- * Three members rather than twenty-two, because the half of the union this
- * port owns stays a union: adding a consumable effect is a new case in the
- * port's own switch, not a new method here.
+ * Three required members rather than one per action: the half of the union
+ * this port owns stays a union, so adding an effect is a new case in its
+ * switch. Optional capability queries let a behavior check whether an entity
+ * accepts a name tag or dye before it consumes the item.
  */
 export interface ItemActorPort {
     /** Everything a behavior reads about the entity using the item. */
@@ -84,6 +85,8 @@ export interface ItemActorPort {
     targetOf(source: ItemSource): ItemSource | undefined;
     /** Whether a target entity accepts a name tag, when the host can answer. */
     canNameEntity?(target: ItemSource): boolean;
+    /** Whether a target entity accepts this dye, when the host can answer. */
+    canDyeEntity?(target: ItemSource, color: string): boolean;
     /** Does one thing to an entity, an inventory or a screen. */
     perform(action: ActorItemAction): void;
 }
@@ -210,6 +213,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
     return {
         stateOf: (source) => actors.stateOf(source),
         targetOf: (source) => actors.targetOf(source),
+        canDyeEntity: (target, color) => actors.canDyeEntity?.(target, color) ?? true,
         canNameEntity: (target) => actors.canNameEntity?.(target) ?? true,
         environment: (): EnvironmentState => ({
             dimension: level.dimension,

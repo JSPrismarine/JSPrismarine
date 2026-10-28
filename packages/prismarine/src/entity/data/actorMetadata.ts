@@ -35,12 +35,14 @@ const interactTextOf = (entity: DataEntity): string => {
     if (isRecord(rideable) && typeof rideable.interactText === 'string') return rideable.interactText;
 
     const interact = entity.instance.componentParams('minecraft:interact');
-    if (!isRecord(interact) || !Array.isArray(interact.interactions)) return '';
-
-    for (const interaction of interact.interactions) {
-        if (isRecord(interaction) && typeof interaction.interactText === 'string') return interaction.interactText;
+    if (isRecord(interact) && Array.isArray(interact.interactions)) {
+        for (const interaction of interact.interactions) {
+            if (isRecord(interaction) && typeof interaction.interactText === 'string') return interaction.interactText;
+        }
     }
-    return '';
+
+    const dyeable = entity.instance.componentParams('minecraft:is_dyeable');
+    return isRecord(dyeable) && typeof dyeable.interactText === 'string' ? dyeable.interactText : '';
 };
 
 /** The complete metadata view derived from one live entity. */
@@ -69,7 +71,8 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
     const nameable = instance.componentParams('minecraft:nameable');
     const scale = instance.componentParams('minecraft:scale');
     const variant = instance.componentParams('minecraft:variant');
-    const color = instance.componentParams('minecraft:color');
+    const componentColor = instance.componentParams('minecraft:color');
+    const color = body.color ?? componentColor;
     const color2 = instance.componentParams('minecraft:color2');
     const flags: ActorFlagProjection[] = [
         { flag: ActorFlags.CANCLIMB, value: navigation.canClimbLadders === true },

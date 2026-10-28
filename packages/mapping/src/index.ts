@@ -14,6 +14,7 @@ export {
     bedrockDyeIndexOf,
     bedrockSignTextColorOf,
     isOminousBannerPattern,
+    javaDyeColorIndexOf,
     javaBannerPatternToBedrock,
     javaBannerPatternsWithBedrockCodes,
     type BannerLayer

@@ -139,6 +139,8 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
                   attachLead: (holder, target) => live.attachLead(holder.runtimeId, target.runtimeId),
                   canNameEntity: (target) => live.canNameEntity(target),
                   nameEntity: (target, name) => live.nameEntity(target, name),
+                  canDyeEntity: (target, color) => live.canDyeEntity(target, color),
+                  dyeEntity: (target, color) => live.dyeEntity(target, color),
                   interactWithEntity: (target, player, itemIdentifier, heldItem) =>
                       live.interactWithItem(target, player, itemIdentifier, heldItem)
               })

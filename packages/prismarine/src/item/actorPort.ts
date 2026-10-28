@@ -3,16 +3,16 @@
  *
  * `contentAdapter.ts` beside this file splits `ItemWorldAction`'s 28 variants in two. A variant
  * whose subject is a place in the world is performed there; a variant whose subject is an entity,
- * an inventory or a screen arrives here, along with the two questions an item behavior asks about
- * whoever is holding it.
+ * an inventory or a screen arrives here, along with queries about
+ * the actor and any entity the interaction targeted.
  *
  * What a variant does here is what this server can actually do. The ones it has a system for -
- * eating, a blow, a stack into the inventory, durability, armor, a name tag, a teleport, an item
- * cooldown - are performed against that system. The ones whose system this server has not written
+ * eating, a blow, a stack into the inventory, durability, armor, a name tag, dyeing, a teleport,
+ * an item cooldown - are performed against that system. The ones whose system this server has not written
  * are reported once per kind and ignored, naming what is missing, because `perform` returns
  * nothing and there is no value to guess; what would be dishonest is reporting success. The item
  * cooldowns are the one piece of state the port keeps, because `minecraft:use_cooldown` is the
- * only one of the twenty-two whose state nothing else on the server holds.
+ * only one whose state nothing else on the server holds.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -61,10 +61,14 @@ export interface ItemActorPortOptions {
     ) => EntityItemInteraction;
     /** Names a data-driven entity after its active `minecraft:nameable` component accepts it. */
     readonly nameEntity?: (target: Entity, name: string) => boolean;
+    /** Whether a data-driven entity accepts the requested dye. */
+    readonly canDyeEntity?: (target: Entity, color: string) => boolean;
+    /** Applies a dye to a data-driven entity. */
+    readonly dyeEntity?: (target: Entity, color: string) => boolean;
 }
 
 /**
- * The port, plus the one thing the interaction path has to tell it.
+ * The port, plus the interaction context and data-driven entity capabilities.
  *
  * `targetOf` answers a question about an interaction that is happening now, so the interaction
  * has to say what it landed on. Scoped to the call rather than stored, so a target cannot outlive
@@ -77,6 +81,8 @@ export interface ServerItemActorPort extends ItemActorPort {
     interactWithEntity(source: ItemSource): boolean;
     /** Whether a live data-driven entity accepts a name tag. */
     canNameEntity?(target: ItemSource): boolean;
+    /** Whether a live data-driven entity accepts the requested dye. */
+    canDyeEntity?(target: ItemSource, color: string): boolean;
 }
 
 /** The armor inventory index each `minecraft:equippable` slot name writes into. */
@@ -124,8 +130,18 @@ const inWater = (world: World, entity: Entity): boolean => {
 
 /** Builds the port over one live world. */
 export const createItemActorPort = (options: ItemActorPortOptions): ServerItemActorPort => {
-    const { world, entities, level, launchProjectile, attachLead, canNameEntity, interactWithEntity, nameEntity } =
-        options;
+    const {
+        world,
+        entities,
+        level,
+        launchProjectile,
+        attachLead,
+        canNameEntity,
+        interactWithEntity,
+        nameEntity,
+        canDyeEntity,
+        dyeEntity
+    } = options;
 
     /** Game tick each cooldown runs out at. */
     const cooldowns = new Map<string, number>();
@@ -457,7 +473,15 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 }
                 return;
             }
-            case 'dye-entity':
+            case 'dye-entity': {
+                const target = entityOf(action.target);
+                if (target === null || dyeEntity === undefined) {
+                    missing(action, 'a live data-driven dyeable entity');
+                    return;
+                }
+                dyeEntity(target, action.color);
+                return;
+            }
             case 'shear-entity':
                 return missing(action, 'the entity components that hold it');
             case 'blocking':
@@ -514,6 +538,10 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         canNameEntity: (source) => {
             const target = entityOf(source);
             return target !== null && (canNameEntity?.(target) ?? false);
+        },
+        canDyeEntity: (source, color) => {
+            const target = entityOf(source);
+            return target !== null && (canDyeEntity?.(target, color) ?? false);
         },
         interactWithEntity: useItemOnEntity,
         perform,

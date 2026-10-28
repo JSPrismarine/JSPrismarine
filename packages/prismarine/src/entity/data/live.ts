@@ -413,6 +413,30 @@ export class LiveEntityRuntime {
         return id !== undefined && this.runtime.nameEntity(id, name);
     }
 
+    /**
+     * Whether this live body is a data-driven entity that accepts the requested dye.
+     *
+     * @param target - The client-facing body.
+     * @param color - The dye color name.
+     * @returns Whether the runtime entity accepts the dye.
+     */
+    public canDyeEntity(target: Entity, color: string): boolean {
+        const id = this.bodies.entityIdOf(target);
+        return id !== undefined && this.runtime.canDyeEntity(id, color);
+    }
+
+    /**
+     * Applies a supported dye through the live data-driven entity runtime.
+     *
+     * @param target - The client-facing body.
+     * @param color - The dye color name.
+     * @returns Whether the runtime changed the color.
+     */
+    public dyeEntity(target: Entity, color: string): boolean {
+        const id = this.bodies.entityIdOf(target);
+        return id !== undefined && this.runtime.dyeEntity(id, color);
+    }
+
     /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */
     public interactWithItem(
         target: Entity,
