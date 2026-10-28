@@ -1,12 +1,12 @@
 /**
  * Scheduled fire spread and burnout, using block components for flammability.
  *
- * The vanilla overlay writes Java's mapped odds as `minecraft:flammable`, and a later
- * behavior pack can replace those values on any block state. The mapping table remains a
- * fallback for a host that does not resolve block components.
+ * The vanilla overlay writes Java's fire odds as `minecraft:flammable`, and a later behavior
+ * pack can replace those values on any block state. Infinite fuel comes from Java's
+ * `infiniburn_*` block tags.
  */
-import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import type { BlockPosition, HookBlock } from '@jsprismarine/blocks';
+import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 
 import { HORIZONTAL_FACES, offset } from '../geometry';
 import { AIR, isAir } from '../identifiers';
@@ -27,14 +27,13 @@ export const FIRE_TICK_DELAY_MIN = 30;
 /** Fire adds a draw from this range to {@link FIRE_TICK_DELAY_MIN}. */
 export const FIRE_TICK_DELAY_SPREAD = 10;
 
-/** The blocks each vanilla dimension burns forever on. */
-export const INFINITE_FIRE_SOURCES: Readonly<Record<string, ReadonlySet<string>>> = {
-    'minecraft:overworld': new Set(['minecraft:netherrack', 'minecraft:magma']),
-    'minecraft:nether': new Set(['minecraft:netherrack', 'minecraft:magma']),
-    'minecraft:the_end': new Set(['minecraft:netherrack', 'minecraft:magma', 'minecraft:bedrock'])
+/** The Java block tag that supplies infinite fire fuel in each vanilla dimension. */
+const INFINIBURN_TAGS: Readonly<Record<string, string>> = {
+    'minecraft:overworld': 'minecraft:infiniburn_overworld',
+    'minecraft:nether': 'minecraft:infiniburn_nether',
+    'minecraft:the_end': 'minecraft:infiniburn_end'
 };
-
-const DEFAULT_FIRE_SOURCES = INFINITE_FIRE_SOURCES['minecraft:overworld']!;
+const DEFAULT_INFINIBURN_TAG = INFINIBURN_TAGS['minecraft:overworld']!;
 const FIRE_DIRECTIONS = ['down', 'up', 'north', 'south', 'west', 'east'] as const;
 
 /** Full cubes that pass light through and therefore need an explicit sturdy-face exception. */
@@ -67,14 +66,9 @@ const randomInt = (world: WorldActions, bound: number): number =>
 /** Draw a float with the host's source when one is available. */
 const randomFloat = (world: WorldActions): number => world.randomFloat?.() ?? world.random();
 
-/** Read the block's own data-driven flammability, falling back to the Java mapping. */
-const flammabilityOf = (world: WorldActions, block: HookBlock): BlockFlammability => {
-    const supplied = world.flammabilityOf?.(block);
-    if (supplied !== undefined) return supplied;
-
-    const mapped = bedrockBlockPropertiesOf(block.identifier, block.states);
-    return { igniteOdds: mapped?.igniteOdds ?? 0, burnOdds: mapped?.burnOdds ?? 0 };
-};
+/** Read the block's own data-driven flammability; a missing component is fireproof. */
+const flammabilityOf = (world: WorldActions, block: HookBlock): BlockFlammability =>
+    world.flammabilityOf?.(block) ?? { igniteOdds: 0, burnOdds: 0 };
 
 /** The chance modifiers of one block state, or zeroes when it is fireproof. */
 export const fireOddsOf = (world: WorldActions, block: HookBlock): BlockFlammability => flammabilityOf(world, block);
@@ -173,7 +167,7 @@ export interface FireTickOptions {
  *
  * @param world - The block actions for the fire's dimension.
  * @param at - The fire's position.
- * @param dimension - The namespaced dimension identifier, which selects its infinite-fire set.
+ * @param dimension - The namespaced dimension identifier, which selects its `infiniburn` tag.
  * @param options - Overrides for environment facts a host supplies through the world actions.
  */
 export const fireTick = (
@@ -196,8 +190,8 @@ export const fireTick = (
         return;
     }
 
-    const infiniteSources = INFINITE_FIRE_SOURCES[dimension] ?? DEFAULT_FIRE_SOURCES;
-    const infiniteFire = below !== undefined && infiniteSources.has(below.identifier);
+    const infiniburnTag = INFINIBURN_TAGS[dimension] ?? DEFAULT_INFINIBURN_TAG;
+    const infiniteFire = below !== undefined && world.hasBlockTag?.(below, infiniburnTag) === true;
     let age = ageOf(state);
     const raining = (world.weather?.() ?? 'clear') !== 'clear';
     if (!infiniteFire && raining && isNearRain(world, at) && randomFloat(world) < 0.2 + age * 0.03) {

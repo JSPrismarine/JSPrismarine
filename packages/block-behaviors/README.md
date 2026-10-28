@@ -33,7 +33,7 @@ one. It is a `BlockWorld`, described below.
 
 | Group | Methods |
 | --- | --- |
-| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasSturdyTopFace` |
+| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf`, `flammabilityOf`, `hasBlockTag`, `hasSturdyTopFace` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
 | Scheduling | `scheduleTick(position, delay, kind?, priority?)`, `willTickThisTick` |
@@ -45,8 +45,8 @@ Several of those are there for reasons worth stating. `propertiesOf` returns ano
 `jsprismarine:block_properties`, which is how the piston and the falling blocks read `push_reaction`
 instead of carrying a list. `random` is on the interface rather than inside the families so a test
 `flammabilityOf` reads the resolved state's `minecraft:flammable` component, so a pack can change
-fire odds in a permutation. When a host cannot resolve components, fire reads the same vanilla odds
-from `@jsprismarine/mapping`. `hasSturdyTopFace` lets the host answer from the block's collision
+fire odds in a permutation. Fire uses the loaded `minecraft:infiniburn_*` block tags to decide which
+fuel keeps it burning forever. `hasSturdyTopFace` lets the host answer from the block's collision
 shape. `destroyBlock` is how a family takes a block out that it is not itself: the host raises its
 `onBreak` and rolls Java's loot table for it, where this package would otherwise have to guess that
 the block drops one of itself. It is optional, and a host that leaves it out gets that guess, which

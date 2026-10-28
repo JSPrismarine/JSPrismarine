@@ -137,14 +137,14 @@ over soul soil next to blue ice becomes basalt.
 
 Fire is `FireBlock.tick` and `FireBlock.checkBurnOut`, implemented by `portalFamily` in
 `@jsprismarine/block-behaviors`. The active state's `minecraft:flammable` component supplies the
-ignite and burn odds, with `@jsprismarine/mapping` as the fallback for hosts without resolved
-components. A fire ages, burns the six blocks it touches against
+ignite and burn odds. The dimension's `minecraft:infiniburn_*` block tag determines which fuel
+keeps fire alive forever. A fire ages, burns the six blocks it touches against
 denominators of 300 sideways and 250 up and down, and tries to light every position in the 3 by 3
 by 6 box around it with odds of `(igniteOdds + 40 + difficultyId * 7) / (age + 30)` against a
 denominator that rises by 100 for each block above the first one overhead. Humid biomes set
 Java's `INCREASED_FIRE_BURNOUT`, which takes 50 off every burn-out denominator and halves the
-spread odds. The infinite fire sources are the `infiniburn` tags: netherrack and magma in the
-overworld and the nether, plus bedrock in the end.
+spread odds. The vanilla `infiniburn` tags supply the infinite fire sources, with bedrock added in
+the end.
 
 Fire runs on scheduled ticks 30 to 39 game ticks apart, as Java does, and ignores
 `random_tick_speed` entirely. Bedrock drives fire from random ticks instead, and that is a
