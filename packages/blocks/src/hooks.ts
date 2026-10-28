@@ -60,6 +60,22 @@ export interface HookActor {
     /** The namespaced entity identifier, such as `minecraft:player`. */
     readonly identifier: string;
     readonly position: BlockPosition;
+    /** The actor's pitch when the host knows it. */
+    readonly pitch?: number;
+    /** The actor's yaw when the host knows it. */
+    readonly yaw?: number;
+}
+
+/** The player and hit details that distinguish an item placement from a world write. */
+export interface BlockPlacementContext {
+    /** Who placed the block. */
+    readonly placedBy: HookActor;
+    /** The item the block came from, when the host resolved it. */
+    readonly itemStack?: HookItem;
+    /** The face the player clicked. */
+    readonly face?: BlockFace;
+    /** Where on the clicked face the player clicked. */
+    readonly faceLocation?: FaceLocation;
 }
 
 /**

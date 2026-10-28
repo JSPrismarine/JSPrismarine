@@ -17,7 +17,7 @@
  * every projected member that needed it throws {@link
  * import('./notWired').NotWiredError} naming the subsystem that owes it.
  */
-import type { BlockFace, BlockStateValue } from '@jsprismarine/blocks';
+import type { BlockFace, BlockPlacementContext, BlockStateValue } from '@jsprismarine/blocks';
 import type { BlockDestroyOptions, BlockEntityData, BlockProperties, ItemDrop } from '@jsprismarine/block-behaviors';
 import type { CommandHost } from '@jsprismarine/commands';
 import type { Difficulty, TickKind, Weather } from '@jsprismarine/engine-systems';
@@ -91,8 +91,9 @@ export interface ContentBlockAccess {
      * @param notifyNeighbors - Whether to run the neighbor updates the write causes. This is
      *   Java's flag 1 in `setBlockAndUpdate` against the bare write a diode uses for its own
      *   state, and both callers exist, so it has no default.
+     * @param placement - Player and hit details for a placement that raises `onPlace`.
      */
-    set(at: ContentPosition, block: ContentBlock, notifyNeighbors: boolean): void;
+    set(at: ContentPosition, block: ContentBlock, notifyNeighbors: boolean, placement?: BlockPlacementContext): void;
     /** Moves a block and its block entity without running placement hooks. */
     move?(from: ContentPosition, to: ContentPosition): void;
     /**

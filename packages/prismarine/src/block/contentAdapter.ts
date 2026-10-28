@@ -276,7 +276,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
                 name
             });
         },
-        set: (at, block, withNeighbors) => {
+        set: (at, block, withNeighbors, placement) => {
             const previous = hookBlockAt(storage, dimension, at);
             storage.write(at, block);
 
@@ -297,13 +297,10 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
                 hooks?.dispatch('onPlace', {
                     block: placed,
                     previous,
-                    // A write through the adapter is a placement the world itself
-                    // performed; the three fields a player's placement carries have
-                    // no value here and the hook declares all three optional.
-                    placedBy: undefined,
-                    itemStack: undefined,
-                    face: undefined,
-                    faceLocation: undefined
+                    placedBy: placement?.placedBy,
+                    itemStack: placement?.itemStack,
+                    face: placement?.face,
+                    faceLocation: placement?.faceLocation
                 });
             }
 

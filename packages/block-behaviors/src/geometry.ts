@@ -115,6 +115,14 @@ export const facingDirectionOf = (face: BlockFace): number => FACING_DIRECTIONS.
  */
 export const CARDINAL_DIRECTIONS = ['south', 'west', 'north', 'east'] as const satisfies readonly HorizontalFace[];
 
+/** The cardinal direction a Bedrock yaw faces, rounded to the nearest quarter turn. */
+export const facingFromYaw = (yaw: number): HorizontalFace => {
+    const quarterTurns = Math.round(yaw / 90);
+    const index =
+        ((quarterTurns % CARDINAL_DIRECTIONS.length) + CARDINAL_DIRECTIONS.length) % CARDINAL_DIRECTIONS.length;
+    return CARDINAL_DIRECTIONS[index] ?? 'south';
+};
+
 /**
  * The `weirdo_direction` domain stairs are placed with, which the numeric
  * `direction` of a trapdoor uses too. It is a separate table from

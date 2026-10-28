@@ -76,6 +76,13 @@ export const rejectionReason = (packet: PlayerAuthInputPacket): string | null =>
 
     if (!isFiniteVector(packet.position)) return 'the position is not finite';
     if (![packet.pitch, packet.yaw, packet.headYaw].every(Number.isFinite)) return 'the rotation is not finite';
+    if (
+        packet.itemUseTransaction !== null &&
+        packet.inputData.has(PlayerAuthInputData.PERFORM_ITEM_INTERACTION) &&
+        ![packet.interactRotation.x, packet.interactRotation.y].every(Number.isFinite)
+    ) {
+        return 'the interaction rotation is not finite';
+    }
 
     for (const { action } of packet.blockActions ?? []) {
         if (!BLOCK_ACTIONS.has(action)) return `block action ${action} is not one the input may carry`;
@@ -162,7 +169,10 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
             transaction.transactionType = TransactionType.USE_ITEM;
             transaction.inventoryActions = packet.itemUseTransaction.actions;
             transaction.transactionData = packet.itemUseTransaction.data;
-            await this.transactions.handle(transaction, server, session);
+            await this.transactions.handle(transaction, server, session, {
+                pitch: packet.interactRotation.x,
+                yaw: packet.interactRotation.y
+            });
         }
 
         if (

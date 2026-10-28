@@ -9,7 +9,14 @@
  * visible from the other, which is how this package stays free of the
  * server's classes.
  */
-import type { BlockFace, BlockPosition, BlockStateValue, HookActor, HookBlock } from '@jsprismarine/blocks';
+import type {
+    BlockFace,
+    BlockPlacementContext,
+    BlockPosition,
+    BlockStateValue,
+    HookActor,
+    HookBlock
+} from '@jsprismarine/blocks';
 import { blockProperties } from '@jsprismarine/blocks';
 
 /** The state values a behavior writes when it places or rewrites a block. */
@@ -137,8 +144,15 @@ export interface WorldActions {
      * @param states - The whole state record, not a patch. Absent means the
      *   block's default state.
      * @param notifyNeighbors - Whether to run block behavior and engine neighbor updates.
+     * @param placement - Player and hit details for a placement that raises `onPlace`.
      */
-    setBlock(position: BlockPosition, identifier: string, states?: BlockStates, notifyNeighbors?: boolean): void;
+    setBlock(
+        position: BlockPosition,
+        identifier: string,
+        states?: BlockStates,
+        notifyNeighbors?: boolean,
+        placement?: BlockPlacementContext
+    ): void;
     /** Moves a block and its block entity without running placement hooks. */
     moveBlock?(from: BlockPosition, to: BlockPosition): void;
     /** The `jsprismarine:block_properties` of a block type, defaults included. */

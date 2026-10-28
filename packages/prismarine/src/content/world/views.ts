@@ -175,8 +175,8 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
 
     return {
         getBlock: hookBlock,
-        setBlock: (position, identifier, states = {}, notifyNeighbors = true) =>
-            adapter.blocks.set(position, { identifier, states }, notifyNeighbors),
+        setBlock: (position, identifier, states = {}, notifyNeighbors = true, placement) =>
+            adapter.blocks.set(position, { identifier, states }, notifyNeighbors, placement),
         ...(adapter.blocks.move === undefined
             ? {}
             : { moveBlock: (from: ContentPosition, to: ContentPosition) => adapter.blocks.move?.(from, to) }),

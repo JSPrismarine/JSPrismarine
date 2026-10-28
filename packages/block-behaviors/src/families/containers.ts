@@ -6,7 +6,8 @@
 import type { BlockPosition } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
-import { facingFrom, HORIZONTAL_FACES, offset } from '../geometry';
+import { HORIZONTAL_FACES, offset } from '../geometry';
+import { placementFacing } from '../rules/placement';
 import { isWater } from '../identifiers';
 import { emptyContainer, slotsOf, spillContainer } from '../rules/container';
 import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
@@ -64,12 +65,11 @@ export const containerFamily = defineFamily(
     'Gives a container its block entity, pairs a chest with the chest beside it, spills its contents on break unless it is a shulker box, and marks a barrel open while a player uses it.',
     {
         onPlace: (event, world) => {
-            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
-                setStates(world, event.block, {
-                    'minecraft:cardinal_direction': facingFrom(event.placedBy.position, event.block.position)
-                });
+                const facing = placementFacing(event);
+                if (facing !== undefined) setStates(world, event.block, { 'minecraft:cardinal_direction': facing });
             }
+            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
             if (!bareName(event.block.identifier).endsWith('chest')) return;
 
             for (const face of HORIZONTAL_FACES) {
@@ -130,12 +130,11 @@ export const furnaceFamily = defineFamily(
             return true;
         },
         onPlace: (event, world) => {
-            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
-                setStates(world, event.block, {
-                    'minecraft:cardinal_direction': facingFrom(event.placedBy.position, event.block.position)
-                });
+                const facing = placementFacing(event);
+                if (facing !== undefined) setStates(world, event.block, { 'minecraft:cardinal_direction': facing });
             }
+            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
         },
         onNeighborChanged: (event, world) => {
             if (!hasState(event.block, 'extinguished')) return;

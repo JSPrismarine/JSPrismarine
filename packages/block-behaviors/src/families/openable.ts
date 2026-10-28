@@ -10,7 +10,8 @@ import type { HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import type { HorizontalFace } from '../geometry';
-import { CARDINAL_DIRECTIONS, facingFrom, offset, rotateClockwise, rotateCounterClockwise } from '../geometry';
+import { CARDINAL_DIRECTIONS, offset, rotateClockwise, rotateCounterClockwise } from '../geometry';
+import { placementFacing } from '../rules/placement';
 import { isSolidSupport, popBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateBoolean, stateString } from '../state';
 import type { WorldActions } from '../world';
@@ -66,10 +67,7 @@ export const doorFamily = defineFamily(
             if (!hasState(event.block, 'upper_block_bit')) return;
             if (stateBoolean(event.block, 'upper_block_bit')) return;
 
-            const facing =
-                event.placedBy === undefined
-                    ? cardinalFacing(event.block)
-                    : facingFrom(event.placedBy.position, event.block.position);
+            const facing = placementFacing(event) ?? cardinalFacing(event.block);
             const hinge = doorHinge(world, event.block, facing);
 
             setStates(world, event.block, {
@@ -160,9 +158,8 @@ export const fenceGateFamily = defineFamily(
     {
         onPlace: (event, world) => {
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
-                setStates(world, event.block, {
-                    'minecraft:cardinal_direction': facingFrom(event.placedBy.position, event.block.position)
-                });
+                const facing = placementFacing(event);
+                if (facing !== undefined) setStates(world, event.block, { 'minecraft:cardinal_direction': facing });
             }
         },
         onPlayerInteract: (event, world) => {

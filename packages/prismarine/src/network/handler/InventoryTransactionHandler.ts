@@ -8,7 +8,7 @@ import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';
 import HumanInventory from '../../inventory/HumanInventory';
 import { useItemOnBlock, useItemOnEntity } from '../../item/interaction';
-import type { InteractionResult } from '../../item/interaction';
+import type { InteractionResult, InteractionRotation } from '../../item/interaction';
 import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
 import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
@@ -40,7 +40,12 @@ const FACE_COUNT = 6;
  * @returns Whether a behavior family or a placement consumed the click. A behavior that throws
  *   is logged and declines.
  */
-const contentUse = (server: Server, player: Player, data: UseItemData): InteractionResult => {
+const contentUse = (
+    server: Server,
+    player: Player,
+    data: UseItemData,
+    rotation?: InteractionRotation
+): InteractionResult => {
     const content = server.getContent();
     const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
 
@@ -59,7 +64,8 @@ const contentUse = (server: Server, player: Player, data: UseItemData): Interact
                 x: data.clickPosition.getX(),
                 y: data.clickPosition.getY(),
                 z: data.clickPosition.getZ()
-            }
+            },
+            ...(rotation === undefined ? {} : { rotation })
         });
     } catch (error: unknown) {
         // A behavior that throws must not take the packet handler down with it, and it must
@@ -189,7 +195,19 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
-    public async handle(packet: InventoryTransactionPacket, server: Server, connection: PlayerSession): Promise<void> {
+    /**
+     * Handles an inventory transaction.
+     * @param packet - The transaction to apply.
+     * @param server - The server receiving it.
+     * @param connection - The player's network session.
+     * @param interactionRotation - The view rotation from PlayerAuthInput when present.
+     */
+    public async handle(
+        packet: InventoryTransactionPacket,
+        server: Server,
+        connection: PlayerSession,
+        interactionRotation?: InteractionRotation
+    ): Promise<void> {
         const player = connection.getPlayer();
         if (!player.isOnline()) return;
         if (player.gamemode === Gametype.SPECTATOR) return; // Spectators pass through the world without touching it.
@@ -231,7 +249,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
         switch (data.kind) {
             case 'useItem':
-                await this.handleUseItem(data, server, player);
+                await this.handleUseItem(data, server, player, interactionRotation);
                 return;
             case 'useItemOnEntity':
                 await this.handleUseItemOnEntity(data, server, player);
@@ -346,7 +364,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * not the Item the client sent: the client's copy says what it believes it holds, and the
      * server's inventory is the one that decides.
      */
-    private async handleUseItem(data: UseItemData, server: Server, player: Player): Promise<void> {
+    private async handleUseItem(
+        data: UseItemData,
+        server: Server,
+        player: Player,
+        interactionRotation?: InteractionRotation
+    ): Promise<void> {
         switch (data.actionType) {
             case ItemUseActionType.PLACE:
             case ItemUseActionType.DESTROY: {
@@ -365,7 +388,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     // The block's and the item's behavior families get the click, and the block
                     // in hand goes down when neither takes it. What a click they all decline
                     // gets is nothing: the item places no block, so the client predicted none.
-                    contentUse(server, player, data);
+                    contentUse(server, player, data, interactionRotation);
                     return;
                 }
 

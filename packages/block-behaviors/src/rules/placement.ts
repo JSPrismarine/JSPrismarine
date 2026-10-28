@@ -11,10 +11,18 @@
 import type { BlockPlaceEvent } from '@jsprismarine/blocks';
 
 import type { HorizontalFace } from '../geometry';
-import { axisOfFace, facingFrom } from '../geometry';
+import { axisOfFace, facingFrom, facingFromYaw } from '../geometry';
 
 /** Which half of a block a placement lands in. */
 export type BlockHalf = 'bottom' | 'top';
+
+/** The player's horizontal facing, preferring the rotation sent over the network. */
+const placementFacingOf = (event: BlockPlaceEvent): HorizontalFace | undefined => {
+    const placer = event.placedBy;
+    if (placer === undefined) return undefined;
+    if (placer.yaw !== undefined && Number.isFinite(placer.yaw)) return facingFromYaw(placer.yaw);
+    return facingFrom(placer.position, event.block.position);
+};
 
 /** How high up a block face a click has to land to take the top half. */
 export const UPPER_HALF_THRESHOLD = 0.5;
@@ -31,8 +39,8 @@ export const UPPER_HALF_THRESHOLD = 0.5;
  */
 export const placementAxis = (event: BlockPlaceEvent): 'x' | 'y' | 'z' | undefined => {
     if (event.face !== undefined) return axisOfFace(event.face);
-    if (event.placedBy === undefined) return undefined;
-    return axisOfFace(facingFrom(event.placedBy.position, event.block.position));
+    const facing = placementFacingOf(event);
+    return facing === undefined ? undefined : axisOfFace(facing);
 };
 
 /**
@@ -60,5 +68,4 @@ export const placedHalf = (event: BlockPlaceEvent): BlockHalf | undefined => {
  *
  * @returns Undefined for a placement the world itself performed.
  */
-export const placementFacing = (event: BlockPlaceEvent): HorizontalFace | undefined =>
-    event.placedBy === undefined ? undefined : facingFrom(event.placedBy.position, event.block.position);
+export const placementFacing = (event: BlockPlaceEvent): HorizontalFace | undefined => placementFacingOf(event);

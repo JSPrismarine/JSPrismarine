@@ -55,6 +55,7 @@ const BLOCKS = [
     'minecraft:wooden_door',
     'minecraft:chest',
     'minecraft:black_shulker_box',
+    'minecraft:oak_stairs',
     'minecraft:crafting_table',
     'minecraft:leaf_litter',
     'minecraft:snow_layer'
@@ -68,6 +69,7 @@ const ITEMS = [
     'minecraft:stick',
     'minecraft:black_shulker_box',
     'minecraft:diamond_pickaxe',
+    'minecraft:oak_stairs',
     'minecraft:crafting_table'
 ];
 
@@ -189,7 +191,8 @@ const playerHolding = (
     world: World,
     holding: string | Item,
     sneaking = false,
-    gamemode: Gametype = Gametype.SURVIVAL
+    gamemode: Gametype = Gametype.SURVIVAL,
+    rotation: { pitch: number; yaw: number } = { pitch: 0, yaw: 0 }
 ): Player => {
     const item = typeof holding === 'string' ? new Item({ runtimeId: 1, name: holding, meta: 0, count: 1 }) : holding;
     const inventory = new HumanInventory();
@@ -227,6 +230,9 @@ const playerHolding = (
         getNetworkSession: () => session,
         getRuntimeId: () => 7n,
         getPosition: () => new Vector3(1.5, 65, 1.5),
+        pitch: rotation.pitch,
+        yaw: rotation.yaw,
+        headYaw: rotation.yaw,
         getName: () => 'tester',
         getType: () => 'minecraft:player',
         getEquipment: () => ({}),
@@ -312,14 +318,15 @@ describe('useItemOnBlock', () => {
     });
 
     /** The click, as the path takes it. */
-    const click = (player: Player, at: ContentPosition, face = 1) =>
+    const click = (player: Player, at: ContentPosition, face = 1, rotation?: { pitch: number; yaw: number }) =>
         useItemOnBlock({
             content,
             actors: handle.actorsAt(DIMENSION),
             player,
             position: at,
             face,
-            faceLocation: { x: 0.5, y: 1, z: 0.5 }
+            faceLocation: { x: 0.5, y: 1, z: 0.5 },
+            ...(rotation === undefined ? {} : { rotation })
         });
 
     it('runs the block family, so a door opens for a player', () => {
@@ -511,6 +518,19 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(4, 63, 4)?.name).toBe('minecraft:stone');
             expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:crafting_table');
             expect(sounds).toContain('place');
+        });
+
+        it('orients stairs from the interaction rotation and click face', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = playerHolding(world, 'minecraft:oak_stairs', false, Gametype.SURVIVAL, {
+                pitch: 0,
+                yaw: 0
+            });
+
+            click(player, { x: 4, y: 63, z: 4 }, 1, { pitch: 0, yaw: 90 });
+
+            expect(world.loadedBlockAt(4, 64, 4)?.states['weirdo_direction']).toBe(1);
+            expect(world.loadedBlockAt(4, 64, 4)?.states['upside_down_bit']).toBe(0);
         });
 
         it('replaces leaf litter rather than building on top of it', () => {

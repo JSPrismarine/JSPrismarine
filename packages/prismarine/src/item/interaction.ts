@@ -18,7 +18,8 @@
  * and the inventory as they are. A Bedrock Dedicated Server 1.26.52 did both.
  */
 import { BLOCK_FACES, containerOpenSound } from '@jsprismarine/blocks';
-import type { BlockFace, FaceLocation, HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
+import { facingFromYaw } from '@jsprismarine/block-behaviors';
 import { relative } from '@jsprismarine/engine-systems';
 import type { ItemSource } from '@jsprismarine/items';
 import { Vector3 } from '@jsprismarine/math';
@@ -55,6 +56,14 @@ export interface BlockInteraction {
     readonly face: number;
     /** Where on the face, each coordinate from 0 to 1. */
     readonly faceLocation: FaceLocation;
+    /** The view used for this interaction, which may differ from the player's movement rotation. */
+    readonly rotation?: InteractionRotation;
+}
+
+/** A player's view rotation, in degrees, as Bedrock reports it. */
+export interface InteractionRotation {
+    readonly pitch: number;
+    readonly yaw: number;
 }
 
 /** What the content path did with a click. */
@@ -84,6 +93,42 @@ const placesBlock = (content: ServerContent, placed: Item): boolean =>
     BlockRuntimeIds.tryGetByName(placed.getName()) !== null &&
     blockFromContent(placed.getName(), content)?.canBePlaced() === true;
 
+/** The block's default states, with placement-direction states set from the player's view. */
+const placementStatesOf = (content: ServerContent, identifier: string, rotation: InteractionRotation) => {
+    const type = content.blocks.types.get(identifier);
+    if (type === undefined) return {};
+
+    const trait = type.definition.description.traits.find(
+        (candidate) => candidate.name === 'minecraft:placement_direction'
+    );
+    const states: Record<string, BlockStateValue> = { ...type.state().values };
+    if (trait === undefined) return states;
+
+    const enabledStates = new Set(trait.enabledStates);
+    const offset = trait.parameters.y_rotation_offset;
+    const yRotationOffset = typeof offset === 'number' && Number.isFinite(offset) ? offset : 0;
+    const yaw = rotation.yaw - yRotationOffset;
+
+    if (
+        enabledStates.has('minecraft:cardinal_direction') ||
+        enabledStates.has('minecraft:corner_and_cardinal_direction')
+    ) {
+        states['minecraft:cardinal_direction'] = facingFromYaw(yaw);
+    }
+
+    if (enabledStates.has('minecraft:facing_direction')) {
+        const vertical = Math.abs(rotation.pitch) > 45;
+        states['minecraft:facing_direction'] = vertical ? (rotation.pitch < 0 ? 'up' : 'down') : facingFromYaw(yaw);
+    }
+
+    if (enabledStates.has('minecraft:sixteen_way_rotation')) {
+        const step = Math.round(yaw / 22.5);
+        states['minecraft:sixteen_way_rotation'] = ((step % 16) + 16) % 16;
+    }
+
+    return states;
+};
+
 /**
  * Puts the block an item names into the world, through the content adapter.
  *
@@ -96,11 +141,11 @@ const placesBlock = (content: ServerContent, placed: Item): boolean =>
 const placeBlock = (interaction: BlockInteraction, placed: Item, face: BlockFace): ContentPosition | undefined => {
     const identifier = placed.getName();
     const { player, content } = interaction;
+    const rotation = interaction.rotation ?? { pitch: player.pitch, yaw: player.yaw };
     const world = player.getWorld();
     const blocks = content.world.blockWorld.at(world.getDimension().name);
     const canReplace = (block: SystemBlock): boolean =>
-        block.name === 'minecraft:air' ||
-        blockFromContent(block.name, content, block.states)?.canBeReplaced() === true;
+        block.name === 'minecraft:air' || blockFromContent(block.name, content, block.states)?.canBeReplaced() === true;
 
     const clicked = world.loadedBlockAt(interaction.position.x, interaction.position.y, interaction.position.z);
     if (clicked === undefined || clicked.name === 'minecraft:air') return undefined;
@@ -113,7 +158,22 @@ const placeBlock = (interaction: BlockInteraction, placed: Item, face: BlockFace
 
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
-    blocks.setBlock(target, identifier);
+    const playerPosition = player.getPosition();
+    blocks.setBlock(target, identifier, placementStatesOf(content, identifier, rotation), true, {
+        placedBy: {
+            identifier: 'minecraft:player',
+            position: {
+                x: playerPosition.getX(),
+                y: playerPosition.getY(),
+                z: playerPosition.getZ()
+            },
+            pitch: rotation.pitch,
+            yaw: rotation.yaw
+        },
+        itemStack: contentStackOf(content, placed),
+        face,
+        faceLocation: interaction.faceLocation
+    });
     // After the hook, which gave a container an empty record: a shulker box put back down
     // holds what it was carrying rather than what a fresh one holds.
     restorePlacedContents(blocks, target, identifier, placed);

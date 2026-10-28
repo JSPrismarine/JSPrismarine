@@ -15,12 +15,19 @@ const placement = (
         readonly face?: BlockFace;
         readonly faceLocation?: FaceLocation;
         readonly placerAt?: { x: number; y: number; z: number };
+        readonly yaw?: number;
     } = {}
 ): BlockPlaceEvent => ({
     block,
     previous: undefined,
     placedBy:
-        options.placerAt === undefined ? undefined : { identifier: 'minecraft:player', position: options.placerAt },
+        options.placerAt === undefined
+            ? undefined
+            : {
+                  identifier: 'minecraft:player',
+                  position: options.placerAt,
+                  ...(options.yaw === undefined ? {} : { yaw: options.yaw })
+              },
     itemStack: undefined,
     face: options.face,
     faceLocation: options.faceLocation
@@ -66,5 +73,9 @@ describe('placementFacing', () => {
     it('is where the placer looked, not which face was clicked', () => {
         expect(placementFacing(placement({ face: 'up', placerAt: { x: 0, y: 0, z: 4 } }))).toBe('north');
         expect(placementFacing(placement({ face: 'up' }))).toBeUndefined();
+    });
+
+    it('uses the player rotation when it disagrees with their position', () => {
+        expect(placementFacing(placement({ placerAt: { x: -4, y: 0, z: 0 }, yaw: 90, face: 'up' }))).toBe('west');
     });
 });

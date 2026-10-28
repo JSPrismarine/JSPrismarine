@@ -8,9 +8,10 @@
 import type { BlockFace } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
-import { faceOfFacingDirection, facingFrom, offset, opposite } from '../geometry';
+import { faceOfFacingDirection, offset, opposite } from '../geometry';
 import { isWater } from '../identifiers';
 import { isHoneycomb, isIgniter } from '../rules/heldItem';
+import { placementFacing } from '../rules/placement';
 import { breakBlock, popWithoutSupport } from '../rules/support';
 import { hasState, setStates, stateBoolean, stateNumber, stateString } from '../state';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
@@ -130,7 +131,8 @@ export const bedFamily = defineFamily(
             world.setBlockData(event.block.position, { color: 'red' });
             if (event.placedBy === undefined) return;
 
-            const facing = facingFrom(event.placedBy.position, event.block.position);
+            const facing = placementFacing(event);
+            if (facing === undefined) return;
             const head = offset(event.block.position, facing);
             world.setBlock(head, event.block.identifier, { ...event.block.states, head_piece_bit: true });
         },

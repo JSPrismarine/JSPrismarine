@@ -17,6 +17,7 @@ import type PlayerSession from '../PlayerSession';
 import { HandSlot, ItemUseActionType } from '../packet/InventoryTransactionPacket';
 import { PlayerActionType } from '../packet/PlayerActionPacket';
 import PlayerAuthInputPacket, { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
+import InventoryTransactionHandler from './InventoryTransactionHandler';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
 
 /**
@@ -81,6 +82,7 @@ const input = (configure: (packet: PlayerAuthInputPacket) => void = () => {}): P
     packet.pitch = 5;
     packet.yaw = 90;
     packet.headYaw = 85;
+    packet.interactRotation = { x: packet.pitch, y: packet.yaw };
     configure(packet);
     return packet;
 };
@@ -94,6 +96,28 @@ const breaking = (packet: PlayerAuthInputPacket): void => {
     ];
 };
 
+/** A block placement carried inside a PlayerAuthInput item-use section. */
+const blockPlacement = (): NonNullable<PlayerAuthInputPacket['itemUseTransaction']> => ({
+    legacyRequestId: 0,
+    legacySlotChanges: [],
+    actions: [],
+    data: {
+        kind: 'useItem',
+        actionType: ItemUseActionType.PLACE,
+        triggerType: 1,
+        blockPosition: new BlockPosition(1, 63, 2),
+        blockFace: 1,
+        hotbarSlot: 0,
+        hand: HandSlot.MAINHAND,
+        itemInHand: stub(),
+        playerPosition: Vector3.ZERO,
+        clickPosition: Vector3.ZERO,
+        blockRuntimeId: 0,
+        clientInteractPrediction: 1,
+        clientCooldownState: 0
+    }
+});
+
 describe('PlayerAuthInputHandler', () => {
     it('moves the player to where the input says they are', async () => {
         const { calls, player, session, server } = fake();
@@ -105,6 +129,31 @@ describe('PlayerAuthInputHandler', () => {
             { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
             false
         );
+    });
+
+    it('passes the interaction rotation to the embedded item use without changing movement rotation', async () => {
+        const { player, session, server } = fake();
+        const handleTransaction = vi.spyOn(InventoryTransactionHandler.prototype, 'handle').mockResolvedValue();
+
+        try {
+            await new PlayerAuthInputHandler().handle(
+                input((packet) => {
+                    packet.inputData.add(PlayerAuthInputData.PERFORM_ITEM_INTERACTION);
+                    packet.interactRotation = { x: -25, y: 135 };
+                    packet.itemUseTransaction = blockPlacement();
+                }),
+                server,
+                session
+            );
+
+            expect(player.setPosition).toHaveBeenCalledWith(
+                { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
+                false
+            );
+            expect(handleTransaction.mock.calls[0]?.[3]).toEqual({ pitch: -25, yaw: 135 });
+        } finally {
+            handleTransaction.mockRestore();
+        }
     });
 
     it('takes a vertical collision as standing on the ground', async () => {
@@ -328,6 +377,14 @@ describe('PlayerAuthInputHandler', () => {
             await dropped((packet) => {
                 packet.yaw = Number.POSITIVE_INFINITY;
             }, 'the rotation is not finite');
+        });
+
+        it('reports a non-finite interaction rotation', async () => {
+            await dropped((packet) => {
+                packet.inputData.add(PlayerAuthInputData.PERFORM_ITEM_INTERACTION);
+                packet.itemUseTransaction = blockPlacement();
+                packet.interactRotation.y = Number.NaN;
+            }, 'the interaction rotation is not finite');
         });
 
         it('carries a block action the field may not hold', async () => {
