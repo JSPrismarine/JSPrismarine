@@ -68,8 +68,9 @@ export interface EngineOptions {
      */
     randomTickHandlers?: Readonly<Record<string, (at: BlockPosition, block: BlockRef) => void>>;
     /**
-     * What to run when power reaching a block changes. Return true when a
-     * content hook owns the update so the engine can skip its legacy handler.
+     * What to run when a neighbor update changes a block's power. Return true
+     * when a content hook owns the block's response so the engine skips its
+     * legacy handler.
      */
     onRedstoneUpdate?: (at: BlockPosition, block: BlockRef, power: number) => boolean;
     /**
@@ -270,8 +271,10 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             if (!world.hasScheduledTick('block', at, FIRE)) world.scheduleTick('block', at, FIRE, fireTickDelay(world));
             return;
         }
-        // `LiquidBlock.onPlace` schedules the new fluid's own first tick.
-        if (fluidKindOf(to) !== undefined) fluidNeighborChanged(world, at);
+        // A resolved liquid family books its own first tick from `onPlace`.
+        if (fluidKindOf(to) !== undefined && !world.hasScheduledTick('fluid', at, to.name)) {
+            fluidNeighborChanged(world, at);
+        }
     };
 
     const setBlockAndUpdate = (at: BlockPosition, to: BlockRef): void => {

@@ -25,7 +25,7 @@ export interface ContentRedstoneUpdateOptions {
 
 /** The power-change dispatcher and the cache invalidation the world lifecycle needs. */
 export interface ContentRedstoneUpdateHandlers {
-    /** Dispatches a redstone change, including diode neighbor checks, to content hooks. */
+    /** Dispatches redstone changes and reports when a content neighbor hook owns the update. */
     dispatch(at: BlockPosition, block: BlockRef, power: number): boolean;
     /** Clears the cached reading after a block at this position changes. */
     forgetPosition(at: BlockPosition): void;
@@ -41,8 +41,9 @@ const diodeBlocks = new Set<string>([REPEATER.powered, REPEATER.unpowered, COMPA
  * Builds the redstone hook dispatcher for one world's resolved content.
  *
  * Power readings are scoped to loaded chunks and discarded when a block
- * changes or its chunk unloads, so a long-running world does not retain every
- * redstone consumer it has ever loaded.
+ * changes or its chunk unloads. When the active state has a neighbor hook but
+ * no redstone hook, the dispatcher marks the update as content-owned so the
+ * engine does not also run its legacy neighbor handler.
  *
  * @param options - The content, live world, and error reporter.
  * @returns A dispatcher and its world-lifecycle invalidation methods.
@@ -65,7 +66,7 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
             if (type === undefined) return false;
             const state = type.state(stored.states);
             const hooks = state.content.hooks;
-            if (!hooks.has('onRedstoneUpdate')) return false;
+            if (!hooks.has('onRedstoneUpdate')) return hooks.has('onNeighborChanged');
 
             const chunk = chunkKey(at);
             const positions = powerByChunk.get(chunk) ?? new Map<string, number>();
@@ -76,7 +77,7 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
             const changed = previous !== power && !(previous === undefined && power === 0);
             // Diodes must inspect every neighbor change: a comparator's side input can change
             // while its strongest neighboring signal stays the same, and a repeater can lock.
-            if (!changed && !diodeBlocks.has(block.name)) return false;
+            if (!changed && !diodeBlocks.has(block.name)) return hooks.has('onNeighborChanged');
 
             dispatching.add(key);
             try {

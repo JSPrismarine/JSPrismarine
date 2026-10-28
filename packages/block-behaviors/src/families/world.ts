@@ -5,7 +5,7 @@
 import { defineFamily } from '../family';
 import { offset } from '../geometry';
 import { AIR, isLava, isLiquidSource } from '../identifiers';
-import { applyLavaWaterReaction, spreadLiquid, spreadTicks } from '../rules/fluid';
+import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
 import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
 import { breakBlock } from '../rules/support';
@@ -15,7 +15,7 @@ import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 /** Water and lava, source and flowing. */
 export const liquidFamily = defineFamily(
     'jsprismarine:liquid',
-    'Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, burns what stands in lava, and gives a source block up to a bucket or a bottle.',
+    'Recomputes flowing depth, follows the nearest downward opening, forms source blocks when enabled, reacts where water meets lava, and gives sources up to buckets or bottles.',
     {
         onPlayerInteract: (event, world) => {
             // Only a source fills a bucket. A flowing block has no liquid of
@@ -49,22 +49,10 @@ export const liquidFamily = defineFamily(
             );
         },
         onNeighborChanged: (event, world) => {
-            if (applyLavaWaterReaction(world, event.block) !== undefined) return;
-            world.scheduleTick(
-                event.block.position,
-                spreadTicks(event.block.identifier, event.block.dimension),
-                'fluid'
-            );
+            fluidNeighborChanged(world, event.block);
         },
         onTick: (event, world) => {
-            if (applyLavaWaterReaction(world, event.block) !== undefined) return;
-            const result = spreadLiquid(world, event.block);
-            if (!result.down && result.sides.length === 0) return;
-            world.scheduleTick(
-                event.block.position,
-                spreadTicks(event.block.identifier, event.block.dimension),
-                'fluid'
-            );
+            fluidTick(world, event.block);
         },
         onStepOn: (event, world) => {
             if (!isLava(event.block.identifier)) return;

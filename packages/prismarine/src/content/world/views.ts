@@ -17,7 +17,12 @@ import type {
 } from '@jsprismarine/block-behaviors';
 import { DEFAULT_LIGHT_DAMPENING, blockProperties, flammable } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
-import { AIR, hasSturdyTopFace as engineHasSturdyTopFace, TICK_PRIORITIES } from '@jsprismarine/engine-systems';
+import {
+    AIR,
+    hasSturdyTopFace as engineHasSturdyTopFace,
+    isFullCube as engineIsFullCube,
+    TICK_PRIORITIES
+} from '@jsprismarine/engine-systems';
 import type { BlockRef, Dimension, WorldAccess } from '@jsprismarine/engine-systems';
 import type { BlockTickPriority } from '@jsprismarine/block-behaviors';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
@@ -31,7 +36,13 @@ import type { SpawnWorld } from '@jsprismarine/spawning';
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import { CONTENT_AREAS, notWired } from './notWired';
-import { FIRE_SPREAD_RADIUS, UNLIMITED_FIRE_SPREAD_RADIUS, fireSpreadRadius } from './gameRules';
+import {
+    FIRE_SPREAD_RADIUS,
+    LAVA_SOURCE_CONVERSION,
+    UNLIMITED_FIRE_SPREAD_RADIUS,
+    WATER_SOURCE_CONVERSION,
+    fireSpreadRadius
+} from './gameRules';
 
 /**
  * Reads the built content.
@@ -170,6 +181,11 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         lightDampeningOf: (block) => lightDampeningOf(content(), block),
         flammabilityOf: (block) => flammabilityOf(content(), block),
         hasSturdyTopFace: (block) => engineHasSturdyTopFace(engineWorld.getBlock(block.position)),
+        isFullCube: (block) => engineIsFullCube(engineWorld.getBlock(block.position)),
+        fluidSourceConversion: (kind) => {
+            const value = adapter.level.gameRule(kind === 'water' ? WATER_SOURCE_CONVERSION : LAVA_SOURCE_CONVERSION);
+            return typeof value === 'boolean' ? value : kind === 'water';
+        },
         dropItem: (position, drop) => adapter.entities.drop(position, drop),
         // Left out rather than made to throw when the adapter cannot destroy, because a
         // family that cannot reach the table still has its own drop to fall back on.

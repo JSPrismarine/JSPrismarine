@@ -45,6 +45,12 @@ export const FIRE_SPREAD_RADIUS = idOf('doFireTick');
 /** `minecraft:fire_damage`: whether fire hurts entities. */
 export const FIRE_DAMAGE = idOf('fireDamage');
 
+/** `minecraft:water_source_conversion`: whether adjacent water sources create another source. */
+export const WATER_SOURCE_CONVERSION = idOf('waterSourceConversion');
+
+/** `minecraft:lava_source_conversion`: whether adjacent lava sources create another source. */
+export const LAVA_SOURCE_CONVERSION = idOf('lavaSourceConversion');
+
 /**
  * The default of {@link FIRE_SPREAD_RADIUS}, in blocks.
  *

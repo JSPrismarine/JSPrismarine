@@ -147,6 +147,10 @@ export interface WorldActions {
     flammabilityOf?(block: HookBlock): BlockFlammability | undefined;
     /** Whether this block has a sturdy top face, when the host can report its collision shape. */
     hasSturdyTopFace?(block: HookBlock): boolean;
+    /** Whether this block fills its cell with a full cube collision shape. */
+    isFullCube?(block: HookBlock): boolean;
+    /** Whether infinite sources form for a fluid kind; defaults to vanilla game-rule values. */
+    fluidSourceConversion?(kind: 'water' | 'lava'): boolean;
     /** Drops an item stack as an entity at a position. */
     dropItem(position: BlockPosition, drop: ItemDrop): void;
     /**
