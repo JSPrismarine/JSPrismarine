@@ -98,7 +98,13 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
         storage: worldBlockStorage(world),
         blockEntities: worldBlockEntities(world),
         content,
-        dimension
+        dimension,
+        updateEngineAround: (at, block) => {
+            const live = world();
+            if (live !== undefined) {
+                live.getSystems().updateAround(at, { name: block.identifier, states: block.states });
+            }
+        }
     });
 
     const entities = worldEntityAccess({

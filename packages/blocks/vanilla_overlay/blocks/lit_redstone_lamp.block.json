@@ -17,7 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
-            "jsprismarine:behavior": "jsprismarine:plain_block",
+            "jsprismarine:behavior": "jsprismarine:redstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": false,

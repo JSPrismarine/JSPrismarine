@@ -20,6 +20,7 @@ import { Dimensions } from './Dimension';
 import { createEngineWorld } from './EngineWorld';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';
+import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { WorldSystems } from './WorldSystems';
@@ -38,7 +39,10 @@ const BLOCKS = [
     'minecraft:big_dripleaf',
     'minecraft:dirt',
     'minecraft:farmland',
+    'minecraft:lit_redstone_lamp',
     'minecraft:observer',
+    'minecraft:redstone_block',
+    'minecraft:redstone_lamp',
     'minecraft:redstone_torch',
     'minecraft:unlit_redstone_torch',
     'minecraft:wheat'
@@ -145,6 +149,13 @@ describe('contentRandomTickHandlers', () => {
                     report: (identifier, error) => {
                         throw new Error(`${identifier} threw: ${String(error)}`);
                     }
+                }),
+                redstoneUpdateHandlers: contentRedstoneUpdateHandlers({
+                    content,
+                    world: () => world,
+                    report: (identifier, error) => {
+                        throw new Error(`${identifier} redstone update threw: ${String(error)}`);
+                    }
                 })
             })
         });
@@ -210,6 +221,21 @@ describe('contentRandomTickHandlers', () => {
         world.getSystems().tick(3);
 
         expect(world.loadedBlockAt(at.x, at.y, at.z)?.states['powered_bit']).toBe(0);
+    });
+
+    it('dispatches changed redstone power through the resolved block family', () => {
+        const lamp = { x: 2, y: SOIL_Y + 1, z: 2 };
+        const source = { x: 3, y: SOIL_Y + 1, z: 2 };
+        place(chunk, lamp.x, lamp.y, lamp.z, 'minecraft:redstone_lamp');
+        const blocks = content.world.blockWorld.at(Dimensions.Overworld.name);
+
+        blocks.setBlock(source, 'minecraft:redstone_block');
+
+        expect(world.loadedBlockAt(lamp.x, lamp.y, lamp.z)?.name).toBe('minecraft:lit_redstone_lamp');
+
+        blocks.setBlock(source, 'minecraft:air');
+
+        expect(world.loadedBlockAt(lamp.x, lamp.y, lamp.z)?.name).toBe('minecraft:redstone_lamp');
     });
 
     it('dispatches random ticks for blocks whose Java state words differ from Bedrock', () => {

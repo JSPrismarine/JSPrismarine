@@ -102,6 +102,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
             'redstone_wire',
             'redstone_block',
             'redstone_lamp',
+            'lit_redstone_lamp',
             'redstone_torch',
             'unlit_redstone_torch',
             'lever',

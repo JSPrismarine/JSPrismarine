@@ -42,6 +42,7 @@ const blockFile = (identifier: string, hardness: number, lightEmission: number):
             'minecraft:light_emission': lightEmission,
             'minecraft:light_dampening': 15,
             'minecraft:friction': 0.6,
+            ...(identifier === 'minecraft:redstone_lamp' ? { 'jsprismarine:behavior': 'jsprismarine:redstone' } : {}),
             'jsprismarine:block_properties': {
                 friction: 0.6,
                 random_tick: false,

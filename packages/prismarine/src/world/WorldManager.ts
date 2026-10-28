@@ -4,6 +4,7 @@ import { worldSeedOf } from '../utils/Seed';
 import { GeneratorManager } from './GeneratorManager';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';
+import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
 import { World } from './World';
 import type BaseProvider from './providers/BaseProvider';
 
@@ -214,6 +215,16 @@ export default class WorldManager implements Service {
                     this.server
                         .getLogger()
                         .error(`§c${identifier}§r threw on a scheduled block tick; it will not be reported again`);
+                }
+            }),
+            redstoneUpdateHandlers: contentRedstoneUpdateHandlers({
+                content,
+                world: () => built,
+                report: (identifier, error) => {
+                    this.server.getLogger().error(error);
+                    this.server
+                        .getLogger()
+                        .error(`§c${identifier}§r threw on a redstone update; it will not be reported again`);
                 }
             })
         });

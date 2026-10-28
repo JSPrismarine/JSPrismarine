@@ -23,6 +23,7 @@ import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
 import type { DimensionDefinition } from './Dimension';
+import type { ContentRedstoneUpdateHandlers } from './redstoneUpdates';
 
 /** A block as the systems read one: the identifier and its Bedrock state values. */
 export interface SystemBlock {
@@ -121,6 +122,8 @@ export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHand
     readonly world: WorldSystemsAccess;
     /** Resolved content handlers for scheduled block ticks; unhandled ticks fall back to the engine. */
     readonly blockTickHandlers?: Readonly<Record<string, (at: BlockPosition) => boolean>>;
+    /** Content redstone hooks and their power cache lifecycle. */
+    readonly redstoneUpdateHandlers?: ContentRedstoneUpdateHandlers;
 }
 
 /** The two numbers the light engine reads, for a block this server's mapping table knows. */
@@ -159,6 +162,8 @@ export class WorldSystems {
 
     private readonly blockTickHandlers: WorldSystemsOptions['blockTickHandlers'];
 
+    private readonly redstoneUpdateHandlers: WorldSystemsOptions['redstoneUpdateHandlers'];
+
     private readonly randomPositions = new BlockRandomPositions();
 
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
@@ -167,6 +172,7 @@ export class WorldSystems {
     public constructor(options: WorldSystemsOptions) {
         this.view = options.view;
         this.blockTickHandlers = options.blockTickHandlers;
+        this.redstoneUpdateHandlers = options.redstoneUpdateHandlers;
         this.lighting = new LightEngine(this.lightView());
         this.engine = createEngine(
             {
@@ -179,7 +185,11 @@ export class WorldSystems {
                 hasScheduledTick: (kind, at, type) => this.ticks.list(kind).hasScheduledTick(at, type),
                 willTickThisTick: (kind, at, type) => this.ticks.list(kind).willTickThisTick(at, type)
             },
-            { randomTickHandlers: options.randomTickHandlers, canSpreadFireAround: options.canSpreadFireAround }
+            {
+                randomTickHandlers: options.randomTickHandlers,
+                canSpreadFireAround: options.canSpreadFireAround,
+                onRedstoneUpdate: options.redstoneUpdateHandlers?.dispatch
+            }
         );
     }
 
@@ -205,6 +215,7 @@ export class WorldSystems {
     /** Drops a chunk's light. The neighbors keep what it gave them until something changes. */
     public onChunkUnloaded(chunkX: number, chunkZ: number): void {
         this.lighting.onChunkUnloaded(chunkX, chunkZ);
+        this.redstoneUpdateHandlers?.forgetChunk(chunkX, chunkZ);
     }
 
     /**
@@ -214,6 +225,7 @@ export class WorldSystems {
      *   reads as air rather than as a wall, so removing one cannot darken a lit room.
      */
     public onBlockChanged(at: BlockPosition, previous: SystemBlock, next: SystemBlock): void {
+        if (previous.name !== next.name) this.redstoneUpdateHandlers?.forgetPosition(at);
         this.lighting.onBlockChanged(
             at,
             lightPropertiesOf(previous) ?? TRANSPARENT,

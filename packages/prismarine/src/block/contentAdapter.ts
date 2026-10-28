@@ -76,6 +76,8 @@ export interface ContentBlockGroupOptions {
     readonly content: ContentLookup;
     /** The dimension this group covers, which the block hooks carry. */
     readonly dimension?: string;
+    /** Runs the engine systems when a content block announces that it changed. */
+    readonly updateEngineAround?: (at: ContentPosition, block: ContentBlock) => void;
 }
 
 /** The block as a hook reads one, or undefined when the position is unloaded. */
@@ -91,6 +93,7 @@ const hookBlockAt = (
 interface NeighborNotification {
     readonly at: ContentPosition;
     readonly changed: HookBlock;
+    engineUpdated: boolean;
     nextFace: number;
 }
 
@@ -155,7 +158,7 @@ const reactsToNeighbors = (content: ContentLookup, identifier: string): boolean 
  * call the family that is calling it.
  */
 export const createContentBlockGroup = (options: ContentBlockGroupOptions): ContentBlockGroup => {
-    const { storage, blockEntities, content } = options;
+    const { storage, blockEntities, content, updateEngineAround } = options;
     const dimension = options.dimension ?? 'minecraft:overworld';
 
     /**
@@ -176,7 +179,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         if (chainedUpdates >= MAX_CHAINED_NEIGHBOR_UPDATES) return;
 
         chainedUpdates++;
-        queued.push({ at, changed, nextFace: 0 });
+        queued.push({ at, changed, engineUpdated: false, nextFace: 0 });
         if (dispatching) return;
 
         dispatching = true;
@@ -187,6 +190,15 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
 
                 const update = stack.at(-1);
                 if (!update) continue;
+
+                if (!update.engineUpdated) {
+                    update.engineUpdated = true;
+                    updateEngineAround?.(update.at, {
+                        identifier: update.changed.identifier,
+                        states: update.changed.states
+                    });
+                    continue;
+                }
 
                 const face = BLOCK_FACES[update.nextFace];
                 if (face === undefined) {

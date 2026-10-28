@@ -74,6 +74,7 @@ describe('the jsprismarine_vanilla overlay generator', () => {
         const known = new Set(BLOCK_BEHAVIOR_NAMES);
 
         for (const identifier of identifiers()) expect(known.has(behaviorFor(identifier))).toBe(true);
+        expect(behaviorFor('minecraft:lit_redstone_lamp')).toBe('jsprismarine:redstone');
     });
 
     it('matches the committed pack, so the generator and the files cannot drift', () => {

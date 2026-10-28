@@ -131,7 +131,7 @@
         }
     ],
     "behaviorCounts": {
-        "jsprismarine:plain_block": 218,
+        "jsprismarine:plain_block": 217,
         "jsprismarine:inert": 203,
         "jsprismarine:slab": 109,
         "jsprismarine:stairs": 97,
@@ -145,8 +145,8 @@
         "jsprismarine:soil": 39,
         "jsprismarine:glass": 35,
         "jsprismarine:candle": 34,
+        "jsprismarine:redstone": 32,
         "jsprismarine:wall": 32,
-        "jsprismarine:redstone": 31,
         "jsprismarine:container": 22,
         "jsprismarine:door": 22,
         "jsprismarine:trapdoor": 22,

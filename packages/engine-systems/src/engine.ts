@@ -38,6 +38,7 @@ import { MAX_CHAINED_NEIGHBOR_UPDATES, createNeighborUpdates } from './neighborU
 import { pistonNeighborChanged } from './pistons';
 import type { BlockRandomPositions, SectionOrigin } from './randomTick';
 import { DEFAULT_RANDOM_TICK_SPEED, runRandomTicks } from './randomTick';
+import { bestNeighborSignal } from './signal';
 import {
     TORCH_MAX_RECENT_TOGGLES,
     TORCH_RESTART_DELAY,
@@ -68,6 +69,11 @@ export interface EngineOptions {
      * a block-state construction per tick in the hottest loop the world has.
      */
     randomTickHandlers?: Readonly<Record<string, (at: BlockPosition, block: BlockRef) => void>>;
+    /**
+     * What to run when power reaching a block changes. Return true when a
+     * content hook owns the update so the engine can skip its legacy handler.
+     */
+    onRedstoneUpdate?: (at: BlockPosition, block: BlockRef, power: number) => boolean;
     /**
      * Java's `INCREASED_FIRE_BURNOUT` environment attribute, which the humid
      * biomes set. It takes 50 off every burn-out denominator and halves the
@@ -151,6 +157,8 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             onNeighborChanged(at, fromBlock) {
                 const block = world.getBlock(at);
                 const { name } = block;
+
+                if (options.onRedstoneUpdate?.(at, block, bestNeighborSignal(world, at))) return;
 
                 if (name === REDSTONE_WIRE) {
                     updateWirePower(updates, world, at);
@@ -271,6 +279,9 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
         world.setBlock(at, to, false);
         updates.updateNeighborsAt(at, to.name);
         runPlacementUpdates(at, to);
+        if (options.onRedstoneUpdate !== undefined) {
+            options.onRedstoneUpdate(at, world.getBlock(at), bestNeighborSignal(world, at));
+        }
         updates.shapeUpdatesAround(at);
     };
 
