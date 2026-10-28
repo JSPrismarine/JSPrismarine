@@ -67,9 +67,9 @@ const creativePick = (server: Server, netId: number): Item | null => {
     const picked = payloads.creativeItems[netId - 1];
     if (picked === undefined) return null;
 
-    // The registry's number as the legacy id, which is what `getNetworkId`
-    // falls back to for a name the committed item table does not have. That
-    // is how a pack's own item reaches the wire at all.
+    // The registry's runtime id is what `getRuntimeId` uses for a name the
+    // committed item table does not have. That is how a pack's own item
+    // reaches the wire at all.
     return new Item({ runtimeId: picked.runtimeId, name: picked.name, meta: picked.meta });
 };
 
@@ -437,7 +437,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
          */
         const ownStack = (item: Item, count: number): Item => {
             const stack = new Item({
-                runtimeId: item.getNetworkId(),
+                runtimeId: item.getRuntimeId(),
                 name: item.getName(),
                 meta: item.meta,
                 count,

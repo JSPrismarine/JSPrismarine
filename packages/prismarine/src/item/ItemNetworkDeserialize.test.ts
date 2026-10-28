@@ -29,7 +29,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(written);
             const item = Item.networkDeserialize(stream);
 
-            expect(item.getNetworkId()).toBe(5);
+            expect(item.getRuntimeId()).toBe(5);
             expect(item.meta).toBe(3);
             // Nothing left over is the whole point: a reader one byte out still returns an
             // item, it just leaves the stream in the wrong place for whatever reads next.
@@ -42,7 +42,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(written);
             const item = Item.networkDeserialize(stream);
 
-            expect(item.getNetworkId()).toBe(7);
+            expect(item.getRuntimeId()).toBe(7);
             expect(item.stackNetworkId).toBe(42);
             expect(stream.feof()).toBe(true);
         });
@@ -95,7 +95,7 @@ describe('item', () => {
         it('writes the same bytes the protocol package would, user data included', () => {
             const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 });
             const blockRuntimeId = BlockRuntimeIds.getByName('minecraft:stone');
-            const descriptor = new NetworkItemStackDescriptor(item.getNetworkId(), 1, 0, false, blockRuntimeId, {
+            const descriptor = new NetworkItemStackDescriptor(item.getRuntimeId(), 1, 0, false, blockRuntimeId, {
                 userDataBuffer: emptyUserData()
             });
 
@@ -106,7 +106,7 @@ describe('item', () => {
 
         it('ends a shield with its blocking tick', () => {
             const shield = new Item({ runtimeId: 355, name: 'minecraft:shield', meta: 0 });
-            const descriptor = new NetworkItemStackDescriptor(shield.getNetworkId(), 1, 0, false, 0, {
+            const descriptor = new NetworkItemStackDescriptor(shield.getRuntimeId(), 1, 0, false, 0, {
                 userDataBuffer: unusedUserData(true)
             });
 
@@ -120,8 +120,8 @@ describe('item', () => {
             const without = serialized(item);
 
             expect(withNetId).not.toEqual(without);
-            expect(Item.networkDeserialize(new NetworkBinaryStream(withNetId)).getNetworkId()).toBe(
-                item.getNetworkId()
+            expect(Item.networkDeserialize(new NetworkBinaryStream(withNetId)).getRuntimeId()).toBe(
+                item.getRuntimeId()
             );
         });
 
@@ -129,7 +129,7 @@ describe('item', () => {
             // `BlockRuntimeIds.getByName` has no answer for a sword, and raised - taking the
             // whole packet, and so the entire inventory, down with it.
             const sword = new Item({ runtimeId: 308, name: 'minecraft:diamond_sword', meta: 0 });
-            const descriptor = new NetworkItemStackDescriptor(sword.getNetworkId(), 1, 0, false, 0, {
+            const descriptor = new NetworkItemStackDescriptor(sword.getRuntimeId(), 1, 0, false, 0, {
                 userDataBuffer: unusedUserData()
             });
 
@@ -144,12 +144,12 @@ describe('item', () => {
             // one left without a word.
             const output = new Item({ runtimeId: 0, name: 'minecraft:stick' });
 
-            expect(output.getNetworkId()).not.toBe(0);
+            expect(output.getRuntimeId()).not.toBe(0);
 
             const stream = new NetworkBinaryStream(serialized(output));
             const read = Item.networkDeserialize(stream);
 
-            expect(read.getNetworkId()).toBe(output.getNetworkId());
+            expect(read.getRuntimeId()).toBe(output.getRuntimeId());
             expect(stream.feof()).toBe(true);
         });
 
@@ -177,7 +177,7 @@ describe('item', () => {
         it('writes a zeroed stack for something that resolves to nothing', () => {
             const nowhere = new Item({ runtimeId: 0, name: 'minecraft:not_a_real_item' });
 
-            expect(nowhere.getNetworkId()).toBeFalsy();
+            expect(nowhere.getRuntimeId()).toBeFalsy();
             expect(serialized(nowhere)).toEqual(Buffer.alloc(8));
         });
 
@@ -187,7 +187,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(serialized(item));
             const read = Item.networkDeserialize(stream);
 
-            expect(read.getNetworkId()).toBe(item.getNetworkId());
+            expect(read.getRuntimeId()).toBe(item.getRuntimeId());
             expect(read.meta).toBe(3);
             expect(read.getAmount()).toBe(1);
             expect(stream.feof()).toBe(true);
@@ -225,8 +225,8 @@ describe('item', () => {
 
             // Two fixed little endian bytes against a zigzag varint, which for an id this
             // small is one byte holding twice the id.
-            expect(tracked.subarray(0, 2)).toEqual(Buffer.from([item.getNetworkId(), 0]));
-            expect(untracked[0]).toBe(item.getNetworkId() * 2);
+            expect(tracked.subarray(0, 2)).toEqual(Buffer.from([item.getRuntimeId(), 0]));
+            expect(untracked[0]).toBe(item.getRuntimeId() * 2);
         });
 
         it('agree on the count and the aux value that follow the id', () => {

@@ -112,7 +112,7 @@ const nameOfWireId = (id: number): string | undefined => {
 export class Item {
     private readonly name: string;
     private readonly runtimeId: number;
-    private readonly networkId: number | undefined;
+    private readonly tableRuntimeId: number | undefined;
     private readonly placedBlockRuntimeId: number | undefined;
     private readonly content: ServerContent | undefined;
     public meta = 0;
@@ -196,7 +196,7 @@ export class Item {
         // Zero is the empty stack's count; treating it as missing turns air into a live item.
         if (count !== undefined) this.count = count;
 
-        this.networkId = ItemTable[name]?.runtime_id;
+        this.tableRuntimeId = ItemTable[name]?.runtime_id;
         this.durability = this.getMaxDurability();
     }
 
@@ -220,8 +220,8 @@ export class Item {
     }
 
     /** The Bedrock runtime id sent to the client for this item. */
-    public getNetworkId(): number {
-        return this.networkId || this.runtimeId;
+    public getRuntimeId(): number {
+        return this.tableRuntimeId ?? this.runtimeId;
     }
 
     /** The stack's damage or variant value, which the wire carries beside the id. */
@@ -589,7 +589,7 @@ export class Item {
      * leaves the client holding a real item in every slot the player is not using.
      */
     private wireId(): number {
-        return this.getName() === 'minecraft:air' ? 0 : this.getNetworkId();
+        return this.getName() === 'minecraft:air' ? 0 : this.getRuntimeId();
     }
 
     /**
@@ -608,19 +608,19 @@ export class Item {
      * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/
      */
     public networkSerialize(stream: BinaryStream, stackNetId: number | null = null): void {
-        const networkId = this.wireId();
+        const runtimeId = this.wireId();
 
-        stream.writeShortLE(networkId);
-        stream.writeUnsignedShortLE(networkId === 0 ? 0 : this.getAmount());
-        stream.writeUnsignedVarInt(networkId === 0 ? 0 : this.meta);
+        stream.writeShortLE(runtimeId);
+        stream.writeUnsignedShortLE(runtimeId === 0 ? 0 : this.getAmount());
+        stream.writeUnsignedVarInt(runtimeId === 0 ? 0 : this.meta);
 
         stream.writeBoolean(stackNetId !== null);
         if (stackNetId !== null) {
             stream.writeVarInt(stackNetId);
         }
 
-        stream.writeUnsignedVarInt(networkId === 0 ? 0 : this.getBlockRuntimeId());
-        this.writeExtraData(stream, networkId !== 0);
+        stream.writeUnsignedVarInt(runtimeId === 0 ? 0 : this.getBlockRuntimeId());
+        this.writeExtraData(stream, runtimeId !== 0);
     }
 
     /**
@@ -630,14 +630,14 @@ export class Item {
      * stacks. See {@link networkSerialize} for how the two forms differ beyond the flag.
      */
     public networkSerializeWithoutStackId(stream: BinaryStream): void {
-        const networkId = this.wireId();
+        const runtimeId = this.wireId();
 
-        stream.writeVarInt(networkId);
-        stream.writeUnsignedShortLE(networkId === 0 ? 0 : this.getAmount());
-        stream.writeUnsignedVarInt(networkId === 0 ? 0 : this.meta);
-        stream.writeVarInt(networkId === 0 ? 0 : this.getBlockRuntimeId());
+        stream.writeVarInt(runtimeId);
+        stream.writeUnsignedShortLE(runtimeId === 0 ? 0 : this.getAmount());
+        stream.writeUnsignedVarInt(runtimeId === 0 ? 0 : this.meta);
+        stream.writeVarInt(runtimeId === 0 ? 0 : this.getBlockRuntimeId());
 
-        this.writeExtraData(stream, networkId !== 0);
+        this.writeExtraData(stream, runtimeId !== 0);
     }
 
     /**

@@ -79,7 +79,7 @@ describe('network', () => {
                 packet.decode();
 
                 expect(packet.runtimeEntityId).toBe(7n);
-                expect(packet.item.getNetworkId()).toBe(0x0141);
+                expect(packet.item.getRuntimeId()).toBe(0x0141);
                 expect(packet.item.count).toBe(1);
                 expect(packet.inventorySlot).toBe(2);
                 expect(packet.hotbarSlot).toBe(2);

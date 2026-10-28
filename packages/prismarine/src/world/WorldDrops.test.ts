@@ -154,7 +154,7 @@ describe('world', () => {
             expect(spawn).toBeDefined();
             // A generic `AddActor` in its place is an entity the client renders as nothing.
             expect(spawn!.item.getName()).toBe('minecraft:cobblestone');
-            expect(spawn!.item.getNetworkId()).toBeGreaterThan(0);
+            expect(spawn!.item.getRuntimeId()).toBeGreaterThan(0);
         });
 
         it('starts the drop inside the block that broke, and tells the client how fast it leaves', async () => {

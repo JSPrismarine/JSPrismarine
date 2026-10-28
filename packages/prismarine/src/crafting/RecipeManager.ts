@@ -61,7 +61,7 @@ export class RecipeManager implements Service {
      * Whether a name is one the server can hand to a client.
      *
      * The item table decides: it is what `StartGamePacket` declares and what every item
-     * network id is resolved through, so a name absent from it is one the client would not
+     * runtime id is resolved through, so a name absent from it is one the client would not
      * recognize however carefully the server built it.
      */
     private isKnown(name: string): boolean {

@@ -41,7 +41,7 @@ export const itemAsStack = (item: Item): ItemStackData => {
     new ItemInstanceUserData(null, blocksAttacks ? { blockingTick: 0n } : {}).serialize(blob);
 
     return {
-        runtimeId: item.getName() === 'minecraft:air' ? 0 : item.getNetworkId(),
+        runtimeId: item.getName() === 'minecraft:air' ? 0 : item.getRuntimeId(),
         count: item.getAmount(),
         meta: item.meta,
         blockRuntimeId: item.getBlockRuntimeId(),

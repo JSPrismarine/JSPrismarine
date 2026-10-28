@@ -59,12 +59,12 @@ describe('MobArmorEquipmentPacket', () => {
         // Decoding does not resolve a wire id back to a name, so a non-air slot is checked by
         // the id it went out under. Air comes back by name with a zero id.
         const slots = Array.from({ length: 5 }, () => Item.networkDeserialize(stream));
-        expect(slots.map((item) => item.getNetworkId())).toStrictEqual([
+        expect(slots.map((item) => item.getRuntimeId())).toStrictEqual([
             0,
-            chestplate.getNetworkId(),
+            chestplate.getRuntimeId(),
             0,
             0,
-            planks.getNetworkId()
+            planks.getRuntimeId()
         ]);
         expect(slots[0]?.getName()).toBe('minecraft:air');
         expect(slots[1]?.count).toBe(1);
@@ -109,11 +109,11 @@ describe('MobArmorEquipmentPacket', () => {
 
         expect(packet.runtimeEntityId).toBe(7n);
         expect(packet.head.getName()).toBe('minecraft:air');
-        expect(packet.chest.getNetworkId()).toBe(0x0141);
+        expect(packet.chest.getRuntimeId()).toBe(0x0141);
         expect(packet.chest.count).toBe(1);
         expect(packet.legs.getName()).toBe('minecraft:air');
         expect(packet.feet.getName()).toBe('minecraft:air');
-        expect(packet.body.getNetworkId()).toBe(0x0200);
+        expect(packet.body.getRuntimeId()).toBe(0x0200);
         expect(packet.body.count).toBe(2);
         expect(packet.feof()).toBe(true);
     });

@@ -86,7 +86,7 @@ describe('CreativeInventory', () => {
         const ids = new Set(Object.values(ItemTable).map((entry) => entry.runtime_id));
 
         for (const item of menu.getItems()) {
-            expect(ids.has(item.getNetworkId())).toBe(true);
+            expect(ids.has(item.getRuntimeId())).toBe(true);
         }
     });
 
@@ -98,7 +98,7 @@ describe('CreativeInventory', () => {
         const items = menu.getItems();
 
         for (const item of items) {
-            expect(item.getNetworkId()).toBe(ItemTable[item.getName()]!.runtime_id);
+            expect(item.getRuntimeId()).toBe(ItemTable[item.getName()]!.runtime_id);
         }
     });
 

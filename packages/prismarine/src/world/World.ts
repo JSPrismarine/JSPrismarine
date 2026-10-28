@@ -2153,10 +2153,10 @@ export class World implements Service {
         const item =
             drop instanceof Item ? drop : new Item({ name: drop.getName(), content: this.server.getContent() });
 
-        // A stack with no wire id goes out as air, and the client draws an item actor holding
+        // A stack with no runtime id goes out as air, and the client draws an item actor holding
         // air as an empty item on the ground. That is an unknown Java id `bedrockDrops` kept, or
         // a block whose drop names no item. Logged, so the block that made it can be found.
-        if (item.getName() === 'minecraft:air' || item.getNetworkId() === 0) {
+        if (item.getName() === 'minecraft:air' || item.getRuntimeId() === 0) {
             this.server
                 .getLogger()
                 .debug(
@@ -2193,7 +2193,7 @@ export class World implements Service {
         this.server
             .getLogger()
             .debug(
-                `Dropped ${item.getName()} (network id ${item.getNetworkId()}) at ${position.toString()}`,
+                `Dropped ${item.getName()} (runtime id ${item.getRuntimeId()}) at ${position.toString()}`,
                 'World/dropItem'
             );
     }

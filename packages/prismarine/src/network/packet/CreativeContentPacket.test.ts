@@ -70,16 +70,16 @@ describe('CreativeContentPacket', () => {
         expected.writeUnsignedVarInt(2); // Groups.
         expected.writeByte(CreativeItemCategory.EQUIPMENT); // Creative Category.
         writeString(expected, 'itemGroup.name.sword'); // Name.
-        writeItem(expected, sword.getNetworkId(), 1, 0); // Group Icon Item.
+        writeItem(expected, sword.getRuntimeId(), 1, 0); // Group Icon Item.
         expected.writeByte(CreativeItemCategory.ITEMS);
         expected.writeUnsignedVarInt(0); // Name: empty, so the group is anonymous.
         writeAir(expected);
         expected.writeUnsignedVarInt(2); // Entries.
         expected.writeUnsignedVarInt(1); // Creative Net Id, one-based.
-        writeItem(expected, stick.getNetworkId(), 64, 0); // Item Instance.
+        writeItem(expected, stick.getRuntimeId(), 64, 0); // Item Instance.
         expected.writeUnsignedVarInt(1); // Group Index.
         expected.writeUnsignedVarInt(2);
-        writeItem(expected, dyedStick.getNetworkId(), 1, 2);
+        writeItem(expected, dyedStick.getRuntimeId(), 1, 2);
         expected.writeUnsignedVarInt(1);
 
         expect(encode(packet)).toEqual(expected.getBuffer());
@@ -128,14 +128,14 @@ describe('CreativeContentPacket', () => {
             { category: CreativeItemCategory.CONSTRUCTION, name: 'itemGroup.name.planks' },
             { category: CreativeItemCategory.ITEMS, name: '' }
         ]);
-        expect(packet.groups[0]?.icon.getNetworkId()).toBe(5);
+        expect(packet.groups[0]?.icon.getRuntimeId()).toBe(5);
         expect(packet.groups[1]?.icon.getName()).toBe('minecraft:air');
 
         // The reader has no item table to resolve against, so an item comes back under its
         // wire id with the unknown name.
         expect(
             packet.entries.map(({ item, group }) => ({
-                id: item.getNetworkId(),
+                id: item.getRuntimeId(),
                 count: item.count,
                 meta: item.meta,
                 group
