@@ -52,7 +52,7 @@ import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import { blockFromContent } from '../block/Block';
 import type { ChunkRequestOptions, Generator, StructureSearchResult } from './Generator';
 import { GenerationStopped } from './Generator';
-import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
+import { createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { sectionTakesRandomTicks } from './randomTickSections';
@@ -436,9 +436,6 @@ export class World implements Service {
                 randomTickChunks: () => this.randomTickChunks()
             },
             world: createEngineWorld(this),
-            // `minecraft:fire_spread_radius_around_player`, read per fire tick. Fire is the
-            // one engine system whose rule needs the player list, and the engine has none.
-            canSpreadFireAround: (at) => canSpreadFireAround(this, at),
             // The blocks that answer a random tick are the behavior families in
             // `@jsprismarine/block-behaviors`, reached through the content world adapter, so
             // `WorldManager` builds these from the content registries. They are optional
@@ -1882,7 +1879,7 @@ export class World implements Service {
      * which is what makes it Chebyshev - and `ChunkLevel.isEntityTicking` admits every chunk at
      * level 31 or below. Java's two euclidean player-distance tests are elsewhere: the 128
      * block disc belongs to mob spawning, and `ChunkMap.anyPlayerCloseEnoughTo` to the fire
-     * spread radius, which {@link import('./EngineWorld').canSpreadFireAround} already answers.
+     * spread radius, which the fire family reads through its content world actions.
      */
     private isChunkWithinSimulationDistance(
         playerChunks: readonly PlayerChunkPosition[],

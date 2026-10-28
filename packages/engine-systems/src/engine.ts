@@ -28,7 +28,6 @@ import {
     repeaterTick,
     updateDiodeNeighborsInFront
 } from './diodes';
-import { FIRE, fireTick, fireTickDelay } from './fire';
 import type { NeighborUpdates } from './neighborUpdates';
 import { MAX_CHAINED_NEIGHBOR_UPDATES, createNeighborUpdates } from './neighborUpdates';
 import { pistonNeighborChanged } from './pistons';
@@ -67,23 +66,6 @@ export interface EngineOptions {
      * legacy handler.
      */
     onRedstoneUpdate?: (at: BlockPosition, block: BlockRef, power: number) => boolean;
-    /**
-     * Java's `INCREASED_FIRE_BURNOUT` environment attribute, which the humid
-     * biomes set. It takes 50 off every burn-out denominator and halves the
-     * spread odds.
-     */
-    increasedFireBurnout?: (at: BlockPosition) => boolean;
-    /**
-     * Java's `ServerLevel.canSpreadFireAround`: whether a fire tick does
-     * anything beyond scheduling the next one.
-     *
-     * 1.21.11 folded the booleans `doFireTick` and `allowFireTicksAwayFromPlayer`
-     * into the integer `minecraft:fire_spread_radius_around_player`, so the
-     * answer is how far the nearest player is rather than a flag, and the host
-     * is the side that knows where the players are. Left out, fire spreads
-     * everywhere, which is the rule set to -1.
-     */
-    canSpreadFireAround?: (at: BlockPosition) => boolean;
 }
 
 /** What a host calls to run the engine. */
@@ -92,7 +74,7 @@ export interface Engine {
     readonly updates: NeighborUpdates;
     /** Java's `Level.setBlockAndUpdate`: write a block and run every update it causes. */
     setBlockAndUpdate(at: BlockPosition, to: BlockRef): void;
-    /** Run a scheduled block tick; fluid behavior is dispatched through block families. */
+    /** Run a scheduled tick for an engine-owned block behavior. */
     runScheduledTick(at: BlockPosition, type: string): void;
     /**
      * Run one chunk tick's random ticks.
@@ -124,13 +106,12 @@ interface TorchToggle {
  *
  * Route the host's block writes through {@link Engine.setBlockAndUpdate}, not through
  * `engine.updates.updateNeighborsAt`. A host that raises only the neighbor updates leaves out
- * the new block's own `onPlace`, so dust placed beside a live lever stays dark, a piston
- * placed into a powered position never extends, and fire never burns anything.
+ * the new block's own `onPlace`, so dust placed beside a live lever stays dark and a piston
+ * placed into a powered position never extends. Data-driven block placement and its `onPlace`
+ * hooks belong to the block content adapter.
  */
 export const createEngine = (world: WorldAccess, options: EngineOptions = {}): Engine => {
     const randomTickHandlers = options.randomTickHandlers ?? {};
-    const increasedFireBurnout = options.increasedFireBurnout ?? (() => false);
-    const canSpreadFireAround = options.canSpreadFireAround ?? (() => true);
     let torchToggles: TorchToggle[] = [];
 
     const torchToggledTooOften = (at: BlockPosition, record: boolean): boolean => {
@@ -209,11 +190,10 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
      *
      * The generic six tell the neighbors about the new block. What they do not
      * do is tell the new block about its neighbors, so everything that reads
-     * the world it landed in has to be run here: dust works out its own power,
-     * a piston that landed already powered extends, and fire books the first
-     * tick that drives it. A system whose tick handler is right and
-     * whose first tick is never booked looks exactly like one that does not
-     * work at all.
+     * the world it landed in has to be run here: dust works out its own power
+     * and a piston that landed already powered extends. A system whose tick
+     * handler is right and whose first tick is never booked looks exactly like
+     * one that does not work at all.
      *
      * The rest are the signal sources reaching further than six. A torch tells
      * the neighbors of all six of its own neighbors, which is
@@ -252,14 +232,6 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             pistonNeighborChanged(updates, world, at);
             return;
         }
-        if (to.name === FIRE) {
-            // `FireBlock.onPlace` books the new fire's first tick, 30 to 39 game ticks out.
-            // The content family may already have booked it, so preserve the scheduler's
-            // deduplication without consuming a second random draw. A world without content
-            // still gets the engine fallback's first tick here.
-            if (!world.hasScheduledTick('block', at, FIRE)) world.scheduleTick('block', at, FIRE, fireTickDelay(world));
-            return;
-        }
     };
 
     const setBlockAndUpdate = (at: BlockPosition, to: BlockRef): void => {
@@ -289,13 +261,6 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
         }
         if (name === OBSERVER) {
             observerTick(updates, world, at);
-            return;
-        }
-        if (name === FIRE) {
-            fireTick(updates, world, at, {
-                increasedBurnout: increasedFireBurnout(at),
-                spreads: canSpreadFireAround(at)
-            });
             return;
         }
         void type;

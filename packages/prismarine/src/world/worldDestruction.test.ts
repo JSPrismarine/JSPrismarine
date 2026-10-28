@@ -21,10 +21,11 @@ import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
-import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
+import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { contentBlockTickHandlers } from './blockTicks';
 
 /**
  * Every path that destroys a block, over a world with the real content behind it.
@@ -196,22 +197,10 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
     });
 
     world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
-    Object.assign(world, {
-        systems: new WorldSystems({
-            view: {
-                dimension: Dimensions.Overworld,
-                blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
-                loadedChunks: () => [{ x: 0, z: 0 }]
-            },
-            world: createEngineWorld(world),
-            canSpreadFireAround: (at) => canSpreadFireAround(world, at)
-        })
-    });
-
     return { world, chunk, spawned, rules };
 };
 
-/** Runs the world's scheduled ticks, which is what carries a fluid and fires a circuit. */
+/** Runs the world's scheduled block and fluid ticks. */
 const runTicks = (world: World, count: number): void => {
     for (let tick = 1; tick <= count; tick += 1) {
         Object.assign(world, { currentTick: tick });
@@ -261,6 +250,17 @@ describe('a block the world destroyed', () => {
             })
         });
         built = content;
+        Object.assign(world, {
+            systems: new WorldSystems({
+                view: {
+                    dimension: Dimensions.Overworld,
+                    blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
+                    loadedChunks: () => [{ x: 0, z: 0 }]
+                },
+                world: createEngineWorld(world),
+                blockTickHandlers: contentBlockTickHandlers({ content, world: () => world, report: () => {} })
+            })
+        });
     });
 
     afterEach(() => {
@@ -343,7 +343,9 @@ describe('a block the world destroyed', () => {
             place(chunk, { x: 7, y: 64, z: 8 }, 'minecraft:stone');
             place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
 
-            world.setLoadedBlockState(8, 64, 8, { name: 'minecraft:water', states: { liquid_depth: 0 } }, true);
+            content.world.blockWorld
+                .at(DIMENSION)
+                .setBlock({ x: 8, y: 64, z: 8 }, 'minecraft:water', { liquid_depth: 0 });
             runTicks(world, 40);
 
             expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:flowing_water');
@@ -386,7 +388,7 @@ describe('a block the world destroyed', () => {
             place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:oak_planks');
             place(chunk, { x: 8, y: 65, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
 
-            world.setLoadedBlockState(7, 64, 8, { name: 'minecraft:fire', states: { age: 0 } }, true);
+            content.world.blockWorld.at(DIMENSION).setBlock({ x: 7, y: 64, z: 8 }, 'minecraft:fire', { age: 0 });
             runTicks(world, 60);
 
             // Java's `removeBlock(pos, false)`: a burned plank yields nothing of itself.
@@ -402,7 +404,7 @@ describe('a block the world destroyed', () => {
 
             // Lit and then left alone. Nothing else books a fire tick, so every tick below
             // comes from `FireBlock.onPlace` and from the fire rescheduling itself.
-            world.setLoadedBlockState(8, 65, 8, { name: 'minecraft:fire', states: { age: 0 } }, true);
+            content.world.blockWorld.at(DIMENSION).setBlock({ x: 8, y: 65, z: 8 }, 'minecraft:fire', { age: 0 });
             runTicks(world, 30);
 
             // One fire tick in: the plank it stood on has burned, and the fire has jumped
@@ -423,7 +425,7 @@ describe('a block the world destroyed', () => {
             rules.set('dofiretick', [false, true]);
             woodenRoof();
 
-            world.setLoadedBlockState(8, 65, 8, { name: 'minecraft:fire', states: { age: 0 } }, true);
+            content.world.blockWorld.at(DIMENSION).setBlock({ x: 8, y: 65, z: 8 }, 'minecraft:fire', { age: 0 });
             runTicks(world, 300);
 
             expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:oak_planks');

@@ -116,7 +116,7 @@ export interface WorldSystemsView {
 export type WorldSystemsAccess = Omit<WorldAccess, 'scheduleTick' | 'hasScheduledTick' | 'willTickThisTick'>;
 
 /** What a world gives {@link WorldSystems} to run on. */
-export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers' | 'canSpreadFireAround'> {
+export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers'> {
     /** The reads the light pass and the random tick draw need, which a chunk answers. */
     readonly view: WorldSystemsView;
     /** Everything the engine fallback does to the world. */
@@ -156,7 +156,7 @@ export class WorldSystems {
     /** The server's own light, which no packet carries; see `@jsprismarine/lighting`. */
     public readonly lighting: LightEngine;
 
-    /** Redstone, fire spread and the random tick driver. */
+    /** Redstone and the random tick driver. */
     private readonly engine: Engine;
 
     private readonly view: WorldSystemsView;
@@ -188,7 +188,6 @@ export class WorldSystems {
             },
             {
                 randomTickHandlers: options.randomTickHandlers,
-                canSpreadFireAround: options.canSpreadFireAround,
                 onRedstoneUpdate: options.redstoneUpdateHandlers?.dispatch
             }
         );

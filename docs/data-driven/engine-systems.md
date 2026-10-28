@@ -19,12 +19,11 @@ server or changing it, so the numbers are the ones you can observe or budget aga
 
 ## Why these are code
 
-Mojang keeps these systems in the game's own code in both editions. There is no redstone file in a
-behavior pack, no explosion table in a datapack, and no light format anywhere. So the fallback is
-Java's code, which has carried original class, field and method names since Mojang removed
-obfuscation in release 26.1. `@jsprismarine/engine-systems` is transcribed from the pinned Java
-26.3 server jar in `node_modules/.cache/jsprismarine/java-server/`, constant by constant, and each
-rule's source comment names the class it came from.
+Mojang keeps these rules in the game's code in both editions. The server implements block
+behavior in data-driven families, while the scheduler, redstone engine, random tick driver, and
+explosion calculations live in code. `@jsprismarine/engine-systems` transcribes the latter from the
+pinned Java 26.3 server jar in `node_modules/.cache/jsprismarine/java-server/`, and source comments
+name the class each rule came from.
 
 Natural spawning is the one item on that list with a data form. Bedrock publishes spawn rules, so
 the server reads the 60 vanilla `spawn_rules/*.json` files through `@jsprismarine/spawning` and
@@ -32,16 +31,17 @@ only the loop around them is code. [entities.md](entities.md) covers it; this pa
 
 | What | Where |
 | --- | --- |
-| Scheduler, redstone, fluids, fire, random ticking, explosions | `packages/engine-systems/` |
+| Scheduler, redstone, random tick driver, explosions | `packages/engine-systems/` |
+| Fluid flow and fire spread | `packages/block-behaviors/src/families/world.ts` |
 | Block light and sky light | `packages/lighting/` |
 | Driving all of it from one world tick | `packages/prismarine/src/world/WorldSystems.ts` |
 | The world those systems read and write | `packages/prismarine/src/world/EngineWorld.ts` |
 | What happens to a block the world destroys | `packages/prismarine/src/world/blockDestroy.ts` |
 | A blast over the server's own entities | `packages/prismarine/src/entity/Explosion.ts` |
 
-Every system reads and writes the world through one interface, `WorldAccess`. Nothing in
-`@jsprismarine/engine-systems` touches a chunk, a palette or a player, which is why the same
-explosion code runs for a class-based entity and for a data-driven one over two different seams.
+Engine-owned systems read and write the world through `WorldAccess`; data-driven families use
+`WorldActions`. Neither seam touches a chunk or a palette, which is why the same explosion code
+runs for a class-based entity and for a data-driven one over two different seams.
 
 ## The tick
 
@@ -161,9 +161,10 @@ over soul soil next to blue ice becomes basalt.
 
 ## Fire
 
-Fire is `FireBlock.tick` and `FireBlock.checkBurnOut`. The ignite and burn odds Mojang installs
-for 254 blocks are not restated in the engine package; `@jsprismarine/mapping` already holds them
-per block state, dumped from the same jar. A fire ages, burns the six blocks it touches against
+Fire is `FireBlock.tick` and `FireBlock.checkBurnOut`, implemented by `portalFamily` in
+`@jsprismarine/block-behaviors`. The active state's `minecraft:flammable` component supplies the
+ignite and burn odds, with `@jsprismarine/mapping` as the fallback for hosts without resolved
+components. A fire ages, burns the six blocks it touches against
 denominators of 300 sideways and 250 up and down, and tries to light every position in the 3 by 3
 by 6 box around it with odds of `(igniteOdds + 40 + difficultyId * 7) / (age + 30)` against a
 denominator that rises by 100 for each block above the first one overhead. Humid biomes set
@@ -171,7 +172,7 @@ Java's `INCREASED_FIRE_BURNOUT`, which takes 50 off every burn-out denominator a
 spread odds. The infinite fire sources are the `infiniburn` tags: netherrack and magma in the
 overworld and the nether, plus bedrock in the end.
 
-Fire runs on scheduled ticks 30 to 40 game ticks apart, as Java does, and ignores
+Fire runs on scheduled ticks 30 to 39 game ticks apart, as Java does, and ignores
 `random_tick_speed` entirely. Bedrock drives fire from random ticks instead, and that is a
 deliberate divergence.
 
@@ -182,7 +183,8 @@ and in 1.21.11 that reads one game rule you should know about.
 three of its values, so `doFireTick` off is 0, `doFireTick` on is 128, and `doFireTick` on together
 with `allowFireTicksAwayFromPlayer` is -1, which lifts the limit. Any other value means fire only
 ticks within that many blocks of a non-spectating player, measured as a straight-line distance from
-the block.
+the block. `WorldActions.canFireSpreadAround` reads the radius and player list for the fire family;
+`@jsprismarine/engine-systems` has no fire handler.
 
 A world that still spells the rule `doFireTick` keeps working, because the server resolves every
 spelling through the 26.3 game rule registry and converts a stored boolean the way Mojang's fix
@@ -201,19 +203,18 @@ did the first two and skipped the third. The six neighbor updates tell the neigh
 block. What they do not do is tell the new block about the world it just landed in, and that is
 exactly what `onPlace` is for.
 
-Three systems were dead because of it, and every one of them was correct:
+The missing `onPlace` path affected three behaviors:
 
-- Fire never got the first of the scheduled ticks that age it, spread it and burn it out. Nothing
-  else ever books a fire tick, so placed fire sat where it was lit forever.
+- Fire used to miss its first scheduled tick. `portalFamily` now books it from its data-driven
+  `onPlace` hook.
 - Redstone dust placed beside a lever that was already on stayed at 0, because
   `RedstoneWireBlock.onPlace` is what makes new dust work out its own power.
 - A piston placed into a position something already powered never extended, because
   `PistonBaseBlock.onPlace` runs `checkIfExtend`.
 
 None of the three had a bug in its tick handler. A system whose first tick nobody books looks
-exactly like a system that does not work at all, which is what made these hard to spot. The tests
-in `packages/engine-systems/src/engine.test.ts` cover each of the three so it cannot happen quietly
-again.
+exactly like a system that does not work at all, which is what made these hard to spot. Engine
+tests cover redstone dust and pistons; block-family and world integration tests cover fire.
 
 The same reasoning changed how the package is tested. `createTestEngine` now wires a notifying write
 back through `setBlockAndUpdate`, the way the server's `World.setLoadedBlockState` does, so a test

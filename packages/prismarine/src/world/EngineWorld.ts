@@ -1,11 +1,10 @@
 /**
  * The world `@jsprismarine/engine-systems` reads and writes, over this server's chunks.
  *
- * Redstone, fluids and fire never see a chunk, a palette or a player. They see one
- * `WorldAccess`, and this builds it out of the handful of things a {@link World} already
- * does. Everything here is synchronous and reads only chunks in memory, because a scheduled
- * tick runs inside the world tick and must not wait for a chunk, nor pull terrain into
- * existence by flowing water at the edge of the loaded world.
+ * Redstone never sees a chunk, a palette or a player. It sees one `WorldAccess`, and this builds
+ * it out of the handful of things a {@link World} already does. Reads are synchronous and stay
+ * inside loaded chunks, because a scheduled tick runs inside the world tick and must not wait for
+ * a chunk to load.
  *
  * The engine spells a block's states Java's way - `facing_direction` holds a direction word
  * where Bedrock holds a number, and the number is per block - so every block is translated on
@@ -18,15 +17,7 @@ import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
 import type { BlockPosition, BlockRef, Difficulty } from '@jsprismarine/engine-systems';
 import { AIR } from '@jsprismarine/engine-systems';
-import { Gametype } from '@jsprismarine/minecraft';
 
-import {
-    FIRE_SPREAD_RADIUS,
-    UNLIMITED_FIRE_SPREAD_RADIUS,
-    fireSpreadRadius,
-    gameRuleValue
-} from '../content/world/gameRules';
-import type { GameRuleStore } from '../content/world/gameRules';
 import { destroyBlock } from './blockDestroy';
 import { worldBlockEntities } from './contentAdapter';
 import { maxY } from './Dimension';
@@ -46,7 +37,7 @@ const ENGINE_STATES_FIELD = 'engineStates';
  * into the block entity, and from there to disk.
  *
  * Named rather than discovered, because {@link createEngineWorld}'s block read is the hottest
- * call the engine makes - every fluid, fire and redstone tick is several of them - and a chunk
+ * call the engine makes - every redstone tick is several of them - and a chunk
  * block entity lookup per read would cost more than every system it serves. A name is added
  * when a write turns up a state nothing predicted, so a new one is slow for the rest of the
  * session rather than silently lost; after a restart only the names listed here are read back.
@@ -59,47 +50,6 @@ const isStates = (value: unknown): value is BlockRef['states'] =>
 
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 const difficultyName = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
-
-/** The little of a player Java's `ChunkMap.playerIsCloseEnoughTo` reads. */
-export interface FireWatcher {
-    getPosition(): { getX(): number; getY(): number; getZ(): number };
-    /** Their gamemode: a spectator keeps no fire alive. */
-    readonly gamemode: number;
-}
-
-/** The two things {@link canSpreadFireAround} asks a world: its rules and who is in it. */
-export interface FireSpreadWorld {
-    getGameRuleManager(): GameRuleStore | null;
-    getPlayers(): readonly FireWatcher[];
-}
-
-/**
- * Java's `ServerLevel.canSpreadFireAround`: whether fire at a position does anything on its
- * tick beyond booking the next one.
- *
- * `minecraft:fire_spread_radius_around_player` is an integer since 1.21.11, so the answer is
- * how far the nearest player is rather than a flag. -1 lifts the limit; anything else is
- * `ChunkMap.anyPlayerCloseEnoughTo`, which is a euclidean distance from the block's lower
- * corner, strictly inside the radius, with spectators left out. A radius of 0 therefore stops
- * every fire in the world, which is what the old `doFireTick` off became.
- *
- * The radius is checked per fire tick and costs one pass over the player list. Nothing here
- * runs for a chunk that holds no fire, because nothing books a fire tick for one.
- */
-export const canSpreadFireAround = (world: FireSpreadWorld, at: BlockPosition): boolean => {
-    const radius = fireSpreadRadius(gameRuleValue(world.getGameRuleManager(), FIRE_SPREAD_RADIUS));
-    if (radius === UNLIMITED_FIRE_SPREAD_RADIUS) return true;
-
-    return world.getPlayers().some((player) => {
-        if (player.gamemode === Gametype.SPECTATOR) return false;
-
-        const position = player.getPosition();
-        const dx = position.getX() - at.x;
-        const dy = position.getY() - at.y;
-        const dz = position.getZ() - at.z;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz) < radius;
-    });
-};
 
 /**
  * Builds the engine's world over one {@link World}.

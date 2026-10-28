@@ -97,22 +97,6 @@ export {
     type Point
 } from './explosions';
 export {
-    FIRE,
-    FIRE_AGE_STATE,
-    FIRE_MAX_AGE,
-    FIRE_TICK_DELAY_MIN,
-    FIRE_TICK_DELAY_SPREAD,
-    INFINITE_FIRE_SOURCES,
-    canBurn,
-    checkBurnOut,
-    fireTick,
-    fireTickDelay,
-    igniteOddsAround,
-    isNearRain,
-    isValidFireLocation,
-    type FireTickOptions
-} from './fire';
-export {
     MAX_CHAINED_NEIGHBOR_UPDATES,
     createNeighborUpdates,
     type NeighborUpdateTarget,

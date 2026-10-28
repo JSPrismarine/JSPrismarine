@@ -1,8 +1,8 @@
 # @jsprismarine/engine-systems
 
-The engine systems neither edition publishes as data: the tick scheduler, redstone, fire spread,
-random ticking, explosions and the weather cycle. Liquid behavior belongs to
-`@jsprismarine/block-behaviors`, which owns fluid placement, neighbor updates and scheduled ticks.
+The engine systems neither edition publishes as data: the tick scheduler, redstone, random
+ticking, explosions and the weather cycle. Liquid flow and fire behavior belong to
+`@jsprismarine/block-behaviors`, which owns their placement, neighbor updates and scheduled ticks.
 Every other package in this repository is built from Mojang's own data. These are not, because
 Mojang keeps them in code in both editions, so this package is written against the code instead.
 
@@ -12,7 +12,7 @@ jar carries original class, field and method names, and every constant and order
 read out of it rather than from a wiki page. The classes are named in the source comments:
 `LevelTicks`, `ScheduledTick`, `TickPriority`, `RedstoneWireBlock`, `DefaultRedstoneWireEvaluator`,
 `DiodeBlock`, `RepeaterBlock`, `ComparatorBlock`, `ObserverBlock`, `PistonBaseBlock`,
-`PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `FireBlock`, `ServerExplosion`,
+`PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `ServerExplosion`,
 `ExplosionDamageCalculator`, `ApplyExplosionDecay`, `WeatherData`, `WeatherCommand` and
 `ServerLevel`.
 
@@ -29,27 +29,26 @@ const engine = createEngine(world);
 world.onBlockUpdated((at, to) => engine.setBlockAndUpdate(at, to));
 ```
 
-`setBlockAndUpdate` is the whole of Java's `Level.setBlockAndUpdate`: the write, the six neighbor
-updates, the new block's own `onPlace`, and the shape updates around it. A host that raises only
-the neighbor updates gets a world where dust placed beside a live lever stays dark, a piston placed
-into a powered position never extends, and fire never burns anything, because all three of those
-are `onPlace` and none of them is a neighbor update.
+`setBlockAndUpdate` runs the engine's redstone placement work, the six neighbor updates and the
+shape updates around a write. A host that raises only the neighbor updates gets a world where dust
+placed beside a live lever stays dark and a piston placed into a powered position never extends.
+Data-driven placement hooks, including fluid and fire setup, run through the block content adapter.
 
 `WorldAccess` covers block state, block entity data, tick scheduling and its two queries, item
 drops, sounds, difficulty, weather, rain, dimension, game time, the world random and the height
 bounds. Explosions take `ExplosionWorld`, which is the six members of it a blast actually uses, so
 a host can set one off without standing up the rest of the engine. The random source and the height
-bounds are not in the brief's list but are needed: fire spread and the random tick driver draw from
-the random source, while `PistonBaseBlock.isPushable` reads the height bounds.
+bounds are not in the brief's list but are needed: redstone and random tick behavior draw from the
+random source, while `PistonBaseBlock.isPushable` reads the height bounds.
 
 Scheduling sits behind `WorldAccess` rather than beside it, so a system never needs two objects. The
-host owns the scheduler and drains it. Block ticks go to `Engine.runScheduledTick`; fluid ticks go to
-the active block family's `onTick` hook. That matches Java, where the tick lists are part of the
-level and are serialized to disk.
+host owns the scheduler and drains it. Data-driven block and fluid ticks go to their active
+families' `onTick` hooks before engine-owned redstone ticks reach `Engine.runScheduledTick`. That
+matches Java, where the tick lists are part of the level and are serialized to disk.
 
 `createTestWorld` is a real implementation of the interface over a map of positions, not a mock.
 `createTestEngine` returns a world and an engine already wired to each other, which is the shape the
-tests use to build circuits, troughs and fires.
+tests use to build circuits and pistons.
 
 ## 1. The tick scheduler
 
@@ -140,33 +139,7 @@ Fluid ticks remain in the shared scheduler, but `@jsprismarine/block-behaviors` 
 Its `liquidFamily` handles placement, neighbor changes, scheduled flow, source conversion, lava
 reactions, and bucket interaction. `createEngine` does not provide fluid handlers.
 
-## 4. Fire and random ticking
-
-`FireBlock.tick` and `FireBlock.checkBurnOut`. The ignite and burn odds that `FireBlock.bootStrap`
-installs for 254 blocks are not repeated here: `@jsprismarine/mapping` already holds them per block
-state, dumped from the same jar, so `igniteOddsOf` and `burnOddsOf` read them.
-
-Fire ages, burns the six blocks it touches with denominators of 300 sideways and 250 up and down,
-and tries to light every position in the 3 by 3 by 6 box around it with odds of
-`(igniteOdds + 40 + difficultyId * 7) / (age + 30)` against a denominator that rises by 100 for each
-block above the first one overhead. Rain puts it out and blocks the spread. The infinite fire
-sources are the `infiniburn` block tags: netherrack and magma in the overworld and the nether, plus
-bedrock in the end.
-
-Fire runs on scheduled ticks 30 to 39 game ticks apart, as Java does, and is not affected by the
-random tick speed. Bedrock drives fire from random ticks instead; that is a deliberate divergence.
-The data-driven fire family books the first tick when its `onPlace` hook runs. The engine keeps the
-same placement fallback for worlds without that family and skips its random draw when the tick is
-already booked. Every scheduled tick books the next one before doing anything else.
-
-Whether a fire tick does anything past that booking is `ServerLevel.canSpreadFireAround`, which
-reads the 1.21.11 game rule `minecraft:fire_spread_radius_around_player`. The rule is an integer, a
-default of 128 and a minimum of -1, and `GameRuleRegistryFix` folds the two booleans it replaced
-onto three of its values: `doFireTick` off is 0, on is 128, and on with
-`allowFireTicksAwayFromPlayer` is -1, which lifts the limit. Anything else means fire ticks only
-within that many blocks of a non-spectating player. The radius needs the player list, which this
-package does not have, so `EngineOptions.canSpreadFireAround` is where the host answers it. Say
-nothing and fire spreads everywhere.
+## 4. Random ticking
 
 The random tick driver is `ServerLevel.tickChunk`. It draws `random_tick_speed` positions from each
 randomly ticking section with `Level.getBlockRandomPos`, whose linear congruential step,
