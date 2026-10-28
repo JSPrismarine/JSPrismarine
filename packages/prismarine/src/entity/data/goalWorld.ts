@@ -213,6 +213,16 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         dismount: () => scene.dismount(entity),
         pickUp: (item, count, options) => scene.pickUp(entity, item, count, options),
         carriedItem: () => entity.carried,
+        itemCount: (identifier) =>
+            entity.inventory.filter((item) => item === identifier).length +
+            Object.values(entity.equipment).reduce(
+                (count, item) => count + (item?.identifier === identifier ? item.count : 0),
+                0
+            ) +
+            entity.containerSlots.reduce(
+                (count, item) => count + (item?.identifier === identifier ? item.count : 0),
+                0
+            ),
         setCarriedItem: (identifier) => {
             entity.carried = identifier;
         },

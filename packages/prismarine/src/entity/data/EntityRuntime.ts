@@ -89,7 +89,7 @@ import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breed
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
-import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, sameEquipment } from '../equipment';
+import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, sameEquipment, slotForItem } from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
@@ -1797,8 +1797,42 @@ export class EntityRuntime implements EntityScene {
             this.startPiglinInteraction(entity, taken.identifier, options.admire, options.barter);
         const carriedForConsumption = !piglinStarted && options?.consumeItem === true && taker.carried === undefined;
         if (carriedForConsumption) taker.carried = taken.identifier;
-        for (let index = piglinStarted || carriedForConsumption ? 1 : 0; index < taken.count; index += 1)
+        const equippedCount =
+            !piglinStarted && !carriedForConsumption && options?.canPickupToHandOrEquipment === true
+                ? this.equipPickedUpItem(taker, taken)
+                : 0;
+        const storedInInventory =
+            equippedCount === 0 &&
+            !piglinStarted &&
+            !carriedForConsumption &&
+            options?.storedInInventory === true &&
+            this.storePickedUpItem(taker, taken);
+        if (storedInInventory) return;
+        for (let index = piglinStarted || carriedForConsumption ? 1 : equippedCount; index < taken.count; index += 1)
             taker.inventory.push(taken.identifier);
+    }
+
+    /** Equips one picked-up item in its declared slot when that slot is empty. */
+    private equipPickedUpItem(taker: MobBody, item: ContentItemDrop): number {
+        if (item.count <= 0) return 0;
+        const stack = itemOfDrop(item, this.content());
+        const slot = stack === null ? 'mainhand' : slotForItem(stack);
+        if (taker.equipment[slot] !== undefined) return 0;
+
+        const equipment = { ...taker.equipment };
+        equipment[slot] = { ...item, count: 1 };
+        taker.setEquipment(equipment);
+        return 1;
+    }
+
+    /** Stores a picked-up stack in the first free declared inventory slot. */
+    private storePickedUpItem(taker: MobBody, item: ContentItemDrop): boolean {
+        for (let index = 0; index < taker.containerCapacity; index += 1) {
+            if (taker.containerSlots[index] !== undefined) continue;
+            taker.containerSlots[index] = item;
+            return true;
+        }
+        return false;
     }
 
     /**

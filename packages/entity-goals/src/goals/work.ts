@@ -28,6 +28,7 @@ interface PickupRule {
     readonly admire: boolean;
     readonly barter: boolean;
     readonly consumeItem: boolean;
+    readonly storedInInventory: boolean;
 }
 
 /** Matches a shareable name, auxiliary value, or Bedrock item tag. */
@@ -60,7 +61,8 @@ const shareableRuleFor = (
             pickupLimit: matching.pickupLimit,
             admire: matching.admire,
             barter: matching.barter,
-            consumeItem: matching.consumeItem
+            consumeItem: matching.consumeItem,
+            storedInInventory: matching.storedInInventory
         };
     }
     if (rules?.allItems === true)
@@ -70,7 +72,8 @@ const shareableRuleFor = (
             pickupLimit: -1,
             admire: false,
             barter: false,
-            consumeItem: false
+            consumeItem: false,
+            storedInInventory: false
         };
     if (canPickupAnyItem)
         return {
@@ -79,7 +82,8 @@ const shareableRuleFor = (
             pickupLimit: -1,
             admire: false,
             barter: false,
-            consumeItem: false
+            consumeItem: false,
+            storedInInventory: false
         };
     return undefined;
 };
@@ -153,6 +157,8 @@ export const pickupItems = goal<PickupItemsParams>({
         let pickupOptions: GoalPickupOptions | undefined;
 
         const heldCount = (identifier: string): number => {
+            const owned = support.world.itemCount?.(identifier);
+            if (owned !== undefined) return owned;
             const inventory = support.world.inventory?.() ?? [];
             const count = inventory.filter((held) => held === identifier).length;
             return count + (support.world.carriedItem?.() === identifier ? 1 : 0);
@@ -205,7 +211,9 @@ export const pickupItems = goal<PickupItemsParams>({
                         : {
                               admire: selected.rule.admire,
                               barter: selected.rule.barter,
-                              consumeItem: selected.rule.consumeItem
+                              consumeItem: selected.rule.consumeItem,
+                              canPickupToHandOrEquipment: params.canPickupToHandOrEquipment,
+                              storedInInventory: selected.rule.storedInInventory
                           };
                 return item !== undefined;
             },

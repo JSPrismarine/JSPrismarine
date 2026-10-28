@@ -62,12 +62,16 @@ export interface GoalItem {
 
 /** Item behavior selected from `minecraft:shareables` during pickup. */
 export interface GoalPickupOptions {
+    /** Whether the item may go to an empty hand or armor slot. */
+    readonly canPickupToHandOrEquipment: boolean;
     /** Whether a piglin should admire the item after taking it. */
     readonly admire: boolean;
     /** Whether a piglin should barter for the item after taking it. */
     readonly barter: boolean;
     /** Whether the item should become the carried item for `eat_carried_item`. */
     readonly consumeItem: boolean;
+    /** Whether an item that cannot be equipped should go in `minecraft:inventory`. */
+    readonly storedInInventory: boolean;
 }
 
 /** One block a block search found. */
@@ -170,6 +174,8 @@ export interface GoalWorld {
     giveItem?(mob: GoalMob, identifier: string, count?: number): void;
     /** What the entity holds in its main hand. */
     carriedItem?(): string | undefined;
+    /** How many items of one identifier it keeps across inventory and equipment. */
+    itemCount?(identifier: string): number;
     /** Puts an item in the entity's main hand, or empties it. */
     setCarriedItem?(identifier: string | undefined): void;
     /** The entity's inventory contents, for the item and trade goals. */
