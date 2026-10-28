@@ -1909,6 +1909,101 @@ export const environmentSensor: ComponentFactory<EntityHooks, EnvironmentSensorP
     })
 };
 
+/** What `minecraft:target_nearby_sensor` declares. */
+export interface TargetNearbySensorParams {
+    readonly insideRange: number;
+    readonly outsideRange: number;
+    readonly mustSee: boolean;
+    readonly onInsideRange?: SensorTrigger;
+    readonly onOutsideRange?: SensorTrigger;
+    readonly onVisionLostInsideRange?: SensorTrigger;
+}
+
+interface TargetNearbySensorState {
+    targetId: string | number | undefined;
+    inRange: boolean;
+    visibleInsideRange: boolean;
+    insideEventFired: boolean;
+}
+
+const raiseTargetNearbyEvent = (entity: EntityInstance, trigger: SensorTrigger | undefined): void => {
+    if (trigger?.event !== undefined) entity.raise(trigger.event, trigger.target, 'minecraft:target_nearby_sensor');
+};
+
+/**
+ * `minecraft:target_nearby_sensor`, which changes behavior as the current
+ * target enters or leaves its hysteresis range, or loses visibility inside.
+ */
+export const targetNearbySensor: ComponentFactory<EntityHooks, TargetNearbySensorParams> = {
+    name: 'minecraft:target_nearby_sensor',
+    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        return accepted({
+            insideRange: numberAt(value, 'inside_range', 1),
+            outsideRange: numberAt(value, 'outside_range', 5),
+            mustSee: booleanAt(value, 'must_see', false),
+            onInsideRange: parseComponentTrigger(value.on_inside_range),
+            onOutsideRange: parseComponentTrigger(value.on_outside_range),
+            onVisionLostInsideRange: parseComponentTrigger(value.on_vision_lost_inside_range)
+        });
+    },
+    create: (params) => {
+        const states = new WeakMap<EntityInstance, TargetNearbySensorState>();
+        return {
+            onInitialize: (entity) => {
+                states.set(entity, {
+                    targetId: undefined,
+                    inRange: false,
+                    visibleInsideRange: false,
+                    insideEventFired: false
+                });
+            },
+            onRemove: (entity) => states.delete(entity),
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+
+                const target = entity.targetProximity();
+                if (state.targetId !== target?.id) {
+                    if (state.inRange) raiseTargetNearbyEvent(entity, params.onOutsideRange);
+                    state.targetId = target?.id;
+                    state.inRange = false;
+                    state.visibleInsideRange = false;
+                    state.insideEventFired = false;
+                }
+                if (target === undefined) return;
+
+                if (target.distance > params.outsideRange) {
+                    if (state.inRange) raiseTargetNearbyEvent(entity, params.onOutsideRange);
+                    state.inRange = false;
+                    state.visibleInsideRange = false;
+                    state.insideEventFired = false;
+                    return;
+                }
+                if (target.distance > params.insideRange) {
+                    state.visibleInsideRange = false;
+                    return;
+                }
+
+                state.inRange = true;
+                if (state.visibleInsideRange && !target.visible)
+                    raiseTargetNearbyEvent(entity, params.onVisionLostInsideRange);
+                state.visibleInsideRange = target.visible;
+
+                if (params.mustSee && !target.visible) {
+                    state.insideEventFired = false;
+                    return;
+                }
+                if (state.insideEventFired) return;
+
+                raiseTargetNearbyEvent(entity, params.onInsideRange);
+                state.insideEventFired = true;
+            }
+        };
+    }
+};
+
 /** How a `minecraft:damage_sensor` trigger changes the damage it sees. */
 export const DEALS_DAMAGE = ['yes', 'no', 'no_but_side_effects_apply', 'no_but_entity_effects_apply'] as const;
 

@@ -46,6 +46,7 @@ import {
     spawnEntity,
     spawnEggInteraction,
     tameable,
+    targetNearbySensor,
     timer,
     transformation,
     triggerComponent,
@@ -196,7 +197,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:strength',
     'minecraft:suspect_tracking',
     'minecraft:tamemount',
-    'minecraft:target_nearby_sensor',
     'minecraft:teleport',
     'minecraft:tick_world',
     'minecraft:trade_resupply',
@@ -269,6 +269,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(spawnEntity);
     register(spawnEggInteraction);
     register(tameable);
+    register(targetNearbySensor);
     register(timer);
     register(transformation);
     register(typeFamily);

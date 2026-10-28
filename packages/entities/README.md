@@ -223,6 +223,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:barter` | Rolls `barter_table` with the `barter` loot context after the piglin releases its gold ingot, honoring the cooldown after damage |
 | `minecraft:angry` | Counts down over `duration` plus or minus `duration_delta`, raises `calm_event`, excludes targets with `filters`, broadcasts on activation, attack, being attacked, or death as configured, and plays `angry_sound` on its `sound_interval` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_angry?view=minecraft-bedrock-stable)) |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
+| `minecraft:target_nearby_sensor` | Tracks the current target through `inside_range` and `outside_range`, honors `must_see` for inside events, and fires its vision-loss event while the target is inside range |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
 | `minecraft:damage_over_time` | Hurts the entity every `time_between_hurt` seconds while it is active |
@@ -285,8 +286,8 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a component hook | 77 |
-| Non-goal keys with a runtime effect across the server | 83 |
+| Non-goal keys with a component hook | 78 |
+| Non-goal keys with a runtime effect across the server | 84 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -328,9 +329,12 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 77 component factories have hooks, and 83
+measures name coverage rather than complete simulation: 78 component factories have hooks, and 84
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 119 bodies are available as data for behavior that still needs to be added.
+included. The remaining 118 bodies are available as data for behavior that still needs to be added.
+
+`minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
+visibility as being within `follow_range`; it does not test block occlusion.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -359,5 +363,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  119 currently expose data without runtime behavior. The component bodies remain accessible to the
+  118 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

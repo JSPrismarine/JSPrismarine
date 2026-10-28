@@ -90,6 +90,16 @@ export interface TransformRequest {
     readonly dropInventory: boolean;
 }
 
+/** The world facts `minecraft:target_nearby_sensor` reads about the current target. */
+export interface EntityTargetProximity {
+    /** The target identity, which lets a sensor detect target changes. */
+    readonly id: string | number;
+    /** Distance between the entity and its current target, in blocks. */
+    readonly distance: number;
+    /** Whether the world reports the current target as visible. */
+    readonly visible: boolean;
+}
+
 /** What an entity needs from the world around it. */
 export interface EntityEnvironment {
     /**
@@ -98,6 +108,8 @@ export interface EntityEnvironment {
      * whatever this returns.
      */
     filterContext?(entity: EntityInstance): FilterContext;
+    /** The current target's range and visibility, for `minecraft:target_nearby_sensor`. */
+    targetProximity?(entity: EntityInstance): EntityTargetProximity | undefined;
     /** Delivers an angry component's broadcast to nearby matching entities. */
     broadcastAnger?(entity: EntityInstance, request: EntityAngerBroadcast): void;
     /** Moves, looks and jumps on behalf of the goals. */
@@ -852,6 +864,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
      */
     public report(message: string): void {
         this.environment.report?.(message, this);
+    }
+
+    /** The current target's range and visibility, or undefined when no world target is known. */
+    public targetProximity(): EntityTargetProximity | undefined {
+        return this.environment.targetProximity?.(this);
     }
 
     /** Wraps a caller's view so the entity answers the facts it owns itself. */

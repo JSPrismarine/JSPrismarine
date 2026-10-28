@@ -521,6 +521,7 @@ export class EntityRuntime implements EntityScene {
         this.spawning = body;
         const executeEntityEvent = this.world.blocks.executeEntityEvent;
         const filterContext = entityFilterContextOf(body, this);
+        const goalWorld = goalWorldOf(body, this);
         const instance = new EntityInstance(registry.holder(reference), {
             id,
             environment: {
@@ -564,6 +565,16 @@ export class EntityRuntime implements EntityScene {
                     }
                 } satisfies EntityEffects,
                 filterContext: () => filterContext,
+                targetProximity: () => {
+                    const target = goalWorld.target();
+                    return target === undefined
+                        ? undefined
+                        : {
+                              id: target.id,
+                              distance: distance(body.position, target.position()),
+                              visible: goalWorld.canSee(target)
+                          };
+                },
                 random: { next: () => this.world.random.nextFloat() },
                 javaStats: content.entities.javaStats,
                 javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
