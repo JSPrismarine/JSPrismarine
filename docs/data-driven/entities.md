@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Eighty-seven keys carry
-runtime behavior. The remaining 115 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Eighty-eight keys carry
+runtime behavior. The remaining 114 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -185,7 +185,7 @@ matching block-state condition starts or stops matching.
 `minecraft:target_nearby_sensor` reads the entity's current target and uses `follow_range` as its
 visibility test. The host does not currently test whether blocks occlude the target.
 
-The 87 with runtime effects include components that change entity state, decide an outcome, or
+The 88 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -198,6 +198,7 @@ population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecr
 `minecraft:ambient_sound_interval`, `minecraft:rideable`, `minecraft:leashable` and
 `minecraft:leashable_to`, which attach, retrieve, and cut leash links;
 `minecraft:spawn_entity`, `minecraft:interact`, `minecraft:spawn_egg_interaction`,
+`minecraft:offspring_data`,
 `minecraft:breedable`, `minecraft:healable`, `minecraft:tameable`, `minecraft:admire_item`, `minecraft:barter`, and
 `minecraft:vibration_listener`, which connects its entity to world game-event delivery;
 `minecraft:variant`, `minecraft:color`, and `minecraft:color2`, which project their values to actor metadata;
@@ -259,8 +260,8 @@ The entities package README lists each component and what it does.
 
 "Parses as data" is not the same as "ignored". The `minecraft:breedable` hook matches feed items,
 checks tame, health, baby, love, and cooldown requirements, and puts eligible adults into love; the
-separate breeding runtime reads compatible mates and offspring from `minecraft:offspring_data`, and
-also accepts offspring pairs from the legacy `minecraft:offspring` component.
+separate breeding runtime reads compatible mates and offspring pairs from `minecraft:offspring_data`.
+Type resolution normalizes definitions that use the older `minecraft:offspring` spelling into that key.
 `minecraft:healable` and `minecraft:tameable` also implement item interactions through component
 hooks, while the host applies the resulting health, owner, and event effects. The
 `minecraft:spawn_egg_interaction` hook creates the offspring declared by the entity's active data

@@ -107,7 +107,7 @@ export const resolveEntityTypes = (
     const read = (definition: Definition): Iterable<ComponentEntry> => {
         const entity = parsed.get(definition.identifier)?.definition;
         if (entity === undefined) return [];
-        return [...entity.components].map(([name, value]) => ({ name, value }));
+        return [...normalizeLegacyOffspring(entity.components)].map(([name, value]) => ({ name, value }));
     };
 
     const resolved = resolveTypes<EntityHooks, Record<EntityTypeFlag, unknown>>(definitions, {
@@ -153,11 +153,11 @@ const buildEntityType = (
     };
 
     const groups = new Map<string, ResolvedComponentGroup>();
-    const declared = new Set<string>(entity.components.keys());
+    const declared = new Set<string>(normalizeLegacyOffspring(entity.components).keys());
 
     for (const [name, map] of entity.componentGroups) {
         const bound: BoundComponent<EntityHooks>[] = [];
-        for (const [component, value] of map) {
+        for (const [component, value] of normalizeLegacyOffspring(map)) {
             declared.add(component);
             if (!components.has(component)) {
                 collector.add({
@@ -194,3 +194,33 @@ const buildEntityType = (
         unimplementedComponents: declaredComponents.filter((name) => !components.has(name))
     };
 };
+
+/**
+ * Maps the former offspring component name to its current data component for resolved types.
+ *
+ * @param components - The component map parsed from a definition or component group.
+ * @returns A normalized map; the parsed entity definition remains unchanged.
+ */
+const normalizeLegacyOffspring = (components: ReadonlyMap<string, unknown>): ReadonlyMap<string, unknown> => {
+    if (!components.has('minecraft:offspring')) return components;
+
+    const normalized = new Map(components);
+    const legacy = normalized.get('minecraft:offspring');
+    const current = normalized.get('minecraft:offspring_data');
+    if (!normalized.has('minecraft:offspring_data') || !isRecord(current)) {
+        normalized.set('minecraft:offspring_data', legacy);
+    } else if (isRecord(legacy)) {
+        const legacyPairs = isRecord(legacy.offspring_pairs) ? legacy.offspring_pairs : {};
+        const currentPairs = isRecord(current.offspring_pairs) ? current.offspring_pairs : {};
+        const merged = { ...legacy, ...current };
+        if (Object.keys(legacyPairs).length > 0 || Object.keys(currentPairs).length > 0)
+            merged.offspring_pairs = { ...legacyPairs, ...currentPairs };
+        normalized.set('minecraft:offspring_data', merged);
+    }
+    normalized.delete('minecraft:offspring');
+    return normalized;
+};
+
+/** Whether a JSON component body is a plain object. */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);

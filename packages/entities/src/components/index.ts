@@ -84,10 +84,10 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  * `EntityInstance.componentParams`, which is all a flag like
  * `minecraft:can_climb` or a table reference like `minecraft:shareables` is.
  *
- * The list covers every non-goal key in the 1.26.51.1 vanilla entity pack.
- * Components with dedicated factories are registered separately; these
- * factories preserve the remaining component bodies for systems that need
- * their data, without claiming to run their behavior.
+ * The list covers every canonical non-goal key after type resolution normalizes the legacy
+ * `minecraft:offspring` name to `minecraft:offspring_data`. Components with dedicated factories are
+ * registered separately; these factories preserve the remaining component bodies for systems that
+ * need their data, without claiming to run their behavior.
  */
 export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:addrider',
@@ -168,7 +168,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:nameable',
     'minecraft:not_pickable_from_inside',
     'minecraft:npc',
-    'minecraft:offspring',
     'minecraft:offspring_data',
     'minecraft:out_of_control',
     'minecraft:peek',

@@ -110,20 +110,15 @@ export const offspringIdentifierOf = (
     const resolvedMate = resolveIdentifier(mateIdentifier);
     if (resolvedMate === undefined) return undefined;
 
-    for (const componentName of ['minecraft:offspring_data', 'minecraft:offspring']) {
-        const offspring = instance.componentParams(componentName);
-        if (!isRecord(offspring) || !isRecord(offspring.offspring_pairs)) continue;
+    const offspring = instance.componentParams('minecraft:offspring_data');
+    if (!isRecord(offspring) || !isRecord(offspring.offspring_pairs)) return undefined;
 
-        const pair = Object.entries(offspring.offspring_pairs).find(
-            ([parentIdentifier]) => resolveIdentifier(parentIdentifier) === resolvedMate
-        );
-        if (pair !== undefined && typeof pair[1] === 'string') {
-            const offspringIdentifier = resolveIdentifier(pair[1]);
-            if (offspringIdentifier !== undefined) return offspringIdentifier;
-        }
-    }
+    const pair = Object.entries(offspring.offspring_pairs).find(
+        ([parentIdentifier]) => resolveIdentifier(parentIdentifier) === resolvedMate
+    );
+    if (pair === undefined || typeof pair[1] !== 'string') return undefined;
 
-    return undefined;
+    return resolveIdentifier(pair[1]);
 };
 
 /**

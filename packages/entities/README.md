@@ -214,7 +214,8 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
 | `minecraft:spawn_egg_interaction` | Uses a matching spawn egg to create the offspring declared by the entity's component data |
-| `minecraft:breedable` | Matches `breed_items`, checks tame, health, baby, love, and cooldown requirements, enters the love state, and replaces the consumed item with its per-item `result_item`; the breeding runtime reads mate and offspring data from `minecraft:offspring_data` and accepts legacy pairs from `minecraft:offspring` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_breedable?view=minecraft-bedrock-stable)) |
+| `minecraft:offspring_data` | Declares compatible mates and offspring pairs for breeding and spawn egg interactions |
+| `minecraft:breedable` | Matches `breed_items`, checks tame, health, baby, love, and cooldown requirements, enters the love state, and replaces the consumed item with its per-item `result_item` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_breedable?view=minecraft-bedrock-stable)) |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, pauses or resets it through the configured items and events, applies `result_item`, drops `drop_items` on growth, honors `interact_filters`, and raises `grow_up` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
 | `minecraft:healable` | Matches a configured item and filter, restores health when the entity is injured or `force_use` is set, and replaces the consumed item with `result_item`; item `effects` are not applied yet ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_healable?view=minecraft-bedrock-stable)) |
 | `minecraft:tameable` | Accepts configured `tame_items`, rolls `probability` for each attempt, and on success records the owner, raises `tame_event`, and replaces the consumed item with `result_item`; failed attempts are accepted and consume one item outside creative mode ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_tameable?view=minecraft-bedrock-stable)) |
@@ -250,7 +251,8 @@ also sets the Bedrock actor's `FIRE_IMMUNE` flag. `minecraft:body_rotation_block
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`.
 The separate breeding runtime reads compatible mates and offspring pairs from
-`minecraft:offspring_data`, and retains support for legacy `minecraft:offspring` pairs.
+`minecraft:offspring_data`. Entity definitions using the older `minecraft:offspring` spelling are
+normalized to that component when their type is resolved.
 The pathfinder reads `minecraft:can_climb` to climb ladders and `minecraft:can_fly` to allow airborne
 paths, and reads `minecraft:can_stand_on_powder_snow` to treat powder snow as support. The runtime
 projects `minecraft:can_climb` to `CANCLIMB`, the active navigation profile's
@@ -290,7 +292,7 @@ test in `src/vanillaEntities.test.ts`:
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
 | Non-goal keys with a component hook | 81 |
-| Non-goal keys with a runtime effect across the server | 87 |
+| Non-goal keys with a runtime effect across the server | 88 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -332,9 +334,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 81 component factories have hooks, and 87
+measures name coverage rather than complete simulation: 81 component factories have hooks, and 88
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 115 bodies are available as data for behavior that still needs to be added.
+included. The remaining 114 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
 visibility as being within `follow_range`; it does not test block occlusion.
@@ -366,5 +368,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  115 currently expose data without runtime behavior. The component bodies remain accessible to the
+  114 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

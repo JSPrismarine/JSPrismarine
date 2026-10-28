@@ -1050,23 +1050,19 @@ describe('the data-driven entity runtime over a live world', () => {
     it('scans a live player inventory for item tags and data components', async () => {
         const player = addPlayer(2, 2);
         Object.assign(player, { inventory: new HumanInventory() });
-        player
-            .getInventory()
-            .setItemInHand(
-                new ContainerEntry({
-                    item: new Item({ name: 'minecraft:stone', content: live.runtime.content() }),
-                    count: 1
-                })
-            );
-        player
-            .getInventory()
-            .setItem(
-                8,
-                new ContainerEntry({
-                    item: new Item({ name: 'minecraft:oak_log', content: live.runtime.content() }),
-                    count: 1
-                })
-            );
+        player.getInventory().setItemInHand(
+            new ContainerEntry({
+                item: new Item({ name: 'minecraft:stone', content: live.runtime.content() }),
+                count: 1
+            })
+        );
+        player.getInventory().setItem(
+            8,
+            new ContainerEntry({
+                item: new Item({ name: 'minecraft:oak_log', content: live.runtime.content() }),
+                count: 1
+            })
+        );
         const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (animal === undefined) throw new Error('the fixture declares no interactable entity');
         const body = live.bodies.bodyOf(animal.id);
@@ -2977,7 +2973,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 const body = live.bodies.bodyOf(parent.id);
                 if (body === undefined) throw new Error(`${identifier} has no client-facing actor`);
-                const offspringData = parent.instance.componentParams('minecraft:offspring');
+                const offspringData = parent.instance.componentParams('minecraft:offspring_data');
                 const offspringPairs = isRecord(offspringData) ? offspringData.offspring_pairs : undefined;
                 const offspringName = isRecord(offspringPairs) ? offspringPairs[identifier] : undefined;
                 if (typeof offspringName !== 'string')
