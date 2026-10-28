@@ -102,6 +102,10 @@ registry.hooksOf('minecraft:tick'); // Set { 'onTick' }
 registry.hooksOf('minecraft:friction'); // Set {}
 ```
 
+When a block breaks, Prismarine reads `minecraft:loot` from the active state first and rolls the
+named behavior-pack table. If the state has no such component, it resolves the block state to Java
+and rolls that Java block's table.
+
 ## States and the palette
 
 A `BlockStateModel` holds one block's states and the dense index of each combination. The canonical

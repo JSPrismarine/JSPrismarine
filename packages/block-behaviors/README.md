@@ -232,9 +232,10 @@ pane connection rule is what a custom thin block wants.
 The remaining limits need a world event or data this package does not own, or behavior from another
 runtime.
 
-- **Drops are a stopgap.** The ore table, the leaf sapling chance and the snow layer count are
-  written here so a break produces the right item today. Java's 1447 loot tables arrive with the
-  loot package and should replace all of it.
+- **Family drops are fallbacks.** An active `minecraft:loot` component selects a behavior-pack
+  table, and mapped blocks without one use Java's table. Family-supplied drops remain for blocks
+  without either table and for hosts with no content runtime; ore experience remains a separate
+  block effect because loot tables do not carry it.
 
 The rest are scoped to this phase:
 

@@ -104,8 +104,9 @@ export const javaBlockFactsOf = (name: string, states: Readonly<Record<string, B
  * A data record rather than a base class: there are no subclasses any more,
  * because the 1477 blocks and their 22079 states come out of the pack stack
  * and their behavior out of `@jsprismarine/block-behaviors`'s 49 families.
- * What a block yields comes out of Java's loot tables rather than out of a
- * method an author overrode, which is why the 260 classes this replaced were
+ * What a block yields comes from its active `minecraft:loot` component, or
+ * from the mapped Java loot table when it has no component, rather than from a
+ * method an author overrode. That is why the 260 classes this replaced were
  * able to go.
  */
 export class Block {
@@ -289,12 +290,13 @@ export class Block {
     }
 
     /**
-     * What the block yields when it breaks, from Java's loot table for it.
+     * What the block yields when it breaks, from its active loot component or
+     * its mapped Java loot table.
      *
      * Silk touch, fortune, the shears branches and gravel's one-in-ten flint
-     * are all in the table rather than here, so this is a roll rather than a
+     * are in the table rather than here, so this is a roll rather than a
      * decision tree. A server with no content build has no tables to roll and
-     * yields the block itself, which is what it did before the tables landed.
+     * yields the block itself.
      *
      * @param item - What broke it, which the table's predicates read.
      * @param server - The server, for its content and its source of chance.

@@ -1,5 +1,6 @@
 /**
- * What a block yields when it breaks, rolled out of Java's loot tables.
+ * What a block yields when it breaks, read from its active `minecraft:loot`
+ * component or from the Java loot table mapped to its state.
  *
  * Bedrock publishes almost none of them. A Bedrock Dedicated Server 1.26.51.1
  * carries 99 block tables in `vanilla_1.26.50`, against Java's 1201, because
@@ -11,8 +12,10 @@
  * already answers, and the two would part company the first time one edition
  * changed a drop.
  *
- * So the drops are Java's: gravel's one-in-ten flint, the fortune curves, the
- * silk touch branches and the shears rules are read rather than written.
+ * Vanilla drops come from Java's data: gravel's one-in-ten flint, the fortune
+ * curves, the silk touch branches and the shears rules are read rather than
+ * written. A behavior pack's `minecraft:loot` component can replace that table
+ * for a block or a permutation.
  *
  * The one thing that has to be bridged is the name. A loot table is keyed by
  * the Java block id and the server's blocks are Bedrock ones, so every roll
@@ -31,6 +34,7 @@
  * says a `type=double` slab yields two, and a `shelf_mushroom` at `age=1`
  * yields two mushrooms.
  */
+import { loot as blockLoot } from '@jsprismarine/blocks';
 import { bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 import type {
     BlockEntityView,
@@ -66,54 +70,63 @@ const tableOf = (content: ServerContent, javaBlock: string): string | undefined 
     return ids.has(id) ? id : undefined;
 };
 
-/** A block's table and the Java state the table's own conditions read. */
-interface BlockLootSource {
+/** A Java loot table and the mapped state its conditions read. */
+interface JavaBlockLootSource {
+    readonly dialect: 'java';
     /** The namespaced Java loot table id. */
     readonly table: string;
     /** The Java block state the Bedrock block stands for, as the `block_state` parameter. */
     readonly state: BlockState;
 }
 
-/**
- * The table a Bedrock block rolls, and the Java state it rolls as.
- *
- * The block's own state answers first, which is the only answer that can carry
- * the properties a table branches on. Where that Java block has no table the
- * search widens to every Java block the identifier stands for, so a Bedrock
- * torch on a wall still drops a torch even though Java publishes no table for
- * `wall_torch`.
- */
+interface BedrockBlockLootSource {
+    readonly dialect: 'bedrock';
+    /** The pack-relative path from `minecraft:loot`. */
+    readonly table: string;
+}
+
+type BlockLootSource = JavaBlockLootSource | BedrockBlockLootSource;
+
+/** Resolves the active Bedrock loot component or the Java table mapped to a block state. */
 const sourceOf = (
     content: ServerContent,
     identifier: string,
     states: Readonly<Record<string, string | number | boolean>> | undefined
 ): BlockLootSource | undefined => {
+    const type = content.blocks.types.get(identifier);
+    const bedrockTable = type?.state(states).content.params(blockLoot);
+    if (bedrockTable !== undefined) return { dialect: 'bedrock', table: bedrockTable };
+
     const exact = bedrockBlockStateToJava(identifier, states);
     if (exact.kind === 'mapped') {
         const table = tableOf(content, exact.java.name);
         if (table !== undefined) {
-            return { table, state: { name: exact.java.name, properties: exact.java.properties } };
+            return {
+                dialect: 'java',
+                table,
+                state: { name: exact.java.name, properties: exact.java.properties }
+            };
         }
     }
 
     for (const javaBlock of bedrockBlockToJava(identifier)) {
         const table = tableOf(content, javaBlock);
-        if (table !== undefined) return { table, state: { name: javaBlock } };
+        if (table !== undefined) return { dialect: 'java', table, state: { name: javaBlock } };
     }
     return undefined;
 };
 
 /**
- * The Java loot table a Bedrock block drops through.
+ * The loot table a Bedrock block drops through. An active `minecraft:loot`
+ * component names a Bedrock behavior-pack table and takes precedence over the
+ * Java table mapped from the block state.
  *
  * @param content - The content build whose stack registered the tables.
  * @param identifier - The namespaced Bedrock block identifier.
- * @param states - The block's state values, which decide the answer wherever
- *   Bedrock splits one Java block across several identifiers. Without them the
- *   answer is the first Java block the identifier stands for that has a table,
- *   which is enough to tell a block that drops something from one that does not.
- * @returns The table id, or undefined for a block the stack registered no
- *   table for, which is a Bedrock-only block or a stack with no Java half.
+ * @param states - The active block state, which selects a permutation's loot component and
+ *   resolves Java blocks split across Bedrock identifiers. Omitted states use the block default.
+ * @returns The component's pack-relative path or the mapped Java table id,
+ *   or undefined when neither source has a table for this block.
  */
 export const blockLootTableOf = (
     content: ServerContent,
@@ -185,14 +198,12 @@ export const rollBlockDrops = (
     const source = sourceOf(content, block.identifier, block.states);
     if (source === undefined) return [];
 
-    const rolled = content.loot.roll(source.table, {
-        parameterSet: 'block',
+    const registry = source.dialect === 'java' ? content.loot : content.equipmentLoot;
+    const rolled = registry.roll(source.table, {
+        ...(source.dialect === 'java' ? { parameterSet: 'block' as const } : {}),
         parameters: {
+            ...(source.dialect === 'java' ? { block_state: source.state } : {}),
             origin: context.position ?? NOWHERE,
-            // The predicates read Java block names and Java property values,
-            // so what goes in is the Java state the Bedrock block stands for
-            // rather than the Bedrock identifier the server holds.
-            block_state: source.state,
             tool: context.tool ?? BARE_HAND,
             explosion_radius: context.explosionRadius,
             block_entity: blockEntityView(block, context.blockEntity)
@@ -205,7 +216,11 @@ export const rollBlockDrops = (
     // `LootTable.getRandomItems` filters the empty stacks out the same way,
     // and `minecraft:explosion_decay` is the modifier that produces them.
     //
+    const drops = rolled.filter((stack) => stack.count > 0).map(dropOfRolledStack);
+    if (source.dialect === 'bedrock') return drops;
+
     // The ids are Java's, because the table is; `bedrockItemDrops` is what makes them names
-    // the client resolves.
-    return bedrockItemDrops(rolled.filter((stack) => stack.count > 0).map(dropOfRolledStack));
+    // the client resolves. Java's block predicates also read the mapped state, which a Bedrock
+    // behavior-pack table does not have.
+    return bedrockItemDrops(drops);
 };
