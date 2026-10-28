@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { popBlock } from '@jsprismarine/block-behaviors';
+import { facingDirectionOf, popBlock } from '@jsprismarine/block-behaviors';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty } from '@jsprismarine/minecraft';
@@ -440,7 +440,7 @@ describe('a block the world destroyed', () => {
 
     describe('by a piston', () => {
         it('carries the chest it pushed, and what the chest held, to the new position', () => {
-            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: 4 });
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: facingDirectionOf('east') });
             chestHolding({ x: 9, y: 64, z: 8 }, [{ identifier: 'minecraft:stick', count: 3 }]);
             place(chunk, { x: 8, y: 62, z: 8 }, 'minecraft:stone');
 
@@ -455,6 +455,15 @@ describe('a block the world destroyed', () => {
             );
             runTicks(world, 5);
 
+            const pistonArm = chunk.getBlockEntity(8, 64, 8)?.toNBT();
+            expect(pistonArm?.getString('id', '')).toBe('PistonArm');
+            expect(pistonArm?.getFloat('Progress', -1)).toBe(1);
+            expect(pistonArm?.getFloat('LastProgress', -1)).toBe(1);
+            expect(pistonArm?.getByte('State', -1)).toBe(2);
+            expect(pistonArm?.getByte('NewState', -1)).toBe(2);
+            expect(pistonArm?.getByte('Sticky', -1)).toBe(0);
+            expect(pistonArm?.getByte('isMovable', -1)).toBe(0);
+
             expect(world.loadedBlockAt(10, 64, 8)?.name).toBe('minecraft:chest');
             // The contents arrived with the block rather than being lost to the write.
             const carried = content.world.blockWorld.at(DIMENSION).getBlockData({ x: 10, y: 64, z: 8 })?.items ?? [];
@@ -463,8 +472,41 @@ describe('a block the world destroyed', () => {
             expect(drops()).toEqual([]);
         });
 
+        it('updates its piston-arm actor when it retracts', () => {
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: 5 });
+            place(chunk, { x: 8, y: 62, z: 8 }, 'minecraft:stone');
+            world.setLoadedBlockState(
+                8,
+                63,
+                8,
+                { name: 'minecraft:lever', states: { lever_direction: 'up_east_west', open_bit: true } },
+                true
+            );
+            runTicks(world, 5);
+
+            const extended = chunk.getBlockEntity(8, 64, 8)?.toNBT();
+            expect(extended?.getFloat('Progress', -1)).toBe(1);
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:piston_arm_collision');
+
+            world.setLoadedBlockState(
+                8,
+                63,
+                8,
+                { name: 'minecraft:lever', states: { lever_direction: 'up_east_west', open_bit: false } },
+                true
+            );
+            runTicks(world, 5);
+
+            const retracted = chunk.getBlockEntity(8, 64, 8)?.toNBT();
+            expect(retracted?.getFloat('Progress', -1)).toBe(0);
+            expect(retracted?.getFloat('LastProgress', -1)).toBe(0);
+            expect(retracted?.getByte('State', -1)).toBe(0);
+            expect(retracted?.getByte('NewState', -1)).toBe(0);
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:air');
+        });
+
         it('rolls the popped block through Java’s table rather than dropping one of it', () => {
-            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: 4 });
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: facingDirectionOf('east') });
             place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:stone');
 
             const blocks = content.world.blockWorld.at(DIMENSION);

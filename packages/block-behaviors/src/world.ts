@@ -78,6 +78,19 @@ export interface BlockEntityData {
     readonly text?: readonly string[];
     /** True once wax or a similar seal makes the block entity read-only. */
     readonly sealed?: boolean;
+    /** Bedrock's piston-arm state, stored as native `PistonArm` block-entity tags. */
+    readonly pistonArm?: {
+        /** Current extension progress, 0 when retracted and 1 when extended. */
+        readonly progress: number;
+        /** Previous extension progress, 0 when retracted and 1 when extended. */
+        readonly lastProgress: number;
+        /** Bedrock piston state used to draw the arm. */
+        readonly state: number;
+        /** Bedrock piston state the arm is moving toward. */
+        readonly newState: number;
+        /** Whether the piston is sticky. */
+        readonly sticky: boolean;
+    };
     readonly [field: string]: unknown;
 }
 

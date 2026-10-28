@@ -42,6 +42,13 @@ describe('redstoneFamily: pistons', () => {
 
         expect(harness.dimension.identifierAt({ x: 1, y: 0, z: 0 })).toBe('minecraft:piston_arm_collision');
         expect(harness.dimension.identifierAt({ x: 2, y: 0, z: 0 })).toBe('minecraft:stone');
+        expect(harness.dimension.getBlockData(origin)?.pistonArm).toEqual({
+            progress: 1,
+            lastProgress: 1,
+            state: 2,
+            newState: 2,
+            sticky: false
+        });
     });
 
     it('refuses to push an immovable block and leaves everything in place', () => {
@@ -65,6 +72,13 @@ describe('redstoneFamily: pistons', () => {
 
         expect(harness.dimension.identifierAt({ x: 1, y: 0, z: 0 })).toBe('minecraft:stone');
         expect(harness.dimension.identifierAt({ x: 2, y: 0, z: 0 })).toBe(AIR);
+        expect(harness.dimension.getBlockData(origin)?.pistonArm).toEqual({
+            progress: 0,
+            lastProgress: 0,
+            state: 0,
+            newState: 0,
+            sticky: true
+        });
     });
 });
 

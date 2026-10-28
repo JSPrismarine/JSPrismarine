@@ -92,6 +92,35 @@ describe('block entity records', () => {
         expect(restored.sealed).toBe(true);
     });
 
+    it('writes a piston arm in Bedrock’s native actor fields and reads it back', () => {
+        const nbt = blockEntityCompound(null, { x: 8, y: 64, z: 8 }, 'minecraft:piston');
+        const pistonArm = {
+            progress: 1,
+            lastProgress: 1,
+            newState: 2,
+            state: 2,
+            sticky: false
+        };
+        applyBlockEntityRecord(nbt, { pistonArm });
+
+        const restoredNbt = throughDisk(nbt);
+        expect(restoredNbt.getString('id', '')).toBe('PistonArm');
+        expect(restoredNbt.children.get('Progress')).toBeInstanceOf(Types.FloatVal);
+        expect(restoredNbt.children.get('LastProgress')).toBeInstanceOf(Types.FloatVal);
+        expect(restoredNbt.children.get('NewState')).toBeInstanceOf(Types.ByteVal);
+        expect(restoredNbt.children.get('State')).toBeInstanceOf(Types.ByteVal);
+        expect(restoredNbt.children.get('Sticky')).toBeInstanceOf(Types.ByteVal);
+        expect(restoredNbt.children.get('isMovable')).toBeInstanceOf(Types.ByteVal);
+        expect(restoredNbt.getFloat('Progress', -1)).toBe(1);
+        expect(restoredNbt.getFloat('LastProgress', -1)).toBe(1);
+        expect(restoredNbt.getByte('NewState', -1)).toBe(2);
+        expect(restoredNbt.getByte('State', -1)).toBe(2);
+        expect(restoredNbt.getByte('Sticky', -1)).toBe(0);
+        expect(restoredNbt.getByte('isMovable', -1)).toBe(0);
+        expect(restoredNbt.has(CONTENT_DATA_TAG)).toBe(false);
+        expect(blockEntityRecord(restoredNbt).pistonArm).toEqual(pistonArm);
+    });
+
     it('reads a container a vanilla world wrote, which lists only its filled slots', () => {
         const nbt = new NBTTagCompound('');
         nbt.addValue('id', new Types.StringVal('Chest'));

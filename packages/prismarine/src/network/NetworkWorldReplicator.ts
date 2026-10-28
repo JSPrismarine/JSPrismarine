@@ -222,10 +222,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 packet.y = position.getY();
                 packet.z = position.getZ();
                 packet.blockRuntimeId = blockRuntimeId;
-                // The bit every server-driven change carries. A Bedrock Dedicated Server
-                // broadcasts its own changes with it set; without it the flags said the change
-                // was a local tick, which is not what a client receiving a packet should hear.
-                packet.flags = UpdateBlockFlagsType.Network;
+                // Match Bedrock Dedicated Server's block updates: clients must treat the change
+                // as network-authored and recalculate neighboring block visuals.
+                packet.flags = UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network;
 
                 batch.addPacket(packet);
             }

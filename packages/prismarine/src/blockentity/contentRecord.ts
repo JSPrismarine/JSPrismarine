@@ -96,6 +96,20 @@ const pairFromNbt = (nbt: NBTTagCompound): { x: number; y: number; z: number } |
     return { x: nbt.getNumber(PAIR_X_TAG, 0), y: nbt.getNumber('y', 0), z: nbt.getNumber(PAIR_Z_TAG, 0) };
 };
 
+/** Bedrock's static piston actor fields, read only from its `PistonArm` compounds. */
+const pistonArmFromNbt = (nbt: NBTTagCompound): NonNullable<BlockEntityData['pistonArm']> | undefined => {
+    if (nbt.getString('id', '') !== 'PistonArm') return undefined;
+    if (!['Progress', 'LastProgress', 'NewState', 'State', 'Sticky'].some((tag) => nbt.has(tag))) return undefined;
+
+    return {
+        progress: nbt.getFloat('Progress', 0),
+        lastProgress: nbt.getFloat('LastProgress', 0),
+        newState: nbt.getByte('NewState', 0),
+        state: nbt.getByte('State', 0),
+        sticky: nbt.getByte('Sticky', 0) !== 0
+    };
+};
+
 /**
  * The record a behavior reads, out of the compound a chunk holds.
  *
@@ -111,8 +125,10 @@ export const blockEntityRecord = (nbt: NBTTagCompound): BlockEntityData => {
     // here without the family having to pair it again.
     const paired = fields[PAIRED_WITH_FIELD] === undefined ? pairFromNbt(nbt) : undefined;
     const withPair = paired === undefined ? fields : { ...fields, [PAIRED_WITH_FIELD]: paired };
+    const pistonArm = pistonArmFromNbt(nbt);
+    const withPistonArm = pistonArm === undefined ? withPair : { ...withPair, pistonArm };
 
-    return items === undefined ? withPair : { ...withPair, items };
+    return items === undefined ? withPistonArm : { ...withPistonArm, items };
 };
 
 /**
@@ -122,7 +138,7 @@ export const blockEntityRecord = (nbt: NBTTagCompound): BlockEntityData => {
  * @param data - The whole record, not a patch: a field the record dropped is removed here too.
  */
 export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityData): void => {
-    const { items, ...fields } = data;
+    const { items, pistonArm, ...fields } = data;
 
     if (items === undefined) {
         nbt.remove(ITEMS_TAG);
@@ -132,12 +148,29 @@ export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityDat
 
     applyPairToNbt(nbt, fields[PAIRED_WITH_FIELD]);
 
-    const encoded = JSON.stringify(fields);
+    const isPistonArm = nbt.getString('id', '') === 'PistonArm';
+    const recordFields = isPistonArm ? fields : { ...fields, ...(pistonArm === undefined ? {} : { pistonArm }) };
+    if (isPistonArm) applyPistonArmToNbt(nbt, pistonArm);
+
+    const encoded = JSON.stringify(recordFields);
     if (encoded === undefined || encoded === '{}') {
         nbt.remove(CONTENT_DATA_TAG);
     } else {
         nbt.addValue(CONTENT_DATA_TAG, new Types.StringVal(encoded));
     }
+};
+
+/** Writes the fields the Bedrock client reads from a static piston arm. */
+const applyPistonArmToNbt = (nbt: NBTTagCompound, pistonArm: BlockEntityData['pistonArm']): void => {
+    for (const tag of ['Progress', 'LastProgress', 'NewState', 'State', 'Sticky']) nbt.remove(tag);
+    if (pistonArm === undefined) return;
+
+    nbt.addValue('Progress', new Types.FloatVal(pistonArm.progress));
+    nbt.addValue('LastProgress', new Types.FloatVal(pistonArm.lastProgress));
+    nbt.addValue('NewState', new Types.ByteVal(pistonArm.newState));
+    nbt.addValue('State', new Types.ByteVal(pistonArm.state));
+    nbt.addValue('Sticky', new Types.ByteVal(pistonArm.sticky ? 1 : 0));
+    nbt.addValue('isMovable', new Types.ByteVal(0));
 };
 
 /**

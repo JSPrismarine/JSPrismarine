@@ -135,6 +135,20 @@ const pistonHasHead = (world: WorldActions, block: HookBlock, facing: BlockFace)
     return bareName(world.getBlock(offset(block.position, facing))?.identifier ?? '') === headName;
 };
 
+/** Stores the static arm state the Bedrock client uses to draw an extended piston. */
+const setPistonArmState = (world: WorldActions, block: HookBlock, extended: boolean): void => {
+    const state = extended ? 2 : 0;
+    world.setBlockData(block.position, {
+        pistonArm: {
+            progress: extended ? 1 : 0,
+            lastProgress: extended ? 1 : 0,
+            state,
+            newState: state,
+            sticky: bareName(block.identifier) === 'sticky_piston'
+        }
+    });
+};
+
 /** Tells each affected piston position's neighbors once the move is complete. */
 const notifyPistonChanges = (world: WorldActions, positions: readonly HookBlock['position'][]): void => {
     const notified = new Set<string>();
@@ -167,6 +181,7 @@ const updatePiston = (world: WorldActions, block: HookBlock, receivedPower?: num
             bareName(block.identifier) === 'sticky_piston' ? 'sticky_piston_arm_collision' : 'piston_arm_collision'
         );
         world.setBlock(headPosition, head, { facing_direction: stateNumber(block, 'facing_direction') }, false);
+        setPistonArmState(world, block, true);
         world.playSound(block.position, 'minecraft:piston.out');
         notifyPistonChanges(world, [
             block.position,
@@ -178,6 +193,7 @@ const updatePiston = (world: WorldActions, block: HookBlock, receivedPower?: num
         const sticky = bareName(block.identifier) === 'sticky_piston';
         world.setBlock(headPosition, AIR, undefined, false);
         const pulled = sticky && performPull(world, block.position, facing, false);
+        setPistonArmState(world, block, false);
         world.playSound(block.position, 'minecraft:piston.in');
         notifyPistonChanges(
             world,

@@ -52,6 +52,8 @@ const BLOCKS = [
     'minecraft:stone',
     'minecraft:dirt',
     'minecraft:farmland',
+    'minecraft:oak_planks',
+    'minecraft:fire',
     'minecraft:wheat',
     'minecraft:wooden_door',
     'minecraft:chest',
@@ -75,7 +77,8 @@ const ITEMS = [
     'minecraft:oak_stairs',
     'minecraft:crafting_table',
     'minecraft:piston',
-    'minecraft:redstone'
+    'minecraft:redstone',
+    'minecraft:flint_and_steel'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -355,6 +358,16 @@ describe('useItemOnBlock', () => {
         expect(click(playerHolding(world, 'minecraft:bone_meal'), { x: 6, y: 64, z: 6 })).toBe('handled');
 
         expect(world.loadedBlockAt(6, 64, 6)?.states['growth']).toBe(1);
+    });
+
+    it('ignites the air beside the clicked east face and reports that block change', () => {
+        place(chunk, { x: 7, y: 64, z: 7 }, 'minecraft:oak_planks');
+        const player = playerHolding(world, 'minecraft:flint_and_steel');
+
+        expect(click(player, { x: 7, y: 64, z: 7 }, 5)).toBe('handled');
+
+        expect(world.loadedBlockAt(8, 64, 7)?.name).toBe('minecraft:fire');
+        expect(changed).toContain('8,64,7 minecraft:fire');
     });
 
     it('places a chest through the content, so it gets its block entity', () => {
