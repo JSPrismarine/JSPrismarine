@@ -26,23 +26,39 @@ import type { EntityScene } from './scene';
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
 const MELEE_REACH = 3;
 
+/** Reuses read-through goal views without tying an entity to another runtime's scene. */
+const goalMobViews = new WeakMap<EntityScene, WeakMap<DataEntity, GoalMob>>();
+
 /** One live entity as a goal sees another. */
-export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => ({
-    id: entity.id,
-    position: () => entity.position,
-    lookPosition: () => entityEyePosition(entity.position, entity.facts.box.height),
-    view: (): FilterEntityView => entity.instance.filterContext().self,
-    identifier: () => entity.identifier,
-    heldItem: () => entity.carried,
-    health: () => entity.instance.attributes.get('health')?.current,
-    // Through `mobById` rather than `byId`, because a target is as often a player as a mob
-    // and the two live in different indexes.
-    target: () => (entity.target === undefined ? undefined : scene.mobById(entity.target)),
-    lastDamager: () => {
-        const last = entity.body.damage.last()?.sourceId;
-        return last === undefined ? undefined : scene.mobById(last);
+export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
+    let sceneViews = goalMobViews.get(scene);
+    if (sceneViews === undefined) {
+        sceneViews = new WeakMap();
+        goalMobViews.set(scene, sceneViews);
     }
-});
+
+    const existing = sceneViews.get(entity);
+    if (existing !== undefined) return existing;
+
+    const view: GoalMob = {
+        id: entity.id,
+        position: () => entity.position,
+        lookPosition: () => entityEyePosition(entity.position, entity.facts.box.height),
+        view: (): FilterEntityView => entity.instance.filterContext().self,
+        identifier: () => entity.identifier,
+        heldItem: () => entity.carried,
+        health: () => entity.instance.attributes.get('health')?.current,
+        // Through `mobById` rather than `byId`, because a target is as often a player as a mob
+        // and the two live in different indexes.
+        target: () => (entity.target === undefined ? undefined : scene.mobById(entity.target)),
+        lastDamager: () => {
+            const last = entity.body.damage.last()?.sourceId;
+            return last === undefined ? undefined : scene.mobById(last);
+        }
+    };
+    sceneViews.set(entity, view);
+    return view;
+};
 
 /**
  * The movement and look control one entity's goals drive.
