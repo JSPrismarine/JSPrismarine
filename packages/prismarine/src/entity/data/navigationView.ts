@@ -79,6 +79,12 @@ export const navigationViewOf = (
     let lastChunkX: number | undefined;
     let lastChunkZ: number | undefined;
     let lastCells: Map<number, ContentBlock | typeof NO_BLOCK> | undefined;
+    /** Reuses a block identifier when adjacent water and lava checks ask about the same cell. */
+    let hasLastIdentifier = false;
+    let lastIdentifierX: number | undefined;
+    let lastIdentifierY: number | undefined;
+    let lastIdentifierZ: number | undefined;
+    let lastIdentifier: string | undefined;
 
     const invalidateBlockCache = (): void => {
         cachedBlocks.clear();
@@ -87,6 +93,7 @@ export const navigationViewOf = (
         lastChunkX = undefined;
         lastChunkZ = undefined;
         lastCells = undefined;
+        hasLastIdentifier = false;
     };
 
     /** Reads a block once per cell until the runtime invalidates its view. */
@@ -185,7 +192,22 @@ export const navigationViewOf = (
         return solid;
     };
 
-    const identifierAt = (position: EntityPosition): string | undefined => blockAt(position)?.identifier;
+    const identifierAt = (position: EntityPosition): string | undefined => {
+        if (
+            hasLastIdentifier &&
+            lastIdentifierX === position.x &&
+            lastIdentifierY === position.y &&
+            lastIdentifierZ === position.z
+        )
+            return lastIdentifier;
+
+        lastIdentifierX = position.x;
+        lastIdentifierY = position.y;
+        lastIdentifierZ = position.z;
+        lastIdentifier = blockAt(position)?.identifier;
+        hasLastIdentifier = true;
+        return lastIdentifier;
+    };
 
     return {
         view: {

@@ -46,6 +46,24 @@ describe('navigationViewOf', () => {
         expect(reads).toBe(2);
     });
 
+    it('invalidates a cached media identifier after the block changes', () => {
+        let block: ContentBlock = { identifier: 'minecraft:water', states: {} };
+        const cached = navigationViewOf(
+            contentBlocks(() => block),
+            () => {
+                throw new Error('media classification should not resolve block content');
+            }
+        );
+        const at = { x: 1, y: 2, z: 3 };
+
+        expect(cached.view.isLava(at)).toBe(false);
+        block = { identifier: 'minecraft:lava', states: {} };
+        cached.invalidateBlockCache();
+
+        expect(cached.view.isWater(at)).toBe(false);
+        expect(cached.view.isLava(at)).toBe(true);
+    });
+
     it('keeps cached reads correct while moving between chunks', () => {
         let reads = 0;
         const blocks = contentBlocks((at) => {
