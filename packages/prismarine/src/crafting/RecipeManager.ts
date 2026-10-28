@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import type { Logger } from '@jsprismarine/logger';
 import type { Server, Service } from '../';
 import RecipeRegisterEvent from '../events/crafting/RecipeRegisterEvent';
@@ -65,7 +65,7 @@ export class RecipeManager implements Service {
      * recognize however carefully the server built it.
      */
     private isKnown(name: string): boolean {
-        return ItemIdMap[name] !== undefined;
+        return ItemTable[name] !== undefined;
     }
 
     /**

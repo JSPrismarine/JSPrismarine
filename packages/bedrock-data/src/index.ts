@@ -63,19 +63,6 @@ export const item_components: Readonly<Record<string, Buffer>> = Object.fromEntr
     Object.entries(item_components_data).map(([name, data]) => [name, Buffer.from(data, 'base64')])
 );
 
-/**
- * Item name to numeric id.
- *
- * Derived from {@link item_table} rather than kept by hand. The hand-written file this
- * replaced had 807 entries and predated the flattening: it knew `minecraft:planks` but not
- * `minecraft:oak_planks`, so it could name only 53% of the creative menu and none of the
- * rest. Anything it could not name fell back to an unrelated internal id, which is how half
- * the creative menu came to be duplicates of the wrong item.
- */
-export const item_id_map: Record<string, number> = Object.fromEntries(
-    Object.entries(item_table).map(([name, entry]) => [name, entry.runtime_id])
-);
-
 /** Legacy Bedrock item identifiers still used by vanilla definitions, mapped to current names. */
 export const legacy_item_aliases: Readonly<Record<string, string>> = legacy_item_aliases_data.simple;
 

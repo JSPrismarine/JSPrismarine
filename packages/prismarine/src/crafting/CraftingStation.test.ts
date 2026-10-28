@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../item/Item';
@@ -10,7 +10,7 @@ import RecipeManager from './RecipeManager';
 import { ItemIngredient } from './RecipeIngredient';
 import VanillaRecipes from './VanillaRecipes';
 
-const known = (name: string) => ItemIdMap[name] !== undefined;
+const known = (name: string) => ItemTable[name] !== undefined;
 const item = (name: string) => new Item({ runtimeId: 1, name });
 
 /** A server carrying a real recipe book, so matching runs against vanilla's own data. */

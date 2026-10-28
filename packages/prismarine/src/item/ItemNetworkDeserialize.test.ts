@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream, NetworkItemStackDescriptor } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
@@ -159,7 +159,7 @@ describe('item', () => {
             // is empty slots, so most of the packet was that.
             const air = new Item({ runtimeId: 0, name: 'minecraft:air' });
 
-            expect(ItemIdMap['minecraft:air']).not.toBe(0);
+            expect(ItemTable['minecraft:air']!.runtime_id).not.toBe(0);
 
             // The whole stack, all of it zero: two id bytes, two count bytes, the aux value,
             // the flag, the runtime id and an empty user data length.

@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
@@ -101,14 +101,14 @@ describe('InventoryContentPacket', () => {
         expect(read.dynamicId).toBeNull();
 
         const planks = read.slots[0]!;
-        expect(planks.id).toBe(ItemIdMap['minecraft:oak_planks']);
+        expect(planks.id).toBe(ItemTable['minecraft:oak_planks']!.runtime_id);
         expect(planks.count).toBe(12);
         expect(planks.netId).toBeNull();
         expect(planks.blockRuntimeId).not.toBe(0);
         expect(readUserData(planks.userData)).toEqual({ marker: 0, canPlaceOn: [], canDestroy: [] });
 
         const sword = read.slots[5]!;
-        expect(sword.id).toBe(ItemIdMap['minecraft:diamond_sword']);
+        expect(sword.id).toBe(ItemTable['minecraft:diamond_sword']!.runtime_id);
         expect(sword.count).toBe(1);
         expect(sword.blockRuntimeId).toBe(0);
 
@@ -125,7 +125,7 @@ describe('InventoryContentPacket', () => {
     it('matches a hand-written buffer', () => {
         const inventory = new Inventory(2);
         inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }) }));
-        const swordId = ItemIdMap['minecraft:diamond_sword']!;
+        const swordId = ItemTable['minecraft:diamond_sword']!.runtime_id;
 
         const empty = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         const expected = Buffer.from([

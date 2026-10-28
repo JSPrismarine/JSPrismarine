@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { attributeModifiers, enchantable, equippable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
@@ -96,7 +96,7 @@ let namesByWireId: ReadonlyMap<number, string> | undefined;
  * as `minecraft:unknown` and nothing a player held could be identified.
  */
 const nameOfWireId = (id: number): string | undefined => {
-    namesByWireId ??= new Map(Object.entries(ItemIdMap).map(([name, value]) => [value, name]));
+    namesByWireId ??= new Map(Object.entries(ItemTable).map(([name, value]) => [value.runtime_id, name]));
     return namesByWireId.get(id);
 };
 
@@ -196,7 +196,7 @@ export class Item {
         // Zero is the empty stack's count; treating it as missing turns air into a live item.
         if (count !== undefined) this.count = count;
 
-        this.networkId = ItemIdMap[name];
+        this.networkId = ItemTable[name]?.runtime_id;
         this.durability = this.getMaxDurability();
     }
 

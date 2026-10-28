@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
@@ -749,7 +749,7 @@ describe('network', () => {
         it.each(['minecraft:crimson_planks', 'minecraft:warped_planks', 'minecraft:mangrove_planks'])(
             'crafts a crafting table from %s when the client requests the shared plank recipe',
             async (planks) => {
-                const recipes = VanillaRecipes.load((name) => ItemIdMap[name] !== undefined);
+                const recipes = VanillaRecipes.load((name) => ItemTable[name] !== undefined);
                 const recipe = recipes.find(
                     (candidate) => candidate.id === 'crafting_table/minecraft:WorkBench_recipeId'
                 );

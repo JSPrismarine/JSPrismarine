@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap, item_tags as ItemTags } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable, item_tags as ItemTags } from '@jsprismarine/bedrock-data';
 import { vanillaRecipes } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
@@ -7,7 +7,7 @@ import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe } from './Recipe';
 import { TagIngredient } from './RecipeIngredient';
 import VanillaRecipes from './VanillaRecipes';
 
-const known = (name: string) => ItemIdMap[name] !== undefined;
+const known = (name: string) => ItemTable[name] !== undefined;
 
 /** Every tag name the generated catalog asks for, on either side of a recipe. */
 const tagsInCatalog = (): string[] => {

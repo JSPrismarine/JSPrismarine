@@ -1,4 +1,4 @@
-import { creative_groups, creativeitems, item_id_map } from '@jsprismarine/bedrock-data';
+import { creative_groups, creativeitems, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -12,7 +12,7 @@ import {
 import type { CreativeCatalog, ItemIdLookup } from './creativeContent';
 
 const vanilla: CreativeCatalog = { groups: creative_groups, entries: creativeitems };
-const vanillaIds: ItemIdLookup = (identifier) => item_id_map[identifier];
+const vanillaIds: ItemIdLookup = (identifier) => ItemTable[identifier]?.runtime_id;
 
 const catalog: CreativeCatalog = {
     groups: [

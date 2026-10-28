@@ -1,4 +1,4 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
@@ -117,7 +117,7 @@ describe('network', () => {
             packet.encode();
 
             const item = readBack(packet.getBuffer()).item;
-            expect(item.id).toBe(ItemIdMap['minecraft:oak_planks']);
+            expect(item.id).toBe(ItemTable['minecraft:oak_planks']!.runtime_id);
             expect(item.count).toBe(3);
             // A non-empty stack carries the ten-byte empty user data: no NBT, no block lists.
             expect(item.userData).toEqual(Buffer.alloc(10));
