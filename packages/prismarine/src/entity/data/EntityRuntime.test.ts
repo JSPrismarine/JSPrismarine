@@ -706,7 +706,13 @@ describe('EntityRuntime', () => {
                             'minecraft:health': { value: 20, max: 20 },
                             'minecraft:healable': {
                                 force_use: true,
-                                items: [{ item: 'cookie', heal_amount: 0, effects: [{ name: 'fatal_poison' }] }]
+                                items: [
+                                    {
+                                        item: 'cookie',
+                                        heal_amount: 0,
+                                        effects: [{ name: 'fatal_poison', duration: 1000 }]
+                                    }
+                                ]
                             }
                         }
                     }
