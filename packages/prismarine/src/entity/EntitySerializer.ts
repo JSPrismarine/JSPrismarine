@@ -9,6 +9,8 @@ import { GenericEntity } from './GenericEntity';
 import { Item } from './other/Item';
 import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from './Metadata';
+import type { StatusEffect } from './StatusEffect';
+import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
 import { dataEntityRecordIn } from './data/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -67,6 +69,7 @@ export class EntitySerializer {
         }
 
         for (const tag of stringsIn(nbt, 'Tags')) entity.addTag(tag);
+        for (const effect of activeEffectsIn(nbt)) entity.addStatusEffect(effect, false);
 
         entity.persistentNbt = remainder(nbt);
         return entity;
@@ -82,6 +85,15 @@ export class EntitySerializer {
         const tags = entity.getTags();
         if (tags.length > 0) nbt.addValue('Tags', new Set(tags.map((tag) => new Types.StringVal(tag))));
         else nbt.remove('Tags');
+
+        const activeEffects = entity.getStatusEffects().map(statusEffectNbt);
+        const unknownEffects = [...(nbt.getList('ActiveEffects', false) ?? [])].filter(
+            (effect): effect is NBTTagCompound =>
+                effect instanceof NBTTagCompound && bedrockMobEffectIdentifier(effect.getByte('Id', -1)) === undefined
+        );
+        const allEffects = [...unknownEffects, ...activeEffects];
+        if (allEffects.length > 0) nbt.addValue('ActiveEffects', new Set(allEffects));
+        else nbt.remove('ActiveEffects');
 
         if (entity instanceof Item) {
             nbt.addValue('Age', new Types.ShortVal(entity.getAge()));
@@ -214,6 +226,40 @@ const stringsIn = (nbt: NBTTagCompound, key: string): string[] => {
         if (value instanceof Types.StringVal) strings.push(value.getValue());
     }
     return strings;
+};
+
+/** Reads the supported active effects from a stored actor, leaving unknown entries opaque. */
+const activeEffectsIn = (nbt: NBTTagCompound): StatusEffect[] => {
+    const effects: StatusEffect[] = [];
+    for (const value of nbt.getList('ActiveEffects', false) ?? []) {
+        if (!(value instanceof NBTTagCompound)) continue;
+        const id = bedrockMobEffectIdentifier(value.getByte('Id', -1));
+        if (id === undefined) continue;
+        effects.push({
+            id,
+            amplifier: value.getByte('Amplifier', 0) & 0xff,
+            durationTicks: value.getNumber('Duration', 0),
+            ambient: value.getByte('Ambient', 0) !== 0,
+            showParticles: value.getByte('ShowParticles', 1) !== 0,
+            showIcon: value.getByte('ShowIcon', 1) !== 0
+        });
+    }
+    return effects;
+};
+
+/** Writes the fields Bedrock stores for one active status effect. */
+const statusEffectNbt = (effect: StatusEffect): NBTTagCompound => {
+    const id = bedrockMobEffectId(effect.id);
+    if (id === undefined) throw new Error(`Cannot serialize unsupported mob effect '${effect.id}'`);
+
+    const entry = new NBTTagCompound('');
+    entry.addValue('Id', new Types.ByteVal(id));
+    entry.addValue('Amplifier', new Types.ByteVal(effect.amplifier));
+    entry.addValue('Duration', new Types.NumberVal(effect.durationTicks));
+    entry.addValue('Ambient', new Types.ByteVal(effect.ambient ? 1 : 0));
+    entry.addValue('ShowParticles', new Types.ByteVal(effect.showParticles ? 1 : 0));
+    entry.addValue('ShowIcon', new Types.ByteVal(effect.showIcon ? 1 : 0));
+    return entry;
 };
 
 /**

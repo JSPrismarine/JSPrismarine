@@ -21,6 +21,8 @@ import type { EntityBox } from './data/facts';
 import { boxOf } from './data/facts';
 import { Metadata, MetadataFlag } from './Metadata';
 import type { ViewableEquipment } from './predicateView';
+import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
+import { bedrockMobEffectId, normalizeStatusEffectId } from './StatusEffect';
 
 /**
  * Re-exported so that `import { DamageCause } from './entity/Entity'` keeps resolving.
@@ -48,6 +50,9 @@ const BASE_KNOCKBACK = 0.4;
 
 /** What each level of sprint-or-Knockback adds on top. */
 const KNOCKBACK_PER_LEVEL = 0.5;
+
+/** Compares finite durations and treats the infinite sentinel as longest. */
+const remainingDuration = (ticks: number): number => (ticks < 0 ? Number.POSITIVE_INFINITY : ticks);
 
 /**
  * How much of what an entity was already doing survives a shove.
@@ -158,6 +163,9 @@ export class Entity {
      * keeps the five positional armor slots together for `MobArmorEquipmentPacket`.
      */
     private equipment: ViewableEquipment = {};
+
+    /** Active effects, shared with a data entity body when one owns this actor. */
+    private readonly statusEffects = new Map<string, StatusEffect>();
 
     /**
      * Whether this entity is standing on something rather than being carried through the air.
@@ -439,13 +447,15 @@ export class Entity {
      * ```
      */
     public async update(_tick: number): Promise<void> {
-        if (this.invulnerableTicks <= 0) return;
+        if (this.invulnerableTicks > 0) {
+            this.invulnerableTicks--;
 
-        this.invulnerableTicks--;
+            // Forgotten with the timer, so the next hit is judged on its own rather than against
+            // something that landed seconds ago.
+            if (this.invulnerableTicks === 0) this.lastDamageTaken = 0;
+        }
 
-        // Forgotten with the timer, so the next hit is judged on its own rather than against
-        // something that landed seconds ago.
-        if (this.invulnerableTicks === 0) this.lastDamageTaken = 0;
+        this.tickStatusEffects();
     }
 
     /**
@@ -509,6 +519,112 @@ export class Entity {
      */
     public isAlive(): boolean {
         return this.getHealth() > 0;
+    }
+
+    /**
+     * The active effects this entity currently carries.
+     * @returns A snapshot of the active effect instances.
+     */
+    public getStatusEffects(): readonly StatusEffect[] {
+        return [...this.statusEffectMap().values()];
+    }
+
+    /**
+     * Reads one active effect by its namespaced id or bare Bedrock effect name.
+     * @param {string} identifier - The effect name.
+     * @returns The active effect, or undefined when it is absent.
+     */
+    public getStatusEffect(identifier: string): StatusEffect | undefined {
+        return this.statusEffectMap().get(normalizeStatusEffectId(identifier));
+    }
+
+    /**
+     * Whether one status effect is active.
+     * @param {string} identifier - The effect name.
+     * @returns Whether it is active.
+     */
+    public hasStatusEffect(identifier: string): boolean {
+        return this.getStatusEffect(identifier) !== undefined;
+    }
+
+    /**
+     * Applies or refreshes a status effect.
+     *
+     * A stronger Bedrock effect replaces the weaker one. An equal-strength effect only replaces
+     * the current value when it lasts longer or changes its visible state.
+     *
+     * @param input - The effect and its duration, potency, and display flags.
+     * @param notify - Whether to send an effect packet for an accepted change.
+     * @returns Whether the effect changed.
+     */
+    public addStatusEffect(input: StatusEffectInput, notify = true): boolean {
+        const id = normalizeStatusEffectId(input.id);
+        if (bedrockMobEffectId(id) === undefined || !this.acceptsStatusEffect(id)) return false;
+
+        const durationTicks = Math.trunc(input.durationTicks);
+        if (
+            !Number.isFinite(durationTicks) ||
+            durationTicks === 0 ||
+            durationTicks < -1 ||
+            !Number.isFinite(input.amplifier)
+        )
+            return false;
+
+        const next: StatusEffect = {
+            id,
+            amplifier: Math.max(0, Math.min(255, Math.trunc(input.amplifier))),
+            durationTicks,
+            ambient: input.ambient ?? false,
+            showParticles: input.showParticles ?? true,
+            showIcon: input.showIcon ?? true
+        };
+        const effects = this.statusEffectMap();
+        const previous = effects.get(id);
+        if (previous !== undefined) {
+            if (next.amplifier < previous.amplifier) return false;
+            if (
+                next.amplifier === previous.amplifier &&
+                remainingDuration(next.durationTicks) <= remainingDuration(previous.durationTicks) &&
+                next.ambient === previous.ambient &&
+                next.showParticles === previous.showParticles &&
+                next.showIcon === previous.showIcon
+            )
+                return false;
+        }
+
+        effects.set(id, next);
+        if (notify) this.announceStatusEffect(next, previous === undefined ? 'add' : 'update');
+        return true;
+    }
+
+    /**
+     * Removes one status effect.
+     * @param {string} identifier - The effect name.
+     * @param {boolean} [notify=true] - Whether to send a removal packet.
+     * @returns Whether an active effect was removed.
+     */
+    public removeStatusEffect(identifier: string, notify = true): boolean {
+        const effects = this.statusEffectMap();
+        const id = normalizeStatusEffectId(identifier);
+        const previous = effects.get(id);
+        if (previous === undefined) return false;
+
+        effects.delete(id);
+        if (notify) this.announceStatusEffect(previous, 'remove');
+        return true;
+    }
+
+    /**
+     * Removes every active status effect.
+     * @param {boolean} [notify=true] - Whether to send a removal packet for each effect.
+     * @returns The number of effects cleared.
+     */
+    public clearStatusEffects(notify = true): number {
+        let cleared = 0;
+        for (const effect of this.getStatusEffects()) {
+            if (this.removeStatusEffect(effect.id, notify)) cleared += 1;
+        }
+        return cleared;
     }
 
     /**
@@ -764,9 +880,39 @@ export class Entity {
         });
     }
 
-    /** The level of the Resistance effect. Zero until there is an effect system. */
+    /** The Resistance effect's level, or zero when it is absent. */
     protected getResistanceLevel(): number {
-        return 0;
+        const resistance = this.getStatusEffect('minecraft:resistance');
+        return resistance === undefined ? 0 : resistance.amplifier + 1;
+    }
+
+    /** The map a live data-driven body shares with its component runtime. */
+    protected statusEffectMap(): Map<string, StatusEffect> {
+        return this.statusEffects;
+    }
+
+    /** Whether the active entity definition allows an effect. */
+    protected acceptsStatusEffect(_identifier: string): boolean {
+        return true;
+    }
+
+    /** Counts down finite effects and tells clients when one expires. */
+    private tickStatusEffects(): void {
+        for (const effect of this.getStatusEffects()) {
+            if (effect.durationTicks < 0) continue;
+            if (effect.durationTicks <= 1) {
+                this.removeStatusEffect(effect.id);
+                continue;
+            }
+            this.statusEffectMap().set(effect.id, { ...effect, durationTicks: effect.durationTicks - 1 });
+        }
+    }
+
+    /** Announces one accepted effect change to the world's network sink. */
+    private announceStatusEffect(effect: StatusEffect, change: StatusEffectChange): void {
+        void this.getWorld()
+            .sendStatusEffect(this, effect, change)
+            .catch((error: unknown) => this.server.getLogger().error(error));
     }
 
     /**

@@ -3,6 +3,7 @@ export * from './Entity';
 export * from './data/facts';
 export * from './Metadata';
 export * from './mobLoot';
+export * from './StatusEffect';
 
 export { default as BlockView } from './ai/BlockView';
 

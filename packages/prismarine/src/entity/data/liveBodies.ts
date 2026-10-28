@@ -22,6 +22,7 @@
  * the retaliation all happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
+import { isRecord } from '@jsprismarine/entities';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
@@ -33,6 +34,8 @@ import { Attribute, AttributeIds } from '../Attribute';
 import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
 import type { ViewableEquipment } from '../predicateView';
 import type { Entity } from '../Entity';
+import type { StatusEffect } from '../StatusEffect';
+import { normalizeStatusEffectId } from '../StatusEffect';
 import { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
@@ -71,6 +74,20 @@ class DataEntityBody extends GenericEntity {
     /** @inheritdoc */
     public override getSyncedProperties() {
         return syncedPropertiesOf(this.driver.instance.properties);
+    }
+
+    /** @inheritdoc */
+    protected override statusEffectMap(): Map<string, StatusEffect> {
+        return this.driver.body.statusEffects;
+    }
+
+    /** @inheritdoc */
+    protected override acceptsStatusEffect(identifier: string): boolean {
+        const immunity = this.driver.instance.componentParams('minecraft:mob_effect_immunity');
+        if (!isRecord(immunity) || !Array.isArray(immunity.mob_effects)) return true;
+        return !immunity.mob_effects.some(
+            (effect) => typeof effect === 'string' && normalizeStatusEffectId(effect) === identifier
+        );
     }
 
     /** @inheritdoc */

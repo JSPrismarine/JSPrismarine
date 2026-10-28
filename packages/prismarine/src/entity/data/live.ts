@@ -567,6 +567,7 @@ export class LiveEntityRuntime {
             body.persistentNbt = stored.persistentNbt;
             entity.body.nameTag ??= stored.metadata.nameTag || undefined;
             for (const tag of stored.getTags()) body.addTag(tag);
+            for (const effect of stored.getStatusEffects()) body.addStatusEffect(effect, false);
         }
         return entity;
     }
@@ -622,6 +623,7 @@ export class LiveEntityRuntime {
             body.persistentNbt = stored.persistentNbt;
             entity.body.nameTag = stored.metadata.nameTag || undefined;
             for (const tag of stored.getTags()) body.addTag(tag);
+            for (const effect of stored.getStatusEffects()) body.addStatusEffect(effect, false);
         }
         return entity;
     }

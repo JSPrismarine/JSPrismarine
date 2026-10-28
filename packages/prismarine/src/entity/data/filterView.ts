@@ -126,7 +126,14 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
     id: () => body.id,
     flag: (name) => flagOf(body, scene, name),
     measure: (name) => measureOf(body, scene, name),
-    names: (name) => (name === 'has_tag' ? [...body.tags] : undefined),
+    names: (name) => {
+        if (name === 'has_tag') return [...body.tags];
+        if (name === 'has_mob_effect') {
+            const effects = [...body.statusEffects.keys()];
+            return [...effects, ...effects.map((identifier) => identifier.slice(identifier.indexOf(':') + 1))];
+        }
+        return undefined;
+    },
     equipment: (slot, index) => itemViewOf(dropAt(body, slot, index), scene),
     slotFill: (slot) => slotFillOf(body, slot),
     carries: (matches) =>

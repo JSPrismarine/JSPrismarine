@@ -12,12 +12,16 @@
  * with a guess quietly answers wrong. So this fills in what a live entity can
  * actually say and leaves the rest out. Absent on purpose:
  *
- * - **`effects`.** There is no status effect system yet, which is also why
- *   `Entity.getResistanceLevel` is a constant zero.
  * - **`scores`, `team`, `nbt`, `vehicle`, `passenger`, `target`, `lookingAt`.**
  *   Nothing on a `World` answers any of them.
  */
-import type { EntityView, EquipmentSlot, ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predicates';
+import type {
+    EffectInstance,
+    EntityView,
+    EquipmentSlot,
+    ItemStack as PredicateItemStack,
+    Vec3
+} from '@jsprismarine/predicates';
 
 import type { ContentTags } from '../content/tags';
 import { bedrockEntityTypeTagsFor } from '../content/entityTypeTags';
@@ -29,6 +33,13 @@ export interface ViewableEntity {
     getPosition(): { getX(): number; getY(): number; getZ(): number };
     isOnFire?(): boolean;
     isOnGround?(): boolean;
+    getStatusEffects?(): readonly {
+        readonly id: string;
+        readonly amplifier: number;
+        readonly durationTicks: number;
+        readonly ambient: boolean;
+        readonly showParticles: boolean;
+    }[];
 }
 
 /** What a human adds: the four worn slots, the hand and the off hand. */
@@ -109,10 +120,26 @@ const equipmentOf = (
 export const entityPredicateView = (entity: ViewableEntity, options: EntityViewOptions = {}): EntityView => {
     const { player, tags } = options;
     const typeTags = tags === undefined ? undefined : bedrockEntityTypeTagsFor(tags, entity.getType());
+    const activeEffects = entity.getStatusEffects?.();
+    const effects: ReadonlyMap<string, EffectInstance> | undefined =
+        activeEffects === undefined
+            ? undefined
+            : new Map(
+                  activeEffects.map((effect) => [
+                      effect.id,
+                      {
+                          amplifier: effect.amplifier,
+                          duration: effect.durationTicks,
+                          ambient: effect.ambient,
+                          visible: effect.showParticles
+                      }
+                  ])
+              );
 
     return {
         type: entity.getType(),
         ...(typeTags === undefined ? {} : { typeTags }),
+        ...(effects === undefined ? {} : { effects }),
         position: vec3Of(entity.getPosition()),
         equipment: equipmentOf(options.equipment),
         flags: {

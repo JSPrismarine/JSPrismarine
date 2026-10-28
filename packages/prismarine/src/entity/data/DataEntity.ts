@@ -20,6 +20,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { ContentItemDrop } from '../../content/world/adapter';
 import { DamageLog } from './damageLog';
+import type { StatusEffect } from '../StatusEffect';
 import type { MobEquipmentSet } from '../equipment';
 import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
@@ -87,6 +88,9 @@ export class MobBody {
 
     /** The entity's dynamic string tags, shared with `/tag` and `has_tag` filters. */
     public readonly tags = new Set<string>();
+
+    /** The status effects mirrored by the client-facing entity body. */
+    public readonly statusEffects = new Map<string, StatusEffect>();
 
     /** The custom name set by an accepted name tag. */
     public nameTag: string | undefined;
