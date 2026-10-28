@@ -2,11 +2,11 @@
  * The `blocks` group of `ServerWorldAdapter`, as the block and item
  * subsystem owes it.
  *
- * Eleven of the sixteen members of `ContentBlockAccess` belong here: reading,
- * writing, and destroying a block; reading and writing block entity records;
+ * Twelve of the seventeen members of `ContentBlockAccess` belong here: reading,
+ * writing, moving, and destroying a block; reading and writing block entity records;
  * neighbor notification; redstone power; and entity-event dispatch. The other
  * five - light, chunk loading, the surface column, and two biome reads - belong
- * to the world subsystem, which is why this exports the eight as their own
+ * to the world subsystem, which is why this exports the twelve as their own
  * type rather than the whole interface.
  *
  * It is a factory rather than a wired-in object because the composition root
@@ -34,11 +34,12 @@ import type {
     ContentPosition
 } from '../content/world/adapter';
 
-/** The eleven members of `ContentBlockAccess` the block and item subsystem implements. */
+/** The twelve members of `ContentBlockAccess` the block and item subsystem implements. */
 export type ContentBlockGroup = Pick<
     ContentBlockAccess,
     | 'get'
     | 'set'
+    | 'move'
     | 'destroy'
     | 'data'
     | 'setData'
@@ -53,10 +54,8 @@ export type ContentBlockGroup = Pick<
 /**
  * Where the blocks of one dimension are kept.
  *
- * Two members, both unconditional: the chunk storage the world subsystem owns
- * already answers both, and keeping the port this narrow is what lets the
- * hook dispatch, the neighbor walk and the power read below be tested against
- * a plain map.
+ * Chunk storage answers the read and write directly. Movement is optional for
+ * adapters that can carry a block entity without running placement hooks.
  */
 export interface BlockStorageAccess {
     /** The block at a position, or undefined when the chunk holding it is not loaded. */
@@ -68,6 +67,8 @@ export interface BlockStorageAccess {
      * storage that does either as well would do it twice.
      */
     write(position: ContentPosition, block: ContentBlock): void;
+    /** Moves a block and its block entity without raising placement hooks. */
+    move?(from: ContentPosition, to: ContentPosition): void;
     /**
      * Raises a block's `onBreak` and puts what Java's table rolls on the ground, leaving
      * the write to the caller; see {@link ContentBlockAccess.destroy}.
@@ -257,9 +258,11 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
     };
 
     const destroy = storage.destroy;
+    const move = storage.move;
 
     return {
         get: (at) => storage.at(at),
+        ...(move === undefined ? {} : { move }),
         // Passed through rather than reimplemented: the hook, the roll and the ground all
         // belong to the world the storage is over. Absent when the storage cannot do it,
         // which is what makes a family fall back to its own drop.

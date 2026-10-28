@@ -6,6 +6,7 @@
  * family branches on the bare name once per hook. Each branch is small; what
  * they have in common is the power model in `rules/redstone.ts`.
  */
+import { BLOCK_FACES } from '@jsprismarine/blocks';
 import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
@@ -13,7 +14,7 @@ import { faceOfFacingDirection, offset, opposite, rotateClockwise, rotateCounter
 import { AIR } from '../identifiers';
 import { containerSignal } from '../rules/container';
 import { isIgniter } from '../rules/heldItem';
-import { performPull, performPush } from '../rules/piston';
+import { performPull, performPush, planPush } from '../rules/piston';
 import {
     BUTTON_PRESS_TICKS,
     MAX_POWER,
@@ -78,6 +79,112 @@ const swapPair = (
 /** The face a piston points along, from its numeric `facing_direction`. */
 const pistonFacing = (block: HookBlock): ReturnType<typeof faceOfFacingDirection> =>
     faceOfFacingDirection(stateNumber(block, 'facing_direction'));
+
+/** Whether this is one of the two piston bases. */
+const isPiston = (identifier: string): boolean => {
+    const name = bareName(identifier);
+    return name === 'piston' || name === 'sticky_piston';
+};
+
+/** The face the piston is mounted against, from Bedrock's `lever_direction`. */
+const leverSupportFace = (block: HookBlock): BlockFace => {
+    switch (stateString(block, 'lever_direction')) {
+        case 'up_north_south':
+        case 'up_east_west':
+            return 'down';
+        case 'down_north_south':
+        case 'down_east_west':
+            return 'up';
+        case 'north':
+            return 'south';
+        case 'south':
+            return 'north';
+        case 'east':
+            return 'west';
+        case 'west':
+            return 'east';
+        default:
+            return 'down';
+    }
+};
+
+/** The strongest signal a block gives the piston from one direction. */
+const pistonHasSignal = (world: WorldActions, position: HookBlock['position'], direction: BlockFace): boolean =>
+    (world.redstoneSignal?.(position, direction) ?? world.redstonePower(position)) > 0;
+
+/** Java's quasi-connectivity scan, expressed through the block world's redstone view. */
+const pistonIsPowered = (world: WorldActions, block: HookBlock, pushDirection: BlockFace): boolean => {
+    for (const direction of BLOCK_FACES) {
+        if (direction === pushDirection) continue;
+        if (pistonHasSignal(world, offset(block.position, direction), direction)) return true;
+    }
+    if (pistonHasSignal(world, block.position, 'down')) return true;
+
+    const above = offset(block.position, 'up');
+    for (const direction of BLOCK_FACES) {
+        if (direction === 'down') continue;
+        if (pistonHasSignal(world, offset(above, direction), direction)) return true;
+    }
+    return false;
+};
+
+/** Whether the matching piston head is in front of this piston base. */
+const pistonHasHead = (world: WorldActions, block: HookBlock, facing: BlockFace): boolean => {
+    const sticky = bareName(block.identifier) === 'sticky_piston';
+    const headName = sticky ? 'sticky_piston_arm_collision' : 'piston_arm_collision';
+    return bareName(world.getBlock(offset(block.position, facing))?.identifier ?? '') === headName;
+};
+
+/** Tells each affected piston position's neighbors once the move is complete. */
+const notifyPistonChanges = (world: WorldActions, positions: readonly HookBlock['position'][]): void => {
+    const notified = new Set<string>();
+    for (const position of positions) {
+        const key = `${position.x},${position.y},${position.z}`;
+        if (notified.has(key)) continue;
+        notified.add(key);
+        world.notifyNeighbors(position);
+    }
+};
+
+/** Extends or retracts a piston to match its current signal and head. */
+const updatePiston = (world: WorldActions, block: HookBlock, receivedPower?: number): void => {
+    const facing = pistonFacing(block);
+    if (facing === undefined) return;
+
+    const powered =
+        receivedPower === undefined
+            ? pistonIsPowered(world, block, facing)
+            : receivedPower > 0 || pistonIsPowered(world, block, facing);
+    const extended = pistonHasHead(world, block, facing);
+    if (powered === extended) return;
+
+    const headPosition = offset(block.position, facing);
+    if (powered) {
+        const plan = planPush(world, block.position, facing);
+        if (plan.blocked || !performPush(world, block.position, facing, false)) return;
+        const head = sibling(
+            block.identifier,
+            bareName(block.identifier) === 'sticky_piston' ? 'sticky_piston_arm_collision' : 'piston_arm_collision'
+        );
+        world.setBlock(headPosition, head, { facing_direction: stateNumber(block, 'facing_direction') }, false);
+        world.playSound(block.position, 'minecraft:piston.out');
+        notifyPistonChanges(world, [
+            block.position,
+            headPosition,
+            ...plan.moved.flatMap((position) => [position, offset(position, facing)]),
+            ...plan.destroyedBlocks
+        ]);
+    } else {
+        const sticky = bareName(block.identifier) === 'sticky_piston';
+        world.setBlock(headPosition, AIR, undefined, false);
+        const pulled = sticky && performPull(world, block.position, facing, false);
+        world.playSound(block.position, 'minecraft:piston.in');
+        notifyPistonChanges(
+            world,
+            pulled ? [block.position, headPosition, offset(block.position, facing, 2)] : [block.position, headPosition]
+        );
+    }
+};
 
 /** The face of the block supporting a torch, as Bedrock's `torch_facing_direction` spells it. */
 const torchSupportFace = (block: HookBlock): BlockFace => {
@@ -314,24 +421,7 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
     switch (bareName(block.identifier)) {
         case 'piston':
         case 'sticky_piston': {
-            const facing = pistonFacing(block);
-            if (facing === undefined) return;
-            const sticky = bareName(block.identifier) === 'sticky_piston';
-            const head = sibling(block.identifier, sticky ? 'sticky_piston_arm_collision' : 'piston_arm_collision');
-            if (powered) {
-                if (!performPush(world, block.position, facing)) return;
-                world.setBlock(offset(block.position, facing), head, {
-                    facing_direction: stateNumber(block, 'facing_direction')
-                });
-                world.playSound(block.position, 'tile.piston.out');
-                return;
-            }
-            const front = world.getBlock(offset(block.position, facing));
-            if (front !== undefined && bareName(front.identifier).endsWith('piston_arm_collision')) {
-                world.setBlock(front.position, 'minecraft:air');
-            }
-            if (sticky) performPull(world, block.position, facing);
-            world.playSound(block.position, 'tile.piston.in');
+            updatePiston(world, block, event.power);
             return;
         }
         case 'redstone_lamp':
@@ -387,9 +477,30 @@ export const redstoneFamily = defineFamily(
         onPlace: (event, world) => {
             const block = event.block;
             const name = bareName(block.identifier);
-            if (name !== TORCH_PAIR.on && name !== TORCH_PAIR.off) return;
-            if (popWithoutSupport(world, block, torchSupportFace(block))) return;
-            scheduleTorchToggle(world, block);
+            if (name === TORCH_PAIR.on || name === TORCH_PAIR.off) {
+                if (popWithoutSupport(world, block, torchSupportFace(block))) return;
+                scheduleTorchToggle(world, block);
+                for (const direction of BLOCK_FACES) world.notifyNeighbors(offset(block.position, direction));
+                return;
+            }
+            if (name === 'redstone_wire') {
+                const signal = wireSignal(world, block);
+                if (signal !== stateNumber(block, 'redstone_signal'))
+                    setStates(world, block, { redstone_signal: signal });
+                return;
+            }
+            if (name === 'lever') {
+                const support = leverSupportFace(block);
+                if (popWithoutSupport(world, block, support)) return;
+                world.notifyNeighbors(offset(block.position, support));
+                return;
+            }
+            if (isRepeater(block.identifier) || isComparator(block.identifier)) {
+                scheduleDiodeUpdate(world, block);
+                world.notifyNeighbors(offset(block.position, cardinalFacing(block)));
+                return;
+            }
+            if (isPiston(block.identifier)) updatePiston(world, block);
         },
         onRedstoneUpdate: (event, world) => {
             onRedstone(event, world);
@@ -421,7 +532,12 @@ export const redstoneFamily = defineFamily(
             }
 
             if (name === 'lever') {
-                popWithoutSupport(world, block);
+                popWithoutSupport(world, block, leverSupportFace(block));
+                return;
+            }
+
+            if (isPiston(block.identifier)) {
+                updatePiston(world, block);
                 return;
             }
 
@@ -591,6 +707,13 @@ export const buttonFamily = defineFamily(
             world.scheduleTick(event.block.position, BUTTON_PRESS_TICKS[wooden ? 'wooden' : 'stone']);
             return true;
         },
+        onPlace: (event, world) => {
+            const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
+            if (face === undefined) return;
+            const support = opposite(face);
+            if (popWithoutSupport(world, event.block, support)) return;
+            world.notifyNeighbors(offset(event.block.position, support));
+        },
         onTick: (event, world) => {
             if (!stateBoolean(event.block, 'button_pressed_bit')) return;
             setStates(world, event.block, { button_pressed_bit: false });
@@ -609,6 +732,10 @@ export const pressurePlateFamily = defineFamily(
     'jsprismarine:pressure_plate',
     'Puts out redstone_signal while something stands on it, with the weighted plates counting entities, and releases on a scheduled tick.',
     {
+        onPlace: (event, world) => {
+            if (popWithoutSupport(world, event.block)) return;
+            world.notifyNeighbors(offset(event.block.position, 'down'));
+        },
         onStepOn: (event, world, context) => {
             const weight = PLATE_WEIGHTS[bareName(context.identifier)];
             const standing = world.entitiesAt(event.block.position).length;

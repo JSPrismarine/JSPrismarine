@@ -93,6 +93,8 @@ export interface ContentBlockAccess {
      *   state, and both callers exist, so it has no default.
      */
     set(at: ContentPosition, block: ContentBlock, notifyNeighbors: boolean): void;
+    /** Moves a block and its block entity without running placement hooks. */
+    move?(from: ContentPosition, to: ContentPosition): void;
     /**
      * Takes a block out: raises its `onBreak` and puts what Java's table rolls on the ground.
      *

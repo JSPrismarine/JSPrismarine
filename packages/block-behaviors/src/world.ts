@@ -139,6 +139,8 @@ export interface WorldActions {
      * @param notifyNeighbors - Whether to run block behavior and engine neighbor updates.
      */
     setBlock(position: BlockPosition, identifier: string, states?: BlockStates, notifyNeighbors?: boolean): void;
+    /** Moves a block and its block entity without running placement hooks. */
+    moveBlock?(from: BlockPosition, to: BlockPosition): void;
     /** The `jsprismarine:block_properties` of a block type, defaults included. */
     propertiesOf(identifier: string): BlockProperties;
     /** The block state's vanilla `minecraft:light_dampening` value, when the host can report it. */

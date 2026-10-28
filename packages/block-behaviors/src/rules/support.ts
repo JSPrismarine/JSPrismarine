@@ -23,10 +23,15 @@ export const isSolidSupport = (world: WorldActions, position: BlockPosition): bo
 };
 
 /** Removes a block, drops what it leaves behind and tells its neighbors. */
-export const breakBlock = (world: WorldActions, block: HookBlock, drops: readonly ItemDrop[] = []): void => {
-    world.setBlock(block.position, AIR);
+export const breakBlock = (
+    world: WorldActions,
+    block: HookBlock,
+    drops: readonly ItemDrop[] = [],
+    notifyNeighbors = true
+): void => {
+    world.setBlock(block.position, AIR, undefined, false);
     for (const drop of drops) world.dropItem(block.position, drop);
-    world.notifyNeighbors(block.position);
+    if (notifyNeighbors) world.notifyNeighbors(block.position);
 };
 
 /**
@@ -38,9 +43,9 @@ export const breakBlock = (world: WorldActions, block: HookBlock, drops: readonl
  * world that has no table to roll, and it is a guess: deepslate yields cobbled deepslate
  * and a popped crop yields its seeds, neither of which is one of itself.
  */
-export const popBlock = (world: WorldActions, block: HookBlock): void => {
+export const popBlock = (world: WorldActions, block: HookBlock, notifyNeighbors = true): void => {
     const rolled = world.destroyBlock?.(block.position) ?? false;
-    breakBlock(world, block, rolled ? [] : [{ identifier: block.identifier, count: 1 }]);
+    breakBlock(world, block, rolled ? [] : [{ identifier: block.identifier, count: 1 }], notifyNeighbors);
 };
 
 /**
@@ -49,9 +54,14 @@ export const popBlock = (world: WorldActions, block: HookBlock): void => {
  * @param face - Where the support is, `down` for a block standing on another.
  * @returns True when the block popped.
  */
-export const popWithoutSupport = (world: WorldActions, block: HookBlock, face: BlockFace = 'down'): boolean => {
+export const popWithoutSupport = (
+    world: WorldActions,
+    block: HookBlock,
+    face: BlockFace = 'down',
+    notifyNeighbors = true
+): boolean => {
     if (isSolidSupport(world, offset(block.position, face))) return false;
-    popBlock(world, block);
+    popBlock(world, block, notifyNeighbors);
     return true;
 };
 

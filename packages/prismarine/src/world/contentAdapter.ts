@@ -34,6 +34,7 @@ import type {
 import type { BlockEntityStore, BlockStorageAccess } from '../block/contentAdapter';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { destroyBlock } from './blockDestroy';
+import { takeBlockEntity } from './blockMove';
 import { timeOfDay } from './DayCycle';
 import { Dimensions, maxY } from './Dimension';
 import type { DimensionDefinition } from './Dimension';
@@ -241,6 +242,26 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
         // Written bare: `createContentBlockGroup` raises `onPlace` and notifies the neighbors
         // itself, and a world that did either here would do it twice.
         world()?.setLoadedBlockRuntimeId(position.x, position.y, position.z, runtimeId, undefined, 1, false);
+    },
+    move: (from, to) => {
+        const live = world();
+        if (live === undefined || live.loadedBlockAt(to.x, to.y, to.z) === undefined) return;
+
+        const moving = live.loadedBlockAt(from.x, from.y, from.z);
+        if (moving === undefined) return;
+
+        const movingRuntimeId = BlockRuntimeIds.tryGetByState(moving.name, moving.states);
+        const airRuntimeId = BlockRuntimeIds.tryGetByState('minecraft:air', {});
+        if (movingRuntimeId === null || airRuntimeId === null) {
+            throw new Error(
+                `this server's block catalog cannot move ${moving.name} at ${from.x}, ${from.y}, ${from.z}`
+            );
+        }
+
+        const placeBlockEntity = takeBlockEntity(live, from);
+        if (!live.setLoadedBlockRuntimeId(from.x, from.y, from.z, airRuntimeId, undefined, 1, false)) return;
+        if (!live.setLoadedBlockRuntimeId(to.x, to.y, to.z, movingRuntimeId, undefined, 1, false)) return;
+        placeBlockEntity?.(to);
     },
 
     /**
