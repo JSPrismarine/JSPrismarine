@@ -85,7 +85,13 @@ import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, sameEquipmen
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
-import { bodyCanOccupy, bodyIntersectsMedia, isSupported, moveOnAxis } from './collision';
+import {
+    bodyCanOccupy,
+    bodyIntersectsMedia,
+    hasLineOfSight as hasBlockLineOfSight,
+    isSupported,
+    moveOnAxis
+} from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from './position';
 import { brainMobFor } from './brainIdentifiers';
@@ -1050,6 +1056,11 @@ export class EntityRuntime implements EntityScene {
     public navigation(): NavigationView {
         this.navigationView ??= navigationViewOf(this.world.blocks, () => this.content(), this.world.level);
         return this.navigationView.view;
+    }
+
+    /** Whether the current block view leaves a clear eye-to-eye path. */
+    public hasLineOfSight(from: EntityPosition, to: EntityPosition): boolean {
+        return hasBlockLineOfSight(from, to, this.navigation());
     }
 
     /**

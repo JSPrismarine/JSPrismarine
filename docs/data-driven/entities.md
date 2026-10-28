@@ -182,8 +182,13 @@ broken block as `block`.
 the block's named state values. It raises `entered_block_event` and `exited_block_event` only when a
 matching block-state condition starts or stops matching.
 
-`minecraft:target_nearby_sensor` reads the entity's current target and uses `follow_range` as its
-visibility test. The host does not currently test whether blocks occlude the target.
+`minecraft:area_attack` scans targets within the configured collision-box range each tick, applies
+its entity filter and per-target cooldown, then routes the configured damage cause, source, sound,
+and death-message override through the entity runtime.
+
+`minecraft:target_nearby_sensor` reads the entity's current target, checks `follow_range`, and casts
+a block ray between the observer's and target's eyes. Solid blocks occlude the target for its
+visibility events and for goals that require line of sight.
 
 `minecraft:combat_regeneration` observes the deaths of the entity's active attack target. It gives
 Regeneration I to the killer when `apply_to_self` names the source or `apply_to_family` names a
@@ -209,7 +214,7 @@ attribute components plus `minecraft:attack`, which write their stat when the gr
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
 `minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`,
-`minecraft:burns_in_daylight`); the
+`minecraft:burns_in_daylight`) and `minecraft:area_attack`; the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:transient`, which keeps its entity out of saved actor records;
 `minecraft:nameable`, which gates name-tag use, raises configured naming events, and projects the

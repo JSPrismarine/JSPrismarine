@@ -78,6 +78,69 @@ export const bodyIntersectsMedia = (
 };
 
 /**
+ * Whether a line between two eye positions crosses a solid block.
+ *
+ * Walks the crossed block cells directly, stopping before the target's cell so
+ * the target's own collision box does not hide it from view.
+ * @param from - The observer's eye position.
+ * @param to - The target's eye position.
+ * @param navigation - The current block view.
+ * @returns Whether no crossed cell blocks the view.
+ */
+export const hasLineOfSight = (
+    from: EntityPosition,
+    to: EntityPosition,
+    navigation: Pick<NavigationView, 'isSolid'>
+): boolean => {
+    const deltaX = to.x - from.x;
+    const deltaY = to.y - from.y;
+    const deltaZ = to.z - from.z;
+    if (![from.x, from.y, from.z, to.x, to.y, to.z].every(Number.isFinite)) return false;
+
+    let x = Math.floor(from.x);
+    let y = Math.floor(from.y);
+    let z = Math.floor(from.z);
+    const targetX = Math.floor(to.x);
+    const targetY = Math.floor(to.y);
+    const targetZ = Math.floor(to.z);
+    if (x === targetX && y === targetY && z === targetZ) return true;
+
+    const stepX = Math.sign(deltaX);
+    const stepY = Math.sign(deltaY);
+    const stepZ = Math.sign(deltaZ);
+    const deltaDistanceX = deltaX === 0 ? Number.POSITIVE_INFINITY : Math.abs(1 / deltaX);
+    const deltaDistanceY = deltaY === 0 ? Number.POSITIVE_INFINITY : Math.abs(1 / deltaY);
+    const deltaDistanceZ = deltaZ === 0 ? Number.POSITIVE_INFINITY : Math.abs(1 / deltaZ);
+    let nextX = stepX === 0 ? Number.POSITIVE_INFINITY : ((stepX > 0 ? x + 1 : x) - from.x) / deltaX;
+    let nextY = stepY === 0 ? Number.POSITIVE_INFINITY : ((stepY > 0 ? y + 1 : y) - from.y) / deltaY;
+    let nextZ = stepZ === 0 ? Number.POSITIVE_INFINITY : ((stepZ > 0 ? z + 1 : z) - from.z) / deltaZ;
+
+    while (x !== targetX || y !== targetY || z !== targetZ) {
+        const next = Math.min(nextX, nextY, nextZ);
+        if (next > 1) return true;
+
+        const tolerance = Number.EPSILON * Math.max(1, Math.abs(next)) * 8;
+        if (nextX <= next + tolerance) {
+            x += stepX;
+            nextX += deltaDistanceX;
+        }
+        if (nextY <= next + tolerance) {
+            y += stepY;
+            nextY += deltaDistanceY;
+        }
+        if (nextZ <= next + tolerance) {
+            z += stepZ;
+            nextZ += deltaDistanceZ;
+        }
+
+        if (x === targetX && y === targetY && z === targetZ) return true;
+        if (navigation.isSolid({ x, y, z })) return false;
+    }
+
+    return true;
+};
+
+/**
  * Whether an entity with level feet is supported by at least one solid block.
  * @param canStandOnPowderSnow - Whether powder snow can support the entity.
  */

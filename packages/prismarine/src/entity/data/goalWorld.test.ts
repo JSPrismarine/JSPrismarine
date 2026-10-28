@@ -140,6 +140,34 @@ const run = (fixture: EntityFixture, ticks: number): void => {
 };
 
 describe('the goal world over the entity runtime', () => {
+    describe('visibility', () => {
+        it('checks solid blocks between the eyes of entities in follow range', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 1, y: FLOOR_Y + 2, z: 0 }, 'minecraft:stone');
+            const fixture = fixtureOf(world);
+            const observer = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const target = spawned(fixture, 'jsprismarine:breeder', groundAt(3, 0));
+            const targetView = fixture.runtime.mobById(target.id);
+            if (targetView === undefined) throw new Error('the goal world cannot resolve the target');
+
+            const goalWorld = goalWorldOf(observer.body, fixture.runtime);
+
+            expect(goalWorld.canSee(targetView)).toBe(false);
+        });
+
+        it('keeps an in-range target visible through clear blocks', () => {
+            const fixture = fixtureOf();
+            const observer = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const target = spawned(fixture, 'jsprismarine:breeder', groundAt(3, 0));
+            const targetView = fixture.runtime.mobById(target.id);
+            if (targetView === undefined) throw new Error('the goal world cannot resolve the target');
+
+            const goalWorld = goalWorldOf(observer.body, fixture.runtime);
+
+            expect(goalWorld.canSee(targetView)).toBe(true);
+        });
+    });
+
     describe('breeding', () => {
         it('reports readiness from the active breedable data', () => {
             const fixture = fixtureOf();

@@ -56,6 +56,8 @@ export interface EntityScene {
     remove(id: number, reason: string): void;
     /** The blocks as the path finder reads them. */
     navigation(): NavigationView;
+    /** Whether a solid block lies between two eye positions. */
+    hasLineOfSight(from: EntityPosition, to: EntityPosition): boolean;
     /**
      * One entity or player, by runtime id, as a goal sees it.
      *

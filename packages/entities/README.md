@@ -298,7 +298,7 @@ test in `src/vanillaEntities.test.ts`:
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
 | Non-goal keys with a component hook | 83 |
-| Non-goal keys with a runtime effect across the server | 92 |
+| Non-goal keys with a runtime effect across the server | 93 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -340,12 +340,15 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 83 component factories have hooks, and 92
+measures name coverage rather than complete simulation: 83 component factories have hooks, and 93
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 110 bodies are available as data for behavior that still needs to be added.
+included. The remaining 109 bodies are available as data for behavior that still needs to be added.
 
-`minecraft:target_nearby_sensor` reads the entity's current target. The host currently defines
-visibility as being within `follow_range`; it does not test block occlusion.
+`minecraft:area_attack` has a dedicated schema here; Prismarine applies its filtered, cooldowned
+range damage from the active component set.
+
+`minecraft:target_nearby_sensor` reads the entity's current target, checks `follow_range`, and uses
+the current block view to determine whether a solid block occludes the path between their eyes.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -374,5 +377,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
   default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  110 currently expose data without runtime behavior. The component bodies remain accessible to the
+  109 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

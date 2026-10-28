@@ -209,7 +209,12 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         },
         canBreedWith: (mob) => scene.canBreedWith(entity, mob),
         breedWith: (mob) => scene.breedWith(entity, mob),
-        canSee: (mob) => distance(entity.position, mob.position()) <= entity.facts.followRange,
+        canSee: (mob) =>
+            distance(entity.position, mob.position()) <= entity.facts.followRange &&
+            scene.hasLineOfSight(
+                entityEyePosition(entity.position, entity.facts.box.height),
+                mob.lookPosition?.() ?? mob.position()
+            ),
         trigger: (event, target) => scene.trigger(entity, event, target),
         report: (message) => scene.report(`${entity.identifier}: ${message}`)
     };
