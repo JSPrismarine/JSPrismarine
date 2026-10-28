@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.shelf_mushroom.name",
             "jsprismarine:behavior": "jsprismarine:flora",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

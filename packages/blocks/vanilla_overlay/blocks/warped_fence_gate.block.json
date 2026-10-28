@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.warped_fence_gate.name",
             "jsprismarine:behavior": "jsprismarine:fence_gate",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

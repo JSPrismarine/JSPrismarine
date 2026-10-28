@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.nether_sprouts.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:flora",
             "jsprismarine:block_properties": {

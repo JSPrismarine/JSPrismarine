@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.waxed_weathered_copper_golem_statue.name",
             "jsprismarine:behavior": "jsprismarine:copper",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

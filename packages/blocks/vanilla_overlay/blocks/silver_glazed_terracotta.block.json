@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push"
             },
+            "minecraft:display_name": "tile.glazedTerracotta.silver.name",
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

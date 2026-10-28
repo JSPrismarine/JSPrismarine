@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.resin_brick_wall.name",
             "jsprismarine:behavior": "jsprismarine:wall",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

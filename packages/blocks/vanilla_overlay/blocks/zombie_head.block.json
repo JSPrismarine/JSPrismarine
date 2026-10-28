@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "item.skull.zombie.name",
             "jsprismarine:behavior": "jsprismarine:head",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

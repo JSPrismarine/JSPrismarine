@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.coral_fan_dead.yellow_fan.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {

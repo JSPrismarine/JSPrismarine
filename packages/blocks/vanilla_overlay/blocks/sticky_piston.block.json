@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:display_name": "tile.sticky_piston.name",
             "minecraft:redstone_conductivity": {
                 "redstone_conductor": false
             },

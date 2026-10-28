@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.wood.stripped.jungle.name",
             "minecraft:flammable": {
                 "catch_chance_modifier": 5,
                 "destroy_chance_modifier": 5

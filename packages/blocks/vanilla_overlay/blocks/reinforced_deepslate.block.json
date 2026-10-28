@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:display_name": "tile.reinforced_deepslate.name",
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

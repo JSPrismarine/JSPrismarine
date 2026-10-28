@@ -15,6 +15,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.end_portal_frame.name",
             "jsprismarine:behavior": "jsprismarine:portal",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

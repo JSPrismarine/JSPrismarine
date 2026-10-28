@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.brown_concrete_slab.name",
             "minecraft:tags": ["minecraft:is_pickaxe_item_destructible"],
             "jsprismarine:behavior": "jsprismarine:slab",
             "jsprismarine:block_properties": {

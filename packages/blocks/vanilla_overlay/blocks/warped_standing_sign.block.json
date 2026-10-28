@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.warped_standing_sign.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:sign",
             "jsprismarine:block_properties": {

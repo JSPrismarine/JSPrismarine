@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.melon_block.name",
             "jsprismarine:behavior": "jsprismarine:plain_block",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.pointed_dripstone.name",
             "minecraft:redstone_conductivity": {
                 "redstone_conductor": false
             },

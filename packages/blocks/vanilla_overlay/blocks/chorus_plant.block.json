@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.chorus_plant.name",
             "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

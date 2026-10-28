@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.packed_ice.name",
             "jsprismarine:behavior": "jsprismarine:ice",
             "jsprismarine:block_properties": {
                 "friction": 0.98,

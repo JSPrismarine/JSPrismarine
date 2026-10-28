@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.purple_concrete_stairs.name",
             "minecraft:tags": ["minecraft:is_pickaxe_item_destructible"],
             "jsprismarine:behavior": "jsprismarine:stairs",
             "jsprismarine:block_properties": {

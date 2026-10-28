@@ -15,6 +15,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.light_block.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:inert",
             "jsprismarine:block_properties": {

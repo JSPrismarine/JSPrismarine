@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.sniffer_egg.name",
             "jsprismarine:behavior": "jsprismarine:egg",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

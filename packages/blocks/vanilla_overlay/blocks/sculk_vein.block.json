@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.sculk_vein.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:sculk",
             "jsprismarine:block_properties": {

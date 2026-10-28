@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:display_name": "tile.sticky_piston_arm_collision.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:redstone",
             "jsprismarine:block_properties": {

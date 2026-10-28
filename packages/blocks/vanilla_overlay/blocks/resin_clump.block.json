@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.resin_clump.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:climbing",
             "jsprismarine:block_properties": {

@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.double_plant.rose.name",
             "minecraft:flammable": {
                 "catch_chance_modifier": 60,
                 "destroy_chance_modifier": 100

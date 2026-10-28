@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.flower_pot.name",
             "jsprismarine:behavior": "jsprismarine:flower_pot",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

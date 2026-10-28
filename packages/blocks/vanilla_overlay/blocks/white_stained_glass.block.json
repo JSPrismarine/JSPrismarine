@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.stained_glass.white.name",
             "jsprismarine:behavior": "jsprismarine:glass",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.cave_vines_head_with_berries.name",
             "minecraft:flammable": {
                 "catch_chance_modifier": 15,
                 "destroy_chance_modifier": 60

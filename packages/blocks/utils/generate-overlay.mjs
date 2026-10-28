@@ -55,7 +55,9 @@ for (const file of pack.files) {
 }
 
 const written = readdirSync(join(target, 'blocks')).length;
-console.log(`${OVERLAY_PACK_NAME}: ${written} block definitions, ${pack.exceptions.length} reviewed exceptions`);
+console.log(
+    `${OVERLAY_PACK_NAME}: ${written} block definitions, ${pack.displayNameCount} display names, ${pack.exceptions.length} reviewed exceptions`
+);
 console.log(
     `friction clamped for ${pack.frictionClamps.length}: ${pack.frictionClamps.map((clamp) => clamp.identifier).join(', ')}`
 );

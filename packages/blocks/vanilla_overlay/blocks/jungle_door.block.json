@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.jungle_door.name",
             "jsprismarine:behavior": "jsprismarine:door",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

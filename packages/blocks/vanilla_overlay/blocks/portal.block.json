@@ -15,6 +15,7 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:display_name": "tile.portal.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:portal",
             "jsprismarine:block_properties": {

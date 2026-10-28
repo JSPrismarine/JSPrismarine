@@ -1,5 +1,6 @@
 export * from './components';
 export * from './definition';
+export * from './displayNames';
 export * from './errors';
 export * from './families';
 export * from './flatten';

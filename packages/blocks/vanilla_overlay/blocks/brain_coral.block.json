@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.coral.pink.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:bamboo",
             "jsprismarine:block_properties": {

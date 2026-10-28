@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.brown_mushroom_block.stem.name",
             "jsprismarine:behavior": "jsprismarine:flora",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

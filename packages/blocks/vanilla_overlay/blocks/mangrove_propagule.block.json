@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.mangrove_propagule.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:sapling",
             "jsprismarine:block_properties": {

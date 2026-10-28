@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.brown_wool_double_slab.name",
             "minecraft:tags": ["minecraft:is_shears_item_destructible"],
             "minecraft:flammable": {
                 "catch_chance_modifier": 30,

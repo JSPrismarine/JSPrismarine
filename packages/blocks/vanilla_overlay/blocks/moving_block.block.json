@@ -15,6 +15,7 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:display_name": "tile.moving_block.name",
             "minecraft:redstone_conductivity": {
                 "redstone_conductor": false
             },

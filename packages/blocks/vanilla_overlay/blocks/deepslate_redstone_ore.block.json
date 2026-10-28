@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.deepslate_redstone_ore.name",
             "jsprismarine:behavior": "jsprismarine:ore",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

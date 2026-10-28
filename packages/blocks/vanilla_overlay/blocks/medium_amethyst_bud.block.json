@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.medium_amethyst_bud.name",
             "jsprismarine:behavior": "jsprismarine:dripstone",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

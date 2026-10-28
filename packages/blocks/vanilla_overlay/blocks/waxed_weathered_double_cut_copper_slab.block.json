@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.waxed_weathered_double_cut_copper_slab.name",
             "jsprismarine:behavior": "jsprismarine:slab",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

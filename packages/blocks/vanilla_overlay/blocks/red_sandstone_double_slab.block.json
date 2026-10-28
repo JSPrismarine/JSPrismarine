@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "tile.double_stone_slab2.red_sandstone.name",
             "jsprismarine:behavior": "jsprismarine:double_slab",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

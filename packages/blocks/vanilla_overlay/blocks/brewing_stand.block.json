@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
+            "minecraft:display_name": "item.brewing_stand.name",
             "jsprismarine:behavior": "jsprismarine:furnace",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

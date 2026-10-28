@@ -1,6 +1,7 @@
 import type { BedrockBlockProperties } from '@jsprismarine/mapping';
 
 import { behaviorFor } from './families';
+import { bedrockBlockDisplayNameOf } from './displayNames';
 import containerOpenSounds from './tables/containerOpenSounds.json';
 import vanillaRedstoneConductivity from './tables/vanillaRedstoneConductivity.json';
 import vanillaBlockTags from './tables/vanillaBlockTags.json';
@@ -138,6 +139,8 @@ export interface OverlayPack {
     readonly frictionClamps: readonly FrictionClamp[];
     /** Blocks whose captured Bedrock states never have collision geometry. */
     readonly nonCollidingBlocks: readonly string[];
+    /** How many blocks received their captured Bedrock display name. */
+    readonly displayNameCount: number;
     /** How many blocks each behavior family claimed, highest first. */
     readonly behaviorCounts: Readonly<Record<string, number>>;
 }
@@ -253,6 +256,10 @@ export const generateVanillaOverlay = (
             'minecraft:movable': { movement_type: MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull' }
         };
 
+        const displayName = bedrockBlockDisplayNameOf(identifier);
+        if (displayName === undefined) throw new Error(`${identifier} has no captured Bedrock display name`);
+        components['minecraft:display_name'] = displayName;
+
         const tags = BEDROCK_BLOCK_TAGS.get(identifier);
         if (tags !== undefined) components['minecraft:tags'] = tags;
 
@@ -316,6 +323,7 @@ export const generateVanillaOverlay = (
             $comment:
                 'Generated beside the pack by `pnpm --filter @jsprismarine/blocks run generate:overlay`. Not read at runtime.',
             blockCount: identifiers.length,
+            displayNameCount: identifiers.length,
             exceptionCount: exceptions.length,
             frictionClamps,
             nonCollidingBlocks,
@@ -323,5 +331,12 @@ export const generateVanillaOverlay = (
         })
     });
 
-    return { files, exceptions, frictionClamps, nonCollidingBlocks, behaviorCounts: counts };
+    return {
+        files,
+        exceptions,
+        frictionClamps,
+        nonCollidingBlocks,
+        displayNameCount: identifiers.length,
+        behaviorCounts: counts
+    };
 };

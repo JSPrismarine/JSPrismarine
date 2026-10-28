@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.decorated_pot.name",
             "jsprismarine:behavior": "jsprismarine:container",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.structure_void.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:inert",
             "jsprismarine:block_properties": {

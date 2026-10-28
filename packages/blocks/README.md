@@ -271,15 +271,19 @@ property-table bump is a reviewable diff rather than a silent change at load.
 pnpm --filter @jsprismarine/blocks run generate:overlay
 ```
 
-The script builds the package and then runs `utils/generate-overlay.mjs` over `dist/`. It is plain
-JavaScript on purpose: a generator that imported `src/` would have to spell its specifiers the way
-`node`'s resolver wants, and nothing under `src/` should be shaped by a build script. A dependent
-package needs no `allowImportingTsExtensions` to typecheck against this one.
+The script refreshes the captured display-name table, builds the package, and then runs
+`utils/generate-overlay.mjs` over `dist/`. That generator is plain JavaScript on purpose: one that
+imported `src/` would have to spell its specifiers the way `node`'s resolver wants, and nothing under
+`src/` should be shaped by a build script. A dependent package needs no `allowImportingTsExtensions`
+to typecheck against this one.
 
 Each file carries the Bedrock-expressible properties as real Bedrock components, filled from
-`bedrockBlockPropertiesOf` in `@jsprismarine/mapping`, plus `jsprismarine:behavior` and
-`jsprismarine:block_properties`. Container blocks also carry `jsprismarine:container_open_sound`,
-configured in `src/tables/containerOpenSounds.json`. The generator writes Prettier-shaped JSON so
+`bedrockBlockPropertiesOf` in `@jsprismarine/mapping`, plus the captured `minecraft:display_name`,
+`jsprismarine:behavior`, and `jsprismarine:block_properties`. Display names come from the translation
+keys in the Bedrock block capture and are generated with
+`pnpm --filter @jsprismarine/blocks run generate:display-names`. Container blocks also carry
+`jsprismarine:container_open_sound`, configured in `src/tables/containerOpenSounds.json`. The
+generator writes Prettier-shaped JSON so
 the committed pack passes `prettier --check` with no second pass, and `src/overlay.test.ts` compares
 the committed files to a fresh run so the two cannot drift. The overlay preserves Bedrock's captured
 `minecraft:tags` for all 96 vanilla wool and concrete slab, double-slab, and stair definitions. The
@@ -311,5 +315,6 @@ list is exactly those 182 and that no entry falls through to a generic reason.
 - **Per-state collision components.** The overlay marks blocks with no collision in any captured
   state as non-colliding. It does not yet emit `minecraft:collision_box` permutations for blocks
   whose captured collision changes by state, or the exact box coordinates for partial shapes.
-- **Loot, display names and menu categories.** The overlay writes none of them. Loot comes from
-  Java's 1447 tables in a later phase, and the creative menu is written from the item registry.
+- **Loot and menu categories.** Behavior-pack `minecraft:loot` components and mapped Java loot
+  tables drive block drops in Prismarine. The vanilla overlay does not declare loot components;
+  creative menu categories come from the item registry.

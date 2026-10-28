@@ -15,6 +15,7 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
+            "minecraft:display_name": "tile.end_gateway.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:inert",
             "jsprismarine:block_properties": {

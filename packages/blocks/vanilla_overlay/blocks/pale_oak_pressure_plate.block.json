@@ -17,6 +17,7 @@
             "minecraft:movable": {
                 "movement_type": "popped"
             },
+            "minecraft:display_name": "tile.pale_oak_pressure_plate.name",
             "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:pressure_plate",
             "jsprismarine:block_properties": {
