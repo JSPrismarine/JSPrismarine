@@ -69,7 +69,7 @@ export const THUNDER_DURATION: TickRange = { min: 3600, max: 15600 };
  * A draw from an inclusive range, Java's `UniformInt.sample`.
  *
  * @param range - The range, both ends included.
- * @param randomInt - The host's random source, as `WorldAccess.randomInt`: a draw in
+ * @param randomInt - The host's random source: a draw in
  *   `[0, bound)`.
  */
 export const sampleTicks = (range: TickRange, randomInt: (bound: number) => number): number =>
@@ -188,7 +188,7 @@ export const setWeatherParameters = (
  * @param durationTicks - The duration the command named, in ticks.
  * @example
  * ```typescript
- * world.setWeather(weatherCommandState('thunder', (bound) => world.randomInt(bound)));
+ * const state = weatherCommandState('thunder', randomInt);
  * ```
  */
 export const weatherCommandState = (

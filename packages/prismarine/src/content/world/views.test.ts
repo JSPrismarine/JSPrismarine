@@ -117,7 +117,7 @@ describe('the content world views', () => {
         expect(content.world.lightView.blockAt(0, 10, 0)).toEqual({ lightEmission: 15, lightDampening: 15 });
     });
 
-    it('renames the engine system’s world onto the same adapter', () => {
+    it('projects the engine system’s block and block-entity access', () => {
         const { adapter } = stubWorld();
         const engine = contentFor(adapter).world.engineWorld;
 
@@ -125,14 +125,10 @@ describe('the content world views', () => {
             name: 'minecraft:redstone_lamp',
             states: { lit: true }
         });
-        expect(engine.getDimension()).toBe('nether');
-        expect(engine.getDifficulty()).toBe('hard');
-        expect(engine.getGameTime()).toBe(1200);
         expect(engine.getBlockEntityData({ x: 0, y: 0, z: 0 })).toEqual({
             analogOutput: 9,
             comparatorOutput: undefined
         });
-        expect(engine.randomInt(10)).toBe(9);
     });
 
     it('answers the spawn queries the core covers', () => {

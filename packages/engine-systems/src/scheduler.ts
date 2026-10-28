@@ -2,14 +2,13 @@
  * Java's scheduled block and fluid ticks.
  *
  * Transcribed from `net.minecraft.world.ticks.LevelTicks`, `LevelChunkTicks` and
- * `ScheduledTick` in the pinned 26.3 server jar. Everything else in this package
- * runs on it: a repeater's delay, a fluid's spread rate and fire's 30-to-40-tick
- * interval are all scheduled ticks, and none of them is a neighbor update.
+ * `ScheduledTick` in the pinned 26.3 server jar. Resolved block families use it
+ * for delayed behavior such as repeater transitions, fluid flow, and fire spread.
  *
  * A scheduled tick is a request to run a block's `tick` method at a future game
  * tick. An immediate neighbor update is not scheduled at all: it runs inside the
- * call that changed the block, which is why a redstone torch inverts in the same
- * game tick the wire feeding it changes.
+ * call that changed the block, where the active block family can react and
+ * schedule any later work it needs.
  */
 
 import type { BlockPosition, TickKind } from './world';
@@ -20,10 +19,8 @@ import { positionKey } from './world';
  * `value` field, read from `TickPriority` in the 26.3 jar, and the comparator
  * sorts on them directly.
  *
- * `DiodeBlock.checkTickOnNeighbor` picks between three of them: a repeater
- * facing the back or side of another diode schedules at `EXTREMELY_HIGH` (-3),
- * a repeater that is turning off at `VERY_HIGH` (-2), and any other repeater at
- * `HIGH` (-1). A comparator uses `HIGH` when prioritized and `NORMAL` otherwise.
+ * The data-driven redstone family uses these values for repeaters and
+ * comparators. Their priority rules match `DiodeBlock.checkTickOnNeighbor`.
  */
 export const TICK_PRIORITIES = {
     EXTREMELY_HIGH: -3,

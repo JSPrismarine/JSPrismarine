@@ -5,8 +5,8 @@
  * `onBreak` before the block goes and rolls Java's table with the tool in hand. Everything
  * else that takes a block out - a blast, a stream of water, a piston, fire, a falling anvil -
  * had its own rule, and there were four of them. One hardcoded a single copy of the block,
- * one rolled the table with no level view, one went through `WorldActions.dropItem` and one
- * through `WorldAccess.spawnItem`. None of them raised a hook, so a chest blown up by TNT
+ * one rolled the table with no level view, and the others used separate item and world drop
+ * callbacks. None of them raised a hook, so a chest blown up by TNT
  * kept its contents and a double chest left its other half paired to air.
  *
  * This is the one rule they now share. A caller supplies what it knows - the blast radius,

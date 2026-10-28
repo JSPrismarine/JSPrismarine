@@ -7,12 +7,12 @@
  * block has finished walking its six directions. Java does this without
  * recursion: the first update runs a loop, and every update raised while that
  * loop is running is pushed onto a stack and taken before the outer update
- * continues. This is a transcription of that loop, so the order a chain of
- * torches and dust fires in is Java's.
+ * continues. This is a transcription of that loop, so connected block
+ * behaviors receive updates in Java's order.
  */
 
 import type { BlockPosition, Direction } from './world';
-import { DIRECTIONS, opposite, relative } from './world';
+import { DIRECTIONS, relative } from './world';
 
 /**
  * How many chained updates one change may raise before the rest are dropped.
@@ -22,22 +22,10 @@ import { DIRECTIONS, opposite, relative } from './world';
  */
 export const MAX_CHAINED_NEIGHBOR_UPDATES = 1_000_000;
 
-/**
- * The order `Block.updateNeighbourShapes` walks, which is Java's
- * `UPDATE_SHAPE_ORDER` and is not `Direction.values()`.
- */
-const UPDATE_SHAPE_ORDER = ['west', 'east', 'down', 'up', 'north', 'south'] as const satisfies readonly Direction[];
-
 /** What the updater calls when an update reaches a block. */
 export interface NeighborUpdateTarget {
     /** Java's `BlockBehaviour.neighborChanged`: a block next to this one changed. */
     onNeighborChanged(at: BlockPosition, fromBlock: string): void;
-    /**
-     * Java's `BlockBehaviour.updateShape`: the block across `fromDirection`
-     * changed. Only the observer reacts to this, which is the difference
-     * between a Java observer and a block update detector.
-     */
-    onShapeUpdate(at: BlockPosition, fromDirection: Direction): void;
 }
 
 /** The update operations a block behavior raises. */
@@ -48,8 +36,6 @@ export interface NeighborUpdates {
     updateNeighborsAt(at: BlockPosition, fromBlock: string): void;
     /** Java's `Level.updateNeighborsAtExceptFromFacing`: all six but one. */
     updateNeighborsAtExceptFromFacing(at: BlockPosition, fromBlock: string, skip: Direction): void;
-    /** Java's `Level.neighborShapeChanged` for all six neighbors of `at`. */
-    shapeUpdatesAround(at: BlockPosition): void;
 }
 
 interface Job {
@@ -140,19 +126,6 @@ export const createNeighborUpdates = (
         },
         updateNeighborsAtExceptFromFacing(at, fromBlock, skip) {
             addAndRun(multiJob((direction) => target.onNeighborChanged(relative(at, direction), fromBlock), skip));
-        },
-        shapeUpdatesAround(at) {
-            // Java's `updateNeighbourShapes` walks `UPDATE_SHAPE_ORDER` and hands
-            // each neighbor the direction back toward the block that changed.
-            let index = 0;
-            addAndRun({
-                runNext() {
-                    const direction = UPDATE_SHAPE_ORDER[index++];
-                    if (direction === undefined) return false;
-                    target.onShapeUpdate(relative(at, direction), opposite(direction));
-                    return true;
-                }
-            });
         }
     };
 };

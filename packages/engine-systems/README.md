@@ -1,291 +1,71 @@
 # @jsprismarine/engine-systems
 
-The engine systems neither edition publishes as data: the tick scheduler, redstone, random
-ticking, explosions and the weather cycle. Liquid flow and fire behavior belong to
-`@jsprismarine/block-behaviors`, which owns their placement, neighbor updates and scheduled ticks.
-Every other package in this repository is built from Mojang's own data. These are not, because
-Mojang keeps them in code in both editions, so this package is written against the code instead.
+Shared world-system primitives that do not come from Bedrock data: tick scheduling, neighbor
+update ordering, redstone signal calculations, random tick selection, explosions, and the weather
+cycle. Resolved block families own block behavior, including fluid flow, fire, redstone state
+changes, and piston movement.
 
-The code it is written against is the pinned Java 26.3 server jar in
-`node_modules/.cache/jsprismarine/java-server/`. Mojang removed obfuscation in release 26.1, so the
-jar carries original class, field and method names, and every constant and ordering rule here was
-read out of it rather than from a wiki page. The classes are named in the source comments:
-`LevelTicks`, `ScheduledTick`, `TickPriority`, `RedstoneWireBlock`, `DefaultRedstoneWireEvaluator`,
-`DiodeBlock`, `RepeaterBlock`, `ComparatorBlock`, `ObserverBlock`, `PistonBaseBlock`,
-`PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `ServerExplosion`,
-`ExplosionDamageCalculator`, `ApplyExplosionDecay`, `WeatherData`, `WeatherCommand` and
-`ServerLevel`.
+The Java-derived rules in this package are based on the pinned 26.3 server jar in
+`node_modules/.cache/jsprismarine/java-server/`. Source comments name the Java classes behind the
+transcribed behavior.
 
-## The `WorldAccess` seam
+## World access
 
-Every system reads and writes the world through one interface, `WorldAccess`. Nothing in this
-package touches a chunk, a palette or a block entity directly.
+The engine reads and writes blocks through a small `WorldAccess` interface. Block tick scheduling
+lives in `TickScheduler`, and explosions use a separate `ExplosionWorld` interface.
 
-```ts
-import { createEngine, createTestWorld } from '@jsprismarine/engine-systems';
+```typescript
+import { block, createEngine, createTestWorld } from '@jsprismarine/engine-systems';
 
 const world = createTestWorld();
 const engine = createEngine(world);
-world.onBlockUpdated((at, to) => engine.setBlockAndUpdate(at, to));
+engine.setBlockAndUpdate({ x: 0, y: 0, z: 0 }, block('minecraft:stone'));
 ```
 
-`setBlockAndUpdate` runs the engine's redstone placement work, the six neighbor updates and the
-shape updates around a write. A host that raises only the neighbor updates gets a world where dust
-placed beside a live lever stays dark and a piston placed into a powered position never extends.
-Data-driven placement hooks, including fluid and fire setup, run through the block content adapter.
+`setBlockAndUpdate` writes the block, runs the six neighbor updates in Java's
+`CollectingNeighborUpdater` order, and reports resulting signal power to the content bridge. It
+does not implement individual block behavior. The active block family's hooks handle placement,
+neighbor changes, scheduled ticks, and state transitions.
 
-`WorldAccess` covers block state, block entity data, tick scheduling and its two queries, item
-drops, sounds, difficulty, weather, rain, dimension, game time, the world random and the height
-bounds. Explosions take `ExplosionWorld`, which is the six members of it a blast actually uses, so
-a host can set one off without standing up the rest of the engine. The random source and the height
-bounds are not in the brief's list but are needed: redstone and random tick behavior draw from the
-random source, while `PistonBaseBlock.isPushable` reads the height bounds.
+## Tick scheduling
 
-Scheduling sits behind `WorldAccess` rather than beside it, so a system never needs two objects. The
-host owns the scheduler and drains it. Data-driven block and fluid ticks go to their active
-families' `onTick` hooks before engine-owned redstone ticks reach `Engine.runScheduledTick`. That
-matches Java, where the tick lists are part of the level and are serialized to disk.
+`TickScheduler` owns the block and fluid tick lists. A scheduled tick carries a trigger tick, a
+priority, and insertion order. Ticks drain by trigger tick, then priority, then insertion order;
+the per tick budget defaults to Java's 65536 for each list. The host drains the scheduler and
+dispatches each tick to the active block family's `onTick` hook.
 
-`createTestWorld` is a real implementation of the interface over a map of positions, not a mock.
-`createTestEngine` returns a world and an engine already wired to each other, which is the shape the
-tests use to build circuits and pistons.
+`TickList` uses one queue for the whole world. Java shards each list by chunk and merges those
+shards while draining, so a backlog can produce a different order. This queue runs the oldest due
+ticks first.
 
-## 1. The tick scheduler
+## Redstone signals
 
-`TickList` is Java's `LevelTicks` for one kind of tick, and `TickScheduler` holds the two kinds the
-level keeps: block ticks and fluid ticks, run in that order by `ServerLevel.tick`.
+This package calculates weak and strong signal, conductor re-emission, and wire connections for
+the Bedrock block identifiers the content families use. `WorldSystems` reports the resulting
+power to `onRedstoneUpdate`; `@jsprismarine/block-behaviors` owns the redstone components' state
+changes and scheduled behavior. The engine no longer owns their scheduled ticks or state
+transitions; it keeps the signal output rules needed to calculate the shared network.
 
-A scheduled tick carries a trigger tick, a priority and the order it was scheduled in. The drain
-order is Java's `ScheduledTick.DRAIN_ORDER`, trigger tick then priority then schedule order, and the
-order inside one batch is `INTRA_TICK_DRAIN_ORDER`, priority then schedule order, with the trigger
-tick deliberately not a tiebreaker. The seven priorities carry Java's own values, -3 through 3.
-Scheduling a second tick for a position and type that already has one is ignored, which is the rule
-the repeater's behavior rests on.
+The block facts behind conduction, full-cube checks, and piston push reactions come from
+`@jsprismarine/mapping` where the Java server publishes them. Collision shapes are not published,
+so full-cube checks remain an approximation for partial blocks.
 
-The per-tick budget is 65536, the number `ServerLevel.tick` passes to both lists.
+## Random ticking
 
-A scheduled tick and an immediate neighbor update are different things, and keeping them apart is
-most of what this system is for. A scheduled tick runs on a future game tick. A neighbor update runs
-inside the call that changed the block, through `createNeighborUpdates`, which is a transcription of
-`CollectingNeighborUpdater`: the first update runs a loop, and every update raised while that loop
-is running is pushed on a stack and taken before the outer update walks its next direction.
+The driver draws `random_tick_speed` positions from each selected section using Java's
+`Level.getBlockRandomPos` step, `state * 3 + 1013904223`. Positions are drawn with replacement;
+a position whose block does not take random ticks still consumes its draw. Block behavior comes
+from the active family's random tick hook.
 
-One deliberate difference. Java shards each tick list per chunk and merges the shards while
-draining. This keeps one queue for the whole world, which produces the same order whenever every due
-tick has the same trigger tick, which is every tick that is not part of a backlog the budget left
-behind. For a backlog the two can disagree, and this ordering is the stricter one: it runs the
-oldest ticks first.
+## Explosions
 
-## 2. Redstone
+`explode` traces Java's 1352 rays from the surface of a 16 by 16 by 16 grid. It returns affected
+positions and entity hits; the host applies damage, knockback, drops, and entity callbacks.
+Blast resistance is read from the mapping table. Exposure treats full cubes as the only
+occluders because neither edition publishes collision shapes.
 
-The power model is `SignalGetter` plus the per-block `getSignal`, `getDirectSignal`, `ownSignal` and
-`shouldRedstoneWireConnectTo` overrides. Power runs 0 to 15. Weak power reaches dust and components;
-strong power is what a conductor picks up and re-emits, which is why a block under a lever powers
-the dust beside it and a block beside a lever does not.
+## Weather
 
-Dust uses `DefaultRedstoneWireEvaluator`, the evaluator vanilla runs. Mojang ships a second one,
-`ExperimentalRedstoneWireEvaluator`, behind the `redstone_experiments` feature flag whose entire
-datapack is a `pack.mcmeta`; this package implements the default and not the experiment.
-
-The sources are the torch, a block of redstone, levers, buttons, pressure plates, weighted pressure
-plates, daylight detectors, observers, comparators and repeaters. Repeaters take their delay state
-times 2 game ticks and lock while a diode powers either side, both read live rather than stored.
-Comparators run in compare and subtract mode, read a container's fill through
-`BlockEntityData.analogOutput`, and reach one block further through a conductor. Observers pulse 15
-for two game ticks when the block they face changes shape, and ignore everything else, which is what
-makes a Java observer not a block update detector.
-
-Tick priority comes from `DiodeBlock.checkTickOnNeighbor`: a repeater facing the back or side of
-another diode schedules at `EXTREMELY_HIGH`, a repeater turning off at `VERY_HIGH`, any other
-repeater at `HIGH`, and a comparator at `HIGH` when prioritized and `NORMAL` otherwise.
-
-Pistons use `PistonStructureResolver` unchanged: the 12-block limit, the reorder when a branch meets
-a line already queued, slime and honey dragging their neighbors with the one pair that refuses to
-stick, and `popped` blocks breaking instead of moving. The push reaction and the destroy time both
-come from `@jsprismarine/mapping`, which dumps them from the same jar, so nothing about which blocks
-move is written down twice. Extending and retracting are the two phases: `resolvePistonStructure`
-decides, `applyPistonMove` acts.
-
-### What is not reproduced
-
-Redstone is server-decided and invisible to the Bedrock client, so this package implements Java's
-rules. These Bedrock behaviors are therefore deliberately absent.
-
-- **The produce and consume tick split.** Bedrock runs redstone outside the main loop, with power
-  components reading input on odd game ticks and mechanisms acting on even ones. Java has one loop
-  and so does this package.
-- **Dust refreshing only on produce ticks.** Bedrock dust carries a one-tick pulse but renders its
-  state only on a produce tick. Here dust state and dust power are the same thing.
-- **Soft inversion.** A Bedrock torch on a powered piston flips (MCPE-17909, Won't Fix). There is no
-  equivalent here.
-- **Observers as block update detectors.** Bedrock observers fire on any block update and only on
-  odd game ticks. Here they fire on a shape change from the block they face, on any tick.
-- **Bedrock's fixed 2-tick piston start delay and its refusal to abort mid-move.** Java pistons
-  start on the tick they are powered and abort an extension when power goes away; so do these.
-- **Bedrock's per-chunk limit of 100 scheduled ticks per game tick.** The budget here is Java's
-  65536 for the whole level.
-- **Random transmission order within a tick.** Bedrock's is random; Java's is deterministic and
-  positional, and so is this.
-
-Quasi-connectivity is the other direction: it is Java and Legacy Console only, Mojang closed its
-absence on Bedrock as working as intended (MCPE-14664), and it is implemented here, because
-`PistonBaseBlock.getNeighborSignal` reads the block above the piston and this package implements
-Java's rules. Zero-ticking and sticky-piston block dropping are not implemented: both are Java bugs
-by Mojang's own account, and the zero-tick family was patched out of Java in 20w12a.
-
-## 3. Fluids
-
-Fluid ticks remain in the shared scheduler, but `@jsprismarine/block-behaviors` owns liquid flow.
-Its `liquidFamily` handles placement, neighbor changes, scheduled flow, source conversion, lava
-reactions, and bucket interaction. `createEngine` does not provide fluid handlers.
-
-## 4. Random ticking
-
-The random tick driver is `ServerLevel.tickChunk`. It draws `random_tick_speed` positions from each
-randomly ticking section with `Level.getBlockRandomPos`, whose linear congruential step,
-`state * 3 + 1013904223`, is transcribed exactly because the distribution of crop growth depends on
-it. Positions are drawn with replacement, so one block can be chosen twice in a chunk tick, and a
-position whose block does not take random ticks still consumes its draw.
-
-`random_tick_speed` defaults to 3 in Java and means three draws per section. Bedrock's
-`randomtickspeed` defaults to 1 and the wiki says it "specifies only relative speed instead of the
-exact number", with no published mapping between the two. This package implements Java's absolute
-three.
-
-Which blocks take random ticks comes from the mapping table's `randomTick` flag. What a random tick
-does to a block is not this package's business: `EngineOptions.randomTickHandlers` is the hook
-`@jsprismarine/block-behaviors` fills with crop growth, ice melting and the rest. The same package
-owns liquid movement through its block family.
-
-## 5. Explosions
-
-`ServerExplosion`, which is a ray cast rather than a sphere. One ray leaves the center for every
-cell on the surface of a 16 by 16 by 16 grid, 1352 of them, each carrying an intensity of
-`radius * (0.7 + random * 0.6)` and stepping 0.3 blocks at a time. Every block a ray crosses takes
-`(blastResistance + 0.3) * 0.3` off that intensity and every step takes a further 0.22500001, and
-every position a ray still has intensity at joins the set that comes out. That is the whole reason a
-blast carves an irregular hole, leaves the blocks behind a wall standing, and is stopped by one
-block of water where a block of stone only slows it.
-
-The blast resistance is `@jsprismarine/mapping`'s, dumped from the same jar, so obsidian's 1200 and
-water's 100 are not written down here. Air is the one block that costs a ray nothing at all; a block
-with no resistance still costs it 0.09, which is why a ray dies faster through tall grass than
-through nothing.
-
-Entity damage is `ExplosionDamageCalculator.getEntityDamageAmount` over
-`ServerExplosion.getSeenPercent`. The exposure fires a grid of rays from the entity's own box back
-at the center, spaced `1 / (side * 2 + 1)` per axis, and reports the fraction that arrive, so cover
-grades rather than switching. Damage is `((impact² + impact) / 2) * 7 * reach + 1` where impact is
-how close the entity is as a fraction of `radius * 2`, times the exposure, and the flat one at the
-end is why standing fully behind a wall still costs half a heart. Knockback is the same impact
-times `getKnockbackMultiplier` times `1 - EXPLOSION_KNOCKBACK_RESISTANCE`, along the line from the
-center to the entity's eyes.
-
-A blast is 1352 rays of up to 18 steps, so the hot loop runs about 24,000 times. Two flat arrays
-over the cube a ray can reach hold the resistance already read and whether a position is already
-marked, which takes the block reads down to about 800, and one shared occluder cache serves every
-entity's exposure rays. A TNT blast of radius 4 costs about 0.5 ms, a charged creeper's radius 6
-about 1.1 ms, and a 24-TNT chain detonating in one tick about 16 ms.
-
-`explode` returns the hits rather than applying them, because this package has no entity model, and
-calls `onBlockDestroyed` for each block before clearing it, because it has no item model either.
-That is where a host rolls the block's loot table with Java's `explosion_radius`, the parameter
-`ApplyExplosionDecay` turns into a `1 / radius` chance per item.
-
-### What is not reproduced
-
-- **Collision-shape clipping for the exposure rays.** Java clips with `ClipContext.Block.COLLIDER`.
-  Neither edition publishes collision shapes, so the exposure rays treat `isFullCube` as the only
-  thing that casts a shadow, and a fence or a slab casts none. The same approximation the redstone
-  systems make, listed under "What has no published source" below.
-- **Waterlogging.** Java takes the higher of the block's and the fluid's resistance at a position,
-  which is how a waterlogged block resists like water. Bedrock keeps its water in a second block
-  layer, so a host that wants that calls `explosionResistanceOf` for the second layer itself.
-- **Fire.** `ServerExplosion.createFire` lights one position in three where the block is air and the
-  block below renders solid. Only a ghast fireball and a bed in the nether set it, and neither
-  exists here yet. The positions it needs are in `ExplosionResult.positions`, air included, which is
-  why air is in there.
-- **`Entity.onExplosionHit` and `Block.wasExploded`.** The per-entity and per-block callbacks Java
-  fires after the blast, which are what chains one TNT into the next and what pops a shulker box's
-  contents. The host raises those from the hits and the destroyed blocks.
-- **The draws themselves.** Each ray's starting intensity and the shuffle that decides which dropped
-  stacks merge both come from the host's random source, which is not Java's `LegacyRandomSource`.
-  Two blasts therefore carve different holes of the same shape and size. Everything that does not
-  depend on a draw matches.
-
-## 6. Weather
-
-`ServerLevel.advanceWeatherCycle` over `WeatherData`. Three counters and two flags, stepped
-once a game tick, and that is the whole of why it rains: nothing samples a climate, a counter
-runs out and the flag it was holding flips.
-
-Rain and thunder are two cycles running beside each other, not one inside the other. Each
-counter either runs down, flipping its flag and booking the opposite stretch when it hits zero,
-or books its first stretch if it was already at zero. The durations are the jar's
-`UniformInt`s, inclusive at both ends.
-
-| Counter | Waiting | Running |
-| --- | --- | --- |
-| Rain | 12000 to 180000 ticks | 12000 to 24000 |
-| Thunder | 12000 to 180000 | 3600 to 15600 |
-
-The third counter, `clearWeatherTime`, is what `/weather clear` sets. While it runs it pins the
-other two to one tick and holds both flags false, so the cycle restarts on the tick after it
-ends. `weatherCommandState` is the whole of `WeatherCommand` that belongs here: which counters
-each of the three forms sets and what duration it uses when the command names none.
-
-Because the two cycles are independent, the thundering flag does come up with no rain under it.
-Java's `getThunderLevel` multiplies by the rain level, so that state is clear everywhere it
-matters, and `weatherOf` answers `clear` for it. A thunderstorm is always rain.
-
-`advanceWeatherCycle` is a function from one state to the next rather than something that owns
-a world, because the state is five numbers the host already has to save and send. The host
-steps it, keeps what comes back, and tells its clients when `weatherOf` changed. Whether to
-step it at all is the host's: Java gates it on `doWeatherCycle` and on whether the dimension can
-have weather.
-
-### What is not reproduced
-
-- **`Level.isRainingAt`'s biome test.** Java asks whether the biome's precipitation at that
-  position is rain rather than snow, which is a temperature curve over the height. Neither
-  edition publishes the curve in a form this repository holds, so a host answers the first three
-  conditions - it is raining, the sky is visible, and nothing stands above - and treats every
-  biome as rainy. Fire in a snowy biome is therefore put out where Java would leave it burning.
-- **The rain and thunder levels.** Java carries a float per level that rises and falls by 0.01 a
-  tick, which is what fades the sky rather than switching it. Nothing here reads a partial
-  level, so the flags are the whole state.
-- **Lightning.** `ServerLevel.tickChunk` strikes during a thunderstorm, which needs the player
-  list and a lightning entity; neither is this package's.
-
-## What has no published source
-
-One input to this package has no published source in either edition, and it is called out rather
-than hidden: whether a block's collision shape fills its cube, which Java calls
-`isCollisionShapeFullBlock`. Redstone conductivity defaults to it, and the sturdy-face test uses it.
-
-`isFullCube` derives it from the mapping table's light dampening, which is 15 for every opaque cube
-and 0 or 1 for the slabs, stairs, fences and plates that are not cubes, plus a short list of
-transparent cubes by name. Conductivity then applies the explicit overrides read out of `Blocks` in
-the jar: the blocks whose registration calls `isRedstoneConductor(Blocks::never)` and the two that
-call `isRedstoneConductor(Blocks::always)`.
-
-There are 26 call sites, 24 refusing and 2 accepting, but five of the 24 sit in shared property
-factories and so cover 65 blocks between them: `leavesProperties` the twelve leaves,
-`pistonProperties` the two pistons, and three lambdas handed to `ColorCollection.registerBlocks` and
-`WeatheringCopperCollection.registerBlocks` the sixteen stained glass colors, the eight copper grates
-and the eight copper bulbs. 26 of those 65 are written down here, which is 26 blocks and not the 26
-call sites. The other 39 dampen light by less than 15 and are not named as transparent cubes, so
-`isFullCube` already refuses them and the override would change no answer.
-
-## Left for later
-
-- The `minecraft:moving_block` flight. Java puts a pushed block into a block entity for two game
-  ticks and lands it at the end; `applyPistonMove` writes the blocks into their new positions in one
-  step. The flight belongs to the block-entity layer, and so does pushing a block entity, which
-  Bedrock allows and Java does not.
-- Java's piston block event. `checkIfExtend` defers the move to a block event that runs later in the
-  same game tick; this runs it in place, which is the same game tick.
-- The redstone torch's 160-tick burnout restart is implemented, but Java's "might or might not turn
-  itself back on depending on the update chain" (MC-120938) is not, because the behavior is a bug
-  with no specified outcome.
-- Bubble columns, which the liquid family does not yet schedule.
+`advanceWeatherCycle`, `resetWeatherCycle`, and `weatherCommandState` model Java's saved rain and
+thunder counters. They are pure functions: the host stores the returned state, applies game-rule
+and dimension checks, and sends any client updates.

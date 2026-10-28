@@ -1,10 +1,9 @@
 /**
  * The one seam every system in this package reads and writes the world through.
  *
- * Redstone, fire, random ticking and explosions never touch a chunk, a
- * palette or a block entity directly. They call {@link WorldAccess}, so a test
- * drives a whole circuit with a small voxel double and the server implements the
- * interface once.
+ * Redstone signal and random ticking never touch a chunk, a palette, or a block
+ * entity directly. They call {@link WorldAccess}, so a test can use a small
+ * voxel double and the server implements the interface once.
  */
 
 import type { BlockStateValue } from '@jsprismarine/blocks';
@@ -22,8 +21,7 @@ export interface BlockPosition {
  * The six directions, in Java's `Direction.values()` order.
  *
  * The order matters: `SignalGetter.getBestNeighborSignal` iterates it and stops
- * at the first 15, and `PistonStructureResolver.addBranchingBlocks` walks it to
- * find the blocks a slime block drags. Both results depend on the order.
+ * at the first 15, so power readings depend on the order.
  */
 export const DIRECTIONS = ['down', 'up', 'north', 'south', 'west', 'east'] as const;
 
@@ -132,57 +130,27 @@ export interface BlockEntityData {
     readonly comparatorOutput?: number;
 }
 
-/** The four difficulties and their Java ids, which fire spread multiplies by 7. */
+/** The four difficulty names, in the order Java assigns their numeric ids. */
 export const DIFFICULTIES = ['peaceful', 'easy', 'normal', 'hard'] as const;
 
 /** One of {@link DIFFICULTIES}. */
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
-/** The Java difficulty id, 0 for peaceful through 3 for hard. */
-export const difficultyId = (difficulty: Difficulty): number => DIFFICULTIES.indexOf(difficulty);
-
-/** The three weather states fire reads. */
+/** The three weather states. */
 export const WEATHER = ['clear', 'rain', 'thunder'] as const;
 
 /** One of {@link WEATHER}. */
 export type Weather = (typeof WEATHER)[number];
 
-/** The three vanilla dimensions, which choose the infinite fire source. */
-export const DIMENSIONS = ['overworld', 'nether', 'the_end'] as const;
-
-/** One of {@link DIMENSIONS}. */
-export type Dimension = (typeof DIMENSIONS)[number];
-
 /** Which of the two Java tick lists a scheduled tick belongs to. */
 export type TickKind = 'block' | 'fluid';
 
-/** What a block being taken out of the world leaves behind. */
-export interface BlockRemoval {
-    /**
-     * Whether the block's own yield happens, Java's `dropBlock` flag on
-     * `Level.destroyBlock`.
-     *
-     * False for fire, which leaves nothing of the plank it burned. True for a
-     * piston popping a torch. This says nothing about what the block was holding: a chest spills
-     * either way, because that is the block entity's and not the block's.
-     */
-    readonly drops: boolean;
-    /** What stands in its place, air unless the caller names something else. */
-    readonly replacement?: BlockRef;
-    /**
-     * Whether the host runs the neighbor updates the write causes, defaulting
-     * to true. False for a system that notifies the whole structure itself
-     * once every block in it has moved, which is what a piston does.
-     */
-    readonly notifyNeighbors?: boolean;
-}
-
 /**
- * Everything the systems read and write.
+ * The world reads and writes the redstone and random tick systems use.
  *
  * The host implements it over its own chunks; {@link createTestWorld} implements
- * it over a map of positions. Scheduling goes through here rather than through a
- * scheduler the caller holds, so a system never needs both objects.
+ * it over a map of positions. Tick scheduling lives in `TickScheduler` and the
+ * data-driven block content adapter.
  */
 export interface WorldAccess {
     /** The block at one position. Outside the loaded world, return air. */
@@ -193,83 +161,10 @@ export interface WorldAccess {
      * @param at - Where to write.
      * @param to - The new block.
      * @param notifyNeighbors - Whether the host should run neighbor updates, which
-     *   is Java's flag 1 in `setBlockAndUpdate` against the bare `setBlock(…, 2)`
-     *   a diode uses for its own state.
+     *   is Java's flag 1 in `setBlockAndUpdate` against the bare write a block
+     *   family uses for its own state.
      */
     setBlock(at: BlockPosition, to: BlockRef, notifyNeighbors: boolean): void;
     /** The block entity data at one position, or undefined when there is none. */
     getBlockEntityData(at: BlockPosition): BlockEntityData | undefined;
-    /** Write block entity data at one position. */
-    setBlockEntityData(at: BlockPosition, data: BlockEntityData): void;
-    /**
-     * Schedule a tick, ignored when one is already scheduled for the same
-     * position and type. Java's `LevelChunkTicks.schedule` dedupes the same way.
-     *
-     * @param kind - Which tick list to schedule into.
-     * @param at - The position the tick fires for.
-     * @param type - The block or fluid identifier the tick belongs to.
-     * @param delay - How many game ticks from now.
-     * @param priority - The tick priority; see `TICK_PRIORITIES`.
-     */
-    scheduleTick(kind: TickKind, at: BlockPosition, type: string, delay: number, priority?: number): void;
-    /** Whether a tick is already queued for this position and type. */
-    hasScheduledTick(kind: TickKind, at: BlockPosition, type: string): boolean;
-    /** Whether a queued tick is in the batch the current game tick will run. */
-    willTickThisTick(kind: TickKind, at: BlockPosition, type: string): boolean;
-    /**
-     * Take a block out of the world, Java's `Level.destroyBlock`.
-     *
-     * A system calls this instead of {@link WorldAccess.setBlock} whenever the
-     * block that stood there is meant to be gone rather than rewritten. The
-     * host raises the block's break hooks before it writes, which is what
-     * spills a chest a piston popped, and decides
-     * what the block yields from its loot table rather than from a guess here.
-     * This package holds no drop rule of its own for that reason.
-     *
-     * @param at - The block to take out.
-     * @param removal - Whether it yields anything, what stands in its place,
-     *   and whether its neighbors are told.
-     */
-    destroyBlock(at: BlockPosition, removal: BlockRemoval): void;
-    /**
-     * Move a block and the block entity behind it to another position.
-     *
-     * A piston push is a move, not a break followed by a place. Writing the
-     * two blocks separately loses whatever the block was holding, because a
-     * block write clears the block entity at the position, so a pushed chest
-     * arrives empty.
-     *
-     * Neither position's neighbors are notified. The caller does that once
-     * every block in the structure has moved, or a block part way through the
-     * move would react to a world the piston has not finished rearranging.
-     *
-     * @param from - The block to move, left as air.
-     * @param to - Where it lands, overwriting whatever is there.
-     */
-    moveBlock(from: BlockPosition, to: BlockPosition): void;
-    /** Play a sound at one position, named by its Bedrock sound event. */
-    playSound(at: BlockPosition, sound: string): void;
-    /** The world difficulty, which fire spread reads. */
-    getDifficulty(): Difficulty;
-    /** The current weather, which fire burnout and extinguishing read. */
-    getWeather(): Weather;
-    /** Whether rain is falling on one position, which needs the host's heightmap. */
-    isRainingAt(at: BlockPosition): boolean;
-    /** The dimension, which chooses the infinite fire source. */
-    getDimension(): Dimension;
-    /** The current game time in ticks, which the scheduler counts from. */
-    getGameTime(): number;
-    /**
-     * A random integer in `[0, bound)`, from the host's world random.
-     *
-     * Fire spread and the random tick driver both draw from
-     * it, so a test gets a deterministic run by injecting a seeded source.
-     */
-    randomInt(bound: number): number;
-    /** A random float in `[0, 1)`, Java's `RandomSource.nextFloat`. */
-    randomFloat(): number;
-    /** The lowest y the world holds, which bounds piston pushes. */
-    getMinY(): number;
-    /** The highest y the world holds. */
-    getMaxY(): number;
 }

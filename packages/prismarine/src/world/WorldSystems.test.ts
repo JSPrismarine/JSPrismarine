@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BlockPosition, TestWorld } from '@jsprismarine/engine-systems';
+import type { BlockPosition } from '@jsprismarine/engine-systems';
 import { createTestWorld } from '@jsprismarine/engine-systems';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -73,14 +73,6 @@ const worldOf = (loaded: ReadonlyArray<{ x: number; z: number }> = [{ x: 0, z: 0
     };
 
     return { blocks, view, world, written, engineWorld, systemsOf };
-};
-
-/** Runs a run of world ticks, keeping the engine's clock in step with the world's. */
-const runTicks = (world: TestWorld, systems: WorldSystems, from: number, to: number): void => {
-    for (let tick = from; tick <= to; tick++) {
-        world.setGameTime(tick);
-        systems.tick(tick);
-    }
 };
 
 describe('world', () => {
@@ -185,55 +177,6 @@ describe('world', () => {
             });
         });
 
-        describe('scheduled ticks', () => {
-            it('runs a redstone torch tick on the game tick it was scheduled for, and not before', () => {
-                const { blocks, engineWorld, systemsOf } = worldOf();
-                const systems = systemsOf();
-
-                // An unlit torch on a block nothing powers lights itself when its tick comes
-                // due, which is `RedstoneTorchBlock.tick`.
-                blocks.set(key(1, 2, 3), { name: 'minecraft:stone', states: {} });
-                blocks.set(key(1, 3, 3), { name: 'minecraft:unlit_redstone_torch', states: {} });
-                systems.ticks.list('block').schedule({ x: 1, y: 3, z: 3 }, 'minecraft:unlit_redstone_torch', 4);
-
-                runTicks(engineWorld, systems, 1, 3);
-                expect(blocks.get(key(1, 3, 3))?.name).toBe('minecraft:unlit_redstone_torch');
-
-                runTicks(engineWorld, systems, 4, 4);
-                expect(blocks.get(key(1, 3, 3))?.name).toBe('minecraft:redstone_torch');
-            });
-
-            it('runs the block list before the fluid list, as ServerLevel.tick does', () => {
-                const { blocks, written, systemsOf } = worldOf();
-
-                blocks.set(key(0, 1, 0), { name: 'minecraft:stone', states: {} });
-                blocks.set(key(0, 2, 0), { name: 'minecraft:unlit_redstone_torch', states: {} });
-                blocks.set(key(8, 8, 8), { name: 'minecraft:water', states: { liquid_depth: 0 } });
-
-                const systems = systemsOf({
-                    blockTickHandlers: {
-                        'minecraft:water': (at) => {
-                            const flowing: SystemBlock = {
-                                name: 'minecraft:flowing_water',
-                                states: { liquid_depth: 1 }
-                            };
-                            written.push(flowing.name);
-                            blocks.set(key(at.x, at.y, at.z), flowing);
-                            return true;
-                        }
-                    }
-                });
-
-                systems.ticks.list('fluid').schedule({ x: 8, y: 8, z: 8 }, 'minecraft:water', 1);
-                systems.ticks.list('block').schedule({ x: 0, y: 2, z: 0 }, 'minecraft:unlit_redstone_torch', 1);
-
-                expect(systems.tick(1).scheduled).toBe(2);
-                expect(written[0]).toBe('minecraft:redstone_torch');
-                expect(written).toContain('minecraft:flowing_water');
-                expect(written.indexOf('minecraft:flowing_water')).toBeGreaterThan(0);
-            });
-        });
-
         describe('content block ticks', () => {
             it('does not run a duplicate fluid tick after the block list advances the same liquid', () => {
                 const at = { x: 0, y: 1, z: 0 };
@@ -245,7 +188,6 @@ describe('world', () => {
                         'minecraft:water': (position) => {
                             handled++;
                             systems?.ticks.list('block').schedule(position, 'minecraft:water', 2);
-                            return true;
                         }
                     }
                 });

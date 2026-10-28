@@ -355,17 +355,6 @@ describe('serverWorldSource', () => {
         );
     });
 
-    it('reports the dimension the live world is, and its clock', () => {
-        Object.assign(world, { currentTick: 25_000 });
-        const engine = content.world.engineWorld;
-
-        expect(engine.getDimension()).toBe('overworld');
-        expect(engine.getGameTime()).toBe(25_000);
-        expect(engine.getMinY()).toBe(-64);
-        expect(engine.getMaxY()).toBe(320);
-        expect(engine.getDifficulty()).toBe('normal');
-    });
-
     it('spawns a declared data entity into the live world, carrying its fuse data', () => {
         const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'fixture:fuse_entity', {
             fuse: 80

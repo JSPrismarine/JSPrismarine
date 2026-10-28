@@ -21,7 +21,7 @@
 import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 
 import { isFullCube } from './blockRules';
-import type { BlockPosition, BlockRef, WorldAccess } from './world';
+import type { BlockPosition, BlockRef } from './world';
 import { AIR } from './world';
 
 /** The cube of ray origins Java walks, 16 cells on a side. */
@@ -74,17 +74,21 @@ export interface BoundingBox {
     readonly maxZ: number;
 }
 
-/**
- * What a blast reads and writes.
- *
- * Narrower than {@link WorldAccess} on purpose: an explosion never schedules a tick, reads a
- * block entity, plays a sound or asks about the weather, so a host can drive one without
- * standing up the rest of the engine. Every {@link WorldAccess} is one of these.
- */
-export type ExplosionWorld = Pick<
-    WorldAccess,
-    'getBlock' | 'setBlock' | 'randomInt' | 'randomFloat' | 'getMinY' | 'getMaxY'
->;
+/** What a blast reads and writes. */
+export interface ExplosionWorld {
+    /** The block at one position. Outside the loaded world, return air. */
+    getBlock(at: BlockPosition): BlockRef;
+    /** Replace one block, notifying neighbors when requested. */
+    setBlock(at: BlockPosition, to: BlockRef, notifyNeighbors: boolean): void;
+    /** A random integer in `[0, bound)`, from the world's random source. */
+    randomInt(bound: number): number;
+    /** A random float in `[0, 1)`. */
+    randomFloat(): number;
+    /** The lowest y the world holds. */
+    getMinY(): number;
+    /** The highest y the world holds. */
+    getMaxY(): number;
+}
 
 /**
  * An entity a blast may catch, as the ray math needs it.

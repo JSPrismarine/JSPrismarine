@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/engine-systems",
     "version": "0.0.0",
-    "description": "The engine systems no edition publishes as data: the tick scheduler, redstone and random ticking.",
+    "description": "Shared world-system primitives for scheduling, redstone signals, random ticks, explosions, and weather.",
     "sideEffects": false,
     "publishConfig": {
         "access": "public",

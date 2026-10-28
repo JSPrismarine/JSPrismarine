@@ -5,7 +5,6 @@ import path from 'node:path';
 import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
-import { REDSTONE_TORCH, REPEATER, SIGNAL_STATE } from '@jsprismarine/engine-systems';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -43,8 +42,6 @@ const idOf = (block: SystemBlock): number => {
 const named = (name: string, states: SystemBlock['states'] = {}): SystemBlock => ({ name, states });
 
 const STONE = named('minecraft:stone');
-const REDSTONE_BLOCK = named('minecraft:redstone_block');
-const WIRE = named('minecraft:redstone_wire', { [SIGNAL_STATE]: 0 });
 const WATER = named('minecraft:water', { liquid_depth: 0 });
 /** A chunk of stone up to {@link GROUND} and air above it. */
 const flatChunk = (x: number, z: number): Chunk => {
@@ -152,90 +149,11 @@ describe('world', () => {
             fs.rmSync(directory, { recursive: true, force: true });
         });
 
-        describe('redstone', () => {
-            it('powers the dust beside a torch the moment the torch goes down', async () => {
-                const world = await flatWorld();
-                place(world, 1, GROUND + 1, 0, WIRE);
-
-                world.setLoadedBlockState(0, GROUND + 1, 0, named(REDSTONE_TORCH.lit), true);
-
-                expect(stateAt(world, 1, GROUND + 1, 0, SIGNAL_STATE)).toBe(15);
-            });
-
-            it('puts the torch out two ticks after the repeater feeding its block turns on', async () => {
-                const world = await flatWorld();
-
-                // A repeater pointing north takes its input from the north and powers the
-                // block to its south, which is the block the torch stands on.
-                place(world, 0, GROUND + 1, -1, named(REPEATER.unpowered, { repeater_delay: 0 }));
-                place(world, 0, GROUND + 1, 0, STONE);
-                // The dust needs something to lie on, or the support rules break it.
-                place(world, 1, GROUND + 1, 0, STONE);
-                place(world, 1, GROUND + 2, 0, WIRE);
-
-                // Written through the world rather than into the chunk, so the placement
-                // updates run and the dust beside it hears about the torch.
-                world.setLoadedBlockState(0, GROUND + 2, 0, named(REDSTONE_TORCH.lit), true);
-                expect(stateAt(world, 1, GROUND + 2, 0, SIGNAL_STATE)).toBe(15);
-
-                // Feeding the repeater is what starts the chain; everything after it is the
-                // world tick draining the scheduled tick lists into the engine.
-                world.setLoadedBlockState(0, GROUND + 1, -2, REDSTONE_BLOCK, true);
-
-                await runTicks(world, 1);
-                expect(nameAt(world, 0, GROUND + 1, -1)).toBe(REPEATER.unpowered);
-
-                await runTicks(world, 1);
-                expect(nameAt(world, 0, GROUND + 1, -1)).toBe(REPEATER.powered);
-                expect(nameAt(world, 0, GROUND + 2, 0)).toBe(REDSTONE_TORCH.lit);
-
-                await runTicks(world, 2);
-                expect(nameAt(world, 0, GROUND + 2, 0)).toBe(REDSTONE_TORCH.unlit);
-                expect(stateAt(world, 1, GROUND + 2, 0, SIGNAL_STATE)).toBe(0);
-            });
-        });
-
-        describe('pistons', () => {
-            it('extends an arm into the block in front and takes it back when the power goes', async () => {
-                const world = await flatWorld();
-
-                // Facing east, written the way the palette holds it: Bedrock's piston calls
-                // east 4, and its north and south are the other way round from everything
-                // else's, which is why the engine never spells a direction itself.
-                place(world, 0, GROUND + 1, 0, named('minecraft:piston', { facing_direction: 4 }));
-
-                // A redstone block against the back of the piston powers it.
-                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
-
-                expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:piston_arm_collision');
-                expect(stateAt(world, 1, GROUND + 1, 0, 'facing_direction')).toBe(4);
-
-                world.setLoadedBlockState(-1, GROUND + 1, 0, named('minecraft:air'), true);
-
-                expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:air');
-                expect(nameAt(world, 0, GROUND + 1, 0)).toBe('minecraft:piston');
-            });
-
-            it('pushes the block in front of it along', async () => {
-                const world = await flatWorld();
-
-                place(world, 0, GROUND + 1, 0, named('minecraft:piston', { facing_direction: 4 }));
-                place(world, 1, GROUND + 1, 0, named('minecraft:dirt'));
-
-                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
-
-                expect(nameAt(world, 2, GROUND + 1, 0)).toBe('minecraft:dirt');
-                expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:piston_arm_collision');
-            });
-        });
-
         /**
-         * The two things the engine has nowhere else to keep: a container's fill level, which
-         * a comparator reads, and the states Bedrock's palette has no room for.
+         * The container fill level a comparator reads.
          *
-         * Both go into the chunk's own block entities, which is what puts them on disk. A
-         * second {@link createEngineWorld} over the same world is what a restart gives: the
-         * same chunks, none of the first one's memory.
+         * The value comes from the chunk's own block entity, so a second world view reads the
+         * same stored contents.
          */
         describe('what the engine keeps in a block entity', () => {
             it('reads a chest fill level back as a comparator input', async () => {
@@ -255,44 +173,6 @@ describe('world', () => {
                 const world = await flatWorld();
 
                 expect(createEngineWorld(world).getBlockEntityData({ x: 3, y: GROUND + 1, z: 3 })).toBeUndefined();
-            });
-
-            it('keeps a comparator output where a restart will find it again', async () => {
-                const world = await flatWorld();
-                const at = { x: 0, y: GROUND + 1, z: 0 };
-
-                place(world, at.x, at.y, at.z, named('minecraft:unpowered_comparator'));
-                createEngineWorld(world).setBlockEntityData(at, { comparatorOutput: 11 });
-
-                // A second engine world is what a restart gives: the same chunks, none of the
-                // first one's state. The number comes back because it is in the chunk.
-                expect(createEngineWorld(world).getBlockEntityData(at)?.comparatorOutput).toBe(11);
-                expect(worldBlockEntities(() => world).at(at)?.['comparatorOutput']).toBe(11);
-            });
-
-            it('keeps a piston extended where a restart will find it again', async () => {
-                const world = await flatWorld();
-                const at = { x: 0, y: GROUND + 1, z: 0 };
-
-                place(world, at.x, at.y, at.z, named('minecraft:piston', { facing_direction: 4 }));
-                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
-
-                // Bedrock's palette has no `extended_bit`, so the flag Java keeps in the block
-                // state is in the block entity here. Without it a piston comes back from a
-                // restart thinking it is retracted and refuses to take its own arm back.
-                expect(createEngineWorld(world).getBlock(at).states['extended_bit']).toBe(true);
-                expect(worldBlockEntities(() => world).at(at)?.['engineStates']).toEqual({ extended_bit: true });
-            });
-
-            it('drops the kept state when the piston retracts', async () => {
-                const world = await flatWorld();
-                const at = { x: 0, y: GROUND + 1, z: 0 };
-
-                place(world, at.x, at.y, at.z, named('minecraft:piston', { facing_direction: 4 }));
-                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
-                world.setLoadedBlockState(-1, GROUND + 1, 0, named('minecraft:air'), true);
-
-                expect(createEngineWorld(world).getBlock(at).states['extended_bit']).toBe(false);
             });
         });
 

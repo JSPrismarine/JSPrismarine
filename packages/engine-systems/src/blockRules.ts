@@ -1,6 +1,6 @@
 /**
- * The per-block facts the four systems read: push reaction, flammability,
- * hardness and redstone conductivity.
+ * Shared per-block facts used by signal calculations, random tick selection,
+ * explosions, and block queries.
  *
  * Everything with a published source comes from `@jsprismarine/mapping`, whose
  * table is dumped from the Java 26.3 jar. Nothing here restates a number that
@@ -13,43 +13,8 @@ import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import type { BlockRef } from './world';
 import { AIR } from './world';
 
-/** Java's `PushReaction`, as the mapping table spells it. */
-export const PUSH_REACTIONS = ['push_pull', 'push', 'popped', 'immoveable', 'ignore'] as const;
-
-/** One of {@link PUSH_REACTIONS}. */
-export type PushReaction = (typeof PUSH_REACTIONS)[number];
-
-const isPushReaction = (value: string): value is PushReaction => (PUSH_REACTIONS as readonly string[]).includes(value);
-
 /** Whether the position holds nothing. */
 export const isAir = (block: BlockRef): boolean => block.name === AIR.name;
-
-/**
- * How a piston treats the block, taken from the mapping table's `pushReaction`.
- *
- * Unknown blocks answer `push_pull`, which is Java's `PushReaction.NORMAL`
- * default in `BlockBehaviour.Properties`.
- */
-export const pushReactionOf = (block: BlockRef): PushReaction => {
-    const value = bedrockBlockPropertiesOf(block.name, block.states)?.pushReaction;
-    return value !== undefined && isPushReaction(value) ? value : 'push_pull';
-};
-
-/**
- * The block's destroy time. `-1` marks the unbreakable blocks, which
- * `PistonBaseBlock.isPushable` refuses to move before it even reads the push
- * reaction, and which is why bedrock does not move despite a normal reaction.
- */
-export const hardnessOf = (block: BlockRef): number =>
-    bedrockBlockPropertiesOf(block.name, block.states)?.hardness ?? 0;
-
-/** Fire's odds of catching this block alight, `FireBlock`'s `igniteOdds`. */
-export const igniteOddsOf = (block: BlockRef): number =>
-    bedrockBlockPropertiesOf(block.name, block.states)?.igniteOdds ?? 0;
-
-/** Fire's odds of consuming this block, `FireBlock`'s `burnOdds`. */
-export const burnOddsOf = (block: BlockRef): number =>
-    bedrockBlockPropertiesOf(block.name, block.states)?.burnOdds ?? 0;
 
 /** Whether the block receives random ticks, which the random tick driver filters on. */
 export const isRandomlyTicking = (block: BlockRef): boolean =>

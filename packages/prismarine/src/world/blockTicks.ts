@@ -1,14 +1,12 @@
 /**
  * Scheduled ticks that resolve to data-driven block hooks.
  *
- * The world scheduler also serves `@jsprismarine/engine-systems`, which keeps
- * fallback handlers for blocks without a resolved content hook. This table
- * routes each scheduled block tick to its active content state first, so a
- * family can own the block's behavior without a second hardcoded dispatch.
+ * The world scheduler is shared by block and fluid ticks, while resolved
+ * content owns every scheduled block behavior. This table routes each tick to
+ * the active block state when it declares `onTick`.
  */
 import type { BlockType } from '@jsprismarine/blocks';
 import type { BlockPosition } from '@jsprismarine/engine-systems';
-import { SCHEDULED_TICK_BLOCKS } from '@jsprismarine/engine-systems';
 
 import type { ServerContent } from '../content/ServerContent';
 import type { World } from './World';
@@ -23,16 +21,15 @@ export interface ContentBlockTickOptions {
     readonly report: (identifier: string, error: unknown) => void;
 }
 
-/** One block's scheduled hook, returning whether content handled the tick. */
-type BlockTickHandler = (at: BlockPosition) => boolean;
+/** One block's scheduled hook. */
+type BlockTickHandler = (at: BlockPosition) => void;
 
 /**
  * Builds the scheduled block tick handlers for the resolved content.
  *
- * A handler is registered when any state implements `onTick`, unless the
- * engine still owns that block's scheduled behavior. It checks the active
- * state at dispatch time. An outdated tick for a block that has since changed
- * is left for the engine fallback to ignore.
+ * A handler is registered when any state implements `onTick`. It checks the
+ * active state at dispatch time, so an outdated tick for a block that has
+ * since changed is ignored.
  *
  * @param options - The content, world, and error reporting callback.
  * @returns One handler for each migrated block type with an `onTick` implementation.
@@ -42,19 +39,18 @@ export const contentBlockTickHandlers = (
 ): Readonly<Record<string, BlockTickHandler>> => {
     const { content, world, report } = options;
     const reported = new Set<string>();
-    const engineOwned = new Set(SCHEDULED_TICK_BLOCKS);
     const handlers: Record<string, BlockTickHandler> = {};
 
-    const dispatch = (identifier: string, type: BlockType, at: BlockPosition): boolean => {
+    const dispatch = (identifier: string, type: BlockType, at: BlockPosition): void => {
         const live = world();
-        if (!live) return false;
+        if (!live) return;
 
         const stored = live.loadedBlockAt(at.x, at.y, at.z);
-        if (stored === undefined || stored.name !== identifier) return false;
+        if (stored === undefined || stored.name !== identifier) return;
 
         const state = type.state(stored.states);
         const hooks = state.content.hooks;
-        if (!hooks.has('onTick')) return false;
+        if (!hooks.has('onTick')) return;
 
         hooks.dispatch('onTick', {
             block: {
@@ -65,11 +61,9 @@ export const contentBlockTickHandlers = (
             },
             tick: live.getTicks()
         });
-        return true;
     };
 
     for (const [identifier, type] of content.blocks.types) {
-        if (engineOwned.has(identifier)) continue;
         if (!type.states.some((state) => state.content.hooks.has('onTick'))) continue;
 
         handlers[identifier] = (at) => {
@@ -80,7 +74,6 @@ export const contentBlockTickHandlers = (
                     reported.add(identifier);
                     report(identifier, error);
                 }
-                return true;
             }
         };
     }

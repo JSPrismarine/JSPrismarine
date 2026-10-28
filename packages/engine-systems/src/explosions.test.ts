@@ -83,11 +83,12 @@ describe('explosions', () => {
 
     describe('the ray cast', () => {
         it('fires one ray per cell on the surface of the 16-cube and none from inside it', () => {
-            const empty = world();
             let draws = 0;
-            empty.setRandomFloat(() => {
-                draws += 1;
-                return 0.5;
+            const empty = createTestWorld({
+                randomFloat: () => {
+                    draws += 1;
+                    return 0.5;
+                }
             });
 
             calculateExplodedPositions(empty, CENTER, 4);

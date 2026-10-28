@@ -2,10 +2,10 @@
  * The `blocks` group of `ServerWorldAdapter`, as the block and item
  * subsystem owes it.
  *
- * Twelve of the seventeen members of `ContentBlockAccess` belong here: reading,
- * writing, moving, and destroying a block; reading and writing block entity records;
- * neighbor notification; redstone power; and entity-event dispatch. The other
- * five - light, chunk loading, the surface column, and two biome reads - belong
+ * Twelve of the eighteen members of `ContentBlockAccess` belong here: reading,
+ * writing, moving, and destroying a block; reading and writing block entity
+ * records; neighbor notification; redstone power; and entity-event dispatch. The other
+ * six - light, sky light, chunk loading, the surface column, and two biome reads - belong
  * to the world subsystem, which is why this exports the twelve as their own
  * type rather than the whole interface.
  *

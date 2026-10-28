@@ -1,24 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { hardnessOf, isFullCube, isRedstoneConductor, pushReactionOf } from './blockRules';
+import { isFullCube, isRedstoneConductor } from './blockRules';
 import { block } from './world';
-
-describe('push reaction', () => {
-    it('comes from the mapping table, not from a list kept here', () => {
-        expect(pushReactionOf(block('minecraft:stone'))).toBe('push_pull');
-        expect(pushReactionOf(block('minecraft:obsidian'))).toBe('immoveable');
-        expect(pushReactionOf(block('minecraft:torch'))).toBe('popped');
-        expect(pushReactionOf(block('minecraft:piston'))).toBe('immoveable');
-    });
-
-    it('falls back to the push_pull default for a block the table does not hold', () => {
-        expect(pushReactionOf(block('minecraft:not_a_real_block'))).toBe('push_pull');
-    });
-
-    it('reports bedrock as unbreakable, which is what stops a piston first', () => {
-        expect(hardnessOf(block('minecraft:bedrock'))).toBe(-1);
-    });
-});
 
 describe('redstone conductivity', () => {
     it('reads an opaque cube as a conductor', () => {

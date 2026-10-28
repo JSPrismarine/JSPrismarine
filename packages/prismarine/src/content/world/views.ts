@@ -23,7 +23,7 @@ import {
     isFullCube as engineIsFullCube,
     TICK_PRIORITIES
 } from '@jsprismarine/engine-systems';
-import type { BlockRef, Dimension, WorldAccess } from '@jsprismarine/engine-systems';
+import type { BlockRef, WorldAccess } from '@jsprismarine/engine-systems';
 import type { BlockTickPriority } from '@jsprismarine/block-behaviors';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
 import type { BrainWorld } from '@jsprismarine/entity-brains';
@@ -76,23 +76,6 @@ export interface ContentWorldViews {
     /** `FeatureWorld` for `@jsprismarine/features`, for one chunk being decorated. */
     featureWorld(chunkX: number, chunkZ: number): FeatureWorld;
 }
-
-/** The three dimensions `@jsprismarine/engine-systems` names, by their namespaced identifiers. */
-const ENGINE_DIMENSIONS: Readonly<Record<string, Dimension>> = {
-    'minecraft:overworld': 'overworld',
-    'minecraft:nether': 'nether',
-    'minecraft:the_end': 'the_end'
-};
-
-/**
- * The `@jsprismarine/engine-systems` dimension name for a namespaced identifier.
- *
- * That package names the three vanilla dimensions without a namespace,
- * because it only uses them to pick the lava flow rate and the infinite fire
- * source. A custom dimension has neither rule of its own, so it reads as the
- * overworld.
- */
-export const engineDimensionOf = (dimension: string): Dimension => ENGINE_DIMENSIONS[dimension] ?? 'overworld';
 
 /** Builds every content world interface over one adapter source. */
 export const contentWorldViews = (
@@ -317,34 +300,7 @@ const engineWorldOf = (adapter: ServerWorldAdapter): WorldAccess => ({
         const analogOutput = typeof data.analogOutput === 'number' ? data.analogOutput : undefined;
         const comparatorOutput = typeof data.comparatorOutput === 'number' ? data.comparatorOutput : undefined;
         return { analogOutput, comparatorOutput };
-    },
-    setBlockEntityData: (at, data) =>
-        adapter.blocks.setData(at, {
-            ...adapter.blocks.data(at),
-            analogOutput: data.analogOutput,
-            comparatorOutput: data.comparatorOutput
-        }),
-    scheduleTick: (kind, at, type, delay, priority) => adapter.ticks.schedule(kind, at, type, delay, priority),
-    hasScheduledTick: (kind, at, type) => adapter.ticks.isScheduled(kind, at, type),
-    willTickThisTick: (kind, at, type) => adapter.ticks.runsThisTick(kind, at, type),
-    // Taking a block out means raising its `onBreak` and rolling Java's table for it, and
-    // carrying one means carrying its block entity with it. `src/world/EngineWorld.ts` is
-    // where both are implemented, and it is the world every engine system actually runs
-    // over; the only member of this one the server reads is `getBlock`, through
-    // `blocks.power`. Rather than a second, weaker rule for a caller that does not exist,
-    // these say who owns them.
-    destroyBlock: notWired('engineWorld.destroyBlock', CONTENT_AREAS.world),
-    moveBlock: notWired('engineWorld.moveBlock', CONTENT_AREAS.world),
-    playSound: (at, sound) => adapter.effects.playSound(at, sound),
-    getDifficulty: () => adapter.level.difficulty(),
-    getWeather: () => adapter.level.weather(),
-    isRainingAt: (at) => adapter.level.isRainingAt(at),
-    getDimension: () => engineDimensionOf(adapter.level.dimension),
-    getGameTime: () => adapter.level.gameTime(),
-    randomInt: (bound) => adapter.random.nextInt(bound),
-    randomFloat: () => adapter.random.nextFloat(),
-    getMinY: () => adapter.level.minY,
-    getMaxY: () => adapter.level.maxY
+    }
 });
 
 /**

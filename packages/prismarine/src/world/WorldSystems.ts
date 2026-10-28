@@ -2,10 +2,10 @@
  * The light engine, the tick scheduler and the engine systems, driven from one world tick.
  *
  * All three are published packages with no idea a chunk exists. This is the one place that
- * owns them: it builds the light view out of the world's blocks, dispatches scheduled ticks
- * through resolved content hooks before the engine fallback, hands the chunk sections a random
- * tick may land in to the engine, and keeps all three inside a budget so no single tick can stall
- * on a light flood or a backlog of fluid ticks.
+ * owns them: it builds the light view out of the world's blocks, dispatches scheduled block
+ * ticks through resolved content hooks, hands the chunk sections a random tick may land in to
+ * the engine, and keeps all three inside a budget so no single tick can stall on a light flood
+ * or a backlog of fluid ticks.
  */
 import type { BlockPosition, LightFlushResult } from '@jsprismarine/lighting';
 import { LightEngine } from '@jsprismarine/lighting';
@@ -45,8 +45,7 @@ export const LIGHT_BUDGET_PER_TICK = 4096;
  * How many scheduled ticks one world tick may run, per list.
  *
  * Java's limit is 65536 for each of the block and fluid lists. Bedrock's is 100 per chunk,
- * which this server does not implement; the Java number is the one the package defaults to and
- * the one the diode and fluid timings were transcribed against.
+ * which this server does not implement; the Java number is the one the package defaults to.
  */
 export const SCHEDULED_TICK_BUDGET_PER_TICK = 65536;
 
@@ -105,24 +104,21 @@ export interface WorldSystemsView {
 }
 
 /**
- * The engine's world, minus the scheduling it does not own.
+ * The world reads and writes the engine systems use.
  *
- * `@jsprismarine/engine-systems` reads and writes everything through one `WorldAccess`,
- * scheduling included. The three scheduling members are left out here because
- * {@link WorldSystems} already holds the tick lists the world tick drains, so it fills them
- * from {@link WorldSystems.ticks} rather than asking the world for a second scheduler to
- * keep in step with the first.
+ * `@jsprismarine/engine-systems` reads and writes through one `WorldAccess`. Tick scheduling
+ * belongs to {@link WorldSystems.ticks} and the content adapter.
  */
-export type WorldSystemsAccess = Omit<WorldAccess, 'scheduleTick' | 'hasScheduledTick' | 'willTickThisTick'>;
+export type WorldSystemsAccess = WorldAccess;
 
 /** What a world gives {@link WorldSystems} to run on. */
 export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers'> {
     /** The reads the light pass and the random tick draw need, which a chunk answers. */
     readonly view: WorldSystemsView;
-    /** Everything the engine fallback does to the world. */
+    /** The world reads and writes the engine systems need. */
     readonly world: WorldSystemsAccess;
-    /** Resolved content handlers for scheduled block ticks; unhandled ticks fall back to the engine. */
-    readonly blockTickHandlers?: Readonly<Record<string, (at: BlockPosition) => boolean>>;
+    /** Resolved content handlers for scheduled block ticks. */
+    readonly blockTickHandlers?: Readonly<Record<string, (at: BlockPosition) => void>>;
     /** Content redstone hooks and their power cache lifecycle. */
     readonly redstoneUpdateHandlers?: ContentRedstoneUpdateHandlers;
 }
@@ -148,8 +144,7 @@ export class WorldSystems {
     /**
      * The two scheduled tick lists.
      *
-     * The engine schedules into them through its own world, and the content adapter's
-     * `ticks` group writes into them directly.
+     * The content adapter's `ticks` group writes into them directly.
      */
     public readonly ticks = new TickScheduler();
 
@@ -175,32 +170,19 @@ export class WorldSystems {
         this.blockTickHandlers = options.blockTickHandlers;
         this.redstoneUpdateHandlers = options.redstoneUpdateHandlers;
         this.lighting = new LightEngine(this.lightView());
-        this.engine = createEngine(
-            {
-                ...options.world,
-                // Java schedules by delay and the list stores the absolute tick, so the
-                // conversion happens here rather than in every system that schedules.
-                scheduleTick: (kind, at, type, delay, priority) => {
-                    this.ticks.list(kind).schedule(at, type, options.world.getGameTime() + delay, priority);
-                },
-                hasScheduledTick: (kind, at, type) => this.ticks.list(kind).hasScheduledTick(at, type),
-                willTickThisTick: (kind, at, type) => this.ticks.list(kind).willTickThisTick(at, type)
-            },
-            {
-                randomTickHandlers: options.randomTickHandlers,
-                onRedstoneUpdate: options.redstoneUpdateHandlers?.dispatch
-            }
-        );
+        this.engine = createEngine(options.world, {
+            randomTickHandlers: options.randomTickHandlers,
+            onRedstoneUpdate: options.redstoneUpdateHandlers?.dispatch
+        });
     }
 
     /**
-     * Runs every update a block change causes: the neighbor updates, the extra updates a
-     * signal source raises, and the shape updates around the position.
+     * Runs the six neighbor updates a block change causes and reports resulting power to
+     * data-driven redstone hooks.
      *
-     * Java's `Level.setBlockAndUpdate` with the write already done. A world calls it after
-     * writing a block, which is what starts a circuit when a lever goes down. The engine writes
-     * the block again on the way through, which costs a palette read and changes nothing,
-     * because the block it would write is the one standing there.
+     * A world calls it after writing a block. The engine writes the block again on the way
+     * through, which costs a palette read and changes nothing, because it writes the block
+     * already standing there.
      */
     public updateAround(at: BlockPosition, block: SystemBlock): void {
         this.engine.setBlockAndUpdate(at, { name: block.name, states: block.states });
@@ -248,19 +230,16 @@ export class WorldSystems {
                     activeBlock !== undefined && isLiquid(activeBlock.name) ? activeBlock.name : undefined;
                 const contentType = activeFluidType ?? tick.type;
                 const contentHandler = this.blockTickHandlers?.[contentType];
-                if (contentHandler !== undefined) {
-                    if (kind === 'block' && contentHandler(tick.at)) return;
-                    if (kind === 'fluid') {
-                        // The block list runs first. If both lists contain a tick for the
-                        // same active liquid, that earlier pass already advanced it. Resolve
-                        // by the current block because queued ticks can name a previous
-                        // source or flowing state.
-                        if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
-                        if (contentHandler(tick.at)) return;
-                    }
+                if (kind === 'fluid') {
+                    // The block list runs first. If both lists contain a tick for the
+                    // same active liquid, that earlier pass already advanced it. Resolve
+                    // by the current block because queued ticks can name a previous
+                    // source or flowing state.
+                    if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
+                    contentHandler?.(tick.at);
+                    return;
                 }
-                if (kind === 'fluid') return;
-                this.engine.runScheduledTick(tick.at, tick.type);
+                contentHandler?.(tick.at);
             },
             SCHEDULED_TICK_BUDGET_PER_TICK
         );

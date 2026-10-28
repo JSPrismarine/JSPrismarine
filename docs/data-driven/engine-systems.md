@@ -9,9 +9,9 @@ category: Guides
 Almost everything this server knows about Minecraft it reads out of data. Blocks, items, mobs,
 loot, recipes, advancements and terrain all come from a pack or a generated table, and
 [architecture.md](architecture.md) explains how that was decided and how the two editions are
-joined. A handful of systems have no data form at all. [The plan](../plans/data-driven-vanilla.md)
-names them in phase 5: redstone, fluid flow, explosions, fire spread, light, the spawning
-algorithm and random ticking.
+joined. A handful of shared systems have no data form at all. [The plan](../plans/data-driven-vanilla.md)
+names them in phase 5: redstone signal propagation, fluid flow, explosions, fire spread, light,
+the spawning algorithm and random tick selection.
 
 This page is about what the server simulates in each of those, how close the simulation is to Java
 Edition, what one tick of it costs, and where it stops. It is written for someone running the
@@ -19,11 +19,12 @@ server or changing it, so the numbers are the ones you can observe or budget aga
 
 ## Why these are code
 
-Mojang keeps these rules in the game's code in both editions. The server implements block
-behavior in data-driven families, while the scheduler, redstone engine, random tick driver, and
-explosion calculations live in code. `@jsprismarine/engine-systems` transcribes the latter from the
-pinned Java 26.3 server jar in `node_modules/.cache/jsprismarine/java-server/`, and source comments
-name the class each rule came from.
+Mojang keeps these rules in the game's code in both editions. The server resolves block state
+behavior from data-driven families, while shared mechanisms such as scheduling, signal
+propagation, random tick selection, and explosion calculations live in code.
+`@jsprismarine/engine-systems` transcribes its Java-derived rules from the pinned Java 26.3 server
+jar in `node_modules/.cache/jsprismarine/java-server/`, and source comments name the class each
+rule came from.
 
 Natural spawning is the one item on that list with a data form. Bedrock publishes spawn rules, so
 the server reads the 60 vanilla `spawn_rules/*.json` files through `@jsprismarine/spawning` and
@@ -31,8 +32,8 @@ only the loop around them is code. [entities.md](entities.md) covers it; this pa
 
 | What | Where |
 | --- | --- |
-| Scheduler, redstone, random tick driver, explosions | `packages/engine-systems/` |
-| Fluid flow and fire spread | `packages/block-behaviors/src/families/world.ts` |
+| Scheduler, redstone signal calculation, random tick driver, explosions | `packages/engine-systems/` |
+| Fluid, fire, redstone, and piston behavior | `packages/block-behaviors/src/families/` |
 | Block light and sky light | `packages/lighting/` |
 | Driving all of it from one world tick | `packages/prismarine/src/world/WorldSystems.ts` |
 | The world those systems read and write | `packages/prismarine/src/world/EngineWorld.ts` |
@@ -60,8 +61,9 @@ transcription of `CollectingNeighborUpdater`, and the chain it can set off is ca
 updates.
 
 Each list gets 65536 ticks per game tick, Java's number, and the light engine gets 4096 queue
-nodes. Both limits exist so a single tick cannot stall on a backlog of fluid ticks or a light
-flood; whatever is left over is reported and runs next tick.
+nodes. Both limits exist so a single tick cannot stall on a backlog of scheduled ticks or a
+light flood; whatever is left over is reported and runs next tick. When a tick is due, the world
+dispatches it to the active block family's `onTick` hook.
 
 ## Random ticking
 
@@ -101,43 +103,15 @@ sequence of ticked positions is not Java's.
 
 ## Redstone
 
-Power runs 0 to 15 through `SignalGetter` and the per-block `getSignal`, `getDirectSignal` and
-`shouldRedstoneWireConnectTo` overrides. Weak power reaches dust and components; strong power is
-what a conductor picks up and re-emits, which is why a block under a lever powers the dust beside
-it and a block beside a lever does not. Dust uses `DefaultRedstoneWireEvaluator`, the evaluator
-vanilla runs, rather than the one Mojang ships behind the `redstone_experiments` feature flag.
+The engine package calculates the shared signal graph: power from 0 to 15, directional weak and
+strong power, conductor re-emission, and wire connections. `WorldSystems` reports changed power
+to the active block state's `onRedstoneUpdate` hook. Resolved block families own redstone state
+changes and scheduling, including torches, dust, repeaters, comparators, observers, and pistons.
 
-The sources are the torch, a block of redstone, levers, buttons, pressure plates, weighted
-pressure plates, daylight detectors, observers, comparators and repeaters. Repeaters take their
-delay state plus one, times 2 game ticks, and lock while a diode powers either side. Comparators
-run in compare and subtract mode and reach one block further through a conductor. Observers pulse
-15 for two game ticks when the block they face changes shape and ignore everything else, which is
-what makes a Java observer not a block update detector. Pistons use `PistonStructureResolver`
-unchanged, including the 12-block push limit and the slime and honey rules.
-
-Tick priority comes from `DiodeBlock.checkTickOnNeighbor`, so a repeater facing the back or side
-of another diode schedules at `EXTREMELY_HIGH`, a repeater turning off at `VERY_HIGH`, any other
-repeater at `HIGH`, and a comparator at `HIGH` when prioritized and `NORMAL` otherwise. Those
-priorities are what make a chain of diodes resolve in the same order it does in vanilla.
-
-Here is a short circuit traced through. Put a lever on a stone block, a repeater at its shortest
-delay facing away from it, and a line of dust in front of the repeater.
-
-1. Flipping the lever writes the new block and raises the six neighbor updates around it, plus the
-   update on the block holding the lever up, which is how the block it powers finds out.
-2. The repeater hears the update, sees power on its back, and schedules a block tick two game
-   ticks out, because its delay state of 0 means `(0 + 1) * 2`.
-3. Nothing happens on the next game tick. The repeater is still unpowered.
-4. On the tick after, the scheduled tick runs. The repeater turns powered and raises its own
-   update on the block in front.
-5. The dust re-evaluates and reads 15. It steps down by one per block from there.
-
-Redstone is server-decided and invisible to the Bedrock client, so this server implements Java's
-rules throughout. Bedrock's produce and consume tick split, its soft inversion bug, its dust
-refresh rule, its observers acting as block update detectors and its per-chunk limit of 100
-scheduled ticks are all deliberately absent. Quasi-connectivity goes the other way and is
-implemented, because `PistonBaseBlock.getNeighborSignal` reads the block above the piston. The
-package README lists the full set of divergences.
+Piston behavior also lives in `@jsprismarine/block-behaviors`. Its resolver reads push reactions
+from `@jsprismarine/mapping`, applies the 12-block limit and slime/honey rules, and carries out
+movement through the block world adapter. The engine package no longer dispatches named redstone
+or piston handlers.
 
 ## Fluids
 
@@ -192,34 +166,13 @@ does. Setting the radius to 0 stops every fire in the world, and it is reversibl
 tick is gated still books its next tick, so it keeps its place in the tick list and carries on from
 where it stopped when you turn the rule back up.
 
-## Three systems that were right and never started
+## Block lifecycle
 
-This is a whole class of bug rather than one defect, and it is worth understanding if you are
-adding a system of your own.
-
-Java's `Level.setBlockAndUpdate` does four things: the write, the six neighbor updates, the new
-block's own `onPlace`, and the shape updates around it. For a long time `Engine.setBlockAndUpdate`
-did the first two and skipped the third. The six neighbor updates tell the neighbors about the new
-block. What they do not do is tell the new block about the world it just landed in, and that is
-exactly what `onPlace` is for.
-
-The missing `onPlace` path affected three behaviors:
-
-- Fire used to miss its first scheduled tick. `portalFamily` now books it from its data-driven
-  `onPlace` hook.
-- Redstone dust placed beside a lever that was already on stayed at 0, because
-  `RedstoneWireBlock.onPlace` is what makes new dust work out its own power.
-- A piston placed into a position something already powered never extended, because
-  `PistonBaseBlock.onPlace` runs `checkIfExtend`.
-
-None of the three had a bug in its tick handler. A system whose first tick nobody books looks
-exactly like a system that does not work at all, which is what made these hard to spot. Engine
-tests cover redstone dust and pistons; block-family and world integration tests cover fire.
-
-The same reasoning changed how the package is tested. `createTestEngine` now wires a notifying write
-back through `setBlockAndUpdate`, the way the server's `World.setLoadedBlockState` does, so a test
-world behaves like a running world. A test setup that is simpler than the server's own wiring will
-pass code the server's wiring breaks.
+Placement, neighbor changes, scheduled ticks, and redstone updates reach the active resolved
+block state through its family hooks. The engine package supplies neighbor update ordering,
+signal calculation, and the shared scheduler; it does not own named block handlers. Piston
+movement and block destruction go through the block world adapter, so those actions use the same
+content, block entity, and neighbor update paths as other block behavior.
 
 ## Explosions
 
@@ -286,16 +239,15 @@ Everything else that destroys a block used to have a rule of its own, and there 
 None raised a hook. A chest the blast caught kept its contents, a double chest left its other half
 paired to air, and what fell was a hardcoded copy of the block rather than a table roll.
 
-They now share one path, `blockDestroy.ts`, reached through `WorldAccess.destroyBlock`. An
-explosion, a stream of water washing a block away, a piston popping a block it cannot move, fire
-burning a plank, a block that lost its support, a falling anvil and `/setblock destroy` all raise
-`onBreak` first and then roll Java's table with whatever the caller knows. An explosion passes its
-radius, which every vanilla block table reads through `minecraft:explosion_decay`; that keeps each
-item of a rolled stack with a chance of `1 / radius`, so a radius-4 blast keeps one item in four.
-Fire passes "this yields nothing", which is Java's `removeBlock(pos, false)`, and a burning chest
-still spills what it held even though the chest itself leaves nothing.
+They now share one path through the block world adapter and `blockDestroy.ts`. The active block
+family gets `onBreak` before the write, and the loot table receives the context the caller knows.
+An explosion passes its radius, which every vanilla block table reads through
+`minecraft:explosion_decay`; that keeps each item of a rolled stack with a chance of `1 / radius`,
+so a radius-4 blast keeps one item in four. Fire passes "this yields nothing", which is Java's
+`removeBlock(pos, false)`, and a burning chest still spills what it held even though the chest
+itself leaves nothing.
 
-A piston is the one case that does not destroy anything it moves. `WorldAccess.moveBlock` carries
+A piston is the one case that does not destroy anything it moves. The block world adapter carries
 the block and its block entity one position together, so a pushed chest arrives with its contents
 instead of being written twice and arriving empty. The structure is moved farthest-from-piston
 first, which is Java's order in `moveBlocks` and the order that lets each block land in a position
@@ -381,17 +333,6 @@ Both affect what you will see.
 - **Knockback loses Java's vertical component.** Java adds the whole impulse to an entity's motion.
   This server's `applyKnockback` takes a horizontal direction and a strength and works out its own
   lift, so the horizontal part carries over exactly and the vertical part is this server's.
-- **Lit TNT does not detonate.** Igniting a TNT block spawns a `minecraft:tnt` entity carrying a
-  fuse of 80 ticks, and nothing counts that fuse down. The only thing that explodes today is a mob
-  whose definition carries `minecraft:explode`, which is what a creeper's swell goal fires.
-- **There is no weather cycle.** `EngineWorld` reports clear weather and no rain at every position,
-  so rain never puts a fire out and never blocks a spread.
-- **A comparator reading a container reads zero.** The engine asks for a container's fill through
-  `BlockEntityData.analogOutput`, and nothing fills that in from a chest yet.
-- **A piston forgets it is extended across a restart,** and so does a comparator's remembered
-  output. Bedrock keeps a piston's `extended` in a block entity this server does not model, so both
-  live in an in-memory map that never reaches disk. The arm block standing in front of the piston is
-  what a client sees either way.
 - **A pushed block does not fly.** Java puts a moved block into a `minecraft:moving_block` with a
   block entity for two game ticks and lands it at the end; this writes it into its new position in
   one step. Pushing a block entity at all is a Bedrock allowance Java does not have.
@@ -399,12 +340,10 @@ Both affect what you will see.
   region is 21 by 21 chunks rather than a disc.
 - **The world random is `Math.random`,** not Java's `LegacyRandomSource`, so nothing that depends on
   a draw matches vanilla bit for bit even when every rule around it does.
-- **Bubble columns are not implemented,** and neither is the redstone torch's "might or might not
-  turn itself back on" behavior (MC-120938), which is a Java bug with no specified outcome.
+- **Bubble columns are not implemented.**
 
-The package READMEs carry the full lists:
-[`@jsprismarine/engine-systems`](../../packages/engine-systems/README.md) has a "what is not
-reproduced" section under each system, and
-[`@jsprismarine/lighting`](../../packages/lighting/README.md) explains its deliberate Bedrock
-choices. [parity.md](parity.md) describes how the project's parity claim is tested, including the
-allow list for rows that depend on a draw.
+The [`@jsprismarine/engine-systems`](../../packages/engine-systems/README.md) README describes the
+scheduler, signal model, random tick driver, explosions, and weather cycle. The
+[`@jsprismarine/lighting`](../../packages/lighting/README.md) README explains its deliberate
+Bedrock choices. [parity.md](parity.md) describes how the project's parity claim is tested,
+including the allow list for rows that depend on a draw.
