@@ -22,14 +22,13 @@ import type { ServerContent } from '../content/ServerContent';
 /**
  * The commands this server does not advertise, and what each one would need.
  *
- * Keyed by command name so a reader can answer "why can I not use /effect"
+ * Keyed by command name so a reader can answer "why is this command unavailable"
  * from one place, and so the gap closes by deleting a row rather than by
  * finding the filter.
  */
 export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     attribute: "attribute modifiers; this server's `Attribute` holds one value and no modifier stack",
     data: 'reading and writing NBT by path',
-    effect: 'a status effect system; `MobEffectPacket` is a wire type with nothing behind it',
     item: 'item modifiers and Java-addressable inventory slots',
     place: 'feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk',
     ride: 'entity riding outside the data-driven entity runtime'
@@ -47,8 +46,8 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
  *
  * The registries left out fail that test for their own reasons.
  * `minecraft:damage_type` has no registry on this server at all, and
- * `/effect` is unwired, so `minecraft:mob_effect` is never dispatched;
- * Mojang's list is the only list either has. `minecraft:attribute`,
+ * `minecraft:mob_effect` uses Mojang's published list because the host keeps
+ * no custom effect registry. `minecraft:attribute`,
  * `minecraft:particle_type` and `minecraft:worldgen/biome` are not validated
  * by anybody: Bedrock publishes no enum for them, so they already reach a
  * command body as an unchecked string.

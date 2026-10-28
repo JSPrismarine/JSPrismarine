@@ -175,10 +175,10 @@ has loaded **in addition to** Mojang's published list, not instead of it. So `/s
 works once your pack defines it, and a vanilla name still works even on a build that happens not to
 carry it. The client completes from the union.
 
-Three registries stay pinned to Mojang's list because nothing here can extend them: damage types,
-which this server has no registry for, and mob effects, whose `/effect` is unwired. Attributes,
-particles and biomes are validated by nobody in either direction, because Bedrock publishes no enum
-for them, so those arguments take any string.
+Damage types stay pinned to Mojang's list because this server has no registry for them. Mob effects
+use Mojang's published list because the host has no custom effect registry. Attributes, particles,
+and biomes are validated by nobody in either direction, because Bedrock publishes no enum for them,
+so those arguments take any string.
 
 One consequence worth knowing: `/summon villager` gives you `minecraft:villager_v2`, Bedrock's
 current villager, rather than the pre-1.11 entity whose name Mojang's enum still carries. The

@@ -5,6 +5,7 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import Player from '../Player';
 import type Server from '../Server';
 import type { Attribute } from '../entity/Attribute';
+import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Entity } from '../entity/Entity';
 import BlockPosition from '../world/BlockPosition';
 import { toNetworkGameRule } from '../world/GameRuleManager';
@@ -382,6 +383,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 .getPlayers()
                 .filter((player) => player.getNetworkSession().tracks(runtimeId))
                 .map(async (player) => player.getNetworkSession().sendAttributesFor(entity, attributes))
+        );
+    }
+
+    /** @inheritdoc */
+    public async statusEffectChanged(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+        const runtimeId = entity.getRuntimeId();
+        await Promise.all(
+            this.world
+                .getPlayers()
+                .filter((player) => player.getNetworkSession().tracks(runtimeId))
+                .map((player) => player.getNetworkSession().sendStatusEffect(entity, effect, change))
         );
     }
 

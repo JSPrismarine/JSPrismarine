@@ -667,6 +667,7 @@ export default class Player extends Human {
         // local player it had while it is spawning, taking health, hunger and breath with it.
         await this.getNetworkSession().sendAttributes();
         await this.getNetworkSession().sendMetadata();
+        await this.getNetworkSession().sendStatusEffects(this);
     }
 
     /**

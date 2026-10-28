@@ -229,7 +229,9 @@ so nothing can finish them. `adventure/sleep_in_bed`, `adventure/hero_of_the_vil
 `husbandry/fishy_business`, `nether/brew_potion`, `nether/create_beacon` and
 `story/cure_zombie_villager` are among them.
 
-The missing subsystems are the whole explanation. There is no status effect system, so
+The remaining missing subsystems are the whole explanation. The server now tracks active status
+effects, supports `/effect`, applies item actions that add or remove effects, and reads them in
+entity filters. Periodic effect behavior and advancement hooks are still missing, so
 `effects_changed`, `levitation` and `used_totem` cannot fire. There is no brewing, beacon, fishing,
 breeding, taming, riding, trading, shearing or sleeping. There is no recipe book, so
 `recipe_unlocked` has nothing to unlock, and no container loot generation, so

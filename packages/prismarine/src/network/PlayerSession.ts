@@ -26,6 +26,8 @@ import { vanillaPermissionOf } from '../command/CommandManager';
 import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
+import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
+import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '../entity/Metadata';
 import type Human from '../entity/Human';
 import type { Item as ItemEntity } from '../entity/other/Item';
@@ -56,6 +58,7 @@ import InventorySlotPacket from './packet/InventorySlotPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import MobEffectPacket, { MobEffectEvent } from './packet/MobEffectPacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
@@ -1651,6 +1654,39 @@ export default class PlayerSession {
         if (Object.values(entity.getEquipment()).some((item) => item !== undefined)) {
             await this.sendEquipmentFor(entity);
         }
+
+        await this.sendStatusEffects(entity);
+    }
+
+    /**
+     * Sends every active effect after the actor that owns them has spawned.
+     * @param {Entity} entity - The spawned actor.
+     */
+    public async sendStatusEffects(entity: Entity): Promise<void> {
+        for (const effect of entity.getStatusEffects()) await this.sendStatusEffect(entity, effect, 'add');
+    }
+
+    /**
+     * Sends one effect state change to this client.
+     * @param {Entity} entity - The actor whose effect changed.
+     * @param {StatusEffect} effect - The effect state.
+     * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
+     */
+    public async sendStatusEffect(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+        const effectId = bedrockMobEffectId(effect.id);
+        if (effectId === undefined) return;
+
+        const packet = new MobEffectPacket();
+        packet.targetRuntimeId = entity.getRuntimeId();
+        packet.eventId =
+            change === 'add' ? MobEffectEvent.Add : change === 'update' ? MobEffectEvent.Update : MobEffectEvent.Remove;
+        packet.effectId = effectId;
+        packet.effectAmplifier = effect.amplifier;
+        packet.showParticles = effect.showParticles;
+        packet.effectDurationTicks = effect.durationTicks;
+        packet.tick = entity === this.player ? this.lastInputTick : 0n;
+        packet.ambient = effect.ambient;
+        await this.send(packet);
     }
 
     /**
@@ -1930,6 +1966,7 @@ export default class PlayerSession {
         // player into view as a packet of its own - otherwise everybody else sees them in their
         // shirtsleeves however well equipped they are.
         await player.getNetworkSession().sendArmorFor(this.player);
+        await player.getNetworkSession().sendStatusEffects(this.player);
     }
 
     /**

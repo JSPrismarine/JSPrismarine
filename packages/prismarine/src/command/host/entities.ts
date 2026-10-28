@@ -17,6 +17,7 @@ import type Server from '../../Server';
 import { AttributeIds } from '../../entity/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
+import { normalizeStatusEffectId } from '../../entity/StatusEffect';
 import type { Entity } from '../../entity/Entity';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
@@ -328,8 +329,26 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             return carryOut(player.getNetworkSession().sendInventory(), removed);
         },
 
-        addEffect: () => unsupported('status effect system'),
-        clearEffect: () => unsupported('status effect system'),
+        addEffect: (ref, effect, seconds, amplifier, hideParticles) => {
+            const entity = resolveEntity(server, ref);
+            if (entity === undefined) return false;
+
+            const id = normalizeStatusEffectId(effect);
+            if (seconds === 0) return entity.removeStatusEffect(id);
+            return entity.addStatusEffect({
+                id,
+                durationTicks: Math.min(seconds, 1_000_000) * 20,
+                amplifier,
+                showParticles: !hideParticles,
+                showIcon: !hideParticles
+            });
+        },
+        clearEffect: (ref, effect) => {
+            const entity = resolveEntity(server, ref);
+            if (entity === undefined) return 0;
+            if (effect === undefined) return entity.clearStatusEffects();
+            return entity.removeStatusEffect(normalizeStatusEffectId(effect)) ? 1 : 0;
+        },
 
         enchant: (ref, enchantment, level) => {
             const player = resolvePlayer(server, ref);

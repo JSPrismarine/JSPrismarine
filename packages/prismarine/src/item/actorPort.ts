@@ -23,6 +23,7 @@ import ContainerEntry from '../inventory/ContainerEntry';
 import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
+import { normalizeStatusEffectId } from '../entity/StatusEffect';
 import { Item } from './Item';
 import { itemFromContent } from './itemFromContent';
 import Player from '../Player';
@@ -31,8 +32,15 @@ import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import type { EntityItemInteraction } from '../entity/data/itemInteraction';
+import type { ContentTags } from '../content/tags';
 import type { ItemStack } from '@jsprismarine/items';
-import type { EquipmentSlot, ItemSource, LaunchProjectileAction, SourceState } from '@jsprismarine/item-behaviors';
+import type {
+    EquipmentSlot,
+    HolderSet,
+    ItemSource,
+    LaunchProjectileAction,
+    SourceState
+} from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
 
 /** The live world whose entities and players this port acts on. */
@@ -110,6 +118,12 @@ const causeOf = (damageType: string): DamageCause =>
 
 /** One cooldown, keyed by the entity and the group `minecraft:use_cooldown` names. */
 const cooldownKey = (runtimeId: number, group: string): string => `${runtimeId}:${group}`;
+
+/** Whether one effect belongs to a holder set in the current content stack. */
+const effectInHolderSet = (effects: HolderSet, identifier: string, tags: ContentTags): boolean =>
+    effects.kind === 'entries'
+        ? effects.entries.some((entry) => normalizeStatusEffectId(entry) === identifier)
+        : tags.includes('mob_effect', effects.tag.includes(':') ? effects.tag : `minecraft:${effects.tag}`, identifier);
 
 /**
  * Whether the point an entity reports is in water.
@@ -452,9 +466,35 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                     missing(action, 'a live data-driven projectile runtime');
                 return;
             }
-            case 'apply-effects':
-            case 'remove-effects':
-                return missing(action, 'a status effect system');
+            case 'apply-effects': {
+                const target = entityOf(action.target);
+                if (target === null) return;
+                for (const effect of action.effects) {
+                    target.addStatusEffect({
+                        id: effect.id,
+                        durationTicks: effect.durationTicks,
+                        amplifier: effect.amplifier,
+                        showParticles: true,
+                        showIcon: effect.showIcon
+                    });
+                }
+                return;
+            }
+            case 'remove-effects': {
+                const target = entityOf(action.target);
+                if (target === null) return;
+                if (action.effects === undefined) {
+                    target.clearStatusEffects();
+                    return;
+                }
+
+                const tags = world()?.getServer().getContent().tags;
+                if (tags === undefined) return;
+                for (const effect of target.getStatusEffects()) {
+                    if (effectInHolderSet(action.effects, effect.id, tags)) target.removeStatusEffect(effect.id);
+                }
+                return;
+            }
             case 'grant-experience':
                 return missing(action, 'a player experience bar');
             case 'attach-lead': {
@@ -528,8 +568,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 gliding: false,
                 inWaterOrRain: entity !== null && loaded !== undefined ? inWater(loaded, entity) : false,
                 fallDistance: player?.getFallDistance() ?? 0,
-                // This server runs no status effect system, so nothing has any.
-                effects: [],
+                effects: entity?.getStatusEffects().map(({ id, amplifier }) => ({ id, amplifier })) ?? [],
                 cooldownGroups: waiting,
                 foodLevel: player?.getFood() ?? 20
             };

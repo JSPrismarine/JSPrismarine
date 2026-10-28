@@ -25,6 +25,7 @@ import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { ITEM_POSITION_OFFSET, Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
+import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { GenericEntity } from '../entity/GenericEntity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { storedInventory } from '../inventory/persistence';
@@ -1241,6 +1242,16 @@ export class World implements Service {
      */
     public async sendActorEvent(entity: Entity, event: ActorEvent, data = 0): Promise<void> {
         await this.changes.actorEffect(entity, event, data);
+    }
+
+    /**
+     * Tells clients tracking an entity about one status effect change.
+     * @param {Entity} entity - The actor whose effect changed.
+     * @param {StatusEffect} effect - The effect state.
+     * @param {StatusEffectChange} change - Whether it was added, updated, or removed.
+     */
+    public async sendStatusEffect(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
+        await this.changes.statusEffectChanged?.(entity, effect, change);
     }
 
     /**

@@ -4,6 +4,7 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Player from '../Player';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
+import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 // TODO: `ActorEvent` belongs beside `LevelEvent` and `LevelSoundEvent` in
 // `@jsprismarine/minecraft`. It is the same kind of thing - a protocol constant - and is only
 // declared next to the packet that carries it, which is why the world has to reach into the
@@ -135,6 +136,15 @@ export interface WorldChangeSink {
     entityAttributesChanged(entity: Entity, attributes: Attribute[]): Promise<void>;
 
     /**
+     * An entity's active effect was added, refreshed, or removed.
+     * @param {Entity} entity - The affected actor.
+     * @param {StatusEffect} effect - The effect state that changed.
+     * @param {StatusEffectChange} change - What happened to the effect.
+     * @returns {Promise<void>} Resolves once the change is on its way.
+     */
+    statusEffectChanged?(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void>;
+
+    /**
      * An entity now looks different: alight, swelling, sneaking.
      *
      * The other half of {@link entityAttributesChanged}, and missing for the same reason. Sent
@@ -253,6 +263,7 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     actorEffect: async () => {},
     actorSound: () => {},
     entityAttributesChanged: async () => {},
+    statusEffectChanged: async () => {},
     entityMetadataChanged: async () => {},
     entityEquipmentChanged: async () => {},
     entityAdded: async () => {},
