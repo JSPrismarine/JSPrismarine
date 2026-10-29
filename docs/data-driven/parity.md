@@ -66,6 +66,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |
 | `loot` | tables, distribution | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
 | `entities` | stats, addactor | The nine shared mob stats against Java's attribute dump; a packet row per actor type |
+| `integration` | tags, entity-runtime, entity-coverage, client-packets | Loaded tags through resolved registries; a representative entity behavior; every composed entity declaration through runtime spawn and tick; client join payloads |
 | `worldgen` | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns, and the generation corpus: this server's own chunk output recorded at a named commit |
 | `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
 | `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |

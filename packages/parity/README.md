@@ -22,7 +22,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `recipes.*`     | registry                            | Java recipe files parsed and compiled through the mapping                                                             |
 | `loot.*`        | tables, distribution                | Java loot tables parsed with references resolved; rolled counts against each table's declared weights                |
 | `entities.*`    | stats, addactor                     | Shared mob stats against Java's attribute dump; a packet row per advertised actor                                     |
-| `integration.*` | tags, entity-runtime, client-packets | Every loaded tag through resolved registries and biome world views; a data-driven mob tick; content-derived join payloads |
+| `integration.*` | tags, entity-runtime, entity-coverage, client-packets | Every loaded tag through resolved registries and biome world views; a data-driven mob tick; every composed entity declaration through runtime spawn and tick; content-derived join payloads |
 | `worldgen.*`    | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns; and the generation corpus, this server's own output recorded at a named commit |
 | `commands.*`    | tree                                | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `conformance.*` | claim, classification, exclusions   | The claim, the table it counts, and the eight exclusions                                                              |
@@ -174,6 +174,14 @@ report establishes the baseline; later reports call out whether open gaps or mea
 increased or fell. The updater searches every comment page for its marker and edits the existing
 bot comment in place. The renderer is a pure function with its own tests,
 [`src/dashboard/render.ts`](src/dashboard/render.ts).
+
+The entity coverage row reports per-entity counts for hook-backed, data-only, trigger, goal, and
+registered no-hook components, plus the active component and goal counts after spawn. It also
+reports entity/component pairs for registered components without direct hooks, and entity-specific
+identifiers for unimplemented components and runtime reports. No-hook identifiers are grouped by
+namespace in the metric label, such as `minecraft[physics,collision_box]`. These measurements are non-gating;
+the comparison still gates on source/runtime mismatches, undeclared active components, unimplemented
+components, spawn/tick failures, and entity definition errors.
 
 ## Adding a comparison
 

@@ -1,4 +1,5 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
+import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
 import {
     bedrockBiomeToJava,
     bedrockBlockStateToJava,
@@ -35,6 +36,28 @@ import type { ServerWorldAdapter } from '@jsprismarine/prismarine/content/world/
 interface RealStack {
     readonly content: ServerContent;
     readonly runtime: EntityRuntime;
+    readonly reports: EntityRuntimeReport[];
+    readonly reportContext: EntityReportContext;
+}
+
+interface EntityRuntimeReport {
+    readonly identifier: string | undefined;
+    readonly message: string;
+}
+
+interface EntityReportContext {
+    identifier: string | undefined;
+}
+
+interface EntityCoverageCounts {
+    declared: number;
+    hookBacked: number;
+    dataOnly: number;
+    triggers: number;
+    goals: number;
+    unimplemented: number;
+    spawnActive: number;
+    spawnActiveGoals: number;
 }
 
 let builtStack: RealStack | undefined;
@@ -45,6 +68,8 @@ const realStack = (): RealStack => {
 
     const world = new TestEntityWorld();
     let content: ServerContent | undefined;
+    const reports: EntityRuntimeReport[] = [];
+    const reportContext: EntityReportContext = { identifier: undefined };
     const runtime = new EntityRuntime({
         content: () => {
             if (content === undefined) throw new Error('the entity runtime was read before the content build finished');
@@ -52,7 +77,7 @@ const realStack = (): RealStack => {
         },
         world: world.world,
         host: world.host,
-        report: () => undefined
+        report: (message) => reports.push({ identifier: reportContext.identifier, message })
     });
     const adapter: ServerWorldAdapter = {
         ...world.world,
@@ -61,7 +86,7 @@ const realStack = (): RealStack => {
     };
 
     content = buildServerContent({ world: singleDimension(adapter) });
-    builtStack = { content, runtime };
+    builtStack = { content, runtime, reports, reportContext };
 
     return builtStack;
 };
@@ -442,6 +467,245 @@ describeFamily(FAMILIES.integrationEntityRuntime, REAL_STACK_REFERENCES, () => {
         expect(cube.body.velocity.x).toBeGreaterThan(0);
         expect(cube.body.velocity.y).toBeGreaterThan(0);
         runtime.remove(cube.id, 'parity runtime check complete');
+    });
+});
+
+/** Groups component names by namespace so per-entity dashboard details stay compact. */
+const groupComponentNamesByNamespace = (identifiers: readonly string[]): string => {
+    const namesByNamespace = new Map<string, string[]>();
+
+    for (const identifier of identifiers) {
+        const separator = identifier.indexOf(':');
+        const namespace = separator < 0 ? '' : identifier.slice(0, separator);
+        const name = separator < 0 ? identifier : identifier.slice(separator + 1);
+        const names = namesByNamespace.get(namespace) ?? [];
+        names.push(name);
+        namesByNamespace.set(namespace, names);
+    }
+
+    return [...namesByNamespace]
+        .toSorted(([left], [right]) => left.localeCompare(right))
+        .map(([namespace, names]) => `${namespace}[${names.toSorted().join(',')}]`)
+        .join(';');
+};
+
+/** Compares every entity declaration with its resolved type, component path, and live spawn/tick. */
+const compareEntityRuntimeCoverage = (stack: RealStack): { gaps: string[]; measurements: Record<string, number> } => {
+    const { content, runtime, reports, reportContext } = stack;
+    const source = content.definitions.entities;
+    const types = content.entities.registry;
+    const components = content.entities.components;
+    const dataComponents = new Set(DATA_COMPONENTS);
+    const triggerComponents = new Set<string>(TRIGGER_COMPONENTS);
+    const sourceIdentifiers = [...source.keys()].sort();
+    const gaps: string[] = [];
+    const declaredComponents = new Set<string>();
+    const unimplementedEntities = new Set<string>();
+    const runtimeIdentifiers = new Set([...types].map(([identifier]) => identifier));
+    const measurements: Record<string, number> = {};
+    const entityCoverage = new Map<string, EntityCoverageCounts>();
+    let spawnedTypes = 0;
+    let tickedTypes = 0;
+    let missingRuntimeTypes = 0;
+    let runtimeTypesWithoutDeclarations = 0;
+    let unimplementedComponentDeclarations = 0;
+    let dataOnlyComponentDeclarations = 0;
+    let triggerComponentDeclarations = 0;
+    let goalComponentDeclarations = 0;
+    let registeredComponentDeclarationsWithoutHooks = 0;
+    let tick = 0;
+
+    reports.length = 0;
+    reportContext.identifier = undefined;
+
+    for (const identifier of runtimeIdentifiers) {
+        if (!source.has(identifier)) {
+            runtimeTypesWithoutDeclarations += 1;
+            gaps.push(`runtime-type-without-declaration:${identifier}`);
+        }
+    }
+
+    for (const identifier of sourceIdentifiers) {
+        const type = types.get(identifier);
+        if (type === undefined) {
+            missingRuntimeTypes += 1;
+            gaps.push(`missing-runtime-type:${identifier}`);
+            continue;
+        }
+
+        for (const component of type.declaredComponents) declaredComponents.add(component);
+        const coverage = {
+            declared: type.declaredComponents.length,
+            hookBacked: 0,
+            dataOnly: 0,
+            triggers: 0,
+            goals: 0,
+            unimplemented: 0,
+            spawnActive: 0,
+            spawnActiveGoals: 0
+        };
+        entityCoverage.set(identifier, coverage);
+        const unimplementedComponents: string[] = [];
+        const registeredNoHookComponents: string[] = [];
+
+        for (const component of type.unimplementedComponents) {
+            unimplementedEntities.add(identifier);
+            unimplementedComponentDeclarations += 1;
+            coverage.unimplemented += 1;
+            unimplementedComponents.push(component);
+            gaps.push(`unimplemented-component:${identifier}:${component}`);
+        }
+
+        if (unimplementedComponents.length > 0) {
+            measurements[`entity:${identifier}:unimplemented-components:${unimplementedComponents.join(',')}`] =
+                unimplementedComponents.length;
+        }
+
+        for (const component of type.declaredComponents) {
+            const hooks = components.hooksOf(component);
+            if (!components.has(component)) continue;
+            if (triggerComponents.has(component)) {
+                coverage.triggers += 1;
+                triggerComponentDeclarations += 1;
+            } else if (component.startsWith('minecraft:behavior.')) {
+                coverage.goals += 1;
+                goalComponentDeclarations += 1;
+            } else if (dataComponents.has(component)) {
+                coverage.dataOnly += 1;
+                dataOnlyComponentDeclarations += 1;
+            } else if (hooks.size > 0) {
+                coverage.hookBacked += 1;
+            } else {
+                registeredComponentDeclarationsWithoutHooks += 1;
+                registeredNoHookComponents.push(component);
+            }
+        }
+
+        if (registeredNoHookComponents.length > 0) {
+            const names = groupComponentNamesByNamespace(registeredNoHookComponents);
+            measurements[`entity:${identifier}:registered-no-hook-components:${names}`] =
+                registeredNoHookComponents.length;
+        }
+
+        const data = type.declaredComponents.includes('jsprismarine:falling_block')
+            ? { block: 'minecraft:stone' }
+            : undefined;
+        let entity: ReturnType<EntityRuntime['spawn']>;
+        reportContext.identifier = identifier;
+        try {
+            entity = runtime.spawn(
+                identifier,
+                { x: spawnedTypes * 4 + 0.5, y: 64.5, z: 0.5 },
+                data === undefined ? {} : { data }
+            );
+        } catch (error) {
+            gaps.push(`spawn-failed:${identifier}:${error instanceof Error ? error.message : String(error)}`);
+            reportContext.identifier = undefined;
+            continue;
+        }
+        if (entity === undefined) {
+            gaps.push(`spawn-failed:${identifier}:runtime returned no entity`);
+            reportContext.identifier = undefined;
+            continue;
+        }
+
+        spawnedTypes += 1;
+        if (entity.identifier !== identifier) gaps.push(`spawned-wrong-type:${identifier}:${entity.identifier}`);
+        const activeComponentNames = entity.instance.activeComponents().toSorted();
+        const activeGoalNames = entity.instance.goals.names().toSorted();
+        const componentCoverage = entityCoverage.get(identifier);
+        if (componentCoverage !== undefined) {
+            componentCoverage.spawnActive = activeComponentNames.length;
+            componentCoverage.spawnActiveGoals = activeGoalNames.length;
+        }
+        const declaredComponentsForEntity = new Set(type.declaredComponents);
+        for (const component of activeComponentNames) {
+            if (!declaredComponentsForEntity.has(component)) {
+                gaps.push(`active-component-without-declaration:${identifier}:${component}`);
+            }
+        }
+        for (const goal of activeGoalNames) {
+            if (!declaredComponentsForEntity.has(goal))
+                gaps.push(`active-goal-without-declaration:${identifier}:${goal}`);
+        }
+        try {
+            runtime.tick(++tick);
+            tickedTypes += 1;
+        } catch (error) {
+            gaps.push(`tick-failed:${identifier}:${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            runtime.remove(entity.id, 'parity entity coverage check complete');
+            reportContext.identifier = undefined;
+        }
+    }
+
+    const componentTypes = [...declaredComponents];
+    const componentsWithHooks = componentTypes.filter((component) => components.hooksOf(component).size > 0);
+    const definitionErrors = content.diagnostics.filter(
+        (diagnostic) =>
+            diagnostic.severity === 'error' &&
+            (diagnostic.code.startsWith('entity.') || diagnostic.code.startsWith('component.'))
+    );
+    for (const diagnostic of definitionErrors) {
+        gaps.push(`definition-error:${diagnostic.code}:${diagnostic.path ?? diagnostic.message}`);
+    }
+
+    for (const report of reports) {
+        const identifier = report.identifier ?? 'unattributed';
+        const message = report.message
+            .replace(/[\r\n|]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const name = `entity:${identifier}:runtime-report:${message}`;
+        measurements[name] = (measurements[name] ?? 0) + 1;
+    }
+
+    const componentTypesWithTriggerSemantics = new Set(
+        componentTypes.filter((component) => triggerComponents.has(component))
+    );
+    const componentsWithoutDirectHooks = componentTypes.filter((component) => components.hooksOf(component).size === 0);
+    for (const [identifier, coverage] of entityCoverage) {
+        const summary = Object.entries(coverage)
+            .map(([category, count]) => `${category}=${count}`)
+            .join(',');
+        measurements[`entity:${identifier}:component-coverage:${summary}`] = coverage.declared;
+    }
+
+    return {
+        gaps,
+        measurements: {
+            ...measurements,
+            sourceEntityDeclarations: source.size,
+            runtimeEntityTypes: types.size,
+            sourceEntityTypesWithoutRuntimeTypes: missingRuntimeTypes,
+            runtimeEntityTypesWithoutSourceDeclarations: runtimeTypesWithoutDeclarations,
+            runtimeEntitySpawns: spawnedTypes,
+            runtimeEntityTicks: tickedTypes,
+            declaredEntityComponentTypes: componentTypes.length,
+            componentTypesWithHooks: componentsWithHooks.length,
+            componentTypesWithTriggerSemantics: componentTypesWithTriggerSemantics.size,
+            componentTypesWithoutDirectHooks: componentsWithoutDirectHooks.length,
+            dataOnlyComponentDeclarations,
+            triggerComponentDeclarations,
+            goalComponentDeclarations,
+            registeredComponentDeclarationsWithoutHooks,
+            entitiesWithUnimplementedComponents: unimplementedEntities.size,
+            unimplementedComponentDeclarations,
+            entityDefinitionErrors: definitionErrors.length,
+            entityRuntimeReports: reports.length
+        }
+    };
+};
+
+describeFamily(FAMILIES.integrationEntityCoverage, REAL_STACK_REFERENCES, () => {
+    it('resolves and runs every entity declaration in the composed vanilla stack', { timeout: 180_000 }, () => {
+        const stack = realStack();
+        const comparison = compareEntityRuntimeCoverage(stack);
+        const verdict = checkAllowList(FAMILIES.integrationEntityCoverage, comparison.gaps);
+
+        reportParityProgress(FAMILIES.integrationEntityCoverage, comparison.measurements);
+        expect(verdict.unexpected).toEqual([]);
+        expect(verdict.stale).toEqual([]);
     });
 });
 
