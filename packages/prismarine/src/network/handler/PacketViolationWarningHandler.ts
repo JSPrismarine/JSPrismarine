@@ -24,6 +24,7 @@ const packetNameOf = (id: number): string | null =>
  */
 export default class PacketViolationWarningHandler implements PacketHandler<PacketViolationWarningPacket> {
     public static PacketName = 'PacketViolationWarningPacket';
+    public readonly phases = ['resourcePacks', 'play'] as const;
 
     /** Logs who complained, which packet, how badly, and the client's own words. */
     public handle(packet: PacketViolationWarningPacket, server: Server, session: PlayerSession): void {

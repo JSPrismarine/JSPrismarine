@@ -13,6 +13,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class SimpleEventHandler implements PacketHandler<SimpleEventPacket> {
     public static PacketName = 'SimpleEventPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs which request the client made. */
     public handle(packet: SimpleEventPacket, server: Server, session: PlayerSession): void {

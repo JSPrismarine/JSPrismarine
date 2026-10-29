@@ -9,11 +9,11 @@ import { PlayStatusPacket } from '../Packets';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import PlayStatus from '../type/PlayStatus';
-import type PreLoginPacketHandler from './PreLoginPacketHandler';
+import type ConnectionPacketHandler from './ConnectionPacketHandler';
 
-export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
+export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
     public static PacketName = 'LoginPacket';
-    public readonly preLogin = true;
+    public readonly phases = ['login'] as const;
 
     /**
      * Says what was refused and what the login actually carried.
@@ -155,6 +155,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             await connection.closePlayerSession();
             throw error;
         }
+
+        // The login became a player session, so the resource pack exchange owns the
+        // connection from here.
+        connection.phase = 'resourcePacks';
 
         await session.sendPlayStatus(PlayStatus.LoginSuccess);
 

@@ -15,6 +15,7 @@ import type Server from '../../Server';
  */
 export default class RequestChunkRadiusHandler implements PacketHandler<RequestChunkRadiusPacket> {
     public static PacketName = 'RequestChunkRadiusPacket';
+    public readonly phases = ['play'] as const;
 
     /** Grants a radius and records the exchange at debug level, since the join hinges on it. */
     public async handle(packet: RequestChunkRadiusPacket, server: Server, session: PlayerSession): Promise<void> {

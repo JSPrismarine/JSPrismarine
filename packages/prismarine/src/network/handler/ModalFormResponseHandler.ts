@@ -15,6 +15,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ModalFormResponseHandler implements PacketHandler<ModalFormResponsePacket> {
     public static PacketName = 'ModalFormResponsePacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the form id with either the JSON or the cancel reason, and never throws. */
     public handle(packet: ModalFormResponsePacket, server: Server, session: PlayerSession): void {

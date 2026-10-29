@@ -14,6 +14,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayerGameTypePacket> {
     public static PacketName = 'SetPlayerGameTypePacket';
+    public readonly phases = ['play'] as const;
 
     /** Applies the requested game type, or resends the current one when the request is refused. */
     public async handle(packet: SetPlayerGameTypePacket, server: Server, session: PlayerSession): Promise<void> {

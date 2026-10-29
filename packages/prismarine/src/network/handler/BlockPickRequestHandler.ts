@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class BlockPickRequestHandler implements PacketHandler<BlockPickRequestPacket> {
     public static PacketName = 'BlockPickRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the picked position. */
     public handle(packet: BlockPickRequestPacket, server: Server, session: PlayerSession): void {

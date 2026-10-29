@@ -18,6 +18,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class SetPlayerInventoryOptionsHandler implements PacketHandler<SetPlayerInventoryOptionsPacket> {
     public static PacketName = 'SetPlayerInventoryOptionsPacket';
+    public readonly phases = ['play'] as const;
 
     /** Accepts the packet without acting on it; see the class comment. */
     public handle(_packet: SetPlayerInventoryOptionsPacket, _server: Server, _session: PlayerSession): void {

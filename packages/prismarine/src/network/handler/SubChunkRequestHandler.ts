@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class SubChunkRequestHandler implements PacketHandler<SubChunkRequestPacket> {
     public static PacketName = 'SubChunkRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the center and how many sub chunks were asked for. */
     public handle(packet: SubChunkRequestPacket, server: Server, session: PlayerSession): void {

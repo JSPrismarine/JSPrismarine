@@ -11,6 +11,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class MapCreateLockedCopyHandler implements PacketHandler<MapCreateLockedCopyPacket> {
     public static PacketName = 'MapCreateLockedCopyPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the map being copied and the id asked for. */
     public handle(packet: MapCreateLockedCopyPacket, server: Server, session: PlayerSession): void {

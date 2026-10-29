@@ -18,6 +18,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class CommandRequestHandler implements PacketHandler<CommandRequestPacket> {
     public static PacketName = 'CommandRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Dispatches the command as the player who sent it and answers with its outcome. */
     public async handle(packet: CommandRequestPacket, server: Server, session: PlayerSession): Promise<void> {

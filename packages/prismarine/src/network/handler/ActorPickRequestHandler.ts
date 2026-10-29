@@ -11,6 +11,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ActorPickRequestHandler implements PacketHandler<ActorPickRequestPacket> {
     public static PacketName = 'ActorPickRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the picked actor. */
     public handle(packet: ActorPickRequestPacket, server: Server, session: PlayerSession): void {

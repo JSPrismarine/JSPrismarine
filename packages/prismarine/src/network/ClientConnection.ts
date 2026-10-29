@@ -7,6 +7,7 @@ import assert from 'assert';
 import MinecraftSession from './MinecraftSession';
 import { DisconnectPacket } from './Packets';
 import type { PacketLogFilter } from './PacketLogFilter';
+import type { SessionPhase } from './SessionPhase';
 import type { RakNetTransportConnection } from './transport/RakNetTransport';
 
 /**
@@ -17,6 +18,13 @@ import type { RakNetTransportConnection } from './transport/RakNetTransport';
 export default class ClientConnection extends MinecraftSession {
     private playerSession: PlayerSession | null = null;
     public hasCompression = false;
+
+    /**
+     * Where this connection stands in the join exchange. Advanced by the handler that
+     * completes each step; the dispatcher drops a packet whose handler does not accept
+     * the current phase.
+     */
+    public phase: SessionPhase = 'handshake';
 
     public constructor(
         private readonly transportConnection: RakNetTransportConnection,

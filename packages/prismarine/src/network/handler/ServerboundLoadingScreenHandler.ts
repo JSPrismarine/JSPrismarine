@@ -14,6 +14,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ServerboundLoadingScreenHandler implements PacketHandler<ServerboundLoadingScreenPacket> {
     public static PacketName = 'ServerboundLoadingScreenPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs which screen opened or closed, and closes a dimension change's screen on the session. */
     public handle(packet: ServerboundLoadingScreenPacket, server: Server, session: PlayerSession): void {

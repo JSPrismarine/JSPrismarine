@@ -6,10 +6,10 @@ import type Server from '../Server';
 import Timer from '../utils/Timer';
 import Codec2193 from './codec/Codec2193';
 import type PacketHandler from './handler/PacketHandler';
-import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
+import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
 
-/** Either handler kind the registry holds. Which one applies depends on whether the connection has logged in. */
-type RegisteredHandler = PacketHandler<any> | PreLoginPacketHandler<any>;
+/** Either handler kind the registry holds. Which one applies depends on the phases the handler declares. */
+type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any>;
 
 export default class PacketRegistry {
     private server: Pick<Server, 'getLogger'>;
@@ -94,6 +94,9 @@ export default class PacketRegistry {
      */
     public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
         const res = new (class Handler {
+            /** The merged handler runs where the first one did. */
+            public readonly phases = handler.phases;
+
             public async handle(packet: any, server: Server, session: PlayerSession) {
                 await handler.handle(packet, server, session);
                 await handler2.handle(packet, server, session);

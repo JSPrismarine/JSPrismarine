@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ClientCacheStatusHandler implements PacketHandler<ClientCacheStatusPacket> {
     public static PacketName = 'ClientCacheStatusPacket';
+    public readonly phases = ['resourcePacks', 'play'] as const;
 
     /** Records the offer at debug level and sends nothing back. */
     public async handle(packet: ClientCacheStatusPacket, server: Server, session: PlayerSession): Promise<void> {

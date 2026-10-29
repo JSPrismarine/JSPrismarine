@@ -13,6 +13,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ResourcePacksReadyForValidationHandler implements PacketHandler<ResourcePacksReadyForValidationPacket> {
     public static PacketName = 'ResourcePacksReadyForValidationPacket';
+    public readonly phases = ['resourcePacks'] as const;
 
     /** Logs the report; the packet has no fields to check and needs no answer. */
     public handle(_packet: ResourcePacksReadyForValidationPacket, server: Server, session: PlayerSession): void {

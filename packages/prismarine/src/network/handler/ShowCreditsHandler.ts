@@ -13,6 +13,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPacket> {
     public static PacketName = 'ShowCreditsPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the credits state the client reported. */
     public handle(packet: ShowCreditsPacket, server: Server, session: PlayerSession): void {

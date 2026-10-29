@@ -19,6 +19,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ServerSettingsRequestHandler implements PacketHandler<ServerSettingsRequestPacket> {
     public static PacketName = 'ServerSettingsRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the request and sends nothing back. */
     public handle(_packet: ServerSettingsRequestPacket, server: Server, session: PlayerSession): void {

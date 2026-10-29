@@ -15,6 +15,7 @@ import TextPacket from './packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketRegistry from './PacketRegistry';
 import type PlayerSession from './PlayerSession';
+import type { SessionPhase } from './SessionPhase';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
 import TextPacketType from './type/TextPacketType';
 
@@ -106,7 +107,10 @@ const frameOf = (packet: TextPacket) => {
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
 const makeDispatcher = (options?: {
     codec?: ProtocolCodec;
-    handler?: { preLogin?: true; handle: (packet: unknown, server: Server, target: unknown) => Promise<void> };
+    handler?: {
+        phases: readonly SessionPhase[];
+        handle: (packet: unknown, server: Server, target: unknown) => Promise<void>;
+    };
 }) => {
     const transport = new FakeTransport();
     const sessionManager = new SessionManager();
@@ -132,6 +136,7 @@ const makeDispatcher = (options?: {
             const connection = stub<ClientConnection>({
                 hasCompression: false,
                 codec: options?.codec ?? Codec2193,
+                phase: 'handshake',
                 getPlayerSession: () => null
             });
             built.push(connection);
@@ -189,11 +194,11 @@ describe('network', () => {
             );
         });
 
-        it('hands a pre-login handler the bare connection while no session exists', async () => {
+        it('hands a handshake-phase handler the bare connection', async () => {
             const targets: unknown[] = [];
             const { transport, built, server } = makeDispatcher({
                 handler: {
-                    preLogin: true,
+                    phases: ['handshake'],
                     handle: async (_packet, givenServer, target) => {
                         expect(givenServer).toBe(server);
                         targets.push(target);
@@ -207,29 +212,34 @@ describe('network', () => {
             expect(targets).toStrictEqual([built[0]]);
         });
 
-        it('drops a pre-login packet that arrives after login', async () => {
+        it('drops a handshake packet once the connection has left the handshake phase', async () => {
             const targets: unknown[] = [];
             const { transport, built, lines } = makeDispatcher({
-                handler: { preLogin: true, handle: async (_packet, _server, target) => void targets.push(target) }
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (_packet, _server, target) => void targets.push(target)
+                }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
+            built[0]!.phase = 'play';
             built[0]!.getPlayerSession = () => stub<PlayerSession>();
 
             await transport.emitFrame(frameOf(message('late')), address('a:1'));
 
             expect(targets).toHaveLength(0);
-            expect(lines.some(({ level, message: m }) => level === 'debug' && m.includes('received after login'))).toBe(
-                true
-            );
+            expect(
+                lines.some(({ level, message: m }) => level === 'debug' && m.includes('not accepted in the play phase'))
+            ).toBe(true);
         });
 
-        it('hands a post-login handler the player session once login has created one', async () => {
+        it('hands a play-phase handler the player session once login has created one', async () => {
             const session = stub<PlayerSession>();
             const targets: unknown[] = [];
             const { transport, built } = makeDispatcher({
-                handler: { handle: async (_packet, _server, target) => void targets.push(target) }
+                handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
+            built[0]!.phase = 'play';
             built[0]!.getPlayerSession = () => session;
 
             await transport.emitFrame(frameOf(message('chat')), address('a:1'));
@@ -237,12 +247,30 @@ describe('network', () => {
             expect(targets).toStrictEqual([session]);
         });
 
-        it('drops a post-login packet that arrives before login has completed', async () => {
+        it('drops a play packet that arrives before login has completed', async () => {
             const targets: unknown[] = [];
             const { transport, lines } = makeDispatcher({
-                handler: { handle: async (_packet, _server, target) => void targets.push(target) }
+                handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
+
+            await transport.emitFrame(frameOf(message('early')), address('a:1'));
+
+            expect(targets).toHaveLength(0);
+            expect(
+                lines.some(
+                    ({ level, message: m }) => level === 'debug' && m.includes('not accepted in the handshake phase')
+                )
+            ).toBe(true);
+        });
+
+        it('drops a session packet whose connection has no session yet', async () => {
+            const targets: unknown[] = [];
+            const { transport, built, lines } = makeDispatcher({
+                handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+            built[0]!.phase = 'play';
 
             await transport.emitFrame(frameOf(message('early')), address('a:1'));
 
@@ -255,7 +283,7 @@ describe('network', () => {
         it('logs a handler failure without letting it escape the dispatch', async () => {
             const { transport, lines } = makeDispatcher({
                 handler: {
-                    preLogin: true,
+                    phases: ['handshake'],
                     handle: async () => {
                         throw new Error('handler blew up');
                     }

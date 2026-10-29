@@ -21,6 +21,7 @@ const CRAFTER_SLOTS = 9;
  */
 export default class PlayerToggleCrafterSlotRequestHandler implements PacketHandler<PlayerToggleCrafterSlotRequestPacket> {
     public static PacketName = 'PlayerToggleCrafterSlotRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Checks the position names a crafter in reach and the slot exists, then logs the toggle. */
     public handle(packet: PlayerToggleCrafterSlotRequestPacket, server: Server, session: PlayerSession): void {

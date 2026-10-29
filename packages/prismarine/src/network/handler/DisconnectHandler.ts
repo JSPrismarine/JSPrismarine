@@ -16,6 +16,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class DisconnectHandler implements PacketHandler<DisconnectPacket> {
     public static PacketName = 'DisconnectPacket';
+    public readonly phases = ['resourcePacks', 'play'] as const;
 
     /**
      * Logs the reason the client gave at info level, then starts the RakNet goodbye.

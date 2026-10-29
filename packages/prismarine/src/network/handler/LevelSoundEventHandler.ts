@@ -29,6 +29,7 @@ const NO_ACTOR_TYPES = new Set(['', ':']);
 /** Relays a sound a client reported to the other players near where it happened. */
 export default class LevelSoundEventHandler implements PacketHandler<LevelSoundEventPacket> {
     public static PacketName = 'LevelSoundEventPacket';
+    public readonly phases = ['play'] as const;
 
     /**
      * Broadcasts the sound from its own position when it is the sender's to make: attributed

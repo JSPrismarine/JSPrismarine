@@ -17,6 +17,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class RequestAbilityHandler implements PacketHandler<RequestAbilityPacket> {
     public static PacketName = 'RequestAbilityPacket';
+    public readonly phases = ['play'] as const;
 
     /** Applies a flight toggle, or sends the current abilities back for anything else. */
     public async handle(packet: RequestAbilityPacket, server: Server, session: PlayerSession): Promise<void> {

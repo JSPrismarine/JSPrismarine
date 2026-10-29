@@ -25,6 +25,7 @@ const CLIENT_EVENTS: ReadonlySet<ActorEvent> = new Set([ActorEvent.FEED]);
  */
 export default class ActorEventHandler implements PacketHandler<ActorEventPacket> {
     public static PacketName = 'ActorEventPacket';
+    public readonly phases = ['play'] as const;
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
     public async handle(packet: ActorEventPacket, server: Server, session: PlayerSession): Promise<void> {

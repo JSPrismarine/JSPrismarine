@@ -11,6 +11,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ClientCacheBlobStatusHandler implements PacketHandler<ClientCacheBlobStatusPacket> {
     public static PacketName = 'ClientCacheBlobStatusPacket';
+    public readonly phases = ['resourcePacks', 'play'] as const;
 
     /** Logs how many blobs the client has and lacks. */
     public handle(packet: ClientCacheBlobStatusPacket, server: Server, session: PlayerSession): void {

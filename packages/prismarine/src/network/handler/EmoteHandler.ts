@@ -17,6 +17,7 @@ const EMOTE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
  */
 export default class EmoteHandler implements PacketHandler<EmotePacket> {
     public static PacketName = 'EmotePacket';
+    public readonly phases = ['play'] as const;
 
     /** Relays the emote to the players that have the sender on screen and logs it. */
     public async handle(packet: EmotePacket, server: Server, session: PlayerSession): Promise<void> {

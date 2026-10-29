@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class UpdateClientOptionsHandler implements PacketHandler<UpdateClientOptionsPacket> {
     public static PacketName = 'UpdateClientOptionsPacket';
+    public readonly phases = ['resourcePacks', 'play'] as const;
 
     /** Logs whichever settings the packet carries. */
     public handle(packet: UpdateClientOptionsPacket, server: Server, session: PlayerSession): void {

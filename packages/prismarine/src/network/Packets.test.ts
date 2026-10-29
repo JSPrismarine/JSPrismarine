@@ -14,7 +14,7 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const UNREGISTERED_PACKETS = new Set(['DataPacket', 'BatchPacket']);
 
 /** Handler interfaces that live beside the handlers but are not handlers themselves. */
-const HANDLER_INTERFACES = new Set(['PacketHandler', 'PreLoginPacketHandler']);
+const HANDLER_INTERFACES = new Set(['PacketHandler', 'ConnectionPacketHandler']);
 
 /** Keys of `Identifiers` that describe the protocol rather than a packet. */
 const HEADER_CONSTANTS = new Set(['Protocol', 'MinecraftVersions']);

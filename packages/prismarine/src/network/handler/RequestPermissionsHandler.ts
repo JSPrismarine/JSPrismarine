@@ -16,6 +16,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class RequestPermissionsHandler implements PacketHandler<RequestPermissionsPacket> {
     public static PacketName = 'RequestPermissionsPacket';
+    public readonly phases = ['play'] as const;
 
     /** Applies the level through the op list, or resends the current abilities when refused. */
     public async handle(packet: RequestPermissionsPacket, server: Server, session: PlayerSession): Promise<void> {

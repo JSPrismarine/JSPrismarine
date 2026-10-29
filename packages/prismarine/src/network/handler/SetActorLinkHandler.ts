@@ -14,6 +14,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class SetActorLinkHandler implements PacketHandler<SetActorLinkPacket> {
     public static PacketName = 'SetActorLinkPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the two actors and the link type when the sender is one of them. */
     public handle(packet: SetActorLinkPacket, server: Server, session: PlayerSession): void {

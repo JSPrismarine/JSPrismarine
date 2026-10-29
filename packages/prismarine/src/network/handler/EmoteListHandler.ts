@@ -11,6 +11,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class EmoteListHandler implements PacketHandler<EmoteListPacket> {
     public static PacketName = 'EmoteListPacket';
+    public readonly phases = ['play'] as const;
 
     /**
      * Drops a list naming another player's runtime id and accepts, without storing, one

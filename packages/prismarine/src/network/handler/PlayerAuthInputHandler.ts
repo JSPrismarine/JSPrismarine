@@ -113,6 +113,7 @@ export const rejectionReason = (packet: PlayerAuthInputPacket): string | null =>
  */
 export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthInputPacket> {
     public static PacketName = 'PlayerAuthInputPacket';
+    public readonly phases = ['play'] as const;
 
     private readonly actions = new PlayerActionHandler();
     private readonly transactions = new InventoryTransactionHandler();

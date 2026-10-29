@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class CommandBlockUpdateHandler implements PacketHandler<CommandBlockUpdatePacket> {
     public static PacketName = 'CommandBlockUpdatePacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the target and the command. */
     public handle(packet: CommandBlockUpdatePacket, server: Server, session: PlayerSession): void {

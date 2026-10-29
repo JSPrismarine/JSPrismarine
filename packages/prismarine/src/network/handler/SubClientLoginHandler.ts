@@ -15,6 +15,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class SubClientLoginHandler implements PacketHandler<SubClientLoginPacket> {
     public static PacketName = 'SubClientLoginPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs the refusal against the player who already holds the connection. */
     public handle(_packet: SubClientLoginPacket, server: Server, session: PlayerSession): void {

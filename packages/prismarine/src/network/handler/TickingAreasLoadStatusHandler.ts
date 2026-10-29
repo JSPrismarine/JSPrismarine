@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class TickingAreasLoadStatusHandler implements PacketHandler<TickingAreasLoadStatusPacket> {
     public static PacketName = 'TickingAreasLoadStatusPacket';
+    public readonly phases = ['play'] as const;
 
     public async handle(
         _packet: TickingAreasLoadStatusPacket,

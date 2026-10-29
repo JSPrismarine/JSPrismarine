@@ -57,6 +57,7 @@ const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
  */
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static PacketName = 'PlayerActionPacket';
+    public readonly phases = ['play'] as const;
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

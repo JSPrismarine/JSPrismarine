@@ -1,8 +1,16 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import type DataPacket from '../packet/DataPacket';
+import type { SessionPhase } from '../SessionPhase';
 
 export default interface PacketHandler<T extends DataPacket> {
+    /**
+     * The session phases in which the packet is accepted. The dispatcher drops the packet in
+     * any other phase. A handler that takes a `PlayerSession` can only name phases in which
+     * one exists: `resourcePacks` and `play`.
+     */
+    readonly phases: readonly SessionPhase[];
+
     /**
      * Handle a data packet.
      * @param {T} packet - Instance of packet we need to handle.

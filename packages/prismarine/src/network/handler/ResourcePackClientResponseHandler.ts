@@ -30,6 +30,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
     public static PacketName = 'ResourcePackClientResponsePacket';
+    public readonly phases = ['resourcePacks'] as const;
 
     /**
      * The `Respawn` packets that end a join, as `[position, state, runtime id]`.
@@ -131,6 +132,11 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 }
 
                 this.joined.add(session);
+
+                // Before the burst goes out: the client answers `StartGame` with play-phase
+                // packets - `RequestChunkRadius` first - while the burst is still being sent.
+                session.getConnection().phase = 'play';
+
                 await this.sendJoinBurst(server, session);
                 return;
 

@@ -18,6 +18,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPacket> {
     public static PacketName = 'MobEquipmentPacket';
+    public readonly phases = ['play'] as const;
 
     /**
      * Moves the player's hand to the reported hotbar slot and shows the players that have the

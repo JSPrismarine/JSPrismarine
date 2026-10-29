@@ -12,6 +12,7 @@ import type PacketHandler from './PacketHandler';
  */
 export default class PurchaseReceiptHandler implements PacketHandler<PurchaseReceiptPacket> {
     public static PacketName = 'PurchaseReceiptPacket';
+    public readonly phases = ['play'] as const;
 
     /** Logs how many receipts arrived. */
     public handle(packet: PurchaseReceiptPacket, server: Server, session: PlayerSession): void {

@@ -90,6 +90,7 @@ export const applyClientMovement = async (
  */
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
     public static PacketName = 'MovePlayerPacket';
+    public readonly phases = ['play'] as const;
 
     public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

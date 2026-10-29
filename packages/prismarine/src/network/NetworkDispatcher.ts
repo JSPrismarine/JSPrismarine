@@ -6,7 +6,7 @@ import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import Timer from '../utils/Timer';
 import type ClientConnection from './ClientConnection';
-import { isPreLoginHandler } from './handler/PreLoginPacketHandler';
+import { takesConnection } from './handler/ConnectionPacketHandler';
 import BatchPacket from './packet/BatchPacket';
 import { readPacketId } from './packet/DataPacket';
 import type { PacketLogFilter } from './PacketLogFilter';
@@ -46,8 +46,9 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
  *
  * Extracted verbatim from the closures `Server.bootstrap` used to install on the RakNet
  * listener; the behavior - duplicate-token rejection, the legacy `raknetDisconnect` event's
- * place in the teardown, unknown-id warnings, and the pre-login/post-login handler split -
- * is unchanged.
+ * place in the teardown, and unknown-id warnings - is unchanged. The pre-login/post-login
+ * handler split became the phase gate: each handler declares the session phases it
+ * accepts, and a packet outside them is dropped.
  */
 export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly sessionManager: NetworkDispatcherOptions<C>['sessionManager'];
@@ -167,18 +168,25 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                     if (this.logFilter.shouldLog(packet))
                         this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
 
-                    // A pre-login handler takes the bare connection; every other handler
-                    // needs the player session that login creates. A packet that reaches
-                    // the wrong side of that line is dropped rather than handed an object
-                    // of the wrong shape.
+                    // The phase gate: a handler runs only in the phases it declared. A
+                    // retail client routinely races the next step - `ClientCacheStatus`
+                    // lands while the login is still being handled - so the drop is a
+                    // debug line, as it was when the same packets were dropped for
+                    // arriving "before login completed".
+                    if (!handler.phases.includes(connection.phase)) {
+                        this.logger.debug(
+                            `Dropped §b${packet.constructor.name}§r: not accepted in the ${connection.phase} phase`
+                        );
+                        continue;
+                    }
+
+                    // A handshake- or login-phase handler takes the bare connection; every
+                    // other handler needs the player session that login creates. A packet
+                    // that reaches the wrong side of that line is dropped rather than
+                    // handed an object of the wrong shape.
                     const session = connection.getPlayerSession();
-                    if (isPreLoginHandler(handler)) {
-                        if (session === null) await handler.handle(packet, this.server, connection);
-                        else
-                            this.logger.debug(
-                                `Dropped §b${packet.constructor.name}§r: pre-login packet received after login`
-                            );
-                    } else if (session !== null) await handler.handle(packet, this.server, session);
+                    if (takesConnection(handler)) await handler.handle(packet, this.server, connection);
+                    else if (session !== null) await handler.handle(packet, this.server, session);
                     else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
                 } catch (error: unknown) {
                     this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);

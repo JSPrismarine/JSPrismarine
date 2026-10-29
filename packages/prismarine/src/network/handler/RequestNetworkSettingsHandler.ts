@@ -2,15 +2,15 @@ import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/mine
 import { codecForProtocol, latestCodec } from '../codec/CodecRegistry';
 import type Server from '../../Server';
 import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
-import type PreLoginPacketHandler from './PreLoginPacketHandler';
+import type ConnectionPacketHandler from './ConnectionPacketHandler';
 import type ClientConnection from '../ClientConnection';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import PlayStatus from '../type/PlayStatus';
 
-export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
+export default class RequestNetworkSettingsHandler implements ConnectionPacketHandler<RequestNetworkSettingsPacket> {
     public static PacketName = 'RequestNetworkSettingsPacket';
-    public readonly preLogin = true;
+    public readonly phases = ['handshake'] as const;
 
     public async handle(
         packet: RequestNetworkSettingsPacket,
@@ -26,6 +26,7 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         }
 
         connection.codec = codec;
+        connection.phase = 'login';
 
         const networkSettings = new NetworkSettingsPacket();
         networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;

@@ -199,6 +199,7 @@ const bedrockRecipeResult = (javaId: string, result: ItemStackData, server: Serv
 
 export default class ItemStackRequestHandler implements PacketHandler<ItemStackRequestPacket> {
     public static PacketName = 'ItemStackRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /**
      * Applies what the client asked for, and says so.

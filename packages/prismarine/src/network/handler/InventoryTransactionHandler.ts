@@ -196,6 +196,7 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
  */
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static PacketName = 'InventoryTransactionPacket';
+    public readonly phases = ['play'] as const;
 
     /**
      * Handles an inventory transaction.

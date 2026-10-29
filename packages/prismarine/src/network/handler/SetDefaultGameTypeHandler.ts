@@ -31,6 +31,7 @@ const nameOfDefault = (gamemode: Gametype): GametypeName | null => {
  */
 export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
     public static PacketName = 'SetDefaultGameTypePacket';
+    public readonly phases = ['play'] as const;
 
     /** Sets the configured default and moves every player onto it, when the sender may. */
     public async handle(packet: SetDefaultGameTypePacket, server: Server, session: PlayerSession): Promise<void> {

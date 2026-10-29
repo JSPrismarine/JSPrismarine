@@ -18,6 +18,7 @@ const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_bloc
  */
 export default class StructureTemplateDataRequestHandler implements PacketHandler<StructureTemplateDataRequestPacket> {
     public static PacketName = 'StructureTemplateDataRequestPacket';
+    public readonly phases = ['play'] as const;
 
     /** Checks the position names a structure block in reach, then logs the name and operation. */
     public handle(packet: StructureTemplateDataRequestPacket, server: Server, session: PlayerSession): void {
