@@ -6,6 +6,7 @@ import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCode
 import type { ProtocolCodec } from '@jsprismarine/prismarine/network/codec/ProtocolCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
 import type DataPacket from '@jsprismarine/prismarine/network/packet/DataPacket';
+import LevelChunkPacket from '@jsprismarine/prismarine/network/packet/LevelChunkPacket';
 import NetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/NetworkSettingsPacket';
 import PlayStatusPacket from '@jsprismarine/prismarine/network/packet/PlayStatusPacket';
 import RequestNetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/RequestNetworkSettingsPacket';
@@ -98,6 +99,28 @@ describe(FAMILIES.protocolNegotiation, () => {
         expect(of2225).toBeInstanceOf(of2193.constructor);
         expect(of2193).not.toBeInstanceOf(of2225.constructor);
         expect(of2225.codecProtocol).toBe(2225);
+    });
+
+    it('outbound, each codec prepares a base-class packet as its own layout', () => {
+        // Gameplay code builds the base classes; the negotiated codec decides what encodes.
+        // 2193 sends the instance as built, 2225 swaps in its own class - same fields,
+        // 2225 wire layout - so a 1.26.60 client is never handed 2193 bytes.
+        const outbound = new LevelChunkPacket();
+        outbound.chunkX = 4;
+        outbound.chunkZ = -3;
+        outbound.subChunkCount = 2;
+        outbound.data = Buffer.from([1, 2, 3]);
+
+        expect(Codec2193.prepareOutbound(outbound)).toBe(outbound);
+
+        const prepared = Codec2225.prepareOutbound(outbound);
+        expect(prepared).not.toBe(outbound);
+        expect(prepared.constructor).toBe(Codec2225.createPacket(Codec2225.netIdOf('LevelChunkPacket')!)!.constructor);
+        expect(prepared.codecProtocol).toBe(2225);
+        expect(prepared).toMatchObject({ chunkX: 4, chunkZ: -3, subChunkCount: 2 });
+
+        // A packet already carrying the codec's layout passes through untouched.
+        expect(Codec2225.prepareOutbound(prepared)).toBe(prepared);
     });
 
     it('an older unsupported client is told it is outdated, status before the hangup', async () => {
