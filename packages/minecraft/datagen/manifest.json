@@ -199,7 +199,10 @@
         "InventoryLayout": "InventoryLayout",
         "ItemDescriptorType": "ItemDescriptorType",
         "PlayerAuthInputData": "PlayerAuthInputData",
-        "DisconnectReason": "DisconnectFailReason"
+        "DisconnectReason": "DisconnectFailReason",
+        "EnchantType": "Enchant::Type",
+        "ArmorSlot": "SharedTypes::Legacy::ArmorSlot",
+        "PlayerRespawnState": "PlayerRespawnState"
     },
     "unmapped": {
         "$comment": [

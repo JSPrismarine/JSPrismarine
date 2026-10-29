@@ -27,6 +27,9 @@ import { RecipeEntryType } from './generated/RecipeEntryType';
 import { WindowIds } from './generated/WindowIds';
 import { WindowTypes } from './generated/WindowTypes';
 import { ActorEvent } from './generated/ActorEvent';
+import { ArmorSlot } from './generated/ArmorSlot';
+import { EnchantType } from './generated/EnchantType';
+import { PlayerRespawnState } from './generated/PlayerRespawnState';
 import { TitleType } from './generated/TitleType';
 import { LevelEvent } from './LevelEvent';
 import { LevelSoundEvent, LevelSoundEventName } from './LevelSoundEvent';
@@ -56,7 +59,10 @@ export {
     Generator,
     AbilityLayerFlag,
     ActorEvent,
+    ArmorSlot,
     ContainerUiId,
+    EnchantType,
+    PlayerRespawnState,
     InventoryLayout,
     InventoryLeftTab,
     InventoryRightTab,

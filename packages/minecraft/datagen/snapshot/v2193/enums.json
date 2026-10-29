@@ -4629,6 +4629,229 @@
      "value": 149
     }
    ]
+  },
+  "Enchant::Type": {
+   "underlying": "uint8",
+   "members": [
+    {
+     "name": "Protection",
+     "value": 0
+    },
+    {
+     "name": "FireProtection",
+     "value": 1
+    },
+    {
+     "name": "FeatherFalling",
+     "value": 2
+    },
+    {
+     "name": "BlastProtection",
+     "value": 3
+    },
+    {
+     "name": "ProjectileProtection",
+     "value": 4
+    },
+    {
+     "name": "Thorns",
+     "value": 5
+    },
+    {
+     "name": "Respiration",
+     "value": 6
+    },
+    {
+     "name": "DepthStrider",
+     "value": 7
+    },
+    {
+     "name": "AquaAffinity",
+     "value": 8
+    },
+    {
+     "name": "Sharpness",
+     "value": 9
+    },
+    {
+     "name": "Smite",
+     "value": 10
+    },
+    {
+     "name": "BaneOfArthropods",
+     "value": 11
+    },
+    {
+     "name": "Knockback",
+     "value": 12
+    },
+    {
+     "name": "FireAspect",
+     "value": 13
+    },
+    {
+     "name": "Looting",
+     "value": 14
+    },
+    {
+     "name": "Efficiency",
+     "value": 15
+    },
+    {
+     "name": "SilkTouch",
+     "value": 16
+    },
+    {
+     "name": "Unbreaking",
+     "value": 17
+    },
+    {
+     "name": "Fortune",
+     "value": 18
+    },
+    {
+     "name": "Power",
+     "value": 19
+    },
+    {
+     "name": "Punch",
+     "value": 20
+    },
+    {
+     "name": "Flame",
+     "value": 21
+    },
+    {
+     "name": "Infinity",
+     "value": 22
+    },
+    {
+     "name": "LuckOfTheSea",
+     "value": 23
+    },
+    {
+     "name": "Lure",
+     "value": 24
+    },
+    {
+     "name": "FrostWalker",
+     "value": 25
+    },
+    {
+     "name": "Mending",
+     "value": 26
+    },
+    {
+     "name": "CurseOfBinding",
+     "value": 27
+    },
+    {
+     "name": "CurseOfVanishing",
+     "value": 28
+    },
+    {
+     "name": "Impaling",
+     "value": 29
+    },
+    {
+     "name": "Riptide",
+     "value": 30
+    },
+    {
+     "name": "Loyalty",
+     "value": 31
+    },
+    {
+     "name": "Channeling",
+     "value": 32
+    },
+    {
+     "name": "Multishot",
+     "value": 33
+    },
+    {
+     "name": "Piercing",
+     "value": 34
+    },
+    {
+     "name": "QuickCharge",
+     "value": 35
+    },
+    {
+     "name": "SoulSpeed",
+     "value": 36
+    },
+    {
+     "name": "SwiftSneak",
+     "value": 37
+    },
+    {
+     "name": "WindBurst",
+     "value": 38
+    },
+    {
+     "name": "Density",
+     "value": 39
+    },
+    {
+     "name": "Breach",
+     "value": 40
+    },
+    {
+     "name": "Lunge",
+     "value": 41
+    },
+    {
+     "name": "NumEnchantments",
+     "value": 42
+    },
+    {
+     "name": "InvalidEnchantment",
+     "value": 43
+    }
+   ]
+  },
+  "SharedTypes::Legacy::ArmorSlot": {
+   "underlying": "int32",
+   "members": [
+    {
+     "name": "Head",
+     "value": 0
+    },
+    {
+     "name": "Torso",
+     "value": 1
+    },
+    {
+     "name": "Legs",
+     "value": 2
+    },
+    {
+     "name": "Feet",
+     "value": 3
+    },
+    {
+     "name": "Body",
+     "value": 4
+    }
+   ]
+  },
+  "PlayerRespawnState": {
+   "underlying": "uint8",
+   "members": [
+    {
+     "name": "SearchingForSpawn",
+     "value": 0
+    },
+    {
+     "name": "ReadyToSpawn",
+     "value": 1
+    },
+    {
+     "name": "ClientReadyToSpawn",
+     "value": 2
+    }
+   ]
   }
  }
 }
