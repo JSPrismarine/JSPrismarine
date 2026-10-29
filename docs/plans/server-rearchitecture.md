@@ -2,6 +2,20 @@
 
 Status: accepted direction, implementation in progress (started 2026-10-29).
 
+Progress (2026-10-29):
+
+- Done: Phase 0 (hygiene), Phase 1 (transport + `NetworkDispatcher` extraction), Phase 2
+  (`packages/kernel` plus the bans, permissions, recipes, stations, social, ticker, and network
+  modules), Phase 3 (codec layer), Phase 4 (pipeline + phase-keyed handlers), and Phase 5
+  (`Codec2225` delta codec with the `protocol.negotiation` parity family).
+- Phase 6: the ticker, networking (`prismarine:network`), and shutdown-interrupt extractions are
+  done; the kernel-backed `getXxxManager()` getters are deprecated; the kernel and the token
+  barrel are exported from `@jsprismarine/prismarine` as the module API.
+- Remaining: commands and worlds modules (and the `WorldChange` stream formalization), the
+  version-independent intent/update vocabulary, NetherNet and Java transports, the 2225 packets
+  deferred from the delta codec, and `bedrock-data`'s versioned source inputs (see
+  "bedrock-data versioning" below).
+
 ## Problem
 
 `packages/prismarine/src/Server.ts` (~1250 lines) plays three roles at once: composition root
