@@ -52,6 +52,6 @@ describe('ClientCacheStatusPacket', () => {
         await registry['registerHandlers']();
 
         expect(registry.getPackets().get(0x81)).toBe(ClientCacheStatusPacket);
-        expect(registry.getHandler(0x81)).toBeInstanceOf(ClientCacheStatusHandler);
+        expect(registry.getHandler('ClientCacheStatusPacket')).toBeInstanceOf(ClientCacheStatusHandler);
     });
 });

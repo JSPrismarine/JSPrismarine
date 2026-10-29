@@ -1,4 +1,5 @@
 import { jigsaw_structure_data } from '@jsprismarine/bedrock-data';
+import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
@@ -45,8 +46,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(JigsawStructureDataPacket.NetID).toBe(Identifiers.JigsawStructureDataPacket);
-                expect(JigsawStructureDataPacket.NetID).toBe(0x139);
+                expect(netIdFor('JigsawStructureDataPacket')).toBe(Identifiers.JigsawStructureDataPacket);
+                expect(netIdFor('JigsawStructureDataPacket')).toBe(0x139);
             });
         });
     });

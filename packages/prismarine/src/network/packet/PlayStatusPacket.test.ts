@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import PlayStatus from '../type/PlayStatus';
@@ -40,8 +41,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(PlayStatusPacket.NetID).toBe(Identifiers.PlayStatusPacket);
-                expect(PlayStatusPacket.NetID).toBe(0x02);
+                expect(netIdFor('PlayStatusPacket')).toBe(Identifiers.PlayStatusPacket);
+                expect(netIdFor('PlayStatusPacket')).toBe(0x02);
             });
         });
     });

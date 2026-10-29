@@ -1,5 +1,4 @@
 import type BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -61,8 +60,6 @@ export enum PlayerActionType {
  * (`BlockPos`), Face (ZigZag varint32).
  */
 export default class PlayerActionPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerActionPacket;
-
     public runtimeEntityId!: bigint;
     public action!: number;
     public blockPosition!: BlockPosition;

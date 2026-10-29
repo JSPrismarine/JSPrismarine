@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor } from '../codec/v2193';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
@@ -18,7 +19,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                ContainerOpenPacket.NetID,
+                netIdFor('ContainerOpenPacket'),
                 2, // Container Id.
                 0, // Container Type.
                 2, // X, ZigZag 1.
@@ -31,7 +32,7 @@ describe('network', () => {
 
         it('reads a hand-built buffer and consumes all of it', () => {
             const stream = new BinaryStream();
-            stream.writeUnsignedVarInt(ContainerOpenPacket.NetID);
+            stream.writeUnsignedVarInt(netIdFor('ContainerOpenPacket')!);
             stream.writeByte(5);
             stream.writeByte(1);
             stream.writeVarInt(-10);

@@ -1,5 +1,4 @@
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -115,8 +114,6 @@ export interface MapItemTrackedActorUniqueId {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/clientbound-map-item-data-packet/
  */
 export default class ClientboundMapItemDataPacket extends DataPacket {
-    public static NetID = Identifiers.ClientboundMapItemDataPacket;
-
     /** Map ID, which stays the same across sessions of one world. */
     public mapId = 0n;
 

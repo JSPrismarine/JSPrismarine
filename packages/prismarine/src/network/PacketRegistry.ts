@@ -4,7 +4,7 @@ import * as Packets from './Packets';
 import type { PlayerSession } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
-import Identifiers from './Identifiers';
+import Codec2193 from './codec/Codec2193';
 import type PacketHandler from './handler/PacketHandler';
 import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 
@@ -14,7 +14,7 @@ type RegisteredHandler = PacketHandler<any> | PreLoginPacketHandler<any>;
 export default class PacketRegistry {
     private server: Pick<Server, 'getLogger'>;
     private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
-    private readonly handlers: Map<number, RegisteredHandler> = new Map();
+    private readonly handlers: Map<string, RegisteredHandler> = new Map();
 
     public constructor(server: Pick<Server, 'getLogger'>) {
         this.server = server;
@@ -39,16 +39,16 @@ export default class PacketRegistry {
     }
 
     /**
-     * Register a packet.
+     * Register a packet under the wire id its class name has at protocol 2193.
      * @param packet - the packet.
      */
     public registerPacket(packet: typeof Packets.DataPacket): void {
-        if (this.packets.has(packet.NetID))
-            throw new Error(
-                `Packet ${packet.name} is trying to use id ${packet.NetID.toString(16)} which already exists!`
-            );
+        const netId = Codec2193.netIdOf(packet.name);
+        if (netId === undefined) throw new Error(`Packet ${packet.name} has no id in the 2193 codec!`);
+        if (this.packets.has(netId))
+            throw new Error(`Packet ${packet.name} is trying to use id ${netId.toString(16)} which already exists!`);
 
-        this.packets.set(packet.NetID, packet);
+        this.packets.set(netId, packet);
         this.server.getLogger().debug(`Packet with id §b${packet.name}§r registered`);
     }
 
@@ -70,19 +70,19 @@ export default class PacketRegistry {
         this.packets.delete(id);
     }
 
-    public registerHandler(id: number, handler: RegisteredHandler): void {
-        if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
+    public registerHandler(packetName: string, handler: RegisteredHandler): void {
+        if (this.handlers.has(packetName)) throw new Error(`Handler for ${packetName} already exists!`);
 
-        this.handlers.set(id, handler);
+        this.handlers.set(packetName, handler);
         this.server
             .getLogger()
             .debug(`Handler with id §b${handler.constructor.name}§r registered`, 'PacketRegistry/registerHandler');
     }
 
-    public getHandler(id: number): RegisteredHandler {
-        if (!this.handlers.has(id)) throw new Error(`Invalid handler with id ${id.toString(16)}!`);
+    public getHandler(packetName: string): RegisteredHandler {
+        if (!this.handlers.has(packetName)) throw new Error(`Invalid handler for packet ${packetName}!`);
 
-        return this.handlers.get(id)!;
+        return this.handlers.get(packetName)!;
     }
 
     /**
@@ -105,10 +105,10 @@ export default class PacketRegistry {
 
     /**
      * Remove a handler from the registry.
-     * @param id - the handler id.
+     * @param packetName - the name of the packet the handler is registered for.
      */
-    public removeHandler(id: number): void {
-        this.handlers.delete(id);
+    public removeHandler(packetName: string): void {
+        this.handlers.delete(packetName);
     }
 
     /**
@@ -127,7 +127,7 @@ export default class PacketRegistry {
             .getLogger()
             .verbose(
                 `Registered §b${this.packets.size}§r of §b${
-                    Array.from(Object.keys(Identifiers)).length - 2
+                    Object.keys(Codec2193.ids).length
                 }§r packet(s) (took §e${timer.stop()} ms§r)!`
             );
     }
@@ -139,7 +139,7 @@ export default class PacketRegistry {
         const timer = new Timer();
 
         // Dynamically register handlers
-        Object.values(Handlers).forEach((Handler) => this.registerHandler(Handler.NetID, new Handler()));
+        Object.values(Handlers).forEach((Handler) => this.registerHandler(Handler.PacketName, new Handler()));
 
         this.server
             .getLogger()

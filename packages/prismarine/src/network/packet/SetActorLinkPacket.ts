@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import type { ActorLink } from './AddActorPacket';
 import { ActorLinkType } from './AddActorPacket';
 import DataPacket from './DataPacket';
@@ -38,8 +37,6 @@ const toActorLinkType = (value: number): ActorLinkTypeValue => {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-link-packet/
  */
 export default class SetActorLinkPacket extends DataPacket {
-    public static NetID = Identifiers.SetActorLinkPacket;
-
     /** Link, the riding relationship to set or clear. */
     public link: ActorLink = {
         targetA: 0n,

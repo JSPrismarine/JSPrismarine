@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -16,8 +15,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/animate-entity-packet/
  */
 export default class AnimateEntityPacket extends DataPacket {
-    public static NetID = Identifiers.AnimateEntityPacket;
-
     /** mAnimation: the animation to play. */
     public animation = '';
 

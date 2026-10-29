@@ -1,5 +1,4 @@
 import { Difficulty } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-difficulty-packet/
  */
 export default class SetDifficultyPacket extends DataPacket {
-    public static NetID = Identifiers.SetDifficultyPacket;
-
     /** `Difficulty`, written as a varuint32. */
     public difficulty = Difficulty.NORMAL;
 

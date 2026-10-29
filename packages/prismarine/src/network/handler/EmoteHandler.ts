@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import EmotePacket, { EmoteFlags } from '../packet/EmotePacket';
 import type PacketHandler from './PacketHandler';
@@ -17,7 +16,7 @@ const EMOTE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
  * server does not check that the sender owns the emote.
  */
 export default class EmoteHandler implements PacketHandler<EmotePacket> {
-    public static NetID = Identifiers.EmotePacket;
+    public static PacketName = 'EmotePacket';
 
     /** Relays the emote to the players that have the sender on screen and logs it. */
     public async handle(packet: EmotePacket, server: Server, session: PlayerSession): Promise<void> {

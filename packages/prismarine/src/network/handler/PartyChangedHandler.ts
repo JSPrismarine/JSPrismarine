@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PartyChangedPacket from '../packet/PartyChangedPacket';
 import { MAX_PARTY_ID_LENGTH } from '../packet/PartyChangedPacket';
@@ -14,7 +13,7 @@ import type PacketHandler from './PacketHandler';
  * arrived together.
  */
 export default class PartyChangedHandler implements PacketHandler<PartyChangedPacket> {
-    public static NetID = Identifiers.PartyChangedPacket;
+    public static PacketName = 'PartyChangedPacket';
 
     /** Checks the id length, then logs whether the player joined, leads or left a party. */
     public handle(packet: PartyChangedPacket, server: Server, session: PlayerSession): void {

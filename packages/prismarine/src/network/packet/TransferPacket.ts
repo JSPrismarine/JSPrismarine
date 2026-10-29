@@ -1,6 +1,5 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -41,8 +40,6 @@ export interface GatheringsConfig {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/transfer-packet/
  */
 export default class TransferPacket extends DataPacket {
-    public static NetID = Identifiers.TransferPacket;
-
     /** The `Server Address` the client connects to. */
     public address!: string;
 

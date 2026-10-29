@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -25,8 +24,6 @@ export enum PlayerLocationPacketType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/player-location-packet/
  */
 export default class PlayerLocationPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerLocationPacket;
-
     /** Unique id of the player whose location is updated or hidden. */
     public targetActorId = 0n;
 

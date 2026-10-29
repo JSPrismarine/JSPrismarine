@@ -35,6 +35,6 @@ describe('ShowCreditsHandler', () => {
 
     it('is registered for packet 0x4b', () => {
         expect(Handlers.ShowCreditsHandler).toBe(ShowCreditsHandler);
-        expect(ShowCreditsHandler.NetID).toBe(0x4b);
+        expect(ShowCreditsHandler.PacketName).toBe('ShowCreditsPacket');
     });
 });

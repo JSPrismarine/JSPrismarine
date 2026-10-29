@@ -3,7 +3,6 @@ import { WindowIds } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import HumanInventory from '../../inventory/HumanInventory';
-import Identifiers from '../Identifiers';
 import MobEquipmentPacket from '../packet/MobEquipmentPacket';
 import type PacketHandler from './PacketHandler';
 
@@ -18,7 +17,7 @@ import type PacketHandler from './PacketHandler';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-equipment-packet/
  */
 export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPacket> {
-    public static NetID = Identifiers.MobEquipmentPacket;
+    public static PacketName = 'MobEquipmentPacket';
 
     /**
      * Moves the player's hand to the reported hotbar slot and shows the players that have the

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-event-generic-packet/
  */
 export default class LevelEventGenericPacket extends DataPacket {
-    public static NetID = Identifiers.LevelEventGenericPacket;
-
     /** Which event this is, and so what the data holds. */
     public eventId = 0;
 

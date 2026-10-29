@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-hotbar-packet/
  */
 export default class PlayerHotbarPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerHotbarPacket;
-
     /** Selected Slot, the hotbar index to hold. */
     public selectedSlot = 0;
 

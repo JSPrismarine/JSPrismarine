@@ -1,4 +1,5 @@
 import { entity_identifiers } from '@jsprismarine/bedrock-data';
+import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
@@ -72,8 +73,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(AvailableActorIdentifiersPacket.NetID).toBe(Identifiers.AvailableActorIdentifiersPacket);
-                expect(AvailableActorIdentifiersPacket.NetID).toBe(0x77);
+                expect(netIdFor('AvailableActorIdentifiersPacket')).toBe(Identifiers.AvailableActorIdentifiersPacket);
+                expect(netIdFor('AvailableActorIdentifiersPacket')).toBe(0x77);
             });
         });
     });

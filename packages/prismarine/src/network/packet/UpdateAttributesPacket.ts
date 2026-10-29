@@ -1,6 +1,5 @@
 import { Attribute } from '../../entity/Attribute';
 import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
 
 /**
  * Replaces some or all of one entity's attributes on the client, for instance after it takes
@@ -23,8 +22,6 @@ import Identifiers from '../Identifiers';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
  */
 export default class UpdateAttributesPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateAttributesPacket;
-
     public runtimeEntityId!: bigint;
     public attributes: Attribute[] = [];
 

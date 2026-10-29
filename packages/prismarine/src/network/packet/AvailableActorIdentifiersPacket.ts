@@ -1,5 +1,4 @@
 import { entity_identifiers } from '@jsprismarine/bedrock-data';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -18,8 +17,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class AvailableActorIdentifiersPacket extends DataPacket {
-    public static NetID = Identifiers.AvailableActorIdentifiersPacket;
-
     /** `Identifier List` as network NBT. Defaults to vanilla's. */
     public identifiers: Buffer = entity_identifiers;
 

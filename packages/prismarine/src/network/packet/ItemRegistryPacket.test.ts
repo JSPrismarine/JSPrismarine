@@ -1,4 +1,5 @@
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
@@ -88,7 +89,7 @@ describe('network', () => {
             const byName = new Map(decoded.map((entry) => [entry.name, entry]));
 
             it('uses the network id the docs give ItemRegistryPacket', () => {
-                expect(ItemRegistryPacket.NetID).toBe(Identifiers.ItemRegistryPacket);
+                expect(netIdFor('ItemRegistryPacket')).toBe(Identifiers.ItemRegistryPacket);
                 expect([...buffer.subarray(0, 2)]).toEqual(HEADER);
             });
 

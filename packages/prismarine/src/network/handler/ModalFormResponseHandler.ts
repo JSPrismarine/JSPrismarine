@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ModalFormResponsePacket from '../packet/ModalFormResponsePacket';
 import { ModalFormCancelReason } from '../packet/ModalFormResponsePacket';
@@ -15,7 +14,7 @@ import type PacketHandler from './PacketHandler';
  * it the parsed JSON or the cancel reason.
  */
 export default class ModalFormResponseHandler implements PacketHandler<ModalFormResponsePacket> {
-    public static NetID = Identifiers.ModalFormResponsePacket;
+    public static PacketName = 'ModalFormResponsePacket';
 
     /** Logs the form id with either the JSON or the cancel reason, and never throws. */
     public handle(packet: ModalFormResponsePacket, server: Server, session: PlayerSession): void {

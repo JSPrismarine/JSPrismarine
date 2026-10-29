@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type LabTablePacket from '../packet/LabTablePacket';
 import { LabTableType } from '../packet/LabTablePacket';
@@ -18,7 +17,7 @@ const LAB_TABLES: ReadonlySet<string> = new Set(['minecraft:lab_table']);
  * back.
  */
 export default class LabTableHandler implements PacketHandler<LabTablePacket> {
-    public static NetID = Identifiers.LabTablePacket;
+    public static PacketName = 'LabTablePacket';
 
     /** Checks the position names a lab table in reach, then logs the action and position. */
     public handle(packet: LabTablePacket, server: Server, session: PlayerSession): void {

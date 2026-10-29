@@ -57,6 +57,6 @@ describe('PartyChangedPacket', () => {
         await registry['registerHandlers']();
 
         expect(registry.getPackets().get(0x156)).toBe(PartyChangedPacket);
-        expect(registry.getHandler(0x156)).toBeInstanceOf(PartyChangedHandler);
+        expect(registry.getHandler('PartyChangedPacket')).toBeInstanceOf(PartyChangedHandler);
     });
 });

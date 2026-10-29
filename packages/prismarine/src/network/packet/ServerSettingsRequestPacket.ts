@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,6 +10,4 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/
  */
-export default class ServerSettingsRequestPacket extends DataPacket {
-    public static NetID = Identifiers.ServerSettingsRequestPacket;
-}
+export default class ServerSettingsRequestPacket extends DataPacket {}

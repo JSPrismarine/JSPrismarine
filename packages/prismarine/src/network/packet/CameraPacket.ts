@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -18,8 +17,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-packet/
  */
 export default class CameraPacket extends DataPacket {
-    public static NetID = Identifiers.CameraPacket;
-
     /** Camera ID, the unique id of the camera actor taking the picture. */
     public cameraId = 0n;
 

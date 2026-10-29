@@ -1,5 +1,4 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Which of the two value slots in a `RequestAbilityPacket` carries the request. */
@@ -19,8 +18,6 @@ export enum RequestAbilityValueType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-ability-packet/
  */
 export default class RequestAbilityPacket extends DataPacket {
-    public static NetID = Identifiers.RequestAbilityPacket;
-
     /** The ability being changed, see `AbilityLayerFlag`. */
     public ability = AbilityLayerFlag.INVALID;
 

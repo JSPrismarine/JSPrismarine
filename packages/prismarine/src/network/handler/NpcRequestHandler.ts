@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type NpcRequestPacket from '../packet/NpcRequestPacket';
 import { NpcRequestType } from '../packet/NpcRequestPacket';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * component, so there is no dialogue to show, no actions to store and no commands to run.
  */
 export default class NpcRequestHandler implements PacketHandler<NpcRequestPacket> {
-    public static NetID = Identifiers.NpcRequestPacket;
+    public static PacketName = 'NpcRequestPacket';
 
     /** Logs the request type and the NPC it names. */
     public handle(packet: NpcRequestPacket, server: Server, session: PlayerSession): void {

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -22,8 +21,6 @@ export enum PhotoType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/photo-transfer-packet/
  */
 export default class PhotoTransferPacket extends DataPacket {
-    public static NetID = Identifiers.PhotoTransferPacket;
-
     /** File name the photo is stored under. */
     public photoName = '';
 

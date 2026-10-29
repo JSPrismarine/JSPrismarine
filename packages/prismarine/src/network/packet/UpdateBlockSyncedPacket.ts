@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
@@ -38,8 +37,6 @@ export enum ActorSyncMessage {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-block-synced-packet/
  */
 export default class UpdateBlockSyncedPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateBlockSyncedPacket;
-
     public blockPosition = new BlockPosition(0, 0, 0);
 
     /** Runtime id of the block that stands at the position after this update. */

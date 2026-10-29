@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import FeatureRegistryPacket from './FeatureRegistryPacket';
@@ -55,7 +56,7 @@ describe('FeatureRegistryPacket', () => {
     });
 
     it('uses the network id the client expects', () => {
-        expect(FeatureRegistryPacket.NetID).toBe(Identifiers.FeatureRegistryPacket);
-        expect(FeatureRegistryPacket.NetID).toBe(0xbf);
+        expect(netIdFor('FeatureRegistryPacket')).toBe(Identifiers.FeatureRegistryPacket);
+        expect(netIdFor('FeatureRegistryPacket')).toBe(0xbf);
     });
 });

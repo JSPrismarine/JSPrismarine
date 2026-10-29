@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor, protocolVersion } from '../codec/v2193';
 
 const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;
@@ -39,13 +40,18 @@ export const readPacketId = (buffer: Uint8Array): number => {
  */
 export default class DataPacket extends BinaryStream {
     /**
-     * The packet's network ID.
+     * The wire id this instance encodes and decodes with. Stamped by the session's codec on
+     * both paths; a packet built directly - tests, mostly - falls back to the 2193 table
+     * under its class name, which is what the lone codec stamps anyway.
      */
-    /** Overridden by every packet class; -1 marks the base class, which is never sent. */
-    public static NetID = -1;
+    private netId?: number;
 
-    /** TypeScript types `this.constructor` as `Function`; this names the static side without emitting anything. */
-    declare ['constructor']: typeof DataPacket;
+    /**
+     * The protocol version of the codec that built this packet. A payload whose layout is
+     * version-gated reads this instead of a global constant. Defaults to 2193 for packets
+     * built directly.
+     */
+    public codecProtocol = protocolVersion;
 
     /** Protected so a subclass encoding by another route - `BatchPacket.encodeAsync` - can say so. */
     protected encoded = false;
@@ -63,7 +69,16 @@ export default class DataPacket extends BinaryStream {
     }
 
     public getId(): number {
-        return this.constructor.NetID;
+        return (this.netId ??= netIdFor(this.getName()) ?? -1);
+    }
+
+    /**
+     * Stamps the wire id a codec resolved for this packet. The codec's business: everything
+     * else reads the id through {@link getId}.
+     * @param {number} netId - the wire id under the owning codec.
+     */
+    public setNetId(netId: number): void {
+        this.netId = netId;
     }
 
     public getEncoded(): boolean {

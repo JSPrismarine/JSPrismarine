@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -35,8 +34,6 @@ export interface ArmorSlotAndDamagePair {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-armor-damage-packet/
  */
 export default class PlayerArmorDamagePacket extends DataPacket {
-    public static NetID = Identifiers.PlayerArmorDamagePacket;
-
     /** Armor Slot and Damage Pairs: one entry per piece that took damage. */
     public armorSlotAndDamagePairs: ArmorSlotAndDamagePair[] = [];
 

@@ -1,4 +1,5 @@
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
@@ -54,7 +55,7 @@ const readUserData = (blob: Buffer) => {
 /** Reads the whole packet in docs order and insists on reaching the last byte. */
 const readBack = (buffer: Buffer) => {
     const stream = new BinaryStream(buffer);
-    expect(stream.readUnsignedVarInt()).toBe(InventoryContentPacket.NetID);
+    expect(stream.readUnsignedVarInt()).toBe(netIdFor('InventoryContentPacket'));
 
     const containerId = stream.readUnsignedVarInt();
     const slots: ReturnType<typeof readDescriptor>[] = [];

@@ -16,7 +16,6 @@ import { blockSlotName, blockSlotOf, isTakeOnlySlot, screenStoresSlots } from '.
 import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../../inventory/containerStore';
 import type { OpenContainerSlots } from '../../inventory/containerStore';
 import { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import { joinContentPayloads } from '../contentPayloads';
 import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import type {
@@ -199,7 +198,7 @@ const bedrockRecipeResult = (javaId: string, result: ItemStackData, server: Serv
 };
 
 export default class ItemStackRequestHandler implements PacketHandler<ItemStackRequestPacket> {
-    public static NetID = Identifiers.ItemStackRequestPacket;
+    public static PacketName = 'ItemStackRequestPacket';
 
     /**
      * Applies what the client asked for, and says so.

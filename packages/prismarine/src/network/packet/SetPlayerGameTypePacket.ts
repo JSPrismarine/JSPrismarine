@@ -1,6 +1,5 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -10,8 +9,6 @@ import DataPacket from './DataPacket';
  * it back so the client shows the game type the server holds.
  */
 export default class SetPlayerGameTypePacket extends DataPacket {
-    public static NetID = Identifiers.SetPlayerGameTypePacket;
-
     /** Player Game Type, a `Gametype` value written ZigZag encoded. */
     public gametype!: Gametype;
 

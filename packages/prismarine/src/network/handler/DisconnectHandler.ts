@@ -1,6 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type DisconnectPacket from '../packet/DisconnectPacket';
 import type PacketHandler from './PacketHandler';
@@ -16,7 +15,7 @@ import type PacketHandler from './PacketHandler';
  * and running it here first would make that close look like a client that never spawned.
  */
 export default class DisconnectHandler implements PacketHandler<DisconnectPacket> {
-    public static NetID = Identifiers.DisconnectPacket;
+    public static PacketName = 'DisconnectPacket';
 
     /**
      * Logs the reason the client gave at info level, then starts the RakNet goodbye.

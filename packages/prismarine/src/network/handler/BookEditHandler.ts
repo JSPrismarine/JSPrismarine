@@ -1,6 +1,5 @@
 import type Player from '../../Player';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type BookEditPacket from '../packet/BookEditPacket';
 import { BookEditAction } from '../packet/BookEditPacket';
@@ -45,7 +44,7 @@ const bookEditRejection = (player: Player, packet: BookEditPacket): string | nul
  * local copy until it relogs.
  */
 export default class BookEditHandler implements PacketHandler<BookEditPacket> {
-    public static NetID = Identifiers.BookEditPacket;
+    public static PacketName = 'BookEditPacket';
 
     /** Checks the slot holds a book and quill, then logs the edit by action. */
     public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -40,8 +39,6 @@ export enum PackType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-data-info-packet/
  */
 export default class ResourcePackDataInfoPacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePackDataInfoPacket;
-
     /** The pack id and version joined by an underscore, as `ResourcePacksInfoPacket` gave them. */
     public resourceName = '';
 

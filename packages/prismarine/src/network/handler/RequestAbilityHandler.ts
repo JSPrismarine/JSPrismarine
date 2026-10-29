@@ -1,6 +1,5 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type RequestAbilityPacket from '../packet/RequestAbilityPacket';
 import { RequestAbilityValueType } from '../packet/RequestAbilityPacket';
@@ -17,7 +16,7 @@ import type PacketHandler from './PacketHandler';
  * comes from the game mode and op state, so the request is refused by resending the state.
  */
 export default class RequestAbilityHandler implements PacketHandler<RequestAbilityPacket> {
-    public static NetID = Identifiers.RequestAbilityPacket;
+    public static PacketName = 'RequestAbilityPacket';
 
     /** Applies a flight toggle, or sends the current abilities back for anything else. */
     public async handle(packet: RequestAbilityPacket, server: Server, session: PlayerSession): Promise<void> {

@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ClientCacheStatusPacket from '../packet/ClientCacheStatusPacket';
 import type PacketHandler from './PacketHandler';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * with no handler is an error per packet rather than a warning per packet.
  */
 export default class ClientCacheStatusHandler implements PacketHandler<ClientCacheStatusPacket> {
-    public static NetID = Identifiers.ClientCacheStatusPacket;
+    public static PacketName = 'ClientCacheStatusPacket';
 
     /** Records the offer at debug level and sends nothing back. */
     public async handle(packet: ClientCacheStatusPacket, server: Server, session: PlayerSession): Promise<void> {

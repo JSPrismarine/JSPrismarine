@@ -71,8 +71,6 @@ import type { GameRule } from './GameRulesChangedPacket';
  * Policy (VarInt), Allow Anonymous Block Drops In Editor Worlds. Unlabeled types are Boolean.
  */
 export default class StartGamePacket extends DataPacket {
-    public static NetID = Identifiers.StartGamePacket;
-
     public entityId!: bigint;
     public runtimeEntityId!: bigint;
     public gamemode!: number;

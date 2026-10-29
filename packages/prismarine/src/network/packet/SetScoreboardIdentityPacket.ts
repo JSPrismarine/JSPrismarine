@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Whether the entries attach an identity or drop one, as the leading byte numbers it. */
@@ -35,8 +34,6 @@ export interface ScoreboardIdentityPacketInfo {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-scoreboard-identity-packet/
  */
 export default class SetScoreboardIdentityPacket extends DataPacket {
-    public static NetID = Identifiers.SetScoreboardIdentityPacket;
-
     public type: ScoreboardIdentityPacketType = ScoreboardIdentityPacketType.Update;
 
     /** The entries whose identity is being set or cleared. */

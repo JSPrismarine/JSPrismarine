@@ -163,7 +163,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 }
 
                 try {
-                    const handler = this.packetRegistry.getHandler(pid);
+                    const handler = this.packetRegistry.getHandler(packet.getName());
                     if (this.logFilter.shouldLog(packet))
                         this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
 

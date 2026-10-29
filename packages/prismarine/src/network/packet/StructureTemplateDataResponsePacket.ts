@@ -1,6 +1,5 @@
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -30,8 +29,6 @@ export enum StructureTemplateResponseType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-template-data-response-packet/
  */
 export default class StructureTemplateDataResponsePacket extends DataPacket {
-    public static NetID = Identifiers.StructureTemplateDataResponsePacket;
-
     /** Name from the request this answers. */
     public structureName = '';
 

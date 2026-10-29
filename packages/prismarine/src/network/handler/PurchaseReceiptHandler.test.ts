@@ -24,6 +24,6 @@ describe('PurchaseReceiptHandler', () => {
 
     it('is registered for packet 0x5c', () => {
         expect(Handlers.PurchaseReceiptHandler).toBe(PurchaseReceiptHandler);
-        expect(PurchaseReceiptHandler.NetID).toBe(0x5c);
+        expect(PurchaseReceiptHandler.PacketName).toBe('PurchaseReceiptPacket');
     });
 });

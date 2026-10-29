@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import DeathInfoPacket from './DeathInfoPacket';
@@ -55,7 +56,7 @@ describe('DeathInfoPacket', () => {
     });
 
     it('uses the network id the client expects', () => {
-        expect(DeathInfoPacket.NetID).toBe(Identifiers.DeathInfoPacket);
-        expect(DeathInfoPacket.NetID).toBe(0xbd);
+        expect(netIdFor('DeathInfoPacket')).toBe(Identifiers.DeathInfoPacket);
+        expect(netIdFor('DeathInfoPacket')).toBe(0xbd);
     });
 });

@@ -1,5 +1,4 @@
 import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import CommandOriginData from '../type/CommandOriginData';
 import CommandOriginType from '../type/CommandOriginType';
@@ -17,8 +16,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-request-packet/
  */
 export default class CommandRequestPacket extends DataPacket {
-    public static NetID = Identifiers.CommandRequestPacket;
-
     /** `Command`: what was typed, with its leading slash still on. */
     public commandName = '';
 

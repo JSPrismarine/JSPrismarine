@@ -1,5 +1,4 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -21,8 +20,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sub-client-login-packet/
  */
 export default class SubClientLoginPacket extends DataPacket {
-    public static NetID = Identifiers.SubClientLoginPacket;
-
     /** The chain JSON exactly as it arrived, unparsed and unverified. */
     public chainData = '';
 

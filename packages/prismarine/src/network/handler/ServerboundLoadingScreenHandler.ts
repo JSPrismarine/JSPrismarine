@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ServerboundLoadingScreenPacket from '../packet/ServerboundLoadingScreenPacket';
 import { ServerboundLoadingScreenPacketType } from '../packet/ServerboundLoadingScreenPacket';
@@ -14,7 +13,7 @@ import type PacketHandler from './PacketHandler';
  * Everything is recorded at debug level and nothing is sent back.
  */
 export default class ServerboundLoadingScreenHandler implements PacketHandler<ServerboundLoadingScreenPacket> {
-    public static NetID = Identifiers.ServerboundLoadingScreenPacket;
+    public static PacketName = 'ServerboundLoadingScreenPacket';
 
     /** Logs which screen opened or closed, and closes a dimension change's screen on the session. */
     public handle(packet: ServerboundLoadingScreenPacket, server: Server, session: PlayerSession): void {

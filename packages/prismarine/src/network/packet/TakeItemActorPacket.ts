@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -19,8 +18,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/take-item-actor-packet/
  */
 export default class TakeItemActorPacket extends DataPacket {
-    public static NetID = Identifiers.TakeItemActorPacket;
-
     /** Item Runtime ID, the item entity being taken. */
     public itemRuntimeEntityId!: bigint;
     /** Actor Runtime ID, the entity taking it. */

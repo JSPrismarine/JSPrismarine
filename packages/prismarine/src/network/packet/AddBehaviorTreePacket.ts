@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -12,8 +11,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-behavior-tree-packet/
  */
 export default class AddBehaviorTreePacket extends DataPacket {
-    public static NetID = Identifiers.AddBehaviorTreePacket;
-
     /** The tree as a JSON document. */
     public behaviorTreeStructure = '';
 

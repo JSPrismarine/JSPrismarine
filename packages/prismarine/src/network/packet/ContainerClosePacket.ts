@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * `Server Initiated Close` (boolean).
  */
 export default class ContainerClosePacket extends DataPacket {
-    public static NetID = Identifiers.ContainerClosePacket;
-
     /** `Container Id`: the window being closed. */
     public containerId!: number;
 

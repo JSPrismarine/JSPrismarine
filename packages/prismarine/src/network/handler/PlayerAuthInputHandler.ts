@@ -4,7 +4,6 @@ import { PlayerAuthInputData } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import InventoryTransactionPacket, { TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import type PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
@@ -113,7 +112,7 @@ export const rejectionReason = (packet: PlayerAuthInputPacket): string | null =>
  * The order is the client's: movement first, then what was done from that position.
  */
 export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthInputPacket> {
-    public static NetID = Identifiers.PlayerAuthInputPacket;
+    public static PacketName = 'PlayerAuthInputPacket';
 
     private readonly actions = new PlayerActionHandler();
     private readonly transactions = new InventoryTransactionHandler();

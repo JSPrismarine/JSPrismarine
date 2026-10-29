@@ -1,5 +1,4 @@
 import { biome_definitions_network } from '@jsprismarine/bedrock-data';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -24,8 +23,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class BiomeDefinitionListPacket extends DataPacket {
-    public static NetID = Identifiers.BiomeDefinitionListPacket;
-
     /** Both fields as the network carries them. Defaults to vanilla's. */
     public definitions: Buffer = biome_definitions_network;
 

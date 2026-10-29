@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type LecternUpdatePacket from '../packet/LecternUpdatePacket';
 import { blockTargetRejection } from './BlockTarget';
@@ -17,7 +16,7 @@ const LECTERNS: ReadonlySet<string> = new Set(['minecraft:lectern']);
  * to other viewers.
  */
 export default class LecternUpdateHandler implements PacketHandler<LecternUpdatePacket> {
-    public static NetID = Identifiers.LecternUpdatePacket;
+    public static PacketName = 'LecternUpdatePacket';
 
     /** Checks the position names a lectern in reach, then logs the page and position. */
     public handle(packet: LecternUpdatePacket, server: Server, session: PlayerSession): void {

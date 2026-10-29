@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -22,8 +21,6 @@ export enum ModalFormCancelReason {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/modal-form-response-packet/
  */
 export default class ModalFormResponsePacket extends DataPacket {
-    public static NetID = Identifiers.ModalFormResponsePacket;
-
     /** The id the server chose when it sent the form. */
     public formId = 0;
 

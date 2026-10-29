@@ -2,7 +2,6 @@ import { Gametype } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type SetPlayerGameTypePacket from '../packet/SetPlayerGameTypePacket';
 import type PacketHandler from './PacketHandler';
 
@@ -14,7 +13,7 @@ import type PacketHandler from './PacketHandler';
  * dropdown returns to what the server holds.
  */
 export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayerGameTypePacket> {
-    public static NetID = Identifiers.SetPlayerGameTypePacket;
+    public static PacketName = 'SetPlayerGameTypePacket';
 
     /** Applies the requested game type, or resends the current one when the request is refused. */
     public async handle(packet: SetPlayerGameTypePacket, server: Server, session: PlayerSession): Promise<void> {

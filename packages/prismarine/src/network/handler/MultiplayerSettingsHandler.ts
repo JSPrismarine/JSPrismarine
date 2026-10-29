@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import { MultiplayerSettingsPacketType } from '../packet/MultiplayerSettingsPacket';
 import type MultiplayerSettingsPacket from '../packet/MultiplayerSettingsPacket';
@@ -13,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * the players in it.
  */
 export default class MultiplayerSettingsHandler implements PacketHandler<MultiplayerSettingsPacket> {
-    public static NetID = Identifiers.MultiplayerSettingsPacket;
+    public static PacketName = 'MultiplayerSettingsPacket';
 
     /** Logs the requested setting. */
     public handle(packet: MultiplayerSettingsPacket, server: Server, session: PlayerSession): void {

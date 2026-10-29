@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -24,8 +23,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/actor-event-packet/
  */
 export default class ActorEventPacket extends DataPacket {
-    public static NetID = Identifiers.ActorEventPacket;
-
     public runtimeEntityId!: bigint;
     public event!: ActorEvent;
 

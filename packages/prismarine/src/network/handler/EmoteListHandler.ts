@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type EmoteListPacket from '../packet/EmoteListPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * to other players, so nobody else can download them.
  */
 export default class EmoteListHandler implements PacketHandler<EmoteListPacket> {
-    public static NetID = Identifiers.EmoteListPacket;
+    public static PacketName = 'EmoteListPacket';
 
     /**
      * Drops a list naming another player's runtime id and accepts, without storing, one

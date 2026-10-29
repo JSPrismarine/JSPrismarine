@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * | Target Actor ID | varint64 | ZigZag encoded unique id |
  */
 export default class RemoveActorPacket extends DataPacket {
-    public static NetID = Identifiers.RemoveActorPacket;
-
     public uniqueEntityId!: bigint;
 
     /**

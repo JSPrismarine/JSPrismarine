@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -50,8 +49,6 @@ export enum FurnaceLayout {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-player-furnace-options-packet/
  */
 export default class SetPlayerFurnaceOptionsPacket extends DataPacket {
-    public static NetID = Identifiers.SetPlayerFurnaceOptionsPacket;
-
     /** FurnaceType: which of the three smelting screens the options are for. */
     public furnaceType: FurnaceType = FurnaceType.None;
 

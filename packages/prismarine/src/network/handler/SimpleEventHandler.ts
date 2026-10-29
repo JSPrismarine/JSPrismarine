@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import { SimpleEventSubtype } from '../packet/SimpleEventPacket';
 import type SimpleEventPacket from '../packet/SimpleEventPacket';
@@ -13,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * and no `SetCommandsEnabledPacket` goes back.
  */
 export default class SimpleEventHandler implements PacketHandler<SimpleEventPacket> {
-    public static NetID = Identifiers.SimpleEventPacket;
+    public static PacketName = 'SimpleEventPacket';
 
     /** Logs which request the client made. */
     public handle(packet: SimpleEventPacket, server: Server, session: PlayerSession): void {

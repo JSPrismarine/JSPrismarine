@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -14,8 +13,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/modal-form-request-packet/
  */
 export default class ModalFormRequestPacket extends DataPacket {
-    public static NetID = Identifiers.ModalFormRequestPacket;
-
     /** Identifies the form in the client's reply. */
     public formId = 0;
 

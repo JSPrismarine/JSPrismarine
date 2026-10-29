@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type TickingAreasLoadStatusPacket from '../packet/TickingAreasLoadStatusPacket';
 import type PacketHandler from './PacketHandler';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * packet rather than a warning per packet.
  */
 export default class TickingAreasLoadStatusHandler implements PacketHandler<TickingAreasLoadStatusPacket> {
-    public static NetID = Identifiers.TickingAreasLoadStatusPacket;
+    public static PacketName = 'TickingAreasLoadStatusPacket';
 
     public async handle(
         _packet: TickingAreasLoadStatusPacket,

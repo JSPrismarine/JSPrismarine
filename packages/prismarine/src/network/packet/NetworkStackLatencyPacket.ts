@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -9,8 +8,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/
  */
 export default class NetworkStackLatencyPacket extends DataPacket {
-    public static NetID = Identifiers.NetworkStackLatencyPacket;
-
     /** The sender's clock when it built the packet, in its own units. */
     public creationTime = 0n;
 

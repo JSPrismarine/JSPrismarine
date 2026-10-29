@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -31,8 +30,6 @@ const soundByName = new Map(Object.entries(LevelSoundEventName).map(([value, nam
  * and `LevelSoundEventHandler` relays those.
  */
 export default class LevelSoundEventPacket extends DataPacket {
-    public static NetID = Identifiers.LevelSoundEventPacket;
-
     /**
      * `Sound Event`, held as a `LevelSoundEvent` number and written as its name.
      *

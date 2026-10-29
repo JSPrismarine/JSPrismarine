@@ -1,7 +1,6 @@
 import { ItemInstanceUserData, NetworkBinaryStream, writeCreativeContent } from '@jsprismarine/protocol';
 
 import { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -59,8 +58,6 @@ export const itemAsStack = (item: Item): ItemStackData => {
  * **Bound To:** Client
  */
 export default class CreativeContentPacket extends DataPacket {
-    public static NetID = Identifiers.CreativeContentPacket;
-
     /** The headings, in the order the client draws them. An entry's group indexes this list. */
     public groups: CreativeGroup[] = [];
 

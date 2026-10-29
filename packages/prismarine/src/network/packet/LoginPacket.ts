@@ -127,8 +127,6 @@ const identityFromXUID = (xuid: string): string => {
  * reproduces its own bytes.
  */
 export default class LoginPacket extends DataPacket {
-    public static NetID = Identifiers.LoginPacket;
-
     /**
      * The client's xbox live ID.
      */

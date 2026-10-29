@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type MapInfoRequestPacket from '../packet/MapInfoRequestPacket';
 import type PacketHandler from './PacketHandler';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * stays blank on the client.
  */
 export default class MapInfoRequestHandler implements PacketHandler<MapInfoRequestPacket> {
-    public static NetID = Identifiers.MapInfoRequestPacket;
+    public static PacketName = 'MapInfoRequestPacket';
 
     /** Logs the map id and how many pixels came with it. */
     public handle(packet: MapInfoRequestPacket, server: Server, session: PlayerSession): void {

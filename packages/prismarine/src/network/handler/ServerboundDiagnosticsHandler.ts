@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ServerboundDiagnosticsPacket from '../packet/ServerboundDiagnosticsPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * Nothing is sent back; the client keeps sending every 500 ms while its profiler is on.
  */
 export default class ServerboundDiagnosticsHandler implements PacketHandler<ServerboundDiagnosticsPacket> {
-    public static NetID = Identifiers.ServerboundDiagnosticsPacket;
+    public static PacketName = 'ServerboundDiagnosticsPacket';
 
     /** Logs the frame rate and tick times from the sample. */
     public handle(packet: ServerboundDiagnosticsPacket, server: Server, session: PlayerSession): void {

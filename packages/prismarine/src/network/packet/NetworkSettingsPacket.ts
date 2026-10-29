@@ -1,5 +1,4 @@
 import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -31,8 +30,6 @@ export enum CompressionThreshold {
  * **Bound To:** Client
  */
 export default class NetworkSettingsPacket extends DataPacket {
-    public static NetID = Identifiers.NetworkSettingsPacket;
-
     /** `Compression Threshold`: the smallest payload that gets compressed, or 0 for none. */
     public compressionThreshold!: number;
     /** `CompressionAlgorithm` that every later batch is compressed with. */

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -56,8 +55,6 @@ export enum BossBarOverlay {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/boss-event-packet/
  */
 export default class BossEventPacket extends DataPacket {
-    public static NetID = Identifiers.BossEventPacket;
-
     /** The actor the bar belongs to. The client reads its health and name tag from this actor. */
     public targetActorId = 0n;
 

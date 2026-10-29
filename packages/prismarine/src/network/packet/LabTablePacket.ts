@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
@@ -38,8 +37,6 @@ export enum LabTableReactionType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lab-table-packet/
  */
 export default class LabTablePacket extends DataPacket {
-    public static NetID = Identifiers.LabTablePacket;
-
     public type: LabTableType = LabTableType.StartCombine;
 
     /** Where the lab table stands. */

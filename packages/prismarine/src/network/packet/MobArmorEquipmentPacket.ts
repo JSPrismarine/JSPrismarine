@@ -1,5 +1,4 @@
 import { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -16,8 +15,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-armor-equipment-packet/
  */
 export default class MobArmorEquipmentPacket extends DataPacket {
-    public static NetID = Identifiers.MobArmorEquipmentPacket;
-
     public runtimeEntityId!: bigint;
 
     public head!: Item;

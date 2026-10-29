@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -9,8 +8,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/on-screen-texture-animation-packet/
  */
 export default class OnScreenTextureAnimationPacket extends DataPacket {
-    public static NetID = Identifiers.OnScreenTextureAnimationPacket;
-
     /** `Effect Id`: which animation to play. */
     public animationType!: number;
 

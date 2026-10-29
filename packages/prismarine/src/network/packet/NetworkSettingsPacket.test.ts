@@ -1,4 +1,5 @@
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -78,8 +79,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(NetworkSettingsPacket.NetID).toBe(Identifiers.NetworkSettingsPacket);
-                expect(NetworkSettingsPacket.NetID).toBe(143);
+                expect(netIdFor('NetworkSettingsPacket')).toBe(Identifiers.NetworkSettingsPacket);
+                expect(netIdFor('NetworkSettingsPacket')).toBe(143);
             });
         });
     });

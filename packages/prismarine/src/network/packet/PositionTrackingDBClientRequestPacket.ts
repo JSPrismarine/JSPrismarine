@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** What a `PositionTrackingDBClientRequestPacket` asks for, as the Action uint8 numbers it. */
@@ -19,8 +18,6 @@ export enum PositionTrackingDBClientRequestAction {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/position-tracking-dbclient-request-packet/
  */
 export default class PositionTrackingDBClientRequestPacket extends DataPacket {
-    public static NetID = Identifiers.PositionTrackingDBClientRequestPacket;
-
     /** Action: the only value the client sends is Query. */
     public action: PositionTrackingDBClientRequestAction = PositionTrackingDBClientRequestAction.Query;
 

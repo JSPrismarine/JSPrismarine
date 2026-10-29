@@ -1,5 +1,4 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 import type { Experiment } from '@jsprismarine/minecraft';
@@ -27,8 +26,6 @@ export interface PackInstanceId {
  * protocols sent ahead of it is gone.
  */
 export default class ResourcePackStackPacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePackStackPacket;
-
     /** `Texture Pack Required`. When true the client must download the packs or leave. */
     public texturePackRequired = false;
     /** `Texture Pack List`, applied in order with the first entry on top. */

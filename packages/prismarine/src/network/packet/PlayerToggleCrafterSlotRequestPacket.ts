@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -9,8 +8,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-toggle-crafter-slot-request-packet/
  */
 export default class PlayerToggleCrafterSlotRequestPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerToggleCrafterSlotRequestPacket;
-
     public posX = 0;
     public posY = 0;
     public posZ = 0;

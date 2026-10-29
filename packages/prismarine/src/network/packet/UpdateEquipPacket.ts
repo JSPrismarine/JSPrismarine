@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -15,8 +14,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-equip-packet/
  */
 export default class UpdateEquipPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateEquipPacket;
-
     /** The id of the opened window. */
     public containerId = 0;
 

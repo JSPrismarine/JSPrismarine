@@ -1,5 +1,4 @@
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import type { StructureSettings } from '../type/StructureSettings';
 import { defaultStructureSettings, readStructureSettings, writeStructureSettings } from '../type/StructureSettings';
@@ -25,8 +24,6 @@ export enum StructureTemplateRequestOperation {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-template-data-request-packet/
  */
 export default class StructureTemplateDataRequestPacket extends DataPacket {
-    public static NetID = Identifiers.StructureTemplateDataRequestPacket;
-
     /** Name typed into the structure block, which is also the file name on export. */
     public structureName = '';
 

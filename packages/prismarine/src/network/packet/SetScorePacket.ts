@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -81,8 +80,6 @@ export type ScorePacketEntry =
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-score-packet/
  */
 export default class SetScorePacket extends DataPacket {
-    public static NetID = Identifiers.SetScorePacket;
-
     /** The lines to add, change or remove. */
     public entries: ScorePacketEntry[] = [];
 

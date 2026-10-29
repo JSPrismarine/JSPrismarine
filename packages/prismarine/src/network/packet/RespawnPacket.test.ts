@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -68,8 +69,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(RespawnPacket.NetID).toBe(Identifiers.RespawnPacket);
-                expect(RespawnPacket.NetID).toBe(0x2d);
+                expect(netIdFor('RespawnPacket')).toBe(Identifiers.RespawnPacket);
+                expect(netIdFor('RespawnPacket')).toBe(0x2d);
             });
         });
     });

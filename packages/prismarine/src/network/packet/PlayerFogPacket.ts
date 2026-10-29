@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -13,8 +12,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-fog-packet/
  */
 export default class PlayerFogPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerFogPacket;
-
     /** Fog Stack: the fog identifiers, bottom of the stack first. */
     public fogStack: string[] = [];
 

@@ -1,4 +1,5 @@
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
@@ -31,7 +32,7 @@ const readDescriptor = (stream: BinaryStream) => {
  */
 const readBack = (buffer: Buffer) => {
     const stream = new BinaryStream(buffer);
-    expect(stream.readUnsignedVarInt()).toBe(InventorySlotPacket.NetID);
+    expect(stream.readUnsignedVarInt()).toBe(netIdFor('InventorySlotPacket'));
 
     const containerId = stream.readUnsignedVarInt();
     const slot = stream.readUnsignedVarInt();

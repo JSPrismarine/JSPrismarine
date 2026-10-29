@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -24,8 +23,6 @@ export interface MapClientPixel {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/map-info-request-packet/
  */
 export default class MapInfoRequestPacket extends DataPacket {
-    public static NetID = Identifiers.MapInfoRequestPacket;
-
     /** The map's unique id, which is the id in the map item's NBT. */
     public mapUniqueId = 0n;
 

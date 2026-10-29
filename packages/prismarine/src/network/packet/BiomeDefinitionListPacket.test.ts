@@ -1,4 +1,5 @@
 import { biome_definitions_network } from '@jsprismarine/bedrock-data';
+import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
@@ -118,8 +119,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(BiomeDefinitionListPacket.NetID).toBe(Identifiers.BiomeDefinitionListPacket);
-                expect(BiomeDefinitionListPacket.NetID).toBe(0x7a);
+                expect(netIdFor('BiomeDefinitionListPacket')).toBe(Identifiers.BiomeDefinitionListPacket);
+                expect(netIdFor('BiomeDefinitionListPacket')).toBe(0x7a);
             });
         });
     });

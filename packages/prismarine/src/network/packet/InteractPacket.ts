@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -25,8 +24,6 @@ export enum InteractAction {
  * an optional Vec3: a presence byte, followed by three little-endian floats when it is 0x01.
  */
 export default class InteractPacket extends DataPacket {
-    public static NetID = Identifiers.InteractPacket;
-
     public action!: number;
     public target!: bigint;
 

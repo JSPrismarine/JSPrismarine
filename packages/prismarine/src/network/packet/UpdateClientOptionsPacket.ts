@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** The client's graphics setting, as `GraphicsMode` numbers it. */
@@ -27,8 +26,6 @@ export enum GraphicsMode {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-client-options-packet/
  */
 export default class UpdateClientOptionsPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateClientOptionsPacket;
-
     /** Graphics Mode Change: the new graphics mode, or `null` when it did not change. */
     public graphicsMode: GraphicsMode | null = null;
 

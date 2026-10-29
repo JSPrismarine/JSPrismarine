@@ -1,6 +1,5 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type SetPlayerInventoryOptionsPacket from '../packet/SetPlayerInventoryOptionsPacket';
 import type PacketHandler from './PacketHandler';
 
@@ -18,7 +17,7 @@ import type PacketHandler from './PacketHandler';
  * only place player state is persisted.
  */
 export default class SetPlayerInventoryOptionsHandler implements PacketHandler<SetPlayerInventoryOptionsPacket> {
-    public static NetID = Identifiers.SetPlayerInventoryOptionsPacket;
+    public static PacketName = 'SetPlayerInventoryOptionsPacket';
 
     /** Accepts the packet without acting on it; see the class comment. */
     public handle(_packet: SetPlayerInventoryOptionsPacket, _server: Server, _session: PlayerSession): void {

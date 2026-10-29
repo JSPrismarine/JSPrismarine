@@ -1,5 +1,4 @@
 import { NetworkUtil } from '../NetworkUtil';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -52,8 +51,6 @@ export interface ResourcePackEntry {
  * flag for the start of the template and drops the connection.
  */
 export default class ResourcePacksInfoPacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePacksInfoPacket;
-
     public resourcePackRequired!: boolean;
     public hasAddonPacks!: boolean;
     public hasScripts!: boolean;

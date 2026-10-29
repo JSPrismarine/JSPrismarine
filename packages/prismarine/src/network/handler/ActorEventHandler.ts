@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ActorEventPacket from '../packet/ActorEventPacket';
 import { ActorEvent } from '../packet/ActorEventPacket';
@@ -25,7 +24,7 @@ const CLIENT_EVENTS: ReadonlySet<ActorEvent> = new Set([ActorEvent.FEED]);
  * an event about another actor is a normal sight and is logged at verbose level.
  */
 export default class ActorEventHandler implements PacketHandler<ActorEventPacket> {
-    public static NetID = Identifiers.ActorEventPacket;
+    public static PacketName = 'ActorEventPacket';
 
     /** Relays an allowed event about the sender to the players tracking it, and drops the rest. */
     public async handle(packet: ActorEventPacket, server: Server, session: PlayerSession): Promise<void> {

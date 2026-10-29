@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PhotoTransferPacket from '../packet/PhotoTransferPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * so an upload is not kept and a request cannot be answered.
  */
 export default class PhotoTransferHandler implements PacketHandler<PhotoTransferPacket> {
-    public static NetID = Identifiers.PhotoTransferPacket;
+    public static PacketName = 'PhotoTransferPacket';
 
     /** Logs the photo name and how many bytes came with it. */
     public handle(packet: PhotoTransferPacket, server: Server, session: PlayerSession): void {

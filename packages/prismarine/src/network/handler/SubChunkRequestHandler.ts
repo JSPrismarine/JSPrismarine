@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type SubChunkRequestPacket from '../packet/SubChunkRequestPacket';
 import type PacketHandler from './PacketHandler';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * and dropped; there is no `SubChunkPacket` to answer with.
  */
 export default class SubChunkRequestHandler implements PacketHandler<SubChunkRequestPacket> {
-    public static NetID = Identifiers.SubChunkRequestPacket;
+    public static PacketName = 'SubChunkRequestPacket';
 
     /** Logs the center and how many sub chunks were asked for. */
     public handle(packet: SubChunkRequestPacket, server: Server, session: PlayerSession): void {

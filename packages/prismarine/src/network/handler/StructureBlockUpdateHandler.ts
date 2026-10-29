@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type StructureBlockUpdatePacket from '../packet/StructureBlockUpdatePacket';
 import { blockTargetRejection } from './BlockTarget';
@@ -17,7 +16,7 @@ const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_bloc
  * save or load from, so nothing can be exported, placed or triggered.
  */
 export default class StructureBlockUpdateHandler implements PacketHandler<StructureBlockUpdatePacket> {
-    public static NetID = Identifiers.StructureBlockUpdatePacket;
+    public static PacketName = 'StructureBlockUpdatePacket';
 
     /** Checks the position names a structure block in reach, then logs the structure name. */
     public handle(packet: StructureBlockUpdatePacket, server: Server, session: PlayerSession): void {

@@ -1,6 +1,5 @@
 import UUID from '../../utils/UUID';
 import Skin from '../../utils/skin/Skin';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -13,8 +12,6 @@ import DataPacket from './DataPacket';
  * travels inside the skin as its `TrustedSkinFlag` string, which `Skin.isTrusted` records.
  */
 export default class PlayerSkinPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerSkinPacket;
-
     /** The player whose skin changed. */
     public uuid!: UUID;
     /** The new skin, laid out as `SerializedSkin`. */

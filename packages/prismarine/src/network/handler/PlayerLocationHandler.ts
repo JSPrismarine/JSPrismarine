@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PlayerLocationPacket from '../packet/PlayerLocationPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * client has no business sending it. One that does is recorded at debug level and ignored.
  */
 export default class PlayerLocationHandler implements PacketHandler<PlayerLocationPacket> {
-    public static NetID = Identifiers.PlayerLocationPacket;
+    public static PacketName = 'PlayerLocationPacket';
 
     /** Logs the target and whether it was a position or a hide. */
     public handle(packet: PlayerLocationPacket, server: Server, session: PlayerSession): void {

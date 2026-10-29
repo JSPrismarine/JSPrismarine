@@ -1,5 +1,4 @@
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import type { StructureSettings } from '../type/StructureSettings';
 import { defaultStructureSettings, readStructureSettings, writeStructureSettings } from '../type/StructureSettings';
@@ -79,8 +78,6 @@ export interface StructureEditorData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-block-update-packet/
  */
 export default class StructureBlockUpdatePacket extends DataPacket {
-    public static NetID = Identifiers.StructureBlockUpdatePacket;
-
     /** Where the structure block is. */
     public blockPosition: BlockPosition = new BlockPosition(0, 0, 0);
 

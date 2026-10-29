@@ -1,5 +1,4 @@
 import { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -18,8 +17,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
  */
 export default class SpawnParticleEffectPacket extends DataPacket {
-    public static NetID = Identifiers.SpawnParticleEffectPacket;
-
     /** Dimension the effect belongs to. */
     public dimensionId = 0;
 

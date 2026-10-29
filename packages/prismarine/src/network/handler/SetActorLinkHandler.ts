@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type SetActorLinkPacket from '../packet/SetActorLinkPacket';
 import type PacketHandler from './PacketHandler';
@@ -14,7 +13,7 @@ import type PacketHandler from './PacketHandler';
  * nor tells other players about the link.
  */
 export default class SetActorLinkHandler implements PacketHandler<SetActorLinkPacket> {
-    public static NetID = Identifiers.SetActorLinkPacket;
+    public static PacketName = 'SetActorLinkPacket';
 
     /** Logs the two actors and the link type when the sender is one of them. */
     public handle(packet: SetActorLinkPacket, server: Server, session: PlayerSession): void {

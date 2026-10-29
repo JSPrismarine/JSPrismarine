@@ -3,7 +3,6 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
-import Identifiers from '../Identifiers';
 import type InteractPacket from '../packet/InteractPacket';
 import { InteractAction } from '../packet/InteractPacket';
 import type PacketHandler from './PacketHandler';
@@ -29,7 +28,7 @@ const REACH_SLACK = 1;
  * throws: a value no client sends is logged and dropped.
  */
 export default class InteractHandler implements PacketHandler<InteractPacket> {
-    public static NetID = Identifiers.InteractPacket;
+    public static PacketName = 'InteractPacket';
 
     public async handle(packet: InteractPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

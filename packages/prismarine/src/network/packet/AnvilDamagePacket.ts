@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
@@ -13,8 +12,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/anvil-damage-packet/
  */
 export default class AnvilDamagePacket extends DataPacket {
-    public static NetID = Identifiers.AnvilDamagePacket;
-
     public blockPosition = new BlockPosition(0, 0, 0);
 
     /** Reads the anvil position. */

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -19,8 +18,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-commands-enabled-packet/
  */
 export default class SetCommandsEnabledPacket extends DataPacket {
-    public static NetID = Identifiers.SetCommandsEnabledPacket;
-
     /** Commands Enabled, whether the client may run commands. */
     public commandsEnabled = false;
 

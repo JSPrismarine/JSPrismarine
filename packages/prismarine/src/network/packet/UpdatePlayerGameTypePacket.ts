@@ -1,6 +1,5 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-player-game-type-packet/
  */
 export default class UpdatePlayerGameTypePacket extends DataPacket {
-    public static NetID = Identifiers.UpdatePlayerGameTypePacket;
-
     /** Player Game Type: the game type the target player now has. */
     public playerGameType: Gametype = Gametype.SURVIVAL;
 

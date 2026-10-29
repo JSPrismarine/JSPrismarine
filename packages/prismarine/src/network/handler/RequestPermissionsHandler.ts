@@ -1,6 +1,5 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type RequestPermissionsPacket from '../packet/RequestPermissionsPacket';
 import type PacketHandler from './PacketHandler';
@@ -16,7 +15,7 @@ import type PacketHandler from './PacketHandler';
  * the abilities the server holds so the requester's client reverts.
  */
 export default class RequestPermissionsHandler implements PacketHandler<RequestPermissionsPacket> {
-    public static NetID = Identifiers.RequestPermissionsPacket;
+    public static PacketName = 'RequestPermissionsPacket';
 
     /** Applies the level through the op list, or resends the current abilities when refused. */
     public async handle(packet: RequestPermissionsPacket, server: Server, session: PlayerSession): Promise<void> {

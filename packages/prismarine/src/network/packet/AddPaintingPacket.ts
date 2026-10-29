@@ -1,5 +1,4 @@
 import { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -24,8 +23,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-painting-packet/
  */
 export default class AddPaintingPacket extends DataPacket {
-    public static NetID = Identifiers.AddPaintingPacket;
-
     /** Target Actor ID, the painting's unique id. */
     public targetActorId = 0n;
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
@@ -63,8 +64,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(ResourcePackStackPacket.NetID).toBe(Identifiers.ResourcePackStackPacket);
-                expect(ResourcePackStackPacket.NetID).toBe(0x07);
+                expect(netIdFor('ResourcePackStackPacket')).toBe(Identifiers.ResourcePackStackPacket);
+                expect(netIdFor('ResourcePackStackPacket')).toBe(0x07);
             });
         });
     });

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Degrees per step of the single byte a rotation is packed into. */
@@ -26,8 +25,6 @@ const DEGREES_PER_STEP = 360 / 256;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-delta-packet/
  */
 export default class MoveActorDeltaPacket extends DataPacket {
-    public static NetID = Identifiers.MoveActorDeltaPacket;
-
     /** Runtime id of the actor being moved. */
     public runtimeEntityId = 0n;
 

@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type CommandBlockUpdatePacket from '../packet/CommandBlockUpdatePacket';
 import { CommandBlockMode } from '../packet/CommandBlockUpdatePacket';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * entity here, so there is no command to store and nothing runs on redstone or on a timer.
  */
 export default class CommandBlockUpdateHandler implements PacketHandler<CommandBlockUpdatePacket> {
-    public static NetID = Identifiers.CommandBlockUpdatePacket;
+    public static PacketName = 'CommandBlockUpdatePacket';
 
     /** Logs the target and the command. */
     public handle(packet: CommandBlockUpdatePacket, server: Server, session: PlayerSession): void {

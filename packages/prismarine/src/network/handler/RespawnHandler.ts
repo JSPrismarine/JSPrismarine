@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '../packet/RespawnPacket';
 import { PlayerRespawnState } from '../packet/RespawnPacket';
@@ -26,7 +25,7 @@ import type PacketHandler from './PacketHandler';
  * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
  */
 export default class RespawnHandler implements PacketHandler<RespawnPacket> {
-    public static NetID = Identifiers.RespawnPacket;
+    public static PacketName = 'RespawnPacket';
 
     public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

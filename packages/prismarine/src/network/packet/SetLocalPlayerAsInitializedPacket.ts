@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-local-player-as-initialized-packet/
  */
 export default class SetLocalPlayerAsInitializedPacket extends DataPacket {
-    public static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;
-
     /** `Player ID`: the runtime id the server gave the player in `StartGame`. */
     public runtimeEntityId = 0n;
 

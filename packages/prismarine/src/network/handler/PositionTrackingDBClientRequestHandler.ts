@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PositionTrackingDBClientRequestPacket from '../packet/PositionTrackingDBClientRequestPacket';
 import { PositionTrackingDBClientRequestAction } from '../packet/PositionTrackingDBClientRequestPacket';
@@ -13,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * lodestone compass keeps whichever needle the client drew last.
  */
 export default class PositionTrackingDBClientRequestHandler implements PacketHandler<PositionTrackingDBClientRequestPacket> {
-    public static NetID = Identifiers.PositionTrackingDBClientRequestPacket;
+    public static PacketName = 'PositionTrackingDBClientRequestPacket';
 
     /**
      * Logs the tracking id the client asked about.

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
@@ -12,8 +11,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lectern-update-packet/
  */
 export default class LecternUpdatePacket extends DataPacket {
-    public static NetID = Identifiers.LecternUpdatePacket;
-
     /** Zero-based page the client wants shown. */
     public newPage = 0;
 

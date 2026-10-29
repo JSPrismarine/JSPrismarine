@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
@@ -43,8 +44,8 @@ describe('network', () => {
     describe('packet', () => {
         describe('ResourcePackClientResponsePacket', () => {
             it('uses the network id the client expects', () => {
-                expect(ResourcePackClientResponsePacket.NetID).toBe(Identifiers.ResourcePackClientResponsePacket);
-                expect(ResourcePackClientResponsePacket.NetID).toBe(HEADER);
+                expect(netIdFor('ResourcePackClientResponsePacket')).toBe(Identifiers.ResourcePackClientResponsePacket);
+                expect(netIdFor('ResourcePackClientResponsePacket')).toBe(HEADER);
             });
 
             it('encodes Refused as alternative 0 with its name and nothing else', () => {

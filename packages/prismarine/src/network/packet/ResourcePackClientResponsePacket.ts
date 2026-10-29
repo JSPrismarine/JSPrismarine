@@ -1,5 +1,4 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import Identifiers from '../Identifiers';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import DataPacket from './DataPacket';
 
@@ -40,8 +39,6 @@ const ALTERNATIVE_OFFSET = 1;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-client-response-packet/
  */
 export default class ResourcePackClientResponsePacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePackClientResponsePacket;
-
     public status!: ResourcePackStatusType;
     public packIds: string[] = [];
 

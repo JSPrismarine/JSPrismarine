@@ -1,6 +1,5 @@
 import { AbilityLayerFlag, CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
 
 /**
  * The "SerializedLayer" value of an ability layer, written as a uint16.
@@ -108,8 +107,6 @@ export class AbilityLayer {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-abilities-packet/
  */
 export default class UpdateAbilitiesPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateAbilitiesPacket;
-
     public commandPermission: CommandPermissionLevel = CommandPermissionLevel.ANY;
     public playerPermission: PlayerPermissionLevel = PlayerPermissionLevel.VISITOR;
     public targetActorUniqueId = 0n;

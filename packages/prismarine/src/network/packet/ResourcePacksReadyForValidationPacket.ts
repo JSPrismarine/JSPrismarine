@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -15,8 +14,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-packs-ready-for-validation-packet/
  */
 export default class ResourcePacksReadyForValidationPacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePacksReadyForValidationPacket;
-
     /** Nothing to read. */
     public decodePayload(): void {
         // The payload is empty by design.

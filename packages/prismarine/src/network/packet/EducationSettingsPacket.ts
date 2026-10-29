@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -30,8 +29,6 @@ export interface ExternalLinkSettings {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/education-settings-packet/
  */
 export default class EducationSettingsPacket extends DataPacket {
-    public static NetID = Identifiers.EducationSettingsPacket;
-
     /** URI the Code Builder panel opens. */
     public codeBuilderDefaultUri = '';
 

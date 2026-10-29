@@ -13,7 +13,7 @@ import PlayStatus from '../type/PlayStatus';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
-    public static NetID = Identifiers.LoginPacket;
+    public static PacketName = 'LoginPacket';
     public readonly preLogin = true;
 
     /**

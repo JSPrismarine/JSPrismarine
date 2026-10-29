@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -26,8 +25,6 @@ export const MAX_PARTY_ID_LENGTH = 49;
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/party-changed-packet/
  */
 export default class PartyChangedPacket extends DataPacket {
-    public static NetID = Identifiers.PartyChangedPacket;
-
     /** party_id: the platform's id for the party, or an empty string for no party. */
     public partyId = '';
 

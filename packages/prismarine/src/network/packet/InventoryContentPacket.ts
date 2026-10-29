@@ -1,6 +1,5 @@
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import { ContainerUiId } from '../type/ItemStackRequest';
 import DataPacket from './DataPacket';
 
@@ -19,8 +18,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class InventoryContentPacket extends DataPacket {
-    public static NetID = Identifiers.InventoryContentPacket;
-
     /** `Container Id`: the window these slots belong to. */
     public windowId!: number;
 

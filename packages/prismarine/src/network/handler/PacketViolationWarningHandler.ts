@@ -23,7 +23,7 @@ const packetNameOf = (id: number): string | null =>
  * screen usually sent one of these about the last packet it could not read.
  */
 export default class PacketViolationWarningHandler implements PacketHandler<PacketViolationWarningPacket> {
-    public static NetID = Identifiers.PacketViolationWarningPacket;
+    public static PacketName = 'PacketViolationWarningPacket';
 
     /** Logs who complained, which packet, how badly, and the client's own words. */
     public handle(packet: PacketViolationWarningPacket, server: Server, session: PlayerSession): void {

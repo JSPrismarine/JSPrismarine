@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/hurt-armor-packet/
  */
 export default class HurtArmorPacket extends DataPacket {
-    public static NetID = Identifiers.HurtArmorPacket;
-
     /**
      * Cause, the damage cause that produced the hit, as a `SharedTypes::Legacy::ActorDamageCause`
      * number. Mojang's datagen snapshot numbers its 35 members consecutively from `Override` (0)

@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ActorPickRequestPacket from '../packet/ActorPickRequestPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * mapping to hand back, and no server-initiated hotbar write to put it in.
  */
 export default class ActorPickRequestHandler implements PacketHandler<ActorPickRequestPacket> {
-    public static NetID = Identifiers.ActorPickRequestPacket;
+    public static PacketName = 'ActorPickRequestPacket';
 
     /** Logs the picked actor. */
     public handle(packet: ActorPickRequestPacket, server: Server, session: PlayerSession): void {

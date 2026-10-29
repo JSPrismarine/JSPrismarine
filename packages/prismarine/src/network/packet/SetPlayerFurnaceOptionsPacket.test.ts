@@ -62,6 +62,6 @@ describe('SetPlayerFurnaceOptionsPacket', () => {
         await registry['registerHandlers']();
 
         expect(registry.getPackets().get(0x15f)).toBe(SetPlayerFurnaceOptionsPacket);
-        expect(registry.getHandler(0x15f)).toBeInstanceOf(SetPlayerFurnaceOptionsHandler);
+        expect(registry.getHandler('SetPlayerFurnaceOptionsPacket')).toBeInstanceOf(SetPlayerFurnaceOptionsHandler);
     });
 });

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -40,8 +39,6 @@ export enum ItemUseMethod {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/completed-using-item-packet/
  */
 export default class CompletedUsingItemPacket extends DataPacket {
-    public static NetID = Identifiers.CompletedUsingItemPacket;
-
     /** Item Id: the network id of the item that finished being used. */
     public itemId = 0;
 

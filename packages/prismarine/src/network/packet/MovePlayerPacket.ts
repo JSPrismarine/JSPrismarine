@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import PositionMode from '../type/PositionMode';
 import DataPacket from './DataPacket';
@@ -18,8 +17,6 @@ import DataPacket from './DataPacket';
  * the tick.
  */
 export default class MovePlayerPacket extends DataPacket {
-    public static NetID = Identifiers.MovePlayerPacket;
-
     public runtimeEntityId!: bigint;
 
     public position!: Vector3;

@@ -1,5 +1,4 @@
 import { jigsaw_structure_data } from '@jsprismarine/bedrock-data';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class JigsawStructureDataPacket extends DataPacket {
-    public static NetID = Identifiers.JigsawStructureDataPacket;
-
     /** The rules as network NBT. Defaults to vanilla's. */
     public structureData: Buffer = jigsaw_structure_data;
 

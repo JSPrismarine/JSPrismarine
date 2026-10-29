@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import { TitleType } from '../type/SetTitleType';
 import DataPacket from './DataPacket';
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-title-packet/
  */
 export default class SetTitlePacket extends DataPacket {
-    public static NetID = Identifiers.SetTitlePacket;
-
     public titleType: TitleType = TitleType.TITLE;
 
     /** The text to show, or JSON when the type is one of the text object members. */

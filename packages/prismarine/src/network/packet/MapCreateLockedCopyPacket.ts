@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -12,8 +11,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/map-create-locked-copy-packet/
  */
 export default class MapCreateLockedCopyPacket extends DataPacket {
-    public static NetID = Identifiers.MapCreateLockedCopyPacket;
-
     /** Id of the map being copied. */
     public originalMapId = 0n;
 

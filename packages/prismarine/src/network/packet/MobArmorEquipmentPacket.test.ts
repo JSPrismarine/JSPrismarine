@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
@@ -53,7 +54,7 @@ describe('MobArmorEquipmentPacket', () => {
         packet.encode();
 
         const stream = new BinaryStream(packet.getBuffer());
-        expect(stream.readUnsignedVarInt()).toBe(MobArmorEquipmentPacket.NetID);
+        expect(stream.readUnsignedVarInt()).toBe(netIdFor('MobArmorEquipmentPacket'));
         expect(stream.readUnsignedVarLong()).toBe(1234n);
 
         // The item id is a wire detail (air is serialized as zero), but the decoded slots still

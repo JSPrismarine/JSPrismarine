@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -33,8 +32,6 @@ export enum UnlockedRecipesType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/unlocked-recipes-packet/
  */
 export default class UnlockedRecipesPacket extends DataPacket {
-    public static NetID = Identifiers.UnlockedRecipesPacket;
-
     /** What the client should do with {@link UnlockedRecipesPacket.recipes}. */
     public type: UnlockedRecipesType = UnlockedRecipesType.Empty;
 

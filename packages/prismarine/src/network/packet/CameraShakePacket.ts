@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** How the camera moves while it shakes, as the Shake Type uint8 numbers it. */
@@ -24,8 +23,6 @@ export enum CameraShakeAction {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-shake-packet/
  */
 export default class CameraShakePacket extends DataPacket {
-    public static NetID = Identifiers.CameraShakePacket;
-
     /** Intensity of the shake, clamped to 4 by the client. */
     public intensity = 0;
 

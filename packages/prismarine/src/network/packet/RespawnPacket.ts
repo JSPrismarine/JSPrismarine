@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -27,8 +26,6 @@ export enum PlayerRespawnState {
  * **Bound To:** Client and Server
  */
 export default class RespawnPacket extends DataPacket {
-    public static NetID = Identifiers.RespawnPacket;
-
     /** `Position` the player reappears at. Null writes the origin. */
     public position: Vector3 | null = null;
     /** `State`, which half of the handshake this is. */

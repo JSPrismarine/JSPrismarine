@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Offset of one requested sub chunk from the center, in sub chunks, each an int8. */
@@ -24,8 +23,6 @@ export interface SubChunkPosition {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/sub-chunk-request-packet/
  */
 export default class SubChunkRequestPacket extends DataPacket {
-    public static NetID = Identifiers.SubChunkRequestPacket;
-
     /** 0 for the overworld, 1 for the nether, 2 for the end. */
     public dimensionType = 0;
 

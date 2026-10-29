@@ -3,7 +3,6 @@ import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import type { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import ContainerClosePacket from '../packet/ContainerClosePacket';
 import type PacketHandler from './PacketHandler';
 
@@ -16,7 +15,7 @@ import type PacketHandler from './PacketHandler';
  * gone; the server deletes its own and sends one back, which is what closes the screen.
  */
 export default class ContainerCloseHandler implements PacketHandler<ContainerClosePacket> {
-    public static NetID = Identifiers.ContainerClosePacket;
+    public static PacketName = 'ContainerClosePacket';
 
     /**
      * Closes the window on the server, answers the client, then empties the crafting grid.

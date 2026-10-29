@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -17,8 +16,6 @@ export enum SpawnPositionType {
  * `position` is the Block Position field and `blockPosition` is the Spawn Block Pos field.
  */
 export default class SetSpawnPositionPacket extends DataPacket {
-    public static NetID = Identifiers.SetSpawnPositionPacket;
-
     public type!: SpawnPositionType;
     public position!: Vector3;
     public dimension!: number;

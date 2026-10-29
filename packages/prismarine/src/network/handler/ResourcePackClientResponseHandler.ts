@@ -12,7 +12,6 @@ import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import BlockPosition from '../../world/BlockPosition';
 import Flat from '../../world/generators/Flat';
-import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import FeatureRegistryPacket from '../packet/FeatureRegistryPacket';
@@ -30,7 +29,7 @@ import type PacketHandler from './PacketHandler';
  * burst of registries and world state that puts it in a world.
  */
 export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
-    public static NetID = Identifiers.ResourcePackClientResponsePacket;
+    public static PacketName = 'ResourcePackClientResponsePacket';
 
     /**
      * The `Respawn` packets that end a join, as `[position, state, runtime id]`.

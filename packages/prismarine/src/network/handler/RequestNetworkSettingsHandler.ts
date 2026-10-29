@@ -9,7 +9,7 @@ import PlayStatusPacket from '../packet/PlayStatusPacket';
 import PlayStatus from '../type/PlayStatus';
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
-    public static NetID = Identifiers.RequestNetworkSettingsPacket;
+    public static PacketName = 'RequestNetworkSettingsPacket';
     public readonly preLogin = true;
 
     public async handle(

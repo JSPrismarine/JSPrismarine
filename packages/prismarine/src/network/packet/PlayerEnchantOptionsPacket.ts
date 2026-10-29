@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -102,8 +101,6 @@ export interface ItemEnchantOption {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-enchant-options-packet/
  */
 export default class PlayerEnchantOptionsPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerEnchantOptionsPacket;
-
     /** Options: one entry per button of the table, empty to clear the table. */
     public options: ItemEnchantOption[] = [];
 

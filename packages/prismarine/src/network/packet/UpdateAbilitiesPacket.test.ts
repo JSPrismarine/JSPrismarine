@@ -1,4 +1,5 @@
 import { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -40,8 +41,8 @@ describe('network', () => {
     describe('packet', () => {
         describe('UpdateAbilitiesPacket', () => {
             it('uses the network id the client expects', () => {
-                expect(UpdateAbilitiesPacket.NetID).toBe(Identifiers.UpdateAbilitiesPacket);
-                expect(UpdateAbilitiesPacket.NetID).toBe(187);
+                expect(netIdFor('UpdateAbilitiesPacket')).toBe(Identifiers.UpdateAbilitiesPacket);
+                expect(netIdFor('UpdateAbilitiesPacket')).toBe(187);
             });
 
             it('writes the abilities data and one layer in docs order', () => {

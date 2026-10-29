@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -21,8 +20,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/gui-data-pick-item-packet/
  */
 export default class GuiDataPickItemPacket extends DataPacket {
-    public static NetID = Identifiers.GuiDataPickItemPacket;
-
     /** Item Name, the title line of the popup. */
     public itemName = '';
 

@@ -1,5 +1,4 @@
 import { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -16,8 +15,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class ContainerOpenPacket extends DataPacket {
-    public static NetID = Identifiers.ContainerOpenPacket;
-
     /** `Container Id`: the window the client should file this container under. */
     public windowId!: number;
 

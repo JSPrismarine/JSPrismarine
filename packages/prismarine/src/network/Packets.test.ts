@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
+import Codec2193 from './codec/Codec2193';
 import * as Handlers from './Handlers';
 import Identifiers from './Identifiers';
 import * as Packets from './Packets';
@@ -50,10 +51,11 @@ describe('network/Packets', () => {
         expect(importOrder('Packets.ts', 'packet')).toStrictEqual(files);
     });
 
-    it('gives every registered packet the id Identifiers lists under its name', () => {
+    it('gives every registered packet an id in the 2193 codec under its name', () => {
         const registered = exported.filter(([name]) => !UNREGISTERED_PACKETS.has(name));
-        for (const [name, packet] of registered) expect(packet.NetID, name).toBe(packetIds.get(name));
-        expect(new Set(registered.map(([, packet]) => packet.NetID)).size).toBe(registered.length);
+        for (const [name] of registered) expect(Codec2193.netIdOf(name), name).toBe(packetIds.get(name));
+        const ids = registered.map(([name]) => Codec2193.netIdOf(name));
+        expect(new Set(ids).size).toBe(registered.length);
     });
 });
 
@@ -74,9 +76,10 @@ describe('network/Handlers', () => {
         const packets = new Map(Object.entries(Packets));
         for (const [name, handler] of exported) {
             const packetName = name.replace(/Handler$/, 'Packet');
-            expect(packets.get(packetName)?.NetID, name).toBe(handler.NetID);
+            expect(packets.has(packetName), name).toBe(true);
+            expect(handler.PacketName, name).toBe(packetName);
         }
-        expect(new Set(exported.map(([, handler]) => handler.NetID)).size).toBe(exported.length);
+        expect(new Set(exported.map(([, handler]) => handler.PacketName)).size).toBe(exported.length);
     });
 });
 

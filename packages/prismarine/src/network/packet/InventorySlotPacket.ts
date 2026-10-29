@@ -1,5 +1,4 @@
 import { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import { ContainerUiId } from '../type/ItemStackRequest';
 import DataPacket from './DataPacket';
 
@@ -18,8 +17,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class InventorySlotPacket extends DataPacket {
-    public static NetID = Identifiers.InventorySlotPacket;
-
     /** `Container Id`; the crafting grid lives in the player's own UI, which is 124. */
     public windowId!: number;
 

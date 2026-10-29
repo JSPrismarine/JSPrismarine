@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import ContainerClosePacket from './ContainerClosePacket';
@@ -13,12 +14,12 @@ describe('network', () => {
             });
             packet.encode();
 
-            expect([...packet.getBuffer()]).toEqual([ContainerClosePacket.NetID, 124, 7, 1]);
+            expect([...packet.getBuffer()]).toEqual([netIdFor('ContainerClosePacket'), 124, 7, 1]);
         });
 
         it('reads a hand-built buffer and consumes all of it', () => {
             const stream = new BinaryStream();
-            stream.writeUnsignedVarInt(ContainerClosePacket.NetID);
+            stream.writeUnsignedVarInt(netIdFor('ContainerClosePacket')!);
             stream.writeByte(3);
             stream.writeByte(0);
             stream.writeBoolean(false);

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** What a `MultiplayerSettingsPacket` asks for, as the PacketType varint32 numbers it. */
@@ -20,8 +19,6 @@ export enum MultiplayerSettingsPacketType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/multiplayer-settings-packet/
  */
 export default class MultiplayerSettingsPacket extends DataPacket {
-    public static NetID = Identifiers.MultiplayerSettingsPacket;
-
     /** PacketType: the single setting this packet carries. */
     public packetType: MultiplayerSettingsPacketType = MultiplayerSettingsPacketType.EnableMultiplayer;
 

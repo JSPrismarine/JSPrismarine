@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -28,8 +27,6 @@ export enum AnimateAction {
  * "attack", "useitem", "throwitem", "dropitem" or "event".
  */
 export default class AnimatePacket extends DataPacket {
-    public static NetID = Identifiers.AnimatePacket;
-
     /** `Action`, as the raw byte. See {@link AnimateAction} for the numbers. */
     public action!: number;
 

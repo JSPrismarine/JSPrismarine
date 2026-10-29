@@ -1,5 +1,4 @@
 import { InventoryLayout, InventoryLeftTab, InventoryRightTab } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 // All three are generated from Mojang's documentation, where they are `InventoryLeftTabIndex`,
@@ -27,8 +26,6 @@ export { InventoryLayout, InventoryLeftTab, InventoryRightTab };
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-player-inventory-options-packet/
  */
 export default class SetPlayerInventoryOptionsPacket extends DataPacket {
-    public static NetID = Identifiers.SetPlayerInventoryOptionsPacket;
-
     /** Left Inventory Tab: the recipe book tab that is open. */
     public leftTab: InventoryLeftTab = InventoryLeftTab.NONE;
 

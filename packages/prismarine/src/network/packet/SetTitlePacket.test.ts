@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 import * as Packets from '../Packets';
 import { TitleType } from '../type/SetTitleType';
 import SetTitlePacket from './SetTitlePacket';
@@ -49,6 +50,6 @@ describe('SetTitlePacket', () => {
 
     it('is registered for packet 0x58', () => {
         expect(Packets.SetTitlePacket).toBe(SetTitlePacket);
-        expect(SetTitlePacket.NetID).toBe(0x58);
+        expect(netIdFor('SetTitlePacket')).toBe(0x58);
     });
 });

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -9,8 +8,6 @@ import DataPacket from './DataPacket';
  * and a retail client discards every `LevelChunk` that arrives before that answer.
  */
 export default class RequestChunkRadiusPacket extends DataPacket {
-    public static NetID = Identifiers.RequestChunkRadiusPacket;
-
     /** The docs' Chunk Radius: how far the client wants to see, in chunks. */
     public radius!: number;
 

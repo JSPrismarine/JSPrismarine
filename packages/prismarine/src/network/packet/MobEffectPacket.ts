@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -36,8 +35,6 @@ export enum MobEffectEvent {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-effect-packet/
  */
 export default class MobEffectPacket extends DataPacket {
-    public static NetID = Identifiers.MobEffectPacket;
-
     /** Target Runtime ID, the actor the effect is on. */
     public targetRuntimeId = 0n;
 

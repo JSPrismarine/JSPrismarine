@@ -3,8 +3,10 @@
  * `Codec2193` can read without creating an import cycle through the packet barrel.
  */
 
+/** The protocol version, as `RequestNetworkSettings` carries it. */
 export const protocolVersion = 2193;
 
+/** The Minecraft versions that speak protocol 2193, in ascending order. */
 export const minecraftVersions: readonly string[] = ['1.26.50', '1.26.51'];
 
 /**
@@ -246,6 +248,7 @@ export const packetIds = {
     RecordStartedPacket: 0x160
 };
 
+/** The packet class names protocol 2193 lists an id for. */
 export type PacketName = keyof typeof packetIds;
 
 const byName = new Map<string, number>(Object.entries(packetIds));

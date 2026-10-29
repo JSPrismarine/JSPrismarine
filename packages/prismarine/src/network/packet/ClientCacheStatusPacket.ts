@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -15,8 +14,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/
  */
 export default class ClientCacheStatusPacket extends DataPacket {
-    public static NetID = Identifiers.ClientCacheStatusPacket;
-
     /** `true` when the client offers to keep a blob cache. */
     public enabled = false;
 

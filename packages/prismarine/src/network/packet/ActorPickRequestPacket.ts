@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -10,8 +9,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/actor-pick-request-packet/
  */
 export default class ActorPickRequestPacket extends DataPacket {
-    public static NetID = Identifiers.ActorPickRequestPacket;
-
     /** Unique id of the picked actor. */
     public actorId = 0n;
 

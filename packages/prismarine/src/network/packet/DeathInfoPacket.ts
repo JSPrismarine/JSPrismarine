@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -27,8 +26,6 @@ import DataPacket from './DataPacket';
  * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
  */
 export default class DeathInfoPacket extends DataPacket {
-    public static NetID = Identifiers.DeathInfoPacket;
-
     /** Death Cause Attack Name: the bare translation key of the death message. */
     public cause = '';
 

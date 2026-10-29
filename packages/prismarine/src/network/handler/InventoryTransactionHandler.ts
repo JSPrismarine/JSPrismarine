@@ -12,7 +12,6 @@ import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
 import { useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
-import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
 import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
 import {
@@ -196,7 +195,7 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
  * wrapped in the packet it would have arrived in on its own.
  */
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
-    public static NetID = Identifiers.InventoryTransactionPacket;
+    public static PacketName = 'InventoryTransactionPacket';
 
     /**
      * Handles an inventory transaction.

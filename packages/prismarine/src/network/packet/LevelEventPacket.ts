@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { LevelEvent } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -19,8 +18,6 @@ import DataPacket from './DataPacket';
  * `Data` (varint32).
  */
 export default class LevelEventPacket extends DataPacket {
-    public static NetID = Identifiers.LevelEventPacket;
-
     /** `Event Id`: what happened, from vanilla's grouped ranges. */
     public eventId!: LevelEvent;
 

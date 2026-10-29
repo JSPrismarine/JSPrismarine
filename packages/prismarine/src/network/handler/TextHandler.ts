@@ -1,5 +1,4 @@
 import { Chat, ChatType } from '../../chat/Chat';
-import Identifiers from '../Identifiers';
 import TextPacketType from '../type/TextPacketType';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
@@ -39,7 +38,7 @@ const isTypeable = (character: string): boolean => {
  * are ignored as well: the relay takes all three from the server's record of the sender.
  */
 export default class TextHandler implements PacketHandler<TextPacket> {
-    public static NetID = Identifiers.TextPacket;
+    public static PacketName = 'TextPacket';
 
     /**
      * Sends the message on, once it has been cut to something a chat box could have produced.

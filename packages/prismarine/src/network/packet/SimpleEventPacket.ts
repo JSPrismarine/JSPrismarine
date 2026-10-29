@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -29,8 +28,6 @@ export enum SimpleEventSubtype {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/simple-event-packet/
  */
 export default class SimpleEventPacket extends DataPacket {
-    public static NetID = Identifiers.SimpleEventPacket;
-
     /** Type, the request being made. */
     public type: SimpleEventSubtype = SimpleEventSubtype.UninitializedSubtype;
 

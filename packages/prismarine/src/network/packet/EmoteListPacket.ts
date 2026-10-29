@@ -1,5 +1,4 @@
 import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -12,8 +11,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/emote-list-packet/
  */
 export default class EmoteListPacket extends DataPacket {
-    public static NetID = Identifiers.EmoteListPacket;
-
     /** Runtime id of the player whose equipped emotes these are. */
     public runtimeId: bigint = 0n;
 

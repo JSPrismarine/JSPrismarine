@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ResourcePacksReadyForValidationPacket from '../packet/ResourcePacksReadyForValidationPacket';
 import type PacketHandler from './PacketHandler';
@@ -13,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * so a join log shows the step happened.
  */
 export default class ResourcePacksReadyForValidationHandler implements PacketHandler<ResourcePacksReadyForValidationPacket> {
-    public static NetID = Identifiers.ResourcePacksReadyForValidationPacket;
+    public static PacketName = 'ResourcePacksReadyForValidationPacket';
 
     /** Logs the report; the packet has no fields to check and needs no answer. */
     public handle(_packet: ResourcePacksReadyForValidationPacket, server: Server, session: PlayerSession): void {

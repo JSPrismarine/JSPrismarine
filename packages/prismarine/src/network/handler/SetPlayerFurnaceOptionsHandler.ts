@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type SetPlayerFurnaceOptionsPacket from '../packet/SetPlayerFurnaceOptionsPacket';
 import { FurnaceLayout, FurnaceLeftTabIndex, FurnaceType } from '../packet/SetPlayerFurnaceOptionsPacket';
@@ -18,7 +17,7 @@ import type PacketHandler from './PacketHandler';
  * on `WorldPlayerData` and matching reads and writes in `World.savePlayerData`.
  */
 export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<SetPlayerFurnaceOptionsPacket> {
-    public static NetID = Identifiers.SetPlayerFurnaceOptionsPacket;
+    public static PacketName = 'SetPlayerFurnaceOptionsPacket';
 
     /** Checks the three enum fields, then logs the layout. */
     public handle(packet: SetPlayerFurnaceOptionsPacket, server: Server, session: PlayerSession): void {

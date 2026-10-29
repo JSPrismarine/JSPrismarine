@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ServerboundPackSettingChangePacket from '../packet/ServerboundPackSettingChangePacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * dropped. Nothing is persisted and other players are not told.
  */
 export default class ServerboundPackSettingChangeHandler implements PacketHandler<ServerboundPackSettingChangePacket> {
-    public static NetID = Identifiers.ServerboundPackSettingChangePacket;
+    public static PacketName = 'ServerboundPackSettingChangePacket';
 
     /** Logs the pack, the setting, and the new value. */
     public handle(packet: ServerboundPackSettingChangePacket, server: Server, session: PlayerSession): void {

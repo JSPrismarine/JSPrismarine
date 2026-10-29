@@ -1,5 +1,4 @@
 import { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -24,8 +23,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-equipment-packet/
  */
 export default class MobEquipmentPacket extends DataPacket {
-    public static NetID = Identifiers.MobEquipmentPacket;
-
     public runtimeEntityId!: bigint;
     public item!: Item;
     public inventorySlot!: number;

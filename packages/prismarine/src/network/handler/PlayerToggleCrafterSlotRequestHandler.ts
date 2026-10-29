@@ -1,6 +1,5 @@
 import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PlayerToggleCrafterSlotRequestPacket from '../packet/PlayerToggleCrafterSlotRequestPacket';
 import { blockTargetRejection } from './BlockTarget';
@@ -21,7 +20,7 @@ const CRAFTER_SLOTS = 9;
  * state to flip or to send back.
  */
 export default class PlayerToggleCrafterSlotRequestHandler implements PacketHandler<PlayerToggleCrafterSlotRequestPacket> {
-    public static NetID = Identifiers.PlayerToggleCrafterSlotRequestPacket;
+    public static PacketName = 'PlayerToggleCrafterSlotRequestPacket';
 
     /** Checks the position names a crafter in reach and the slot exists, then logs the toggle. */
     public handle(packet: PlayerToggleCrafterSlotRequestPacket, server: Server, session: PlayerSession): void {

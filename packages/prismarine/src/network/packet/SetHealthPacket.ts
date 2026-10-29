@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -16,8 +15,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-health-packet/
  */
 export default class SetHealthPacket extends DataPacket {
-    public static NetID = Identifiers.SetHealthPacket;
-
     /**
      * The docs' `Health` field, in half hearts (0 to 20 by default).
      *

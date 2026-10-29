@@ -1,6 +1,5 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * screen; the server sends it back once it has applied it.
  */
 export default class SetDefaultGameTypePacket extends DataPacket {
-    public static NetID = Identifiers.SetDefaultGameTypePacket;
-
     /**
      * `Default Game Type`, a `Gametype` value written ZigZag encoded.
      * @defaultValue `Gametype.SURVIVAL`

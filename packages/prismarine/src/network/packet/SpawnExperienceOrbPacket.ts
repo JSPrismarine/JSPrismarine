@@ -1,5 +1,4 @@
 import { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-experience-orb-packet/
  */
 export default class SpawnExperienceOrbPacket extends DataPacket {
-    public static NetID = Identifiers.SpawnExperienceOrbPacket;
-
     /** Position, where the orb appears. */
     public position: Vector3 = new Vector3(0, 0, 0);
 

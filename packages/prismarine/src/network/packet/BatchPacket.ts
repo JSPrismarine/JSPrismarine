@@ -11,7 +11,10 @@ import DataPacket from './DataPacket';
 export const DEFAULT_COMPRESSION_LEVEL = 7;
 
 export default class BatchPacket extends DataPacket {
-    public static NetID = 0xfe;
+    /** The batch envelope's single-byte wire id, the same at every protocol version. */
+    public getId(): number {
+        return 0xfe;
+    }
 
     /**
      * Whether the payload is deflated behind the algorithm prefix byte. Callers set it from

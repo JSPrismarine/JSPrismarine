@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PurchaseReceiptPacket from '../packet/PurchaseReceiptPacket';
 import type PacketHandler from './PacketHandler';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * also needs a call to Mojang's marketplace, which only partnered servers can make.
  */
 export default class PurchaseReceiptHandler implements PacketHandler<PurchaseReceiptPacket> {
-    public static NetID = Identifiers.PurchaseReceiptPacket;
+    public static PacketName = 'PurchaseReceiptPacket';
 
     /** Logs how many receipts arrived. */
     public handle(packet: PurchaseReceiptPacket, server: Server, session: PlayerSession): void {

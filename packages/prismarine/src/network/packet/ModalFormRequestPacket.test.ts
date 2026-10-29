@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 import * as Packets from '../Packets';
 import ModalFormRequestPacket from './ModalFormRequestPacket';
 
@@ -27,6 +28,6 @@ describe('ModalFormRequestPacket', () => {
 
     it('is registered for packet 0x64', () => {
         expect(Packets.ModalFormRequestPacket).toBe(ModalFormRequestPacket);
-        expect(ModalFormRequestPacket.NetID).toBe(0x64);
+        expect(netIdFor('ModalFormRequestPacket')).toBe(0x64);
     });
 });

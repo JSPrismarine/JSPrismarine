@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -17,8 +16,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/ticking-areas-load-status-packet/
  */
 export default class TickingAreasLoadStatusPacket extends DataPacket {
-    public static NetID = Identifiers.TickingAreasLoadStatusPacket;
-
     /** Waiting For Preload: `true` while the client is still waiting on the preload. */
     public preload: boolean = false;
 

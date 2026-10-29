@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -96,7 +97,7 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(LevelChunkPacket.NetID).toBe(0x3a);
+                expect(netIdFor('LevelChunkPacket')).toBe(0x3a);
             });
         });
     });

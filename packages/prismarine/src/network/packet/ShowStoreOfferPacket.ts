@@ -1,5 +1,4 @@
 import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Which page the client opens for the offer, as the `Redirect Type` byte numbers it. */
@@ -21,8 +20,6 @@ export enum ShowStoreOfferRedirectType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-store-offer-packet/
  */
 export default class ShowStoreOfferPacket extends DataPacket {
-    public static NetID = Identifiers.ShowStoreOfferPacket;
-
     /** The offer to look up on the page the redirect type chooses. */
     public offerId: UUID = new UUID();
 

@@ -1,5 +1,4 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-permissions-packet/
  */
 export default class RequestPermissionsPacket extends DataPacket {
-    public static NetID = Identifiers.RequestPermissionsPacket;
-
     /** Unique id of the player whose level should change. */
     public targetPlayerUniqueId = 0n;
 

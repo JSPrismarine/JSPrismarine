@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import RequestChunkRadiusPacket from './RequestChunkRadiusPacket';
@@ -29,8 +30,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(RequestChunkRadiusPacket.NetID).toBe(Identifiers.RequestChunkRadiusPacket);
-                expect(RequestChunkRadiusPacket.NetID).toBe(0x45);
+                expect(netIdFor('RequestChunkRadiusPacket')).toBe(Identifiers.RequestChunkRadiusPacket);
+                expect(netIdFor('RequestChunkRadiusPacket')).toBe(0x45);
             });
         });
     });

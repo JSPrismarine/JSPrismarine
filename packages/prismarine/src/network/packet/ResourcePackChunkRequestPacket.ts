@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -10,8 +9,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-request-packet/
  */
 export default class ResourcePackChunkRequestPacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePackChunkRequestPacket;
-
     /** The pack id and version the server announced, joined by an underscore. */
     public resourceName = '';
 

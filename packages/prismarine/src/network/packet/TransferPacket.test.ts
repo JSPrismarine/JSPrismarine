@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import UUID from '../../utils/UUID';
@@ -108,8 +109,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(TransferPacket.NetID).toBe(Identifiers.TransferPacket);
-                expect(TransferPacket.NetID).toBe(85);
+                expect(netIdFor('TransferPacket')).toBe(Identifiers.TransferPacket);
+                expect(netIdFor('TransferPacket')).toBe(85);
             });
         });
     });

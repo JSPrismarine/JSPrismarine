@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type SubClientLoginPacket from '../packet/SubClientLoginPacket';
 import type PacketHandler from './PacketHandler';
@@ -15,7 +14,7 @@ import type PacketHandler from './PacketHandler';
  * expose. The client stays on the split screen waiting screen until the player backs out of it.
  */
 export default class SubClientLoginHandler implements PacketHandler<SubClientLoginPacket> {
-    public static NetID = Identifiers.SubClientLoginPacket;
+    public static PacketName = 'SubClientLoginPacket';
 
     /** Logs the refusal against the player who already holds the connection. */
     public handle(_packet: SubClientLoginPacket, server: Server, session: PlayerSession): void {

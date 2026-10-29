@@ -1,7 +1,6 @@
 import type Server from '../../Server';
 import type Skin from '../../utils/skin/Skin';
 import type SkinImage from '../../utils/skin/SkinImage';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import PlayerSkinPacket from '../packet/PlayerSkinPacket';
 import type PacketHandler from './PacketHandler';
@@ -85,7 +84,7 @@ const skinProblem = (skin: Skin): string | null => {
  * reject it.
  */
 export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket> {
-    public static NetID = Identifiers.PlayerSkinPacket;
+    public static PacketName = 'PlayerSkinPacket';
 
     /**
      * Stores the new skin on the sender and relays it to every other player.

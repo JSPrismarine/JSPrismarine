@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import type BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
@@ -39,8 +38,6 @@ export type CommandBlockTarget =
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-block-update-packet/
  */
 export default class CommandBlockUpdatePacket extends DataPacket {
-    public static NetID = Identifiers.CommandBlockUpdatePacket;
-
     public target: CommandBlockTarget = { isBlock: false, targetRuntimeId: 0n };
     public command = '';
     public lastOutput = '';

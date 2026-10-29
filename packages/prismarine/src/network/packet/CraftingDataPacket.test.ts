@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { netIdFor } from '../codec/v2193';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
@@ -205,7 +206,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(netIdFor('CraftingDataPacket')!),
                 ...varuint(0), // Shaped Recipes.
                 ...varuint(1), // Shapeless Recipes.
                 ...text('torch'), // Recipe Id.
@@ -253,7 +254,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(netIdFor('CraftingDataPacket')!),
                 ...varuint(1), // Shaped Recipes.
                 ...text('hoe'), // Recipe Id.
                 ...varint(2), // Width.
@@ -303,7 +304,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(netIdFor('CraftingDataPacket')!),
                 ...varuint(0), // Shaped Recipes.
                 ...varuint(0), // Shapeless Recipes.
                 ...varuint(0), // Multi Recipes.
@@ -342,7 +343,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(netIdFor('CraftingDataPacket')!),
                 ...varuint(0), // Shaped Recipes.
                 ...varuint(1), // Shapeless Recipes.
                 ...text('sticks'), // Recipe Id.

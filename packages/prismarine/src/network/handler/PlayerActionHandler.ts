@@ -3,7 +3,6 @@ import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import type BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
 import { PlayerActionType } from '../packet/PlayerActionPacket';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
@@ -57,7 +56,7 @@ const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
  * the sender's, and a block action that belongs in the input is ignored. Neither throws.
  */
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
-    public static NetID = Identifiers.PlayerActionPacket;
+    public static PacketName = 'PlayerActionPacket';
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

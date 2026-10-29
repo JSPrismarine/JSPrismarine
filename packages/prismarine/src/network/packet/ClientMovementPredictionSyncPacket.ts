@@ -1,5 +1,4 @@
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Most bytes an actor flag bit set needs: seven flag bits per byte, `ActorFlags.COUNT` flags. */
@@ -19,8 +18,6 @@ const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/client-movement-prediction-sync-packet/
  */
 export default class ClientMovementPredictionSyncPacket extends DataPacket {
-    public static NetID = Identifiers.ClientMovementPredictionSyncPacket;
-
     /** Actor flag bits, bit `n` set when `ActorFlags` member `n` is on. */
     public actorFlags = 0n;
 

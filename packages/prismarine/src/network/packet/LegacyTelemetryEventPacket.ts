@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -209,8 +208,6 @@ export type LegacyTelemetryEventData =
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/legacy-telemetry-event-packet/
  */
 export default class LegacyTelemetryEventPacket extends DataPacket {
-    public static NetID = Identifiers.LegacyTelemetryEventPacket;
-
     /** Target Actor ID, the actor the event happened to. */
     public targetActorId = 0n;
 

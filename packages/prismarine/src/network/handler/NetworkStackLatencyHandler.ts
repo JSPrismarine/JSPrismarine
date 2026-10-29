@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import NetworkStackLatencyPacket from '../packet/NetworkStackLatencyPacket';
 import type PacketHandler from './PacketHandler';
@@ -15,7 +14,7 @@ import type PacketHandler from './PacketHandler';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/
  */
 export default class NetworkStackLatencyHandler implements PacketHandler<NetworkStackLatencyPacket> {
-    public static NetID = Identifiers.NetworkStackLatencyPacket;
+    public static PacketName = 'NetworkStackLatencyPacket';
 
     /** Echoes the timestamp when the ping asked for an answer, and logs it either way. */
     public async handle(packet: NetworkStackLatencyPacket, server: Server, session: PlayerSession): Promise<void> {

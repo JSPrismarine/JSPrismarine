@@ -1,6 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../../network/NetworkUtil';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -20,8 +19,6 @@ import DataPacket from './DataPacket';
  * instead of the reason the server meant to send.
  */
 export default class DisconnectPacket extends DataPacket {
-    public static NetID = Identifiers.DisconnectPacket;
-
     /** The `Reason` enum value. Callers set it; `UNKNOWN` is the zero byte for a packet nobody did. */
     public reason: DisconnectReason = DisconnectReason.UNKNOWN;
     /** `Skip Message`. When true no strings follow and the client shows its own generic text. */

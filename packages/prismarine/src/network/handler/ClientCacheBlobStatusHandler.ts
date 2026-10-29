@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ClientCacheBlobStatusPacket from '../packet/ClientCacheBlobStatusPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * has nothing to answer a miss with. The counts are recorded at debug level and dropped.
  */
 export default class ClientCacheBlobStatusHandler implements PacketHandler<ClientCacheBlobStatusPacket> {
-    public static NetID = Identifiers.ClientCacheBlobStatusPacket;
+    public static PacketName = 'ClientCacheBlobStatusPacket';
 
     /** Logs how many blobs the client has and lacks. */
     public handle(packet: ClientCacheBlobStatusPacket, server: Server, session: PlayerSession): void {

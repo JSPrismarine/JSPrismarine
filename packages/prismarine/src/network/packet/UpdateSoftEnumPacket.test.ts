@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import UpdateSoftEnumPacket, { SoftEnumUpdateType } from './UpdateSoftEnumPacket';
 
@@ -20,7 +21,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                UpdateSoftEnumPacket.NetID,
+                netIdFor('UpdateSoftEnumPacket'),
                 ...text('players'),
                 2,
                 ...text('alice'),
@@ -38,7 +39,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                UpdateSoftEnumPacket.NetID,
+                netIdFor('UpdateSoftEnumPacket'),
                 ...text('x'),
                 0,
                 SoftEnumUpdateType.REMOVE

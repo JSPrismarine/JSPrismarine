@@ -1,5 +1,4 @@
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -22,8 +21,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-event-packet/
  */
 export default class BlockEventPacket extends DataPacket {
-    public static NetID = Identifiers.BlockEventPacket;
-
     /** Block Position, the block the event belongs to. */
     public blockPosition: BlockPosition = new BlockPosition(0, 0, 0);
 

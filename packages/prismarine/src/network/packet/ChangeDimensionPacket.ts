@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { Dimension } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -21,8 +20,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/change-dimension-packet/
  */
 export default class ChangeDimensionPacket extends DataPacket {
-    public static NetID = Identifiers.ChangeDimensionPacket;
-
     /** `Dimension ID`, numbered as {@link Dimension}: 0 the Overworld, 1 the Nether, 2 the End, 3 undefined. */
     public dimension!: Dimension;
     /** `Position` in the new dimension. Null writes the origin. */

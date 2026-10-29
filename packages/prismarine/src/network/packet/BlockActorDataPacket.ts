@@ -1,6 +1,5 @@
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -21,8 +20,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-actor-data-packet/
  */
 export default class BlockActorDataPacket extends DataPacket {
-    public static NetID = Identifiers.BlockActorDataPacket;
-
     /** Block Position, the block the actor sits in. */
     public blockPosition: BlockPosition = new BlockPosition(0, 0, 0);
 

@@ -1,7 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { PlayerAuthInputData } from '@jsprismarine/minecraft';
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import type { ItemStackRequest } from '../type/ItemStackRequest';
 import { readItemStackRequest } from '../type/ItemStackRequest';
@@ -145,8 +144,6 @@ export interface AuthInputItemUse {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-auth-input-packet/
  */
 export default class PlayerAuthInputPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerAuthInputPacket;
-
     /** `Player Rotation` X: the pitch at the start of the tick. */
     public pitch = 0;
     /** `Player Rotation` Y: the yaw at the start of the tick. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
@@ -43,8 +44,10 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(NetworkChunkPublisherUpdatePacket.NetID).toBe(Identifiers.NetworkChunkPublisherUpdatePacket);
-                expect(NetworkChunkPublisherUpdatePacket.NetID).toBe(0x79);
+                expect(netIdFor('NetworkChunkPublisherUpdatePacket')).toBe(
+                    Identifiers.NetworkChunkPublisherUpdatePacket
+                );
+                expect(netIdFor('NetworkChunkPublisherUpdatePacket')).toBe(0x79);
             });
         });
     });

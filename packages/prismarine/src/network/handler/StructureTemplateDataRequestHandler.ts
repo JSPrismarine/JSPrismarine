@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type StructureTemplateDataRequestPacket from '../packet/StructureTemplateDataRequestPacket';
 import { StructureTemplateRequestOperation } from '../packet/StructureTemplateDataRequestPacket';
@@ -18,7 +17,7 @@ const STRUCTURE_BLOCKS: ReadonlySet<string> = new Set(['minecraft:structure_bloc
  * template storage to answer from, so no `StructureTemplateDataResponsePacket` is sent.
  */
 export default class StructureTemplateDataRequestHandler implements PacketHandler<StructureTemplateDataRequestPacket> {
-    public static NetID = Identifiers.StructureTemplateDataRequestPacket;
+    public static PacketName = 'StructureTemplateDataRequestPacket';
 
     /** Checks the position names a structure block in reach, then logs the name and operation. */
     public handle(packet: StructureTemplateDataRequestPacket, server: Server, session: PlayerSession): void {

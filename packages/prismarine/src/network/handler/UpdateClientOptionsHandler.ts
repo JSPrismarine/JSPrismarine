@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type UpdateClientOptionsPacket from '../packet/UpdateClientOptionsPacket';
 import { GraphicsMode } from '../packet/UpdateClientOptionsPacket';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * recorded at debug level and dropped.
  */
 export default class UpdateClientOptionsHandler implements PacketHandler<UpdateClientOptionsPacket> {
-    public static NetID = Identifiers.UpdateClientOptionsPacket;
+    public static PacketName = 'UpdateClientOptionsPacket';
 
     /** Logs whichever settings the packet carries. */
     public handle(packet: UpdateClientOptionsPacket, server: Server, session: PlayerSession): void {

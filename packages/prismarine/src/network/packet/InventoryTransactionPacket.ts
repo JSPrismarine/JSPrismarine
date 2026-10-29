@@ -2,7 +2,6 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { Item } from '../../item/Item';
 import type BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -297,8 +296,6 @@ const hasLegacyRequest = (legacyRequestId: number): boolean => legacyRequestId <
  * Mismatch is the client saying its inventory disagrees with the server's.
  */
 export default class InventoryTransactionPacket extends DataPacket {
-    public static NetID = Identifiers.InventoryTransactionPacket;
-
     public legacyRequestId!: number;
     public legacySlotChanges!: LegacySlotChange[];
 

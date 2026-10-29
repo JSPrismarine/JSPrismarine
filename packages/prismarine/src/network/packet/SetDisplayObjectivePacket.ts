@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -21,8 +20,6 @@ export enum ObjectiveSortOrder {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-display-objective-packet/
  */
 export default class SetDisplayObjectivePacket extends DataPacket {
-    public static NetID = Identifiers.SetDisplayObjectivePacket;
-
     /** Where the objective is shown: `list`, `sidebar` or `belowname`. */
     public displaySlotName = '';
 

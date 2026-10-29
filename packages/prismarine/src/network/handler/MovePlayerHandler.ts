@@ -2,7 +2,6 @@ import type { Vector3 } from '@jsprismarine/math';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import PositionMode from '../type/PositionMode';
 import type PacketHandler from './PacketHandler';
@@ -90,7 +89,7 @@ export const applyClientMovement = async (
  * What is accepted ends up in {@link applyClientMovement}, the same as a `PlayerAuthInputPacket`.
  */
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
-    public static NetID = Identifiers.MovePlayerPacket;
+    public static PacketName = 'MovePlayerPacket';
 
     public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

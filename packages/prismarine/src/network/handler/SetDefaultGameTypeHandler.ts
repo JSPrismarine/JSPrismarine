@@ -2,7 +2,6 @@ import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
 import type PacketHandler from './PacketHandler';
@@ -31,7 +30,7 @@ const nameOfDefault = (gamemode: Gametype): GametypeName | null => {
  * every player, and then sent to every client, which is what the docs describe.
  */
 export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
-    public static NetID = Identifiers.SetDefaultGameTypePacket;
+    public static PacketName = 'SetDefaultGameTypePacket';
 
     /** Sets the configured default and moves every player onto it, when the sender may. */
     public async handle(packet: SetDefaultGameTypePacket, server: Server, session: PlayerSession): Promise<void> {

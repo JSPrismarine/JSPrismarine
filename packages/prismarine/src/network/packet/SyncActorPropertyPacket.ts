@@ -1,6 +1,5 @@
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -16,8 +15,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sync-actor-property-packet/
  */
 export default class SyncActorPropertyPacket extends DataPacket {
-    public static NetID = Identifiers.SyncActorPropertyPacket;
-
     /** Property Data: the actor type and its synced properties. */
     public propertyData: NBTTagCompound = new NBTTagCompound();
 

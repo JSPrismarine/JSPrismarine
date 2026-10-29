@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -46,8 +45,6 @@ export enum PacketViolationSeverity {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/packet-violation-warning-packet/
  */
 export default class PacketViolationWarningPacket extends DataPacket {
-    public static NetID = Identifiers.PacketViolationWarningPacket;
-
     /** Violation Type: what kind of problem the client found. */
     public type: PacketViolationType = PacketViolationType.Unknown;
 

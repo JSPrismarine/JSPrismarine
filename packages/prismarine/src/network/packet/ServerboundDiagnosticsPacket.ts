@@ -1,5 +1,4 @@
 import type { Vector3 } from '@jsprismarine/math';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -52,8 +51,6 @@ export interface WhiskerScopeDataSummary {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-diagnostics-packet/
  */
 export default class ServerboundDiagnosticsPacket extends DataPacket {
-    public static NetID = Identifiers.ServerboundDiagnosticsPacket;
-
     public avgFps = 0;
     public avgServerSimTickTimeMs = 0;
     public avgClientSimTickTimeMs = 0;

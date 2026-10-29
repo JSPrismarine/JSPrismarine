@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 import type PlayStatus from '../type/PlayStatus';
@@ -10,8 +9,6 @@ import type PlayStatus from '../type/PlayStatus';
  * enum value. Nothing else.
  */
 export default class PlayStatusPacket extends DataPacket {
-    public static NetID = Identifiers.PlayStatusPacket;
-
     /** The `Status` field. */
     public status!: PlayStatus;
 

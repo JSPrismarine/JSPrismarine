@@ -33,6 +33,6 @@ describe('NpcRequestHandler', () => {
 
     it('is registered for packet 0x62', () => {
         expect(Handlers.NpcRequestHandler).toBe(NpcRequestHandler);
-        expect(NpcRequestHandler.NetID).toBe(0x62);
+        expect(NpcRequestHandler.PacketName).toBe('NpcRequestPacket');
     });
 });

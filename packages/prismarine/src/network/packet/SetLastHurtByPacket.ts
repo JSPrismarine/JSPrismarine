@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -17,8 +16,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-last-hurt-by-packet/
  */
 export default class SetLastHurtByPacket extends DataPacket {
-    public static NetID = Identifiers.SetLastHurtByPacket;
-
     /** The `ActorType` of the last attacker. */
     public lastHurtBy = 0;
 

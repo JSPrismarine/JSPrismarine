@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -16,8 +15,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/automation-client-connect-packet/
  */
 export default class AutomationClientConnectPacket extends DataPacket {
-    public static NetID = Identifiers.AutomationClientConnectPacket;
-
     /** The address the client connects to, without a scheme. */
     public websocketServerUri = '';
 

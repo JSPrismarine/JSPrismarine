@@ -1,6 +1,5 @@
 import { Difficulty } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import SetDifficultyPacket from '../packet/SetDifficultyPacket';
 import type PacketHandler from './PacketHandler';
@@ -15,7 +14,7 @@ import type PacketHandler from './PacketHandler';
  * treated the same way; nothing is thrown.
  */
 export default class SetDifficultyHandler implements PacketHandler<SetDifficultyPacket> {
-    public static NetID = Identifiers.SetDifficultyPacket;
+    public static PacketName = 'SetDifficultyPacket';
 
     /** Logs the request and sends the configured difficulty back when the two differ. */
     public async handle(packet: SetDifficultyPacket, server: Server, session: PlayerSession): Promise<void> {

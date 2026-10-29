@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -28,8 +27,6 @@ export interface FeatureRegistryEntry {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/feature-registry-packet/
  */
 export default class FeatureRegistryPacket extends DataPacket {
-    public static NetID = Identifiers.FeatureRegistryPacket;
-
     /** FeaturesDataList: one entry per feature the client may place itself. Empty by default. */
     public features: FeatureRegistryEntry[] = [];
 

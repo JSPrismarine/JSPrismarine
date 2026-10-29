@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -26,8 +25,6 @@ export enum NpcRequestType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/npc-request-packet/
  */
 export default class NpcRequestPacket extends DataPacket {
-    public static NetID = Identifiers.NpcRequestPacket;
-
     /** The NPC the player interacted with. */
     public npcRuntimeId = 0n;
 

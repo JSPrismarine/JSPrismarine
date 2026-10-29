@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import { netIdFor } from '../codec/v2193';
 import { Dimension } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
@@ -69,8 +70,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(ChangeDimensionPacket.NetID).toBe(Identifiers.ChangeDimensionPacket);
-                expect(ChangeDimensionPacket.NetID).toBe(0x3d);
+                expect(netIdFor('ChangeDimensionPacket')).toBe(Identifiers.ChangeDimensionPacket);
+                expect(netIdFor('ChangeDimensionPacket')).toBe(0x3d);
             });
         });
     });

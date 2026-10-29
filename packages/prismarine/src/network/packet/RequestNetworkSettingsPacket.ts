@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  */
 export default class RequestNetworkSettingsPacket extends DataPacket {
-    public static NetID = Identifiers.RequestNetworkSettingsPacket;
-
     /** `ClientNetworkVersion`, the protocol version the client speaks. */
     public protocolVersion!: number;
 

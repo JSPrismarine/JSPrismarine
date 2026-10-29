@@ -1,6 +1,5 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 import type PacketHandler from './PacketHandler';
 
@@ -15,7 +14,7 @@ import type PacketHandler from './PacketHandler';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-local-player-as-initialized-packet/
  */
 export default class SetLocalPlayerAsInitializedHandler implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
-    public static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;
+    public static PacketName = 'SetLocalPlayerAsInitializedPacket';
 
     /** Puts the player into its world and sends it the state the client throws away while spawning. */
     public async handle(

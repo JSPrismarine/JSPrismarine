@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type AnvilDamagePacket from '../packet/AnvilDamagePacket';
 import { blockTargetRejection } from './BlockTarget';
@@ -17,7 +16,7 @@ const ANVILS: ReadonlySet<string> = new Set(['minecraft:anvil', 'minecraft:chipp
  * locally only.
  */
 export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePacket> {
-    public static NetID = Identifiers.AnvilDamagePacket;
+    public static PacketName = 'AnvilDamagePacket';
 
     /** Checks the position names an anvil in reach, then logs it. */
     public handle(packet: AnvilDamagePacket, server: Server, session: PlayerSession): void {

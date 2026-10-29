@@ -1,4 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -75,8 +76,8 @@ describe('network', () => {
             });
 
             it('uses the network id the client expects', () => {
-                expect(DisconnectPacket.NetID).toBe(Identifiers.DisconnectPacket);
-                expect(DisconnectPacket.NetID).toBe(5);
+                expect(netIdFor('DisconnectPacket')).toBe(Identifiers.DisconnectPacket);
+                expect(netIdFor('DisconnectPacket')).toBe(5);
             });
         });
     });

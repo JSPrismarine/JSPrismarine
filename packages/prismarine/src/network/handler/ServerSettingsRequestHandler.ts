@@ -1,6 +1,5 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type ServerSettingsRequestPacket from '../packet/ServerSettingsRequestPacket';
 import type PacketHandler from './PacketHandler';
 
@@ -19,7 +18,7 @@ import type PacketHandler from './PacketHandler';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/
  */
 export default class ServerSettingsRequestHandler implements PacketHandler<ServerSettingsRequestPacket> {
-    public static NetID = Identifiers.ServerSettingsRequestPacket;
+    public static PacketName = 'ServerSettingsRequestPacket';
 
     /** Logs the request and sends nothing back. */
     public handle(_packet: ServerSettingsRequestPacket, server: Server, session: PlayerSession): void {

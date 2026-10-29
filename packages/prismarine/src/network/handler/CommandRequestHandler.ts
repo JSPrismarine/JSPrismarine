@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import CommandOutputPacket, { CommandOutputType } from '../packet/CommandOutputPacket';
 import type CommandRequestPacket from '../packet/CommandRequestPacket';
@@ -18,7 +17,7 @@ import type PacketHandler from './PacketHandler';
  * `Success Count`. The reply carries no messages of its own, since they have already gone out.
  */
 export default class CommandRequestHandler implements PacketHandler<CommandRequestPacket> {
-    public static NetID = Identifiers.CommandRequestPacket;
+    public static PacketName = 'CommandRequestPacket';
 
     /** Dispatches the command as the player who sent it and answers with its outcome. */
     public async handle(packet: CommandRequestPacket, server: Server, session: PlayerSession): Promise<void> {

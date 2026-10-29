@@ -1,6 +1,5 @@
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** The result of a position tracking lookup, as the Action uint8 numbers it. */
@@ -26,8 +25,6 @@ export enum PositionTrackingDBServerBroadcastAction {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/position-tracking-dbserver-broadcast-packet/
  */
 export default class PositionTrackingDBServerBroadcastPacket extends DataPacket {
-    public static NetID = Identifiers.PositionTrackingDBServerBroadcastPacket;
-
     /** Action: what became of the tracked position. */
     public action: PositionTrackingDBServerBroadcastAction = PositionTrackingDBServerBroadcastAction.NotFound;
 

@@ -1,5 +1,4 @@
 import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import CommandOriginData from '../type/CommandOriginData';
 import CommandOriginType from '../type/CommandOriginType';
@@ -66,8 +65,6 @@ export interface CommandOutputMessage {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-output-packet/
  */
 export default class CommandOutputPacket extends DataPacket {
-    public static NetID = Identifiers.CommandOutputPacket;
-
     /** The origin of the request this answers. Send back the one the request arrived with. */
     public originData = new CommandOriginData(CommandOriginType.Player, new UUID(), '', 0n);
 

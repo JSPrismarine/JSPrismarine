@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -21,8 +20,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/container-set-data-packet/
  */
 export default class ContainerSetDataPacket extends DataPacket {
-    public static NetID = Identifiers.ContainerSetDataPacket;
-
     /** Container ID, the window the client has open. Nothing happens if it has no such window. */
     public containerId = 0;
 

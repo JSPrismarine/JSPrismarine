@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** The docs' `CreditsState`: whether the credits are starting or have finished. */
@@ -23,8 +22,6 @@ export enum CreditsState {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-credits-packet/
  */
 export default class ShowCreditsPacket extends DataPacket {
-    public static NetID = Identifiers.ShowCreditsPacket;
-
     /** The runtime id of the player watching. */
     public playerRuntimeId = 0n;
 

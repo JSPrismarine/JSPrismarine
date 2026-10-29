@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -13,8 +12,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
  */
 export default class StopSoundPacket extends DataPacket {
-    public static NetID = Identifiers.StopSoundPacket;
-
     public soundName = '';
 
     /** Stops everything the client is playing, whatever `soundName` says. */

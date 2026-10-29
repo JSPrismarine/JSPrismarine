@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import BlockPosition from '../../world/BlockPosition';
@@ -31,7 +32,7 @@ describe('network', () => {
             packet.encode();
 
             expect([...packet.getBuffer()]).toEqual([
-                PlaySoundPacket.NetID,
+                netIdFor('PlaySoundPacket'),
                 ...text('random.pop'), // Name.
                 16, // X, ZigZag of 1 * 8.
                 32, // Y, ZigZag of 2 * 8.
@@ -74,7 +75,7 @@ describe('network', () => {
 
         it('reads a hand-built buffer back to the block it names', () => {
             const stream = new BinaryStream();
-            stream.writeUnsignedVarInt(PlaySoundPacket.NetID);
+            stream.writeUnsignedVarInt(netIdFor('PlaySoundPacket')!);
             stream.writeUnsignedVarInt(1);
             stream.write(Buffer.from('x', 'utf8'));
             stream.writeVarInt(5 * 8);

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -27,8 +26,6 @@ export enum ServerboundLoadingScreenPacketType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-loading-screen-packet/
  */
 export default class ServerboundLoadingScreenPacket extends DataPacket {
-    public static NetID = Identifiers.ServerboundLoadingScreenPacket;
-
     /** Start or end of the screen, see {@link ServerboundLoadingScreenPacketType}. */
     public loadingScreenType = ServerboundLoadingScreenPacketType.Unknown;
 

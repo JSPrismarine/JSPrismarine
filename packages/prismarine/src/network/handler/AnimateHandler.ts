@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import AnimatePacket, { AnimateAction } from '../packet/AnimatePacket';
 import type PacketHandler from './PacketHandler';
@@ -19,7 +18,7 @@ const CLIENT_ACTIONS: ReadonlySet<number> = new Set([
 
 /** Relays a client's animation to the players in its world that have it on screen. */
 export default class AnimateHandler implements PacketHandler<AnimatePacket> {
-    public static NetID = Identifiers.AnimatePacket;
+    public static PacketName = 'AnimatePacket';
 
     /**
      * Rebroadcasts the animation under the sender's runtime id, keeping the action, data and

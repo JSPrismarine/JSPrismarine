@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { netIdFor } from '../codec/v2193';
 
 import Identifiers from '../Identifiers';
 import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
@@ -9,8 +10,8 @@ const wire = Buffer.from([0xbc, 0x01, 0x01, 0x00, 0x01, 0x00, 0x01]);
 
 describe('UpdateAdventureSettingsPacket', () => {
     it('uses the network id the client expects', () => {
-        expect(UpdateAdventureSettingsPacket.NetID).toBe(Identifiers.UpdateAdventureSettingsPacket);
-        expect(UpdateAdventureSettingsPacket.NetID).toBe(188);
+        expect(netIdFor('UpdateAdventureSettingsPacket')).toBe(Identifiers.UpdateAdventureSettingsPacket);
+        expect(netIdFor('UpdateAdventureSettingsPacket')).toBe(188);
     });
 
     it('writes the five settings in docs order', () => {

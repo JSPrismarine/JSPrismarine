@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type BlockPickRequestPacket from '../packet/BlockPickRequestPacket';
 import type PacketHandler from './PacketHandler';
@@ -12,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * which the inventory code does not expose for a server-initiated pick yet.
  */
 export default class BlockPickRequestHandler implements PacketHandler<BlockPickRequestPacket> {
-    public static NetID = Identifiers.BlockPickRequestPacket;
+    public static PacketName = 'BlockPickRequestPacket';
 
     /** Logs the picked position. */
     public handle(packet: BlockPickRequestPacket, server: Server, session: PlayerSession): void {

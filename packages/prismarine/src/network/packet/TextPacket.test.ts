@@ -1,4 +1,5 @@
 import { NetworkBinaryStream, TextPacket as ProtocolTextPacket } from '@jsprismarine/protocol';
+import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -75,8 +76,8 @@ describe('network', () => {
     describe('packet', () => {
         describe('TextPacket', () => {
             it('uses the network id the client expects', () => {
-                expect(TextPacket.NetID).toBe(Identifiers.TextPacket);
-                expect(TextPacket.NetID).toBe(9);
+                expect(netIdFor('TextPacket')).toBe(Identifiers.TextPacket);
+                expect(netIdFor('TextPacket')).toBe(9);
             });
 
             describe('encode', () => {

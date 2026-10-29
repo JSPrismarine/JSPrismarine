@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ShowCreditsPacket from '../packet/ShowCreditsPacket';
 import { CreditsState } from '../packet/ShowCreditsPacket';
@@ -13,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * player to put back in the world when they end.
  */
 export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPacket> {
-    public static NetID = Identifiers.ShowCreditsPacket;
+    public static PacketName = 'ShowCreditsPacket';
 
     /** Logs the credits state the client reported. */
     public handle(packet: ShowCreditsPacket, server: Server, session: PlayerSession): void {

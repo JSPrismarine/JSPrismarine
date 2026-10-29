@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
@@ -12,8 +11,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/block-pick-request-packet/
  */
 export default class BlockPickRequestPacket extends DataPacket {
-    public static NetID = Identifiers.BlockPickRequestPacket;
-
     public position = new BlockPosition(0, 0, 0);
 
     /** `true` when the client wants the block entity data on the item. */

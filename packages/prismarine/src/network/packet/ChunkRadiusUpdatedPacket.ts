@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  */
 export default class ChunkRadiusUpdatedPacket extends DataPacket {
-    public static NetID = Identifiers.ChunkRadiusUpdatedPacket;
-
     /** `Chunk Radius`, the granted view distance in chunks. */
     public radius!: number;
 

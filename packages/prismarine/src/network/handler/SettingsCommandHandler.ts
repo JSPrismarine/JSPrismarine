@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type SettingsCommandPacket from '../packet/SettingsCommandPacket';
 import type PacketHandler from './PacketHandler';
@@ -13,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * mode and sends its messages straight to the player.
  */
 export default class SettingsCommandHandler implements PacketHandler<SettingsCommandPacket> {
-    public static NetID = Identifiers.SettingsCommandPacket;
+    public static PacketName = 'SettingsCommandPacket';
 
     /** Dispatches the command line as the player who sent it. */
     public async handle(packet: SettingsCommandPacket, server: Server, session: PlayerSession): Promise<void> {

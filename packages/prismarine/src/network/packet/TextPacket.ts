@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import TextPacketType from '../type/TextPacketType';
 import DataPacket from './DataPacket';
@@ -50,8 +49,6 @@ const variantOf = (type: TextPacketType): BodyVariant => {
  * variant index, and the filtered string unconditionally.
  */
 export default class TextPacket extends DataPacket {
-    public static NetID = Identifiers.TextPacket;
-
     /** "Message Type": a global `TextPacketType` value, not an index within the body variant. */
     public type!: TextPacketType;
     /** "Localize?": whether the client should run the message through its translations. */

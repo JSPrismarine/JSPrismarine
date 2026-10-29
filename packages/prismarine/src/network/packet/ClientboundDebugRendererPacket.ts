@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -41,8 +40,6 @@ export interface DebugMarkerData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/clientbound-debug-renderer-packet/
  */
 export default class ClientboundDebugRendererPacket extends DataPacket {
-    public static NetID = Identifiers.ClientboundDebugRendererPacket;
-
     /** Type: the action to perform. */
     public type: string = DebugRendererType.ClearDebugMarkers;
 

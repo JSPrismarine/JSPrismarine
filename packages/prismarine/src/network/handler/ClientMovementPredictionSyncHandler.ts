@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ClientMovementPredictionSyncPacket from '../packet/ClientMovementPredictionSyncPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * debug level and dropped. It only arrives after the server has sent a movement correction.
  */
 export default class ClientMovementPredictionSyncHandler implements PacketHandler<ClientMovementPredictionSyncPacket> {
-    public static NetID = Identifiers.ClientMovementPredictionSyncPacket;
+    public static PacketName = 'ClientMovementPredictionSyncPacket';
 
     /** Logs the actor, its speeds, and whether it is flying. */
     public handle(packet: ClientMovementPredictionSyncPacket, server: Server, session: PlayerSession): void {

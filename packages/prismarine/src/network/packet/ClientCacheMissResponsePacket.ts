@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** One chunk blob and the hash the client files it under. */
@@ -32,8 +31,6 @@ export interface MissingBlobData {
  * @see https://mojang.github.io/bedrock-protocol-docs/guides/client-cache-miss-response-packet-validation/
  */
 export default class ClientCacheMissResponsePacket extends DataPacket {
-    public static NetID = Identifiers.ClientCacheMissResponsePacket;
-
     /** The blobs being delivered, in no particular order. */
     public blobs: MissingBlobData[] = [];
 

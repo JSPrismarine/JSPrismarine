@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -19,8 +18,6 @@ export enum EmoteFlags {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/emote-packet/
  */
 export default class EmotePacket extends DataPacket {
-    public static NetID = Identifiers.EmotePacket;
-
     /** Runtime id of the player performing the emote. */
     public actorRuntimeId = 0n;
 

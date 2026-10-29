@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -14,8 +13,6 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-blob-status-packet/
  */
 export default class ClientCacheBlobStatusPacket extends DataPacket {
-    public static NetID = Identifiers.ClientCacheBlobStatusPacket;
-
     /** Blob hashes the client needs the server to send in full. */
     public missingIds: bigint[] = [];
 

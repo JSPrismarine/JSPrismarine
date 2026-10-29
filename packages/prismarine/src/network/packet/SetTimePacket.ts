@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -11,8 +10,6 @@ import DataPacket from './DataPacket';
  * | Time | varint32 | ZigZag encoded; the world tick |
  */
 export default class SetTimePacket extends DataPacket {
-    public static NetID = Identifiers.SetTimePacket;
-
     public time!: number;
 
     public decodePayload(): void {

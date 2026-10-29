@@ -30,6 +30,8 @@ describe('ResourcePacksReadyForValidationPacket', () => {
         await registry['registerHandlers']();
 
         expect(registry.getPackets().get(0x154)).toBe(ResourcePacksReadyForValidationPacket);
-        expect(registry.getHandler(0x154)).toBeInstanceOf(ResourcePacksReadyForValidationHandler);
+        expect(registry.getHandler('ResourcePacksReadyForValidationPacket')).toBeInstanceOf(
+            ResourcePacksReadyForValidationHandler
+        );
     });
 });

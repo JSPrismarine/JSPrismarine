@@ -1,6 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
 
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -31,8 +30,6 @@ export enum RewindType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/correct-player-move-prediction-packet/
  */
 export default class CorrectPlayerMovePredictionPacket extends DataPacket {
-    public static NetID = Identifiers.CorrectPlayerMovePredictionPacket;
-
     /** PredictionType: whether the player or the vehicle they ride is being corrected. */
     public predictionType: RewindType = RewindType.Player;
 

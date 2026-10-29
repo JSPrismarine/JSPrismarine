@@ -1,6 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ResourcePackChunkRequestPacket from '../packet/ResourcePackChunkRequestPacket';
 import type PacketHandler from './PacketHandler';
@@ -20,7 +19,7 @@ import type PacketHandler from './PacketHandler';
  * carries the chunk back.
  */
 export default class ResourcePackChunkRequestHandler implements PacketHandler<ResourcePackChunkRequestPacket> {
-    public static NetID = Identifiers.ResourcePackChunkRequestPacket;
+    public static PacketName = 'ResourcePackChunkRequestPacket';
 
     /** Logs the requested pack and chunk, then disconnects the client. */
     public async handle(packet: ResourcePackChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {

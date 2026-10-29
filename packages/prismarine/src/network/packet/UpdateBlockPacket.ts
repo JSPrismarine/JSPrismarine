@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** Which of a position's two block layers an update targets. */
@@ -46,8 +45,6 @@ export enum UpdateBlockFlagsType {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-block-packet/
  */
 export default class UpdateBlockPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateBlockPacket;
-
     public x = 0;
     public y = 0;
     public z = 0;

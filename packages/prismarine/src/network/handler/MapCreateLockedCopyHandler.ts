@@ -1,5 +1,4 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type MapCreateLockedCopyPacket from '../packet/MapCreateLockedCopyPacket';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +10,7 @@ import type PacketHandler from './PacketHandler';
  * there is nothing to copy and no `ClientboundMapItemDataPacket` to send for the new id.
  */
 export default class MapCreateLockedCopyHandler implements PacketHandler<MapCreateLockedCopyPacket> {
-    public static NetID = Identifiers.MapCreateLockedCopyPacket;
+    public static PacketName = 'MapCreateLockedCopyPacket';
 
     /** Logs the map being copied and the id asked for. */
     public handle(packet: MapCreateLockedCopyPacket, server: Server, session: PlayerSession): void {
