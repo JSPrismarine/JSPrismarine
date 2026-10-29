@@ -1,5 +1,5 @@
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { codecForProtocol, latestCodec } from '../codec/CodecRegistry';
+import { codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
 import type Server from '../../Server';
 import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
@@ -59,7 +59,7 @@ export default class RequestNetworkSettingsHandler implements ConnectionPacketHa
         server
             .getLogger()
             .info(
-                `Refused a client on protocol ${protocol}: this server speaks ${latestCodec.protocolVersion}`,
+                `Refused a client on protocol ${protocol}: this server speaks ${registeredCodecs.map((codec) => codec.protocolVersion).join(', ')}`,
                 'RequestNetworkSettingsHandler/handle'
             );
 

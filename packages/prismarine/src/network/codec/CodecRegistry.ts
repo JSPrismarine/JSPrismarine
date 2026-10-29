@@ -23,11 +23,19 @@ export const buildCodecRegistry = (
 const { codecs, latest } = buildCodecRegistry([Codec2193, Codec2225]);
 
 /**
+ * Every registered codec, newest protocol version first. The order diagnostics list them in:
+ * the newest is the one {@link latestCodec} names and the one the MOTD advertises.
+ */
+export const registeredCodecs: readonly ProtocolCodec[] = [...codecs.values()].sort(
+    (a, b) => b.protocolVersion - a.protocolVersion
+);
+
+/**
  * Every Minecraft version some registered codec speaks, ascending. What the server
  * advertises as its supported game versions.
  */
-export const supportedMinecraftVersions: readonly string[] = [...codecs.values()]
-    .sort((a, b) => a.protocolVersion - b.protocolVersion)
+export const supportedMinecraftVersions: readonly string[] = [...registeredCodecs]
+    .reverse()
     .flatMap((codec) => codec.minecraftVersions);
 
 /**

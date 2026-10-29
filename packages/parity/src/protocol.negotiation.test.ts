@@ -1,7 +1,8 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
-import { latestCodec } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
+import { latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
+import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
 import type { ProtocolCodec } from '@jsprismarine/prismarine/network/codec/ProtocolCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
@@ -143,5 +144,17 @@ describe(FAMILIES.protocolNegotiation, () => {
         expect(sent[0]).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(hangups).toHaveLength(1);
         expect(hangups[0]!.reason).toBe(DisconnectReason.OUTDATED_SERVER);
+    });
+
+    it('the versions the server reports are exactly the ones a client can negotiate', async () => {
+        const described = describeSupportedProtocols().join('\n');
+
+        for (const codec of registeredCodecs) {
+            const { connection } = await negotiate(codec.protocolVersion);
+
+            expect(connection.codec).toBe(codec);
+            expect(described).toContain(`protocol §e${codec.protocolVersion}§r`);
+            for (const version of codec.minecraftVersions) expect(described).toContain(`§e${version}§r`);
+        }
     });
 });

@@ -21,6 +21,7 @@ import type RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { CreativeInventory } from './inventory/CreativeInventory';
+import { describeSupportedProtocols } from './network/codec/describeCodecs';
 import { joinContentPayloads } from './network/contentPayloads';
 import Identifiers from './network/Identifiers';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
@@ -192,9 +193,11 @@ export default class Server extends EventEmitter {
 
         this.headless = headless;
 
+        const protocols = describeSupportedProtocols();
         logger.info(
-            `Starting JSPrismarine server version §ev${pkg.version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
+            `Starting JSPrismarine server version §ev${pkg.version}§r for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:`
         );
+        for (const protocol of protocols) logger.info(`  ${protocol}`);
 
         this.logger = logger;
         this.config = config;

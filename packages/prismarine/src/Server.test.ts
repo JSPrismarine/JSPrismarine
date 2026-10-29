@@ -110,6 +110,26 @@ describe('Server', () => {
             }
         })();
 
+    it('announces every protocol version it registered a codec for', async () => {
+        const { registeredCodecs } = await import('./network/codec/CodecRegistry');
+        const logger = new Logger();
+        const lines: string[] = [];
+        vi.spyOn(logger, 'info').mockImplementation((message) => {
+            lines.push(String(message));
+        });
+
+        new Server({ logger, config: debugConfig('test-world-banner') });
+
+        const banner = lines.join('\n');
+        expect(banner).toContain(`on ${registeredCodecs.length} protocol versions:`);
+        for (const codec of registeredCodecs) {
+            expect(banner).toContain(String(codec.protocolVersion));
+            for (const version of codec.minecraftVersions) expect(banner).toContain(version);
+        }
+        // Only the newest is in the MOTD, so only it carries the marker.
+        expect(banner.match(/advertised in the MOTD/g)).toHaveLength(1);
+    });
+
     it('starts and stops without crashing', async () => {
         const logger = new Logger();
         const prismarine = new Server({
