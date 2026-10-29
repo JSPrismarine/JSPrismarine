@@ -43,6 +43,7 @@
         "dump:java": "node utils/java-dump/run.mjs",
         "extract:structures": "node utils/java/extract-structures.ts",
         "ensure:java-server": "node utils/java-dump/ensure-server.ts",
+        "ensure:worldgen": "node utils/java/ensure-worldgen.ts",
         "fetch:cloudburst": "node utils/fetch/fetch-cloudburst.ts",
         "fetch:sources": "node utils/fetch/fetch-sources.ts",
         "generate": "node utils/fetch/fetch-cloudburst.ts && node utils/build.js",

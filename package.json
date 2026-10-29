@@ -15,7 +15,7 @@
         "preinstall": "node scripts/ensure-pnpm.mts",
         "prepare": "pnpm --filter @jsprismarine/bedrock-data run generate && (husky || true)",
         "start": "pnpm --filter ./packages/server run start",
-        "dev": "pnpm --filter ./packages/server run dev",
+        "dev": "pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen && pnpm --filter ./packages/server run dev",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
         "build:docs": "pnpm --filter @jsprismarine/docs run docs",
