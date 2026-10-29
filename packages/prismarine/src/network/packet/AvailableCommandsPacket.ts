@@ -1,10 +1,13 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import Identifiers from '../Identifiers';
-import type { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
-import type CommandData from '../type/CommandData';
-import type { CommandEnum } from '../type/CommandEnum';
-import type CommandEnumConstraint from '../type/CommandEnumConstraint';
-import { CommandParameterFlags, CommandParameterTypeFlag } from '../type/CommandParameter';
+import { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
+import CommandData from '../type/CommandData';
+import { CommandEnum } from '../type/CommandEnum';
+import CommandEnumConstraint from '../type/CommandEnumConstraint';
+import CommandParameter, {
+    CommandParameterFlags,
+    CommandParameterType,
+    CommandParameterTypeFlag
+} from '../type/CommandParameter';
 import DataPacket from './DataPacket';
 
 /**
@@ -18,8 +21,15 @@ import DataPacket from './DataPacket';
  * @param {number} level - The permission level, 0 (`Any`) to 5 (`Internal`).
  * @returns {string} The name the client reads.
  */
-const commandPermissionToString = (level: number): string =>
-    ['any', 'gamedirectors', 'admin', 'host', 'owner', 'internal'][level] ?? 'unknown';
+const COMMAND_PERMISSION_NAMES = ['any', 'gamedirectors', 'admin', 'host', 'owner', 'internal'];
+
+const commandPermissionToString = (level: number): string => COMMAND_PERMISSION_NAMES[level] ?? 'unknown';
+
+/** The level a wire permission name stands for; an unknown name reads as level 0, `any`. */
+const commandPermissionFromString = (name: string): number => Math.max(0, COMMAND_PERMISSION_NAMES.indexOf(name));
+
+/** The low bits of a parameter's Parse Symbol: the index an enum, soft enum or postfix word carries. */
+const PARSE_SYMBOL_INDEX_MASK = 0xffff;
 
 /**
  * Tells the client which commands exist, how each one is spelled, and what it takes.
@@ -50,8 +60,6 @@ const commandPermissionToString = (level: number): string =>
  * **Bound To:** Client
  */
 export default class AvailableCommandsPacket extends DataPacket {
-    public static NetID = Identifiers.AvailableCommandsPacket;
-
     public commandData: CommandData[] = [];
     public hardcodedEnums: CommandEnum[] = [];
     public softEnums: CommandEnum[] = [];
@@ -180,6 +188,178 @@ export default class AvailableCommandsPacket extends DataPacket {
         this.enumConstraints.forEach((constraint: CommandEnumConstraint) => {
             this.writeEnumConstraint(constraint, enumIndexes, enumValueIndexes);
         });
+    }
+
+    /**
+     * Reads the eight lists back, the mirror of {@link encodePayload}.
+     *
+     * The shared index tables dissolve into the objects they described: every hard enum lands
+     * in {@link hardcodedEnums}, every soft enum in {@link softEnums}, and a command's alias
+     * enum, chained subcommand tables and parameter references point at those objects. The
+     * `Commands` list arrives before the `Soft Enums` table it indexes into, so parameters
+     * naming a soft enum are resolved once that table has been read. An overload's
+     * `isChaining` flag is read past: the encoder derives it from the parameters.
+     * @throws {Error} when a parameter or constraint names an index outside its table.
+     */
+    public decodePayload(): void {
+        const enumValues: string[] = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            enumValues.push(NetworkUtil.readString(this));
+        }
+
+        const chainedValues: string[] = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            chainedValues.push(NetworkUtil.readString(this));
+        }
+
+        const postfixes: string[] = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            postfixes.push(NetworkUtil.readString(this));
+        }
+
+        const enums: CommandEnum[] = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const name = NetworkUtil.readString(this);
+            const values: string[] = [];
+            for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
+                const index = this.readUnsignedIntLE();
+                const value = enumValues[index];
+                if (value === undefined) throw new Error(`Enum ${name} points at missing enum value ${index}`);
+                values.push(value);
+            }
+            enums.push(Object.assign(new CommandEnum(), { name, values, soft: false }));
+        }
+
+        const chainedSubcommands: CommandChainedSubcommand[] = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const name = NetworkUtil.readString(this);
+            const values: string[] = [];
+            for (let j = 0, pairs = this.readUnsignedVarInt(); j < pairs; j++) {
+                const first = this.readUnsignedVarInt();
+                this.readUnsignedVarInt(); // `second`, the same index again.
+                const value = chainedValues[first];
+                if (value === undefined) throw new Error(`Subcommand ${name} points at missing value ${first}`);
+                values.push(value);
+            }
+            chainedSubcommands.push(Object.assign(new CommandChainedSubcommand(), { name, values }));
+        }
+
+        // Parameters naming a soft enum, to resolve once the Soft Enums table is read below.
+        const pendingSoftEnums: { parameter: CommandParameter; index: number }[] = [];
+
+        this.commandData = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const data = new CommandData();
+            data.commandName = NetworkUtil.readString(this);
+            data.commandDescription = NetworkUtil.readString(this);
+            data.flags = this.readUnsignedShortLE();
+            data.permission = commandPermissionFromString(NetworkUtil.readString(this));
+
+            const aliasIndex = this.readIntLE();
+            data.aliases = aliasIndex === -1 ? null : (enums[aliasIndex] ?? null);
+
+            data.chainedSubcommands = [];
+            for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
+                const index = this.readUnsignedIntLE();
+                const table = chainedSubcommands[index];
+                if (table === undefined) {
+                    throw new Error(`Command ${data.commandName} points at missing subcommand table ${index}`);
+                }
+                data.chainedSubcommands.push(table);
+            }
+
+            data.overloads = [];
+            for (let j = 0, overloads = this.readUnsignedVarInt(); j < overloads; j++) {
+                this.readBoolean(); // isChaining, derived from the parameters on encode.
+
+                const overload: CommandParameter[] = [];
+                for (let k = 0, parameters = this.readUnsignedVarInt(); k < parameters; k++) {
+                    const paramName = NetworkUtil.readString(this);
+                    const type = this.readUnsignedIntLE();
+                    const isOptional = this.readBoolean();
+                    const options = this.readByte();
+
+                    const parameter = new CommandParameter({ paramName, isOptional, flags: options });
+                    const index = type & PARSE_SYMBOL_INDEX_MASK;
+
+                    if (type & CommandParameterTypeFlag.SoftEnum) {
+                        pendingSoftEnums.push({ parameter, index });
+                    } else if (type & CommandParameterTypeFlag.Enum) {
+                        if (options & CommandParameterFlags.ENUM_AS_CHAINED_COMMAND) {
+                            const table = chainedSubcommands[index];
+                            if (table === undefined) {
+                                throw new Error(`Parameter ${paramName} points at missing subcommand table ${index}`);
+                            }
+                            parameter.chainedSubcommand = table;
+                            // The encoder re-adds the flag from `chainedSubcommand`.
+                            parameter.flags = options & ~CommandParameterFlags.ENUM_AS_CHAINED_COMMAND;
+                        } else {
+                            const found = enums[index];
+                            if (found === undefined) {
+                                throw new Error(`Parameter ${paramName} points at missing enum ${index}`);
+                            }
+                            parameter.enum = found;
+                        }
+                    } else if (type & CommandParameterTypeFlag.Postfix) {
+                        const postfix = postfixes[index];
+                        if (postfix === undefined) {
+                            throw new Error(`Parameter ${paramName} points at missing postfix ${index}`);
+                        }
+                        parameter.postfix = postfix;
+                    } else {
+                        const word = Object.values(CommandParameterType).find((value) => value === type);
+                        if (word === undefined) {
+                            throw new Error(`Parameter ${paramName} carries unknown parse symbol ${type}`);
+                        }
+                        parameter.paramType = word;
+                    }
+
+                    overload.push(parameter);
+                }
+                data.overloads.push(overload);
+            }
+
+            this.commandData.push(data);
+        }
+
+        this.softEnums = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const name = NetworkUtil.readString(this);
+            const values: string[] = [];
+            for (let j = 0, options = this.readUnsignedVarInt(); j < options; j++) {
+                values.push(NetworkUtil.readString(this));
+            }
+            this.softEnums.push(Object.assign(new CommandEnum(), { name, values, soft: true }));
+        }
+        for (const { parameter, index } of pendingSoftEnums) {
+            const found = this.softEnums[index];
+            if (found === undefined) {
+                throw new Error(`Parameter ${parameter.paramName} points at missing soft enum ${index}`);
+            }
+            parameter.enum = found;
+        }
+
+        this.enumConstraints = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const valueIndex = this.readUnsignedIntLE(); // Enum Value Symbol.
+            const enumIndex = this.readUnsignedIntLE(); // Enum Symbol.
+
+            const constraints: number[] = [];
+            for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
+                constraints.push(this.readByte());
+            }
+
+            const constrained = enums[enumIndex];
+            const value = enumValues[valueIndex];
+            if (constrained === undefined || value === undefined) {
+                throw new Error(`A constraint points at missing enum ${enumIndex} or value ${valueIndex}`);
+            }
+            this.enumConstraints.push(
+                new CommandEnumConstraint(constrained, constrained.values.indexOf(value), constraints)
+            );
+        }
+
+        this.hardcodedEnums = enums;
     }
 
     /**

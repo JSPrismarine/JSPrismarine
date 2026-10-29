@@ -15,6 +15,7 @@ import PlayerSession from '../PlayerSession';
 import { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
 import CommandData from '../type/CommandData';
 import { CommandEnum } from '../type/CommandEnum';
+import CommandEnumConstraint from '../type/CommandEnumConstraint';
 import CommandParameter, { CommandArgumentType, CommandParameterType } from '../type/CommandParameter';
 import AvailableCommandsPacket from './AvailableCommandsPacket';
 import type DataPacket from './DataPacket';
@@ -468,5 +469,80 @@ describe('AvailableCommandsPacket', () => {
         for (const { valueIndices } of decoded.enums) {
             for (const index of valueIndices) expect(index).toBeLessThan(decoded.enumValues.length);
         }
+    });
+
+    it('round-trips a command with every parameter kind, a constraint and a chained subcommand', () => {
+        const players = makeEnum('Player', ['Steve'], true);
+        const gameModes = makeEnum('GameMode', ['survival', 'creative']);
+        const chain = makeChainedSubcommand('EXECUTECHAINEDOPTION_0', ['as', 'at', 'run']);
+
+        const command = new CommandData();
+        command.commandName = 'tp';
+        command.commandDescription = 'Teleports.';
+        command.flags = 0x30;
+        command.permission = 2;
+        command.aliases = makeEnum('tpAliases', ['teleport', 'tp']);
+        command.chainedSubcommands = [chain];
+        command.overloads = [
+            [
+                new CommandParameter({ paramName: 'name', paramType: CommandParameterType.String }),
+                new CommandParameter({ paramName: 'pos', paramType: CommandParameterType.Position, isOptional: true }),
+                new CommandParameter({ paramName: 'mode', enum: gameModes }),
+                new CommandParameter({ paramName: 'player', enum: players }),
+                new CommandParameter({ paramName: 'ticks', paramType: CommandParameterType.Int, postfix: 't' }),
+                new CommandParameter({ paramName: 'then', chainedSubcommand: chain })
+            ]
+        ];
+
+        const packet = new AvailableCommandsPacket();
+        packet.hardcodedEnums = [gameModes];
+        packet.softEnums = [players];
+        packet.commandData = [command];
+        packet.enumConstraints = [new CommandEnumConstraint(gameModes, 1, [1])];
+        const buffer = encode(packet);
+
+        const decoded = new AvailableCommandsPacket(buffer);
+        decoded.decode();
+
+        expect(decoded.commandData).toHaveLength(1);
+        const read = decoded.commandData[0]!;
+        expect(read.commandName).toBe('tp');
+        expect(read.commandDescription).toBe('Teleports.');
+        expect(read.flags).toBe(0x30);
+        expect(read.permission).toBe(2);
+        expect(read.aliases?.name).toBe('tpAliases');
+        expect(read.aliases?.values).toEqual(['teleport', 'tp']);
+        expect(read.chainedSubcommands.map((table) => table.name)).toEqual(['EXECUTECHAINEDOPTION_0']);
+        expect(read.chainedSubcommands[0]!.values).toEqual(['as', 'at', 'run']);
+
+        expect(read.overloads).toHaveLength(1);
+        const [name, pos, mode, player, ticks, then] = read.overloads[0]!;
+        expect(name!.paramName).toBe('name');
+        expect(name!.paramType).toBe(CommandParameterType.String);
+        expect(pos!.paramType).toBe(CommandParameterType.Position);
+        expect(pos!.isOptional).toBe(true);
+        expect(mode!.enum?.name).toBe('GameMode');
+        expect(mode!.enum?.soft).toBe(false);
+        expect(player!.enum?.name).toBe('Player');
+        expect(player!.enum?.soft).toBe(true);
+        expect(player!.enum?.values).toEqual(['Steve']);
+        expect(ticks!.postfix).toBe('t');
+        expect(then!.chainedSubcommand?.name).toBe('EXECUTECHAINEDOPTION_0');
+        expect(then!.flags).toBe(0);
+
+        expect(decoded.softEnums.map((softEnum) => softEnum.name)).toEqual(['Player']);
+        expect(decoded.enumConstraints).toHaveLength(1);
+        expect(decoded.enumConstraints[0]!.getEnum().name).toBe('GameMode');
+        expect(decoded.enumConstraints[0]!.getAffectedValue()).toBe('creative');
+        expect(decoded.enumConstraints[0]!.getConstraints()).toEqual([1]);
+        expect(decoded.feof()).toBe(true);
+
+        // A decoded packet re-encodes to the same bytes: the tables rebuild in the same order.
+        const reencoded = new AvailableCommandsPacket();
+        reencoded.hardcodedEnums = decoded.hardcodedEnums;
+        reencoded.softEnums = decoded.softEnums;
+        reencoded.commandData = decoded.commandData;
+        reencoded.enumConstraints = decoded.enumConstraints;
+        expect(encode(reencoded)).toEqual(buffer);
     });
 });
