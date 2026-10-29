@@ -1,5 +1,5 @@
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
+import { codecForProtocol, latestCodec } from '../codec/CodecRegistry';
 import type Server from '../../Server';
 import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
@@ -17,10 +17,15 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         server: Server,
         connection: ClientConnection
     ): Promise<void> {
-        if (packet.protocolVersion !== Identifiers.Protocol) {
+        // The one negotiation point: the client's first packet names its protocol version,
+        // and either the registry has a codec for it or the connection ends here.
+        const codec = codecForProtocol(packet.protocolVersion);
+        if (codec === undefined) {
             await RequestNetworkSettingsHandler.refuseProtocol(packet.protocolVersion, server, connection);
             return;
         }
+
+        connection.codec = codec;
 
         const networkSettings = new NetworkSettingsPacket();
         networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
@@ -48,12 +53,12 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
      * this client is not going to get.
      */
     private static async refuseProtocol(protocol: number, server: Server, connection: ClientConnection): Promise<void> {
-        const outdatedClient = protocol < Identifiers.Protocol;
+        const outdatedClient = protocol < latestCodec.protocolVersion;
 
         server
             .getLogger()
             .info(
-                `Refused a client on protocol ${protocol}: this server speaks ${Identifiers.Protocol}`,
+                `Refused a client on protocol ${protocol}: this server speaks ${latestCodec.protocolVersion}`,
                 'RequestNetworkSettingsHandler/handle'
             );
 
@@ -62,7 +67,7 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         await connection.sendDataPacket(playStatus, false);
 
         await connection.disconnect(
-            outdatedClient ? `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}` : 'Outdated server!',
+            outdatedClient ? `Outdated client! Please use ${latestCodec.minecraftVersions.at(-1)}` : 'Outdated server!',
             false,
             outdatedClient ? DisconnectReason.OUTDATED_CLIENT : DisconnectReason.OUTDATED_SERVER
         );

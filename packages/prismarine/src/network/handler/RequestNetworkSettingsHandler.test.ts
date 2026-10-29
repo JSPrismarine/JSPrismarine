@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
+import Codec2193 from '../codec/Codec2193';
 import Identifiers from '../Identifiers';
 import type DataPacket from '../packet/DataPacket';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
@@ -67,6 +68,8 @@ describe('RequestNetworkSettingsHandler', () => {
         // The one packet that goes out before compression is on.
         expect(sent[0]!.comp).toBe(false);
         expect(connection.hasCompression).toBe(true);
+        // The negotiation point: the session now speaks the codec the registry resolved.
+        expect(connection.codec).toBe(Codec2193);
         expect(disconnect).not.toHaveBeenCalled();
     });
 

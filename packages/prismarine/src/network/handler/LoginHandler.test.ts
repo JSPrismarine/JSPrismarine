@@ -5,6 +5,7 @@ import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { assert, describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
+import Codec2193 from '../codec/Codec2193';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type BanManager from '../../ban/BanManager';
@@ -94,6 +95,7 @@ describe('network', () => {
             // The session is built by `createConnectedPlayer` now, not mocked in: the
             // connection is handed the real one and only has to accept it.
             const connection: ClientConnection = stub<ClientConnection>({
+                codec: Codec2193,
                 getRakNetSession: () =>
                     stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
                 sendDataPacket: async () => {},
@@ -128,6 +130,7 @@ describe('network', () => {
 
                 const sent: string[] = [];
                 const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
                     getRakNetSession: () =>
                         stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
                     sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
@@ -152,6 +155,7 @@ describe('network', () => {
 
                 const sent: DataPacket[] = [];
                 const quiet = stub<ClientConnection>({
+                    codec: Codec2193,
                     getRakNetSession: () =>
                         stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
                     sendDataPacket: async (packet) => void sent.push(packet),
@@ -181,6 +185,7 @@ describe('network', () => {
             const refused = async (overrides: Partial<Server>, pk: LoginPacket) => {
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({
+                    codec: Codec2193,
                     getRakNetSession: () =>
                         stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
                     disconnect,
@@ -239,7 +244,7 @@ describe('network', () => {
                 pk.protocol = Identifiers.Protocol;
 
                 const disconnect = vi.fn();
-                const rejected = stub<ClientConnection>({ disconnect });
+                const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
                 await new LoginHandler().handle(pk, server, rejected);
 
                 expect(disconnect).toHaveBeenCalledWith('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
@@ -253,7 +258,7 @@ describe('network', () => {
                 pk.protocol = Identifiers.Protocol;
 
                 const disconnect = vi.fn();
-                const rejected = stub<ClientConnection>({ disconnect });
+                const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
                 await new LoginHandler().handle(pk, server, rejected);
 
                 expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
@@ -271,6 +276,7 @@ describe('network', () => {
                 const sent: DataPacket[] = [];
                 const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
+                    codec: Codec2193,
                     sendDataPacket: async (packet) => void sent.push(packet),
                     disconnect
                 });
@@ -302,6 +308,7 @@ describe('network', () => {
                 });
                 const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
+                    codec: Codec2193,
                     sendDataPacket: async (packet) => {
                         sent.push(packet);
                     },
@@ -328,6 +335,7 @@ describe('network', () => {
                 const sent: DataPacket[] = [];
                 const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
+                    codec: Codec2193,
                     sendDataPacket: async (packet) => void sent.push(packet),
                     disconnect
                 });

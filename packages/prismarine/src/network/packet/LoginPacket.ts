@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Device from '../../utils/Device';
 import Skin from '../../utils/skin/Skin';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** The skin fields `Skin.fromJWT` reads, named from its parameter so the two cannot drift. */
@@ -177,8 +176,9 @@ export default class LoginPacket extends DataPacket {
         // need not have this shape: parsing them here would throw, and a decode error drops
         // the packet before the handler can send the `PlayStatus` that tells the player to
         // update. The docs mark the version big endian for this reason, so that any server
-        // can read it and answer.
-        if (this.protocol !== Identifiers.Protocol) return;
+        // can read it and answer. The comparison is against the codec that built this
+        // packet - the session's negotiated version - not a global constant.
+        if (this.protocol !== this.codecProtocol) return;
 
         const envelope = parseJSON<ConnectionRequest>(this.chainData);
         this.authenticationType = envelope.AuthenticationType ?? 0;

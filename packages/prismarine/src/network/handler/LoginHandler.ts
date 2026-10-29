@@ -5,7 +5,6 @@ import UUID from '../../utils/UUID';
 import { Position } from '../../world/Position';
 import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';
-import Identifiers from '../Identifiers';
 import { PlayStatusPacket } from '../Packets';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
@@ -54,13 +53,17 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // A failed status is followed by a disconnect, as the docs have it: the status picks
         // the client's "Outdated client" or "Outdated server" screen, and the disconnect
         // carries the matching reason and hangs up. Without it the connection stayed open.
-        if (packet.protocol !== Identifiers.Protocol) {
-            const outdatedClient = packet.protocol < Identifiers.Protocol;
+        //
+        // Not a second negotiation: the registry was consulted once, at
+        // `RequestNetworkSettings`, and this only refuses a login that contradicts the codec
+        // that negotiation assigned - or, for a client that skipped it, the default.
+        if (packet.protocol !== connection.codec.protocolVersion) {
+            const outdatedClient = packet.protocol < connection.codec.protocolVersion;
             playStatus.status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
             await connection.sendDataPacket(playStatus, true);
             await connection.disconnect(
                 outdatedClient
-                    ? `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`
+                    ? `Outdated client! Please use ${connection.codec.minecraftVersions.at(-1)}`
                     : 'Outdated server!',
                 false,
                 outdatedClient ? DisconnectReason.OUTDATED_CLIENT : DisconnectReason.OUTDATED_SERVER
