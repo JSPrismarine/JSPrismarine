@@ -30,10 +30,11 @@
  * the cache already, which `fetch:sources --protocol <n>` puts there.
  *
  * Mojang publishes the server for Linux x86-64 and Windows, and `sources.json` pins the Linux
- * zip, so the job runs on Linux and refuses anywhere else rather than producing half a capture.
- * The server is a proprietary binary: it is copied into a run directory of this job's own,
- * started from outside it with every path passed as an argument, and the extracted archive is
- * never written to.
+ * zip. On a Linux x86-64 host the capture starts it directly; anywhere else it starts the same
+ * staged copy inside a Linux x86-64 container, which `runner.ts` selects and explains. The
+ * server is a proprietary binary either way: it is copied into a run directory of this job's
+ * own, started from outside it with every path passed as an argument, and the extracted archive
+ * is never written to.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -46,7 +47,18 @@ import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.
 import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { REFERENCE_DIMENSION, REFERENCE_SEED } from './region.ts';
+import {
+    CONTAINER_CLIS,
+    NATIVE_PLATFORM,
+    RUNNER_ENV,
+    createLauncher,
+    parseRunnerPreference,
+    probeContainerRuntime,
+    selectRunner
+} from './runner.ts';
+import type { ProbeCommand, ServerLauncher } from './runner.ts';
 import { READY_LINE, stageServer, startServer } from './server.ts';
+import type { StagedServer } from './server.ts';
 import { readReferenceWorld } from './world.ts';
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -54,8 +66,11 @@ const repositoryRoot = resolve(packageDirectory, '../..');
 const cacheRoot = join(repositoryRoot, 'node_modules/.cache/jsprismarine');
 const jspRoot = join(packageDirectory, 'src/jsp');
 
-/** How long each stage may take before the job gives up and says which one stalled. */
-const TIMEOUTS = {
+/**
+ * How long each stage may take on a native run before the job gives up and says which one
+ * stalled. {@link TIMEOUTS} is this, stretched by whatever the chosen runner costs.
+ */
+const NATIVE_TIMEOUTS = {
     /** From spawn to the engine accepting commands. */
     boot: 180_000,
     /** The dump pack walking every registry. */
@@ -97,12 +112,62 @@ const requested: Pass[] =
 // The pinned server
 // ---------------------------------------------------------------------------
 
-if (process.platform !== 'linux' || process.arch !== 'x64') {
-    throw new Error(
-        `The pinned Bedrock Dedicated Server is a Linux x86-64 binary and this is ${process.platform}/${process.arch}. ` +
-            'Run the capture through .github/workflows/capture.yml, or on a Linux x86-64 machine with ' +
-            'JSP_BDS_PATH pointing at an unpacked server.'
-    );
+/** Runs a short command and reports what it did, for the runtime probe and the container cleanup. */
+const runProbe: ProbeCommand = (command, args) => {
+    const result = spawnSync(command, [...args], { encoding: 'utf8' });
+    return {
+        status: result.error !== undefined ? null : result.status,
+        stdout: result.stdout ?? '',
+        stderr: result.error !== undefined ? result.error.message : (result.stderr ?? '')
+    };
+};
+
+const preference = parseRunnerPreference(process.env[RUNNER_ENV.runner]);
+const nativeHost = process.platform === NATIVE_PLATFORM && process.arch === 'x64';
+const forcedCli = process.env[RUNNER_ENV.cli];
+// Probing starts a CLI, so it is skipped when native is already the answer.
+const probe =
+    preference === 'native' || (preference === 'auto' && nativeHost)
+        ? { failures: [] }
+        : probeContainerRuntime(forcedCli !== undefined && forcedCli !== '' ? [forcedCli] : CONTAINER_CLIS, runProbe);
+
+const plan = selectRunner({
+    platform: process.platform,
+    arch: process.arch,
+    preference,
+    containerRuntime: 'runtime' in probe ? probe.runtime : undefined,
+    probeFailures: 'failures' in probe ? probe.failures : undefined
+});
+
+// On a Linux host a container writing as root would leave the staged world and the save owned
+// by root. Elsewhere the runtime already maps ownership, and a uid with no passwd entry inside
+// the image is the bigger risk.
+const { getuid, getgid } = process;
+const hostUser =
+    process.platform === 'linux' && getuid !== undefined && getgid !== undefined
+        ? `${getuid()}:${getgid()}`
+        : undefined;
+
+const launcher: ServerLauncher = createLauncher(plan, {
+    image: process.env[RUNNER_ENV.image],
+    user: hostUser,
+    run: runProbe
+});
+
+/** The stage budgets for this run, sized for the runner that was chosen. */
+const TIMEOUTS = {
+    boot: NATIVE_TIMEOUTS.boot * launcher.timeoutScale,
+    dump: NATIVE_TIMEOUTS.dump * launcher.timeoutScale,
+    reference: NATIVE_TIMEOUTS.reference * launcher.timeoutScale,
+    stop: NATIVE_TIMEOUTS.stop * launcher.timeoutScale
+};
+
+// `--rm` covers an ordinary exit; a Ctrl+C kills the CLI and leaves the container behind.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(signal, () => {
+        launcher.cleanup();
+        process.exit(130);
+    });
 }
 
 const bdsData = await loadBdsData(join(packageDirectory, 'sources.json'));
@@ -140,13 +205,13 @@ const writeJson = async (path: string, value: unknown, indent = 0): Promise<void
 
 /** Boots the staged server, waits for a marker, stops it cleanly and returns its output. */
 const capture = async (
-    staged: { root: string; binary: string },
+    staged: StagedServer,
     marker: (line: string) => boolean,
     what: string,
     timeoutMs: number
 ): Promise<string[]> => {
     const server = startServer({
-        command: staged.binary,
+        ...launcher.launch(staged.root),
         cwd: staged.root,
         onLine: (line) => {
             // Progress, not the rows: those are read off the collected lines afterwards.
@@ -161,12 +226,17 @@ const capture = async (
         }
     });
 
-    await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
-    await server.waitForLine(marker, what, timeoutMs);
-    // A killed server never writes its world, so the stop is part of every pass.
-    const status = await server.stop(TIMEOUTS.stop);
-    if (status !== 0) console.warn(`The server exited with status ${status} after ${what}.`);
-    return [...server.lines];
+    try {
+        await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
+        await server.waitForLine(marker, what, timeoutMs);
+        // A killed server never writes its world, so the stop is part of every pass.
+        const status = await server.stop(TIMEOUTS.stop);
+        if (status !== 0) console.warn(`The server exited with status ${status} after ${what}.`);
+        return [...server.lines];
+    } finally {
+        // A stop that timed out kills the CLI rather than the container it started.
+        launcher.cleanup();
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -347,7 +417,7 @@ const runPacketPass = async (): Promise<void> => {
     });
 
     const server = startServer({
-        command: staged.binary,
+        ...launcher.launch(staged.root),
         cwd: staged.root,
         onLine: (line) => console.log(`  ${line}`)
     });
@@ -369,6 +439,7 @@ const runPacketPass = async (): Promise<void> => {
         if (captured.status !== 0) throw new Error(`The capture client exited with status ${captured.status}`);
     } finally {
         await server.stop(TIMEOUTS.stop);
+        launcher.cleanup();
     }
 };
 
@@ -385,7 +456,8 @@ const passes: Record<Pass, () => Promise<void>> = {
 
 console.log(
     `Capturing Bedrock Dedicated Server ${pinnedServer.serverVersion} ` +
-        `(Minecraft ${pinnedServer.minecraftVersion}, protocol ${protocolVersion}) from ${unpacked}`
+        `(Minecraft ${pinnedServer.minecraftVersion}, protocol ${protocolVersion}) from ${unpacked}, ` +
+        `running ${launcher.description}`
 );
 for (const pass of requested) await passes[pass]();
 console.log(`Capture complete. Review the diff under ${outDirectory} before committing it.`);
