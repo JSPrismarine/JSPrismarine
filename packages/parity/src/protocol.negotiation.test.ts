@@ -37,9 +37,9 @@ const requestOnTheWire = (protocolVersion: number): RequestNetworkSettingsPacket
     expect(netId).toBeDefined();
     const inbound = HandshakeCodec.createPacket(netId!, outbound.getBuffer());
     expect(inbound).toBeInstanceOf(RequestNetworkSettingsPacket);
-    inbound!.decode();
-    expect(inbound).toBeInstanceOf(RequestNetworkSettingsPacket);
-    return inbound as RequestNetworkSettingsPacket;
+    if (!(inbound instanceof RequestNetworkSettingsPacket)) throw new Error('asserted instanceof above');
+    inbound.decode();
+    return inbound;
 };
 
 /** A connection double that records what was sent and how the handler hung up. */
