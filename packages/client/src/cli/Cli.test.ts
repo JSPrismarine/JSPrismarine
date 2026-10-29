@@ -1,5 +1,5 @@
 import { Logger } from '@jsprismarine/logger';
-import { Config, Server } from '@jsprismarine/prismarine';
+import { Config, Protocol, Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -113,11 +113,14 @@ describe('against a real server', () => {
         const { io, out } = capture();
 
         expect(await run(['ping', '--host', '127.0.0.1', '--port', String(port)], io)).toBe(0);
-        // Against the constant rather than a number written out: the server under test and
-        // the client that pings it are the same version by construction, and a literal here
-        // goes stale on the next protocol bump without anything being wrong.
-        expect(out.join('\n')).toMatch(new RegExp(`version .* \\(protocol ${PROTOCOL_VERSION}\\)`));
+        // The ping reports what the server advertises, which is the newest protocol it
+        // registers a codec for, not the one this client speaks. Reading it off the server's
+        // own constant keeps the assertion honest across protocol bumps.
+        expect(out.join('\n')).toMatch(new RegExp(`version .* \\(protocol ${Protocol.Identifiers.Protocol}\\)`));
         expect(out.join('\n')).toContain('players');
+        // A server may advertise newer than this client speaks; it negotiates down per session,
+        // which the fleet runs below exercise. It must never advertise older than the client.
+        expect(Protocol.Identifiers.Protocol).toBeGreaterThanOrEqual(PROTOCOL_VERSION);
     }, 30_000);
 
     it('runs a fleet, prints a report and exits 0', async () => {
