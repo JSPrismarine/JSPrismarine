@@ -1563,6 +1563,9 @@ importers:
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft
+      '@jsprismarine/packs':
+        specifier: workspace:*
+        version: link:../packs
       '@jsprismarine/prismarine':
         specifier: workspace:*
         version: link:../prismarine

@@ -19,6 +19,7 @@ import { Supervisor } from './host/Supervisor';
 import { decideMode, probeFfi } from './host/tuiGate';
 import { suppressFfiWarning } from './host/warnings';
 import { Watcher } from './host/Watcher';
+import { provisionSeaData } from './sea/provision';
 import { createDevToolsLogTransport, openDevTools } from './devtools/DevTools';
 import { DevToolsRelay } from './devtools/DevToolsRelay';
 
@@ -251,6 +252,16 @@ const main = async (): Promise<void> => {
     if (args.help || args.version || args._.includes('completion')) return;
 
     loadEnvFiles();
+
+    // A packaged binary carries its data and fetches the rest on first run; a no-op anywhere
+    // else. Before the role switch, so the host and an in-process server both start warm.
+    try {
+        await provisionSeaData((line) => process.stdout.write(`${line}\n`));
+    } catch (error: unknown) {
+        process.stderr.write(`prismarine: ${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+    }
 
     if (args.role === 'server') {
         runInProcess(args, { remote: true });

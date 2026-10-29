@@ -71,6 +71,7 @@
         "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
+        "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "yargs": "18.2.0"

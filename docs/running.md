@@ -78,6 +78,32 @@ a watched source file or content pack data changes.
 `pnpm run start` runs the same entry point without the watcher. Both open the terminal UI
 described in the next section when they can, and fall back to the plain line console otherwise.
 
+### The packaged executable
+
+`pnpm run package` builds `dist/prismarine`, a Node single executable application, with
+`scripts/package-sea.mts`. It needs Node 25.5 or newer, and a checkout whose world generation
+cache is warm: run `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` and
+`pnpm --filter @jsprismarine/bedrock-data run extract:structures` first, because the executable
+carries that data inside it — the Java vanilla datapack, the biome parameter reports, the
+structure templates, and this project's overlay packs.
+
+The first time the executable runs in a directory, it unpacks that embedded data and downloads
+the pinned Bedrock Dedicated Server zip (~95 MB) from Mojang, verifying its digest and keeping
+only the vanilla behavior pack; Mojang's license does not allow shipping the zip inside the
+binary. Everything lands under `node_modules/.cache/jsprismarine/` beside the server's data
+files, so later runs start without a network. On a machine that cannot reach Mojang's CDN, set
+`JSP_VANILLA_BEHAVIOR_PACK` to a local copy of a Bedrock Dedicated Server `behavior_packs`
+folder.
+
+Inside the executable the terminal UI and the chunk worker pool are unavailable — the binary's
+modules cannot be imported by a worker thread — so it runs the plain line console and generates
+terrain on the server thread, and says so.
+
+`pnpm run package:scriptc` is an experimental ahead-of-time build. It embeds no data and does
+not provision any on first run yet, so its output needs a directory whose
+`node_modules/.cache/jsprismarine/` was arranged by a checkout, or the `JSP_*` override
+variables above.
+
 ### Live debugging and profiling
 
 Add `--devtools` to a development run to open Node's inspector and enable JSPrismarine timing
