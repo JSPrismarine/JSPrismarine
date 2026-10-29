@@ -74,9 +74,13 @@ Use American English spelling in prose and documentation. Do not use British spe
 ## Tests and verification
 
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
-  behavior and add regression coverage for bugs when the task calls for tests. Do not gate CI on
-  hard-coded totals of implemented features; report progress with GitHub Actions warning annotations
-  in CI and `console.warn` locally, and keep assertions tied to behavior or required coverage.
+  behavior and public contracts, and add regression coverage for bugs when the task calls for tests.
+  Keep implementation totals (for example, registered functions, commands, components, behaviors,
+  or entity types) as non-gating progress reported through `reportProgress` from
+  `.test/reportProgress.ts`; it emits a GitHub Actions warning in CI and calls `console.warn`
+  locally. Assert data-derived relationships and runtime outcomes instead of exact inventory counts;
+  use exact counts only when the count itself is an externally specified behavior or protocol
+  contract.
 - When package exports or published behavior change, check the built package from a consumer context.
   Workspace resolution alone does not verify the published package contract.
 - Run the relevant checks for the change. The root scripts include `pnpm run build`,

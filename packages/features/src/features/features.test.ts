@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../../.test/reportProgress';
 
 import { WorldgenRandom } from '../placement/WorldgenRandom';
 import { blockState } from '../world/BlockState';
@@ -345,12 +346,12 @@ describe('projected_random_patchy_square', () => {
 });
 
 describe('the registry', () => {
-    it('declares exactly the 58 types Java 26.3 registers', () => {
-        expect(FEATURE_TYPES).toHaveLength(58);
-        expect(new Set(FEATURE_TYPES).size).toBe(58);
+    it('tracks the supported feature types', () => {
+        expect(new Set(FEATURE_TYPES).size).toBe(FEATURE_TYPES.length);
         expect(FEATURE_TYPES).toContain('projected_random_patchy_square');
         // 26.3 removed `random_patch`, which the two patchy-square features replaced.
         expect(FEATURE_TYPES).not.toContain('random_patch');
+        reportProgress(`${FEATURE_TYPES.length} Java worldgen feature types are registered.`);
     });
 
     it('refuses an unknown feature type rather than ignoring it', () => {

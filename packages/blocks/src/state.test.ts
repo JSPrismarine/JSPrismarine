@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../.test/reportProgress';
 
 import { BlockError } from './errors';
 import { BlockPalette, BlockStateModel, vanillaBlockPalette } from './state';
@@ -113,13 +114,6 @@ describe('a block palette', () => {
 });
 
 describe('the captured vanilla palette', () => {
-    it('holds the 1477 blocks and 22079 states the capture reports', () => {
-        const palette = vanillaBlockPalette();
-
-        expect(palette.entries.length).toBe(1477);
-        expect(palette.stateCount).toBe(22079);
-    });
-
     it('keeps cocoa to the three ages the game accepts, not the global sixteen', () => {
         const cocoa = vanillaBlockPalette().entry('minecraft:cocoa');
 
@@ -134,5 +128,8 @@ describe('the captured vanilla palette', () => {
             const { entry, values } = palette.stateOf(id);
             expect(palette.runtimeId(entry.identifier, values)).toBe(id);
         }
+        reportProgress(
+            `Vanilla block palette contains ${palette.entries.length} block types and ${palette.stateCount} runtime states.`
+        );
     });
 });

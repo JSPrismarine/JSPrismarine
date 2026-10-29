@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../.test/reportProgress';
 
 import { load, reportIdentifiers } from '@jsprismarine/packs';
 import type { ReferencedIdentifier } from '@jsprismarine/packs';
@@ -26,16 +27,6 @@ const countBy = (report: readonly ReferencedIdentifier[], of: (entry: Referenced
     return Object.fromEntries([...counts].sort());
 };
 
-/** Keeps changes in the real-data census visible without turning its size into a test gate. */
-const reportCoverage = (message: string): void => {
-    if (process.env.GITHUB_ACTIONS === 'true') {
-        process.stdout.write(`::warning title=Parity progress::${message}\n`);
-        return;
-    }
-
-    console.warn(`[parity progress] ${message}`);
-};
-
 describe.skipIf(!datapack)('every Java identifier in the vanilla 26.3 datapack', { tags: ['real-data'] }, () => {
     it('maps to Bedrock or is allow-listed, with nothing left over', { timeout: 120_000 }, () => {
         const { definitions } = load([{ kind: 'datapack', path: datapack! }]);
@@ -45,10 +36,11 @@ describe.skipIf(!datapack)('every Java identifier in the vanilla 26.3 datapack',
         // Named rather than counted: a failure here has to say which
         // identifier the mapping tables and the allow list both missed.
         expect(unmapped.map((entry) => `${entry.registry} ${entry.id} (${entry.path})`)).toEqual([]);
-        reportCoverage(
+        reportProgress(
             `Vanilla datapack references ${report.length} identifiers; losses by registry ${JSON.stringify(
                 countBy(report, (entry) => (entry.resolution === 'loss' ? entry.registry : undefined))
-            )}`
+            )}`,
+            'Parity progress'
         );
     });
 
@@ -60,7 +52,7 @@ describe.skipIf(!datapack)('every Java identifier in the vanilla 26.3 datapack',
         // to another. These never cross to a client, so the mapping tables
         // have nothing to say about them and the stack answers instead.
         const closed = report.filter((entry) => entry.source === 'pack');
-        reportCoverage(
+        reportProgress(
             `Vanilla datapack closes ${closed.length} references in the pack stack, including ${closed.filter((entry) => entry.id.startsWith('#')).length} tag references`
         );
         expect(closed.every((entry) => entry.resolution === 'known')).toBe(true);

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../.test/reportProgress';
 import { ALL_MEMORY_MODULE_TYPES, MemoryModuleTypes, MemorySlot, visibleEntities } from './memory.js';
 import { TestEntity } from './testWorld.js';
 
 describe('the memory module registry', () => {
-    it('has the 115 entries minecraft:memory_module_type reports in 26.3', () => {
-        expect(ALL_MEMORY_MODULE_TYPES).toHaveLength(115);
+    it('reports the available memory modules', () => {
+        reportProgress(`Entity brains expose ${ALL_MEMORY_MODULE_TYPES.length} memory modules.`);
     });
 
     it('registers every name exactly once', () => {

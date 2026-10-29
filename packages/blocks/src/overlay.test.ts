@@ -24,15 +24,19 @@ describe('the jsprismarine_vanilla overlay generator', () => {
         const pack = generated();
         const blocks = pack.files.filter((file) => file.path.startsWith('blocks/'));
 
-        expect(blocks).toHaveLength(1477);
-        expect(new Set(blocks.map((file) => file.path)).size).toBe(1477);
+        expect(blocks.map((file) => file.path).sort()).toEqual(
+            identifiers()
+                .map((identifier) => `blocks/${identifier.replace(/^[^:]*:/, '')}.block.json`)
+                .sort()
+        );
     });
 
-    it('lists exactly the mapping package 182 Bedrock-only blocks as reviewed exceptions', () => {
+    it('lists every mapping package Bedrock-only block as a reviewed exception', () => {
         const pack = generated();
+        const exceptionIds = pack.exceptions.map((entry) => entry.identifier);
 
-        expect(pack.exceptions).toHaveLength(182);
-        expect(new Set(pack.exceptions.map((entry) => entry.identifier))).toEqual(BEDROCK_ONLY_BLOCKS);
+        expect(new Set(exceptionIds).size).toBe(exceptionIds.length);
+        expect(new Set(exceptionIds)).toEqual(BEDROCK_ONLY_BLOCKS);
     });
 
     it('gives every exception a reason rather than a silent default', () => {
@@ -89,7 +93,7 @@ describe('the committed overlay pack', () => {
         const { definitions, diagnostics } = load([{ kind: 'directory', path: packDirectory }]);
 
         expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
-        expect(definitions.blocks.size).toBe(1477);
+        expect([...definitions.blocks.keys()].sort()).toEqual(identifiers().sort());
     });
 
     it('resolves into a type per block and a state per palette state', () => {
@@ -97,8 +101,8 @@ describe('the committed overlay pack', () => {
         const resolved = resolveBlocks(definitions.blocks.values());
 
         expect(resolved.diagnostics).toEqual([]);
-        expect(resolved.types.size).toBe(1477);
-        expect(resolved.states).toHaveLength(22079);
+        expect([...resolved.types.keys()].sort()).toEqual([...definitions.blocks.keys()].sort());
+        expect(resolved.states).toHaveLength(vanillaBlockPalette().stateCount);
     });
 
     it('flattens into the per-state arrays the hot paths index', () => {
@@ -122,7 +126,7 @@ describe('the committed overlay pack', () => {
         expect(table.randomTick[wheat]).toBe(1);
         expect(table.randomTick[stone]).toBe(0);
 
-        expect(table.friction).toHaveLength(22079);
+        expect(table.friction).toHaveLength(resolved.states.length);
     });
 
     it('does not make water or lava solid in the flattened collision table', () => {

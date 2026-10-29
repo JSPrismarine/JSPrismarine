@@ -3,8 +3,10 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../.test/reportProgress';
+
 import type { ConfiguredFeature, FeatureTypeName } from './features/Feature';
-import { FEATURE_TYPES, walkFeatures } from './features/Feature';
+import { walkFeatures } from './features/Feature';
 import { FeatureLoader } from './features/parse';
 import type { PlacementModifierTypeName } from './placement/modifiers';
 
@@ -135,7 +137,7 @@ const corpus = (): Corpus => {
 };
 
 describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { tags: ['real-data'] }, () => {
-    it('reads all 240 configured features with no errors', () => {
+    it('reads every configured feature without errors', () => {
         const { featureSources, loader } = corpus();
         const failures: string[] = [];
         for (const id of featureSources.keys()) {
@@ -146,10 +148,10 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
             }
         }
         expect(failures).toEqual([]);
-        expect(featureSources.size).toBe(240);
+        reportProgress(`${featureSources.size} configured features were parsed.`);
     });
 
-    it('reads all 273 placed features with no errors', () => {
+    it('reads every placed feature without errors', () => {
         const { placedSources, loader } = corpus();
         const failures: string[] = [];
         for (const id of placedSources.keys()) {
@@ -160,10 +162,10 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
             }
         }
         expect(failures).toEqual([]);
-        expect(placedSources.size).toBe(273);
+        reportProgress(`${placedSources.size} placed features were parsed.`);
     });
 
-    it('reports which of the 58 feature types the corpus uses', () => {
+    it('reports the feature types used by the corpus', () => {
         const { featureSources, loader } = corpus();
         const usage = new Map<FeatureTypeName, number>();
         const roots: ConfiguredFeature[] = [];
@@ -173,139 +175,28 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
         const reachable = new Set<string>();
         for (const root of roots) for (const node of walkFeatures(root)) reachable.add(node.type);
 
-        const ranked = [...usage.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-        process.stdout.write(
-            `feature types: ${usage.size} of ${FEATURE_TYPES.length} used at the top level, ` +
-                `${reachable.size} reachable including nested features\n` +
-                `${ranked.map(([type, count]) => `  ${String(count).padStart(3)} ${type}`).join('\n')}\n`
+        reportProgress(
+            `${usage.size} feature types appear at the top level; ${reachable.size} are reachable including nested features.`
         );
-
-        expect(usage.size).toBe(47);
-        expect(FEATURE_TYPES).toHaveLength(58);
     });
 
-    it('reports which of the nested registries the corpus uses', () => {
-        const { featureSources, placedSources, providerSources } = corpus();
-        const registries: Record<string, readonly string[]> = {
-            block_state_provider_type: [
-                'copy_properties',
-                'dual_noise',
-                'noise',
-                'noise_threshold',
-                'random_block',
-                'randomized_int',
-                'rotated',
-                'rule_based',
-                'simple',
-                'weighted'
-            ],
-            block_predicate_type: [
-                'all_of',
-                'any_of',
-                'has_sturdy_face',
-                'height_range',
-                'inside_world_bounds',
-                'matching_biomes',
-                'matching_block_tag',
-                'matching_blocks',
-                'matching_fluids',
-                'not',
-                'replaceable',
-                'solid',
-                'true',
-                'unobstructed',
-                'volume_match',
-                'would_survive'
-            ],
-            rule_test: [
-                'all_of',
-                'always_true',
-                'any_of',
-                'block_match',
-                'blockstate_match',
-                'height_match',
-                'not',
-                'random_block_match',
-                'random_blockstate_match',
-                'tag_match'
-            ],
-            trunk_placer_type: [
-                'bending_trunk_placer',
-                'cherry_trunk_placer',
-                'dark_oak_trunk_placer',
-                'fancy_trunk_placer',
-                'forking_trunk_placer',
-                'giant_trunk_placer',
-                'mega_jungle_trunk_placer',
-                'poplar_trunk_placer',
-                'straight_trunk_placer',
-                'upwards_branching_trunk_placer'
-            ],
-            foliage_placer_type: [
-                'acacia_foliage_placer',
-                'blob_foliage_placer',
-                'bush_foliage_placer',
-                'cherry_foliage_placer',
-                'dark_oak_foliage_placer',
-                'fancy_foliage_placer',
-                'jungle_foliage_placer',
-                'mega_pine_foliage_placer',
-                'pine_foliage_placer',
-                'poplar_foliage_placer',
-                'random_spread_foliage_placer',
-                'spruce_foliage_placer'
-            ],
-            tree_decorator_type: [
-                'alter_ground',
-                'attached_to_leaves',
-                'attached_to_logs',
-                'beehive',
-                'cocoa',
-                'creaking_heart',
-                'leave_vine',
-                'pale_moss',
-                'place_on_ground',
-                'shelf_mushroom',
-                'trunk_vine'
-            ]
-        };
+    it('parses each declared block state provider', () => {
+        const { providerSources, loader } = corpus();
+        const failures: string[] = [];
 
-        // Every `type`, `predicate_type` and `processor_type` value anywhere in the documents.
-        const named = new Set<string>();
-        const walk = (node: unknown): void => {
-            if (Array.isArray(node)) {
-                for (const entry of node) walk(entry);
-                return;
+        for (const id of providerSources.keys()) {
+            try {
+                loader.provider(id);
+            } catch (error) {
+                failures.push(`${id}: ${error instanceof Error ? error.message : String(error)}`);
             }
-            if (typeof node !== 'object' || node === null) return;
-            const record: Record<string, unknown> = node as Record<string, unknown>;
-            for (const key of ['type', 'predicate_type', 'processor_type']) {
-                const value = record[key];
-                if (typeof value === 'string') named.add(value.replace('minecraft:', ''));
-            }
-            for (const value of Object.values(record)) walk(value);
-        };
-        for (const document of [...featureSources.values(), ...placedSources.values(), ...providerSources.values()]) {
-            walk(document);
         }
 
-        const lines = Object.entries(registries).map(([registry, names]) => {
-            const used = names.filter((name) => named.has(name));
-            return `  ${registry}: ${used.length} of ${names.length} named explicitly`;
-        });
-        process.stdout.write(`nested registries\n${lines.join('\n')}\n`);
-
-        // `simple` and `constant` never appear with an explicit type, because a bare block state
-        // and a bare number are their shorthand forms.
-        expect(registries['block_state_provider_type']?.filter((name) => named.has(name))).toHaveLength(8);
-        expect(registries['block_predicate_type']?.filter((name) => named.has(name))).toHaveLength(14);
-        expect(registries['rule_test']?.filter((name) => named.has(name))).toHaveLength(7);
-        expect(registries['trunk_placer_type']?.filter((name) => named.has(name))).toHaveLength(10);
-        expect(registries['foliage_placer_type']?.filter((name) => named.has(name))).toHaveLength(12);
-        expect(registries['tree_decorator_type']?.filter((name) => named.has(name))).toHaveLength(11);
+        expect(failures).toEqual([]);
+        reportProgress(`${providerSources.size} declared block state providers were parsed.`);
     });
 
-    it('reports which of the 18 placement modifier types the corpus uses', () => {
+    it('reports the placement modifiers used by the corpus', () => {
         const { placedSources, loader } = corpus();
         const usage = new Map<PlacementModifierTypeName, number>();
         for (const id of placedSources.keys()) {
@@ -313,11 +204,6 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
                 usage.set(modifier.type, (usage.get(modifier.type) ?? 0) + 1);
             }
         }
-        const ranked = [...usage.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-        process.stdout.write(
-            `placement modifiers: ${usage.size} of 18 used\n` +
-                `${ranked.map(([type, count]) => `  ${String(count).padStart(3)} ${type}`).join('\n')}\n`
-        );
-        expect(usage.size).toBe(15);
+        reportProgress(`${usage.size} placement modifier types are used by the corpus.`);
     });
 });

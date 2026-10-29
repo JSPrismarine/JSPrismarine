@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../../.test/reportProgress';
 
 import { flattenCommandTree } from '../flatten';
 import type { CommandHost, CommandSource, EntityRef } from '../host';
@@ -37,14 +38,14 @@ const run = (
 };
 
 describe('the command set', () => {
-    it('registers the 46 shared names, the 5 Java-only and the 9 Bedrock-only ones', () => {
-        const names = new Set(registerVanillaCommands().getNames());
+    it('registers every shared, Java-only and Bedrock-only command', () => {
+        const names = registerVanillaCommands().getNames().sort();
+        const declared = [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES].sort();
 
-        for (const name of [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES]) {
-            expect(names.has(name), `${name} is not registered`).toBe(true);
-        }
-        expect(SHARED_COMMAND_NAMES).toHaveLength(46);
-        expect(names.size).toBe(60);
+        expect(names).toEqual(declared);
+        reportProgress(
+            `${SHARED_COMMAND_NAMES.length} shared, ${JAVA_ONLY_COMMAND_NAMES.length} Java-only, and ${BEDROCK_ONLY_COMMAND_NAMES.length} Bedrock-only commands are declared.`
+        );
     });
 
     it('answers to the aliases Java gives the same command', () => {
@@ -57,9 +58,10 @@ describe('the command set', () => {
     });
 
     it('flattens the whole set into a packet without dropping a command', () => {
-        const { payload, notes } = buildAvailableCommands(registerVanillaCommands());
+        const registry = registerVanillaCommands();
+        const { payload, notes } = buildAvailableCommands(registry);
 
-        expect(payload.commands).toHaveLength(60);
+        expect(payload.commands.map((command) => command.name).sort()).toEqual(registry.getNames().sort());
         expect(payload.commands.every((command) => command.overloads.length > 0)).toBe(true);
         expect(notes.every((note) => note.severity === 'degraded' || note.reason === 'overload-limit')).toBe(true);
     });
@@ -638,19 +640,15 @@ describe('the chat and administration commands', () => {
 });
 
 describe('/execute as a real subcommand chain', () => {
-    it('declares the 14 subcommands, 13 conditions, 8 relations and 5 store targets', () => {
-        expect(EXECUTE_SUBCOMMANDS).toHaveLength(14);
-        expect(EXECUTE_CONDITIONS).toHaveLength(13);
-        expect(EXECUTE_ON_RELATIONS).toHaveLength(8);
-        expect(EXECUTE_STORE_TARGETS).toHaveLength(5);
-    });
-
-    it('builds all 14 subcommands as children of the execute node', () => {
+    it('builds the declared subcommands as children of the execute node', () => {
         const registry = registerVanillaCommands();
         const execute = [...registry.getRoot().getChildren()].find((node) => node.getName() === 'execute');
         const children = [...(execute?.getChildren() ?? [])].map((node) => node.getName());
 
         expect(children.sort()).toEqual([...EXECUTE_SUBCOMMANDS].sort());
+        reportProgress(
+            `/execute supports ${EXECUTE_SUBCOMMANDS.length} subcommands, ${EXECUTE_CONDITIONS.length} conditions, ${EXECUTE_ON_RELATIONS.length} relations, and ${EXECUTE_STORE_TARGETS.length} store targets.`
+        );
     });
 
     it('forks `as`, running the rest of the chain once per matched entity', () => {

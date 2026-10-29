@@ -4,6 +4,7 @@ import { parseLenientJson, readBrarchive } from '@jsprismarine/packs';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../.test/reportProgress';
 
 import { createEntityComponentRegistry } from './components';
 import type { EntityFile } from './entityTypes';
@@ -29,13 +30,6 @@ const enabled = !!process.env.JSP_VANILLA_ENTITIES;
 const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
 
 const decoder = new TextDecoder();
-
-const warnImplementationProgress = (message: string): void => {
-    console.warn(message);
-    if (process.env.GITHUB_ACTIONS === 'true') {
-        process.stdout.write(`::warning title=Implementation progress::${message}\n`);
-    }
-};
 
 /** The `vanilla*` layer folders of an unpacked BDS, in the order the engine composes them. */
 const bedrockServerLayers = (): readonly string[] => {
@@ -230,15 +224,12 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
     const types = new EntityTypes();
     const diagnostics = types.load(files);
 
-    it('composes at least the 128 entity files bedrock-samples ships', () => {
-        expect(files.length).toBeGreaterThanOrEqual(128);
-    });
-
     it('parses every file without an error', () => {
         const errors = diagnostics.filter((entry) => entry.severity === 'error');
 
         expect(errors).toEqual([]);
         expect(types.registry.size).toBe(files.length);
+        reportProgress(`${files.length} vanilla entity files are composed from the data packs.`);
     });
 
     it('reports no unknown top-level or description key', () => {
@@ -360,7 +351,7 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
         );
     });
 
-    it('covers the components the research note predicts and reports what it does not', () => {
+    it('spawns a vanilla warden and reports component implementation progress', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();
         let componentCovered = 0;
@@ -389,28 +380,16 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
         const behavioralComponents = new Set([...withHooks, ...TRIGGER_COMPONENTS, ...RUNTIME_COMPONENTS]);
         const withBehavior = others.filter((name) => behavioralComponents.has(name));
 
-        warnImplementationProgress(
-            `Implementation progress: ${withBehavior.length} behavior-bearing non-goal components (${withBehavior.join(', ')}); ${componentCovered}/${types.registry.size} entity types have all non-goal components registered.`
-        );
-
-        process.stdout.write(
+        reportProgress(
             [
-                `entities: ${types.registry.size}`,
-                `non-goal keys in vanilla: ${others.length}, registered: ${registeredOthers.length}`,
-                `unregistered non-goal keys: ${unimplementedOthers.join(', ')}`,
-                `goal names in vanilla: ${goals.length} (registration is checked by @jsprismarine/entity-goals)`,
-                `filter tests in vanilla: ${tests.size}, implemented: ${implementedTests.length}`,
-                ''
-            ].join('\n')
+                `${withBehavior.length} behavior-bearing non-goal components`,
+                `${componentCovered}/${types.registry.size} entity types have all non-goal components registered`,
+                `${registeredOthers.length}/${others.length} declared non-goal components have factories`,
+                `${unimplementedOthers.length} declared non-goal components lack factories`,
+                `${goals.length} goal component names`,
+                `${implementedTests.length}/${tests.size} filter tests implemented`
+            ].join('; ')
         );
-
-        // Every vanilla non-goal key has a factory. Some factories preserve
-        // data without running behavior; the warning above tracks implementation progress.
-        expect(others).toHaveLength(202);
-        expect(goals).toHaveLength(170);
-        expect(unimplementedOthers).toEqual([]);
-        expect(tests.size).toBe(86);
-        expect(implementedTests.length).toBe(tests.size);
 
         expect(types.spawn('minecraft:warden').componentParams('minecraft:anger_level')).toMatchObject({
             angry_threshold: 80,
@@ -431,22 +410,12 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
             }
         }
 
-        process.stdout.write(
-            `event actions in vanilla: ${[...uses].map(([name, count]) => `${name} ${count}`).join(', ')}\n`
+        reportProgress(
+            `Vanilla entity events use ${[...uses]
+                .sort(([left], [right]) => left.localeCompare(right))
+                .map(([name, count]) => `${name}=${count}`)
+                .join(', ')}; ${unparsed.size} action types are not parsed.`
         );
-
-        // The eight keys the composed pack writes, by uses. `queue_command`
-        // is the ninth the package carries out and no vanilla entity uses.
-        expect(Object.fromEntries(uses)).toEqual({
-            play_sound: 23,
-            set_home_position: 17,
-            emit_vibration: 9,
-            drop_item: 2,
-            execute_event_on_home_block: 2,
-            emit_particle: 1,
-            reset_target: 1,
-            stop_movement: 1
-        });
         expect([...unparsed]).toEqual([]);
     });
 

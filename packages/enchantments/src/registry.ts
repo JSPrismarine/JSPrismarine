@@ -10,9 +10,9 @@ import { MIN_ENCHANTMENT_LEVEL } from './definition';
 import type { EnchantmentDefinition } from './definition';
 
 /**
- * The 15 functionality tags under `tags/enchantment/` in 26.3. None of them
- * changes what an enchantment does; each one is a switch some other system
- * reads, which is why an enchantment is only half described by its own file.
+ * Functionality tags under `tags/enchantment/` in 26.3. None of them changes
+ * what an enchantment does; each one is a switch some other system reads,
+ * which is why an enchantment is only half described by its own file.
  */
 export const ENCHANTMENT_TAGS = [
     'curse',

@@ -51,11 +51,6 @@ export default defineConfig({
             plugins: []
         }
     },
-    resolve: {
-        alias: {
-            '@test': resolve(__dirname, '.test')
-        }
-    },
     test: {
         bail: 0,
         tags: [{ name: 'real-data', description: 'Tests that require fetched game data.' }],

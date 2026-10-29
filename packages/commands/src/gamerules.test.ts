@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../.test/reportProgress';
+
 import {
     JAVA_GAME_RULES,
     REMOVED_GAME_RULES,
@@ -15,17 +17,20 @@ import {
 } from './gamerules';
 
 describe('the Java gamerule registry', () => {
-    it('holds the 59 rules the 26.3 registry report lists', () => {
-        expect(JAVA_GAME_RULES).toHaveLength(59);
-        expect(new Set(JAVA_GAME_RULES.map((rule) => rule.name)).size).toBe(59);
+    it('keeps each rule addressable by a namespaced registry id', () => {
+        const names = JAVA_GAME_RULES.map((rule) => rule.name);
+
+        expect(new Set(names).size).toBe(names.length);
         expect(JAVA_GAME_RULES.every((rule) => rule.name.startsWith('minecraft:'))).toBe(true);
+        reportProgress(`${names.length} Java game rules are registered.`);
     });
 
-    it('splits 47 boolean rules from 12 integer ones', () => {
+    it('supports the value types declared by the Java registry', () => {
         const integers = JAVA_GAME_RULES.filter((rule) => rule.type === 'integer');
+        const booleans = JAVA_GAME_RULES.filter((rule) => rule.type === 'boolean');
 
-        expect(integers).toHaveLength(12);
-        expect(JAVA_GAME_RULES.filter((rule) => rule.type === 'boolean')).toHaveLength(47);
+        expect(integers.length + booleans.length).toBe(JAVA_GAME_RULES.length);
+        reportProgress(`${booleans.length} boolean and ${integers.length} integer Java game rules are registered.`);
     });
 
     it('renames the two limits the mcfunction runtime reads', () => {
@@ -37,7 +42,6 @@ describe('the Java gamerule registry', () => {
         expect(gameRule('minecraft:max_command_sequence_length')).toMatchObject({ min: 0, default: 65_536 });
         expect(gameRule('minecraft:max_command_forks')).toMatchObject({ min: 1, default: 65_536 });
         expect(gameRule('minecraft:max_block_modifications')).toMatchObject({ min: 1, default: 32_768 });
-        expect(JAVA_GAME_RULES.filter((rule) => rule.default !== undefined)).toHaveLength(3);
     });
 
     it('carries the rest of the renames the 1.21.11 changelog names', () => {
@@ -47,15 +51,11 @@ describe('the Java gamerule registry', () => {
         expect(renamedGameRule('sendCommandFeedback')).toBe('minecraft:send_command_feedback');
     });
 
-    it('maps 59 legacy names onto 58 current ones, 27 of them changing more than case', () => {
+    it('maps every declared legacy name to its current rule id', () => {
         const legacy = JAVA_GAME_RULES.flatMap((rule) => rule.legacyNames.map((name) => [name, rule.name] as const));
-        const renames = legacy.filter(([name]) => name !== 'doFireTick' && name !== 'allowFireTicksAwayFromPlayer');
-        const snake = (name: string) => name.replace(/(?<!^)(?=[A-Z])/g, '_').toLowerCase();
-        const beyondCase = renames.filter(([name, current]) => snake(name) !== current.slice('minecraft:'.length));
 
-        expect(renames).toHaveLength(59);
-        expect(new Set(renames.map(([, current]) => current)).size).toBe(58);
-        expect(beyondCase).toHaveLength(27);
+        for (const [name, current] of legacy) expect(renamedGameRule(name)).toBe(current);
+        reportProgress(`${legacy.length} legacy game rule names resolve to their current ids.`);
     });
 
     it('folds the two fire booleans into one radius rather than renaming either', () => {
@@ -92,10 +92,11 @@ describe('the Bedrock gamerules', () => {
     it('reads its names from Mojang’s own /gamerule enums', () => {
         const { boolean, integer } = bedrockGameRuleNames();
 
-        expect(boolean).toHaveLength(32);
-        expect(integer).toHaveLength(5);
+        expect(new Set(boolean).size).toBe(boolean.length);
+        expect(new Set(integer).size).toBe(integer.length);
         expect(boolean).toContain('sendcommandfeedback');
         expect(integer).toContain('maxcommandchainlength');
+        reportProgress(`${boolean.length} Bedrock boolean and ${integer.length} integer game rules are exposed.`);
     });
 
     it('names the Bedrock rules Java has no counterpart for', () => {

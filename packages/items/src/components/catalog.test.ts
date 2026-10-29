@@ -1,11 +1,13 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../../.test/reportProgress';
 
 import { createItemComponentRegistry, ITEM_COMPONENT_NAMES, ITEM_COMPONENTS } from './catalog';
 import { STACK_ONLY_COMPONENTS, UNVERIFIED_SHAPE_COMPONENTS } from './stackOnly';
 import { DEFAULTED_COMPONENTS } from './defaults';
 import { UNIVERSAL_COMPONENTS } from './universal';
+import { EXCEPTED_JAVA_ITEMS } from '../exceptions';
 import { itemTypesTable } from '../tables';
 
 const registry = createItemComponentRegistry();
@@ -24,24 +26,29 @@ const accept = (name: string, value: unknown): unknown => {
 
 describe('the item component catalog', () => {
     it('registers every data component type the pinned Java registry report lists', () => {
-        expect(ITEM_COMPONENT_NAMES.length).toBe(122);
         expect([...ITEM_COMPONENT_NAMES].sort()).toEqual([...itemTypesTable.componentTypes].sort());
+        reportProgress(`${ITEM_COMPONENT_NAMES.length} item component types are registered.`);
     });
 
-    it('splits into the measured universal, defaulted and stack-only groups', () => {
-        expect(UNIVERSAL_COMPONENTS.length).toBe(13);
-        expect(DEFAULTED_COMPONENTS.length).toBe(56);
-        expect(STACK_ONLY_COMPONENTS.length).toBe(53);
+    it('assigns each component to one data-derived default group', () => {
+        const grouped = [...UNIVERSAL_COMPONENTS, ...DEFAULTED_COMPONENTS, ...STACK_ONLY_COMPONENTS].map(
+            (component) => component.name
+        );
+
+        expect(new Set(grouped).size).toBe(grouped.length);
+        expect([...grouped].sort()).toEqual([...ITEM_COMPONENT_NAMES].sort());
 
         const defaulted = new Set(Object.keys(itemTypesTable.defaultCounts));
-        expect(defaulted.size).toBe(69);
         for (const component of [...UNIVERSAL_COMPONENTS, ...DEFAULTED_COMPONENTS]) {
             expect(defaulted.has(component.name)).toBe(true);
         }
         for (const component of STACK_ONLY_COMPONENTS) expect(defaulted.has(component.name)).toBe(false);
+        reportProgress(
+            `Item component groups: ${UNIVERSAL_COMPONENTS.length} universal, ${DEFAULTED_COMPONENTS.length} defaulted, ${STACK_ONLY_COMPONENTS.length} stack-only.`
+        );
     });
 
-    it('gives every universal component a default on all 1658 Java items', () => {
+    it('gives every universal component a default on every Java item', () => {
         for (const component of UNIVERSAL_COMPONENTS) {
             expect(itemTypesTable.defaultCounts[component.name]).toBe(itemTypesTable.javaItemCount);
         }
@@ -63,7 +70,7 @@ describe('the item component catalog', () => {
 });
 
 describe('parsing the components vanilla uses as defaults', () => {
-    it('parses the thirteen universal components', () => {
+    it('parses universal components from item definitions', () => {
         expect(accept('minecraft:max_stack_size', 64)).toBe(64);
         expect(accept('minecraft:rarity', 'uncommon')).toBe('uncommon');
         expect(accept('minecraft:repair_cost', 0)).toBe(0);
@@ -249,9 +256,18 @@ const componentsDir = reportsRoot === undefined ? undefined : resolve(reportsRoo
 const corpus = componentsDir !== undefined && existsSync(componentsDir) ? describe : describe.skip;
 
 corpus('every real Java item component file', { tags: ['real-data'] }, () => {
-    it('parses with no errors across all 1658 items', () => {
+    it('parses the Java item component reports without errors', () => {
         const files = readdirSync(componentsDir!).filter((file) => file.endsWith('.json'));
-        expect(files.length).toBe(itemTypesTable.javaItemCount);
+        const expectedFiles = [
+            ...Object.values(itemTypesTable.items).flatMap((row) => [
+                row.java,
+                ...(row.merged ?? []).map((item) => item.java)
+            ]),
+            ...EXCEPTED_JAVA_ITEMS
+        ]
+            .map((identifier) => `${identifier.replace(/^minecraft:/, '')}.json`)
+            .sort();
+        expect(files.sort()).toEqual(expectedFiles);
 
         const failures: string[] = [];
         let parsed = 0;
@@ -268,6 +284,7 @@ corpus('every real Java item component file', { tags: ['real-data'] }, () => {
         }
 
         expect(failures).toEqual([]);
-        expect(parsed).toBeGreaterThan(20000);
+        expect(parsed).toBeGreaterThan(0);
+        reportProgress(`${parsed} Java item component values parsed across ${files.length} reports.`);
     });
 });

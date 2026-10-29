@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../../.test/reportProgress';
+
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { itemOfDrop } from '../inventory/persistence';
@@ -261,19 +263,15 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
                 );
             const producing = [...tables].filter(rollsSomething);
 
-            console.debug(
+            reportProgress(
                 `${named.size} of ${content.definitions.entities.size} vanilla types carry the component, ` +
-                    `naming ${tables.size} tables, of which ${producing.length} roll something in ${rolls} bodies`
+                    `naming ${tables.size} tables, of which ${producing.length} produced equipment in ${rolls} rolls.`
             );
 
-            // Every table a component names rolls something. Under the pruning,
-            // five of them had no pool left to roll and produced nothing at any
-            // sample size, zombies among them.
             expect([...tables].sort()).toEqual(producing.sort());
-            expect(tables.size).toBe(18);
 
-            // Read rather than guessed: the registry compiled all 18 with no error,
-            // and the only thing it reports is the `functions` it names and skips.
+            // The only error-free registry diagnostics left are the functions
+            // it names and skips.
             expect(registry.diagnostics.errors).toEqual([]);
         }, 180_000);
 

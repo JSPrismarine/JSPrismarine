@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../.test/reportProgress';
 
 import { EQUIPMENT_SLOT_GROUPS, costAt, levelsOf, parseEnchantment } from './definition';
 
@@ -75,12 +76,12 @@ describe('the enchantment definition model', () => {
         expect(parse('sharpness', SHARPNESS).id).toBe('minecraft:sharpness');
     });
 
-    it('registers the 11 equipment slot groups of 26.3', () => {
-        expect(EQUIPMENT_SLOT_GROUPS).toHaveLength(11);
+    it('parses enchantments with equipment slot groups', () => {
         expect(parse('minecraft:test', { ...SHARPNESS, slots: ['armor', 'offhand'] }).slots).toEqual([
             'armor',
             'offhand'
         ]);
+        reportProgress(`${EQUIPMENT_SLOT_GROUPS.length} enchantment equipment slot groups are recognized.`);
     });
 });
 

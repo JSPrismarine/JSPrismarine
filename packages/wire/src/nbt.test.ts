@@ -59,11 +59,12 @@ describe('the NBT builder', () => {
 });
 
 describe('a round trip of what a real server sent', () => {
-    it('reads and rewrites all 98 captured block definitions byte for byte', () => {
+    it('reads and rewrites every captured block definition byte for byte', () => {
         const rewritten = block_definitions.filter((entry) =>
             writeNetworkNbt(readNetworkNbt(entry.definition)).equals(entry.definition)
         );
 
-        expect(rewritten).toHaveLength(98);
+        expect(block_definitions.length).toBeGreaterThan(0);
+        expect(rewritten).toHaveLength(block_definitions.length);
     });
 });

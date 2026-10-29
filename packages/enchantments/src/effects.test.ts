@@ -1,4 +1,5 @@
 import { PredicateContext } from '@jsprismarine/predicates';
+import { reportProgress } from '../../../.test/reportProgress';
 import { describe, expect, it } from 'vitest';
 
 import { ENTITY_EFFECT_TYPES, LOCATION_EFFECT_TYPES, parseEffect } from './effects';
@@ -20,15 +21,12 @@ const only = (json: unknown, level = 1): ResolvedEffect => {
 };
 
 describe('the effect type registries', () => {
-    it('registers the 15 entity effect types of 26.3', () => {
-        expect(ENTITY_EFFECT_TYPES).toHaveLength(15);
-        expect([...ENTITY_EFFECT_TYPES]).toEqual([...ENTITY_EFFECT_TYPES].toSorted());
-    });
-
-    it('registers the 16 location effect types, which are the entity types plus attribute', () => {
-        expect(LOCATION_EFFECT_TYPES).toHaveLength(16);
+    it('keeps attribute scoped to location effects', () => {
         const entityTypes = new Set<string>(ENTITY_EFFECT_TYPES);
         expect([...LOCATION_EFFECT_TYPES].filter((name) => !entityTypes.has(name))).toEqual(['attribute']);
+        reportProgress(
+            `${ENTITY_EFFECT_TYPES.length} entity effect types and ${LOCATION_EFFECT_TYPES.length} location effect types are registered.`
+        );
     });
 
     it('rejects attribute inside an entity effect component', () => {
@@ -37,7 +35,7 @@ describe('the effect type registries', () => {
     });
 });
 
-describe('the 16 location based effect types', () => {
+describe('location-based effect types', () => {
     it('reads apply_exhaustion', () => {
         // lunge.json: 4 exhaustion per level.
         const effect = only(

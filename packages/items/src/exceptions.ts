@@ -38,10 +38,9 @@ export interface ItemTableException {
 /**
  * Every Java item the table drops, grouped by Bedrock identifier.
  *
- * Nine rows account for 53 of the 1658 Java items: 6 reviewed losses and 47
- * merged duplicates. The remaining 1605 items each own one of Bedrock's 1606
- * identifiers, and `minecraft:unknown` is the one identifier no item owns,
- * because the only Java items that reach it are the two test blocks.
+ * Each row documents a reviewed loss or merge. The generator computes the
+ * expected set from the mapping tables and refuses to emit when it disagrees
+ * with this file.
  */
 export const ITEM_TABLE_EXCEPTIONS = [
     {
@@ -165,9 +164,6 @@ export const ITEM_TABLE_EXCEPTIONS = [
         reference: `${TRANSLATION_NOTE} section 3`
     }
 ] as const satisfies readonly ItemTableException[];
-
-/** How many Java items {@link ITEM_TABLE_EXCEPTIONS} accounts for, checked by the generator and the tests. */
-export const EXCEPTED_ITEM_COUNT = 53;
 
 /** Every Java item id the exception list covers, flattened. */
 export const EXCEPTED_JAVA_ITEMS: readonly string[] = ITEM_TABLE_EXCEPTIONS.flatMap((exception) => exception.javaIds);

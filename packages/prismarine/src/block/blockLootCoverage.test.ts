@@ -3,6 +3,8 @@ import { BEDROCK_ONLY_BLOCKS } from '@jsprismarine/mapping';
 import { load } from '@jsprismarine/packs';
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../../.test/reportProgress';
+
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { blockLootTableOf, rollBlockDrops } from './blockLoot';
@@ -137,14 +139,11 @@ describe.skipIf(!datapack)(
                 .entries.map((entry) => entry.identifier)
                 .filter((identifier) => blockLootTableOf(content, identifier) === undefined);
 
-            // The 182 Bedrock-only blocks are the generated list rather than a
-            // hand-kept one: the chemistry set, the hard glass, the deprecated
-            // palette entries and the rest that no Java block state reaches.
-            expect(unresolved.filter((identifier) => BEDROCK_ONLY_BLOCKS.has(identifier))).toHaveLength(182);
-            expect(unresolved.filter((identifier) => !BEDROCK_ONLY_BLOCKS.has(identifier))).toEqual(
-                [...DROPS_NOTHING, ...JAVA_PUBLISHES_NO_TABLE].sort()
+            const expectedUnresolved = new Set([...BEDROCK_ONLY_BLOCKS, ...DROPS_NOTHING, ...JAVA_PUBLISHES_NO_TABLE]);
+            expect([...unresolved].sort()).toEqual([...expectedUnresolved].sort());
+            reportProgress(
+                `${unresolved.length} Bedrock palette blocks have no Java loot table, including ${unresolved.filter((identifier) => BEDROCK_ONLY_BLOCKS.has(identifier)).length} Bedrock-only blocks.`
             );
-            expect(unresolved).toHaveLength(243);
         });
 
         it('resolves the tables of the blocks Bedrock splits off from a non-default state', () => {

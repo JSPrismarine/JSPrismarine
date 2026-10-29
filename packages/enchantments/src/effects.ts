@@ -11,7 +11,7 @@ import {
 } from '@jsprismarine/predicates';
 import type { MemberSet, ParseContext, ParseOptions, ParseResult, PredicateContext } from '@jsprismarine/predicates';
 
-/** The 15 members of `minecraft:enchantment_entity_effect_type` in 26.3. */
+/** Members of `minecraft:enchantment_entity_effect_type` in 26.3. */
 export const ENTITY_EFFECT_TYPES = [
     'all_of',
     'apply_exhaustion',
@@ -31,8 +31,8 @@ export const ENTITY_EFFECT_TYPES = [
 ] as const;
 
 /**
- * The 16 members of `minecraft:enchantment_location_based_effect_type` in
- * 26.3, which are the entity effects plus `attribute`. Only `location_changed`
+ * Members of `minecraft:enchantment_location_based_effect_type` in 26.3,
+ * which are the entity effects plus `attribute`. Only `location_changed`
  * takes this wider set, because only it can hold a modifier while the
  * condition stays true and withdraw it when the condition stops.
  */

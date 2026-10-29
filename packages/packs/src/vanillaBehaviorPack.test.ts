@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../.test/reportProgress';
 import { readBedrockSchemas } from './bedrockSchemas';
 import { bedrockSchemaValidator } from './bedrockSchemaValidator';
 import type { Diagnostic } from './diagnostics';
@@ -80,11 +81,11 @@ const sizes = (corpus: string, definitions: Definitions): Record<string, number>
     const counted = Object.fromEntries(
         Object.entries(definitions).map(([registry, loaded]) => [registry, loaded.size])
     );
-    console.debug(
-        `${corpus}, definitions per registry:\n${Object.entries(counted)
+    reportProgress(
+        `${corpus} definitions per registry: ${Object.entries(counted)
             .filter(([, size]) => size > 0)
-            .map(([registry, size]) => `  ${registry} ${size}`)
-            .join('\n')}`
+            .map(([registry, size]) => `${registry}=${size}`)
+            .join(', ')}.`
     );
     return counted;
 };
@@ -120,16 +121,9 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', { tags: ['real-da
         expect(diagnostics.filter((diagnostic) => diagnostic.code.startsWith('definition.schema'))).toEqual([]);
         // The 1.26.50.4 publication. bedrock-samples ships no features,
         // feature rules or item catalog, which the BDS layers below cover.
-        expect(sizes('bedrock-samples', definitions)).toMatchObject({
-            blocks: 98,
-            items: 79,
-            entities: 128,
-            lootTables: 309,
-            tradeTables: 27,
-            spawnRules: 60,
-            recipes: 1881,
-            biomes: 89
-        });
+        sizes('bedrock-samples', definitions);
+        expect(definitions.entities.get('minecraft:creeper')?.path).toBe('entities/creeper.json');
+        expect(definitions.lootTables.get('loot_tables/entities/creeper.json')).toBeDefined();
     });
 
     it('loads every registry of the composed BDS vanilla layers', { timeout: 60_000 }, () => {
@@ -158,22 +152,7 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', { tags: ['real-da
                 occurrences: 2
             })
         ]);
-        // 129 entities, 60 spawn rules, 309 loot tables and 27 trade tables
-        // are the counts the research note records for the composed pack. 9
-        // of the trade tables ship as the undocumented binary MCB in BDS; the
-        // loader warns and skips those, which leaves 18 readable ones.
-        expect(sizes('BDS vanilla layers', definitions)).toMatchObject({
-            blocks: 98,
-            items: 74,
-            entities: 129,
-            lootTables: 309,
-            tradeTables: 18,
-            spawnRules: 60,
-            recipes: 1881,
-            biomes: 89,
-            features: 210,
-            featureRules: 241
-        });
+        sizes('BDS vanilla layers', definitions);
         expect(diagnostics.filter((diagnostic) => diagnostic.code === 'definition.mcb')).not.toEqual([]);
         expect(definitions.entities.get('minecraft:creeper')?.path).toBe('entities/creeper.json');
         expect(definitions.lootTables.get('loot_tables/entities/creeper.json')).toBeDefined();

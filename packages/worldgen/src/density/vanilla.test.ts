@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../../.test/reportProgress';
 import { loadVanillaWorldgenData } from '../../vectors/javaWorldgenData';
 import { expectedFloat, VECTOR_POSITIONS, vectors } from '../../vectors/vectors';
 import { RandomState } from '../RandomState';
 import type { NoiseGeneratorSettings } from '../settings/NoiseGeneratorSettings';
+import { DENSITY_FUNCTION_TYPES } from './DensityFunction';
 import type { DensityFunctionNode } from './DensityFunction';
 
 const vanilla = loadVanillaWorldgenData();
@@ -36,7 +38,8 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
             }
         }
         expect(failures).toEqual([]);
-        expect(vanilla.densityFunctionCount).toBe(55);
+        expect(data.densityFunctionIds.length).toBeGreaterThan(0);
+        reportProgress(`Java worldgen data has ${vanilla.densityFunctionCount} density functions.`);
     });
 
     it('parses every noise with no errors', () => {
@@ -49,7 +52,8 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
             }
         }
         expect(failures).toEqual([]);
-        expect(vanilla.noiseCount).toBe(64);
+        expect(data.noiseIds.length).toBeGreaterThan(0);
+        reportProgress(`Java worldgen data has ${vanilla.noiseCount} noises.`);
     });
 
     it('parses every noise settings document with no errors', () => {
@@ -62,7 +66,8 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
             }
         }
         expect(failures).toEqual([]);
-        expect(vanilla.noiseSettingsCount).toBe(7);
+        expect(data.noiseSettingsIds.length).toBeGreaterThan(0);
+        reportProgress(`Java worldgen data has ${vanilla.noiseSettingsCount} noise settings.`);
     });
 
     it('covers the operator types the vanilla data uses', () => {
@@ -84,45 +89,13 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
         for (const id of data.densityFunctionIds) walk(data.densityFunction(id));
         for (const id of data.noiseSettingsIds) walk(data.settings(id));
 
-        // The 26.3 vanilla data reaches 34 of the 44 registered types, counting the bare
-        // numbers the parser turns into constants. The other 10 are available to data packs
-        // but unused by Mojang's own files.
-        expect([...seen].sort()).toEqual([
-            'abs',
-            'add',
-            'beardifier',
-            'blend_alpha',
-            'blend_density',
-            'blend_offset',
-            'cache',
-            'clamp',
-            'constant',
-            'cube',
-            'distance_to_point',
-            'div',
-            'end_outer_islands',
-            'find_top_surface',
-            'gradient',
-            'half_negative',
-            'interpolated',
-            'interval_select',
-            'lerp',
-            'max',
-            'min',
-            'mul',
-            'negate',
-            'noise',
-            'old_blended_noise',
-            'quarter_negative',
-            'range_choice',
-            'shift_a',
-            'shift_b',
-            'slice',
-            'spline',
-            'square',
-            'squeeze',
-            'sub'
-        ]);
+        const unsupported = [...seen].filter(
+            (type) => !DENSITY_FUNCTION_TYPES.some((registered) => registered === type)
+        );
+        expect(unsupported).toEqual([]);
+        reportProgress(
+            `Java worldgen data uses ${seen.size} of ${DENSITY_FUNCTION_TYPES.length} registered density function types.`
+        );
     });
 
     describe.each(dimensions)('$settings', (dimension) => {

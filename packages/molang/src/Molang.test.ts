@@ -1,4 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
+
+import { reportProgress } from '../../../.test/reportProgress';
 import { Molang } from './Molang';
 import type { VanillaQueryName } from './queries';
 import { VANILLA_QUERIES } from './queries';
@@ -110,8 +112,10 @@ describe('Molang', () => {
     });
 
     describe('query registry', () => {
-        it('registers the 21 vanilla server-side queries', () => {
-            expect(Object.keys(VANILLA_QUERIES)).toHaveLength(21);
+        it('registers vanilla server-side queries', () => {
+            const queries = Object.keys(VANILLA_QUERIES);
+            expect(queries.length).toBeGreaterThan(0);
+            reportProgress(`Molang provides ${queries.length} vanilla server-side queries.`);
             expectTypeOf<VanillaQueryName>().toExtend<string>();
             // @ts-expect-error not a vanilla server-side query
             const clientOnly: VanillaQueryName = 'cape_flap_amount';

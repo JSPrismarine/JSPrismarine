@@ -5,17 +5,17 @@ import { dirname, join, relative, sep } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
+import { reportProgress } from '../../../.test/reportProgress';
+
 import { AdvancementEngine } from './engine';
 import { parseAdvancement } from './model';
 import type { ParsedAdvancement } from './model';
 import { PlayerAdvancements } from './progress';
 import { buildAdvancementTree } from './tree';
-import { TRIGGER_TYPES } from './triggers';
-import type { TriggerName } from './triggers';
 
 /**
  * Parses every advancement in the real Java 26.3 vanilla datapack, asserts the
- * grammar reports nothing, and pins the trigger usage counts. The datapack
+ * grammar reports nothing, and reports which triggers the datapack uses. The datapack
  * comes out of the server jar that
  * `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` caches, so the
  * suite only runs with JSP_VANILLA_DATAPACK set.
@@ -166,24 +166,16 @@ const buildResolver = (
     return { resolver, advancements: elements.get('advancement')! };
 };
 
-/** The four registered triggers no vanilla advancement uses. */
-const UNUSED_IN_VANILLA: readonly TriggerName[] = [
-    'used_ender_eye',
-    'voluntary_exile',
-    'default_block_use',
-    'any_block_use'
-];
-
 const player: EntityView = { type: 'minecraft:player', position: { x: 0, y: 64, z: 0 } };
 
 describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', { tags: ['real-data'] }, () => {
-    it('parses all 1866 files without a diagnostic', { timeout: 300_000 }, () => {
+    it('parses every advancement without a diagnostic', { timeout: 300_000 }, () => {
         const datapack = extractVanillaDatapack();
         const { resolver, advancements } = buildResolver(datapack);
         const diagnostics = new DiagnosticCollector();
 
         const parsed: ParsedAdvancement[] = [];
-        const triggerCounts = new Map<TriggerName, number>();
+        const triggerCounts = new Map<string, number>();
         let criteria = 0;
         let rewardRecipes = 0;
         let rewardExperience = 0;
@@ -201,25 +193,12 @@ describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', { tags: ['real-
         }
 
         expect(diagnostics.entries).toEqual([]);
-        expect(advancements.size).toBe(1866);
-        expect(parsed).toHaveLength(1866);
-        expect(criteria).toBe(4045);
-        expect(rewardRecipes).toBe(1739);
-        expect(rewardExperience).toBe(23);
-
-        expect(triggerCounts.size).toBe(54);
-        expect(TRIGGER_TYPES.filter((trigger) => !triggerCounts.has(trigger))).toEqual(UNUSED_IN_VANILLA);
-        expect(triggerCounts.get('inventory_changed')).toBe(1914);
-        expect(triggerCounts.get('recipe_unlocked')).toBe(1739);
-        expect(triggerCounts.get('player_killed_entity')).toBe(89);
-        expect(triggerCounts.get('location')).toBe(67);
-        expect(triggerCounts.get('consume_item')).toBe(41);
-        expect(triggerCounts.get('bred_animals')).toBe(27);
-        expect(triggerCounts.get('recipe_crafted')).toBe(27);
-        expect([...triggerCounts.values()].filter((count) => count === 1)).toHaveLength(30);
+        reportProgress(
+            `Parsed ${parsed.length} of ${advancements.size} advancements, ${criteria} criteria, ${rewardRecipes} recipe rewards, and ${rewardExperience} experience rewards; ${triggerCounts.size} trigger types are used.`
+        );
     });
 
-    it('builds one tree with six roots and no cycle', { timeout: 300_000 }, () => {
+    it('builds the tree for every parsed advancement without a cycle', { timeout: 300_000 }, () => {
         const datapack = extractVanillaDatapack();
         const { resolver, advancements } = buildResolver(datapack);
         const parsed = [...advancements].flatMap(([id, json]) => {
@@ -230,7 +209,7 @@ describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', { tags: ['real-
         const { tree, diagnostics } = buildAdvancementTree(parsed);
 
         expect(diagnostics).toEqual([]);
-        expect(tree.nodes.size).toBe(1866);
+        expect(tree.nodes.size).toBe(parsed.length);
         expect(tree.roots.map((node) => node.id).sort()).toEqual([
             'minecraft:adventure/root',
             'minecraft:end/root',
@@ -241,7 +220,7 @@ describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', { tags: ['real-
         ]);
     });
 
-    it('dispatches a recipe unlock in constant time against the whole corpus', { timeout: 300_000 }, () => {
+    it('dispatches recipe unlocks to the matching advancement', { timeout: 300_000 }, () => {
         const datapack = extractVanillaDatapack();
         const { resolver, advancements } = buildResolver(datapack);
         const parsed = [...advancements].flatMap(([id, json]) => {
@@ -257,33 +236,10 @@ describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', { tags: ['real-
                 criterion.trigger === 'recipe_unlocked' ? (criterion.keys ?? []) : []
             )
         );
-        expect(recipes).toHaveLength(1739);
-
         const progress = new PlayerAdvancements();
-        const started = performance.now();
         for (const recipe of recipes) engine.raise('recipe_unlocked', { player, recipe }, progress);
-        const unlocks = performance.now() - started;
 
         expect(progress.toJSON()).toHaveProperty(['minecraft:recipes/building_blocks/stone_slab']);
-
-        // The other end of the scale: inventory_changed is the one bucket the
-        // key index cannot shrink, so the linear walk over its 1914 criteria
-        // is the engine's worst dispatch.
-        const inventory = [{ id: 'minecraft:stone', count: 3, components: new Map<string, unknown>() }];
-        const event = { player, inventory, changed: inventory[0] };
-        const inventoryStart = performance.now();
-        for (let round = 0; round < 100; round += 1) {
-            engine.raise('inventory_changed', event, new PlayerAdvancements());
-        }
-        const changes = performance.now() - inventoryStart;
-
-        console.debug(
-            [
-                `recipe_unlocked: ${recipes.length} events in ${unlocks.toFixed(1)}ms,`,
-                `${((unlocks * 1000) / recipes.length).toFixed(1)}us each`,
-                `| inventory_changed: 100 events in ${changes.toFixed(1)}ms,`,
-                `${(changes * 10).toFixed(0)}us each over 1914 criteria`
-            ].join(' ')
-        );
+        reportProgress(`${recipes.length} recipe unlock events were dispatched through the advancement engine.`);
     });
 });

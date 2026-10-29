@@ -1,6 +1,7 @@
 import { constantRandom, scriptedRandom } from '@jsprismarine/predicates';
 import type { DamageSource, EntityView, ItemStack, LootContextParameters } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../.test/reportProgress';
 
 import { vanillaRegistry } from '../test/fixtures';
 import { ENCHANTMENT_TAGS, EnchantmentRegistry } from './registry';
@@ -49,10 +50,6 @@ const damageParameters = (victim: EntityView, attacker?: EntityView): LootContex
 });
 
 describe('the enchantment tags', () => {
-    it('names the 15 functionality tags of 26.3', () => {
-        expect(ENCHANTMENT_TAGS).toHaveLength(15);
-    });
-
     it('expands a tag that names another tag', () => {
         // in_enchanting_table.json holds exactly ["#minecraft:non_treasure"].
         const members = registry().membersOf('minecraft:in_enchanting_table');
@@ -67,6 +64,7 @@ describe('the enchantment tags', () => {
         expect(found.hasTag('minecraft:binding_curse', 'minecraft:curse')).toBe(true);
         expect(found.hasTag('minecraft:mending', 'minecraft:treasure')).toBe(true);
         expect(found.hasTag('minecraft:sharpness', 'minecraft:treasure')).toBe(false);
+        reportProgress(`${ENCHANTMENT_TAGS.length} enchantment functionality tags are registered.`);
     });
 
     it('stops at a tag cycle instead of recursing', () => {

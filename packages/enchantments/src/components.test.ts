@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reportProgress } from '../../../.test/reportProgress';
 
 import { EFFECT_COMPONENTS, EFFECT_COMPONENT_TYPES, parseEffects } from './components';
 import type { EffectComponentType } from './components';
@@ -88,51 +89,14 @@ const BODIES: Readonly<Record<EffectComponentType, unknown>> = {
     trident_spin_attack_strength: { type: 'minecraft:add', value: 1.5 }
 };
 
-describe('the 31 effect component types', () => {
-    it('declares exactly the 31 names the 26.3 registry holds', () => {
-        expect(EFFECT_COMPONENT_TYPES).toHaveLength(31);
-        expect(EFFECT_COMPONENT_TYPES.toSorted()).toEqual(
-            [
-                'ammo_use',
-                'armor_effectiveness',
-                'attributes',
-                'block_experience',
-                'crossbow_charge_time',
-                'crossbow_charging_sounds',
-                'damage',
-                'damage_immunity',
-                'damage_protection',
-                'equipment_drops',
-                'fishing_luck_bonus',
-                'fishing_time_reduction',
-                'hit_block',
-                'item_damage',
-                'knockback',
-                'location_changed',
-                'mob_experience',
-                'post_attack',
-                'post_piercing_attack',
-                'prevent_armor_change',
-                'prevent_equipment_drop',
-                'projectile_count',
-                'projectile_piercing',
-                'projectile_spawned',
-                'projectile_spread',
-                'repair_with_xp',
-                'smash_damage_per_fallen_block',
-                'tick',
-                'trident_return_acceleration',
-                'trident_sound',
-                'trident_spin_attack_strength'
-            ].toSorted()
-        );
-    });
-
-    it('parses a body for every one of the 31', () => {
+describe('enchantment effect components', () => {
+    it('parses a body for every registered component type', () => {
         for (const component of EFFECT_COMPONENT_TYPES) {
             const parsed = parseOne(component, BODIES[component]);
             expect(parsed?.kind).toBe(EFFECT_COMPONENTS[component].kind);
         }
+        expect(new Set(EFFECT_COMPONENT_TYPES).size).toBe(EFFECT_COMPONENT_TYPES.length);
+        reportProgress(`${EFFECT_COMPONENT_TYPES.length} enchantment effect component types have parsers.`);
     });
 
     it('gives the nine damage context components the enchanted_damage key set', () => {

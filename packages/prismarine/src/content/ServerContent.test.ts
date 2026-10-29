@@ -1,16 +1,10 @@
 import { PackLoadError } from '@jsprismarine/packs';
+import { reportProgress } from '../../../../.test/reportProgress';
 import { describe, expect, it } from 'vitest';
 
 import { buildServerContent } from './ServerContent';
 import { definitionOf, definitionsOf, emptyDefinitions } from './ContentOptions';
 import { FIXTURE_BLOCKS, fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from './testing';
-
-const warnImplementationProgress = (message: string): void => {
-    console.warn(message);
-    if (process.env.GITHUB_ACTIONS === 'true') {
-        process.stdout.write(`::warning title=Implementation progress::${message}\n`);
-    }
-};
 
 describe('buildServerContent', () => {
     it('populates every registry from one pack stack', () => {
@@ -104,7 +98,7 @@ describe('buildServerContent', () => {
         const content = buildServerContent(fixtureContentOptions());
         const behaviorNames = [...content.blocks.behaviors.names()].sort();
 
-        warnImplementationProgress(
+        reportProgress(
             `Block behavior implementation progress: ${behaviorNames.length} registered (${behaviorNames.join(', ')})`
         );
         expect(
@@ -134,7 +128,7 @@ describe('buildServerContent', () => {
         const content = buildServerContent(fixtureContentOptions());
         const brainMobIds = content.entities.brains.ids;
 
-        warnImplementationProgress(
+        reportProgress(
             `Brain mob implementation progress: ${brainMobIds.length} registered (${brainMobIds.join(', ')})`
         );
         expect(content.entities.components.has('minecraft:behavior.float')).toBe(true);
