@@ -1,5 +1,4 @@
 import type BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -24,13 +23,9 @@ export interface ChunkCoord {
  * naming only the chunks of the current batch un-renders everything sent before it. What governs
  * visibility is the radius around the position.
  *
- * The server only sends this packet, so there is no `decodePayload`.
- *
  * **Bound To:** Client
  */
 export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
-    public static NetID = Identifiers.NetworkChunkPublisherUpdatePacket;
-
     /** `New position for view`, normally the player's own position. */
     public position!: BlockPosition;
     /** `New radius for view`, in blocks: the chunk radius shifted left by four. */
@@ -48,6 +43,17 @@ export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
         for (const chunkCoord of this.savedChunks) {
             this.writeVarInt(chunkCoord.x);
             this.writeVarInt(chunkCoord.z);
+        }
+    }
+
+    /** Reads the three fields back, the mirror of {@link encodePayload}. */
+    public override decodePayload(): void {
+        this.position = NetworkUtil.readBlockPosition(this);
+        this.radius = this.readUnsignedVarInt();
+
+        this.savedChunks = [];
+        for (let i = 0, count = this.readUnsignedIntLE(); i < count; i++) {
+            this.savedChunks.push({ x: this.readVarInt(), z: this.readVarInt() });
         }
     }
 }

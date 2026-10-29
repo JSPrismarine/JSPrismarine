@@ -8,7 +8,6 @@
     "packages/prismarine/src/network/packet/ItemStackRequestPacket.ts": "b29a7feb23f934c3912ee109d4613eb127e997c3e89e58ffdc078f71e2bd2d60",
     "packages/prismarine/src/network/packet/ItemStackResponsePacket.ts": "8e826e72a03d604fc2cafbbbc9461c30df4b6f5f7c98243faf3497a6fab22152",
     "packages/prismarine/src/network/packet/LevelChunkPacket.ts": "ed600fd5c924ca923f5bced4a3100df0c85ae5753d841b401b6abdbe1daf5212",
-    "packages/prismarine/src/network/packet/NetworkChunkPublisherUpdatePacket.ts": "fc70a1a9e5bbb8dc620aa9d83a55a31cde928aaf61f87346975edf407bad41dd",
     "packages/prismarine/src/network/packet/PlayerListPacket.ts": "ff1191296a84beb9a7e31af46cdc2f93cea30111377aeb751569ebf0e73e10de",
     "packages/prismarine/src/network/packet/SetActorDataPacket.ts": "4b1c239569ec18cc47902e70c626ed297670f4791c2126f53818d676189df937"
 }

@@ -43,6 +43,30 @@ describe('network', () => {
                 expect([...pk.getBuffer()]).toEqual([0x79, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
             });
 
+            it('round-trips position, radius and the chunk list', () => {
+                const pk = new NetworkChunkPublisherUpdatePacket();
+                pk.position = new BlockPosition(16, -32, 48);
+                pk.radius = 128;
+                pk.savedChunks = [
+                    { x: 1, z: -2 },
+                    { x: -3, z: 4 }
+                ];
+                pk.encode();
+
+                const decoded = new NetworkChunkPublisherUpdatePacket(pk.getBuffer());
+                decoded.decode();
+
+                expect(decoded.position.getX()).toBe(16);
+                expect(decoded.position.getY()).toBe(-32);
+                expect(decoded.position.getZ()).toBe(48);
+                expect(decoded.radius).toBe(128);
+                expect(decoded.savedChunks).toEqual([
+                    { x: 1, z: -2 },
+                    { x: -3, z: 4 }
+                ]);
+                expect(decoded.feof()).toBe(true);
+            });
+
             it('uses the network id the client expects', () => {
                 expect(netIdFor('NetworkChunkPublisherUpdatePacket')).toBe(
                     Identifiers.NetworkChunkPublisherUpdatePacket
