@@ -47,6 +47,7 @@ import { bedrockServerPath } from '../fetch/bds.ts';
 import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
 import { dumpArgs, selectPasses } from './cli.ts';
 import type { Pass } from './cli.ts';
+import { hostNodeArgs } from './host.ts';
 import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { REFERENCE_DIMENSION, REFERENCE_SEED } from './region.ts';
@@ -325,7 +326,7 @@ const runPalettePass = async (): Promise<void> => {
     const domainsFile = join(scratch, 'domains.jsonl');
 
     const runScript = (script: string, args: string[]): void => {
-        const result = spawnSync(process.execPath, [join(datagen, script), ...args], {
+        const result = spawnSync(process.execPath, hostNodeArgs(join(datagen, script), args), {
             cwd: repositoryRoot,
             stdio: 'inherit'
         });
@@ -416,15 +417,14 @@ const runPacketPass = async (): Promise<void> => {
         await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
         const captured = spawnSync(
             process.execPath,
-            [
-                tool,
+            hostNodeArgs(tool, [
                 '--out',
                 outDirectory,
                 '--extended',
                 join(outDirectory, 'packets'),
                 '--server',
                 `bedrock-server-${pinnedServer.serverVersion}`
-            ],
+            ]),
             { cwd: repositoryRoot, stdio: 'inherit' }
         );
         if (captured.status !== 0) throw new Error(`The capture client exited with status ${captured.status}`);
