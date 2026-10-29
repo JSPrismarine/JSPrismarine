@@ -188,3 +188,59 @@ Tokens are ceremony (mitigated by merging small managers); dependency lists can 
 surface at kernel start, not compile time (typed-tuple `Module<Deps>` inference can tighten this
 later); delta codecs accumulate version-conditional subclasses until the oldest codec is pruned;
 the migration itself is the dominant cost, which is why Phases 1-2 are pure extraction.
+
+## Data pipeline status
+
+The version dimension in `packages/minecraft`'s datagen pipeline is implemented:
+`datagen/manifest.json` declares protocol versions under `versions`, each generator writes to
+`src/generated/v<protocol>/`, and the version named by `defaultProtocolVersion` is re-exported at
+the unversioned `src/generated/` paths so existing imports keep resolving.
+
+## bedrock-data versioning
+
+`packages/bedrock-data` is not versioned yet. Versioning it needs per-version inputs that do
+not exist today, so this section records the required layout instead of faking them.
+
+### What is version-sensitive
+
+Every generated or converted table tracks one Bedrock release and would need a copy per
+protocol version:
+
+- `item_table.json` - joined from `jsp/required_item_list.json` (a capture from BDS 1.26.51.1)
+  and the submodule's `runtime_item_states.json`. Item runtime ids and the item list change
+  across releases.
+- `item_components.json` - converted from the submodule's `item_components.nbt`; the set of
+  data-driven items changes across releases.
+- `creativeitems.ts` - generated from the submodule's `creative_items.json`; the creative
+  menu changes almost every release.
+- `entity_identifiers.json` - converted from the submodule's `entity_identifiers.dat`.
+- `biome_definitions_network.json` and `jigsaw_structure_data.json` - converted from captures
+  under `src/jsp/`.
+- The `src/jsp/` captures themselves (`required_item_list.json`, `block_definitions.json`,
+  `block_id_map.json`, `runtime_block_states.dat`) and the BDS/bedrock-samples pins in
+  `sources.json`.
+
+Version-stable: the vendor files (`r16_to_current_item_map.json`, `item_tags.json`) describe
+pre-flattening legacy names and move only when Mojang renames items, and the Java-side data
+under `src/jsp/java/` tracks Java releases on its own schedule.
+
+### Required input layout
+
+- The `src/resources/` submodule (CloudburstMC/Data) is a single checkout and can only pin one
+  commit, so one submodule cannot serve two Bedrock versions. The plan is a directory per
+  version, `src/resources/v<protocol>/`, each its own submodule pinned to the matching
+  upstream commit - or, if upstream stops tagging per release, committed copies of only the
+  files `build.js` reads.
+- Per-version captures under `src/jsp/v<protocol>/` for the files captured from a BDS of that
+  version (`required_item_list.json` first; the NBT captures as they are refreshed).
+- `sources.json` grows the same `versions` table `packages/minecraft/datagen/manifest.json`
+  has: pins keyed by network protocol version plus a `defaultProtocolVersion`.
+
+### build.js changes, once the inputs exist
+
+Mirror the minecraft datagen shape: loop over the declared versions, read each version's
+inputs from its `resources`/`jsp` directories, write to `src/generated/v<protocol>/`, and
+re-export the default version at the unversioned `src/generated/` paths (for JSON payloads,
+`src/index.ts` imports the default version's file directly, as `packages/minecraft` does for
+`recipes.json`). Until a second version's inputs land, restructuring `build.js` would only
+move files around, so it stays single-version.
