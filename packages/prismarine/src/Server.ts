@@ -409,7 +409,13 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async disable(): Promise<void> {
+        // Before the worlds: a chunk delivery still generating would otherwise land in a
+        // world mid-teardown. `shutdown()` has already kicked every player by this point,
+        // so no new deliveries start while this drains.
+        await this.chunkScheduler.close();
         await this.worldManager.disable();
+        // After the worlds: a closing world ticks and saves through its dimension's runtime.
+        this.entityRuntimes.closeAll();
         await this.commandManager.disable();
         await this.banManager.disable();
         await this.recipeManager.disable();
