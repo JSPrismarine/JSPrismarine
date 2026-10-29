@@ -1,10 +1,9 @@
-import { NetworkBinaryStream, recipeUuidFor, writeCraftingData } from '@jsprismarine/protocol';
+import { NetworkBinaryStream, readCraftingData, recipeUuidFor, writeCraftingData } from '@jsprismarine/protocol';
 
 import type { Recipe } from '../../crafting/Recipe';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from '../../crafting/Recipe';
 import type { RecipeIngredient } from '../../crafting/RecipeIngredient';
 import type { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
 import { itemAsStack } from './CreativeContentPacket';
 import DataPacket from './DataPacket';
 
@@ -36,8 +35,6 @@ const asOutputs = (outputs: readonly Item[]) => outputs.map(itemAsStack);
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/crafting-data-packet/
  */
 export default class CraftingDataPacket extends DataPacket {
-    public static NetID = Identifiers.CraftingDataPacket;
-
     public recipes: readonly Recipe[] = [];
 
     /** Whether the client should throw away the recipes it already had. */
@@ -77,6 +74,17 @@ export default class CraftingDataPacket extends DataPacket {
         const stream = new NetworkBinaryStream();
         writeCraftingData(stream, this.payload ?? this.fromRecipes());
         this.write(stream.getBuffer());
+    }
+
+    /**
+     * Reads the lists back into {@link payload} with the protocol reader.
+     *
+     * The decoded form stays as plain lists: nothing rebuilds `Recipe` objects from the wire,
+     * because the server's recipes come from its own manager, not from a peer.
+     */
+    public decodePayload(): void {
+        this.payload = readCraftingData(new NetworkBinaryStream(this.readRemaining()));
+        this.cleanRecipes = this.payload.cleanRecipes;
     }
 
     private fromRecipes(): CraftingData {

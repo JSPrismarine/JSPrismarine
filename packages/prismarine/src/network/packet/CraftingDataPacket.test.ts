@@ -597,5 +597,36 @@ describe('network', () => {
 
             expect(() => packet.encode()).toThrow(/cannot write/);
         });
+
+        it('round-trips a shapeless recipe into the decoded payload lists', () => {
+            const recipe = new ShapelessRecipe(
+                'minecraft:oak_planks',
+                'crafting_table',
+                [need('minecraft:oak_log')],
+                [item('minecraft:oak_planks')],
+                0
+            );
+            const packet = new CraftingDataPacket();
+            packet.recipes = [recipe];
+            packet.encode();
+
+            const decoded = new CraftingDataPacket(packet.getBuffer());
+            decoded.decode();
+
+            expect(decoded.payload).not.toBeNull();
+            expect(decoded.payload!.shaped).toEqual([]);
+            expect(decoded.payload!.smithingTransform).toEqual([]);
+            expect(decoded.payload!.potionMixes).toEqual([]);
+            expect(decoded.cleanRecipes).toBe(true);
+            expect(decoded.payload!.cleanRecipes).toBe(true);
+
+            expect(decoded.payload!.shapeless).toHaveLength(1);
+            const [shapeless] = decoded.payload!.shapeless;
+            expect(shapeless!.id).toBe('minecraft:oak_planks');
+            expect(shapeless!.netId).toBe(1);
+            expect(shapeless!.ingredients).toHaveLength(1);
+            expect(shapeless!.outputs).toHaveLength(1);
+            expect(decoded.feof()).toBe(true);
+        });
     });
 });
