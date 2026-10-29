@@ -84,6 +84,11 @@ Both were deleted after this note was written: 59 KB of unversioned, unreproduci
 
 Both sides are keyed by protocol version now. `sources.json`'s `bds` entry carries a `versions` table and a `defaultProtocolVersion`, pinning 2193 (1.26.51.1) and 2225 (1.26.60.6, sha256 `cbbd5414fa6a…`); `--protocol <n>` on `fetch:sources` and `dump:bedrock` selects one, and each caches under `node_modules/.cache/jsprismarine/bds/v<protocol>/`. The captures land in `packages/bedrock-data/src/jsp/v<protocol>/` and `utils/build.js` writes the default version's generated tables at the unversioned paths and every other version's under `src/generated/v<protocol>/`. `packages/minecraft/datagen/manifest.json` has the same shape: `versions` keyed by protocol, each with its own `schemas`, `source`, `blocks` and `recipes` pins, output under `src/generated/v<protocol>/`, and `defaultProtocolVersion` re-exported unversioned.
 
+Bringing up a further version is a workflow of its own, not re-derived from this note:
+`.agents/skills/protocol-bringup/SKILL.md` walks it end to end, and `pnpm run bringup --protocol <n>`
+(`packages/bedrock-data/utils/bedrock-dump/bringup.ts`) is its verification step — it boots the
+pinned server for a version and walks our client's login against it, stage by stage.
+
 What 2225 has, as of the capture recorded in [section 11](#11-what-the-2225-capture-produced): enums, recipes, an item table, block definitions and biome definitions. What it lacks is the block palette, so `manifest.json`'s 2225 entry still declares no `blocks` — the palette capture does not reproduce run to run ([section 10](#10-what-running-all-four-passes-found)). 2193 stays `defaultProtocolVersion` until it does. [protocol-2225-delta.md](protocol-2225-delta.md) records what that entry has and what it lacks; `docs/plans/server-rearchitecture.md` holds the versioning plan for `packages/bedrock-data`.
 
 ## 7. Upstream availability
