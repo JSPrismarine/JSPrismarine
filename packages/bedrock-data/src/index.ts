@@ -1,4 +1,4 @@
-import block_definitions_data from './jsp/block_definitions.json';
+import block_definitions_data from './jsp/block_definitions';
 import { creative_groups, creativeitems } from './generated/creativeitems';
 import item_components_data from './generated/item_components.json';
 import item_table_data from './generated/item_table.json';
@@ -33,8 +33,9 @@ export interface ItemTypeEntry {
  * Captured from a Bedrock Dedicated Server 1.26.51.1, not taken from a third party: the
  * server sends it as `ItemRegistryPacket`, so a client that can log in can simply record it.
  * `packages/client/tools/capture-server-data.mjs` is that client, and its output is
- * `jsp/required_item_list.json`. It stays under `jsp/` rather than moving to `resources/`
- * because a capture of the version this server targets is the thing nothing else can promise.
+ * `jsp/v<protocol>/required_item_list.json`. It stays under `jsp/` rather than moving to
+ * `resources/` because a capture of the version this server targets is the thing nothing else
+ * can promise.
  *
  * The capture records no `version`. `utils/build.js` takes that one column from the
  * submodule's `runtime_item_states.json`, a dump of 1.26.50 at the same protocol, and refuses

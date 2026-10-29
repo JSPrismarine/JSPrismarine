@@ -174,10 +174,19 @@ const bedrockEnchantments = readJson(join(samplesDir, 'mojang-enchantments.json'
 const bedrockMobEffects = readJson(join(samplesDir, 'mojang-effects.json')) as VanillaDataModule;
 const bedrockPotions = readJson(join(samplesDir, 'mojang-potion-effects.json')) as VanillaDataModule;
 
-const bedrockItemTable = readJson(join(repoRoot, 'packages/bedrock-data/src/jsp/required_item_list.json')) as Record<
-    string,
-    unknown
->;
+// The Bedrock captures are keyed by protocol version; the tables are generated from the
+// version `sources.json` names as the default, the same one the package exports unversioned.
+const bedrockSources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as {
+    bds: { defaultProtocolVersion: number };
+};
+const bedrockItemTable = readJson(
+    join(
+        repoRoot,
+        'packages/bedrock-data/src/jsp',
+        `v${bedrockSources.bds.defaultProtocolVersion}`,
+        'required_item_list.json'
+    )
+) as Record<string, unknown>;
 
 const entityIdentifiersPath = join(repoRoot, 'packages/bedrock-data/src/generated/entity_identifiers.json');
 if (!existsSync(entityIdentifiersPath)) {

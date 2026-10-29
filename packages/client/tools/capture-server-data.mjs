@@ -27,6 +27,11 @@
  * node packages/client/tools/capture-server-data.mjs --host 127.0.0.1 --port 19132
  * ```
  *
+ * The four files land in `packages/bedrock-data/src/jsp/v<protocol>/`, one directory per
+ * Bedrock protocol version. Without `--out` that is the version `sources.json` names as the
+ * default, which is only right if the server you pointed it at is that version; `dump:bedrock`
+ * passes `--out` for the version it staged.
+ *
  * `--extended <dir>` additionally writes the raw payload of the engine tables this repository
  * has no decoder for yet - the recipe list, the creative menu, the command tree, the actor
  * identifiers, the collision shapes, the armor trims and the camera presets. Those files are
@@ -48,7 +53,15 @@ import { PacketIdentifier } from '../../protocol/dist/index.es.js';
 import { Client } from '../dist/index.es.js';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
-const JSP = path.resolve(HERE, '../../bedrock-data/src/jsp');
+const BEDROCK_DATA = path.resolve(HERE, '../../bedrock-data');
+
+/**
+ * The captures live under one directory per Bedrock protocol version. `dump:bedrock` passes
+ * `--out` for the version it is capturing; run by hand, this writes the default version's.
+ */
+const defaultProtocolVersion = JSON.parse(fs.readFileSync(path.join(BEDROCK_DATA, 'sources.json'), 'utf8')).bds
+    .defaultProtocolVersion;
+const JSP = path.join(BEDROCK_DATA, 'src/jsp', `v${defaultProtocolVersion}`);
 
 const { values } = parseArgs({
     options: {

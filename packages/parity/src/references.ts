@@ -30,8 +30,19 @@ const repoRoot = join(import.meta.dirname, '..', '..', '..');
 /** The fetch cache `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` writes into. */
 export const FETCH_CACHE = join(repoRoot, 'node_modules/.cache/jsprismarine');
 
+/**
+ * The Bedrock captures live under a directory per protocol version. `sources.json` names the
+ * one the package builds its unversioned exports from, which is the one these rows measure.
+ */
+const bedrockCaptureDir = (): string => {
+    const file = join(repoRoot, 'packages/bedrock-data/sources.json');
+    // Parsed JSON has no type the compiler can see; this is the one field read here.
+    const sources = JSON.parse(readFileSync(file, 'utf8')) as { bds: { defaultProtocolVersion: number } };
+    return `packages/bedrock-data/src/jsp/v${sources.bds.defaultProtocolVersion}`;
+};
+
 /** Where `dump:bedrock` writes the reference world golden, relative to the repository root. */
-export const REFERENCE_WORLD_PATH = 'packages/bedrock-data/src/jsp/reference_world.json';
+export const REFERENCE_WORLD_PATH = `${bedrockCaptureDir()}/reference_world.json`;
 
 /** Where `capture:corpus` writes the generation corpus golden, relative to the repository root. */
 export const GENERATION_CORPUS_PATH = 'packages/parity/goldens/worldgen-corpus.json';
@@ -123,7 +134,7 @@ export const REFERENCES = {
     /** The `ItemRegistryPacket` capture: every item identifier a 1.26.51 server advertises. */
     bedrockItemCapture: committed(
         'bedrock-item-capture',
-        'packages/bedrock-data/src/jsp/required_item_list.json',
+        `${bedrockCaptureDir()}/required_item_list.json`,
         'the item list a Bedrock Dedicated Server advertises'
     ),
 
@@ -137,7 +148,7 @@ export const REFERENCES = {
     /** The `BiomeDefinitionListPacket` capture: the biomes a 1.26.51 client is told about. */
     bedrockBiomeDefinitions: committed(
         'bedrock-biome-definitions',
-        'packages/bedrock-data/src/jsp/biome_definitions_network.nbt',
+        `${bedrockCaptureDir()}/biome_definitions_network.nbt`,
         'the biome list a Bedrock Dedicated Server sends a joining client'
     ),
 

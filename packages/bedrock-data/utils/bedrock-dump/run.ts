@@ -1,17 +1,18 @@
 /**
  * The Bedrock half of the capture job: boots the pinned Bedrock Dedicated Server, asks it
- * everything it will answer, and writes the goldens under `src/jsp/`.
+ * everything it will answer, and writes the goldens under `src/jsp/v<protocol>/`.
  *
  * This is step 4 of [the pipeline](../../../../docs/plans/data-driven-vanilla.md), the one that
  * runs on a version bump and weekly rather than on every build. `dump:java` is its Java
- * counterpart and the two share nothing but the `src/jsp/` directory they write into.
+ * counterpart; it writes `src/jsp/java/`, which tracks Java releases and is not keyed by
+ * Bedrock protocol version.
  *
  * Three passes, each a fresh world in the same staged server:
  *
  * - `dump` runs the dump behavior pack and writes one JSON file per Script API table into
- *   `src/jsp/bedrock/`;
+ *   `src/jsp/v<protocol>/bedrock/`;
  * - `refworld` generates the reference region with a fixed seed and reduces the save to
- *   `src/jsp/reference_world.json`, which is what `packages/parity/` compares a generator
+ *   `src/jsp/v<protocol>/reference_world.json`, which `packages/parity/` compares a generator
  *   against;
  * - `packets` logs a client in and records what the server sends every joining client, which
  *   is `packages/client/tools/capture-server-data.mjs`.
@@ -49,7 +50,7 @@ import { readReferenceWorld } from './world.ts';
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repositoryRoot = resolve(packageDirectory, '../..');
 const cacheRoot = join(repositoryRoot, 'node_modules/.cache/jsprismarine');
-const jspDirectory = join(packageDirectory, 'src/jsp');
+const jspRoot = join(packageDirectory, 'src/jsp');
 
 /** How long each stage may take before the job gives up and says which one stalled. */
 const TIMEOUTS = {
@@ -70,8 +71,8 @@ const { values } = parseArgs({
         force: { type: 'boolean', default: false },
         /** Which pinned server to capture. Defaults to the manifest's `defaultProtocolVersion`. */
         protocol: { type: 'string' },
-        /** Where the capture writes. Defaults to the package's `src/jsp`. */
-        out: { type: 'string', default: jspDirectory }
+        /** Where the capture writes. Defaults to the captured version's `src/jsp/v<protocol>`. */
+        out: { type: 'string' }
     }
 });
 
@@ -89,8 +90,6 @@ const requested: Pass[] =
                   // Checked against the literal list on the line above.
                   return name as Pass;
               });
-
-const outDirectory = resolve(values.out);
 
 // ---------------------------------------------------------------------------
 // The pinned server
@@ -110,6 +109,10 @@ if (requestedProtocol !== undefined && !Number.isInteger(requestedProtocol))
     throw new Error('--protocol needs a Bedrock protocol version, such as --protocol 2193');
 const { protocolVersion, version: pinnedServer } = selectBdsVersion(bdsData, requestedProtocol);
 const bds = bdsDescriptor(bdsData, protocolVersion);
+
+// One directory per protocol version, so a capture of a second version lands beside the
+// first rather than overwriting it. `utils/build.js` re-exports one of them unversioned.
+const outDirectory = values.out === undefined ? join(jspRoot, `v${protocolVersion}`) : resolve(values.out);
 
 const override = process.env[bds.envOverride];
 const unpacked =

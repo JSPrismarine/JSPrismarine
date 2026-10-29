@@ -306,7 +306,7 @@ export const allowList: readonly AllowListEntry[] = [
         kind: 'defect' as const,
         reason: `The Bedrock item tag and required item capture include ${identifier}, but the runtime item registry has no type for it.`,
         reference:
-            'packages/bedrock-data/src/vendor/item_tags.json and packages/bedrock-data/src/jsp/required_item_list.json'
+            'packages/bedrock-data/src/vendor/item_tags.json and packages/bedrock-data/src/jsp/v<protocol>/required_item_list.json'
     })),
 
     // Two vanilla recipes make an item Bedrock has no identifier for, so the recipe compiles

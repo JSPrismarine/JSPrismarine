@@ -13,7 +13,8 @@ import { GENERATION_CORPUS_PATH, REFERENCES, REFERENCE_WORLD_PATH, pinnedJavaDat
 
 /**
  * Loaders for the reference data the repository already carries: the captures under
- * `packages/bedrock-data/src/jsp/` and `packages/minecraft/datagen/snapshot/`, and the
+ * `packages/bedrock-data/src/jsp/` and `packages/minecraft/datagen/snapshot/`, both keyed by
+ * protocol version, and the
  * CloudburstMC dumps in the resources submodule. Every loader reads a committed file, so the
  * suite needs no network and no server.
  *
@@ -30,6 +31,17 @@ const packageRoot = (name: string): string => dirname(require.resolve(`${name}/p
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf-8'));
 
 const bedrockDataRoot = packageRoot('@jsprismarine/bedrock-data');
+
+/**
+ * The Bedrock captures live under a directory per protocol version, the same shape as the
+ * datagen snapshots. The comparisons read the version the package builds its unversioned
+ * exports from, which `sources.json` names.
+ */
+const bedrockCapture = (file: string): string => {
+    // Parsed JSON has no type the compiler can see; this is the one field read here.
+    const sources = readJson(join(bedrockDataRoot, 'sources.json')) as { bds: { defaultProtocolVersion: number } };
+    return join(bedrockDataRoot, 'src/jsp', `v${sources.bds.defaultProtocolVersion}`, file);
+};
 
 /** The block palette capture: the one state capture records per block, and what each property accepts. */
 export interface BlockPaletteCapture {
@@ -59,7 +71,7 @@ export interface RequiredItemEntry {
 /** Reads the item list captured from a Bedrock Dedicated Server (`ItemRegistryPacket`). */
 export const loadRequiredItemList = (): Record<string, RequiredItemEntry> =>
     // Parsed JSON boundary, shape documented above.
-    readJson(join(bedrockDataRoot, 'src/jsp/required_item_list.json')) as Record<string, RequiredItemEntry>;
+    readJson(bedrockCapture('required_item_list.json')) as Record<string, RequiredItemEntry>;
 
 /** One item as the submodule's `runtime_item_states.json` dump records it. */
 export interface RuntimeItemState {
@@ -132,7 +144,7 @@ export interface NetworkBiome {
  * comparisons do not use are consumed and dropped.
  */
 export const loadNetworkBiomes = (): NetworkBiome[] => {
-    const raw = readFileSync(join(bedrockDataRoot, 'src/jsp/biome_definitions_network.nbt'));
+    const raw = readFileSync(bedrockCapture('biome_definitions_network.nbt'));
     const stream = new BinaryStream(raw);
 
     const biomeCount = stream.readUnsignedVarInt();
