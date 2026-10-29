@@ -96,6 +96,45 @@ describe('network', () => {
                 ]);
             });
 
+            it('round-trips a plain chunk, where the count is a count', () => {
+                const pk = new LevelChunkPacket();
+                pk.chunkX = -5;
+                pk.chunkZ = 12;
+                pk.dimension = 1;
+                pk.subChunkCount = 6;
+                pk.data = Buffer.from([0x2a, 0x2b, 0x2c]);
+                pk.encode();
+
+                const decoded = new LevelChunkPacket(pk.getBuffer());
+                decoded.decode();
+
+                expect(decoded.chunkX).toBe(-5);
+                expect(decoded.chunkZ).toBe(12);
+                expect(decoded.dimension).toBe(1);
+                expect(decoded.clientSubChunkRequestsEnabled).toBe(false);
+                expect(decoded.subChunkCount).toBe(6);
+                expect(decoded.data).toEqual(Buffer.from([0x2a, 0x2b, 0x2c]));
+                expect(decoded.feof()).toBe(true);
+            });
+
+            it('round-trips request mode, where the count becomes the request limit', () => {
+                const pk = new LevelChunkPacket();
+                pk.chunkX = 3;
+                pk.chunkZ = -7;
+                pk.subChunkCount = 24;
+                pk.clientSubChunkRequestsEnabled = true;
+                pk.data = Buffer.alloc(0);
+                pk.encode();
+
+                const decoded = new LevelChunkPacket(pk.getBuffer());
+                decoded.decode();
+
+                expect(decoded.clientSubChunkRequestsEnabled).toBe(true);
+                expect(decoded.subChunkCount).toBe(24);
+                expect(decoded.data).toEqual(Buffer.alloc(0));
+                expect(decoded.feof()).toBe(true);
+            });
+
             it('uses the network id the client expects', () => {
                 expect(netIdFor('LevelChunkPacket')).toBe(0x3a);
             });

@@ -1,4 +1,3 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
@@ -13,12 +12,8 @@ import DataPacket from './DataPacket';
  * 6. Cache Metadata: varuint32 count, then one Blob Id uint64 per entry. Always written,
  *    empty when the cache is off.
  * 7. Serialized Chunk Data: varuint32 byte length, then the raw bytes.
- *
- * The server only sends this packet, so there is no `decodePayload`.
  */
 export default class LevelChunkPacket extends DataPacket {
-    public static NetID = Identifiers.LevelChunkPacket;
-
     /** Chunk Position X, in chunks. */
     public chunkX = 0;
 
@@ -71,5 +66,31 @@ export default class LevelChunkPacket extends DataPacket {
 
         this.writeUnsignedVarInt(this.data.byteLength);
         this.write(this.data);
+    }
+
+    /**
+     * Reads the seven fields back, the mirror of {@link encodePayload}.
+     *
+     * Cache Metadata blob ids are read past rather than kept: the server never enables the
+     * blob cache, so there is nothing to hold them for, but they still have to come off the
+     * stream for the chunk data behind them to be read from the right place.
+     */
+    public decodePayload(): void {
+        this.chunkX = this.readVarInt();
+        this.chunkZ = this.readVarInt();
+
+        this.dimension = this.readVarInt();
+
+        const subChunkCount = this.readUnsignedVarInt();
+        this.clientSubChunkRequestsEnabled = this.readBoolean();
+        this.subChunkCount = this.clientSubChunkRequestsEnabled ? this.readVarInt() : subChunkCount;
+
+        this.readBoolean(); // Cache Enabled, always written as false.
+
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.readLongLE(); // Cache Metadata: Blob Id.
+        }
+
+        this.data = this.read(this.readUnsignedVarInt());
     }
 }
