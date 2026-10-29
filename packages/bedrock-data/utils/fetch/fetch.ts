@@ -21,6 +21,23 @@ export const DOWNLOAD_USER_AGENT = 'Mozilla/5.0';
 const MARKER_FILE = '.jsp-fetch.json';
 const UNPACKED_DIR = 'unpacked';
 
+/**
+ * Where a fetched source's content ends up in the cache.
+ *
+ * This is the one place the `<cache>/<source>/<version>[/unpacked]` layout is
+ * spelled out. {@link fetchSource} writes there, and anything that reads a
+ * cached source later - the Bedrock capture, the datagen generators, the
+ * suites that need real game data - asks here rather than rebuilding the path,
+ * so a change to the layout cannot leave a reader looking at the old one.
+ *
+ * @param descriptor - The source, from one of `manifest.ts`'s descriptor builders.
+ * @param cacheRoot - The shared cache root, usually `cacheRoot` from `cloudburst.ts`.
+ */
+export const sourceCachePath = (descriptor: SourceDescriptor, cacheRoot: string): string => {
+    const versionDir = join(cacheRoot, descriptor.name, descriptor.version);
+    return descriptor.unpack ? join(versionDir, UNPACKED_DIR) : versionDir;
+};
+
 /** How the fetch talks to the network and the environment; tests stub both. */
 export interface FetchOptions {
     /** Cache root the `<source>/<version>` directories are created under. */
@@ -112,7 +129,7 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
 
     const versionDir = join(options.cacheRoot, descriptor.name, descriptor.version);
     const archivePath = join(versionDir, descriptor.fileName);
-    const contentPath = descriptor.unpack ? join(versionDir, UNPACKED_DIR) : versionDir;
+    const contentPath = sourceCachePath(descriptor, options.cacheRoot);
     const markerPath = join(versionDir, MARKER_FILE);
 
     const marker = await readMarker(markerPath);

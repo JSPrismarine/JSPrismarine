@@ -43,6 +43,7 @@ import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
+import { bedrockServerPath } from '../fetch/bds.ts';
 import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
 import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
@@ -181,9 +182,7 @@ const bds = bdsDescriptor(bdsData, protocolVersion);
 // first rather than overwriting it. `utils/build.js` re-exports one of them unversioned.
 const outDirectory = values.out === undefined ? join(jspRoot, `v${protocolVersion}`) : resolve(values.out);
 
-const override = process.env[bds.envOverride];
-const unpacked =
-    override !== undefined && override !== '' ? override : join(cacheRoot, bds.name, bds.version, 'unpacked');
+const unpacked = await bedrockServerPath(protocolVersion);
 
 if (!existsSync(join(unpacked, 'bedrock_server'))) {
     throw new Error(

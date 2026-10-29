@@ -6,13 +6,15 @@ import { createHash } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { linkResources, parseProtocolArgument } from './cloudburst.ts';
-import { fetchSource, hashSourceContent, resolveContentRoot } from './fetch.ts';
+import { bedrockServerPath } from './bds.ts';
+import { cacheRoot as sharedCacheRoot, linkResources, parseProtocolArgument } from './cloudburst.ts';
+import { fetchSource, hashSourceContent, resolveContentRoot, sourceCachePath } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
 import {
     bdsDescriptor,
     cloudburstDescriptor,
+    loadBdsData,
     type BdsData,
     type CloudburstData,
     type SourceDescriptor
@@ -264,6 +266,30 @@ describe('bdsDescriptor', () => {
 
     it('names the pinned versions when asked for one that is not pinned', () => {
         expect(() => bdsDescriptor(data, 1234)).toThrow(/protocol 1234; pinned: 2193, 2225/);
+    });
+});
+
+describe('sourceCachePath', () => {
+    it('is the path fetchSource actually writes an unpacked source to', async () => {
+        const zip = buildZip({ 'pack/a.txt': 'alpha' });
+        const { impl } = stubFetch(zip);
+        const cacheRoot = join(dir, 'cache');
+        const descriptor = archiveDescriptor(sha256(zip));
+        const fetched = await fetchSource(descriptor, { cacheRoot, env: {}, fetchImpl: impl });
+        expect(sourceCachePath(descriptor, cacheRoot)).toBe(fetched.contentPath);
+    });
+
+    it('is the path a reader of the pinned Bedrock server gets back', async () => {
+        const data = await loadBdsData(join(import.meta.dirname, '../../sources.json'));
+        const protocol = data.defaultProtocolVersion;
+        const expected = sourceCachePath(bdsDescriptor(data, protocol), sharedCacheRoot);
+        await expect(bedrockServerPath(protocol, {})).resolves.toBe(expected);
+    });
+
+    it('lets JSP_BDS_PATH stand in for a server the fetch did not place', async () => {
+        await expect(bedrockServerPath(undefined, { JSP_BDS_PATH: '/elsewhere/unpacked' })).resolves.toBe(
+            '/elsewhere/unpacked'
+        );
     });
 });
 
