@@ -6,7 +6,15 @@ import Server from './Server';
 import type SessionManager from './SessionManager';
 import type { Networking } from './modules/network';
 import type { ServerTicker } from './modules/ticker';
+import { ShutdownLifecycle } from './ShutdownLifecycle';
 import { stub } from './testing/stub.test.helper';
+
+/** A lifecycle in the state a running shutdown leaves it: the next request is a force exit. */
+const alreadyStopping = (): ShutdownLifecycle => {
+    const lifecycle = new ShutdownLifecycle();
+    lifecycle.beginShutdown();
+    return lifecycle;
+};
 
 /**
  * Interrupting a server that is already shutting down.
@@ -29,8 +37,7 @@ const shutdownServer = (fields: Record<string, unknown> = {}): Server =>
     // typed as `Server` can supply.
     Object.assign(Object.create(Server.prototype), {
         logger: stub<Logger>({ info: () => {} }),
-        interruptHolds: new Set<() => void>(),
-        stopping: false,
+        lifecycle: new ShutdownLifecycle(),
         console: undefined,
         networking: stub<Networking>({ kill: () => {} }),
         sessionManager: stub<SessionManager>({ getAllPlayers: () => [] }),
@@ -61,7 +68,7 @@ describe('Server shutdown', () => {
     });
 
     it('forces an exit when a shutdown is asked for while one is running', () => {
-        const server = shutdownServer({ stopping: true });
+        const server = shutdownServer({ lifecycle: alreadyStopping() });
 
         void server.shutdown();
 
@@ -69,7 +76,7 @@ describe('Server shutdown', () => {
     });
 
     it('says the exit is being forced, on stderr rather than through the logger', () => {
-        const server = shutdownServer({ stopping: true });
+        const server = shutdownServer({ lifecycle: alreadyStopping() });
 
         void server.shutdown();
 
@@ -77,7 +84,7 @@ describe('Server shutdown', () => {
     });
 
     it('leaves a `stayAlive` caller alone, so a second /stop does not kill the process', () => {
-        const server = shutdownServer({ stopping: true });
+        const server = shutdownServer({ lifecycle: alreadyStopping() });
 
         void server.shutdown({ stayAlive: true });
 
