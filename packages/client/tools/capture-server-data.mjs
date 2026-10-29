@@ -16,7 +16,8 @@
  *   `block_definitions.json`, each definition as the network NBT the server sent.
  * - **The jigsaw structure rules**, sent as `JigsawStructureDataPacket` before `StartGame`.
  *   A client at 2193 disconnects from a server that does not send them. Written to
- *   `jigsaw_structure_data.nbt`, the packet's payload as it came.
+ *   `jigsaw_structure_data.nbt`, the payload with its four registries sorted by identifier;
+ *   see `sortedJigsawRegistries` for why it is not kept exactly as it came.
  * - **The biome definitions**, sent as `BiomeDefinitionListPacket`: a client reaches the
  *   world-generation screen with no biomes and disconnects if this is empty. Written to
  *   `biome_definitions_network.nbt`, the packet's payload as it came.
@@ -49,6 +50,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
+import BinaryStream from '../../binaryutils/dist/index.es.js';
+import { ByteOrder, NBTReader, NBTWriter } from '../../nbt/dist/index.es.js';
 import { PacketIdentifier } from '../../protocol/dist/index.es.js';
 import { Client } from '../dist/index.es.js';
 
@@ -122,8 +125,52 @@ client.on('packet', (packet) => {
     if (packet.id === PacketIdentifier.START_GAME) startGame = packet.data;
 });
 
-// The jigsaw rules are one NBT compound and nothing else, so the payload is kept as it came
-// rather than decoded: the client alone interprets it, and the server hands it on verbatim.
+/**
+ * The jigsaw payload with each of its four registries in identifier order.
+ *
+ * The engine writes `template_pools` out of an unordered container, so two captures of one
+ * server carry the same pools in a different order, and the golden is byte stable in git only
+ * by luck. The other three registries come out sorted already, and sorting them too costs
+ * nothing and says what the file guarantees.
+ *
+ * Reordering is not observable by a client. Every entry names itself in
+ * `description.identifier`, and every reference between the registries - a jigsaw's
+ * `start_pool`, a pool element's `location` and `processors`, a structure set's `structures` -
+ * is that identifier rather than a position, so no reader can see the difference. The sort is
+ * also a permutation of whole entries, which is why the payload keeps its length; the capture
+ * asserts that below.
+ */
+const sortedJigsawRegistries = (payload) => {
+    const read = new BinaryStream(payload);
+    const reader = new NBTReader(read, ByteOrder.LITTLE_ENDIAN);
+    reader.setUseVarint(true);
+    const root = reader.parse();
+
+    const identifierOf = (entry) => entry.getCompound('description', false)?.getString('identifier', '') ?? '';
+    for (const [name, registry] of root.entries()) {
+        if (!(registry instanceof Set)) continue;
+        const sorted = [...registry].sort((a, b) => identifierOf(a).localeCompare(identifierOf(b)));
+        root.addValue(name, new Set(sorted));
+    }
+
+    const write = new BinaryStream();
+    const writer = new NBTWriter(write, ByteOrder.LITTLE_ENDIAN);
+    writer.setUseVarint(true);
+    writer.writeCompound(root);
+    const sorted = write.getBuffer();
+
+    if (sorted.byteLength !== payload.byteLength) {
+        throw new Error(
+            `Sorting the jigsaw registries changed the payload from ${payload.byteLength} to ` +
+                `${sorted.byteLength} bytes; it may only reorder whole entries.`
+        );
+    }
+
+    return sorted;
+};
+
+// The payload is one NBT compound and nothing else. The biome definitions are kept exactly as
+// they came: the client alone interprets them, and the server hands them on verbatim.
 const payloadOf = (buffer) => {
     let cursor = 0;
     while ((buffer[cursor++] & 0x80) !== 0); // Step over the header varint.
@@ -189,10 +236,13 @@ try {
         `  ${blocks.blocks.length} data driven blocks, ${startGame.blockProperties.reduce((n, b) => n + b.definition.byteLength, 0)} bytes of definitions`
     );
 
+    // Sorted, so that a recapture of an unchanged server is an empty diff rather than the same
+    // rules in whichever order the engine's container iterated in this time.
+    const rules = sortedJigsawRegistries(jigsaw);
     const jigsawFile = path.join(values.out, 'jigsaw_structure_data.nbt');
-    fs.writeFileSync(jigsawFile, jigsaw);
+    fs.writeFileSync(jigsawFile, rules);
     console.log(`Wrote ${relative(jigsawFile)}`);
-    console.log(`  ${jigsaw.byteLength} bytes of jigsaw structure rules`);
+    console.log(`  ${rules.byteLength} bytes of jigsaw structure rules`);
 
     const biomesFile = path.join(values.out, 'biome_definitions_network.nbt');
     fs.writeFileSync(biomesFile, biomes);
