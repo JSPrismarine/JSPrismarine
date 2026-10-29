@@ -66,9 +66,9 @@ const startInspectorTarget = async (generation: string) => {
             '--eval',
             `
             import * as inspector from 'node:inspector';
+            globalThis.generation = ${JSON.stringify(generation)};
             inspector.open(0, '127.0.0.1');
             process.stdout.write(inspector.url() + '\\n');
-            globalThis.generation = ${JSON.stringify(generation)};
             setInterval(() => {}, 1000);
         `
         ],
@@ -192,13 +192,16 @@ describe('DevTools over an external Node inspector connection', () => {
         await client.send('Runtime.runIfWaitingForDebugger');
         // Command processing and the resumed JavaScript run on separate scheduling paths.
         await expect
-            .poll(async () => {
-                const response = await client.send('Runtime.evaluate', {
-                    expression: 'globalThis.devtoolsReady',
-                    returnByValue: true
-                });
-                return object(response.result).value;
-            })
+            .poll(
+                async () => {
+                    const response = await client.send('Runtime.evaluate', {
+                        expression: 'globalThis.devtoolsReady',
+                        returnByValue: true
+                    });
+                    return object(response.result).value;
+                },
+                { timeout: 5000 }
+            )
             .toBe(true);
     };
 

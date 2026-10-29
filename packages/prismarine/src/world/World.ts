@@ -172,10 +172,89 @@ const CHUNK_UNLOAD_BATCH_SIZE = 8;
  */
 export const SIMULATION_DISTANCE = 10;
 
-/** A player's chunk, which anchors the chunks that tick this world. */
-interface PlayerChunkPosition {
+interface PlayerChunkCoverage {
     readonly x: number;
     readonly z: number;
+    readonly viewDistance: number;
+}
+
+interface ChunkPlayerCounts {
+    simulation: number;
+    retention: number;
+}
+
+/**
+ * Counts how many players' simulation and retention areas cover each chunk.
+ *
+ * Separate counts preserve the fixed simulation radius and each player's potentially larger
+ * view distance. Stable players cost one map read per loaded chunk; moving a player updates only
+ * the areas whose counts changed.
+ */
+class PlayerChunkRefCounts {
+    private readonly players = new Map<bigint, PlayerChunkCoverage>();
+    private readonly chunks = new Map<number, ChunkPlayerCounts>();
+
+    public synchronize(players: ReadonlyMap<bigint, Player>): void {
+        for (const [runtimeId, player] of players) {
+            const position = player.getPosition();
+            const coverage = {
+                x: CoordinateUtils.fromBlockToChunk(position.getX()),
+                z: CoordinateUtils.fromBlockToChunk(position.getZ()),
+                viewDistance: Math.floor(Math.max(SIMULATION_DISTANCE, player.viewDistance))
+            };
+            const previous = this.players.get(runtimeId);
+            if (
+                previous !== undefined &&
+                previous.x === coverage.x &&
+                previous.z === coverage.z &&
+                previous.viewDistance === coverage.viewDistance
+            )
+                continue;
+
+            if (previous !== undefined) this.changeCoverage(previous, -1);
+            this.changeCoverage(coverage, 1);
+            this.players.set(runtimeId, coverage);
+        }
+
+        for (const [runtimeId, coverage] of this.players) {
+            if (players.has(runtimeId)) continue;
+
+            this.changeCoverage(coverage, -1);
+            this.players.delete(runtimeId);
+        }
+    }
+
+    public simulates(chunkX: number, chunkZ: number): boolean {
+        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.simulation ?? 0) > 0;
+    }
+
+    public retains(chunkX: number, chunkZ: number): boolean {
+        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.retention ?? 0) > 0;
+    }
+
+    private changeCoverage(coverage: PlayerChunkCoverage, change: -1 | 1): void {
+        this.changeArea(coverage.x, coverage.z, SIMULATION_DISTANCE, 'simulation', change);
+        this.changeArea(coverage.x, coverage.z, coverage.viewDistance, 'retention', change);
+    }
+
+    private changeArea(
+        centerX: number,
+        centerZ: number,
+        radius: number,
+        area: keyof ChunkPlayerCounts,
+        change: -1 | 1
+    ): void {
+        for (let chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
+            for (let chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
+                const key = Chunk.packXZ(chunkX, chunkZ);
+                const counts = this.chunks.get(key) ?? { simulation: 0, retention: 0 };
+                counts[area] += change;
+
+                if (counts.simulation === 0 && counts.retention === 0) this.chunks.delete(key);
+                else this.chunks.set(key, counts);
+            }
+        }
+    }
 }
 
 /** Sky light at a position nothing stands over, which is what `Level.canSeeSky` answers. */
@@ -290,6 +369,7 @@ export class World implements Service {
      */
     private readonly players: Map<bigint, Player> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
+    private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
 
     /**
      * The chunk loads that have been started and have not finished, by packed position.
@@ -659,9 +739,10 @@ export class World implements Service {
             endSystemsProfile();
         }
 
-        const playerChunks = this.playerChunkPositions();
+        const playerChunkRefCounts = this.getPlayerChunkRefCounts();
+        playerChunkRefCounts.synchronize(this.players);
         const isPositionTicking = (x: number, z: number): boolean =>
-            this.isChunkWithinSimulationDistance(playerChunks, Math.floor(x) >> 4, Math.floor(z) >> 4);
+            playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
         const entities = this.getEntities();
 
         // Also before them, and for the same reason: every mob asks who it is touching, and it has
@@ -1857,14 +1938,15 @@ export class World implements Service {
      * sections.
      */
     public randomTickChunks(): RandomTickChunk[] {
-        const playerChunks = this.playerChunkPositions();
-        if (playerChunks.length === 0) return [];
+        const playerChunkRefCounts = this.getPlayerChunkRefCounts();
+        playerChunkRefCounts.synchronize(this.players);
+        if (this.players.size === 0) return [];
 
         const visited: RandomTickChunk[] = [];
         for (const chunk of this.chunks.values()) {
             const x = chunk.getX();
             const z = chunk.getZ();
-            if (!this.isChunkWithinSimulationDistance(playerChunks, x, z)) continue;
+            if (!playerChunkRefCounts.simulates(x, z)) continue;
 
             const sections: number[] = [];
             for (const [index, subChunk] of chunk.getSubChunks()) {
@@ -1876,35 +1958,8 @@ export class World implements Service {
         return visited;
     }
 
-    private playerChunkPositions(): PlayerChunkPosition[] {
-        return this.getPlayers().map((player) => {
-            const position = player.getPosition();
-            return { x: Math.floor(position.getX()) >> 4, z: Math.floor(position.getZ()) >> 4 };
-        });
-    }
-
-    /**
-     * Whether a chunk is close enough to a player for the world to simulate it.
-     *
-     * Chebyshev distance, so the simulated area is a square: (2 * {@link SIMULATION_DISTANCE}
-     * + 1) squared, 441 chunks at the default of 10. That is Java's own shape, not an
-     * approximation of a circle. `DistanceManager.addPlayer` puts a `PLAYER_SIMULATION` ticket
-     * of level `31 - simulationDistance` on the player's chunk, `ChunkTracker` propagates it
-     * through the full 3 by 3 neighborhood at a cost of one per step - diagonals included,
-     * which is what makes it Chebyshev - and `ChunkLevel.isEntityTicking` admits every chunk at
-     * level 31 or below. Java's two euclidean player-distance tests are elsewhere: the 128
-     * block disc belongs to mob spawning, and `ChunkMap.anyPlayerCloseEnoughTo` to the fire
-     * spread radius, which the fire family reads through its content world actions.
-     */
-    private isChunkWithinSimulationDistance(
-        playerChunks: readonly PlayerChunkPosition[],
-        chunkX: number,
-        chunkZ: number
-    ): boolean {
-        return playerChunks.some(
-            (player) =>
-                Math.abs(player.x - chunkX) <= SIMULATION_DISTANCE && Math.abs(player.z - chunkZ) <= SIMULATION_DISTANCE
-        );
+    private getPlayerChunkRefCounts(): PlayerChunkRefCounts {
+        return (this.playerChunkRefCounts ??= new PlayerChunkRefCounts());
     }
 
     /**
@@ -2295,15 +2350,16 @@ export class World implements Service {
     private async unloadDistantChunks(): Promise<void> {
         if (this.provider.supportsChunkUnload !== true) return;
 
-        const players = this.getPlayers();
-        if (players.length === 0) return;
+        const playerChunkRefCounts = this.getPlayerChunkRefCounts();
+        playerChunkRefCounts.synchronize(this.players);
+        if (this.players.size === 0) return;
 
         let unloaded = 0;
         for (const chunk of this.chunks.values()) {
             if (unloaded >= CHUNK_UNLOAD_BATCH_SIZE) break;
 
             const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
-            if (this.loading.has(index) || this.chunkNeededByPlayers(chunk, players)) continue;
+            if (this.loading.has(index) || this.chunkNeededByPlayers(chunk)) continue;
             if (await this.unloadChunk(chunk)) unloaded++;
         }
     }
@@ -2315,11 +2371,8 @@ export class World implements Service {
 
         try {
             await this.enqueueSave(async () => {
-                if (
-                    this.chunks.get(index) !== chunk ||
-                    this.loading.has(index) ||
-                    this.chunkNeededByPlayers(chunk, this.getPlayers())
-                )
+                this.getPlayerChunkRefCounts().synchronize(this.players);
+                if (this.chunks.get(index) !== chunk || this.loading.has(index) || this.chunkNeededByPlayers(chunk))
                     return;
 
                 const entities = this.entitiesInChunk(chunk);
@@ -2329,16 +2382,18 @@ export class World implements Service {
                 }
             });
         } catch (error: unknown) {
+            this.getPlayerChunkRefCounts().synchronize(this.players);
             this.server.getLogger().error(`Failed to save chunk ${chunk.getX()},${chunk.getZ()} before unloading`);
             this.server.getLogger().error(error);
             return false;
         }
 
+        this.getPlayerChunkRefCounts().synchronize(this.players);
         if (
             this.chunks.get(index) !== chunk ||
             this.loading.has(index) ||
             chunk.getHasChanged() ||
-            this.chunkNeededByPlayers(chunk, this.getPlayers())
+            this.chunkNeededByPlayers(chunk)
         )
             return false;
 
@@ -2369,15 +2424,8 @@ export class World implements Service {
         return true;
     }
 
-    private chunkNeededByPlayers(chunk: Chunk, players: readonly Player[]): boolean {
-        return players.some((player) => {
-            const position = player.getPosition();
-            const radius = Math.max(SIMULATION_DISTANCE, player.viewDistance);
-            return (
-                Math.abs(CoordinateUtils.fromBlockToChunk(position.getX()) - chunk.getX()) <= radius &&
-                Math.abs(CoordinateUtils.fromBlockToChunk(position.getZ()) - chunk.getZ()) <= radius
-            );
-        });
+    private chunkNeededByPlayers(chunk: Chunk): boolean {
+        return this.getPlayerChunkRefCounts().retains(chunk.getX(), chunk.getZ());
     }
 
     private entitiesInChunk(chunk: Chunk): Entity[] {
