@@ -41,4 +41,19 @@ export class SyncedProperties {
             stream.writeFloatLE(value);
         }
     }
+
+    /** Reads both lists in docs order, the mirror of {@link networkSerialize}. */
+    public static networkDeserialize(stream: BinaryStream): SyncedProperties {
+        const properties = new SyncedProperties();
+
+        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+            properties.intProps.push({ index: stream.readUnsignedVarInt(), value: stream.readVarInt() });
+        }
+
+        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+            properties.floatProps.push({ index: stream.readUnsignedVarInt(), value: stream.readFloatLE() });
+        }
+
+        return properties;
+    }
 }

@@ -238,6 +238,27 @@ describe('network', () => {
                     { id: MetadataFlag.BOUNDINGBOX_HEIGHT, type: FlagType.FLOAT, value: 1 }
                 ]);
             });
+
+            it('round-trips every data item type, the properties and the tick', () => {
+                const packet = new SetActorDataPacket();
+                packet.runtimeEntityId = 300n;
+                packet.metadata = new Metadata(false);
+                for (const { build } of vectors) build(packet.metadata);
+                packet.syncedProperties.intProps.push({ index: 2, value: -1 });
+                packet.syncedProperties.floatProps.push({ index: 5, value: 0.5 });
+                packet.tick = 70_000n;
+                packet.encode();
+
+                const decoded = new SetActorDataPacket(packet.getBuffer());
+                decoded.decode();
+
+                expect(decoded.runtimeEntityId).toBe(300n);
+                expect(decoded.metadata.getData()).toEqual(packet.metadata.getData());
+                expect(decoded.syncedProperties.intProps).toEqual([{ index: 2, value: -1 }]);
+                expect(decoded.syncedProperties.floatProps).toEqual([{ index: 5, value: 0.5 }]);
+                expect(decoded.tick).toBe(70_000n);
+                expect(decoded.feof()).toBe(true);
+            });
         });
     });
 });

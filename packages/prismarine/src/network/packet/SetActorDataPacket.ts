@@ -1,5 +1,4 @@
-import type { Metadata } from '../../entity/Metadata';
-import Identifiers from '../Identifiers';
+import { Metadata } from '../../entity/Metadata';
 import { SyncedProperties } from '../type/SyncedProperties';
 import DataPacket from './DataPacket';
 
@@ -14,8 +13,6 @@ import DataPacket from './DataPacket';
  * client only.
  */
 export default class SetActorDataPacket extends DataPacket {
-    public static NetID = Identifiers.SetActorDataPacket;
-
     /** Target Runtime ID of the entity whose data changed. */
     public runtimeEntityId!: bigint;
     /** Actor Data: the metadata entries to send. Only the entries present in the map are written. */
@@ -37,5 +34,16 @@ export default class SetActorDataPacket extends DataPacket {
         this.metadata.networkSerialize(this);
         this.syncedProperties.networkSerialize(this);
         this.writeUnsignedVarLong(this.tick);
+    }
+
+    /** Reads the four fields back, the mirror of {@link encodePayload}. */
+    public decodePayload(): void {
+        this.runtimeEntityId = this.readUnsignedVarLong();
+
+        this.metadata = new Metadata(false);
+        this.metadata.networkDeserialize(this);
+
+        this.syncedProperties = SyncedProperties.networkDeserialize(this);
+        this.tick = this.readUnsignedVarLong();
     }
 }

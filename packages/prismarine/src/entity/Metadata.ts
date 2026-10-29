@@ -1,7 +1,6 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import type BinaryStream from '@jsprismarine/binaryutils';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
-import { ByteOrder } from '@jsprismarine/nbt';
+import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../network/NetworkUtil';
 
 /**
@@ -328,6 +327,72 @@ export class MetadataWriter {
                     // `CompoundTag`: network NBT, little endian with varint lengths.
                     value[1].writeToStream(stream, ByteOrder.LITTLE_ENDIAN, true);
                     break;
+            }
+        }
+    }
+
+    /**
+     * Reads a `SynchedActorDataList` into this object, the mirror of
+     * {@link MetadataWriter.networkSerialize}.
+     *
+     * The one-of selector is what is dispatched on, and the alternative's own `Type` byte is
+     * checked against it: the two carry the same `DataItemType`, and when they disagree the
+     * payload's length cannot be known, so the stream cannot be trusted past this entry.
+     * @param stream - The network stream.
+     * @throws {Error} when the selector and the `Type` byte disagree, or name no known type.
+     */
+    public networkDeserialize(stream: BinaryStream): void {
+        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+            const id = stream.readUnsignedVarInt();
+
+            const selector = stream.readUnsignedVarInt();
+            const type = stream.readByte();
+            if (type !== selector) {
+                throw new Error(`Data item ${id} declares type ${selector} but carries type ${type}`);
+            }
+
+            switch (selector) {
+                case FlagType.BYTE:
+                    this.setPropertyValue(id, FlagType.BYTE, stream.readSignedByte());
+                    break;
+                case FlagType.FLOAT:
+                    this.setPropertyValue(id, FlagType.FLOAT, stream.readFloatLE());
+                    break;
+                case FlagType.LONG:
+                    this.setPropertyValue(id, FlagType.LONG, stream.readVarLong());
+                    break;
+                case FlagType.STRING:
+                    this.setPropertyValue(id, FlagType.STRING, NetworkUtil.readString(stream));
+                    break;
+                case FlagType.SHORT:
+                    this.setPropertyValue(id, FlagType.SHORT, stream.readShortLE());
+                    break;
+                case FlagType.INT:
+                    this.setPropertyValue(id, FlagType.INT, stream.readVarInt());
+                    break;
+                case FlagType.VECTOR:
+                    this.setPropertyValue(
+                        id,
+                        FlagType.VECTOR,
+                        new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE())
+                    );
+                    break;
+                case FlagType.POSITION:
+                    this.setPropertyValue(
+                        id,
+                        FlagType.POSITION,
+                        new Vector3(stream.readVarInt(), stream.readVarInt(), stream.readVarInt())
+                    );
+                    break;
+                case FlagType.ITEM:
+                    this.setPropertyValue(
+                        id,
+                        FlagType.ITEM,
+                        NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN, true)
+                    );
+                    break;
+                default:
+                    throw new Error(`Data item ${id} carries unknown type ${selector}`);
             }
         }
     }
