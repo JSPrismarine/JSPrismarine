@@ -356,20 +356,35 @@ const main = () => {
         console.log(`Protocol ${version.protocol}:`);
         config = version.config;
         aliases = JSON.parse(fs.readFileSync(path.resolve(HERE, config.recipes.itemAliases), 'utf8'));
-        generateVersion();
+        generateVersion(version.protocol);
     }
 };
 
-const generateVersion = () => {
-    // The environment wins, so regenerating needs no edit to a committed file - and so the
-    // path to a 58 MB download nobody else has does not arrive in a diff.
-    const root = path.resolve(HERE, process.env.BEDROCK_SERVER ?? config.recipes.bedrockServer);
+/**
+ * Where the unpacked Bedrock Dedicated Server for one protocol version is.
+ *
+ * `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol <n>` already unpacks
+ * the pinned server into the cache, keyed the same way, so by default this reads what that
+ * put there and nobody has to hand a path to anything.
+ *
+ * `BEDROCK_SERVER` still wins, for a server the fetch did not place, and `recipes.bedrockServer`
+ * in the manifest is honored if somebody sets it. Neither is needed for the pinned version.
+ */
+const serverRoot = (protocol) => {
+    if (process.env.BEDROCK_SERVER) return path.resolve(HERE, process.env.BEDROCK_SERVER);
+    if (config.recipes.bedrockServer) return path.resolve(HERE, config.recipes.bedrockServer);
+    return path.resolve(HERE, '../../../node_modules/.cache/jsprismarine/bds', `v${protocol}`, 'unpacked');
+};
+
+const generateVersion = (protocol) => {
+    const root = serverRoot(protocol);
     const layers = layersOf(root);
 
     if (layers.length === 0) {
         console.error(
             `No vanilla recipe layers under ${path.join(root, config.recipes.source)}.\n` +
-                `Point \`BEDROCK_SERVER\` or \`recipes.bedrockServer\` in datagen/manifest.json at an ` +
+                'Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol ' +
+                `${protocol}\` to unpack the pinned server there, or point \`BEDROCK_SERVER\` at an ` +
                 `unpacked Bedrock Dedicated Server ${config.schemas.minecraftVersion}.`
         );
         process.exit(1);
