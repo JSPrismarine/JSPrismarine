@@ -26,9 +26,9 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 JSPrismarine runs on Linux, macOS, other Unix-based systems, and modern Windows (WSL2 recommended). It requires [Node.js](https://nodejs.org) 26.4.0 or newer and [pnpm](https://pnpm.io) 12 or newer.
 
 
-### Enable (or install) corepack.
+### Install the pinned pnpm version.
 ```bash
-corepack enable
+npm install --global pnpm@12.15.0
 ```
 
 ### Clone the repository. The --recurse-submodules flag is required!
