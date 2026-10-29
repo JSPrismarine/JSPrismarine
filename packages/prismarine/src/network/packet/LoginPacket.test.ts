@@ -4,6 +4,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
+import { protocolVersion } from '../codec/v2193';
 import { NetworkUtil } from '../NetworkUtil';
 import LoginPacket from './LoginPacket';
 
@@ -56,7 +57,7 @@ const clientData = (overrides: Record<string, unknown> = {}) =>
  * little endian length prefixed strings. `trailing` goes inside the request, after the client
  * data, where a well formed request has nothing. `protocol` is the version the client claims.
  */
-const bytes = (chain: unknown, data: string, trailing = Buffer.alloc(0), protocol = Identifiers.Protocol) => {
+const bytes = (chain: unknown, data: string, trailing = Buffer.alloc(0), protocol = protocolVersion) => {
     const stream = new BinaryStream();
     stream.writeInt(protocol);
 
@@ -241,11 +242,11 @@ describe('network', () => {
              * tells the player to update.
              */
             it('reads only the version and framing from a client of another protocol', () => {
-                const older = bytes('not an envelope', 'not a jwt', Buffer.alloc(0), Identifiers.Protocol - 10);
+                const older = bytes('not an envelope', 'not a jwt', Buffer.alloc(0), protocolVersion - 10);
 
                 const packet = decode(older);
 
-                expect(packet.protocol).toBe(Identifiers.Protocol - 10);
+                expect(packet.protocol).toBe(protocolVersion - 10);
                 expect(packet.chainData).toBe('"not an envelope"');
                 expect(packet.clientData).toBe('not a jwt');
                 expect(packet.displayName).toBeUndefined();
@@ -266,7 +267,7 @@ describe('network', () => {
                 const data = clientData();
 
                 const packet = new LoginPacket();
-                packet.protocol = Identifiers.Protocol;
+                packet.protocol = protocolVersion;
                 packet.chainData = JSON.stringify(chain);
                 packet.clientData = data;
                 packet.encode();

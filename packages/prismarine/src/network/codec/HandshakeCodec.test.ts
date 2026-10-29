@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import Codec2193 from './Codec2193';
+import { latestCodec } from './CodecRegistry';
 import HandshakeCodec from './HandshakeCodec';
 import DisconnectPacket from '../packet/DisconnectPacket';
 import LoginPacket from '../packet/LoginPacket';
@@ -27,7 +28,7 @@ describe('network/codec/HandshakeCodec', () => {
     });
 
     it('advertises the newest protocol version, which is what a refusal names', () => {
-        expect(HandshakeCodec.protocolVersion).toBe(Codec2193.protocolVersion);
-        expect(HandshakeCodec.minecraftVersions).toStrictEqual(Codec2193.minecraftVersions);
+        expect(HandshakeCodec.protocolVersion).toBe(latestCodec.protocolVersion);
+        expect(HandshakeCodec.minecraftVersions).toStrictEqual(latestCodec.minecraftVersions);
     });
 });

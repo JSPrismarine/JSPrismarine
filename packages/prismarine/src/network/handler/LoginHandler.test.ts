@@ -16,7 +16,6 @@ import type { ChunkScheduler } from '../../world/ChunkScheduler';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
-import Identifiers from '../Identifiers';
 import type DataPacket from '../packet/DataPacket';
 import LoginPacket from '../packet/LoginPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
@@ -108,7 +107,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.identity = IDENTITY;
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
 
                 const handler = new LoginHandler();
                 await handler.handle(pk, server, connection);
@@ -126,7 +125,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.identity = IDENTITY;
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
 
                 const sent: string[] = [];
                 const quiet = stub<ClientConnection>({
@@ -151,7 +150,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.identity = IDENTITY;
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
 
                 const sent: DataPacket[] = [];
                 const quiet = stub<ClientConnection>({
@@ -202,7 +201,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.identity = IDENTITY;
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
                 return pk;
             };
 
@@ -241,7 +240,7 @@ describe('network', () => {
             it('refuses a login carrying no username', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
 
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
@@ -255,7 +254,7 @@ describe('network', () => {
                 // player in the list under an id the client itself did not know.
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
 
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
@@ -271,7 +270,7 @@ describe('network', () => {
              */
             it('answers an older client with LoginFailed_ClientOld, then hangs up', async () => {
                 const pk = new LoginPacket();
-                pk.protocol = Identifiers.Protocol - 10;
+                pk.protocol = Codec2193.protocolVersion - 10;
 
                 const sent: DataPacket[] = [];
                 const disconnect = vi.fn();
@@ -287,7 +286,7 @@ describe('network', () => {
                 expect(status.status).toBe(PlayStatus.LoginFailed_ClientOld);
                 expect(sent).toHaveLength(1);
                 expect(disconnect).toHaveBeenCalledWith(
-                    `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`,
+                    `Outdated client! Please use ${Codec2193.minecraftVersions.at(-1)}`,
                     false,
                     DisconnectReason.OUTDATED_CLIENT
                 );
@@ -297,7 +296,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'late';
                 pk.identity = '11111111-2222-3333-4444-555555555555';
-                pk.protocol = Identifiers.Protocol;
+                pk.protocol = Codec2193.protocolVersion;
 
                 const sent: DataPacket[] = [];
                 const fullServer = stub<Server>({
@@ -330,7 +329,7 @@ describe('network', () => {
             /** The status the client renders as "outdated server", then a disconnect with `OutdatedServer`. */
             it('answers a newer client with LoginFailed_ServerOld, then hangs up', async () => {
                 const pk = new LoginPacket();
-                pk.protocol = Identifiers.Protocol + 10;
+                pk.protocol = Codec2193.protocolVersion + 10;
 
                 const sent: DataPacket[] = [];
                 const disconnect = vi.fn();

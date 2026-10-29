@@ -8,10 +8,12 @@ import { codecForProtocol, latestCodec } from './CodecRegistry';
 
 describe('network/codec', () => {
     describe('Codec2193', () => {
-        it('speaks protocol 2193 for the versions Identifiers has always listed', () => {
+        it('speaks protocol 2193, which Identifiers lists among the supported versions', () => {
             expect(Codec2193.protocolVersion).toBe(2193);
-            expect(Identifiers.Protocol).toBe(Codec2193.protocolVersion);
-            expect(Identifiers.MinecraftVersions).toBe(Codec2193.minecraftVersions);
+            expect(Identifiers.Protocol).toBe(latestCodec.protocolVersion);
+            for (const version of Codec2193.minecraftVersions) {
+                expect(Identifiers.MinecraftVersions).toContain(version);
+            }
         });
 
         it('lists every packet id under its class name, each id once', () => {
@@ -45,10 +47,10 @@ describe('network/codec', () => {
     });
 
     describe('CodecRegistry', () => {
-        it('resolves 2193 and nothing else, and names 2193 the latest', () => {
+        it('resolves 2193 and refuses a version no codec speaks', () => {
             expect(codecForProtocol(2193)).toBe(Codec2193);
             expect(codecForProtocol(1)).toBeUndefined();
-            expect(latestCodec).toBe(Codec2193);
+            expect(latestCodec.protocolVersion).toBeGreaterThanOrEqual(Codec2193.protocolVersion);
         });
     });
 });

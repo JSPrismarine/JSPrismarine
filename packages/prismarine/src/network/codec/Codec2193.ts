@@ -45,6 +45,7 @@ export class Codec2193 implements ProtocolCodec {
         return this.byId;
     }
 
+    /** A packet instance for an inbound wire id; see {@link ProtocolCodec.createPacket}. */
     public createPacket(netId: number, buffer?: Buffer): DataPacket | null {
         const packetClass = this.table().get(netId);
         if (packetClass === undefined) return null;
@@ -55,6 +56,7 @@ export class Codec2193 implements ProtocolCodec {
         return packet;
     }
 
+    /** The wire id under a packet class name; see {@link ProtocolCodec.netIdOf}. */
     public netIdOf(name: string): number | undefined {
         return netIdFor(name);
     }

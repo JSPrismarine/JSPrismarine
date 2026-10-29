@@ -1,4 +1,5 @@
 import Codec2193 from './Codec2193';
+import Codec2225 from './Codec2225';
 import type { ProtocolCodec } from './ProtocolCodec';
 
 /**
@@ -19,7 +20,15 @@ export const buildCodecRegistry = (
 };
 
 /** Every codec the server speaks, keyed by protocol version. */
-const { codecs, latest } = buildCodecRegistry([Codec2193]);
+const { codecs, latest } = buildCodecRegistry([Codec2193, Codec2225]);
+
+/**
+ * Every Minecraft version some registered codec speaks, ascending. What the server
+ * advertises as its supported game versions.
+ */
+export const supportedMinecraftVersions: readonly string[] = [...codecs.values()]
+    .sort((a, b) => a.protocolVersion - b.protocolVersion)
+    .flatMap((codec) => codec.minecraftVersions);
 
 /**
  * The codec for a protocol version a client announced.

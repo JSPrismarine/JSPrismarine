@@ -7,7 +7,7 @@ import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
 import GameRuleManager from '../../world/GameRuleManager';
-import Identifiers from '../Identifiers';
+import { minecraftVersions } from '../codec/v2193';
 import DataPacket from './DataPacket';
 import { readGameRule, writeGameRule } from '../type/GameRule';
 
@@ -41,7 +41,7 @@ import type { GameRule } from '../type/GameRule';
  * | Block Properties | UnsignedVarInt count, then Block Name (String) + Block Definition (network NBT) | Data driven vanilla blocks, then plugin blocks |
  * | Multiplayer Correlation Id | String | Empty |
  * | Enable Item Stack Net Manager | Boolean | true |
- * | Server Version | String | Last entry of `Identifiers.MinecraftVersions` |
+ * | Server Version | String | The newest game version of this packet's protocol |
  * | Player Property Data | Network NBT compound | Empty |
  * | Server Block Type Registry Checksum | LUnsignedLong | 0 |
  * | World Template ID | UUID | Nil |
@@ -166,6 +166,8 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // Is Created In Editor
         this.writeBoolean(false); // Is Exported From Editor
 
+        this.encodeEditorLevelMigrationVersion();
+
         this.writeVarInt(this.time); // Day Cycle Stop Time
         this.writeUnsignedVarInt(0); // Education Edition Offer: None
         this.writeBoolean(false); // Education Features Enabled
@@ -270,8 +272,10 @@ export default class StartGamePacket extends DataPacket {
         NetworkUtil.writeString(this, ''); // Multiplayer Correlation Id
         this.writeBoolean(true); // Enable Item Stack Net Manager
 
-        // Server Version: the newest version this server speaks, for Mojang's telemetry.
-        NetworkUtil.writeString(this, Identifiers.MinecraftVersions.at(-1) ?? '');
+        // Server Version: the newest game version of this packet's protocol, for Mojang's
+        // telemetry. Read from the version module, not the codec registry, because the
+        // registry's codecs reach this class back through their packet tables.
+        NetworkUtil.writeString(this, this.gameVersion());
 
         // Player Property Data: an empty network NBT compound.
         const properties = new BinaryStream();
@@ -314,6 +318,21 @@ export default class StartGamePacket extends DataPacket {
     }
 
     /**
+     * The seam for the `Editor Level Migration Version` int8 protocol 2225 inserts between
+     * `Is Exported From Editor` and `Day Cycle Stop Time`. 2193 has no such field, so this
+     * writes nothing; the 2225 subclass overrides it.
+     */
+    protected encodeEditorLevelMigrationVersion(): void {}
+
+    /** The read half of the {@link encodeEditorLevelMigrationVersion} seam; nothing at 2193. */
+    protected decodeEditorLevelMigrationVersion(): void {}
+
+    /** The `Server Version` string: the newest game version of this packet's protocol. */
+    protected gameVersion(): string {
+        return minecraftVersions.at(-1) ?? '';
+    }
+
+    /**
      * Reads the packet in wire order, as {@link StartGamePacket.encodePayload} writes it.
      *
      * The fields the encoder writes as fixed values are read and not kept. The parts it never
@@ -352,6 +371,8 @@ export default class StartGamePacket extends DataPacket {
         this.readVarInt(); // Editor World Type
         this.readBoolean(); // Is Created In Editor
         this.readBoolean(); // Is Exported From Editor
+
+        this.decodeEditorLevelMigrationVersion();
 
         this.time = this.readVarInt(); // Day Cycle Stop Time
         this.readUnsignedVarInt(); // Education Edition Offer

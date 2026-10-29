@@ -7,7 +7,8 @@ import Identifiers from './Identifiers';
 export { Handlers, Identifiers, Packets, Types };
 
 export { default as Codec2193 } from './codec/Codec2193';
-export { buildCodecRegistry, codecForProtocol, latestCodec } from './codec/CodecRegistry';
+export { default as Codec2225 } from './codec/Codec2225';
+export { buildCodecRegistry, codecForProtocol, latestCodec, supportedMinecraftVersions } from './codec/CodecRegistry';
 export type { ProtocolCodec } from './codec/ProtocolCodec';
 
 // The join payloads, so a plugin can read what its own content put on the

@@ -357,17 +357,22 @@ export default class InventoryTransactionPacket extends DataPacket {
                     );
                 }
                 break;
-            case TransactionType.USE_ITEM_ON_ENTITY:
+            case TransactionType.USE_ITEM_ON_ENTITY: {
+                const entityRuntimeId = this.readUnsignedVarLong();
+                const actionType = this.readVarInt();
+                const hotbarSlot = this.readVarInt();
+                this.decodeItemUseOnActorHand();
                 this.transactionData = {
                     kind: 'useItemOnEntity',
-                    entityRuntimeId: this.readUnsignedVarLong(),
-                    actionType: this.readVarInt(),
-                    hotbarSlot: this.readVarInt(),
+                    entityRuntimeId,
+                    actionType,
+                    hotbarSlot,
                     itemInHand: Item.networkDeserialize(this),
                     playerPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE()),
                     clickPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
                 };
                 break;
+            }
             case TransactionType.RELEASE_ITEM:
                 this.transactionData = {
                     kind: 'releaseItem',
@@ -425,6 +430,7 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.writeUnsignedVarLong(data.entityRuntimeId);
                 this.writeVarInt(data.actionType);
                 this.writeVarInt(data.hotbarSlot);
+                this.encodeItemUseOnActorHand();
                 data.itemInHand.networkSerialize(this);
                 NetworkUtil.writeVector3(this, data.playerPosition);
                 NetworkUtil.writeVector3(this, data.clickPosition);
@@ -444,6 +450,16 @@ export default class InventoryTransactionPacket extends DataPacket {
                 throw new TypeError(`Unknown transaction type ${this.transactionType}`);
         }
     }
+
+    /**
+     * The seam for the `Hand` uint8 protocol 2225 inserts into the use-item-on-actor body
+     * between the hotbar slot and the item. 2193 has no such field, so this writes nothing;
+     * the 2225 subclass overrides it.
+     */
+    protected encodeItemUseOnActorHand(): void {}
+
+    /** The read half of the {@link encodeItemUseOnActorHand} seam; nothing to read at 2193. */
+    protected decodeItemUseOnActorHand(): void {}
 }
 
 /** The mirror of {@link readUseItemData}. */

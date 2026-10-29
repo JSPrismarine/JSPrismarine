@@ -103,9 +103,21 @@ export default class AddPlayerPacket extends DataPacket {
         // Actor Links. The server does not track riding, so there is nothing to list.
         this.writeUnsignedVarInt(0);
 
+        this.encodePassengerOfBlock();
+
         NetworkUtil.writeString(this, this.deviceId);
         this.writeIntLE(this.buildPlatform);
     }
+
+    /**
+     * The seam for the `Passenger Block Data` field protocol 2225 inserts between the actor
+     * links and the device id. 2193 has no such field, so this writes nothing; the 2225
+     * subclass overrides it.
+     */
+    protected encodePassengerOfBlock(): void {}
+
+    /** The read half of the {@link encodePassengerOfBlock} seam; nothing to read at 2193. */
+    protected decodePassengerOfBlock(): void {}
 
     /**
      * Reads the 2193 layout back, the mirror of {@link encodePayload}.
@@ -173,6 +185,8 @@ export default class AddPlayerPacket extends DataPacket {
             this.readBoolean(); // Passenger Initiated.
             this.readFloatLE(); // Vehicle Angular Velocity.
         }
+
+        this.decodePassengerOfBlock();
 
         this.deviceId = NetworkUtil.readString(this);
         this.buildPlatform = this.readIntLE();

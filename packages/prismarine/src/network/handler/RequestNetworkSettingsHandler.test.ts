@@ -7,6 +7,7 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import Codec2193 from '../codec/Codec2193';
+import Codec2225 from '../codec/Codec2225';
 import Identifiers from '../Identifiers';
 import type DataPacket from '../packet/DataPacket';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
@@ -52,7 +53,7 @@ describe('RequestNetworkSettingsHandler', () => {
     it('answers a matching protocol with the network settings', async () => {
         const { sent, disconnect, connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(Identifiers.Protocol), server, connection);
+        await new RequestNetworkSettingsHandler().handle(request(Codec2193.protocolVersion), server, connection);
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet).toBeInstanceOf(NetworkSettingsPacket);
@@ -71,6 +72,17 @@ describe('RequestNetworkSettingsHandler', () => {
         // The negotiation point: the session now speaks the codec the registry resolved.
         expect(connection.codec).toBe(Codec2193);
         expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('assigns each announced version its own codec', async () => {
+        const older = fakeConnection();
+        await new RequestNetworkSettingsHandler().handle(request(Codec2193.protocolVersion), server, older.connection);
+        expect(older.connection.codec).toBe(Codec2193);
+
+        const newer = fakeConnection();
+        await new RequestNetworkSettingsHandler().handle(request(Codec2225.protocolVersion), server, newer.connection);
+        expect(newer.connection.codec).toBe(Codec2225);
+        expect(newer.disconnect).not.toHaveBeenCalled();
     });
 
     it('tells an older client that it is out of date', async () => {
