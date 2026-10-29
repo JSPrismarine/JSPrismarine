@@ -1,2 +1,3 @@
-src/resources/
+# Linked to the pinned CloudburstMC/Data download by utils/fetch/fetch-cloudburst.ts.
+src/resources
 logs/

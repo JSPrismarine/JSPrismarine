@@ -29,7 +29,9 @@ const requireSource = (file) => {
     if (fs.existsSync(source)) return source;
 
     console.error(
-        `Missing ${file}. The bedrock-data resources are a git submodule, run \`git submodule update --init --recursive\` from the repository root.`
+        `Missing ${file}. The bedrock-data resources are a pinned download linked to src/resources; run ` +
+            '`pnpm --filter @jsprismarine/bedrock-data run fetch:cloudburst`, or set JSP_CLOUDBURST_DATA_PATH ' +
+            'to a local CloudburstMC/Data checkout when working offline.'
     );
     process.exit(1);
 };

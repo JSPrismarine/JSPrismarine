@@ -1,3 +1,0 @@
-[submodule "packages/bedrock-data/src/resources"]
-	path = packages/bedrock-data/src/resources
-	url = https://github.com/CloudburstMC/Data.git

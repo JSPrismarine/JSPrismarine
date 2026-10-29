@@ -20,8 +20,9 @@
  * built package, for the reason `generate-overlay.mjs` spells out: nothing in
  * `src/` has to be written for `node`'s resolver. The resource is read by
  * path rather than through `@jsprismarine/bedrock-data`, which publishes the
- * capture as a build input rather than as an export; the package script runs
- * `ensure-submodules` first so a missing submodule fails here and loudly.
+ * capture as a build input rather than as an export; the package script
+ * fetches the pinned CloudburstMC/Data dump first, so a missing download
+ * fails there and loudly.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
