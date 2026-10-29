@@ -45,5 +45,22 @@ describe('network', () => {
                 SoftEnumUpdateType.REMOVE
             ]);
         });
+
+        it('round-trips Enum Name, Values and Update Type', () => {
+            const packet = Object.assign(new UpdateSoftEnumPacket(), {
+                enumName: 'playerNames',
+                values: ['Steve', 'Alex'],
+                type: SoftEnumUpdateType.REPLACE
+            });
+            packet.encode();
+
+            const decoded = new UpdateSoftEnumPacket(packet.getBuffer());
+            decoded.decode();
+
+            expect(decoded.enumName).toBe('playerNames');
+            expect(decoded.values).toEqual(['Steve', 'Alex']);
+            expect(decoded.type).toBe(SoftEnumUpdateType.REPLACE);
+            expect(decoded.feof()).toBe(true);
+        });
     });
 });

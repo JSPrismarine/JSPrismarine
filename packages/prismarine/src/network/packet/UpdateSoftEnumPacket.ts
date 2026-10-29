@@ -1,5 +1,4 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /** The docs' `SoftEnumUpdateType`: what to do with the values this packet carries. */
@@ -25,8 +24,6 @@ export enum SoftEnumUpdateType {
  * **Bound To:** Client
  */
 export default class UpdateSoftEnumPacket extends DataPacket {
-    public static NetID = Identifiers.UpdateSoftEnumPacket;
-
     /** `Enum Name`: which enum this changes, as named in `AvailableCommandsPacket`. */
     public enumName!: string;
 
@@ -44,5 +41,17 @@ export default class UpdateSoftEnumPacket extends DataPacket {
         for (const value of this.values) NetworkUtil.writeString(this, value);
 
         this.writeByte(this.type);
+    }
+
+    /** Reads `Enum Name`, `Values` and `Update Type`, the mirror of {@link encodePayload}. */
+    public decodePayload(): void {
+        this.enumName = NetworkUtil.readString(this);
+
+        this.values = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.values.push(NetworkUtil.readString(this));
+        }
+
+        this.type = this.readByte();
     }
 }
