@@ -77,6 +77,9 @@ export const FAMILIES = {
     /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
     commandsTree: 'commands.tree',
 
+    /** Every registered protocol version negotiates its own codec from a real first packet. */
+    protocolNegotiation: 'protocol.negotiation',
+
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',
     /** The classification table the claim counts stays in step with the research note. */

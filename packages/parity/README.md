@@ -25,6 +25,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `integration.*` | tags, entity-runtime, entity-coverage, client-packets | Every loaded tag through resolved registries and biome world views; a data-driven mob tick; every composed entity declaration through runtime spawn and tick; content-derived join payloads |
 | `worldgen.*`    | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns; and the generation corpus, this server's own output recorded at a named commit |
 | `commands.*`    | tree                                | The published command tree against Mojang's Bedrock command metadata                                                  |
+| `protocol.*`    | negotiation                         | Each registered protocol version negotiates its own codec from a real first packet; an unsupported version gets the right `PlayStatus` sidedness |
 | `conformance.*` | claim, classification, exclusions   | The claim, the table it counts, and the eight exclusions                                                              |
 
 ## The generation corpus
