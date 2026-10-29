@@ -31,9 +31,9 @@ JSPrismarine runs on Linux, macOS, other Unix-based systems, and modern Windows 
 npm install --global pnpm@12.15.0
 ```
 
-### Clone the repository. The --recurse-submodules flag is required!
+### Clone the repository.
 ```bash
-git clone --recurse-submodules https://github.com/JSPrismarine/JSPrismarine.git
+git clone https://github.com/JSPrismarine/JSPrismarine.git
 cd JSPrismarine
 ```
 
@@ -50,8 +50,8 @@ pnpm run start
 
 In an interactive terminal on Node 26.9 or newer, the console UI opens by default; Node versions 26.4 through 26.8 also support it with `--experimental-ffi`. In other environments, the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/running.md#4-console).
 
-> [!NOTE]
-> Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive`. The `bedrock-data` resources submodule is required to build.
+The `bedrock-data` resources submodule is initialized automatically by `pnpm install` and the
+bedrock-data build. Add `--recurse-submodules` to the clone command if you want to fetch it earlier.
 
 ## FAQ
 
