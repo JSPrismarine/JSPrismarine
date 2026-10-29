@@ -8,6 +8,7 @@ import PlayerSkinPacket2225 from '../packet/PlayerSkinPacket2225';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
 import { Codec2193 } from './Codec2193';
 import type { PacketClass } from './Codec2193';
+import { itemData2225 } from './itemData';
 import { minecraftVersions, packetIds, protocolVersion } from './v2225';
 
 /**
@@ -21,6 +22,7 @@ class Codec2225 extends Codec2193 {
     public override readonly protocolVersion = protocolVersion;
     public override readonly minecraftVersions = minecraftVersions;
     public override readonly ids = packetIds;
+    public override readonly itemData = itemData2225;
 
     public override netIdOf(name: string): number | undefined {
         return this.ids[name];

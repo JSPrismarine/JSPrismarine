@@ -11,6 +11,8 @@ import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
 import AnimatePacket2225 from '../packet/AnimatePacket2225';
 import InventoryTransactionPacket2225 from '../packet/InventoryTransactionPacket2225';
 import { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
+import ItemRegistryPacket from '../packet/ItemRegistryPacket';
+import LevelChunkPacket from '../packet/LevelChunkPacket';
 import LevelChunkPacket2225 from '../packet/LevelChunkPacket2225';
 import { Metadata } from '../../entity/Metadata';
 import { BuildPlatform } from '@jsprismarine/minecraft';
@@ -336,6 +338,29 @@ describe('network/codec', () => {
                 expect(decoded.skin.getId()).toBe('classic-skin');
                 // Dropped from the wire at 2225, so it reads back empty rather than undefined.
                 expect(decoded.skin.getPlayFabId()).toBe('');
+            });
+        });
+
+        /**
+         * The data half of a version, beside the layouts. A packet whose class is the same at
+         * both versions but whose payload numbers items - `ItemRegistryPacket`, and every
+         * packet carrying a stack - reads the stamp rather than a global constant, so an
+         * outbound packet has to be stamped whether or not its class was substituted.
+         */
+        describe('the version stamp on an outbound packet', () => {
+            it('stamps a packet whose class the codec did not substitute', () => {
+                const registry = new ItemRegistryPacket();
+                expect(Codec2225.prepareOutbound(registry)).toBe(registry);
+                expect(registry.codecProtocol).toBe(2225);
+
+                expect(Codec2193.prepareOutbound(registry)).toBe(registry);
+                expect(registry.codecProtocol).toBe(2193);
+            });
+
+            it('stamps a substituted class too', () => {
+                const chunk = Codec2225.prepareOutbound(new LevelChunkPacket());
+                expect(chunk).toBeInstanceOf(LevelChunkPacket2225);
+                expect(chunk.codecProtocol).toBe(2225);
             });
         });
     });

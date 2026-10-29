@@ -139,9 +139,19 @@ afterwards.
 Measured on 2026-10-29 against a real 1.26.60.6 capture: the item table gains four names
 (`minecraft:disc_press`, `minecraft:frostbite_spawn_egg`, `minecraft:ice_crystal`,
 `minecraft:icicle`), loses none, and moves 82 runtime ids. The recipes are unchanged — 1.26.60
-ships no recipe layer. The 2225 table is published as `@jsprismarine/bedrock-data/v2225`;
-selecting it per session is a later slice, so a 2225 session still sends the 2193 numbering,
-which a client accepts because the registry is authoritative.
+ships no recipe layer. The 2225 table is published as `@jsprismarine/bedrock-data/v2225`.
+
+Selected per session since: `ProtocolCodec` carries a `ProtocolItemData` beside its packet
+layouts, so the version fixes the numbering the same way it fixes a field order.
+`ItemRegistryPacket` picks its table from the version the codec stamps on an outbound packet,
+`contentPayloads` takes the table as an option and caches one build per version, and an item
+stack reads it off the packet it is written to or read from — the stack numbers and the
+registry's have to agree or the 82 resolve to the wrong item. Server-side membership questions
+(`CreativeInventory`'s catalog filter, `RecipeManager.isKnown`, the `items` generator) still read
+the canonical 2193 table, since they ask whether Bedrock has an item rather than what number to
+write for it. 2193's `ItemRegistryPacket` bytes are unchanged, which `ItemRegistryPacket.test.ts`
+asserts directly, and the `registry.items-2225` parity family now checks what a session is sent
+rather than only what the package publishes.
 
 **4. Stale block palette. [speculative, ruled out as a login-time cause]**
 

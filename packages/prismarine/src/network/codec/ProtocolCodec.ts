@@ -1,4 +1,5 @@
 import type DataPacket from '../packet/DataPacket';
+import type { ProtocolItemData } from './itemData';
 
 /**
  * One protocol version's view of the wire: which Minecraft versions speak it, which wire id
@@ -15,6 +16,16 @@ export interface ProtocolCodec {
     readonly minecraftVersions: readonly string[];
     /** Wire id by packet class name. */
     readonly ids: Readonly<Record<string, number>>;
+
+    /**
+     * The item registry data this version's clients are sent.
+     *
+     * A protocol version fixes the item numbering as much as it fixes the packet layouts, and
+     * the numbering is not stable across versions. Everything that writes an item number to
+     * this session's wire, or reads one off it, resolves it through here rather than through a
+     * module-level table.
+     */
+    readonly itemData: ProtocolItemData;
 
     /**
      * A packet instance for an inbound wire id, stamped with this codec's id and version.

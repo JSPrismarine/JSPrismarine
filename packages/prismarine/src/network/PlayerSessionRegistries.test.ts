@@ -22,6 +22,9 @@ import { stub } from '../testing/stub.test.helper';
 import PlayerSession from './PlayerSession';
 import type ClientConnection from './ClientConnection';
 import { joinContentPayloads, limitCraftingData } from './contentPayloads';
+import Codec2193 from './codec/Codec2193';
+import Codec2225 from './codec/Codec2225';
+import type { ProtocolCodec } from './codec/ProtocolCodec';
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import type DataPacket from './packet/DataPacket';
@@ -30,9 +33,12 @@ import type { CraftingData } from '@jsprismarine/protocol';
 import { testContent } from '../testing/entityServer';
 
 /** A session whose connection records what goes out, speaking for a server. */
-const sessionFor = (server: Server) => {
+const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
     const sent: DataPacket[] = [];
-    const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
+    const connection = stub<ClientConnection>({
+        codec,
+        sendDataPacket: async (packet) => void sent.push(packet)
+    });
     const player = stub<Player>({ getServer: () => server, getName: () => 'runner' });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
@@ -59,9 +65,12 @@ const captureServer = (overrides: StubMembers<Server> = {}) =>
     });
 
 /** A server running the fixture content, with its payloads already built. */
-const contentServer = () => {
+const contentServer = (codec: ProtocolCodec = Codec2193) => {
     const content = buildServerContent(fixtureContentOptions());
-    const payloads = joinContentPayloads(content, logger(), { clientPalette: fixtureBlockPalette() });
+    const payloads = joinContentPayloads(content, logger(), {
+        clientPalette: fixtureBlockPalette(),
+        itemData: codec.itemData
+    });
     if (payloads === undefined) throw new Error('the fixture content produced no payloads');
 
     return {
@@ -105,6 +114,26 @@ describe('PlayerSession', () => {
             // The payload replaces both lists, so nothing reads the server's
             // no manager on this path.
             expect(creativePacket(sent).payload).toBe(payloads.creative);
+        });
+
+        /**
+         * The menu carries item numbers rather than names - a creative pick comes back as a
+         * position and the stack beside it is numbered - so it moves with the item table, and
+         * the table is a property of the negotiated protocol.
+         */
+        it('sends the menu built for the protocol the session negotiated', async () => {
+            const { payloads, server } = contentServer();
+            const at2225 = joinContentPayloads(server.getContent(), logger(), {
+                clientPalette: fixtureBlockPalette(),
+                itemData: Codec2225.itemData
+            });
+
+            expect(at2225?.creative).not.toBe(payloads.creative);
+
+            const { session, sent } = sessionFor(server, Codec2225);
+            await session.sendCreativeContents();
+
+            expect(creativePacket(sent).payload).toBe(at2225?.creative);
         });
 
         it('sends an empty menu on request, whatever the content says', async () => {

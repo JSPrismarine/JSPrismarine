@@ -1,10 +1,11 @@
-import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ItemData, NetworkBinaryStream } from '@jsprismarine/protocol';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
+import { itemDataForProtocol } from '../codec/itemData';
 import DataPacket from './DataPacket';
 
+import type { ProtocolItemData } from '../codec/itemData';
 import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 
 /**
@@ -39,8 +40,14 @@ const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
  * endian).
  */
 export default class ItemRegistryPacket extends DataPacket {
-    /** Built once and kept. The table is identical for every player and every join. */
-    private static cached: Buffer | null = null;
+    /**
+     * The encoded captured table per protocol version, built once and kept.
+     *
+     * Within one version the bytes are identical for every player and every join, but the
+     * numbering is not stable between versions, so this is keyed on the version rather than
+     * being a single buffer.
+     */
+    private static readonly cached = new Map<number, Buffer>();
 
     /**
      * The entries to send, or null to send the captured table.
@@ -55,7 +62,9 @@ export default class ItemRegistryPacket extends DataPacket {
     /** Writes `Item Data`, from {@link entries} or from the captured table. */
     public encodePayload(): void {
         this.write(
-            this.entries === null ? ItemRegistryPacket.getTable() : ItemRegistryPacket.writeEntries(this.entries)
+            this.entries === null
+                ? ItemRegistryPacket.getTable(itemDataForProtocol(this.codecProtocol))
+                : ItemRegistryPacket.writeEntries(this.entries)
         );
     }
 
@@ -96,11 +105,17 @@ export default class ItemRegistryPacket extends DataPacket {
         return stream.getBuffer();
     }
 
-    private static getTable(): Buffer {
-        if (ItemRegistryPacket.cached) return ItemRegistryPacket.cached;
+    /**
+     * The captured table for one protocol version, encoded once and kept.
+     * @param {ProtocolItemData} itemData - the version's table and components.
+     * @returns {Buffer} the encoded `Item Data` array.
+     */
+    private static getTable(itemData: ProtocolItemData): Buffer {
+        const existing = ItemRegistryPacket.cached.get(itemData.protocolVersion);
+        if (existing !== undefined) return existing;
 
         const stream = new BinaryStream();
-        const entries = Object.entries(ItemTable);
+        const entries = Object.entries(itemData.table);
 
         stream.writeUnsignedVarInt(entries.length);
         for (const [name, entry] of entries) {
@@ -108,10 +123,12 @@ export default class ItemRegistryPacket extends DataPacket {
             stream.writeShortLE(entry.runtime_id);
             stream.writeBoolean(entry.component_based);
             stream.writeVarInt(entry.version);
-            stream.write(ItemComponents[name] ?? EMPTY_COMPOUND);
+            stream.write(itemData.components[name] ?? EMPTY_COMPOUND);
         }
 
-        ItemRegistryPacket.cached = stream.getBuffer();
-        return ItemRegistryPacket.cached;
+        const encoded = stream.getBuffer();
+        ItemRegistryPacket.cached.set(itemData.protocolVersion, encoded);
+
+        return encoded;
     }
 }

@@ -4,6 +4,10 @@ import {
     block_definitions as blocks2225,
     item_table as item_table_2225
 } from '@jsprismarine/bedrock-data/v2225';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
+import { netIdFor } from '@jsprismarine/prismarine/network/codec/v2193';
+import ItemRegistryPacket from '@jsprismarine/prismarine/network/packet/ItemRegistryPacket';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -109,6 +113,78 @@ describe(FAMILIES.registryItems2225, () => {
         // And the exports follow the capture of their own version.
         expect(blocks2225).toEqual(block_definitions);
         expect(biomes2225.equals(biome_definitions_network)).toBe(true);
+    });
+
+    /**
+     * The table is published; this is whether a session speaking 2225 is actually sent it.
+     *
+     * `ItemRegistryPacket` is what hands a client its numbering, and the codec that stamped
+     * the packet picks the table. A 2225 session sent the 2193 table is not a refused join -
+     * the registry is authoritative - so nothing else fails loudly when this breaks, which is
+     * why it is asserted against the capture rather than against the export.
+     */
+    describe('what a session is actually sent', () => {
+        const sentAt = (protocolVersion: number): Map<string, number> => {
+            const packet = new ItemRegistryPacket();
+            packet.codecProtocol = protocolVersion;
+            packet.encode();
+
+            const stream = new BinaryStream(packet.getBuffer());
+            expect(stream.readUnsignedVarInt()).toBe(netIdFor('ItemRegistryPacket'));
+
+            const sent = new Map<string, number>();
+            for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+                const length = stream.readUnsignedVarInt();
+                const name = stream.read(length).toString('utf-8');
+                const runtimeId = stream.readShortLE();
+                stream.readBoolean();
+                stream.readVarInt();
+                // The positional component compound, read past rather than parsed.
+                const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
+                reader.setUseVarint(true);
+                reader.parse();
+                sent.set(name, runtimeId);
+            }
+
+            expect(stream.feof()).toBe(true);
+            return sent;
+        };
+
+        it('sends a 2225 session the numbering vanilla 1.26.60 sends', () => {
+            const sent = sentAt(2225);
+
+            expect([...sent.keys()].sort()).toEqual(Object.keys(capture).sort());
+            for (const [name, entry] of Object.entries(capture)) expect(sent.get(name), name).toBe(entry.runtime_id);
+        });
+
+        it('sends a 2193 session the numbering vanilla 1.26.51 sends, unchanged', () => {
+            const sent = sentAt(2193);
+
+            expect([...sent.keys()].sort()).toEqual(Object.keys(capture2193).sort());
+            for (const [name, entry] of Object.entries(capture2193))
+                expect(sent.get(name), name).toBe(entry.runtime_id);
+        });
+
+        it('disagrees between the two exactly where the captures disagree', () => {
+            const at2193 = sentAt(2193);
+            const at2225 = sentAt(2225);
+
+            const moved = [...at2225].filter(([name, id]) => at2193.has(name) && at2193.get(name) !== id);
+            const added = [...at2225.keys()].filter((name) => !at2193.has(name));
+
+            expect(moved.map(([name]) => name).sort()).toEqual(
+                Object.keys(capture)
+                    .filter(
+                        (name) => name in capture2193 && capture2193[name]!.runtime_id !== capture[name]!.runtime_id
+                    )
+                    .sort()
+            );
+            expect(added.sort()).toEqual(
+                Object.keys(capture)
+                    .filter((name) => !(name in capture2193))
+                    .sort()
+            );
+        });
     });
 
     it('reports the current 2225 item catalog volume', () => {

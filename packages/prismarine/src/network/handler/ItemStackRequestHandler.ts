@@ -16,6 +16,8 @@ import { blockSlotName, blockSlotOf, isTakeOnlySlot, screenStoresSlots } from '.
 import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../../inventory/containerStore';
 import type { OpenContainerSlots } from '../../inventory/containerStore';
 import { Item } from '../../item/Item';
+import { itemDataForProtocol } from '../codec/itemData';
+import type { ProtocolItemData } from '../codec/itemData';
 import { joinContentPayloads } from '../contentPayloads';
 import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import type {
@@ -56,11 +58,13 @@ const PLAYER_CONTAINERS = new Set<number>([
  * when there is one, and the server's own `CreativeInventory` otherwise. Reading the other
  * one hands the player an item they did not click.
  *
+ * @param itemData - The item numbering the session speaks, which is what the menu it was
+ *   shown was built against.
  * @param netId - The one-based creative net id the client sent back.
  * @returns The item, or null when the id names no entry.
  */
-const creativePick = (server: Server, netId: number): Item | null => {
-    const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+const creativePick = (server: Server, itemData: ProtocolItemData, netId: number): Item | null => {
+    const payloads = joinContentPayloads(server.getContent(), server.getLogger(), { itemData });
     if (payloads === undefined) return server.getCreativeInventory().get(netId);
 
     const picked = payloads.creativeItems[netId - 1];
@@ -241,7 +245,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
-            this.apply(request, server, player, inventory, craftingInput, {
+            this.apply(request, server, player, inventory, craftingInput, itemDataForProtocol(packet.codecProtocol), {
                 session,
                 changed: workstationChanged,
                 containerChanged,
@@ -337,6 +341,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         player: Player,
         inventory: HumanInventory,
         craftingInput: CraftingInput,
+        itemData: ProtocolItemData,
         context: WorkstationContext
     ): ItemStackResponse {
         const open = context.session.getOpenBlockContainer();
@@ -474,7 +479,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
                 switch (action.type) {
                     case ItemStackRequestActionType.CREATIVE_CREATE: {
-                        const picked = creativePick(server, action.creativeItemNetId!);
+                        const picked = creativePick(server, itemData, action.creativeItemNetId!);
                         if (!picked) return deny(`no creative entry ${action.creativeItemNetId}`);
 
                         // A full stack, of which the steps that follow take what they name.
@@ -634,7 +639,9 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         const crafts = action.repetitions ?? 1;
                         if (!Number.isSafeInteger(crafts) || crafts < 1) return deny(`invalid craft count ${crafts}`);
 
-                        const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+                        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), {
+                            itemData
+                        });
                         let recipeId: string;
                         let output: Item;
                         let cost: Map<number, number>;

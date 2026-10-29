@@ -200,8 +200,12 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         // Built at startup and cached, so this is a lookup. Undefined only when the
         // build could not produce payloads, and each packet below then writes what it
-        // wrote before the content build existed.
-        const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+        // wrote before the content build existed. Built against this session's own item
+        // numbering: the registry, the creative entries and the brewing recipes all carry
+        // item numbers, and the numbering is a property of the negotiated protocol.
+        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), {
+            itemData: connection.codec.itemData
+        });
 
         await connection.sendDataPacket(new JigsawStructureDataPacket());
 

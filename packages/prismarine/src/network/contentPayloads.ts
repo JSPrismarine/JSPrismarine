@@ -11,16 +11,18 @@
  * calls the four builders, and turns their results into the payload shapes
  * the packets write.
  *
- * It is built once per `ServerContent`. A content reload replaces that object
- * whole, so the cache is a `WeakMap` keyed on it and nothing has to be
- * invalidated by hand.
+ * It is built once per `ServerContent` and protocol version. A content reload
+ * replaces that object whole, so the cache is a `WeakMap` keyed on it and
+ * nothing has to be invalidated by hand. The second key is the version because
+ * the item numbering is version-specific: 1.26.60 moved 82 runtime ids, and the
+ * creative entries and the brewing recipes carry item numbers rather than
+ * names, so all three payloads move with the table.
  */
 import {
     block_definitions,
     creative_groups,
     creativeitems,
     item_components,
-    item_table,
     item_tags
 } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
@@ -39,8 +41,10 @@ import {
     itemIdsOf
 } from '@jsprismarine/wire';
 
+import { itemData2193 } from './codec/itemData';
 import { assertContentPaletteAgrees } from './contentPalette';
 
+import type { ProtocolItemData } from './codec/itemData';
 import type { ServerContent } from '../content/ServerContent';
 import type { BlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';
@@ -204,6 +208,12 @@ export interface ContentPayloadOptions {
      * against. The captured vanilla palette by default.
      */
     readonly clientPalette?: BlockPalette;
+    /**
+     * The item registry data the session speaks, from its codec's
+     * {@link import('./codec/itemData').ProtocolItemData}. Protocol 2193's by
+     * default, which is what every caller that does not know a session gets.
+     */
+    readonly itemData?: ProtocolItemData;
 }
 
 /**
@@ -228,7 +238,7 @@ export const buildNetworkContentPayloads = (
     assertBlockPaletteAgrees(declared.properties, client);
 
     const items = buildItemRegistry(content.items.types.values(), {
-        table: item_table,
+        table: (options.itemData ?? itemData2193).table,
         capturedComponents: capturedItemComponents,
         projection: {
             mapIdentifier: (javaId) => {
@@ -338,11 +348,35 @@ export const buildNetworkContentPayloads = (
     };
 };
 
-/** One build per content object, since the payloads are the same for every player. */
-const cache = new WeakMap<ServerContent, NetworkContentPayloads>();
+/**
+ * One build per content object and protocol version, since within a version the payloads are
+ * the same for every player.
+ */
+const cache = new WeakMap<ServerContent, Map<number, NetworkContentPayloads>>();
 
-/** Builds that threw, so a join does not pay for the same failure again. */
-const failed = new WeakSet<ServerContent>();
+/** Builds that threw, by content and version, so a join does not pay for the same failure again. */
+const failed = new WeakMap<ServerContent, Set<number>>();
+
+/** The version a set of options builds for, which is the cache's second key. */
+const versionOf = (options: ContentPayloadOptions): number => (options.itemData ?? itemData2193).protocolVersion;
+
+const cached = (content: ServerContent, options: ContentPayloadOptions): NetworkContentPayloads | undefined =>
+    cache.get(content)?.get(versionOf(options));
+
+const remember = (
+    content: ServerContent,
+    options: ContentPayloadOptions,
+    built: NetworkContentPayloads
+): NetworkContentPayloads => {
+    let byVersion = cache.get(content);
+    if (byVersion === undefined) {
+        byVersion = new Map();
+        cache.set(content, byVersion);
+    }
+    byVersion.set(versionOf(options), built);
+
+    return built;
+};
 
 /**
  * The payloads for one content build, built on first use and kept.
@@ -354,13 +388,10 @@ export const networkContentPayloads = (
     content: ServerContent,
     options: ContentPayloadOptions = {}
 ): NetworkContentPayloads => {
-    const existing = cache.get(content);
+    const existing = cached(content, options);
     if (existing !== undefined) return existing;
 
-    const built = buildNetworkContentPayloads(content, options);
-    cache.set(content, built);
-
-    return built;
+    return remember(content, options, buildNetworkContentPayloads(content, options));
 };
 
 /**
@@ -455,13 +486,12 @@ export const joinContentPayloads = (
 ): NetworkContentPayloads | undefined => {
     if (content === undefined) return undefined;
 
-    const existing = cache.get(content);
+    const existing = cached(content, options);
     if (existing !== undefined) return existing;
-    if (failed.has(content)) return undefined;
+    if (failed.get(content)?.has(versionOf(options)) === true) return undefined;
 
     try {
-        const built = buildNetworkContentPayloads(content, options);
-        cache.set(content, built);
+        const built = remember(content, options, buildNetworkContentPayloads(content, options));
 
         logger.info(contentPayloadSummary(built));
         const warning = contentPayloadWarning(built.report);
@@ -469,7 +499,9 @@ export const joinContentPayloads = (
 
         return built;
     } catch (error: unknown) {
-        failed.add(content);
+        const versions = failed.get(content) ?? new Set<number>();
+        versions.add(versionOf(options));
+        failed.set(content, versions);
         logger.error(error);
         logger.warn('The content build produced no join payloads; the captured ones go out instead');
 

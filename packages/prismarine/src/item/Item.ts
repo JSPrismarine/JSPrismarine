@@ -1,4 +1,3 @@
-import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { attributeModifiers, enchantable, equippable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
@@ -10,6 +9,9 @@ import type { ServerContent } from '../content/ServerContent';
 import { javaItemTagsForBedrock } from '../content/javaTags';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
+import { itemData2193, itemDataForProtocol } from '../network/codec/itemData';
+import type { ProtocolItemData } from '../network/codec/itemData';
+import DataPacket from '../network/packet/DataPacket';
 import { storedItem } from '../inventory/persistence';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
@@ -86,20 +88,18 @@ const enchantmentMap = (
 /** The default stack size for an item no table names. */
 const DEFAULT_MAX_STACK_SIZE = 64;
 
-/** The wire id to name index, which is the item table read backwards; built on first use. */
-let namesByWireId: ReadonlyMap<number, string> | undefined;
-
 /**
- * The item a wire id names.
+ * The item numbering the wire a stack is being written to or read from speaks.
  *
- * The item table is name to id, and a stack arrives as an id, so the index
- * has to go the other way. Without it every stack the client sent came back
- * as `minecraft:unknown` and nothing a player held could be identified.
+ * A stack carries a number, and which number names which item is fixed by the protocol
+ * version rather than being universal: 1.26.60 moved 82 of them. The stream a stack travels
+ * through is the packet itself on every path a client is on either end of, and the packet
+ * carries the codec that built it, so the numbering is already here and nothing above has to
+ * pass it down. A bare stream - a stack written to disk, or to a buffer assembled by hand -
+ * gets protocol 2193's, the canonical table.
  */
-const nameOfWireId = (id: number): string | undefined => {
-    namesByWireId ??= new Map(Object.entries(ItemTable).map(([name, value]) => [value.runtime_id, name]));
-    return namesByWireId.get(id);
-};
+const wireItemData = (stream: BinaryStream): ProtocolItemData =>
+    stream instanceof DataPacket ? itemDataForProtocol(stream.codecProtocol) : itemData2193;
 
 /**
  * One item stack, as the rest of the server holds one.
@@ -113,7 +113,6 @@ const nameOfWireId = (id: number): string | undefined => {
 export class Item {
     private readonly name: string;
     private readonly runtimeId: number;
-    private readonly tableRuntimeId: number | undefined;
     private readonly placedBlockRuntimeId: number | undefined;
     private readonly content: ServerContent | undefined;
     public meta = 0;
@@ -197,7 +196,6 @@ export class Item {
         // Zero is the empty stack's count; treating it as missing turns air into a live item.
         if (count !== undefined) this.count = count;
 
-        this.tableRuntimeId = ItemTable[name]?.runtime_id;
         this.durability = this.getMaxDurability();
     }
 
@@ -236,9 +234,24 @@ export class Item {
         return this.type()?.hasComponent(name) ?? false;
     }
 
-    /** The Bedrock runtime id sent to the client for this item. */
+    /**
+     * The Bedrock runtime id for this item under the canonical numbering, protocol 2193's.
+     *
+     * What everything off the wire means by an item's number. A stack going to a client is
+     * numbered by {@link Item.wireId} against that session's own table instead, because the
+     * two disagree for 82 items from 1.26.60 on.
+     */
     public getRuntimeId(): number {
-        return this.tableRuntimeId ?? this.runtimeId;
+        return this.runtimeIdIn(itemData2193);
+    }
+
+    /**
+     * This item's number under one protocol version's table, falling back to the number the
+     * stack was constructed with for a name that table does not have - which is how an item
+     * this server invented reaches a client at all.
+     */
+    private runtimeIdIn(itemData: ProtocolItemData): number {
+        return itemData.table[this.name]?.runtime_id ?? this.runtimeId;
     }
 
     /** The stack's damage or variant value, which the wire carries beside the id. */
@@ -605,8 +618,8 @@ export class Item {
      * table has for the name. It has one: `minecraft:air` is -158 there, and writing that
      * leaves the client holding a real item in every slot the player is not using.
      */
-    private wireId(): number {
-        return this.getName() === 'minecraft:air' ? 0 : this.getRuntimeId();
+    private wireId(itemData: ProtocolItemData): number {
+        return this.getName() === 'minecraft:air' ? 0 : this.runtimeIdIn(itemData);
     }
 
     /**
@@ -625,7 +638,7 @@ export class Item {
      * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/
      */
     public networkSerialize(stream: BinaryStream, stackNetId: number | null = null): void {
-        const runtimeId = this.wireId();
+        const runtimeId = this.wireId(wireItemData(stream));
 
         stream.writeShortLE(runtimeId);
         stream.writeUnsignedShortLE(runtimeId === 0 ? 0 : this.getAmount());
@@ -647,7 +660,7 @@ export class Item {
      * stacks. See {@link networkSerialize} for how the two forms differ beyond the flag.
      */
     public networkSerializeWithoutStackId(stream: BinaryStream): void {
-        const runtimeId = this.wireId();
+        const runtimeId = this.wireId(wireItemData(stream));
 
         stream.writeVarInt(runtimeId);
         stream.writeUnsignedShortLE(runtimeId === 0 ? 0 : this.getAmount());
@@ -796,7 +809,7 @@ export class Item {
         // number the client's item registry assigned it.
         const item = new Item({
             runtimeId,
-            name: nameOfWireId(runtimeId) ?? 'minecraft:unknown',
+            name: wireItemData(stream).nameOf(runtimeId) ?? 'minecraft:unknown',
             meta,
             count,
             canPlaceOnBlocks: userData.canPlaceOnBlocks,

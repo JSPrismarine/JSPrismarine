@@ -973,7 +973,9 @@ export default class PlayerSession {
         const limit = this.server.getConfig().getCraftingRecipeLimit();
         if (limit === 0) return;
 
-        const payloads = joinContentPayloads(this.server.getContent(), this.server.getLogger());
+        const payloads = joinContentPayloads(this.server.getContent(), this.server.getLogger(), {
+            itemData: this.connection.codec.itemData
+        });
         if (payloads !== undefined) {
             const all = craftingRecipeCount(payloads.crafting);
             const packet = new CraftingDataPacket();
@@ -1014,7 +1016,9 @@ export default class PlayerSession {
         // sends back names the entry it was shown. `creativePick` reads the same two sources
         // in the same order.
         const server = this.player.getServer();
-        const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), {
+            itemData: this.connection.codec.itemData
+        });
         if (payloads === undefined) {
             const creative = server.getCreativeInventory();
             pk.groups = [...creative.getGroups()];

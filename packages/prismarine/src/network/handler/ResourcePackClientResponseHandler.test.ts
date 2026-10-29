@@ -21,6 +21,10 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { Dimensions } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
+import Codec2193 from '../codec/Codec2193';
+import { registeredCodecs } from '../codec/CodecRegistry';
+import Codec2225 from '../codec/Codec2225';
+import type { ProtocolCodec } from '../codec/ProtocolCodec';
 import type PlayerSession from '../PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
 import type DataPacket from '../packet/DataPacket';
@@ -45,7 +49,8 @@ const harness = ({
     content = fixtureJoinPayloads().content,
     joinSpawn = null,
     spawn = new Vector3(0, 64, 0),
-    serverAuthoritativeBreaking = true
+    serverAuthoritativeBreaking = true,
+    codec = Codec2193
 }: {
     cancelSpawn?: boolean;
     /** The content build whose registries the join burst writes from. */
@@ -56,6 +61,8 @@ const harness = ({
     spawn?: Vector3;
     /** The `server-authoritative-block-breaking` setting. */
     serverAuthoritativeBreaking?: boolean;
+    /** The protocol codec the connection negotiated, which fixes the item numbering. */
+    codec?: ProtocolCodec;
 } = {}) => {
     const sent: string[] = [];
     /** The packets written straight to the connection, for the tests that read their fields. */
@@ -91,6 +98,7 @@ const harness = ({
     });
 
     const connection = stub<ClientConnection>({
+        codec,
         sendDataPacket: async (packet: DataPacket) => {
             sent.push(packet.constructor.name);
             packets.push(packet);
@@ -143,15 +151,25 @@ const response = (status: ResourcePackStatusType, packIds: string[] = []) =>
  * is two blocks, so the payloads are built here against the fixture palette
  * and the handler's own call then answers from the cache.
  */
-const fixtureJoinPayloads = () => {
-    const content = buildServerContent(fixtureContentOptions());
+const payloadsFor = (content: ServerContent, codec: ProtocolCodec) => {
     const payloads = joinContentPayloads(content, stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }), {
-        clientPalette: fixtureBlockPalette()
+        clientPalette: fixtureBlockPalette(),
+        itemData: codec.itemData
     });
 
     if (payloads === undefined) throw new Error('the fixture content produced no payloads');
 
-    return { content, payloads };
+    return payloads;
+};
+
+const fixtureJoinPayloads = () => {
+    const content = buildServerContent(fixtureContentOptions());
+
+    // One build per registered codec, since the payloads are cached per protocol version and a
+    // test may negotiate any of them.
+    for (const codec of registeredCodecs) payloadsFor(content, codec);
+
+    return { content, payloads: payloadsFor(content, Codec2193) };
 };
 
 describe('ResourcePackClientResponseHandler', () => {
@@ -319,6 +337,32 @@ describe('ResourcePackClientResponseHandler', () => {
 
         const items = packets.find((packet) => packet instanceof ItemRegistryPacket);
         expect(items?.entries).toBe(payloads.items);
+    });
+
+    /**
+     * The registry is server-authoritative, so the numbering the join sends is the numbering
+     * for the rest of the session. 1.26.60 moved 82 runtime ids and added four names; a 2225
+     * session sent 2193's would disagree with every other 1.26.60 server about where those 82
+     * sit. See docs/research/protocol-2225-delta.md.
+     */
+    it('sends the item registry built for the protocol the session negotiated', async () => {
+        const { content, payloads } = fixtureJoinPayloads();
+        const at2225 = payloadsFor(content, Codec2225);
+        expect(at2225.items).not.toBe(payloads.items);
+
+        const sentTo = async (codec: ProtocolCodec) => {
+            const { packets, server, session } = harness({ content, codec });
+            await new ResourcePackClientResponseHandler().handle(
+                response(ResourcePackStatusType.Completed),
+                server,
+                session
+            );
+
+            return packets.find((packet) => packet instanceof ItemRegistryPacket)?.entries;
+        };
+
+        expect(await sentTo(Codec2193)).toBe(payloads.items);
+        expect(await sentTo(Codec2225)).toBe(at2225.items);
     });
 
     it('sends nothing game-related before StartGame', async () => {

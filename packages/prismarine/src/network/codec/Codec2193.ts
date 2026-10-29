@@ -1,5 +1,7 @@
 import * as Packets from '../Packets';
 import type DataPacket from '../packet/DataPacket';
+import { itemData2193 } from './itemData';
+import type { ProtocolItemData } from './itemData';
 import type { ProtocolCodec } from './ProtocolCodec';
 import { minecraftVersions, netIdFor, packetIds, protocolVersion } from './v2193';
 
@@ -19,6 +21,7 @@ export class Codec2193 implements ProtocolCodec {
     public readonly protocolVersion: number = protocolVersion;
     public readonly minecraftVersions: readonly string[] = minecraftVersions;
     public readonly ids: Readonly<Record<string, number>> = packetIds;
+    public readonly itemData: ProtocolItemData = itemData2193;
 
     private byId: Map<number, PacketClass> | null = null;
     private overridesByName: Readonly<Record<string, PacketClass>> | null = null;
@@ -71,7 +74,13 @@ export class Codec2193 implements ProtocolCodec {
      */
     public prepareOutbound(packet: DataPacket): DataPacket {
         const override = this.overrides()[packet.getName()];
-        if (override === undefined || packet instanceof override) return packet;
+        if (override === undefined || packet instanceof override) {
+            // Stamped even when the class is not substituted: a payload whose *data* is
+            // version-gated - the item registry's numbering - reads the stamp, and those
+            // packets keep one class at every version.
+            packet.codecProtocol = this.protocolVersion;
+            return packet;
+        }
 
         const prepared = Object.assign(new override(), packet);
         prepared.codecProtocol = this.protocolVersion;

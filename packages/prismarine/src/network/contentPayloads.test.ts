@@ -25,7 +25,10 @@ import {
 import { itemAsStack } from './packet/CreativeContentPacket';
 import StartGamePacket from './packet/StartGamePacket';
 
-import type { ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
+import { itemData2193, itemData2225 } from './codec/itemData';
+
+import type { ProtocolItemData } from './codec/itemData';
+import type { ContentPayloadOptions, ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
 import type Server from '../Server';
 import type { ContentOptions } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
@@ -228,6 +231,59 @@ describe('network', () => {
             const first = networkContentPayloads(content, { clientPalette: client() });
 
             expect(networkContentPayloads(content)).toBe(first);
+        });
+
+        it('builds again for another protocol version, since the numbering is version-specific', () => {
+            const content = contentWith();
+            const at2193 = networkContentPayloads(content, { clientPalette: client() });
+            const at2225 = networkContentPayloads(content, { clientPalette: client(), itemData: itemData2225 });
+
+            expect(at2225).not.toBe(at2193);
+            // And each is still built once.
+            expect(networkContentPayloads(content, { itemData: itemData2225 })).toBe(at2225);
+            expect(networkContentPayloads(content)).toBe(at2193);
+        });
+    });
+
+    /**
+     * The payloads a client is sent carry item numbers rather than names - the registry
+     * entries, the creative stacks and the brewing list all do - and which number names which
+     * item is fixed by the protocol version. These check that the table the caller selected is
+     * the one the numbers come out of, with a table that renumbers a fixture item so that a
+     * build reading the wrong one cannot pass.
+     */
+    describe('the item numbering a build uses', () => {
+        /** 2193's table with `minecraft:stone` moved somewhere nothing else sits. */
+        const renumbered: ProtocolItemData = {
+            protocolVersion: 9999,
+            table: {
+                ...itemData2193.table,
+                'minecraft:stone': { runtime_id: 31337, component_based: false, version: 2 }
+            },
+            components: itemData2193.components,
+            nameOf: (runtimeId) => (runtimeId === 31337 ? 'minecraft:stone' : itemData2193.nameOf(runtimeId))
+        };
+
+        const idsOf = (options: ContentPayloadOptions) =>
+            new Map(
+                buildNetworkContentPayloads(contentWith(), { clientPalette: client(), ...options }).items.map(
+                    (entry) => [entry.name, entry.runtimeId]
+                )
+            );
+
+        it('numbers the item registry out of the table it was given', () => {
+            expect(idsOf({}).get('minecraft:stone')).toBe(itemData2193.table['minecraft:stone']!.runtime_id);
+            expect(idsOf({ itemData: renumbered }).get('minecraft:stone')).toBe(31337);
+        });
+
+        it('carries that number through to the creative menu, which sends numbers and not names', () => {
+            const creative = buildNetworkContentPayloads(contentWith(), {
+                clientPalette: client(),
+                itemData: renumbered
+            }).creative;
+            const stone = creative.entries.find((entry) => entry.item.runtimeId === 31337);
+
+            expect(stone).toBeDefined();
         });
     });
 

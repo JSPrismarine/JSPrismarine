@@ -81,6 +81,9 @@ export class CreativeInventory {
 
         const entries: CreativeEntry[] = [];
         for (const entry of CreativeItems) {
+            // Whether Bedrock has the item at all, not what number it travels as, so the
+            // canonical table answers it at every protocol version: the captured catalog is
+            // 2193's and names nothing a later version added.
             if (!(entry.name in ItemTable)) continue; // The client has no id to resolve it to.
 
             entries.push({ item: toItem(entry.name, entry.meta ?? 0, entry.block_states), group: entry.group });

@@ -63,6 +63,13 @@ export class RecipeManager implements Service {
      * The item table decides: it is what `StartGamePacket` declares and what every item
      * runtime id is resolved through, so a name absent from it is one the client would not
      * recognize however carefully the server built it.
+     *
+     * The canonical table, protocol 2193's, rather than a session's: this is a membership
+     * question asked once when a recipe is registered, long before any session exists, and no
+     * protocol has yet dropped an item. The recipes this manager hands out name their items
+     * rather than numbering them, so nothing here moves when the numbering does; the one
+     * payload that carries item numbers is the brewing list, which `contentPayloads` builds
+     * against the session's table.
      */
     private isKnown(name: string): boolean {
         return ItemTable[name] !== undefined;

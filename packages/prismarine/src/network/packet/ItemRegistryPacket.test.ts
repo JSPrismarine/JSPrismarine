@@ -1,4 +1,5 @@
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable2225 } from '@jsprismarine/bedrock-data/v2225';
 import { netIdFor } from '../codec/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
@@ -254,6 +255,64 @@ describe('network', () => {
                 expect(stick!.runtimeId).toBe(-268);
                 expect(stick!.componentBased).toBe(false);
                 expect(stick!.version).toBe(2);
+            });
+
+            /**
+             * The captured table is picked by the codec that stamped the packet. The registry
+             * is server-authoritative, so this is what decides whether a 1.26.60 session can
+             * name the four items that version added and agrees about the 82 whose number it
+             * moved. See docs/research/protocol-2225-delta.md.
+             */
+            describe('per protocol version', () => {
+                const encodeAt = (protocol: number): Buffer => {
+                    const pk = new ItemRegistryPacket();
+                    pk.codecProtocol = protocol;
+                    pk.encode();
+                    return pk.getBuffer();
+                };
+
+                it('sends 2193 the bytes it sent before a version was selectable', () => {
+                    expect(encodeAt(2193)).toEqual(buffer);
+                });
+
+                it('sends 2225 different bytes from 2193', () => {
+                    expect(encodeAt(2225)).not.toEqual(buffer);
+                });
+
+                it('sends 2225 the four names 1.26.60 added, which 2193 cannot name at all', () => {
+                    const added = [
+                        'minecraft:disc_press',
+                        'minecraft:frostbite_spawn_egg',
+                        'minecraft:ice_crystal',
+                        'minecraft:icicle'
+                    ];
+                    const at2225 = new Map(decode(encodeAt(2225)).map((entry) => [entry.name, entry]));
+
+                    for (const name of added) {
+                        expect(at2225.get(name), name).toBeDefined();
+                        expect(byName.get(name), name).toBeUndefined();
+                    }
+                });
+
+                it('numbers every item as its own version does, including the ones that moved', () => {
+                    const at2225 = new Map(decode(encodeAt(2225)).map((entry) => [entry.name, entry.runtimeId]));
+                    for (const [name, entry] of Object.entries(ItemTable2225)) {
+                        expect(at2225.get(name), name).toBe(entry.runtime_id);
+                    }
+
+                    // Three of the 82 that moved, named so that the two tables are shown to be
+                    // genuinely different here rather than only measured to be elsewhere.
+                    expect(byName.get('minecraft:apple')?.runtimeId).toBe(882);
+                    expect(at2225.get('minecraft:apple')).toBe(883);
+                    expect(byName.get('minecraft:boat')?.runtimeId).toBe(845);
+                    expect(at2225.get('minecraft:boat')).toBe(846);
+                    expect(byName.get('minecraft:breeze_rod')?.runtimeId).toBe(878);
+                    expect(at2225.get('minecraft:breeze_rod')).toBe(879);
+                });
+
+                it('falls back to 2193 for a version no table was captured for', () => {
+                    expect(encodeAt(2048)).toEqual(buffer);
+                });
             });
         });
     });

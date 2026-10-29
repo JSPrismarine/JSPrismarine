@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { Item } from './Item';
+import InventorySlotPacket from '../network/packet/InventorySlotPacket';
 
 /**
  * `Item` reads an item stack by hand while `@jsprismarine/protocol` already describes the
@@ -295,5 +296,63 @@ describe('item', () => {
             expect(BlockRuntimeIds.tryGetByName('minecraft:wooden_door')).not.toBeNull();
             expect(writtenBlockId(door)).toBe(0);
         });
+    });
+});
+
+/**
+ * A stack carries a number, and which number names which item is fixed by the protocol
+ * version: 1.26.60 moved 82 of them. The stream a stack is written to is the packet itself
+ * on every path a client is on either end of, and a packet carries the codec that built it,
+ * so the numbering travels with the stream. See docs/research/protocol-2225-delta.md.
+ */
+describe('the numbering a stack is written and read with', () => {
+    /** An inventory slot, which is a packet and so carries a codec's protocol version. */
+    const slotAt = (protocol: number): InventorySlotPacket => {
+        const packet = new InventorySlotPacket();
+        packet.codecProtocol = protocol;
+        return packet;
+    };
+
+    it('writes an item that moved under the number its own version gives it', () => {
+        const apple = new Item({ name: 'minecraft:apple' });
+
+        const at2193 = slotAt(2193);
+        apple.networkSerialize(at2193);
+        expect(at2193.getBuffer().readInt16LE(0)).toBe(882);
+
+        const at2225 = slotAt(2225);
+        apple.networkSerialize(at2225);
+        expect(at2225.getBuffer().readInt16LE(0)).toBe(883);
+    });
+
+    it('reads the same number back as two different items, one per version', () => {
+        const written = descriptorBytes(new NetworkItemStackDescriptor(883, 1, 0, false, 0));
+
+        const read = (protocol: number): string => {
+            const packet = new InventorySlotPacket(written);
+            packet.codecProtocol = protocol;
+            return Item.networkDeserialize(packet).getName();
+        };
+
+        expect(read(2225)).toBe('minecraft:apple');
+        expect(read(2193)).not.toBe('minecraft:apple');
+    });
+
+    it('writes an item that did not move the same way at both versions', () => {
+        const stone = new Item({ name: 'minecraft:stone' });
+        const at2193 = slotAt(2193);
+        const at2225 = slotAt(2225);
+        stone.networkSerialize(at2193);
+        stone.networkSerialize(at2225);
+
+        expect(at2225.getBuffer()).toEqual(at2193.getBuffer());
+        expect(at2193.getBuffer().readInt16LE(0)).toBe(ItemTable['minecraft:stone']!.runtime_id);
+    });
+
+    it('numbers a stack written to a bare stream with the canonical table', () => {
+        const stream = new NetworkBinaryStream();
+        new Item({ name: 'minecraft:apple' }).networkSerialize(stream);
+
+        expect(stream.getBuffer().readInt16LE(0)).toBe(ItemTable['minecraft:apple']!.runtime_id);
     });
 });

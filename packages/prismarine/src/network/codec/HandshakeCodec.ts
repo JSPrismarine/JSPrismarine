@@ -39,6 +39,11 @@ class HandshakeCodec implements ProtocolCodec {
     public readonly protocolVersion = latestCodec.protocolVersion;
     public readonly minecraftVersions = latestCodec.minecraftVersions;
     public readonly ids = handshakeIds;
+    /**
+     * The newest version's, for the same reason {@link protocolVersion} is. No handshake
+     * packet carries an item, so nothing reads this before negotiation.
+     */
+    public readonly itemData = latestCodec.itemData;
 
     public createPacket(netId: number, buffer?: Buffer): DataPacket | null {
         if (!handshakeNetIds.has(netId)) return null;
