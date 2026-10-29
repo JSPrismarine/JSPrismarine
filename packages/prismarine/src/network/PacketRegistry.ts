@@ -39,17 +39,21 @@ export default class PacketRegistry {
     }
 
     /**
-     * Register a packet under the wire id its class name has at protocol 2193.
+     * Register a packet under the wire id its name has at protocol 2193.
+     *
      * @param packet - the packet.
+     * @param name - the packet's name in the barrel, which a bundler cannot rename the way it
+     *   renames a colliding class. Defaults to the class name for callers that register one
+     *   packet directly.
      */
-    public registerPacket(packet: typeof Packets.DataPacket): void {
-        const netId = Codec2193.netIdOf(packet.name);
-        if (netId === undefined) throw new Error(`Packet ${packet.name} has no id in the 2193 codec!`);
+    public registerPacket(packet: typeof Packets.DataPacket, name: string = packet.name): void {
+        const netId = Codec2193.netIdOf(name);
+        if (netId === undefined) throw new Error(`Packet ${name} has no id in the 2193 codec!`);
         if (this.packets.has(netId))
-            throw new Error(`Packet ${packet.name} is trying to use id ${netId.toString(16)} which already exists!`);
+            throw new Error(`Packet ${name} is trying to use id ${netId.toString(16)} which already exists!`);
 
         this.packets.set(netId, packet);
-        this.server.getLogger().debug(`Packet with id §b${packet.name}§r registered`);
+        this.server.getLogger().debug(`Packet with id §b${name}§r registered`);
     }
 
     /**
@@ -122,9 +126,12 @@ export default class PacketRegistry {
 
         // Dynamically register packets
         // We need to manually ignore DataPacket & BatchPacket
+        // Keyed by the export name rather than `value.name`: a bundler renames a class whose name
+        // collides with another in the same chunk (the Bun executable gets a `DeathInfoPacket2`),
+        // and the wire id is looked up by name. The export key survives bundling.
         Object.entries(Packets)
-            .filter(([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket')
-            .map(([, value]) => this.registerPacket(value));
+            .filter(([exported]) => exported !== 'DataPacket' && exported !== 'BatchPacket')
+            .map(([exported, value]) => this.registerPacket(value, exported));
 
         this.server
             .getLogger()

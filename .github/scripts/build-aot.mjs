@@ -1,7 +1,21 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { buildPackagedData } from '../../scripts/data-bundle.mts';
+
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
+
+/**
+ * The module whose constants carry the data a compiled binary unpacks on first run.
+ *
+ * Bun implements no `node:sea`, so the asset table the Node single executable uses is not
+ * available here; module source is what `bun build --compile` carries reliably. The real payload
+ * is written in before the compile and the checked-in empty pair is restored after, so a build
+ * never leaves the tree dirty.
+ */
+const embeddedDataPath = path.join(repositoryRoot, 'packages', 'server', 'src', 'packaged', 'embeddedData.ts');
 const [target, outputPath] = process.argv.slice(2);
 const supportedTargets = new Set([
     'bun-linux-x64',
@@ -50,5 +64,29 @@ if (target.startsWith('bun-windows-')) {
     args.push('--windows-icon=.github/assets/icon.ico');
 }
 
+const packaged = buildPackagedData(repositoryRoot);
+console.log(
+    `Embedding ${packaged.fileCount} data files (${(packaged.bundle.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped)`
+);
+
+const checkedInSource = readFileSync(embeddedDataPath, 'utf8');
+const withPayload = checkedInSource
+    .replace(
+        "export const EMBEDDED_DATA_BUNDLE = '';",
+        `export const EMBEDDED_DATA_BUNDLE = '${Buffer.from(packaged.bundle).toString('base64')}';`
+    )
+    .replace(
+        "export const EMBEDDED_DATA_MANIFEST = '';",
+        `export const EMBEDDED_DATA_MANIFEST = ${JSON.stringify(packaged.manifest)};`
+    );
+if (withPayload === checkedInSource) {
+    throw new Error(`${embeddedDataPath} no longer holds the empty constants this script fills in`);
+}
+
 const bunExecutable = process.platform === 'win32' ? 'bun.exe' : 'bun';
-execFileSync(bunExecutable, args, { cwd: repositoryRoot, stdio: 'inherit' });
+try {
+    writeFileSync(embeddedDataPath, withPayload);
+    execFileSync(bunExecutable, args, { cwd: repositoryRoot, stdio: 'inherit' });
+} finally {
+    writeFileSync(embeddedDataPath, checkedInSource);
+}

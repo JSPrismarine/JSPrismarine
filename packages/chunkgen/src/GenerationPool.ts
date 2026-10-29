@@ -18,13 +18,37 @@
  * At 100 chunks a second that is 0.2% of a core, so the boundary is not what limits this.
  */
 import { existsSync } from 'node:fs';
-import { isSea } from 'node:sea';
+import { createRequire } from 'node:module';
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import Piscina from 'piscina';
 
 import type { ChunkStatus } from './ChunkStatus';
+
+/**
+ * Whether this process is a compiled executable, which keeps its modules inside the binary.
+ *
+ * Both packagers this project ships produce one, and both leave a worker thread with no file to
+ * import. Node's single executable answers through `node:sea`; a Bun-compiled binary reports a
+ * main module under Bun's virtual filesystem root. The `node:sea` lookup is deliberately a
+ * `require` inside a `try`: Bun implements no such module and resolving the specifier statically
+ * throws `No such built-in module` before anything runs, which is what used to kill the compiled
+ * binary at startup. This package depends on nothing but `piscina`, so the predicate lives here
+ * rather than in a package it would have to take a dependency on to reach.
+ */
+const inCompiledBinary = (): boolean => {
+    const main = (globalThis as { Bun?: { main?: string } }).Bun?.main;
+    // `/$bunfs/` on POSIX, `B:\~BUN\` on Windows.
+    if (main !== undefined) return main.includes('/$bunfs/') || main.includes('~BUN');
+
+    try {
+        const load = createRequire(import.meta.url);
+        return (load('node:sea') as typeof import('node:sea')).isSea();
+    } catch {
+        return false;
+    }
+};
 
 /**
  * How badly a caller wants a chunk, highest first.
@@ -259,8 +283,8 @@ export class GenerationPool {
      * @returns A sentence naming what is missing, or undefined when nothing is.
      */
     public static unavailable(options: GenerationPoolOptions): string | undefined {
-        if (isSea()) {
-            return 'a single executable keeps its modules in the binary, where a worker thread cannot import them';
+        if (inCompiledBinary()) {
+            return 'a compiled executable keeps its modules in the binary, where a worker thread cannot import them';
         }
 
         const entries = [

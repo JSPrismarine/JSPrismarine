@@ -3,7 +3,7 @@ import type { Server } from 'node:http';
 import { createServer } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { downloadVerified, provisionSeaData } from './provision';
+import { downloadVerified, provisionPackagedData } from './provision';
 
 /** A minimal one-file zip (stored, no compression) so the download has real bytes to verify. */
 const storedZip = (name: string, data: Buffer): Buffer => {
@@ -88,6 +88,6 @@ describe('provision', () => {
 
     it('does nothing outside a single executable', async () => {
         // `isSea()` is false under vitest, so this must not touch the disk or the network.
-        await expect(provisionSeaData(() => {})).resolves.toBeUndefined();
+        await expect(provisionPackagedData(() => {})).resolves.toBeUndefined();
     });
 });

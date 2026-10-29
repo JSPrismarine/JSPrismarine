@@ -23,12 +23,13 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { getAsset, isSea } from 'node:sea';
 
 import { readZip } from '@jsprismarine/packs';
 
 import { decodeDataBundle } from './dataBundle';
+import { EMBEDDED_DATA_BUNDLE, EMBEDDED_DATA_MANIFEST, hasEmbeddedData } from './embeddedData';
 
 /** The SEA asset keys `scripts/package-sea.mts` writes. */
 export const SEA_ASSETS = {
@@ -37,6 +38,44 @@ export const SEA_ASSETS = {
     /** The JSON manifest describing the bundle and the pinned BDS download. */
     manifest: 'data-manifest'
 } as const;
+
+/**
+ * Where a packaged build keeps its data, which differs by the packager that built it.
+ *
+ * Node's single executable answers through `node:sea`; a Bun-compiled binary answers through
+ * {@link `./embeddedData.ts`}, because Bun implements no `node:sea` and importing it there
+ * throws `No such built-in module` before the server starts. Nothing else is a packaged build.
+ */
+type PackagedAssets = {
+    /** The JSON manifest text the packager embedded. */
+    readonly manifest: string;
+    /** Reads the gzipped data bundle. Deferred so a warm directory never decodes it. */
+    readonly bundle: () => Uint8Array;
+};
+
+/** The assets this build carries, or undefined when it is not a packaged executable. */
+const packagedAssets = (): PackagedAssets | undefined => {
+    if (hasEmbeddedData()) {
+        return {
+            manifest: EMBEDDED_DATA_MANIFEST,
+            bundle: () => Buffer.from(EMBEDDED_DATA_BUNDLE, 'base64')
+        };
+    }
+
+    // `node:sea` exists only on Node, and only a single executable answers true; `require` keeps
+    // Bun from resolving the specifier at all, which a static import would make it do.
+    try {
+        const load = createRequire(import.meta.url);
+        const sea = load('node:sea') as typeof import('node:sea');
+        if (!sea.isSea()) return undefined;
+        return {
+            manifest: sea.getAsset(SEA_ASSETS.manifest, 'utf8'),
+            bundle: () => new Uint8Array(sea.getAsset(SEA_ASSETS.bundle))
+        };
+    } catch {
+        return undefined;
+    }
+};
 
 /** What the embedded manifest says, written at package time from `sources.json`. */
 export interface SeaDataManifest {
@@ -61,7 +100,12 @@ const writeFileAt = (root: string, relative: string, bytes: Uint8Array): void =>
 };
 
 /** Extracts the embedded bundle under `node_modules`, unless the marker says it already is. */
-const extractBundle = (modulesRoot: string, manifest: SeaDataManifest, log: (line: string) => void): void => {
+const extractBundle = (
+    modulesRoot: string,
+    manifest: SeaDataManifest,
+    assets: PackagedAssets,
+    log: (line: string) => void
+): void => {
     const marker = path.join(modulesRoot, '.cache', 'jsprismarine', MARKER_FILE);
     if (existsSync(marker)) {
         try {
@@ -73,7 +117,7 @@ const extractBundle = (modulesRoot: string, manifest: SeaDataManifest, log: (lin
         }
     }
 
-    const files = decodeDataBundle(new Uint8Array(getAsset(SEA_ASSETS.bundle)));
+    const files = decodeDataBundle(assets.bundle());
     log(`Unpacking ${files.size} embedded data files...`);
     for (const [relative, bytes] of files) writeFileAt(modulesRoot, relative, bytes);
 
@@ -167,15 +211,16 @@ const provisionBehaviorPacks = async (
  *
  * A no-op outside a single executable, so every other way of running the server is untouched.
  */
-export const provisionSeaData = async (
+export const provisionPackagedData = async (
     log: (line: string) => void = (line) => process.stdout.write(`${line}\n`)
 ): Promise<void> => {
-    if (!isSea()) return;
+    const assets = packagedAssets();
+    if (assets === undefined) return;
 
     // Parsed JSON the packaging script wrote into this same binary, so the shape is this build's.
-    const manifest: SeaDataManifest = JSON.parse(getAsset(SEA_ASSETS.manifest, 'utf8'));
+    const manifest: SeaDataManifest = JSON.parse(assets.manifest);
     const modulesRoot = path.resolve(process.cwd(), 'node_modules');
 
-    extractBundle(modulesRoot, manifest, log);
+    extractBundle(modulesRoot, manifest, assets, log);
     await provisionBehaviorPacks(modulesRoot, manifest, log);
 };

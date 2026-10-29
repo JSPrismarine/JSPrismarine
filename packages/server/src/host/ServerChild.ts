@@ -83,8 +83,17 @@ export interface ServerChild {
  * arguments from `process.argv.slice(2)` just like a script would.
  */
 export const currentLaunch = async (): Promise<Launch> => {
-    const { isSea } = await import('node:sea');
-    if (isSea()) return { execArgv: [], scriptArgs: [] };
+    // Bun's compiled binaries are the program the same way a single executable is, and Bun
+    // implements no `node:sea`, so awaiting that import there rejects instead of answering.
+    const bunMain = (globalThis as { Bun?: { main?: string } }).Bun?.main;
+    if (bunMain !== undefined) {
+        // `/$bunfs/` on POSIX, `B:\~BUN\` on Windows.
+        const compiled = bunMain.includes('/$bunfs/') || bunMain.includes('~BUN');
+        if (compiled) return { execArgv: [], scriptArgs: [] };
+    } else {
+        const { isSea } = await import('node:sea');
+        if (isSea()) return { execArgv: [], scriptArgs: [] };
+    }
     const script = process.argv[1];
     return { execArgv: process.execArgv, scriptArgs: script === undefined ? [] : [script] };
 };

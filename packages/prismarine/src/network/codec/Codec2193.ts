@@ -40,6 +40,37 @@ export class Codec2193 implements ProtocolCodec {
         return (this.overridesByName ??= this.packetOverrides());
     }
 
+    /**
+     * The barrel name of a packet instance, which is what the id and override tables are keyed by.
+     *
+     * Not `constructor.name`: a bundler renames a class whose name collides with another in the
+     * same chunk, and the compiled executables bundle. The barrel's export keys are property
+     * names, which survive that, so the class is looked up in a reverse index built from them.
+     * The walk up the prototype chain answers for a substituted subclass, whose own class the
+     * barrel does not export but whose base it does.
+     */
+    protected nameOf(packet: DataPacket): string {
+        let current: unknown = packet.constructor;
+        while (typeof current === 'function') {
+            const name = Codec2193.namesByClass().get(current);
+            if (name !== undefined) return name;
+            current = Object.getPrototypeOf(current);
+        }
+
+        return packet.getName();
+    }
+
+    private static reverseIndex: Map<unknown, string> | null = null;
+
+    private static namesByClass(): Map<unknown, string> {
+        if (Codec2193.reverseIndex === null) {
+            Codec2193.reverseIndex = new Map();
+            for (const [name, packet] of Object.entries(Packets)) Codec2193.reverseIndex.set(packet, name);
+        }
+
+        return Codec2193.reverseIndex;
+    }
+
     private table(): Map<number, PacketClass> {
         if (this.byId === null) {
             this.byId = new Map();
@@ -73,7 +104,7 @@ export class Codec2193 implements ProtocolCodec {
      * so the copied stream state is cleared before it matters.
      */
     public prepareOutbound(packet: DataPacket): DataPacket {
-        const override = this.overrides()[packet.getName()];
+        const override = this.overrides()[this.nameOf(packet)];
         if (override === undefined || packet instanceof override) {
             // Stamped even when the class is not substituted: a payload whose *data* is
             // version-gated - the item registry's numbering - reads the stamp, and those

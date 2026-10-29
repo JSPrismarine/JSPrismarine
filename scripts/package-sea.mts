@@ -12,16 +12,16 @@
  * binary extracts it on first run. The Bedrock Dedicated Server zip is pinned
  * in the manifest instead and downloaded on first run, because Mojang's
  * license does not allow redistributing it. See
- * `packages/server/src/sea/provision.ts` for the runtime half.
+ * `packages/server/src/packaged/provision.ts` for the runtime half.
  */
 
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+
+import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
-import { encodeDataBundle } from '../packages/server/src/sea/dataBundle.ts';
+import { buildPackagedData } from './data-bundle.mts';
 import { yargsCjsImportMetaPlugin } from './yargs-cjs-import-meta.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -62,86 +62,22 @@ await bundle.close();
 
 console.log('Encoding the data bundle...');
 
-/** Every file under a directory, as bundle entries with `/` separators. */
-const collect = (files: Map<string, Uint8Array>, root: string, prefix: string): void => {
-    for (const entry of readdirSync(root).sort()) {
-        const absolute = path.join(root, entry);
-        if (statSync(absolute).isDirectory()) collect(files, absolute, `${prefix}${entry}/`);
-        else files.set(`${prefix}${entry}`, readFileSync(absolute));
-    }
-};
-
-/** The newest version directory under a cache folder that holds `marker`. */
-const newestVersionWith = (root: string, marker: string): string | undefined => {
-    if (!existsSync(root)) return undefined;
-    for (const entry of readdirSync(root).sort().reverse()) {
-        if (existsSync(path.join(root, entry, marker))) return path.join(root, entry);
-    }
-    return undefined;
-};
-
-const cacheRoot = path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine');
-const datapack = newestVersionWith(path.join(cacheRoot, 'vanilla-datapack'), 'pack.mcmeta');
-const reports = newestVersionWith(path.join(cacheRoot, 'java-reports'), path.join('generated', 'reports'));
-const structures = newestVersionWith(path.join(cacheRoot, 'java-structures'), 'empty.nbt');
-if (datapack === undefined || reports === undefined || structures === undefined) {
-    console.error(
-        'The packaged binary carries the Java worldgen data, and this checkout has not fetched it. Run ' +
-            '`pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` and ' +
-            '`pnpm --filter @jsprismarine/bedrock-data run extract:structures` first.'
-    );
+let packaged;
+try {
+    packaged = buildPackagedData(repoRoot);
+} catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
 }
 
-const bundleFiles = new Map<string, Uint8Array>();
-const cachePrefix = `.cache/jsprismarine`;
-collect(bundleFiles, datapack, `${cachePrefix}/vanilla-datapack/${path.basename(datapack)}/`);
-collect(
-    bundleFiles,
-    path.join(reports, 'generated', 'reports', 'biome_parameters'),
-    `${cachePrefix}/java-reports/${path.basename(reports)}/generated/reports/biome_parameters/`
-);
-collect(bundleFiles, structures, `${cachePrefix}/java-structures/${path.basename(structures)}/`);
-collect(
-    bundleFiles,
-    path.join(repoRoot, 'packages', 'blocks', 'vanilla_overlay'),
-    '@jsprismarine/blocks/vanilla_overlay/'
-);
-collect(
-    bundleFiles,
-    path.join(repoRoot, 'packages', 'entities', 'vanilla_overlay'),
-    '@jsprismarine/entities/vanilla_overlay/'
-);
-
-const dataBundle = encodeDataBundle(bundleFiles);
 const bundlePath = path.join(seaDir, 'data-bundle.bin');
-writeFileSync(bundlePath, dataBundle);
-console.log(`Encoded ${bundleFiles.size} files (${(dataBundle.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped)`);
-
-// The pinned Bedrock Dedicated Server the binary downloads on first run: its license does not
-// allow carrying the zip inside the executable the way the data above travels.
-interface BdsPin {
-    minecraftVersion: string;
-    serverVersion: string;
-    url: string;
-    sha256: string;
-    sizeInBytes: number;
-}
-// Parsed JSON pinned in this repository, cross-checked by the bedrock-data fetch tests.
-const sources: { bds: { defaultProtocolVersion: number; versions: Record<string, BdsPin> } } = JSON.parse(
-    readFileSync(path.join(repoRoot, 'packages', 'bedrock-data', 'sources.json'), 'utf8')
+writeFileSync(bundlePath, packaged.bundle);
+console.log(
+    `Encoded ${packaged.fileCount} files (${(packaged.bundle.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped)`
 );
-const bdsPin = sources.bds.versions[String(sources.bds.defaultProtocolVersion)];
-if (bdsPin === undefined) {
-    console.error('sources.json pins no Bedrock Dedicated Server for its default protocol version.');
-    process.exit(1);
-}
 
 const manifestPath = path.join(seaDir, 'data-manifest.json');
-writeFileSync(
-    manifestPath,
-    `${JSON.stringify({ bundleSha256: createHash('sha256').update(dataBundle).digest('hex'), bds: bdsPin }, null, 4)}\n`
-);
+writeFileSync(manifestPath, packaged.manifest);
 
 console.log('Building the single executable...');
 const seaConfig = path.join(seaDir, 'sea-config.json');
