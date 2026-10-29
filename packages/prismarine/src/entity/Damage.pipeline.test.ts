@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 import type { EventTypes } from '../events/EventEmitter';
-import { ActorEvent } from '../network/packet/ActorEventPacket';
+import { ActorEvent } from '@jsprismarine/minecraft';
 import { Position } from '../world/Position';
 import { AttributeIds } from './Attribute';
 import { damageCauseOf, DamageCause } from './DamageCause';

@@ -1,14 +1,9 @@
 import type { Vector3 } from '@jsprismarine/math';
-import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { ActorEvent, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type Player from '../Player';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
-// TODO: `ActorEvent` belongs beside `LevelEvent` and `LevelSoundEvent` in
-// `@jsprismarine/minecraft`. It is the same kind of thing - a protocol constant - and is only
-// declared next to the packet that carries it, which is why the world has to reach into the
-// network layer for a type it otherwise has no business knowing.
-import type { ActorEvent } from '../network/packet/ActorEventPacket';
 import type { WorldChange } from './WorldChange';
 
 /**

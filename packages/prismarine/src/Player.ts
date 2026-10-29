@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Dimension, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
+import { ActorEvent, Dimension, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
@@ -23,7 +23,6 @@ import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import { ChangeDimensionPacket } from './network/Packets';
 import { PlayerRespawnState } from './network/packet/RespawnPacket';
-import { ActorEvent } from './network/packet/ActorEventPacket';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';

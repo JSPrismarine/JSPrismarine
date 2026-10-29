@@ -1,12 +1,11 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { Item } from '../item/Item';
-import { LevelSoundEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import { ActorEvent } from '../network/packet/ActorEventPacket';
 import { SyncedProperties } from '../network/type/SyncedProperties';
 import type { Attribute } from './Attribute';
 import { AttributeIds, Attributes } from './Attribute';

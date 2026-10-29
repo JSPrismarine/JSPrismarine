@@ -3,6 +3,7 @@ import GameRuleManager, { GameRules } from './GameRuleManager';
 import fs from 'node:fs';
 
 import { Vector3 } from '@jsprismarine/math';
+import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Block, Server, Service } from '../';
@@ -30,7 +31,6 @@ import { GenericEntity } from '../entity/GenericEntity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { storedInventory } from '../inventory/persistence';
 import { Item } from '../item/Item';
-import type { ActorEvent } from '../network/packet/ActorEventPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
 import { notifyContentNeighbors } from './neighborContent';

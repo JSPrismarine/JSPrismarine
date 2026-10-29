@@ -58,9 +58,9 @@ export default class ActorEventPacket extends DataPacket {
 
 /**
  * The events this packet can carry, generated from Mojang's 1.26.51 release documentation in
- * `@jsprismarine/minecraft` and re-exported here for the entity code that sends them. The
- * values have gaps (`FEED` is 57, `UPDATE_STACK_SIZE` is 69) because they are the game's own
- * enum values; the rendered docs site numbers the members 0 to 60 consecutively, which is a
- * display artifact of metadata that carries no values.
+ * `@jsprismarine/minecraft`. The values have gaps (`FEED` is 57, `UPDATE_STACK_SIZE` is 69)
+ * because they are the game's own enum values; the rendered docs site numbers the members
+ * 0 to 60 consecutively, which is a display artifact of metadata that carries no values.
+ * @deprecated Import `ActorEvent` from `@jsprismarine/minecraft` instead.
  */
 export { ActorEvent };

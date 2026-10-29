@@ -17,7 +17,7 @@ import { EYE_HEIGHT } from './entity/Human';
 import type { PermissionManager } from './permission/PermissionManager';
 import { MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import type ClientConnection from './network/ClientConnection';
-import { ActorEvent } from './network/packet/ActorEventPacket';
+import { ActorEvent } from '@jsprismarine/minecraft';
 import ChangeDimensionPacket from './network/packet/ChangeDimensionPacket';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import RemoveActorPacket from './network/packet/RemoveActorPacket';
