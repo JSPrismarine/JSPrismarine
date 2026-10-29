@@ -5,8 +5,8 @@
  * so callers pass that number instead of repeating it here.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { delimiter, dirname, join } from 'node:path';
 
 /** Points the Java steps at one JDK, ahead of `JAVA_HOME` and anything macOS has registered. */
 export const JDK_HOME_ENV = 'JSP_JAVA_HOME';
@@ -19,7 +19,33 @@ export interface JdkRequirement {
     readonly binaries?: readonly string[];
 }
 
-/** Homes to try, in order: the two environment variables, then the macOS registry. */
+/**
+ * The JDK that owns the `java` on `PATH`.
+ *
+ * Most Linux installs, and anything managed by a version switcher such as SDKMAN or mise, put
+ * `java` on `PATH` without setting `JAVA_HOME`. `PATH` is walked here rather than shelled out
+ * to, so the lookup behaves the same on every platform. The symlink is resolved first, because
+ * a distribution's `/usr/bin/java` usually points into the real home.
+ */
+export const pathJavaHome = (): string | undefined => {
+    const binary = process.platform === 'win32' ? 'java.exe' : 'java';
+    for (const entry of (process.env['PATH'] ?? '').split(delimiter)) {
+        if (entry === '') continue;
+
+        const candidate = join(entry, binary);
+        if (!existsSync(candidate)) continue;
+
+        try {
+            return dirname(dirname(realpathSync(candidate)));
+        } catch {
+            // An unreadable symlink is no worse than no candidate at all.
+        }
+    }
+
+    return undefined;
+};
+
+/** Homes to try, in order: the two environment variables, the macOS registry, then `PATH`. */
 const candidateHomes = (minimumMajor: number): string[] => {
     const homes: string[] = [];
     for (const variable of [JDK_HOME_ENV, 'JAVA_HOME']) {
@@ -37,6 +63,10 @@ const candidateHomes = (minimumMajor: number): string[] => {
             // No registered JVM matches; the error below says what to install.
         }
     }
+
+    const onPath = pathJavaHome();
+    if (onPath !== undefined) homes.push(onPath);
+
     return homes;
 };
 
