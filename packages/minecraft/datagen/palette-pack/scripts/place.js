@@ -9,10 +9,10 @@
  * Placed at a fixed height in a square around the origin, inside a ticking area added first:
  * a block cannot be written into a chunk nobody has loaded, and at server start nothing is.
  *
- * Placed three times, in three settings, because a block placed where it cannot stand pops
- * before the world is saved and is then simply not in the catalog. Which blocks those are
- * depends on the tick order and changed from one run to the next - seventeen went missing
- * once, seven another time. Every block is happy in at least one of the three:
+ * Placed once per setting, because a block placed where it cannot stand pops before the world
+ * is saved and is then simply not in the catalog. Which blocks those are depends on the tick
+ * order and changed from one run to the next - seventeen went missing once, seven another
+ * time. Every block is happy in at least one setting:
  *
  * - on stone, under a roof two blocks up: most of them, and doors, whose upper half goes in
  *   the gap;
@@ -20,7 +20,16 @@
  * - on stone directly under a roof: the vines, which hang, and the buttons, which by default
  *   are attached to the block above them;
  * - on stone with a stone block to the west of each: the wall fans, which attach to a side,
- *   and had been losing theirs to whatever neighbor the grid happened to give them.
+ *   and had been losing theirs to whatever neighbor the grid happened to give them;
+ * - on soul sand: nether wart, which grows on nothing else;
+ * - on water: frog spawn, which floats on it and pops on anything solid;
+ * - on mycelium, under a roof one block up: the mushrooms, which want a support they can take
+ *   root in and a light level a roof keeps down.
+ *
+ * The last three settings are each there for a block the earlier ones lost. Without them the
+ * catalog was short by `minecraft:nether_wart`, `minecraft:frog_spawn` and
+ * `minecraft:red_mushroom`, and a block missing from the catalog is a block whose property
+ * set the generated schema does not have at all.
  *
  * The extractor merges by name, so a block that survived anywhere is in.
  */
@@ -43,7 +52,10 @@ const SETTINGS = [
     { floor: 'minecraft:stone', roof: 2, spacing: 1 },
     { floor: 'minecraft:farmland', roof: 2, spacing: 1 },
     { floor: 'minecraft:stone', roof: 1, spacing: 1 },
-    { floor: 'minecraft:stone', roof: 2, spacing: 2 }
+    { floor: 'minecraft:stone', roof: 2, spacing: 2 },
+    { floor: 'minecraft:soul_sand', roof: 2, spacing: 1 },
+    { floor: 'minecraft:water', roof: 2, spacing: 1 },
+    { floor: 'minecraft:mycelium', roof: 1, spacing: 1 }
 ];
 const ROOF = 'minecraft:stone';
 const WALL = 'minecraft:stone';
