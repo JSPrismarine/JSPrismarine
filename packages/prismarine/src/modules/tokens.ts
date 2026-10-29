@@ -6,6 +6,7 @@ import type StationRegistry from '../crafting/CraftingStation';
 import type { RecipeManager } from '../crafting/RecipeManager';
 import type { PermissionManager } from '../permission/PermissionManager';
 import type { QueryManager } from '../query/QueryManager';
+import type { Networking } from './network';
 import type { Ticker } from './ticker';
 
 // Service tokens for the manager modules the server registers on its kernel.
@@ -30,3 +31,9 @@ export const queryToken = createToken<QueryManager>('prismarine:query');
  * `tick` event, which the loop emits and awaits every tick.
  */
 export const tickerToken = createToken<Ticker>('prismarine:ticker');
+/**
+ * The network front door (listener start, teardown, and the listener itself),
+ * provided by the `prismarine:network` module. The server drives its start and
+ * kill: the bind address and port arrive with `Server.bootstrap(ip, port)`.
+ */
+export const networkToken = createToken<Networking>('prismarine:network');

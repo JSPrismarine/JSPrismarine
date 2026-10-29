@@ -1,6 +1,6 @@
 import { Kernel } from '@jsprismarine/kernel';
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import { RakNetListener, ServerName } from '@jsprismarine/raknet';
+import type { RakNetListener } from '@jsprismarine/raknet';
 import Console from './Console';
 import { ConsoleSender } from './command/ConsoleSender';
 import SessionManager from './SessionManager';
@@ -20,7 +20,6 @@ import type RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { CreativeInventory } from './inventory/CreativeInventory';
-import ClientConnection from './network/ClientConnection';
 import { joinContentPayloads } from './network/contentPayloads';
 import Identifiers from './network/Identifiers';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
@@ -28,10 +27,9 @@ import { PacketLogFilter } from './network/PacketLogFilter';
 import PacketRegistry from './network/PacketRegistry';
 import type { DataPacket } from './network/Packets';
 import BatchPacket from './network/packet/BatchPacket';
-import NetworkDispatcher from './network/NetworkDispatcher';
-import RakNetTransport from './network/transport/RakNetTransport';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
+import { networkModule, ServerNetworking } from './modules/network';
 import { permissionsModule } from './modules/permissions';
 import { recipesModule, stationsModule } from './modules/recipes';
 import { socialModule } from './modules/social';
@@ -55,7 +53,14 @@ import pkg from '../package.json' with { type: 'json' };
  * @public
  */
 export default class Server extends EventEmitter {
-    private raknet: RakNetListener | undefined;
+    /**
+     * The network front door, run by the `prismarine:network` module.
+     * Constructed here so the listener is reachable (and still undefined)
+     * before the kernel starts; {@link Server.bootstrap} starts it and
+     * {@link Server.shutdown} kills it, since the bind address and port only
+     * arrive with `bootstrap(ip, port)`.
+     */
+    private readonly networking = new ServerNetworking(this);
     private readonly logger: Logger;
     private readonly config: Config;
     private readonly profiler: ServerProfiler | undefined;
@@ -247,6 +252,7 @@ export default class Server extends EventEmitter {
         kernel.register(bansModule(this));
         kernel.register(socialModule(this));
         kernel.register(tickerModule(this.ticker));
+        kernel.register(networkModule(this.networking));
         return kernel;
     }
 
@@ -376,8 +382,9 @@ export default class Server extends EventEmitter {
     }
 
     public getMetadata() {
-        if (!this.raknet) throw new Error('Server is not started');
-        return this.raknet.serverName;
+        const raknet = this.networking.getListener();
+        if (!raknet) throw new Error('Server is not started');
+        return raknet.serverName;
     }
 
     /**
@@ -404,30 +411,7 @@ export default class Server extends EventEmitter {
         const bindAddress = serverIp ?? this.config.getServerIp();
         const bindPort = port ?? this.config.getServerPort();
 
-        this.raknet = new RakNetListener(
-            this.getConfig().getMaxPlayers(),
-            this.getConfig().getOnlineMode(),
-            new ServerName(this),
-            this.getLogger()
-        );
-        this.raknet.start(bindAddress, bindPort);
-
-        // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
-        // it alive through the listeners it installed.
-        new NetworkDispatcher({
-            transport: new RakNetTransport(this.raknet, this),
-            sessionManager: this.sessionManager,
-            packetRegistry: this.packetRegistry,
-            events: this,
-            server: this,
-            logger: this.logger,
-            logFilter: this.getPacketLogFilter(),
-            createConnection: (connection) => new ClientConnection(connection, this.logger, this.getPacketLogFilter()),
-            query: {
-                enabled: () => this.config.getEnableQuery(),
-                onRaw: (payload, address) => this.getQueryManager().onRaw(payload, address)
-            }
-        });
+        this.networking.start(bindAddress, bindPort);
 
         this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
         this.remoteConsole?.markRunning();
@@ -537,8 +521,8 @@ export default class Server extends EventEmitter {
                 );
             }
 
-            // `this.raknet` might be undefined if we kill the server really early.
-            this.raknet?.kill();
+            // The listener might not have started if we kill the server really early.
+            this.networking.kill();
 
             // Finally, remove all listeners.
             this.removeAllListeners();
@@ -772,7 +756,7 @@ export default class Server extends EventEmitter {
      * @returns {RakNetListener | undefined} The raknet instance.
      */
     public getRaknet(): RakNetListener | undefined {
-        return this.raknet;
+        return this.networking.getListener();
     }
 
     /**
