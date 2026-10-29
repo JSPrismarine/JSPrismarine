@@ -1,5 +1,5 @@
 /**
- * Turns the enum schemas of a Mojang protocol release into `snapshot/enums.json`.
+ * Turns the enum schemas of each declared protocol release into `snapshot/v<protocol>/enums.json`.
  *
  * Run with `pnpm generate:import`. Nothing here decides anything: which release, which
  * asset, and which enums are wanted all live in `manifest.json`, under `schemas`.
@@ -26,9 +26,10 @@ import path from 'node:path';
 import process from 'node:process';
 import zlib from 'node:zlib';
 
+import { versionsOf } from './versions.js';
+
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const MANIFEST = path.join(HERE, 'manifest.json');
-const SNAPSHOT = path.join(HERE, 'snapshot');
 
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
 
@@ -40,8 +41,8 @@ const digest = (buffer) => crypto.createHash('sha256').update(buffer).digest('he
  * Fetched at most once and kept beside the snapshot. The hash is the contract: a file that
  * does not match it is not this release, whatever its name says.
  */
-const readAsset = async ({ repo, release, asset, sha256 }) => {
-    const cache = path.join(SNAPSHOT, `${release}-${asset}`);
+const readAsset = async (snapshotDir, { repo, release, asset, sha256 }) => {
+    const cache = path.join(snapshotDir, `${release}-${asset}`);
 
     if (fs.existsSync(cache)) {
         const cached = fs.readFileSync(cache);
@@ -62,7 +63,7 @@ const readAsset = async ({ repo, release, asset, sha256 }) => {
         throw new Error(`Fetched ${asset} hashes to ${got}, the manifest says ${sha256}.`);
     }
 
-    fs.mkdirSync(SNAPSHOT, { recursive: true });
+    fs.mkdirSync(snapshotDir, { recursive: true });
     fs.writeFileSync(cache, body);
     return body;
 };
@@ -135,9 +136,16 @@ const membersOf = (files, name) => {
 const publicEnums = () => Object.entries(manifest.enums).filter(([name]) => !name.startsWith('$'));
 
 const main = async () => {
-    const { schemas } = manifest;
-    const release = unzip(await readAsset(schemas));
-    const valued = unzip(await readAsset(schemas.values));
+    for (const version of versionsOf(manifest, HERE)) {
+        console.log(`Protocol ${version.protocol}:`);
+        await importVersion(version);
+    }
+};
+
+const importVersion = async ({ config, snapshotDir }) => {
+    const { schemas } = config;
+    const release = unzip(await readAsset(snapshotDir, schemas));
+    const valued = unzip(await readAsset(snapshotDir, schemas.values));
 
     const enums = {};
     const missing = [];
@@ -194,7 +202,8 @@ const main = async () => {
         enums
     };
 
-    const target = path.join(SNAPSHOT, 'enums.json');
+    fs.mkdirSync(snapshotDir, { recursive: true });
+    const target = path.join(snapshotDir, 'enums.json');
     fs.writeFileSync(target, `${JSON.stringify(output, null, 1)}\n`);
 
     console.log(`Wrote ${path.relative(process.cwd(), target)}`);

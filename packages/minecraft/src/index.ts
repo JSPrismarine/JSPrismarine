@@ -11,7 +11,9 @@ import { DisconnectReason } from './DisconnectReason';
 import type { Experiment } from './Experiment';
 import { Generator } from './Generator';
 import { blockSchemas } from './generated/block-schemas';
-import vanillaRecipes from './generated/recipes.json';
+// The default protocol version's recipes. JSON cannot be re-exported the way the generated
+// enums are, so this names the version directly; it moves when `defaultProtocolVersion` does.
+import vanillaRecipes from './generated/v2193/recipes.json';
 import { ItemStackRequestActionType } from './generated/ItemStackRequestActionType';
 import { AbilityLayerFlag } from './generated/AbilityLayerFlag';
 import { ContainerUiId } from './generated/ContainerUiId';

@@ -1,5 +1,5 @@
 /**
- * Joins the two halves of a block palette capture into `snapshot/block-palette.json`.
+ * Joins the two halves of a block palette capture into `snapshot/v<protocol>/block-palette.json`.
  *
  * ```
  * node datagen/merge-block-palette.mjs states.json domains.jsonl 1.26.51 bedrock-server-1.26.51.1
@@ -27,7 +27,21 @@ if (!statesFile || !domainsFile || !minecraftVersion || !server) {
 }
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
-const TARGET = path.join(HERE, 'snapshot', 'block-palette.json');
+
+// The capture lands in the snapshot directory of the version it belongs to, found by the
+// Minecraft version it was taken from. A capture for a version the manifest does not declare
+// has no home yet: declare the version first.
+const manifest = JSON.parse(fs.readFileSync(path.join(HERE, 'manifest.json'), 'utf8'));
+const declared = Object.entries(manifest.versions).filter(([key]) => !key.startsWith('$'));
+const match = declared.find(([, config]) => config.schemas.minecraftVersion === minecraftVersion);
+if (!match) {
+    console.error(
+        `No declared version targets Minecraft ${minecraftVersion}; the manifest declares ` +
+            `${declared.map(([, config]) => config.schemas.minecraftVersion).join(', ')}.`
+    );
+    process.exit(2);
+}
+const TARGET = path.join(HERE, 'snapshot', `v${match[0]}`, 'block-palette.json');
 
 const states = JSON.parse(fs.readFileSync(statesFile, 'utf8'));
 

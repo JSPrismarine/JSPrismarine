@@ -8,7 +8,11 @@
  * are called all live in `manifest.json`; this only applies them. A change in behavior
  * should be a change in that file.
  *
- * Two documents are read. `snapshot/enums.json` is the release this package targets, as
+ * Runs once per protocol version the manifest declares under `versions`, writing each
+ * version's enums to `src/generated/v<protocol>/` and re-exporting the default version at
+ * the unversioned `src/generated/` paths.
+ *
+ * Two documents are read per version. `snapshot/v<protocol>/enums.json` is the release it targets, as
  * `import-schemas.js` extracted it from Mojang's JSON schemas; it is the source for every
  * enum it has. `enums.html`, the last HTML dump Mojang published, is the source for the rest:
  * a schema exists only for a type a packet field is declared with, and some of the enums
@@ -21,11 +25,11 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { parseEnums } from './parse.js';
+import { versionsOf } from './versions.js';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const MANIFEST = path.join(HERE, 'manifest.json');
 const SRC_DIR = path.join(HERE, '..', 'src');
-const OUT_DIR = path.join(SRC_DIR, 'generated');
 
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
 
@@ -36,13 +40,14 @@ const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
  * Mojang keeps a rolling window and the docs for a given version are eventually deleted.
  * The cached file is the artefact; the network is only how it first arrived.
  */
-const readSource = async () => {
-    const cache = path.join(HERE, 'snapshot', path.basename(manifest.source.path));
+const readSource = async ({ config, snapshotDir }) => {
+    const source = config.source;
+    const cache = path.join(snapshotDir, path.basename(source.path));
     const digest = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
 
     if (fs.existsSync(cache)) {
         const cached = fs.readFileSync(cache);
-        if (digest(cached) === manifest.source.sha256) return cached.toString('utf8');
+        if (digest(cached) === source.sha256) return cached.toString('utf8');
 
         throw new Error(
             `${cache} does not match the hash in the manifest. Delete it to fetch again, or ` +
@@ -50,7 +55,7 @@ const readSource = async () => {
         );
     }
 
-    const url = `https://raw.githubusercontent.com/${manifest.source.repo}/${manifest.source.ref}/${manifest.source.path}`;
+    const url = `https://raw.githubusercontent.com/${source.repo}/${source.ref}/${source.path}`;
     console.log(`Fetching ${url}`);
 
     const response = await fetch(url);
@@ -58,10 +63,10 @@ const readSource = async () => {
 
     const body = Buffer.from(await response.arrayBuffer());
     const got = digest(body);
-    if (got !== manifest.source.sha256) {
+    if (got !== source.sha256) {
         throw new Error(
-            `Fetched ${manifest.source.path} hashes to ${got}, the manifest says ` +
-                `${manifest.source.sha256}. Either the branch moved under us or the manifest is stale.`
+            `Fetched ${source.path} hashes to ${got}, the manifest says ` +
+                `${source.sha256}. Either the branch moved under us or the manifest is stale.`
         );
     }
 
@@ -76,8 +81,8 @@ const readSource = async () => {
  * The extract carries its own provenance and says which of the manifest's enums it could
  * not find; those, and only those, come from the HTML dump.
  */
-const readSchemaExtract = () => {
-    const file = path.join(HERE, 'snapshot', 'enums.json');
+const readSchemaExtract = ({ config, snapshotDir }) => {
+    const file = path.join(snapshotDir, 'enums.json');
     if (!fs.existsSync(file)) {
         throw new Error(
             `Missing ${file}. Run \`pnpm generate:import\` to extract it from the release the manifest pins.`
@@ -85,10 +90,10 @@ const readSchemaExtract = () => {
     }
 
     const extract = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (extract.networkProtocolVersion !== manifest.schemas.networkProtocolVersion) {
+    if (extract.networkProtocolVersion !== config.schemas.networkProtocolVersion) {
         throw new Error(
             `${file} is for protocol ${extract.networkProtocolVersion}, the manifest pins ` +
-                `${manifest.schemas.networkProtocolVersion}. Run \`pnpm generate:import\`.`
+                `${config.schemas.networkProtocolVersion}. Run \`pnpm generate:import\`.`
         );
     }
 
@@ -304,7 +309,16 @@ const main = async () => {
     const compareOnly = process.argv.includes('--compare');
     const verifyOnly = process.argv.includes('--verify');
 
-    const html = await readSource();
+    for (const version of versionsOf(manifest, HERE)) {
+        console.log(`Protocol ${version.protocol}${version.isDefault ? ' (default)' : ''}:`);
+        await generateVersion(version, { compareOnly, verifyOnly });
+    }
+};
+
+const generateVersion = async (version, { compareOnly, verifyOnly }) => {
+    const { config, outDir, isDefault } = version;
+
+    const html = await readSource(version);
     const legacy = parseEnums(html);
 
     // Fail closed. A document that has changed shape yields fewer enums, and the wrong answer
@@ -316,14 +330,14 @@ const main = async () => {
         );
     }
 
-    const schemas = readSchemaExtract();
+    const schemas = readSchemaExtract(version);
 
     // The targeted release wins wherever it has an answer; the HTML dump fills in the rest,
     // and only for the enums the extract says it looked for and could not find.
     const enums = new Map();
     const provenanceOf = new Map();
-    const schemaProvenance = `${manifest.schemas.repo} release ${manifest.schemas.release} (Minecraft ${manifest.schemas.minecraftVersion}, protocol ${manifest.schemas.networkProtocolVersion})`;
-    const legacyProvenance = `${manifest.source.repo}@${manifest.source.ref} (Minecraft ${manifest.source.minecraftVersion}, protocol ${manifest.source.networkProtocolVersion}; no schema in ${manifest.schemas.release})`;
+    const schemaProvenance = `${config.schemas.repo} release ${config.schemas.release} (Minecraft ${config.schemas.minecraftVersion}, protocol ${config.schemas.networkProtocolVersion})`;
+    const legacyProvenance = `${config.source.repo}@${config.source.ref} (Minecraft ${config.source.minecraftVersion}, protocol ${config.source.networkProtocolVersion}; no schema in ${config.schemas.release})`;
     for (const [, mojangName] of publicEnums()) {
         if (schemas.enums.has(mojangName)) {
             enums.set(mojangName, schemas.enums.get(mojangName));
@@ -345,7 +359,7 @@ const main = async () => {
 
     if (verifyOnly) return verify(enums);
 
-    if (!compareOnly) fs.mkdirSync(OUT_DIR, { recursive: true });
+    if (!compareOnly) fs.mkdirSync(outDir, { recursive: true });
 
     for (const [name, mojangName] of wanted) {
         const members = enums.get(mojangName);
@@ -354,7 +368,7 @@ const main = async () => {
         }
 
         const source = render(name, mojangName, members, provenanceOf.get(mojangName), (manifest.rules ?? {})[name]);
-        const target = path.join(OUT_DIR, `${name}.ts`);
+        const target = path.join(outDir, `${name}.ts`);
 
         if (compareOnly) {
             const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
@@ -367,10 +381,27 @@ const main = async () => {
         console.log(`  ${name}  ${members.length} members`);
     }
 
+    // The default version answers the unversioned paths: a one-line re-export per enum keeps
+    // every existing `generated/<Name>` import working without duplicating any data.
+    if (!compareOnly && isDefault) {
+        for (const [name] of wanted) {
+            fs.writeFileSync(
+                path.join(SRC_DIR, 'generated', `${name}.ts`),
+                [
+                    '// Generated by datagen/generate-enums.js. Do not edit.',
+                    `// Re-exports the default protocol version, ${version.protocol}.`,
+                    `export * from './v${version.protocol}/${name}';`,
+                    ''
+                ].join('\n')
+            );
+        }
+        console.log(`  re-exported ${wanted.length} enum(s) at the unversioned paths`);
+    }
+
     console.log(
         compareOnly
-            ? `\nCompared ${wanted.length} enum(s) against ${OUT_DIR}. Nothing written.`
-            : `\nWrote ${wanted.length} enum(s) to ${OUT_DIR}.`
+            ? `\nCompared ${wanted.length} enum(s) against ${outDir}. Nothing written.`
+            : `\nWrote ${wanted.length} enum(s) to ${outDir}.`
     );
 };
 

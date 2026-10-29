@@ -1,6 +1,6 @@
 # Capturing the block palette
 
-`snapshot/block-palette.json` is captured from a Bedrock Dedicated Server. This is how, and why
+`snapshot/v<protocol>/block-palette.json` is captured from a Bedrock Dedicated Server. This is how, and why
 it takes two passes rather than one.
 
 ## Why two passes
@@ -63,7 +63,7 @@ Unpack a Bedrock Dedicated Server of the version you want. Then:
    grep 'PALETTE BLOCK' bds.log | sed 's/.*PALETTE BLOCK //' > domains.jsonl
    ```
 
-5. Merge the two into `snapshot/block-palette.json`, then generate:
+5. Merge the two into `snapshot/v<protocol>/block-palette.json`, then generate:
 
    ```
    node datagen/merge-block-palette.mjs states.json domains.jsonl 1.26.51 bedrock-server-1.26.51.1

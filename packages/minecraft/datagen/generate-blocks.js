@@ -1,7 +1,8 @@
 /**
  * Derives JSPrismarine's own block state catalog from a captured Bedrock server.
  *
- * Run with `pnpm generate:blocks`. The source and the destination are in
+ * Runs once per protocol version the manifest declares under `versions`. Each version's
+ * source and destination are in
  * `datagen/manifest.json`; nothing here decides either.
  *
  * The input used to be `canonical_block_states.nbt`, a third party dump extracted with a
@@ -18,8 +19,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+import { versionsOf } from './versions.js';
+
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const manifest = JSON.parse(fs.readFileSync(path.join(HERE, 'manifest.json'), 'utf8'));
+const SRC_DIR = path.join(HERE, '..', 'src');
 
 /**
  * A value's type, as the catalog names it.
@@ -39,81 +43,109 @@ const typeOf = (value) => {
 /** Booleans travel as 0 and 1; everything else is already what it will be. */
 const toWire = (value) => (typeof value === 'boolean' ? Number(value) : value);
 
-const source = path.resolve(HERE, manifest.blocks.source);
-if (!fs.existsSync(source)) {
-    console.error(
-        `Missing ${source}. It is captured from a Bedrock Dedicated Server - see ` +
-            `datagen/README-palette.md, which is also what to follow to refresh it for a new version.`
-    );
-    process.exit(1);
+for (const version of versionsOf(manifest, HERE)) {
+    console.log(`Protocol ${version.protocol}:`);
+    generateVersion(version);
 }
 
-const capture = JSON.parse(fs.readFileSync(source, 'utf8'));
-
-const blocks = {};
-let stateCount = 0;
-
-/**
- * The two halves, joined by the rule that separates them.
- *
- * Which properties a block has comes from `states` - the saved world, which stores what the
- * network carries. Which values each takes comes from `domains` - the game, asked block by
- * block. Taking the property list from the game instead would add the legacy properties a
- * flattened block still answers for, and every state built on one hashes to a runtime id no
- * client recognizes.
- */
-for (const [name, states] of Object.entries(capture.states).sort(([a], [b]) => a.localeCompare(b))) {
-    const domains = capture.domains[name];
-    if (domains === undefined) throw new Error(`${name} was saved to the world but the game did not describe it`);
-
-    const properties = {};
-    let permutations = 1;
-
-    for (const property of Object.keys(states).sort()) {
-        const domain = domains[property];
-        if (domain === undefined)
-            throw new Error(`${name} carries ${property} on the wire but the game has no values for it`);
-
-        properties[property] = {
-            type: typeOf(domain.default),
-            values: domain.values.map(toWire),
-            default: toWire(domain.default)
-        };
-
-        permutations *= domain.values.length;
+function generateVersion({ protocol, config, isDefault }) {
+    const source = path.resolve(HERE, config.blocks.source);
+    if (!fs.existsSync(source)) {
+        console.error(
+            `Missing ${source}. It is captured from a Bedrock Dedicated Server - see ` +
+                `datagen/README-palette.md, which is also what to follow to refresh it for a new version.`
+        );
+        process.exit(1);
     }
 
-    blocks[name] = { properties };
-    stateCount += permutations;
+    const capture = JSON.parse(fs.readFileSync(source, 'utf8'));
+
+    const blocks = {};
+    let stateCount = 0;
+
+    /**
+     * The two halves, joined by the rule that separates them.
+     *
+     * Which properties a block has comes from `states` - the saved world, which stores what the
+     * network carries. Which values each takes comes from `domains` - the game, asked block by
+     * block. Taking the property list from the game instead would add the legacy properties a
+     * flattened block still answers for, and every state built on one hashes to a runtime id no
+     * client recognizes.
+     */
+    for (const [name, states] of Object.entries(capture.states).sort(([a], [b]) => a.localeCompare(b))) {
+        const domains = capture.domains[name];
+        if (domains === undefined) throw new Error(`${name} was saved to the world but the game did not describe it`);
+
+        const properties = {};
+        let permutations = 1;
+
+        for (const property of Object.keys(states).sort()) {
+            const domain = domains[property];
+            if (domain === undefined)
+                throw new Error(`${name} carries ${property} on the wire but the game has no values for it`);
+
+            properties[property] = {
+                type: typeOf(domain.default),
+                values: domain.values.map(toWire),
+                default: toWire(domain.default)
+            };
+
+            permutations *= domain.values.length;
+        }
+
+        blocks[name] = { properties };
+        stateCount += permutations;
+    }
+
+    const output = {
+        $comment:
+            'Generated by packages/minecraft/datagen/generate-blocks.js - do not edit. Change the ' +
+            'manifest and run `pnpm generate:blocks`. Runtime ids are hashes of name+states, so this ' +
+            'describes what each block accepts; it is not an ordered palette and nothing depends on ' +
+            'the order of these keys.',
+        source: path.basename(source),
+        minecraftVersion: capture.minecraftVersion,
+        blockCount: Object.keys(blocks).length,
+        stateCount,
+        blocks
+    };
+
+    const target = path.resolve(HERE, config.blocks.target);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    // The catalog type lives at `src/BlockSchemaCatalog`, and the output may be any depth under
+    // `src/`, so the import is computed rather than spelled.
+    const catalogImport = path
+        .relative(path.dirname(target), path.join(SRC_DIR, 'BlockSchemaCatalog'))
+        .split(path.sep)
+        .join('/');
+    // A TypeScript module with an explicit type rather than raw JSON: imported JSON would carry
+    // a literal type spanning every block, which consumers and ahead-of-time compilation cannot use.
+    fs.writeFileSync(
+        target,
+        [
+            '// Generated by datagen/generate-blocks.js. Do not edit.',
+            `import type { BlockSchemaCatalog } from '${catalogImport}';`,
+            '',
+            `export const blockSchemas: BlockSchemaCatalog = ${JSON.stringify(output, null, 2)};`,
+            ''
+        ].join('\n')
+    );
+
+    console.log(`Wrote ${path.relative(process.cwd(), target)}`);
+    console.log(`  ${output.blockCount} blocks, ${stateCount} states, from ${capture.server}`);
+
+    // The default version answers the unversioned path, so `generated/block-schemas` keeps
+    // resolving without duplicating the 400 KB catalog.
+    if (isDefault) {
+        fs.writeFileSync(
+            path.join(SRC_DIR, 'generated', 'block-schemas.ts'),
+            [
+                '// Generated by datagen/generate-blocks.js. Do not edit.',
+                `// Re-exports the default protocol version, ${protocol}.`,
+                `export * from './v${protocol}/block-schemas';`,
+                ''
+            ].join('\n')
+        );
+        console.log('  re-exported at the unversioned path');
+    }
 }
-
-const output = {
-    $comment:
-        'Generated by packages/minecraft/datagen/generate-blocks.js - do not edit. Change the ' +
-        'manifest and run `pnpm generate:blocks`. Runtime ids are hashes of name+states, so this ' +
-        'describes what each block accepts; it is not an ordered palette and nothing depends on ' +
-        'the order of these keys.',
-    source: path.basename(source),
-    minecraftVersion: capture.minecraftVersion,
-    blockCount: Object.keys(blocks).length,
-    stateCount,
-    blocks
-};
-
-const target = path.resolve(HERE, manifest.blocks.target);
-fs.mkdirSync(path.dirname(target), { recursive: true });
-// A TypeScript module with an explicit type rather than raw JSON: imported JSON would carry
-// a literal type spanning every block, which consumers and ahead-of-time compilation cannot use.
-fs.writeFileSync(
-    target,
-    [
-        '// Generated by datagen/generate-blocks.js. Do not edit.',
-        "import type { BlockSchemaCatalog } from '../BlockSchemaCatalog';",
-        '',
-        `export const blockSchemas: BlockSchemaCatalog = ${JSON.stringify(output, null, 2)};`,
-        ''
-    ].join('\n')
-);
-
-console.log(`Wrote ${path.relative(process.cwd(), target)}`);
-console.log(`  ${output.blockCount} blocks, ${stateCount} states, from ${capture.server}`);

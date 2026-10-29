@@ -18,59 +18,152 @@
         "Everything is pinned to a hash because Mojang deletes what it published: the branches",
         "that carried `enums.html` were gone within a month of this project pinning one. The",
         "pin is what makes a build reproducible after that happens, and the cached copy beside",
-        "it is the only one there will be."
+        "it is the only one there will be.",
+        "",
+        "`versions` declares every protocol release this package generates data for, keyed by",
+        "network protocol version. Each entry carries the pins and paths that are specific to",
+        "that release; `thresholds`, `enums`, `unmapped` and `rules` are shared policy that",
+        "holds across versions. Generated output lands in `src/generated/v<protocol>/`, and the",
+        "version named by `defaultProtocolVersion` is also re-exported at the unversioned",
+        "`src/generated/` paths so existing imports keep working."
     ],
-    "schemas": {
-        "$comment": [
-            "The release this package targets: `metadata.zip` from the GitHub release of that",
-            "version, hashed. Its schemas list each enum's members without values - `GameType`",
-            "is `Undefined, Survival, ...` and nothing says `Undefined` is -1 - so the values are",
-            "read from `values`, the first later release whose schemas carry them as",
-            "`x-enum-binary-value`. The two agree on every member they share; every member of the",
-            "release that the values release lacks fails the import rather than being guessed.",
-            "",
-            "1.26.50 and 1.26.51 are the same protocol, 2193; the hotfix is read because it is",
-            "what a client of this version runs. The values come from the 1.26.60 preview, 2211,",
-            "which is where `x-enum-binary-value` first appeared.",
-            "",
-            "`schemaNames` maps an upstream enum name to the schema file that describes it where",
-            "the two differ: the documentation flattens `A::B` to `A__B` for most, and to something",
-            "else for a few."
-        ],
-        "repo": "Mojang/bedrock-protocol-docs",
-        "release": "v1.26.51",
-        "asset": "metadata.zip",
-        "sha256": "a364a6f6a4ff3da35e564f94a5089c74703df6fa6bd6bed8555d364c9d9b207f",
-        "minecraftVersion": "1.26.51",
-        "networkProtocolVersion": 2193,
-        "values": {
-            "release": "v1.26.60-preview.25",
-            "asset": "metadata.zip",
-            "sha256": "fa548575d5249ce7dcb54832a964624ed785ceb89270926bedeecb499ad5eee8",
-            "networkProtocolVersion": 2211
-        },
-        "schemaNames": {
-            "SharedTypes::Legacy::LevelSoundEvent": "LevelSoundEvent",
-            "SetTitlePacket::TitleType": "SetTitlePacket_TitleType"
+    "defaultProtocolVersion": 2193,
+    "versions": {
+        "2193": {
+            "$comment": [
+                "One protocol release: the pins and paths everything about this version is built from.",
+                "Paths under `snapshot/` and `../src/generated/` stay inside this version's `v<protocol>`",
+                "directory, so versions never write over each other."
+            ],
+            "schemas": {
+                "$comment": [
+                    "The release this package targets: `metadata.zip` from the GitHub release of that",
+                    "version, hashed. Its schemas list each enum's members without values - `GameType`",
+                    "is `Undefined, Survival, ...` and nothing says `Undefined` is -1 - so the values are",
+                    "read from `values`, the first later release whose schemas carry them as",
+                    "`x-enum-binary-value`. The two agree on every member they share; every member of the",
+                    "release that the values release lacks fails the import rather than being guessed.",
+                    "",
+                    "1.26.50 and 1.26.51 are the same protocol, 2193; the hotfix is read because it is",
+                    "what a client of this version runs. The values come from the 1.26.60 preview, 2211,",
+                    "which is where `x-enum-binary-value` first appeared.",
+                    "",
+                    "`schemaNames` maps an upstream enum name to the schema file that describes it where",
+                    "the two differ: the documentation flattens `A::B` to `A__B` for most, and to something",
+                    "else for a few."
+                ],
+                "repo": "Mojang/bedrock-protocol-docs",
+                "release": "v1.26.51",
+                "asset": "metadata.zip",
+                "sha256": "a364a6f6a4ff3da35e564f94a5089c74703df6fa6bd6bed8555d364c9d9b207f",
+                "minecraftVersion": "1.26.51",
+                "networkProtocolVersion": 2193,
+                "values": {
+                    "release": "v1.26.60-preview.25",
+                    "asset": "metadata.zip",
+                    "sha256": "fa548575d5249ce7dcb54832a964624ed785ceb89270926bedeecb499ad5eee8",
+                    "networkProtocolVersion": 2211
+                },
+                "schemaNames": {
+                    "SharedTypes::Legacy::LevelSoundEvent": "LevelSoundEvent",
+                    "SetTitlePacket::TitleType": "SetTitlePacket_TitleType"
+                }
+            },
+            "source": {
+                "$comment": [
+                    "The last `enums.html` Mojang published, from the 1.26.40 build: every enum in the",
+                    "game, with values, which the JSON schemas above do not have and do not cover. Read",
+                    "for the enums `snapshot/enums.json` lists as absent, and nothing else.",
+                    "",
+                    "Pinned to the commit, not the branch, and the branch is gone now: `automated/1.26.40`",
+                    "was deleted along with the rest of the `automated/*` family when the repository moved",
+                    "to publishing releases. The cached copy in `snapshot/` is the only one there is."
+                ],
+                "repo": "Mojang/bedrock-protocol-docs",
+                "ref": "0e00fe80f4f3c71572ff6429de40146d1f4412fc",
+                "branch": "automated/1.26.40",
+                "path": "html/enums.html",
+                "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
+                "minecraftVersion": "1.26.40",
+                "networkProtocolVersion": 2168
+            },
+            "blocks": {
+                "$comment": [
+                    "Where the block state catalog comes from and goes.",
+                    "",
+                    "Captured from a Bedrock Dedicated Server, in two halves, because neither half alone",
+                    "is the answer. The network palette is not on the wire - with hashed runtime ids",
+                    "StartGamePacket carries only custom blocks - and the Script API answers a different",
+                    "question: it reports the game's internal blocks, where a flattened name still carries",
+                    "its legacy states, 56957 of them against the 17487 the network has.",
+                    "",
+                    "So: which properties a block has comes from a *saved world*, whose sub chunk palettes",
+                    "store exactly what the network carries; which values each takes comes from the game,",
+                    "asked block by block rather than by property name - `age` is declared 0..15 game wide",
+                    "and cocoa takes 0..2.",
+                    "",
+                    "Validated against the third party dump this replaced: of 1218 blocks present in both,",
+                    "1186 have identical property sets and the other 32 differ by one real rename",
+                    "(`direction` became `minecraft:cardinal_direction`). Every shared property's values",
+                    "agree exactly. `README-palette.md` is how to capture it again.",
+                    "",
+                    "Nothing in this package comes from pmmp/BedrockData any more; that repository was",
+                    "archived at 1.26.30. This was the capture that needed a native mod hooking the",
+                    "server binary."
+                ],
+                "source": "snapshot/v2193/block-palette.json",
+                "target": "../src/generated/v2193/block-schemas.ts"
+            },
+            "recipes": {
+                "$comment": [
+                    "Mojang's own recipe files, from an unpacked Bedrock Dedicated Server of the version pinned",
+                    "above. Not a third party's processed dump: these agree with the item table the same server",
+                    "sends, which the dump they replaced did not - it disagreed with its own companion item map",
+                    "for 58% of the names it used, and the recipe for a plank was dropped for it.",
+                    "",
+                    "`bedrockServer` is a local path and the one thing here not in the repository: BDS is 58 MB",
+                    "and Mojang's to distribute. Download the version above, unpack it, and point this at it,",
+                    "or pass the path in `BEDROCK_SERVER` without editing this file. The output is committed,",
+                    "so this is only needed to regenerate.",
+                    "",
+                    "`itemAliases` brings the legacy names those files still use up to the ones the item table",
+                    "knows - `reeds` for sugar cane, `sign` for an oak sign. Without it 52 recipes name something",
+                    "no item table can resolve and are dropped."
+                ],
+                "bedrockServer": "/path/to/bedrock-server-1.26.51.1",
+                "$source": [
+                    "The behavior pack directory, not one pack's recipes: BDS ships a 1.13 baseline in",
+                    "`vanilla` and a layer per release on top, and the game composes them. The generator",
+                    "reads `vanilla` and every `vanilla_<version>` up to the version pinned above, later",
+                    "layers winning. `chemistry` and `experimental_` are not layers and are excluded."
+                ],
+                "source": "behavior_packs",
+                "$itemAliases": [
+                    "pmmp/BedrockData at tag `bedrock-1.26.30`, vendored into bedrock-data because that",
+                    "repository was archived and the submodule it used to be now points elsewhere. The",
+                    "newer map covers `minecraft:chain`, which used to need an override beside it."
+                ],
+                "itemAliases": "../../bedrock-data/src/vendor/r16_to_current_item_map.json",
+                "$itemAliasOverrides": [
+                    "What the alias map above does not cover. Kept here rather than patched into the output,",
+                    "so regenerating cannot quietly lose it - and listed one by one, so a name that stops being",
+                    "needed is visible instead of hiding inside a rule."
+                ],
+                "itemAliasOverrides": {
+                    "minecraft:muttonCooked": "minecraft:cooked_mutton",
+                    "minecraft:muttonRaw": "minecraft:mutton"
+                },
+                "idAliases": {
+                    "$comment": [
+                        "Source recipe IDs used as public IDs in the game packet. These are renamed here",
+                        "so source updates keep the server's American spellings without changing item names."
+                    ],
+                    "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulfur_recipeId",
+                    "crafting_table/minecraft:FireCharge_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_coal_sulfur_recipeId"
+                },
+                "target": "../src/generated/v2193/recipes.json"
+            }
         }
-    },
-    "source": {
-        "$comment": [
-            "The last `enums.html` Mojang published, from the 1.26.40 build: every enum in the",
-            "game, with values, which the JSON schemas above do not have and do not cover. Read",
-            "for the enums `snapshot/enums.json` lists as absent, and nothing else.",
-            "",
-            "Pinned to the commit, not the branch, and the branch is gone now: `automated/1.26.40`",
-            "was deleted along with the rest of the `automated/*` family when the repository moved",
-            "to publishing releases. The cached copy in `snapshot/` is the only one there is."
-        ],
-        "repo": "Mojang/bedrock-protocol-docs",
-        "ref": "0e00fe80f4f3c71572ff6429de40146d1f4412fc",
-        "branch": "automated/1.26.40",
-        "path": "html/enums.html",
-        "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
-        "minecraftVersion": "1.26.40",
-        "networkProtocolVersion": 2168
     },
     "thresholds": {
         "$comment": "A parser that quietly returns a subset is worse than one that stops. If the document changes shape these fail the run instead of producing a small, plausible diff.",
@@ -296,81 +389,5 @@
         "LevelSoundEvent": {
             "names": true
         }
-    },
-    "blocks": {
-        "$comment": [
-            "Where the block state catalog comes from and goes.",
-            "",
-            "Captured from a Bedrock Dedicated Server, in two halves, because neither half alone",
-            "is the answer. The network palette is not on the wire - with hashed runtime ids",
-            "StartGamePacket carries only custom blocks - and the Script API answers a different",
-            "question: it reports the game's internal blocks, where a flattened name still carries",
-            "its legacy states, 56957 of them against the 17487 the network has.",
-            "",
-            "So: which properties a block has comes from a *saved world*, whose sub chunk palettes",
-            "store exactly what the network carries; which values each takes comes from the game,",
-            "asked block by block rather than by property name - `age` is declared 0..15 game wide",
-            "and cocoa takes 0..2.",
-            "",
-            "Validated against the third party dump this replaced: of 1218 blocks present in both,",
-            "1186 have identical property sets and the other 32 differ by one real rename",
-            "(`direction` became `minecraft:cardinal_direction`). Every shared property's values",
-            "agree exactly. `README-palette.md` is how to capture it again.",
-            "",
-            "Nothing in this package comes from pmmp/BedrockData any more; that repository was",
-            "archived at 1.26.30. This was the capture that needed a native mod hooking the",
-            "server binary."
-        ],
-        "source": "snapshot/block-palette.json",
-        "target": "../src/generated/block-schemas.ts"
-    },
-    "recipes": {
-        "$comment": [
-            "Mojang's own recipe files, from an unpacked Bedrock Dedicated Server of the version pinned",
-            "above. Not a third party's processed dump: these agree with the item table the same server",
-            "sends, which the dump they replaced did not - it disagreed with its own companion item map",
-            "for 58% of the names it used, and the recipe for a plank was dropped for it.",
-            "",
-            "`bedrockServer` is a local path and the one thing here not in the repository: BDS is 58 MB",
-            "and Mojang's to distribute. Download the version above, unpack it, and point this at it,",
-            "or pass the path in `BEDROCK_SERVER` without editing this file. The output is committed,",
-            "so this is only needed to regenerate.",
-            "",
-            "`itemAliases` brings the legacy names those files still use up to the ones the item table",
-            "knows - `reeds` for sugar cane, `sign` for an oak sign. Without it 52 recipes name something",
-            "no item table can resolve and are dropped."
-        ],
-        "bedrockServer": "/path/to/bedrock-server-1.26.51.1",
-        "$source": [
-            "The behavior pack directory, not one pack's recipes: BDS ships a 1.13 baseline in",
-            "`vanilla` and a layer per release on top, and the game composes them. The generator",
-            "reads `vanilla` and every `vanilla_<version>` up to the version pinned above, later",
-            "layers winning. `chemistry` and `experimental_` are not layers and are excluded."
-        ],
-        "source": "behavior_packs",
-        "$itemAliases": [
-            "pmmp/BedrockData at tag `bedrock-1.26.30`, vendored into bedrock-data because that",
-            "repository was archived and the submodule it used to be now points elsewhere. The",
-            "newer map covers `minecraft:chain`, which used to need an override beside it."
-        ],
-        "itemAliases": "../../bedrock-data/src/vendor/r16_to_current_item_map.json",
-        "$itemAliasOverrides": [
-            "What the alias map above does not cover. Kept here rather than patched into the output,",
-            "so regenerating cannot quietly lose it - and listed one by one, so a name that stops being",
-            "needed is visible instead of hiding inside a rule."
-        ],
-        "itemAliasOverrides": {
-            "minecraft:muttonCooked": "minecraft:cooked_mutton",
-            "minecraft:muttonRaw": "minecraft:mutton"
-        },
-        "idAliases": {
-            "$comment": [
-                "Source recipe IDs used as public IDs in the game packet. These are renamed here",
-                "so source updates keep the server's American spellings without changing item names."
-            ],
-            "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulfur_recipeId",
-            "crafting_table/minecraft:FireCharge_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_coal_sulfur_recipeId"
-        },
-        "target": "../src/generated/recipes.json"
     }
 }
