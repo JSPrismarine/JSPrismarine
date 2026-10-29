@@ -1031,6 +1031,9 @@ importers:
       '@jsprismarine/bedrock-data':
         specifier: workspace:*
         version: link:../bedrock-data
+      '@jsprismarine/minecraft':
+        specifier: workspace:*
+        version: link:../minecraft
       '@jsprismarine/packs':
         specifier: workspace:*
         version: link:../packs

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+
+import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 import {
     BEDROCK_ONLY_BLOCKS,
@@ -11,12 +11,11 @@ import {
 } from './blockProperties';
 import blockPropertiesJson from './tables/blockProperties.json';
 
-const packageDir = dirname(fileURLToPath(import.meta.url));
-
 // The pinned BDS palette capture; parsed JSON, shape documented in the generator.
-const palette = JSON.parse(
-    readFileSync(join(packageDir, '../../minecraft/datagen/snapshot/block-palette.json'), 'utf8')
-) as { minecraftVersion: string; states: Record<string, string[]> };
+const palette = JSON.parse(readFileSync(blockPaletteSnapshotPath(), 'utf8')) as {
+    minecraftVersion: string;
+    states: Record<string, string[]>;
+};
 
 // The committed table; parsed JSON, shape documented in blockProperties.ts.
 const table = blockPropertiesJson as unknown as {

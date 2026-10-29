@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
 import BinaryStream from '@jsprismarine/binaryutils';
+import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 import type { ClimateEntry } from '@jsprismarine/worldgen';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 
@@ -29,7 +30,6 @@ const packageRoot = (name: string): string => dirname(require.resolve(`${name}/p
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf-8'));
 
 const bedrockDataRoot = packageRoot('@jsprismarine/bedrock-data');
-const minecraftRoot = packageRoot('@jsprismarine/minecraft');
 
 /** The block palette capture: the one state capture records per block, and what each property accepts. */
 export interface BlockPaletteCapture {
@@ -44,15 +44,11 @@ export interface BlockPaletteCapture {
 }
 
 /** Reads the block palette captured from a Bedrock Dedicated Server (datagen snapshot). */
-export const loadBlockPaletteCapture = (): BlockPaletteCapture => {
-    // The datagen snapshots live under a directory per protocol version; the comparison reads
-    // the version the package generates its unversioned exports from.
-    // Parsed JSON has no type the compiler can see; these are its documented shapes.
-    const manifest = readJson(join(minecraftRoot, 'datagen/manifest.json')) as { defaultProtocolVersion: number };
-    return readJson(
-        join(minecraftRoot, `datagen/snapshot/v${manifest.defaultProtocolVersion}/block-palette.json`)
-    ) as BlockPaletteCapture;
-};
+export const loadBlockPaletteCapture = (): BlockPaletteCapture =>
+    // The datagen manifest decides which protocol version's snapshot the unversioned exports
+    // are generated from, and where it sits.
+    // Parsed JSON has no type the compiler can see; this is its documented shape.
+    readJson(blockPaletteSnapshotPath()) as BlockPaletteCapture;
 
 /** One item as `required_item_list.json` records it. */
 export interface RequiredItemEntry {

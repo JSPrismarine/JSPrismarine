@@ -20,6 +20,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
+
 import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES, UNTRANSLATED_REGISTRIES } from '../../src/lossList.ts';
 import { SERVER_SIDE_REGISTRIES } from '../../src/packRegistries.ts';
 import type { JavaNbtCompound } from './java-nbt.ts';
@@ -148,7 +150,7 @@ interface PaletteFile {
     domains: Record<string, Record<string, { values: (string | number | boolean)[] }>>;
 }
 // The repository's own BDS capture; see packages/minecraft/datagen/README-palette.md.
-const palette = readJson(join(repoRoot, 'packages/minecraft/datagen/snapshot/block-palette.json')) as PaletteFile;
+const palette = readJson(blockPaletteSnapshotPath()) as PaletteFile;
 const bedrockVersion = palette.minecraftVersion;
 
 interface GeyserBlockEntry {

@@ -61,6 +61,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/mapping",
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
+        "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@types/node": "24.19.2",
         "glob": "13.0.6",

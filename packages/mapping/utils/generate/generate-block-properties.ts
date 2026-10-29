@@ -18,6 +18,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
+
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repoRoot = resolve(packageDir, '../..');
 
@@ -95,7 +97,7 @@ interface PaletteFile {
 }
 
 // The repository's own BDS capture; see packages/minecraft/datagen/README-palette.md.
-const palette = readJson(join(repoRoot, 'packages/minecraft/datagen/snapshot/block-palette.json')) as PaletteFile;
+const palette = readJson(blockPaletteSnapshotPath()) as PaletteFile;
 
 // ---------------------------------------------------------------------------
 // Flattening

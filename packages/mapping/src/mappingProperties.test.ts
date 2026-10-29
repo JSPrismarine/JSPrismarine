@@ -19,6 +19,7 @@
 import { readFileSync } from 'node:fs';
 
 import { entity_identifiers, item_table } from '@jsprismarine/bedrock-data';
+import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 import { describe, expect, it } from 'vitest';
 
 import { javaBlockStateToBedrock } from './blockMapping';
@@ -54,9 +55,7 @@ interface PaletteFile {
     domains: Record<string, Record<string, { values: (string | number | boolean)[] }>>;
 }
 // The repository's own BDS capture is parsed JSON.
-const bedrockPalette = JSON.parse(
-    readFileSync(new URL('../../minecraft/datagen/snapshot/block-palette.json', import.meta.url), 'utf8')
-) as PaletteFile;
+const bedrockPalette = JSON.parse(readFileSync(blockPaletteSnapshotPath(), 'utf8')) as PaletteFile;
 
 const normalize = (value: string | number | boolean): string | number =>
     typeof value === 'boolean' ? Number(value) : value;
