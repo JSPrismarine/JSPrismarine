@@ -355,8 +355,26 @@ const main = () => {
     for (const version of versionsOf(manifest, HERE)) {
         console.log(`Protocol ${version.protocol}:`);
         config = version.config;
+
+        // A version may be declared for its enums before anyone has run a server of it. Writing
+        // an empty recipe book would read as "this version crafts nothing", so skip instead -
+        // except for the default version, whose output is this package's unversioned export.
+        if (config.recipes === undefined) {
+            const message =
+                `Protocol ${version.protocol} declares no recipes. Unpack a server of it, then add ` +
+                `a \`recipes\` entry to its manifest version shaped like the default version's:\n` +
+                `${howToUnpack(version.protocol)}`;
+            if (!version.isDefault) {
+                console.warn(`  skipped. ${message}`);
+                continue;
+            }
+
+            console.error(message);
+            process.exit(1);
+        }
+
         aliases = JSON.parse(fs.readFileSync(path.resolve(HERE, config.recipes.itemAliases), 'utf8'));
-        generateVersion(version.protocol);
+        generateVersion(version.protocol, version.isDefault);
     }
 };
 
@@ -376,17 +394,25 @@ const serverRoot = (protocol) => {
     return path.resolve(HERE, '../../../node_modules/.cache/jsprismarine/bds', `v${protocol}`, 'unpacked');
 };
 
-const generateVersion = (protocol) => {
+/** What to run to put an unpacked server of one version where this reads it. */
+const howToUnpack = (protocol) =>
+    `  pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol ${protocol}\n` +
+    `  pnpm --filter @jsprismarine/minecraft run generate:recipes\n` +
+    'Or point `BEDROCK_SERVER` at an unpacked Bedrock Dedicated Server of that version.';
+
+const generateVersion = (protocol, isDefault) => {
     const root = serverRoot(protocol);
     const layers = layersOf(root);
 
     if (layers.length === 0) {
-        console.error(
-            `No vanilla recipe layers under ${path.join(root, config.recipes.source)}.\n` +
-                'Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol ' +
-                `${protocol}\` to unpack the pinned server there, or point \`BEDROCK_SERVER\` at an ` +
-                `unpacked Bedrock Dedicated Server ${config.schemas.minecraftVersion}.`
-        );
+        const message =
+            `No vanilla recipe layers under ${path.join(root, config.recipes.source)}.\n` + `${howToUnpack(protocol)}`;
+        if (!isDefault) {
+            console.warn(`  skipped. ${message}`);
+            return;
+        }
+
+        console.error(message);
         process.exit(1);
     }
 

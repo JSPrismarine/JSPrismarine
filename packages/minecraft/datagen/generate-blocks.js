@@ -47,13 +47,48 @@ for (const version of versionsOf(manifest, HERE)) {
     generateVersion(version);
 }
 
+/**
+ * What to run to capture the palette for one version, as a maintainer would type it.
+ *
+ * Both halves come from a Bedrock Dedicated Server of that version, which only runs on Linux
+ * x86-64; `packages/bedrock-data/utils/bedrock-dump/runner.ts` runs it in a container from
+ * anywhere else.
+ */
+function howToCapture(protocol) {
+    return (
+        `  pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol ${protocol}\n` +
+        `  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette --protocol ${protocol}\n` +
+        `  pnpm --filter @jsprismarine/minecraft run generate:blocks\n` +
+        'See datagen/README-palette.md.'
+    );
+}
+
 function generateVersion({ protocol, config, isDefault }) {
+    // A version may be declared for its enums before anyone has run a server of it. Skipping is
+    // the honest answer there: an empty catalog would read as "this version has no blocks", and
+    // the default version's catalog is this package's unversioned export, so that one still fails.
+    if (config.blocks === undefined) {
+        const message =
+            `Protocol ${protocol} declares no block palette. Capture one, then add a \`blocks\` ` +
+            `entry to its manifest version shaped like the default version's:\n${howToCapture(protocol)}`;
+        if (!isDefault) {
+            console.warn(`  skipped. ${message}`);
+            return;
+        }
+
+        console.error(message);
+        process.exit(1);
+    }
+
     const source = path.resolve(HERE, config.blocks.source);
     if (!fs.existsSync(source)) {
-        console.error(
-            `Missing ${source}. It is captured from a Bedrock Dedicated Server - see ` +
-                `datagen/README-palette.md, which is also what to follow to refresh it for a new version.`
-        );
+        const message = `Missing ${source}.\n${howToCapture(protocol)}`;
+        if (!isDefault) {
+            console.warn(`  skipped. ${message}`);
+            return;
+        }
+
+        console.error(message);
         process.exit(1);
     }
 
