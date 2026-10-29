@@ -709,4 +709,9 @@ export class EntityRuntimes {
         this.byDimension.get(dimension)?.bodies.clear();
         this.byDimension.delete(dimension);
     }
+
+    /** Forgets every runtime, which is what a server shutdown does once the worlds are down. */
+    public closeAll(): void {
+        for (const dimension of [...this.byDimension.keys()]) this.close(dimension);
+    }
 }

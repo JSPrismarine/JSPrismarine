@@ -378,6 +378,17 @@ describe('serverWorldSource', () => {
         expect(saved?.spawnData).toEqual({ fuse: 80 });
     });
 
+    it('forgets every runtime and its bodies on closeAll, which is what shutdown does', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'fixture:robot');
+        const runtime = entityRuntimes.at(DIMENSION);
+        expect(runtime?.bodies.bodyOf(id)).toBeDefined();
+
+        entityRuntimes.closeAll();
+
+        expect(entityRuntimes.at(DIMENSION)).toBeUndefined();
+        expect(runtime?.bodies.bodyOf(id)).toBeUndefined();
+    });
+
     it('spawns a declared data entity with its source block payload', () => {
         const id = content.world.blockWorld
             .at(DIMENSION)
