@@ -355,9 +355,10 @@ Here is the whole loop: a datapack on disk, a macro, a tag, and watching it run.
 Functions come out of the pack stack, which every server builds, so the only setting involved is
 the one naming your pack. The paths resolve from the directory you start the server in.
 
-```yaml
-content-datapacks:
-    - worlds/world/datapacks/greeter
+```json
+{
+    "content-datapacks": ["worlds/world/datapacks/greeter"]
+}
 ```
 
 Lay the pack out the way a Java datapack 121 is laid out:

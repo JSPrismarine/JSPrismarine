@@ -546,7 +546,7 @@ Every server runs this, and there is no setting that turns it on or off. Nothing
 either: the 111 written entity classes, the 11 hand-written goals and the `MobSpawner` that used
 to place a dozen species near players are deleted, so a pack stack that will not load stops the
 server at startup rather than falling back to them. Behavior pack directories listed under
-`content-world-packs` in `config.yaml` load after the vanilla ones, and later packs replace
+`content-world-packs` in `config.json` load after the vanilla ones, and later packs replace
 earlier definitions whole; see [using-packs.md](using-packs.md) for the precedence rules.
 
 Two written classes remain: a dropped stack and `Human`, which is what a player is. TNT and falling

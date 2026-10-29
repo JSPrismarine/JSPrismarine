@@ -49,14 +49,16 @@ both registries route, so a datapack of yours can fill them.
 ## What the server loads at startup
 
 Every server builds its content from the pack stack, so everything on this page is running by
-default. There is no setting that turns it off. Three keys in `config.yaml` add to the stack and
+default. There is no setting that turns it off. Three keys in `config.json` add to the stack and
 decide what a broken pack does, and the server writes them with their comments the first time it
 starts:
 
-```yaml
-content-strict: false
-content-world-packs: []
-content-datapacks: []
+```json
+{
+    "content-strict": false,
+    "content-world-packs": [],
+    "content-datapacks": []
+}
 ```
 
 The two vanilla halves are fetched rather than shipped, so fetch them before the first run:
@@ -377,9 +379,10 @@ field of an enchantment. Ship the complete file you want.
 
 To add a datapack, point `content-datapacks` at its directory:
 
-```yaml
-content-datapacks:
-    - worlds/world/datapacks/gameplay-tweaks
+```json
+{
+    "content-datapacks": ["worlds/world/datapacks/gameplay-tweaks"]
+}
 ```
 
 Its `pack.mcmeta` has to cover data pack format 121.0, which is what Java 26.3 declares. Both the
