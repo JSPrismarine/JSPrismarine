@@ -214,6 +214,47 @@ describe('network', () => {
                 const [written] = decode(pk.getBuffer());
                 expect(written?.components.getCompound('item_properties', false)?.getNumber('damage', 0)).toBe(3);
             });
+
+            it('round-trips registry entries through its own decoder', () => {
+                const properties = new NBTTagCompound('item_properties');
+                properties.addValue('damage', new Types.NumberVal(3));
+                const components = new NBTTagCompound();
+                components.addValue('item_properties', properties);
+
+                const pk = new ItemRegistryPacket();
+                pk.entries = [
+                    {
+                        name: 'mypack:sword',
+                        runtimeId: 10001,
+                        componentBased: true,
+                        version: DATA_DRIVEN,
+                        componentData: components
+                    },
+                    {
+                        name: 'minecraft:stick',
+                        runtimeId: -268,
+                        componentBased: false,
+                        version: 2,
+                        componentData: new NBTTagCompound()
+                    }
+                ];
+                pk.encode();
+
+                const decoded = new ItemRegistryPacket(pk.getBuffer());
+                decoded.decode();
+
+                expect(decoded.entries).toHaveLength(2);
+                const [sword, stick] = decoded.entries!;
+                expect(sword!.name).toBe('mypack:sword');
+                expect(sword!.runtimeId).toBe(10001);
+                expect(sword!.componentBased).toBe(true);
+                expect(sword!.version).toBe(DATA_DRIVEN);
+                expect(sword!.componentData?.getCompound('item_properties', false)?.getNumber('damage', 0)).toBe(3);
+                expect(stick!.name).toBe('minecraft:stick');
+                expect(stick!.runtimeId).toBe(-268);
+                expect(stick!.componentBased).toBe(false);
+                expect(stick!.version).toBe(2);
+            });
         });
     });
 });

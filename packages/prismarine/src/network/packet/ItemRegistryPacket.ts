@@ -3,7 +3,6 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ItemData, NetworkBinaryStream } from '@jsprismarine/protocol';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 import type { ItemRegistryEntry } from '@jsprismarine/protocol';
@@ -40,8 +39,6 @@ const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
  * endian).
  */
 export default class ItemRegistryPacket extends DataPacket {
-    public static NetID = Identifiers.ItemRegistryPacket;
-
     /** Built once and kept. The table is identical for every player and every join. */
     private static cached: Buffer | null = null;
 
@@ -60,6 +57,25 @@ export default class ItemRegistryPacket extends DataPacket {
         this.write(
             this.entries === null ? ItemRegistryPacket.getTable() : ItemRegistryPacket.writeEntries(this.entries)
         );
+    }
+
+    /** Reads `Item Data` into {@link entries}, one `ItemData` per entry. */
+    public decodePayload(): void {
+        const stream = new NetworkBinaryStream(this.readRemaining());
+
+        const entries: ItemRegistryEntry[] = [];
+        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+            const data = ItemData.deserialize(stream);
+            entries.push({
+                name: data.itemName,
+                runtimeId: data.itemId,
+                componentBased: data.componentBased,
+                version: data.version,
+                componentData: data.componentData
+            });
+        }
+
+        this.entries = entries;
     }
 
     /** Writes one `ItemData` per entry, which is the layout the captured table is written in too. */
