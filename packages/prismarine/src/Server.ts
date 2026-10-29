@@ -6,7 +6,7 @@ import { ConsoleSender } from './command/ConsoleSender';
 import SessionManager from './SessionManager';
 import type BanManager from './ban/BanManager';
 import type { Random } from './utils/Random';
-import { ChatManager } from './chat/ChatManager';
+import type { ChatManager } from './chat/ChatManager';
 import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport';
 import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
@@ -35,8 +35,9 @@ import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
 import { permissionsModule } from './modules/permissions';
 import { recipesModule, stationsModule } from './modules/recipes';
-import { bansToken, permissionsToken, recipesToken, stationsToken } from './modules/tokens';
-import { QueryManager } from './query/QueryManager';
+import { socialModule } from './modules/social';
+import { bansToken, chatToken, permissionsToken, queryToken, recipesToken, stationsToken } from './modules/tokens';
+import type { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler, startProfileSpan } from './profiling/ServerProfiler';
@@ -151,9 +152,6 @@ export default class Server extends EventEmitter {
      * their own content build. Built on the first read, after content is available.
      */
     private readonly creativeInventory = new CreativeInventory(() => this.getContent());
-
-    private readonly queryManager: QueryManager;
-    private readonly chatManager: ChatManager;
 
     /** The source of chance for anything that rolls - see {@link Server.getRandom}. */
     private random: Random = Math.random;
@@ -290,8 +288,6 @@ export default class Server extends EventEmitter {
         this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this);
-        this.queryManager = new QueryManager(this);
-        this.chatManager = new ChatManager(this);
         this.kernel = this.buildKernel();
     }
 
@@ -308,6 +304,7 @@ export default class Server extends EventEmitter {
         kernel.register(recipesModule(this));
         kernel.register(stationsModule());
         kernel.register(bansModule(this));
+        kernel.register(socialModule(this));
         return kernel;
     }
 
@@ -489,7 +486,7 @@ export default class Server extends EventEmitter {
             createConnection: (connection) => new ClientConnection(connection, this.logger, this.getPacketLogFilter()),
             query: {
                 enabled: () => this.config.getEnableQuery(),
-                onRaw: (payload, address) => this.queryManager.onRaw(payload, address)
+                onRaw: (payload, address) => this.getQueryManager().onRaw(payload, address)
             }
         });
 
@@ -863,7 +860,7 @@ export default class Server extends EventEmitter {
      * @returns {QueryManager} The query manager.
      */
     public getQueryManager(): QueryManager {
-        return this.queryManager;
+        return this.kernel.get(queryToken);
     }
 
     /**
@@ -1029,7 +1026,7 @@ export default class Server extends EventEmitter {
      * @returns {ChatManager} The chat manager.
      */
     public getChatManager(): ChatManager {
-        return this.chatManager;
+        return this.kernel.get(chatToken);
     }
 
     /**
