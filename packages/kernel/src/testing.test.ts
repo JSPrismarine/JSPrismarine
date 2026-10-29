@@ -39,6 +39,26 @@ describe('startTestModule', () => {
         expect(sent).toStrictEqual(['42 hello']);
     });
 
+    it('restarts the module kernel after stop without re-registering', async () => {
+        const starts: string[] = [];
+        const restartable: Module = {
+            id: 'restartable',
+            register() {},
+            start() {
+                starts.push('start');
+            },
+            stop() {
+                starts.push('stop');
+            }
+        };
+        const handle = await startTestModule(restartable);
+        await handle.stop();
+        await handle.start();
+        await handle.stop();
+
+        expect(starts).toStrictEqual(['start', 'stop', 'start', 'stop']);
+    });
+
     it('fails when a declared dependency has no stub', async () => {
         await expect(startTestModule(chatModule([]))).rejects.toThrow(
             'Module "chat" depends on service "test:clock" but no registered module provides it'

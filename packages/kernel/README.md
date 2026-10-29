@@ -10,6 +10,12 @@ and does its I/O in `start()`. The kernel validates the dependency graph, starts
 dependency order, and stops them in reverse. A module can only `use()` tokens it declared, so the
 declared list is the real dependency graph, not documentation.
 
+A kernel is built once and restarted freely: `registerAll()` runs every `register()` phase exactly
+once (and `get()` resolves provided services from then on), `start()` runs it first when needed and
+then runs the start phases, and `stop()` returns the kernel to the registered state so `start()`
+may run again. Module services carry over across restarts; listeners a module needs after a
+restart belong in `start()`, since the bus detaches a module's listeners when it stops.
+
 ```typescript
 import { createToken, Kernel } from '@jsprismarine/kernel';
 

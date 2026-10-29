@@ -107,7 +107,65 @@ describe('Kernel lifecycle', () => {
         await kernel.start();
 
         await expect(kernel.start()).rejects.toThrow(KernelError);
-        expect(() => kernel.register({ id: 'late', register() {} })).toThrow(/after the kernel has started/);
+        expect(() => kernel.register({ id: 'late', register() {} })).toThrow(/after the kernel has run registerAll/);
+    });
+
+    it('resolves provided services after registerAll() without starting', async () => {
+        const calls: string[] = [];
+        const kernel = new Kernel();
+        kernel.register(provider('a', aToken, calls));
+        await kernel.registerAll();
+
+        expect(kernel.get(aToken).name()).toBe('a');
+        expect(calls).toStrictEqual(['a:register']);
+        expect(() => kernel.register({ id: 'late', register() {} })).toThrow(/after the kernel has run registerAll/);
+    });
+
+    it('registerAll() is a no-op after the first run', async () => {
+        const calls: string[] = [];
+        const kernel = new Kernel();
+        kernel.register(provider('a', aToken, calls));
+        await kernel.registerAll();
+        await kernel.registerAll();
+        await kernel.start();
+
+        expect(calls).toStrictEqual(['a:register', 'a:start']);
+    });
+
+    it('restarts after stop without rerunning register phases', async () => {
+        const calls: string[] = [];
+        const kernel = new Kernel();
+        kernel.register(provider('a', aToken, calls));
+        kernel.register(provider('b', bToken, calls, [aToken]));
+        await kernel.start();
+        await kernel.stop();
+        await kernel.start();
+        await kernel.stop();
+
+        expect(calls).toStrictEqual([
+            'a:register',
+            'b:register',
+            'a:start',
+            'b:start',
+            'b:stop',
+            'a:stop',
+            'a:start',
+            'b:start',
+            'b:stop',
+            'a:stop'
+        ]);
+        expect(kernel.get(aToken).name()).toBe('a');
+    });
+
+    it('treats stop() before start as a no-op', async () => {
+        const calls: string[] = [];
+        const kernel = new Kernel();
+        kernel.register(provider('a', aToken, calls));
+        await kernel.stop();
+        await kernel.registerAll();
+        await kernel.stop();
+
+        expect(calls).toStrictEqual(['a:register']);
     });
 
     it('rejects duplicate module ids', () => {

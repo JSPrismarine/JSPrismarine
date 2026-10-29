@@ -45,8 +45,10 @@ export interface TestModuleHandle<Events extends EventMap> {
     readonly events: EventBus<Events>;
     /** Resolves a service from the kernel, e.g. one the module provided. */
     get<T>(token: ServiceToken<T>): T;
-    /** Stops the kernel. */
+    /** Stops the kernel. Call `start()` afterwards to exercise a restart. */
     stop(): Promise<void>;
+    /** Starts the kernel again after `stop()`, without rerunning register phases. */
+    start(): Promise<void>;
 }
 
 /**
@@ -86,6 +88,7 @@ export async function startTestModule<Config, Events extends EventMap>(
         kernel,
         events: kernel.events,
         get: (token) => kernel.get(token),
-        stop: () => kernel.stop()
+        stop: () => kernel.stop(),
+        start: () => kernel.start()
     };
 }

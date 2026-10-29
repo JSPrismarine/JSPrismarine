@@ -23,7 +23,7 @@ export interface KernelOptions {
     readonly logger?: KernelLogger;
 }
 
-type KernelPhase = 'created' | 'starting' | 'started' | 'stopped';
+type KernelPhase = 'created' | 'registered' | 'starting' | 'started';
 
 interface ModuleEntry<Events extends EventMap> {
     readonly module: Module<unknown, Events>;
@@ -36,9 +36,17 @@ interface ModuleEntry<Events extends EventMap> {
  * event bus; everything else — worlds, sessions, commands, networking, the tick
  * loop — is a module.
  *
- * `start()` runs every module's `register()` phase, validates the dependency
- * graph, then runs `start()` phases in dependency order. `stop()` runs `stop()`
- * phases in reverse order, logging failures instead of throwing.
+ * Lifecycle: construct the kernel once, `register()` modules, then drive it
+ * through `registerAll()`, `start()`, and `stop()`. `registerAll()` runs every
+ * module's `register()` phase exactly once and validates providers and the
+ * dependency graph; after it, `get()` resolves provided services. `start()`
+ * runs `registerAll()` first when it has not run, then runs the `start()`
+ * phases in dependency order. `stop()` runs `stop()` phases in reverse order,
+ * logging failures instead of throwing, and returns the kernel to the
+ * registered state, so the same kernel — and the services its modules
+ * constructed — can be started again. Event listeners a module attaches are
+ * detached when it stops; a module that must survive a restart attaches its
+ * listeners in `start()`, not `register()`.
  */
 export class Kernel<Events extends EventMap = EventMap> {
     private readonly entries: ModuleEntry<Events>[] = [];
@@ -62,13 +70,14 @@ export class Kernel<Events extends EventMap = EventMap> {
     }
 
     /**
-     * Adds a module. Legal only before `start()`.
+     * Adds a module. Legal only before `registerAll()` (or the first `start()`,
+     * which runs it).
      *
-     * @throws KernelError after `start()` or when a module with the same id is already registered.
+     * @throws KernelError after `registerAll()` or when a module with the same id is already registered.
      */
     public register<Config>(module: Module<Config, Events>): void {
         if (this.phase !== 'created') {
-            throw new KernelError(`Cannot register module "${module.id}" after the kernel has started`);
+            throw new KernelError(`Cannot register module "${module.id}" after the kernel has run registerAll()`);
         }
         if (this.entries.some((entry) => entry.module.id === module.id)) {
             throw new KernelError(`A module with id "${module.id}" is already registered`);
@@ -84,15 +93,14 @@ export class Kernel<Events extends EventMap = EventMap> {
 
     /**
      * Runs all `register()` phases, validates providers and the dependency
-     * graph, then runs `start()` phases in dependency order.
+     * graph, and computes the start order. After it resolves, `get()` resolves
+     * every provided service even though `start()` has not run. Runs at most
+     * once per kernel; later calls are no-ops.
      *
      * @throws KernelError when a declared dependency has no provider or the dependency graph has a cycle.
      */
-    public async start(): Promise<void> {
-        if (this.phase !== 'created') {
-            throw new KernelError(`Kernel can only start once (current phase: ${this.phase})`);
-        }
-        this.phase = 'starting';
+    public async registerAll(): Promise<void> {
+        if (this.phase !== 'created') return;
         for (const entry of this.entries) {
             this.registering = entry.module.id;
             try {
@@ -103,6 +111,24 @@ export class Kernel<Events extends EventMap = EventMap> {
         }
         this.assertProvidersExist();
         this.startOrder = this.sortByDependencies();
+        this.phase = 'registered';
+    }
+
+    /**
+     * Runs `registerAll()` when it has not run, then runs `start()` phases in
+     * dependency order. Legal again after `stop()`: the `register()` phases do
+     * not rerun, so the modules' services carry over into the next start.
+     *
+     * @throws KernelError when the kernel is already starting or started, when
+     * a declared dependency has no provider, or when the dependency graph has a
+     * cycle.
+     */
+    public async start(): Promise<void> {
+        if (this.phase === 'starting' || this.phase === 'started') {
+            throw new KernelError(`Kernel is already ${this.phase}; stop() it before starting again`);
+        }
+        await this.registerAll();
+        this.phase = 'starting';
         for (const entry of this.startOrder) {
             await entry.module.start?.(entry.context);
         }
@@ -112,11 +138,12 @@ export class Kernel<Events extends EventMap = EventMap> {
     /**
      * Runs `stop()` phases in reverse start order and detaches each module's
      * event listeners. Failures are logged, not thrown, so one module cannot
-     * block the others' teardown.
+     * block the others' teardown. Leaves the kernel registered, so `start()`
+     * may run it again; a no-op unless the kernel is started.
      */
     public async stop(): Promise<void> {
-        if (this.phase === 'stopped') return;
-        this.phase = 'stopped';
+        if (this.phase !== 'started') return;
+        this.phase = 'registered';
         for (const entry of [...this.startOrder].reverse()) {
             try {
                 await entry.module.stop?.(entry.context);
