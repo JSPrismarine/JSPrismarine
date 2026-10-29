@@ -17,8 +17,8 @@ with a message pointing back to pnpm, and repository tooling runs one-off
 tools through `pnpm dlx` (or `pnpx`) rather than `npx`.
 
 The Bedrock resources live in a Git submodule. You don't need to initialize it
-yourself: `pnpm install`, `pnpm run dev` and the bedrock-data build all fetch
-it when it is missing.
+yourself: `pnpm install` and the bedrock-data build fetch it when it is missing.
+`pnpm run dev` relies on that setup and doesn't fetch the submodule itself.
 
 ## 2. Install dependencies
 
