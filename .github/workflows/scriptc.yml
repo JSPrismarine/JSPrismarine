@@ -4,6 +4,11 @@
 # scriptc can compile the server shows up as a green run.
 name: scriptc
 
+env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
+
 on:
     push:
         branches:

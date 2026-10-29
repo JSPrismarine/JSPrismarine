@@ -7,6 +7,9 @@ on:
     pull_request:
 
 env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 jobs:

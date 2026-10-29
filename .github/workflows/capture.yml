@@ -1,5 +1,10 @@
 name: Capture
 
+env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
+
 # The capture boots a real Bedrock Dedicated Server and generates a reference world, which
 # takes tens of minutes and needs a 315 MB download. It runs on a version bump and weekly, not
 # on every pull request, and it opens a pull request rather than pushing a golden itself.

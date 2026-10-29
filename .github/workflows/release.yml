@@ -9,6 +9,9 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
 
 env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     # setup-node writes an .npmrc that reads its token from NODE_AUTH_TOKEN, so the
     # unstable publish step authenticates through it directly instead of relying
