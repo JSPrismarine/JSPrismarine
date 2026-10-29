@@ -19,9 +19,6 @@ import RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { TickEvent } from './events/Events';
-import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
-import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
-import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import { CreativeInventory } from './inventory/CreativeInventory';
 import ClientConnection from './network/ClientConnection';
 import { joinContentPayloads } from './network/contentPayloads';
@@ -31,8 +28,8 @@ import { PacketLogFilter } from './network/PacketLogFilter';
 import PacketRegistry from './network/PacketRegistry';
 import type { DataPacket } from './network/Packets';
 import BatchPacket from './network/packet/BatchPacket';
-import { readPacketId } from './network/packet/DataPacket';
-import { isPreLoginHandler } from './network/handler/PreLoginPacketHandler';
+import NetworkDispatcher from './network/NetworkDispatcher';
+import RakNetTransport from './network/transport/RakNetTransport';
 import { PermissionManager } from './permission/PermissionManager';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
@@ -41,7 +38,6 @@ import { attachProfiler, ServerProfiler, startProfileSpan } from './profiling/Se
 import ChunkScheduler from './world/ChunkScheduler';
 import WorldManager from './world/WorldManager';
 
-import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
 import type { RemoteConsole } from './console/RemoteConsole';
 
@@ -462,143 +458,21 @@ export default class Server extends EventEmitter {
         );
         this.raknet.start(bindAddress, bindPort);
 
-        this.raknet.on('openConnection', async (session: RakNetSession) => {
-            const event = new RaknetConnectEvent(session);
-            await this.emit('raknetConnect', event);
-
-            if (event.isCanceled()) {
-                session.disconnect();
-                return;
-            }
-
-            const token = session.getAddress().toToken();
-            if (this.sessionManager.has(token)) {
-                this.logger.error(`Another client with token (${token}) is already connected!`);
-                session.disconnect('Already connected from another location');
-                return;
-            }
-
-            const timer = new Timer();
-            this.logger.debug(`${token} is attempting to connect`);
-            this.sessionManager.add(token, new ClientConnection(session, this.logger, this.getPacketLogFilter()));
-            this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`);
-        });
-
-        this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
-            const time = Date.now();
-            const token = inetAddr.toToken();
-
-            // Claimed before anything is awaited. RakNet frees the address the instant it
-            // forgets a session, and both this handler and the check in `openConnection` key
-            // on the token, so leaving the entry in place across the awaits below left a
-            // window in which a client reconnecting from the same port was turned away as
-            // "already connected" - and the tear-down that then ran released the connection
-            // that had just replaced it.
-            const session = this.sessionManager.get(token);
-            this.sessionManager.remove(token);
-
-            // Read before the tear-down below, which detaches the session and takes the
-            // player out of its world. A player is only added to a world once the client
-            // reports itself initialised, so a session whose player is not in one belongs
-            // to a client that gave up between login and spawn.
-            const player = session?.getPlayerSession()?.getPlayer() ?? null;
-            const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
-
-            const event = new RaknetDisconnectEvent(inetAddr, reason);
-            await this.emit('raknetDisconnect', event);
-
-            if (!session) {
-                this.logger.info(`${token} disconnected due to ${reason}`);
-                return;
-            }
-
-            await session.closePlayerSession();
-
-            // A spawned player announces its own departure in chat. For one that never got
-            // that far this line is the only trace the connection leaves, so it is kept at a
-            // level the default console shows.
-            if (spawned) this.logger.debug(`${token} disconnected due to ${reason}`);
-            else {
-                const who = player === null ? token : `${player.getName()} (${token})`;
-                this.logger.info(`${who} disconnected during the join due to ${reason}`);
-            }
-            this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
-        });
-
-        this.raknet.on('encapsulated', async (packet: any, inetAddr: InetAddress) => {
-            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
-            await this.emit('raknetEncapsulatedPacket', event);
-
-            let connection: ClientConnection | null;
-            if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
-                this.logger.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
-                return;
-            }
-
-            try {
-                // Read batch content and handle them
-                const batched = new BatchPacket(packet.content);
-                batched.compressed = connection.hasCompression;
-
-                // Read all packets inside batch and handle them
-                for (const buf of await batched.asyncDecode()) {
-                    const pid = readPacketId(buf);
-
-                    if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.logger.warn(`Packet 0x${pid.toString(16)} isn't implemented`);
-                        continue;
-                    }
-
-                    // Get packet from registry
-                    const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
-
-                    try {
-                        packet.decode();
-                    } catch (error: unknown) {
-                        this.logger.error(error);
-                        this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
-                        continue;
-                    }
-
-                    try {
-                        const handler = this.packetRegistry.getHandler(pid);
-                        if (this.getPacketLogFilter().shouldLog(packet))
-                            this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
-
-                        // A pre-login handler takes the bare connection; every other handler
-                        // needs the player session that login creates. A packet that reaches
-                        // the wrong side of that line is dropped rather than handed an object
-                        // of the wrong shape.
-                        const session = connection.getPlayerSession();
-                        if (isPreLoginHandler(handler)) {
-                            if (session === null) await handler.handle(packet, this, connection);
-                            else
-                                this.logger.debug(
-                                    `Dropped §b${packet.constructor.name}§r: pre-login packet received after login`
-                                );
-                        } else if (session !== null) await handler.handle(packet, this, session);
-                        else
-                            this.logger.debug(
-                                `Dropped §b${packet.constructor.name}§r: received before login completed`
-                            );
-                    } catch (error: unknown) {
-                        this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
-                        this.logger.error(error);
-                    }
-                }
-            } catch (error: unknown) {
-                this.logger.error(error);
-            }
-        });
-
-        this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            if (!this.config.getEnableQuery()) return;
-
-            try {
-                await this.queryManager.onRaw(buffer, inetAddr);
-            } catch (error: unknown) {
-                this.logger.verbose(`QueryManager encountered an error`);
-                this.logger.error(error);
+        // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
+        // it alive through the listeners it installed.
+        new NetworkDispatcher({
+            transport: new RakNetTransport(this.raknet, this),
+            sessionManager: this.sessionManager,
+            packetRegistry: this.packetRegistry,
+            events: this,
+            server: this,
+            logger: this.logger,
+            logFilter: this.getPacketLogFilter(),
+            createConnection: (connection) =>
+                new ClientConnection(connection.getRakNetSession(), this.logger, this.getPacketLogFilter()),
+            query: {
+                enabled: () => this.config.getEnableQuery(),
+                onRaw: (payload, address) => this.queryManager.onRaw(payload, address)
             }
         });
 
