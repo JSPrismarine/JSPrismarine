@@ -2,8 +2,7 @@ import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel 
 import { Metadata } from '../../entity/Metadata';
 import { Item } from '../../item/Item';
 import { NetworkUtil } from '../../network/NetworkUtil';
-import type UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
+import UUID from '../../utils/UUID';
 import DataPacket from './DataPacket';
 
 /**
@@ -33,8 +32,6 @@ import DataPacket from './DataPacket';
  * | Build Platform | LInt | A `BuildPlatform` value |
  */
 export default class AddPlayerPacket extends DataPacket {
-    public static NetID = Identifiers.AddPlayerPacket;
-
     public uuid!: UUID;
     public name!: string;
     public uniqueEntityId!: bigint;
@@ -65,12 +62,7 @@ export default class AddPlayerPacket extends DataPacket {
     public deviceId!: string;
     public buildPlatform: BuildPlatform = BuildPlatform.UNKNOWN;
 
-    public metadata!: Metadata;
-
-    constructor() {
-        super();
-        this.metadata = new Metadata();
-    }
+    public metadata: Metadata = new Metadata();
 
     public encodePayload(): void {
         this.uuid.networkSerialize(this);
@@ -113,5 +105,76 @@ export default class AddPlayerPacket extends DataPacket {
 
         NetworkUtil.writeString(this, this.deviceId);
         this.writeIntLE(this.buildPlatform);
+    }
+
+    /**
+     * Reads the 2193 layout back, the mirror of {@link encodePayload}.
+     *
+     * The structures the encoder writes empty are read in full rather than kept: the Synched
+     * Properties lists, the Abilities Data layers and the Actor Links have nowhere to live on
+     * this class, but each still has to come off the stream for the fields behind it to be
+     * read from the right place.
+     */
+    public decodePayload(): void {
+        this.uuid = UUID.networkDeserialize(this);
+        this.name = NetworkUtil.readString(this);
+        this.runtimeEntityId = this.readUnsignedVarLong();
+        this.platformChatId = NetworkUtil.readString(this);
+
+        this.positionX = this.readFloatLE();
+        this.positionY = this.readFloatLE();
+        this.positionZ = this.readFloatLE();
+
+        this.motionX = this.readFloatLE();
+        this.motionY = this.readFloatLE();
+        this.motionZ = this.readFloatLE();
+
+        this.pitch = this.readFloatLE();
+        this.yaw = this.readFloatLE();
+        this.headYaw = this.readFloatLE();
+
+        this.item = Item.networkDeserialize(this);
+
+        this.gamemode = this.readVarInt();
+
+        this.metadata = new Metadata(false);
+        this.metadata.networkDeserialize(this);
+
+        // Synched Properties, written empty by the encoder.
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.readUnsignedVarInt(); // Property Index.
+            this.readVarInt(); // Data.
+        }
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.readUnsignedVarInt(); // Property Index.
+            this.readFloatLE(); // Data.
+        }
+
+        // Abilities Data. The layers travel in `UpdateAbilitiesPacket`; see `AbilityLayer`
+        // there for the six fields read past per layer.
+        this.uniqueEntityId = this.readLongLE();
+        this.playerPermission = this.readSignedByte();
+        this.commandPermission = this.readByte();
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.readUnsignedShortLE(); // SerializedLayer.
+            this.readUnsignedIntLE(); // AbilitiesSet.
+            this.readUnsignedIntLE(); // AbilityValues.
+            this.readFloatLE(); // FlySpeed.
+            this.readFloatLE(); // VerticalFlySpeed.
+            this.readFloatLE(); // WalkSpeed.
+        }
+
+        // Actor Links, in the six-field 2193 `ActorLink` layout.
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.readVarLong(); // Target A.
+            this.readVarLong(); // Target B.
+            this.readByte(); // Type.
+            this.readBoolean(); // Immediate.
+            this.readBoolean(); // Passenger Initiated.
+            this.readFloatLE(); // Vehicle Angular Velocity.
+        }
+
+        this.deviceId = NetworkUtil.readString(this);
+        this.buildPlatform = this.readIntLE();
     }
 }

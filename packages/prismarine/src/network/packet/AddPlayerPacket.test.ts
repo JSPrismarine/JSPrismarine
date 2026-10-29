@@ -118,6 +118,36 @@ describe('network', () => {
                     })
                 );
             });
+
+            it('round-trips identity, movement, the held item, metadata and the trailing fields', () => {
+                const pk = buildPacket();
+                pk.gamemode = Gametype.CREATIVE;
+                pk.playerPermission = PlayerPermissionLevel.OPERATOR;
+                pk.commandPermission = CommandPermissionLevel.OWNER;
+                pk.buildPlatform = BuildPlatform.WIN32;
+                pk.metadata.setFloat(MetadataFlag.SCALE, 1);
+                pk.encode();
+
+                const decoded = new AddPlayerPacket(pk.getBuffer());
+                decoded.decode();
+
+                expect(decoded.uuid.toString()).toBe('12345678-1234-1234-1234-123456789abc');
+                expect(decoded.name).toBe('Steve');
+                expect(decoded.uniqueEntityId).toBe(1n);
+                expect(decoded.runtimeEntityId).toBe(2n);
+                expect(decoded.platformChatId).toBe('');
+                expect([decoded.positionX, decoded.positionY, decoded.positionZ]).toEqual([1, 2, 3]);
+                expect([decoded.motionX, decoded.motionY, decoded.motionZ]).toEqual([0, 0, 0]);
+                expect([decoded.pitch, decoded.yaw, decoded.headYaw]).toEqual([10, 20, 30]);
+                expect(decoded.item.getName()).toBe('minecraft:air');
+                expect(decoded.gamemode).toBe(Gametype.CREATIVE);
+                expect(decoded.metadata.getData()).toEqual(pk.metadata.getData());
+                expect(decoded.playerPermission).toBe(PlayerPermissionLevel.OPERATOR);
+                expect(decoded.commandPermission).toBe(CommandPermissionLevel.OWNER);
+                expect(decoded.deviceId).toBe('device');
+                expect(decoded.buildPlatform).toBe(BuildPlatform.WIN32);
+                expect(decoded.feof()).toBe(true);
+            });
         });
     });
 });
