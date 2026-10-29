@@ -45,6 +45,8 @@ import { fileURLToPath } from 'node:url';
 
 import { bedrockServerPath } from '../fetch/bds.ts';
 import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
+import { dumpArgs, selectPasses } from './cli.ts';
+import type { Pass } from './cli.ts';
 import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { REFERENCE_DIMENSION, REFERENCE_SEED } from './region.ts';
@@ -83,6 +85,7 @@ const NATIVE_TIMEOUTS = {
 };
 
 const { values } = parseArgs({
+    args: dumpArgs(process.argv.slice(2)),
     options: {
         pass: { type: 'string', multiple: true },
         /** Copy the server archive again even when the run directory already holds one. */
@@ -94,20 +97,7 @@ const { values } = parseArgs({
     }
 });
 
-const PASSES = ['dump', 'refworld', 'packets', 'palette'] as const;
-type Pass = (typeof PASSES)[number];
-
-const requested: Pass[] =
-    values.pass === undefined || values.pass.length === 0
-        ? [...PASSES]
-        : values.pass
-              .flatMap((name) => name.split(','))
-              .map((name) => {
-                  if (!PASSES.includes(name as Pass))
-                      throw new Error(`Unknown pass ${name}; expected ${PASSES.join(', ')}`);
-                  // Checked against the literal list on the line above.
-                  return name as Pass;
-              });
+const requested = selectPasses(values.pass);
 
 // ---------------------------------------------------------------------------
 // The pinned server
