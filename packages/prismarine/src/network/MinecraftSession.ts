@@ -1,5 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
-import Codec2193 from './codec/Codec2193';
+import HandshakeCodec from './codec/HandshakeCodec';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type { DataPacket } from './Packets';
 import type { TransportConnection } from './transport/Transport';
@@ -46,11 +46,12 @@ const defaultDumpDir = (): string => process.env.JSP_DEBUG_DUMP_DIR ?? path.join
  */
 export default class MinecraftSession {
     /**
-     * The protocol codec this session speaks. Every session starts on 2193, the only codec
-     * there is; `RequestNetworkSettingsHandler` reassigns it from the codec registry once the
-     * client announces its protocol version.
+     * The protocol codec this session speaks. Every session starts on the layout-stable
+     * handshake codec, which knows only the packets a connection may exchange before a
+     * version is agreed; `RequestNetworkSettingsHandler` reassigns it from the codec
+     * registry once the client announces its protocol version.
      */
-    public codec: ProtocolCodec = Codec2193;
+    public codec: ProtocolCodec = HandshakeCodec;
 
     protected readonly connection: TransportConnection;
 

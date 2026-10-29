@@ -56,7 +56,9 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         //
         // Not a second negotiation: the registry was consulted once, at
         // `RequestNetworkSettings`, and this only refuses a login that contradicts the codec
-        // that negotiation assigned - or, for a client that skipped it, the default.
+        // that negotiation assigned. A client that skips the negotiation never gets here:
+        // its login does not decode under the handshake codec, and the login phase it would
+        // be gated on is only entered by negotiating.
         if (packet.protocol !== connection.codec.protocolVersion) {
             const outdatedClient = packet.protocol < connection.codec.protocolVersion;
             playStatus.status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
