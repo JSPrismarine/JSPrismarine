@@ -39,10 +39,15 @@ const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
  * Fetched at most once and kept, because the branch it came from will not be there forever:
  * Mojang keeps a rolling window and the docs for a given version are eventually deleted.
  * The cached file is the artefact; the network is only how it first arrived.
+ *
+ * Cached by the commit it is pinned to rather than under the version's own snapshot directory.
+ * There is one such document and there will not be another - Mojang stopped publishing
+ * `enums.html` after 1.26.40 - so every version pins the same commit and shares the one copy,
+ * while two versions pinning different commits still cannot write over each other.
  */
-const readSource = async ({ config, snapshotDir }) => {
+const readSource = async ({ config }) => {
     const source = config.source;
-    const cache = path.join(snapshotDir, path.basename(source.path));
+    const cache = path.join(HERE, 'snapshot', `${source.ref.slice(0, 12)}-${path.basename(source.path)}`);
     const digest = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
 
     if (fs.existsSync(cache)) {
