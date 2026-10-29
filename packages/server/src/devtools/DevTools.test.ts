@@ -154,15 +154,18 @@ describe('DevTools over an external Node inspector connection', () => {
             const session = openDevTools();
             process.stdout.write(JSON.stringify({ endpoint: session.endpointUrl, frontend: session.frontendUrl }) + '\\n');
             createInterface({ input: process.stdin }).on('line', (url) => {
+                if (url === 'wait-for-debugger') {
+                    session.waitForDebugger();
+                    globalThis.devtoolsReady = true;
+                    globalThis.devtoolsLogger = new Logger('debug', [createDevToolsLogTransport()]);
+                    setInterval(() => {}, 1000);
+                    return;
+                }
                 void import(url).then(
                     () => process.stdout.write('probe-complete\\n'),
                     (error) => process.stdout.write('probe-error:' + String(error) + '\\n')
                 );
             });
-            session.waitForDebugger();
-            globalThis.devtoolsReady = true;
-            globalThis.devtoolsLogger = new Logger('debug', [createDevToolsLogTransport()]);
-            setInterval(() => {}, 1000);
         `
             ],
             { stdio: ['pipe', 'pipe', 'pipe'] }
@@ -190,7 +193,8 @@ describe('DevTools over an external Node inspector connection', () => {
 
     const start = async () => {
         await client.send('Runtime.runIfWaitingForDebugger');
-        // Command processing and the resumed JavaScript run on separate scheduling paths.
+        child.stdin!.write('wait-for-debugger\n');
+        // The first resume can race with waitForDebugger, so retry until initialization continues.
         await expect
             .poll(
                 async () => {
@@ -198,7 +202,9 @@ describe('DevTools over an external Node inspector connection', () => {
                         expression: 'globalThis.devtoolsReady',
                         returnByValue: true
                     });
-                    return object(response.result).value;
+                    const ready = object(response.result).value;
+                    if (ready !== true) await client.send('Runtime.runIfWaitingForDebugger');
+                    return ready;
                 },
                 { timeout: 5000 }
             )
