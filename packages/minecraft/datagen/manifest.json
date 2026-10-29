@@ -164,6 +164,66 @@
                 },
                 "target": "../src/generated/v2193/recipes.json"
             }
+        },
+        "2225": {
+            "$comment": [
+                "Minecraft 1.26.60, BDS 1.26.60.6. Declared for its enums only: this entry has",
+                "`schemas` and `source` and deliberately has neither `blocks` nor `recipes`, because",
+                "both of those are captured from a Bedrock Dedicated Server of this version and no",
+                "such capture exists in this repository. The generators skip a version that declares",
+                "neither rather than writing an empty catalog, and `defaultProtocolVersion` stays at",
+                "2193 until both halves are here.",
+                "",
+                "To finish this version:",
+                "  pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol 2225",
+                "  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --protocol 2225",
+                "then follow `datagen/README-palette.md` to merge the capture into",
+                "`snapshot/v2225/block-palette.json`, and add `blocks` and `recipes` entries here",
+                "shaped like 2193's. BDS is Linux x86-64 only; `utils/bedrock-dump/runner.ts` runs it",
+                "in a container from another platform.",
+                "",
+                "See `docs/research/protocol-2225-delta.md` for what 2225 changed on the wire."
+            ],
+            "schemas": {
+                "$comment": [
+                    "The 1.26.60 release schemas. Unlike 1.26.51 these carry `x-enum-binary-value`",
+                    "themselves, so the release is its own values source and `values` points back at the",
+                    "same asset: there is nothing to reconcile across two releases here.",
+                    "",
+                    "sha256 measured on download, 2026-10-29."
+                ],
+                "repo": "Mojang/bedrock-protocol-docs",
+                "release": "v1.26.60",
+                "asset": "metadata.zip",
+                "sha256": "a030a45d825b9ec8ea6bb744283648d5db1c0111592a8fd5eb0096ff05a0464b",
+                "minecraftVersion": "1.26.60",
+                "networkProtocolVersion": 2225,
+                "values": {
+                    "release": "v1.26.60",
+                    "asset": "metadata.zip",
+                    "sha256": "a030a45d825b9ec8ea6bb744283648d5db1c0111592a8fd5eb0096ff05a0464b",
+                    "networkProtocolVersion": 2225
+                },
+                "schemaNames": {
+                    "SharedTypes::Legacy::LevelSoundEvent": "LevelSoundEvent",
+                    "SetTitlePacket::TitleType": "SetTitlePacket_TitleType"
+                }
+            },
+            "source": {
+                "$comment": [
+                    "The same frozen 1.26.40 `enums.html` 2193 reads, for the same six enums no release",
+                    "ships a schema for. It is not a 1.26.60 document and there will not be one: Mojang",
+                    "stopped publishing `enums.html` after 1.26.40. Any enum filled from here is a 1.26.40",
+                    "answer carried forward, which is recorded in the generated file's `Source:` line."
+                ],
+                "repo": "Mojang/bedrock-protocol-docs",
+                "ref": "0e00fe80f4f3c71572ff6429de40146d1f4412fc",
+                "branch": "automated/1.26.40",
+                "path": "html/enums.html",
+                "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
+                "minecraftVersion": "1.26.40",
+                "networkProtocolVersion": 2168
+            }
         }
     },
     "thresholds": {
