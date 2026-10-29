@@ -27,7 +27,7 @@ Use American English spelling in prose and documentation. Do not use British spe
   README and `package.json` before changing it.
 - Read relevant pages under `docs/` when working on runtime behavior or documentation. Follow nearby
   code and tests for conventions when no guide covers the area.
-- The `packages/bedrock-data/src/resources/` directory is a required Git submodule. If it is missing, initialize it with `git submodule update --init --recursive` before building.
+- The `packages/bedrock-data/src/resources/` directory is a required Git submodule. `pnpm install` and bedrock-data generation initialize it when missing; use `git submodule update --init --recursive` to fetch it manually if needed.
 
 ## Repository rules
 
