@@ -7,6 +7,7 @@ import type Server from '../Server';
 import SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
 import Codec2193 from './codec/Codec2193';
+import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type ClientConnection from './ClientConnection';
 import NetworkDispatcher from './NetworkDispatcher';
 import BatchPacket from './packet/BatchPacket';
@@ -104,16 +105,14 @@ const frameOf = (packet: TextPacket) => {
 
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
 const makeDispatcher = (options?: {
-    packets?: Map<number, typeof TextPacket>;
+    codec?: ProtocolCodec;
     handler?: { preLogin?: true; handle: (packet: unknown, server: Server, target: unknown) => Promise<void> };
 }) => {
     const transport = new FakeTransport();
     const sessionManager = new SessionManager();
     const { logger, lines } = fakeLogger();
     const server = stub<Server>();
-    const packets = options?.packets ?? new Map();
     const packetRegistry = stub<PacketRegistry>({
-        getPackets: () => packets,
         getHandler: () => {
             if (!options?.handler) throw new Error('no handler registered');
             return options.handler;
@@ -130,7 +129,11 @@ const makeDispatcher = (options?: {
         logger,
         logFilter: new PacketLogFilter(),
         createConnection: () => {
-            const connection = stub<ClientConnection>({ hasCompression: false, getPlayerSession: () => null });
+            const connection = stub<ClientConnection>({
+                hasCompression: false,
+                codec: options?.codec ?? Codec2193,
+                getPlayerSession: () => null
+            });
             built.push(connection);
             return connection;
         },
@@ -166,7 +169,7 @@ describe('network', () => {
         });
 
         it('warns about a packet id nothing is registered for, and keeps going', async () => {
-            const { transport, lines } = makeDispatcher({ packets: new Map() });
+            const { transport, lines } = makeDispatcher({ codec: stub<ProtocolCodec>({ createPacket: () => null }) });
             await transport.emitConnect(fakeConnection('a:1').connection);
 
             await transport.emitFrame(frameOf(message('hello')), address('a:1'));
@@ -189,7 +192,6 @@ describe('network', () => {
         it('hands a pre-login handler the bare connection while no session exists', async () => {
             const targets: unknown[] = [];
             const { transport, built, server } = makeDispatcher({
-                packets: new Map([[Codec2193.netIdOf('TextPacket')!, TextPacket]]),
                 handler: {
                     preLogin: true,
                     handle: async (_packet, givenServer, target) => {
@@ -208,7 +210,6 @@ describe('network', () => {
         it('drops a pre-login packet that arrives after login', async () => {
             const targets: unknown[] = [];
             const { transport, built, lines } = makeDispatcher({
-                packets: new Map([[Codec2193.netIdOf('TextPacket')!, TextPacket]]),
                 handler: { preLogin: true, handle: async (_packet, _server, target) => void targets.push(target) }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
@@ -226,7 +227,6 @@ describe('network', () => {
             const session = stub<PlayerSession>();
             const targets: unknown[] = [];
             const { transport, built } = makeDispatcher({
-                packets: new Map([[Codec2193.netIdOf('TextPacket')!, TextPacket]]),
                 handler: { handle: async (_packet, _server, target) => void targets.push(target) }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
@@ -240,7 +240,6 @@ describe('network', () => {
         it('drops a post-login packet that arrives before login has completed', async () => {
             const targets: unknown[] = [];
             const { transport, lines } = makeDispatcher({
-                packets: new Map([[Codec2193.netIdOf('TextPacket')!, TextPacket]]),
                 handler: { handle: async (_packet, _server, target) => void targets.push(target) }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
@@ -255,7 +254,6 @@ describe('network', () => {
 
         it('logs a handler failure without letting it escape the dispatch', async () => {
             const { transport, lines } = makeDispatcher({
-                packets: new Map([[Codec2193.netIdOf('TextPacket')!, TextPacket]]),
                 handler: {
                     preLogin: true,
                     handle: async () => {

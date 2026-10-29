@@ -38,7 +38,10 @@ class Codec2193 implements ProtocolCodec {
         const packetClass = this.table().get(netId);
         if (packetClass === undefined) return null;
 
-        return new packetClass(buffer);
+        const packet = new packetClass(buffer);
+        packet.setNetId(netId);
+        packet.codecProtocol = this.protocolVersion;
+        return packet;
     }
 
     public netIdOf(name: string): number | undefined {

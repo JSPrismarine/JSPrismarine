@@ -19,8 +19,8 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     transport: Transport<C>;
     /** The registry of live connections, keyed by transport token. */
     sessionManager: Pick<SessionManager, 'has' | 'add' | 'get' | 'remove'>;
-    /** Resolves a wire id to its packet class and handler. */
-    packetRegistry: Pick<PacketRegistry, 'getPackets' | 'getHandler'>;
+    /** Resolves a packet class name to its handler; packets resolve through each connection's codec. */
+    packetRegistry: Pick<PacketRegistry, 'getHandler'>;
     /** Where the legacy `raknetDisconnect` event still goes. */
     events: Pick<EventEmitter, 'emit'>;
     /** Handed to every packet handler; their contract takes the whole server. */
@@ -146,13 +146,13 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             for (const buf of await batched.asyncDecode()) {
                 const pid = readPacketId(buf);
 
-                if (!this.packetRegistry.getPackets().has(pid)) {
+                // Resolved through the codec this connection negotiated, so each session
+                // decodes with the id layout of its own protocol version.
+                const packet = connection.codec.createPacket(pid, buf);
+                if (packet === null) {
                     this.logger.warn(`Packet 0x${pid.toString(16)} isn't implemented`);
                     continue;
                 }
-
-                // Get packet from registry
-                const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
 
                 try {
                     packet.decode();

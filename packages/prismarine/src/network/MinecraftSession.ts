@@ -1,4 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
+import Codec2193 from './codec/Codec2193';
+import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type { DataPacket } from './Packets';
 import type { TransportConnection } from './transport/Transport';
 import { BatchPacket } from './Packets';
@@ -43,6 +45,13 @@ const defaultDumpDir = (): string => process.env.JSP_DEBUG_DUMP_DIR ?? path.join
  * arrives - and the transport's own `capabilities.encrypted` says whether the wire covers it.
  */
 export default class MinecraftSession {
+    /**
+     * The protocol codec this session speaks. Every session starts on 2193, the only codec
+     * there is; `RequestNetworkSettingsHandler` reassigns it from the codec registry once the
+     * client announces its protocol version.
+     */
+    public codec: ProtocolCodec = Codec2193;
+
     protected readonly connection: TransportConnection;
 
     /**
@@ -167,6 +176,11 @@ export default class MinecraftSession {
     }
 
     public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
+        // The session's codec owns the wire id; a packet built directly would otherwise
+        // fall back to the 2193 table whatever this session negotiated.
+        const netId = this.codec.netIdOf(packet.getName());
+        if (netId !== undefined) packet.setNetId(netId);
+
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
