@@ -102,7 +102,7 @@ describe('ban', () => {
                 expect(banManager.isBanned({ getName: () => 'player3' })).toBe('alts');
                 expect(text).toContain('// Griefed spawn twice; appeal denied.');
                 expect(text).toContain('{ "name": "player1", "reason": "reason1" },');
-                expect(parseConfigDocument('json', text).get([])).toStrictEqual([
+                expect(parseConfigDocument(text).get([])).toStrictEqual([
                     { name: 'player1', reason: 'reason1' },
                     { name: 'player2', reason: '' },
                     { name: 'player3', reason: 'alts' }
@@ -117,7 +117,7 @@ describe('ban', () => {
 
                 const text = readFileSync(file, 'utf8');
                 expect(text).toContain('// Griefed spawn twice; appeal denied.');
-                expect(parseConfigDocument('json', text).get([])).toStrictEqual([
+                expect(parseConfigDocument(text).get([])).toStrictEqual([
                     { name: 'player1', reason: 'again' },
                     { name: 'player2', reason: '' }
                 ]);
@@ -126,7 +126,7 @@ describe('ban', () => {
             it('should start a file from nothing', async () => {
                 await banManager.setBanned('player1');
 
-                expect(parseConfigDocument('json', readFileSync(file, 'utf8')).get([])).toStrictEqual([
+                expect(parseConfigDocument(readFileSync(file, 'utf8')).get([])).toStrictEqual([
                     { name: 'player1', reason: '' }
                 ]);
             });
@@ -142,9 +142,7 @@ describe('ban', () => {
                 const text = readFileSync(file, 'utf8');
                 expect(banManager.isBanned({ getName: () => 'player2' })).toBe(false);
                 expect(text).toContain('// Griefed spawn twice; appeal denied.');
-                expect(parseConfigDocument('json', text).get([])).toStrictEqual([
-                    { name: 'player1', reason: 'reason1' }
-                ]);
+                expect(parseConfigDocument(text).get([])).toStrictEqual([{ name: 'player1', reason: 'reason1' }]);
             });
         });
 

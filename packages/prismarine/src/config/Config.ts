@@ -5,27 +5,34 @@ import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
-import { convertYamlToJsonConfigDocument } from './ConfigDocument';
-import type { ConfigDifficulty, ConfigFile } from './JsonConfigTypes';
-import { toJsonFileContents } from './JsonFile';
+import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
+import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 
 import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
 
 const isDev = process.env.NODE_ENV === 'development';
 
 const FILE_NAME = 'config.json';
-const LEGACY_FILE_NAMES = ['config.yml', 'config.yaml'];
+const YAML_FILE_NAMES = ['config.yml', 'config.yaml'];
 
-const configFilePath = (): string => {
-    const file = withCwd(FILE_NAME);
-    if (fs.existsSync(file)) return file;
-
-    const legacyFile = LEGACY_FILE_NAMES.map((name) => withCwd(name)).find((candidate) => fs.existsSync(candidate));
-    if (legacyFile === undefined) return file;
-
-    const document = convertYamlToJsonConfigDocument(fs.readFileSync(legacyFile, 'utf8'));
-    fs.writeFileSync(file, toJsonFileContents(file, document), { encoding: 'utf8', flag: 'wx' });
-    return file;
+/**
+ * Where the server config lives, refusing to run beside a YAML config.
+ *
+ * The server read `config.yml` and `config.yaml` once; that support is gone, and the `yaml`
+ * dependency with it. The error, rather than a silent ignore or an automatic conversion,
+ * because the file holds settings somebody chose: ignoring it would run the server on
+ * defaults they turned off, and converting it would need the YAML parser this removed. The
+ * person moves the handful of keys once and deletes the file.
+ */
+export const configFilePath = (): string => {
+    const yamlFile = YAML_FILE_NAMES.map((name) => withCwd(name)).find((candidate) => fs.existsSync(candidate));
+    if (yamlFile !== undefined) {
+        throw new Error(
+            `JSPrismarine no longer supports YAML configs. Move the settings from ${yamlFile} into ` +
+                `config.json (JSON, where // comments are allowed) and delete the YAML file.`
+        );
+    }
+    return withCwd(FILE_NAME);
 };
 
 /** The difficulty names a config file may use, as the protocol numbers them. */
@@ -81,7 +88,7 @@ const COMMENTS = {
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
     'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
-} as const satisfies Record<keyof ConfigFile, string>;
+} as const satisfies Record<Exclude<keyof ConfigFile, ContentConfigKey>, string>;
 
 /**
  * What each key is worth when the file does not say.
@@ -233,7 +240,7 @@ export class Config {
      */
     public constructor({ serverPort }: ConfigOptions = {}) {
         this.serverPortOverride = serverPort;
-        this.configBuilder = new ConfigBuilder(configFilePath());
+        this.configBuilder = new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER);
         this.logLevel = this.configBuilder.get('log-level', DEFAULTS['log-level'], COMMENTS['log-level']);
     }
 
@@ -246,7 +253,7 @@ export class Config {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        const config = new ConfigBuilder(configFilePath());
+        const config = new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER);
         this.configBuilder = config;
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
 
@@ -363,7 +370,7 @@ export class Config {
      * Stored by name, as the file spells it, so `getDifficulty` reads back
      * what was set rather than a second copy of the number.
      * @param difficulty - the difficulty
-     * @param commit - if the value should be written to the `config.yml` file
+     * @param commit - if the value should be written to the `config.json` file
      */
     public setDifficulty(difficulty: Difficulty, commit = false) {
         this.difficulty = difficultyName(difficulty);

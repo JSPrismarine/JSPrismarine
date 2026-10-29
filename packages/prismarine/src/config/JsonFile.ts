@@ -69,7 +69,7 @@ export const readJsonFile = async (filePath: string, empty: '[]' | '{}'): Promis
         if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
         text = empty;
     }
-    return parseConfigDocument('json', text.trim() === '' ? empty : text);
+    return parseConfigDocument(text.trim() === '' ? empty : text);
 };
 
 /**

@@ -86,8 +86,8 @@
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/chunkgen": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
-        "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/commands": "workspace:*",
+        "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/content": "workspace:*",
         "@jsprismarine/enchantments": "workspace:*",
         "@jsprismarine/engine-systems": "workspace:*",
@@ -118,7 +118,6 @@
         "@jsprismarine/trading": "workspace:*",
         "@jsprismarine/wire": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
-        "jsonc-parser": "3.3.1",
-        "yaml": "2.9.1"
+        "jsonc-parser": "3.3.1"
     }
 }

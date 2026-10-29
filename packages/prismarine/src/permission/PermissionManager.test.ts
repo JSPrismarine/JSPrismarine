@@ -16,7 +16,7 @@ import type { PermissionManagerServer } from './PermissionManager';
 const FILFAT_UUID = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
 
 /** Reads JSONC without treating the `//` inside a URL as a comment. */
-const plain = (text: string): unknown => parseConfigDocument('json', text).get([]);
+const plain = (text: string): unknown => parseConfigDocument(text).get([]);
 
 describe('permission', () => {
     describe('PermissionManager', () => {

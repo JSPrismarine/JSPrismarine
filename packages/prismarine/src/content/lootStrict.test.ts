@@ -10,7 +10,7 @@ import { readContentSettings } from './settings';
 import { fixtureBlockPalette } from './testing';
 
 /**
- * `content-strict` reaching the loot registries, from the key in `config.yaml`
+ * `content-strict` reaching the loot registries, from the key in `config.json`
  * to the refusal.
  *
  * The registries took a `strict` option and nothing passed it, and nothing
@@ -25,11 +25,11 @@ afterAll(() => {
     for (const dir of temporaryDirs) rmSync(dir, { recursive: true, force: true });
 });
 
-/** A directory holding a `config.yaml` with the given lines, for `readContentSettings` to find. */
-const configuredWith = (lines: string): string => {
+/** A directory holding a `config.json` with the given keys, for `readContentSettings` to find. */
+const configuredWith = (settings: Record<string, unknown>): string => {
     const root = mkdtempSync(join(tmpdir(), 'jsp-loot-strict-'));
     temporaryDirs.push(root);
-    writeFileSync(join(root, 'config.yaml'), lines);
+    writeFileSync(join(root, 'config.json'), `${JSON.stringify(settings, null, 4)}\n`);
     return root;
 };
 
@@ -69,8 +69,8 @@ const buildWithConfig = (configRoot: string, pack: string) => {
 };
 
 describe('content-strict reaching the loot registries', () => {
-    it('refuses a table the grammar cannot read, with the key set in config.yaml', () => {
-        const config = configuredWith('content-strict: true\n');
+    it('refuses a table the grammar cannot read, with the key set in config.json', () => {
+        const config = configuredWith({ 'content-strict': true });
 
         vi.stubEnv('JSP_DIR', config);
         expect(readContentSettings().strict).toBe(true);
@@ -80,7 +80,7 @@ describe('content-strict reaching the loot registries', () => {
     });
 
     it('loads short without the key, and names the table in the content report', () => {
-        const content = buildWithConfig(configuredWith('content-strict: false\n'), datapackWith(UNREADABLE));
+        const content = buildWithConfig(configuredWith({ 'content-strict': false }), datapackWith(UNREADABLE));
 
         expect(content.diagnostics.filter((entry) => entry.code === 'loot.invalid')).toEqual([
             expect.objectContaining({
@@ -94,7 +94,7 @@ describe('content-strict reaching the loot registries', () => {
 
     it('reports what compiled and what went unapplied, so the gap is drained rather than kept', () => {
         const content = buildWithConfig(
-            configuredWith('content-strict: false\n'),
+            configuredWith({ 'content-strict': false }),
             datapackWith({
                 'data/fixture/loot_table/fine.json': {
                     pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:diamond' }] }]

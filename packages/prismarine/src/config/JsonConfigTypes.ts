@@ -84,7 +84,59 @@ export interface ConfigFile {
     'log-excluded-packets'?: string[];
     /** How many recipes to send: -1 for all, 0 for none, or a cap. @asType integer @minimum -1 */
     'crafting-recipe-limit'?: number;
+    /** Whether a pack that reports an error stops the server instead of loading short. */
+    'content-strict'?: boolean;
+    /** Extra behavior pack directories this world loads, after the vanilla ones. */
+    'content-world-packs'?: string[];
+    /** Java datapack directories this world loads, after the vanilla one. */
+    'content-datapacks'?: string[];
 }
+
+/** The keys the content build reads before `Config.enable` runs. */
+export type ContentConfigKey = 'content-strict' | 'content-world-packs' | 'content-datapacks';
+
+/**
+ * Every key `config.json` may hold, in the order the file spells them.
+ *
+ * The file is written one key at a time, by whichever part of the server asks
+ * first - the watch-mode host reads the content keys before the child's
+ * `Config` exists - so the order cannot come from write order. A new key is
+ * inserted where this list says it goes, which keeps the file in definition
+ * order no matter who writes it, and keeps `$schema` first.
+ */
+export const CONFIG_KEY_ORDER = [
+    '$schema',
+    'log-level',
+    'port',
+    'server-ip',
+    'level-name',
+    'worlds',
+    'max-players',
+    'gamemode',
+    'difficulty',
+    'motd',
+    'view-distance',
+    'preload-radius',
+    'chunk-send-budget-ms',
+    'proximity-broadcast',
+    'server-authoritative-block-breaking',
+    'entity-tracking-hysteresis',
+    'entity-tracking-interval',
+    'online-mode',
+    'packet-compression-level',
+    'enable-query',
+    'enable-process-title',
+    'enable-ticking',
+    'log-excluded-packets',
+    'crafting-recipe-limit',
+    'content-strict',
+    'content-world-packs',
+    'content-datapacks'
+] as const satisfies readonly ('$schema' | keyof ConfigFile)[];
+
+/** Compile-time proof that no `ConfigFile` key is missing from {@link CONFIG_KEY_ORDER}. */
+type EveryKeyOrdered = [Exclude<keyof ConfigFile, (typeof CONFIG_KEY_ORDER)[number]>] extends [never] ? true : never;
+true satisfies EveryKeyOrdered;
 
 /** One player entry in `permissions.json`. */
 export interface PlayerPermissions {

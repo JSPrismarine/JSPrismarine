@@ -8,14 +8,6 @@ import {
     printParseErrorCode
 } from 'jsonc-parser';
 import type { Node as JsonNode, ParseError } from 'jsonc-parser';
-import { isCollection, isMap, isNode, isPair, isScalar, isSeq, parseDocument } from 'yaml';
-import type { Document as YamlDocumentNode } from 'yaml';
-
-/** The file formats a config document can be kept in. */
-export type ConfigFormat = 'json' | 'yaml';
-
-/** Every supported {@link ConfigFormat}, in the order error messages list them. */
-export const CONFIG_FORMATS: readonly ConfigFormat[] = ['json', 'yaml'];
 
 /** The keys from the root to one value: object keys as strings, list indices as numbers. */
 export type ConfigPath = readonly (string | number)[];
@@ -65,289 +57,20 @@ export interface ConfigDocument {
 }
 
 /**
- * Raised when a config file cannot be read as its format.
+ * Raised when a config file cannot be read as JSON.
  *
  * Thrown rather than swallowed on purpose. Treating a file with a typo in it as empty and then
  * writing the defaults back is how a server used to erase its own config; refusing to start
  * keeps the file for the person to fix.
  */
 export class ConfigSyntaxError extends Error {
-    public constructor(format: ConfigFormat, detail: string) {
-        super(`Not valid ${format}: ${detail}`);
+    public constructor(detail: string) {
+        super(`Not valid json: ${detail}`);
         this.name = 'ConfigSyntaxError';
     }
 }
 
 const endsWithNewline = (text: string): string => (text === '' || text.endsWith('\n') ? text : `${text}\n`);
-
-const indentationAt = (depth: number): string => ' '.repeat(INDENT * depth);
-
-const yamlCommentLines = (comment: string | null | undefined, depth: number): string[] =>
-    comment === undefined || comment === null
-        ? []
-        : comment.split('\n').map((line) => {
-              const content = line.startsWith(' ') ? line.slice(1) : line;
-              return `${indentationAt(depth)}//${content === '' ? '' : ` ${content}`}`;
-          });
-
-const appendYamlCommaAndComment = (
-    lines: string[],
-    comma: boolean,
-    comments: (string | null | undefined)[],
-    depth: number
-): string[] => {
-    const result = [...lines];
-    const last = result.length - 1;
-    result[last] += comma ? ',' : '';
-
-    const comment = comments.filter((entry) => entry !== undefined && entry !== null).join('\n');
-    if (comment === '') return result;
-
-    const parts = comment.split('\n');
-    const first = parts.shift() ?? '';
-    const firstContent = first.startsWith(' ') ? first.slice(1) : first;
-    result[last] += ` //${firstContent === '' ? '' : ` ${firstContent}`}`;
-    if (parts.length > 0) result.push(...yamlCommentLines(parts.join('\n'), depth));
-    return result;
-};
-
-const jsonValue = (value: unknown): string => JSON.stringify(value) ?? 'null';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const yamlKey = (value: unknown): string | undefined => (isScalar(value) ? String(value.value) : undefined);
-
-const renderYamlValue = (node: unknown, value: unknown, depth: number): string[] => {
-    if (isMap(node) && isRecord(value)) return renderYamlMap(node, value, depth);
-    if (isSeq(node) && Array.isArray(value)) return renderYamlSequence(node, value, depth);
-    if (Array.isArray(value)) return renderPlainSequence(value, depth);
-    if (isRecord(value)) return renderPlainMap(value, depth);
-    return [jsonValue(value)];
-};
-
-const renderYamlMap = (node: unknown, value: Record<string, unknown>, depth: number): string[] => {
-    if (!isMap(node)) return renderPlainMap(value, depth);
-    const entries = Object.entries(value);
-    if (entries.length === 0) return ['{}'];
-
-    const lines = ['{'];
-    entries.forEach(([key, child], index) => {
-        const pair = node.items.find((candidate) => yamlKey(candidate.key) === key);
-        const keyNode = pair?.key;
-        const valueNode = pair?.value;
-        const spaceBefore = (isNode(keyNode) && keyNode.spaceBefore) || (isNode(valueNode) && valueNode.spaceBefore);
-        if (spaceBefore && lines.length > 1) lines.push('');
-        if (isNode(keyNode)) lines.push(...yamlCommentLines(keyNode.commentBefore, depth + 1));
-        if (isNode(valueNode)) lines.push(...yamlCommentLines(valueNode.commentBefore, depth + 1));
-
-        const childLines = renderYamlValue(valueNode, child, depth + 1);
-        const withComma = appendYamlCommaAndComment(
-            [`${indentationAt(depth + 1)}${JSON.stringify(key)}: ${childLines[0]}`, ...childLines.slice(1)],
-            index < entries.length - 1,
-            [isNode(keyNode) ? keyNode.comment : undefined, isNode(valueNode) ? valueNode.comment : undefined],
-            depth + 1
-        );
-        lines.push(...withComma);
-    });
-
-    lines.push(`${indentationAt(depth)}}`);
-    return lines;
-};
-
-const renderYamlSequence = (node: unknown, value: unknown[], depth: number): string[] => {
-    if (!isSeq(node)) return renderPlainSequence(value, depth);
-    if (value.length === 0) return ['[]'];
-
-    const lines = ['['];
-    value.forEach((item, index) => {
-        const itemNode = node.items[index];
-        if (isNode(itemNode) && itemNode.spaceBefore && lines.length > 1) lines.push('');
-        if (isNode(itemNode)) lines.push(...yamlCommentLines(itemNode.commentBefore, depth + 1));
-
-        const itemLines = renderYamlValue(itemNode, item, depth + 1);
-        const withComma = appendYamlCommaAndComment(
-            [`${indentationAt(depth + 1)}${itemLines[0]}`, ...itemLines.slice(1)],
-            index < value.length - 1,
-            [isNode(itemNode) ? itemNode.comment : undefined],
-            depth + 1
-        );
-        lines.push(...withComma);
-    });
-
-    lines.push(`${indentationAt(depth)}]`);
-    return lines;
-};
-
-const renderPlainMap = (value: Record<string, unknown>, depth: number): string[] => {
-    const entries = Object.entries(value);
-    if (entries.length === 0) return ['{}'];
-
-    const lines = ['{'];
-    entries.forEach(([key, child], index) => {
-        const childLines = renderYamlValue(undefined, child, depth + 1);
-        lines.push(`${indentationAt(depth + 1)}${JSON.stringify(key)}: ${childLines[0]}`);
-        lines.push(...childLines.slice(1));
-        if (index < entries.length - 1) lines[lines.length - 1] += ',';
-    });
-    lines.push(`${indentationAt(depth)}}`);
-    return lines;
-};
-
-const renderPlainSequence = (value: unknown[], depth: number): string[] => {
-    if (value.length === 0) return ['[]'];
-
-    const lines = ['['];
-    value.forEach((item, index) => {
-        const itemLines = renderYamlValue(undefined, item, depth + 1);
-        lines.push(`${indentationAt(depth + 1)}${itemLines[0]}`);
-        lines.push(...itemLines.slice(1));
-        if (index < value.length - 1) lines[lines.length - 1] += ',';
-    });
-    lines.push(`${indentationAt(depth)}]`);
-    return lines;
-};
-
-/** `# text` lines the way the yaml library wants them: one leading space per line, no `#`. */
-const yamlComment = (comment: string): string =>
-    comment
-        .split('\n')
-        .map((line) => ` ${line}`)
-        .join('\n');
-
-/**
- * A YAML file.
- *
- * Built on the `yaml` package's document model, which keeps comments and blank lines as part
- * of the tree, so the whole file can be written back after a change to one key.
- */
-class YamlConfigDocument implements ConfigDocument {
-    private readonly document: YamlDocumentNode;
-
-    /** Whether the file held no values at all, so that `get([])` can say so rather than invent a map. */
-    private blank: boolean;
-
-    public constructor(text: string) {
-        // Typed as a plain document so that blank-file contents can be swapped in below.
-        const document: YamlDocumentNode = parseDocument(text, { keepSourceTokens: false });
-        const [error] = document.errors;
-        if (error) throw new ConfigSyntaxError('yaml', error.message.trim());
-
-        // A blank file, or one holding only comments, has no contents node to add keys to.
-        this.blank = document.contents === null;
-        if (document.contents === null) document.contents = document.createNode({});
-        if (!isCollection(document.contents)) {
-            throw new ConfigSyntaxError('yaml', 'the document is a single value, not a map or a list');
-        }
-
-        this.document = document;
-    }
-
-    public get(path: ConfigPath): unknown {
-        if (path.length === 0) return this.blank ? undefined : this.document.toJS();
-        const node: unknown = this.document.getIn(path, true);
-        return isNode(node) ? node.toJS(this.document) : node;
-    }
-
-    public has(path: ConfigPath): boolean {
-        return path.length === 0 ? !this.blank : this.document.hasIn(path);
-    }
-
-    public set(path: ConfigPath, value: unknown, comment?: string): void {
-        const node = this.document.createNode(value);
-        const previous: unknown = this.document.getIn(path, true);
-        const key = path.at(-1);
-        this.blank = false;
-
-        if (isNode(previous)) {
-            // The comments ride on the value node, so a replaced value would take them with it:
-            // `port: 19132 # the one players type in` keeps its remark when the number changes.
-            node.comment = previous.comment;
-            node.commentBefore = previous.commentBefore;
-            node.spaceBefore = previous.spaceBefore;
-        }
-
-        if (previous !== undefined || comment === undefined || key === undefined || typeof key !== 'string') {
-            this.document.setIn(path, node);
-            return;
-        }
-
-        const parentPath = path.slice(0, -1);
-        if (!this.document.hasIn(parentPath)) this.document.setIn(parentPath, this.document.createNode({}));
-        const parent: unknown = this.document.getIn(parentPath, true);
-        if (!isMap(parent)) {
-            this.document.setIn(path, node);
-            return;
-        }
-
-        const pair = this.document.createPair(key, node);
-        pair.key.commentBefore = yamlComment(comment);
-        pair.key.spaceBefore = true;
-        parent.add(pair);
-    }
-
-    public delete(path: ConfigPath): boolean {
-        const key = path.at(-1);
-        const parent: unknown = key === undefined ? undefined : this.document.getIn(path.slice(0, -1), true);
-        if (key === undefined || !isCollection(parent)) return this.document.deleteIn(path);
-
-        // The comment above a key lives on the key node, so deleting the pair would take the
-        // comment along. Hand it to whatever follows instead, as the JSON side leaves it be.
-        const index = parent.items.findIndex((item: unknown, position) => {
-            const itemKey: unknown = isPair(item) ? item.key : position;
-            return (isScalar(itemKey) ? itemKey.value : itemKey) === key;
-        });
-        if (index === -1) return false;
-
-        const removed: unknown = parent.items[index];
-        const removedNode: unknown = isPair(removed) ? removed.key : removed;
-        const comment = isNode(removedNode) ? removedNode.commentBefore : undefined;
-        const spaceBefore = isNode(removedNode) ? removedNode.spaceBefore : undefined;
-        parent.items.splice(index, 1);
-        if (comment === undefined) return true;
-
-        const next: unknown = parent.items[index];
-        const nextNode: unknown = isPair(next) ? next.key : next;
-        if (isNode(nextNode)) {
-            nextNode.commentBefore =
-                nextNode.commentBefore === undefined ? comment : `${comment}\n${nextNode.commentBefore}`;
-            nextNode.spaceBefore = nextNode.spaceBefore || spaceBefore;
-        } else {
-            parent.comment = parent.comment === undefined ? comment : `${comment}\n${parent.comment}`;
-        }
-        return true;
-    }
-
-    public toString(): string {
-        // Zero disables line folding: a long motd stays on one line, as it was written.
-        return this.document.toString({ indent: INDENT, lineWidth: 0 });
-    }
-
-    /** Serialize YAML values as JSONC while carrying their comments to the corresponding values. */
-    public toJsonc(): string {
-        if (this.blank) {
-            const comments = yamlCommentLines(this.document.commentBefore, 0);
-            comments.push(...yamlCommentLines(this.document.comment ?? undefined, 0));
-            comments.push('{}');
-            return endsWithNewline(comments.join('\n'));
-        }
-        if (!isMap(this.document.contents)) throw new ConfigSyntaxError('yaml', 'the document root is not a map');
-
-        try {
-            const value: unknown = this.document.toJS();
-            if (!isRecord(value)) throw new ConfigSyntaxError('yaml', 'the document root is not a map');
-
-            const lines = yamlCommentLines(this.document.contents.commentBefore, 0);
-            lines.push(...renderYamlMap(this.document.contents, value, 0));
-            lines.push(...yamlCommentLines(this.document.comment ?? undefined, 0));
-            return endsWithNewline(lines.join('\n'));
-        } catch (error: unknown) {
-            if (error instanceof ConfigSyntaxError) throw error;
-            const detail = error instanceof Error ? error.message : String(error);
-            throw new ConfigSyntaxError('yaml', `cannot convert to JSON: ${detail}`);
-        }
-    }
-}
 
 /**
  * The `jsonc-parser` scanner tokens the removal below looks at.
@@ -377,6 +100,26 @@ const detectIndentation = (text: string): { tabSize: number; insertSpaces: boole
         : { tabSize: indentation.length, insertSpaces: true };
 };
 
+/** The order new keys follow when the document was opened without one: `$schema` first. */
+const DEFAULT_KEY_ORDER: readonly string[] = ['$schema'];
+
+/**
+ * Where among `properties` a new `key` is inserted so the file follows `order`.
+ *
+ * A key the order does not name ranks after every named one, so whatever a person added by
+ * hand stays below the keys the server owns; among themselves, unnamed keys append in write
+ * order. Existing keys are never moved - this only decides where a new one lands.
+ */
+const insertionIndex = (properties: readonly string[], key: string, order: readonly string[]): number => {
+    const rank = (name: string): number => {
+        const index = order.indexOf(name);
+        return index === -1 ? order.length : index;
+    };
+    const target = rank(key);
+    const index = properties.findIndex((property) => rank(property) > target);
+    return index === -1 ? properties.length : index;
+};
+
 /**
  * A JSON file that may carry `//` and `/* *\/` comments and trailing commas.
  *
@@ -387,20 +130,22 @@ const detectIndentation = (text: string): { tabSize: number; insertSpaces: boole
  */
 class JsonConfigDocument implements ConfigDocument {
     private text: string;
+    private readonly keyOrder: readonly string[];
 
-    public constructor(text: string) {
+    public constructor(text: string, keyOrder: readonly string[] = DEFAULT_KEY_ORDER) {
         const errors: ParseError[] = [];
         // A blank file is fine, and is what a fresh install has; the parser alone calls it an error.
         const tree = text.trim() === '' ? undefined : parseTree(text, errors, { allowTrailingComma: true });
         const [error] = errors;
         if (error) {
-            throw new ConfigSyntaxError('json', `${printParseErrorCode(error.error)} at offset ${error.offset}`);
+            throw new ConfigSyntaxError(`${printParseErrorCode(error.error)} at offset ${error.offset}`);
         }
         if (tree !== undefined && tree.type !== 'object' && tree.type !== 'array') {
-            throw new ConfigSyntaxError('json', 'the document is a single value, not an object or an array');
+            throw new ConfigSyntaxError('the document is a single value, not an object or an array');
         }
 
         this.text = text;
+        this.keyOrder = keyOrder;
     }
 
     private get formattingOptions() {
@@ -430,10 +175,16 @@ class JsonConfigDocument implements ConfigDocument {
 
     public set(path: ConfigPath, value: unknown, comment?: string): void {
         const existed = this.has(path);
-        this.text = applyEdits(
-            this.text,
-            modify(this.text, [...path], value, { formattingOptions: this.formattingOptions })
-        );
+        // Only a new top-level key takes a decided position; deeper keys and existing keys
+        // stay where the file has them. A key that ranks last appends, like any other edit.
+        const [top] = path;
+        const inserted = !existed && path.length === 1 && typeof top === 'string' && this.insertOrdered(top, value);
+        if (!inserted) {
+            this.text = applyEdits(
+                this.text,
+                modify(this.text, [...path], value, { formattingOptions: this.formattingOptions })
+            );
+        }
         if (existed || comment === undefined) return;
 
         const node = this.node(path);
@@ -447,6 +198,54 @@ class JsonConfigDocument implements ConfigDocument {
 
         const lines = comment.split('\n').map((line) => `// ${line}\n${indentation}`);
         this.text = this.text.slice(0, anchor.offset) + lines.join('') + this.text.slice(anchor.offset);
+    }
+
+    /**
+     * Writes a new top-level `key` above the first existing key the order ranks after it.
+     *
+     * Spliced into the text by hand rather than through `modify`'s insertion index, because
+     * `jsonc-parser` anchors a mid-object insertion right after the previous value, which
+     * puts the new property in front of that value's trailing comment and carries the
+     * comment off onto the new line.
+     *
+     * @returns Whether the splice happened; `false` leaves the caller to append normally.
+     */
+    private insertOrdered(key: string, value: unknown): boolean {
+        const tree = parseTree(this.text, undefined, { allowTrailingComma: true });
+        if (tree === undefined || tree.type !== 'object') return false;
+
+        const members = tree.children ?? [];
+        const names = members.map((member) => {
+            const name: unknown = member.children?.[0]?.value;
+            return typeof name === 'string' ? name : '';
+        });
+        const successor = members[insertionIndex(names, key, this.keyOrder)];
+        if (successor === undefined) return false;
+
+        // The line the successor starts on, provided it owns the line.
+        const successorLineStart = this.text.lastIndexOf('\n', successor.offset - 1) + 1;
+        const indentation = this.text.slice(successorLineStart, successor.offset);
+        if (indentation.trim() !== '') return false;
+
+        // Comment lines directly above belong to the successor; the new key goes above them.
+        let lineStart = successorLineStart;
+        for (;;) {
+            const previousLineStart = this.text.lastIndexOf('\n', lineStart - 2) + 1;
+            if (previousLineStart >= lineStart) break;
+            const line = this.text.slice(previousLineStart, lineStart).trim();
+            if (!line.startsWith('//') && !(line.startsWith('/*') && line.endsWith('*/'))) break;
+            lineStart = previousLineStart;
+        }
+
+        const { tabSize, insertSpaces } = this.formattingOptions;
+        const unit = insertSpaces ? ' '.repeat(tabSize) : '\t';
+        const serialized = JSON.stringify(value, null, unit) ?? 'null';
+        const lines = serialized.split('\n').map((line, index) => (index === 0 ? line : `${indentation}${line}`));
+        this.text =
+            this.text.slice(0, lineStart) +
+            `${indentation}${JSON.stringify(key)}: ${lines.join('\n')},\n` +
+            this.text.slice(lineStart);
+        return true;
     }
 
     public delete(path: ConfigPath): boolean {
@@ -519,28 +318,9 @@ class JsonConfigDocument implements ConfigDocument {
 /**
  * Parses config file content into an editable document.
  *
- * @param format - How `text` is written.
  * @param text - The file content; empty is allowed and reads as an empty map.
- * @throws ConfigSyntaxError when `text` is not valid in `format`, or is a single value.
+ * @param keyOrder - Where new top-level keys are inserted; `$schema` first when omitted.
+ * @throws ConfigSyntaxError when `text` is not valid JSON, or is a single value.
  */
-export const parseConfigDocument = (format: ConfigFormat, text: string): ConfigDocument => {
-    switch (format) {
-        case 'json':
-            return new JsonConfigDocument(text);
-        case 'yaml':
-            return new YamlConfigDocument(text);
-    }
-};
-
-/**
- * Converts a YAML config into an editable JSONC document, carrying comments to the matching
- * keys and values.
- *
- * @param text - The YAML source text.
- * @returns A JSONC document with the same values and preserved comments.
- * @throws ConfigSyntaxError when the YAML is invalid or its root is not a map.
- */
-export const convertYamlToJsonConfigDocument = (text: string): ConfigDocument => {
-    const yaml = new YamlConfigDocument(text);
-    return new JsonConfigDocument(yaml.toJsonc());
-};
+export const parseConfigDocument = (text: string, keyOrder?: readonly string[]): ConfigDocument =>
+    new JsonConfigDocument(text, keyOrder);

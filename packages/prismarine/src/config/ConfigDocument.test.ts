@@ -1,20 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConfigSyntaxError, convertYamlToJsonConfigDocument, parseConfigDocument } from './ConfigDocument';
-
-const YAML_SOURCE = [
-    '# Server settings.',
-    'port: 19132 # the one players type in',
-    '',
-    '# Shown in the server list.',
-    'motd: Another JSPrismarine server!',
-    'worlds:',
-    '    world:',
-    '        generator: Flat',
-    'log-excluded-packets:',
-    '    - SetTimePacket',
-    ''
-].join('\n');
+import { ConfigSyntaxError, parseConfigDocument } from './ConfigDocument';
 
 const JSON_SOURCE = [
     '{',
@@ -34,12 +20,9 @@ const JSON_SOURCE = [
 ].join('\n');
 
 describe('config', () => {
-    describe.each([
-        ['yaml', YAML_SOURCE],
-        ['json', JSON_SOURCE]
-    ] as const)('ConfigDocument (%s)', (format, source) => {
+    describe('ConfigDocument', () => {
         it('reads plain values, nested maps, lists and the whole document', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
 
             expect(document.get(['port'])).toBe(19132);
             expect(document.get(['worlds', 'world', 'generator'])).toBe('Flat');
@@ -57,7 +40,7 @@ describe('config', () => {
         });
 
         it('answers has for present, nested and absent paths', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
 
             expect(document.has(['port'])).toBe(true);
             expect(document.has(['worlds', 'world', 'generator'])).toBe(true);
@@ -67,11 +50,11 @@ describe('config', () => {
         });
 
         it('gives the text back unchanged when nothing was edited', () => {
-            expect(parseConfigDocument(format, source).toString()).toBe(source);
+            expect(parseConfigDocument(JSON_SOURCE).toString()).toBe(JSON_SOURCE);
         });
 
         it('keeps every comment when a value changes', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
             document.set(['port'], 25565);
 
             const text = document.toString();
@@ -83,7 +66,7 @@ describe('config', () => {
         });
 
         it('writes a new key with its comment and leaves the rest alone', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
             document.set(['view-distance'], 10, 'How far players see, in chunks.');
 
             const text = document.toString();
@@ -91,18 +74,36 @@ describe('config', () => {
             expect(text).toContain('How far players see, in chunks.');
             expect(text).toContain('Shown in the server list.');
             expect(text.indexOf('How far players see')).toBeLessThan(text.indexOf('view-distance'));
-            expect(parseConfigDocument(format, text).get(['view-distance'])).toBe(10);
+            expect(parseConfigDocument(text).get(['view-distance'])).toBe(10);
+        });
+
+        it('inserts a new key where the given key order says', () => {
+            const document = parseConfigDocument(JSON_SOURCE, ['$schema', 'port', 'view-distance', 'motd']);
+            document.set(['view-distance'], 10, 'How far players see, in chunks.');
+            document.set(['$schema'], 'https://example.invalid/schema.json');
+
+            const text = document.toString();
+            const keys = [...text.matchAll(/"(\$schema|port|view-distance|motd)":/g)].map(([, key]) => key);
+            expect(keys).toEqual(['$schema', 'port', 'view-distance', 'motd']);
+            expect(text.indexOf('How far players see')).toBeLessThan(text.indexOf('view-distance'));
+        });
+
+        it('puts a new $schema key first even without a key order', () => {
+            const document = parseConfigDocument(JSON_SOURCE);
+            document.set(['$schema'], 'https://example.invalid/schema.json');
+
+            expect(document.toString().indexOf('$schema')).toBeLessThan(document.toString().indexOf('"port"'));
         });
 
         it('does not stack a comment onto a key that already exists', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
             document.set(['motd'], 'Hello', 'Shown in the server list.');
 
             expect(document.toString().match(/Shown in the server list\./g)).toHaveLength(1);
         });
 
         it('creates the maps on the way to a nested key, with the comment', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
             document.set(['worlds', 'world', 'seed'], 42, 'The world seed.');
             document.set(['network', 'compression', 'level'], 7);
 
@@ -114,11 +115,11 @@ describe('config', () => {
         });
 
         it('stores lists and maps as values', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
             document.set(['log-excluded-packets'], ['SetTimePacket', 'MovePlayerPacket']);
             document.set(['worlds'], { world: { generator: 'Flat', seed: 1 }, nether: { generator: 'Nether' } });
 
-            const reread = parseConfigDocument(format, document.toString());
+            const reread = parseConfigDocument(document.toString());
             expect(reread.get(['log-excluded-packets'])).toStrictEqual(['SetTimePacket', 'MovePlayerPacket']);
             expect(reread.get(['worlds'])).toStrictEqual({
                 world: { generator: 'Flat', seed: 1 },
@@ -127,7 +128,7 @@ describe('config', () => {
         });
 
         it('deletes a key and reports whether it was there', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
 
             expect(document.delete(['motd'])).toBe(true);
             expect(document.delete(['motd'])).toBe(false);
@@ -139,7 +140,7 @@ describe('config', () => {
         });
 
         it('leaves the comment above a deleted key for whatever follows it', () => {
-            const document = parseConfigDocument(format, source);
+            const document = parseConfigDocument(JSON_SOURCE);
 
             expect(document.delete(['port'])).toBe(true);
 
@@ -148,7 +149,7 @@ describe('config', () => {
             expect(text).not.toContain('the one players type in');
             expect(text).not.toContain('19132');
             expect(text.indexOf('Server settings.')).toBeLessThan(text.indexOf('motd'));
-            expect(parseConfigDocument(format, text).get([])).toStrictEqual({
+            expect(parseConfigDocument(text).get([])).toStrictEqual({
                 motd: 'Another JSPrismarine server!',
                 worlds: { world: { generator: 'Flat' } },
                 'log-excluded-packets': ['SetTimePacket']
@@ -156,7 +157,7 @@ describe('config', () => {
         });
 
         it('starts from an empty file', () => {
-            const document = parseConfigDocument(format, '');
+            const document = parseConfigDocument('');
             expect(document.get([])).toBeUndefined();
             expect(document.has(['port'])).toBe(false);
 
@@ -165,77 +166,21 @@ describe('config', () => {
             const text = document.toString();
             expect(text.endsWith('\n')).toBe(true);
             expect(text).toContain('The port.');
-            expect(parseConfigDocument(format, text).get(['port'])).toBe(19132);
+            expect(parseConfigDocument(text).get(['port'])).toBe(19132);
         });
 
         it('refuses a file that does not parse instead of treating it as empty', () => {
-            const broken = format === 'yaml' ? 'port: [19132\n' : '{ "port": 19132\n';
-            expect(() => parseConfigDocument(format, broken)).toThrow(ConfigSyntaxError);
+            expect(() => parseConfigDocument('{ "port": 19132\n')).toThrow(ConfigSyntaxError);
         });
 
         it('refuses a file whose root is a single value', () => {
-            expect(() => parseConfigDocument(format, format === 'yaml' ? 'just text\n' : '"just text"\n')).toThrow(
-                ConfigSyntaxError
-            );
-        });
-    });
-
-    describe('ConfigDocument (yaml)', () => {
-        it('keeps a comment-only file and adds the first key under it', () => {
-            const document = parseConfigDocument('yaml', '# Nothing configured yet.\n');
-            document.set(['port'], 19132);
-
-            const text = document.toString();
-            expect(text).toContain('# Nothing configured yet.');
-            expect(parseConfigDocument('yaml', text).get(['port'])).toBe(19132);
+            expect(() => parseConfigDocument('"just text"\n')).toThrow(ConfigSyntaxError);
         });
 
-        it('indents with four spaces and does not fold long strings', () => {
-            const document = parseConfigDocument('yaml', '');
-            const motd =
-                'A message of the day that runs on and on, well past the eighty columns a folder would break it at.';
-            document.set(['worlds', 'world', 'generator'], 'Flat');
-            document.set(['motd'], motd);
-
-            const text = document.toString();
-            expect(text).toContain('worlds:\n    world:\n        generator: Flat\n');
-            expect(text).toContain(`motd: ${motd}\n`);
-        });
-
-        it('converts YAML lists and their comments to JSONC', () => {
-            const document = convertYamlToJsonConfigDocument(
-                [
-                    '# Excluded packet names.',
-                    'packets:',
-                    '    - MovePlayerPacket # noisy',
-                    '    # Time sync.',
-                    '    - SetTimePacket',
-                    ''
-                ].join('\n')
-            );
-
-            expect(document.get(['packets'])).toStrictEqual(['MovePlayerPacket', 'SetTimePacket']);
-            expect(document.toString()).toContain('// Excluded packet names.');
-            expect(document.toString()).toContain('"MovePlayerPacket", // noisy');
-            expect(document.toString()).toContain('// Time sync.');
-            expect(parseConfigDocument('json', document.toString()).get(['packets'])).toStrictEqual([
-                'MovePlayerPacket',
-                'SetTimePacket'
-            ]);
-        });
-
-        it('keeps comments in a comment-only YAML file during conversion', () => {
-            const document = convertYamlToJsonConfigDocument('# Nothing configured yet.\n');
-
-            expect(document.toString()).toBe('// Nothing configured yet.\n{}\n');
-        });
-    });
-
-    describe('ConfigDocument (json)', () => {
         const LIST = '[\n    // The first entry.\n    {\n        "name": "a"\n    }\n]\n';
 
         it('appends to a list at the index past its end and keeps the comments', () => {
-            const document = parseConfigDocument('json', LIST);
+            const document = parseConfigDocument(LIST);
             document.set([1], { name: 'b' }, 'The second entry.');
 
             const text = document.toString();
@@ -245,7 +190,7 @@ describe('config', () => {
         });
 
         it('replaces and removes list items by index', () => {
-            const document = parseConfigDocument('json', LIST);
+            const document = parseConfigDocument(LIST);
             document.set([0, 'name'], 'renamed');
             expect(document.get([0])).toStrictEqual({ name: 'renamed' });
             expect(document.toString()).toContain('// The first entry.');
@@ -255,12 +200,12 @@ describe('config', () => {
         });
 
         it('accepts trailing commas and both comment styles', () => {
-            const document = parseConfigDocument('json', '{\n  /* a */ "a": 1, // b\n  "list": [1, 2,],\n}\n');
+            const document = parseConfigDocument('{\n  /* a */ "a": 1, // b\n  "list": [1, 2,],\n}\n');
             expect(document.get([])).toStrictEqual({ a: 1, list: [1, 2] });
         });
 
         it('indents a new key like its neighbors', () => {
-            const document = parseConfigDocument('json', '{\n  "a": 1\n}\n');
+            const document = parseConfigDocument('{\n  "a": 1\n}\n');
             document.set(['b'], 2, 'The second key.');
 
             expect(document.toString()).toBe('{\n  "a": 1,\n  // The second key.\n  "b": 2\n}\n');

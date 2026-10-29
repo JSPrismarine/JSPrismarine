@@ -129,14 +129,16 @@ describe('the command layer on a booted server', () => {
         root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-startup-'));
         writeBehaviorPack(path.join(root, 'behaviorpack'), ['minecraft:pig', 'minecraft:cow', 'minecraft:sheep']);
         writeFileSync(
-            path.join(root, 'config.yaml'),
-            [
-                'content-strict: false',
-                'content-world-packs:',
-                `    - ${path.join(root, 'behaviorpack')}`,
-                'content-datapacks: []',
-                ''
-            ].join('\n')
+            path.join(root, 'config.json'),
+            `${JSON.stringify(
+                {
+                    'content-strict': false,
+                    'content-world-packs': [path.join(root, 'behaviorpack')],
+                    'content-datapacks': []
+                },
+                null,
+                4
+            )}\n`
         );
         previousDir = process.env.JSP_DIR;
         process.env.JSP_DIR = root;
@@ -493,15 +495,16 @@ describe('the command layer on a server with packs of its own', () => {
         // `Config` the server was handed is enabled, so the two fixtures go in
         // here rather than through `debugConfig`.
         writeFileSync(
-            path.join(root, 'config.yaml'),
-            [
-                'content-strict: false',
-                'content-world-packs:',
-                `    - ${path.join(root, 'behaviorpack')}`,
-                'content-datapacks:',
-                `    - ${path.join(root, 'datapack')}`,
-                ''
-            ].join('\n')
+            path.join(root, 'config.json'),
+            `${JSON.stringify(
+                {
+                    'content-strict': false,
+                    'content-world-packs': [path.join(root, 'behaviorpack')],
+                    'content-datapacks': [path.join(root, 'datapack')]
+                },
+                null,
+                4
+            )}\n`
         );
 
         previousDir = process.env.JSP_DIR;

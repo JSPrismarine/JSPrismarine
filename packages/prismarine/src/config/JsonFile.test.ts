@@ -92,7 +92,7 @@ describe('config', () => {
         });
 
         it('replaces a matching entry in place and appends a new one with its comment', () => {
-            const document = parseConfigDocument('json', LIST);
+            const document = parseConfigDocument(LIST);
 
             upsertListEntry(document, hasName('bob'), { name: 'bob', reason: 'spam' });
             upsertListEntry(document, hasName('carol'), { name: 'carol', reason: 'alts' }, 'Added by /ban.');
@@ -108,14 +108,14 @@ describe('config', () => {
         });
 
         it('appends to an empty list', () => {
-            const document = parseConfigDocument('json', '[]');
+            const document = parseConfigDocument('[]');
             upsertListEntry(document, hasName('alice'), { name: 'alice' });
 
             expect(document.get([])).toStrictEqual([{ name: 'alice' }]);
         });
 
         it('removes every matching entry and keeps the comments of the others', () => {
-            const document = parseConfigDocument('json', LIST);
+            const document = parseConfigDocument(LIST);
 
             expect(removeListEntries(document, hasName('bob'))).toBe(true);
             expect(removeListEntries(document, hasName('bob'))).toBe(false);

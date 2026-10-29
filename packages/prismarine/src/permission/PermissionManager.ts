@@ -184,7 +184,7 @@ export class PermissionManager implements Service {
      * What a server without a `permissions.json` starts with, each key explained in the file.
      */
     private static defaultPermissionsFile() {
-        const document = parseConfigDocument('json', '{}');
+        const document = parseConfigDocument('{}');
         document.set(
             ['defaultPermissions'],
             [

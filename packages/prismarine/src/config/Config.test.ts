@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -107,53 +107,13 @@ describe('config', () => {
             expect(text).toContain('"view-distance": 10');
         });
 
-        it.each(['config.yml', 'config.yaml'])('converts legacy %s to JSON and keeps its comments', async (name) => {
-            const jsonFile = path.join(configDirectory, 'config.json');
+        it.each(['config.yml', 'config.yaml'])('refuses to start beside a %s instead of ignoring it', (name) => {
             const yamlFile = path.join(configDirectory, name);
-            const yaml = [
-                '# My server.',
-                'port: 25565 # forwarded',
-                '',
-                '# Message shown in the server list.',
-                'motd: Legacy server',
-                'worlds:',
-                '    # Primary world.',
-                '    world:',
-                '        seed: 42 # Keep the seed.',
-                '# Keep this note.',
-                ''
-            ].join('\n');
-            rmSync(jsonFile);
-            writeFileSync(yamlFile, yaml);
+            writeFileSync(yamlFile, 'port: 25565\n');
 
-            const legacyConfig = new Config();
-            await legacyConfig.enable();
-
-            expect(legacyConfig.getServerPort()).toBe(25565);
-            expect(legacyConfig.getMotd()).toBe('Legacy server');
-            expect(legacyConfig.getWorlds()).toEqual({ world: { seed: 42 } });
-            expect(existsSync(jsonFile)).toBe(true);
-            expect(readFileSync(yamlFile, 'utf8')).toBe(yaml);
-
-            const json = readFileSync(jsonFile, 'utf8');
-            expect(json).toContain(
-                `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/config.schema.json`
-            );
-            expect(json).toContain('// My server.');
-            expect(json).toContain('"port": 25565, // forwarded');
-            expect(json).toContain('// Message shown in the server list.');
-            expect(json).toContain('// Primary world.');
-            expect(json).toContain('"seed": 42 // Keep the seed.');
-            expect(json).toContain('// Keep this note.');
-        });
-
-        it('should prefer config.json when both config files exist', async () => {
-            writeFileSync(path.join(configDirectory, 'config.yaml'), 'port: 25565\n');
-
-            const reread = new Config();
-            await reread.enable();
-
-            expect(reread.getServerPort()).toBe(19132);
+            expect(() => new Config()).toThrow(/no longer supports YAML/);
+            // The file holds settings somebody chose; refusing must not touch it.
+            expect(readFileSync(yamlFile, 'utf8')).toBe('port: 25565\n');
         });
 
         it('should set the gamemode', () => {

@@ -1,20 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { CONFIG_FORMATS, parseConfigDocument } from './ConfigDocument';
-import type { ConfigDocument, ConfigFormat, ConfigPath } from './ConfigDocument';
+import { parseConfigDocument } from './ConfigDocument';
+import type { ConfigDocument, ConfigPath } from './ConfigDocument';
 import { toJsonFileContents } from './JsonFile';
 
 /** What a whole config file holds once parsed: a map from key to whatever the file says. */
 export type ConfigData = Record<string, unknown>;
-
-/** What a freshly created file of each format contains: valid, and empty. */
-const EMPTY_FILE: Readonly<Record<ConfigFormat, string>> = {
-    json: '{}\n',
-    yaml: ''
-};
-
-const isConfigFormat = (ext: string): ext is ConfigFormat => CONFIG_FORMATS.some((format) => format === ext);
 
 /** Keys that would reach into an object's prototype rather than its own data. */
 const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
@@ -50,37 +42,37 @@ const sameKindAs = <T>(value: unknown, defaults: T): value is T =>
     (value === null) === (defaults === null);
 
 /**
- * A config file on disk, read and written one key at a time.
+ * A JSON config file on disk, read and written one key at a time.
  *
  * Every write goes through a {@link ConfigDocument}, so comments and blank lines in the file
  * survive, and a key written for the first time can carry a comment that explains it. The
- * format follows the file extension: `.yaml` or `.json`, where the JSON may hold `//` and
- * `/* *\/` comments and trailing commas.
+ * JSON may hold `//` and `/* *\/` comments and trailing commas.
  */
 export class ConfigBuilder {
-    private readonly format: ConfigFormat;
     private readonly path: string;
+    private readonly keyOrder: readonly string[] | undefined;
 
     /**
      * Opens the file, creating it and its directory when they do not exist yet.
      *
-     * @throws Error when the file extension is not one of the supported formats.
+     * @param filePath - The `.json` file to read and write.
+     * @param keyOrder - Where a new top-level key is inserted, so the file keeps one order no
+     *   matter which part of the server writes a key first.
+     * @throws Error when the file extension is not `.json`.
      */
-    public constructor(filePath: string) {
+    public constructor(filePath: string, keyOrder?: readonly string[]) {
         const parsed = path.parse(filePath);
-        const ext = parsed.ext.slice(1).toLowerCase();
-
-        if (!isConfigFormat(ext)) {
-            throw new Error(`Unsupported config type. (Supported types: ${CONFIG_FORMATS.join(', ')})`);
+        if (parsed.ext.toLowerCase() !== '.json') {
+            throw new Error('Unsupported config type. (Supported types: json)');
         }
-        this.format = ext;
 
+        this.keyOrder = keyOrder;
         if (!fs.existsSync(parsed.dir)) fs.mkdirSync(parsed.dir, { recursive: true });
         const created = !fs.existsSync(filePath);
-        if (created) fs.writeFileSync(filePath, EMPTY_FILE[this.format], 'utf8');
+        if (created) fs.writeFileSync(filePath, '{}\n', 'utf8');
 
         this.path = filePath;
-        if (created && this.format === 'json' && path.basename(filePath) === 'config.json') {
+        if (created && path.basename(filePath) === 'config.json') {
             this.write(this.read());
         }
     }
@@ -95,15 +87,6 @@ export class ConfigBuilder {
     }
 
     /**
-     * Get the config format (eg. type).
-     *
-     * @returns {'yaml' | 'json'} either `yaml` or `json`
-     */
-    public getType(): ConfigFormat {
-        return this.format;
-    }
-
-    /**
      * Reads the file as a document.
      *
      * A file that does not parse is an error, named after the file, rather than an empty
@@ -112,7 +95,7 @@ export class ConfigBuilder {
     private read(): ConfigDocument {
         const raw = fs.readFileSync(this.path, 'utf8');
         try {
-            return parseConfigDocument(this.format, raw);
+            return parseConfigDocument(raw, this.keyOrder);
         } catch (error: unknown) {
             const detail = error instanceof Error ? error.message : String(error);
             throw new Error(`Cannot read ${this.path}: ${detail}`, { cause: error });
@@ -120,8 +103,7 @@ export class ConfigBuilder {
     }
 
     private write(document: ConfigDocument): void {
-        const text = this.format === 'json' ? toJsonFileContents(this.path, document) : document.toString();
-        fs.writeFileSync(this.path, text, 'utf8');
+        fs.writeFileSync(this.path, toJsonFileContents(this.path, document), 'utf8');
     }
 
     /**
