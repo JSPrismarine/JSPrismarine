@@ -226,7 +226,7 @@ const measure = (file: unknown, seen: Coverage): void => {
     }
 };
 
-describe.skipIf(!enabled)('the vanilla 26.3 enchantment corpus', () => {
+describe.skipIf(!enabled)('the vanilla 26.3 enchantment corpus', { tags: ['real-data'] }, () => {
     it('parses all 43 enchantment files without a diagnostic', { timeout: 120_000 }, () => {
         const datapack = extractVanillaDatapack();
         const files = loadFolder(datapack, 'enchantment');

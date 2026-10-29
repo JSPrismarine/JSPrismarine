@@ -116,7 +116,7 @@ describe('resolvePackStack', () => {
  * Java data generator output. Run
  * `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` first.
  */
-describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', () => {
+describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', { tags: ['real-data'] }, () => {
     // Reading, validating and resolving Mojang's two halves takes seconds,
     // which is well past Vitest's five second default.
     it('resolves every palette block from the overlay', { timeout: 180_000 }, () => {

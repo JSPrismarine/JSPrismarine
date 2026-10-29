@@ -412,63 +412,81 @@ const clientPayloadComparison = (content: ServerContent): { gaps: string[]; meas
 
 const REAL_STACK_REFERENCES = [REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData] as const;
 
-describeFamily(FAMILIES.integrationTags, REAL_STACK_REFERENCES, () => {
-    it('resolves loaded tag files and carries mapped memberships onto runtime registries', { timeout: 180_000 }, () => {
-        const { content } = realStack();
-        const gaps = [
-            ...content.diagnostics
-                .filter((diagnostic) => diagnostic.severity === 'error')
-                .map((diagnostic) => `content:${diagnostic.code}:${diagnostic.path ?? diagnostic.message}`),
-            ...loadedTagGaps(content),
-            ...runtimeTagGaps(content),
-            ...javaBiomeTagGaps(content)
-        ];
-        const verdict = checkAllowList(FAMILIES.integrationTags, gaps);
-        const definitions = [...content.definitions.tags.values()];
-        const values = definitions.flatMap((definition) => tagValuesOf(definition.data));
+describeFamily(
+    FAMILIES.integrationTags,
+    REAL_STACK_REFERENCES,
+    () => {
+        it(
+            'resolves loaded tag files and carries mapped memberships onto runtime registries',
+            { timeout: 180_000 },
+            () => {
+                const { content } = realStack();
+                const gaps = [
+                    ...content.diagnostics
+                        .filter((diagnostic) => diagnostic.severity === 'error')
+                        .map((diagnostic) => `content:${diagnostic.code}:${diagnostic.path ?? diagnostic.message}`),
+                    ...loadedTagGaps(content),
+                    ...runtimeTagGaps(content),
+                    ...javaBiomeTagGaps(content)
+                ];
+                const verdict = checkAllowList(FAMILIES.integrationTags, gaps);
+                const definitions = [...content.definitions.tags.values()];
+                const values = definitions.flatMap((definition) => tagValuesOf(definition.data));
 
-        reportParityProgress(FAMILIES.integrationTags, {
-            loadedTagDefinitions: definitions.length,
-            declaredTagValues: values.length,
-            requiredTagValues: values.filter((value) => value.required).length,
-            ...runtimeTagMeasurements(content)
+                reportParityProgress(FAMILIES.integrationTags, {
+                    loadedTagDefinitions: definitions.length,
+                    declaredTagValues: values.length,
+                    requiredTagValues: values.filter((value) => value.required).length,
+                    ...runtimeTagMeasurements(content)
+                });
+
+                expect(verdict.unexpected).toEqual([]);
+                expect(verdict.stale).toEqual([]);
+                expect(content.tags.includes('block', 'minecraft:mineable/pickaxe', 'minecraft:stone')).toBe(true);
+                expect(content.items.types.get('minecraft:oak_planks')?.hasJavaTag('minecraft:planks')).toBe(true);
+                expect(content.entities.registry.get('minecraft:zombie')?.hasTag('minecraft:undead')).toBe(true);
+                expect(content.tags.includes('worldgen/biome', 'minecraft:is_overworld', 'minecraft:plains')).toBe(
+                    true
+                );
+            }
+        );
+
+        it('returns every real Bedrock biome tag through the chunk-backed world view', { timeout: 180_000 }, () => {
+            const { content } = realStack();
+
+            reportParityProgress(FAMILIES.integrationTags, {
+                bedrockBiomeWorldViews: [...content.biomes.keys()].length
+            });
+            expect(biomeWorldViewGaps(content)).toEqual([]);
         });
+    },
+    { tags: ['real-data'] }
+);
 
-        expect(verdict.unexpected).toEqual([]);
-        expect(verdict.stale).toEqual([]);
-        expect(content.tags.includes('block', 'minecraft:mineable/pickaxe', 'minecraft:stone')).toBe(true);
-        expect(content.items.types.get('minecraft:oak_planks')?.hasJavaTag('minecraft:planks')).toBe(true);
-        expect(content.entities.registry.get('minecraft:zombie')?.hasTag('minecraft:undead')).toBe(true);
-        expect(content.tags.includes('worldgen/biome', 'minecraft:is_overworld', 'minecraft:plains')).toBe(true);
-    });
+describeFamily(
+    FAMILIES.integrationEntityRuntime,
+    REAL_STACK_REFERENCES,
+    () => {
+        it('applies a vanilla entity event and runs its data-driven physics', { timeout: 180_000 }, () => {
+            const { runtime } = realStack();
+            reportParityProgress(FAMILIES.integrationEntityRuntime, {
+                dataDrivenEntityTypes: realStack().content.entities.registry.size
+            });
+            const cube = runtime.spawn('minecraft:sulfur_cube', { x: 0.5, y: 64.5, z: 0.5 });
+            if (cube === undefined) throw new Error('the vanilla stack declares no minecraft:sulfur_cube');
 
-    it('returns every real Bedrock biome tag through the chunk-backed world view', { timeout: 180_000 }, () => {
-        const { content } = realStack();
+            cube.body.push({ x: 1, y: -1, z: 0 });
+            cube.instance.fire('minecraft:become_bouncy');
+            runtime.tick(1);
 
-        reportParityProgress(FAMILIES.integrationTags, { bedrockBiomeWorldViews: [...content.biomes.keys()].length });
-        expect(biomeWorldViewGaps(content)).toEqual([]);
-    });
-});
-
-describeFamily(FAMILIES.integrationEntityRuntime, REAL_STACK_REFERENCES, () => {
-    it('applies a vanilla entity event and runs its data-driven physics', { timeout: 180_000 }, () => {
-        const { runtime } = realStack();
-        reportParityProgress(FAMILIES.integrationEntityRuntime, {
-            dataDrivenEntityTypes: realStack().content.entities.registry.size
+            expect(cube.instance.hasComponent('minecraft:bounciness')).toBe(true);
+            expect(cube.body.velocity.x).toBeGreaterThan(0);
+            expect(cube.body.velocity.y).toBeGreaterThan(0);
+            runtime.remove(cube.id, 'parity runtime check complete');
         });
-        const cube = runtime.spawn('minecraft:sulfur_cube', { x: 0.5, y: 64.5, z: 0.5 });
-        if (cube === undefined) throw new Error('the vanilla stack declares no minecraft:sulfur_cube');
-
-        cube.body.push({ x: 1, y: -1, z: 0 });
-        cube.instance.fire('minecraft:become_bouncy');
-        runtime.tick(1);
-
-        expect(cube.instance.hasComponent('minecraft:bounciness')).toBe(true);
-        expect(cube.body.velocity.x).toBeGreaterThan(0);
-        expect(cube.body.velocity.y).toBeGreaterThan(0);
-        runtime.remove(cube.id, 'parity runtime check complete');
-    });
-});
+    },
+    { tags: ['real-data'] }
+);
 
 /** Groups component names by namespace so per-entity dashboard details stay compact. */
 const groupComponentNamesByNamespace = (identifiers: readonly string[]): string => {
@@ -697,27 +715,37 @@ const compareEntityRuntimeCoverage = (stack: RealStack): { gaps: string[]; measu
     };
 };
 
-describeFamily(FAMILIES.integrationEntityCoverage, REAL_STACK_REFERENCES, () => {
-    it('resolves and runs every entity declaration in the composed vanilla stack', { timeout: 180_000 }, () => {
-        const stack = realStack();
-        const comparison = compareEntityRuntimeCoverage(stack);
-        const verdict = checkAllowList(FAMILIES.integrationEntityCoverage, comparison.gaps);
+describeFamily(
+    FAMILIES.integrationEntityCoverage,
+    REAL_STACK_REFERENCES,
+    () => {
+        it('resolves and runs every entity declaration in the composed vanilla stack', { timeout: 180_000 }, () => {
+            const stack = realStack();
+            const comparison = compareEntityRuntimeCoverage(stack);
+            const verdict = checkAllowList(FAMILIES.integrationEntityCoverage, comparison.gaps);
 
-        reportParityProgress(FAMILIES.integrationEntityCoverage, comparison.measurements);
-        expect(verdict.unexpected).toEqual([]);
-        expect(verdict.stale).toEqual([]);
-    });
-});
+            reportParityProgress(FAMILIES.integrationEntityCoverage, comparison.measurements);
+            expect(verdict.unexpected).toEqual([]);
+            expect(verdict.stale).toEqual([]);
+        });
+    },
+    { tags: ['real-data'] }
+);
 
-describeFamily(FAMILIES.integrationClientPackets, REAL_STACK_REFERENCES, () => {
-    it(
-        'builds join payloads that preserve Bedrock catalogs and resolve client references',
-        { timeout: 180_000 },
-        () => {
-            const { content } = realStack();
-            const comparison = clientPayloadComparison(content);
-            reportParityProgress(FAMILIES.integrationClientPackets, comparison.measurements);
-            expect(comparison.gaps).toEqual([]);
-        }
-    );
-});
+describeFamily(
+    FAMILIES.integrationClientPackets,
+    REAL_STACK_REFERENCES,
+    () => {
+        it(
+            'builds join payloads that preserve Bedrock catalogs and resolve client references',
+            { timeout: 180_000 },
+            () => {
+                const { content } = realStack();
+                const comparison = clientPayloadComparison(content);
+                reportParityProgress(FAMILIES.integrationClientPackets, comparison.measurements);
+                expect(comparison.gaps).toEqual([]);
+            }
+        );
+    },
+    { tags: ['real-data'] }
+);

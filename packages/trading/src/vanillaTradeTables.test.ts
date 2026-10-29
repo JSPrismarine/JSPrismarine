@@ -3,7 +3,7 @@ import { parseLenientJson, readBrarchive } from '@jsprismarine/packs';
 import { seededRandom } from '@jsprismarine/predicates';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Merchant } from './economy';
 import type { TradeEnchanting } from './functions';
@@ -143,131 +143,149 @@ const parsePack = (
 
 const samplesPack = bedrockSamplesPack();
 
-describe.runIf(enabled && samplesPack !== undefined)('the vanilla trade tables of bedrock-samples', () => {
-    const files = tradeFilesIn(samplesPack!);
-    const diagnostics: Diagnostic[] = [];
-    const { tables } = parsePack(files, files, (diagnostic) => diagnostics.push(diagnostic));
+describe.runIf(enabled && samplesPack !== undefined)(
+    'the vanilla trade tables of bedrock-samples',
+    { tags: ['real-data'] },
+    () => {
+        let files: ReadonlyMap<string, string> = new Map();
+        let diagnostics: Diagnostic[] = [];
+        let tables: ReadonlyMap<string, TradeTable> = new Map();
 
-    it('reads all 27 files', () => {
-        expect(files.size).toBe(27);
-        expect(tables.size).toBe(27);
-    });
+        beforeAll(() => {
+            files = tradeFilesIn(samplesPack!);
+            diagnostics = [];
+            tables = parsePack(files, files, (diagnostic) => diagnostics.push(diagnostic)).tables;
+        });
 
-    it('parses every file with no diagnostic at all', () => {
-        expect(diagnostics).toEqual([]);
-    });
+        it('reads all 27 files', () => {
+            expect(files.size).toBe(27);
+            expect(tables.size).toBe(27);
+        });
 
-    it('splits into 14 economy tables and 13 legacy ones', () => {
-        const economy = [...tables.keys()].filter((name) => name.includes('economy_trades'));
+        it('parses every file with no diagnostic at all', () => {
+            expect(diagnostics).toEqual([]);
+        });
 
-        expect(economy).toHaveLength(14);
-        expect(tables.size - economy.length).toBe(13);
-    });
+        it('splits into 14 economy tables and 13 legacy ones', () => {
+            const economy = [...tables.keys()].filter((name) => name.includes('economy_trades'));
 
-    it('counts the tiers, groups and trades', () => {
-        let tiers = 0;
-        let groups = 0;
-        let trades = 0;
-        for (const table of tables.values()) {
-            tiers += table.tiers.length;
-            for (const tier of table.tiers) {
-                groups += tier.groups.length;
-                for (const group of tier.groups) trades += group.trades.length;
-            }
-        }
+            expect(economy).toHaveLength(14);
+            expect(tables.size - economy.length).toBe(13);
+        });
 
-        expect(tiers).toBe(110);
-        // The files write 130 groups; the 25 legacy tiers that hold their
-        // trades directly each normalize into one more.
-        expect(groups).toBe(155);
-        expect(trades).toBe(384);
-    });
-
-    it('uses six trade item functions, all of them implemented', () => {
-        const used = functionsIn(tables.values());
-
-        expect([...used].sort()).toEqual([
-            'enchant_book_for_trading',
-            'enchant_with_levels',
-            'exploration_map',
-            'random_aux_value',
-            'random_dye',
-            'set_potion'
-        ]);
-        for (const name of used) expect(VANILLA_TRADE_FUNCTIONS.has(name)).toBe(true);
-    });
-
-    it('generates offers for every table, reporting only the trades a variant rules out', () => {
-        const codes = new Set<string>();
-        let offers = 0;
-
-        for (const table of tables.values()) {
-            const generated = generateOffers({
-                table,
-                random: seededRandom(7),
-                traderExp: 1000,
-                context: { filters: traderContext(3) },
-                enchanting,
-                report: (code) => codes.add(code)
-            });
-            offers += generated.length;
-            for (const offer of generated) {
-                expect(offer.wants.length).toBeGreaterThan(0);
-                expect(offer.gives.length).toBeGreaterThan(0);
-                for (const stack of [...offer.wants, ...offer.gives]) expect(stack.count).toBeGreaterThan(0);
-            }
-        }
-
-        // The cartographer's biome maps are gated on the trader's mark
-        // variant, so a trader of one variant drops the trades of the others.
-        expect([...codes]).toEqual(['trading.noChoiceSurvived']);
-        expect(offers).toBeGreaterThan(100);
-    });
-
-    it('repeats the offers of one trader for one seed', () => {
-        const table = [...tables.values()][0]!;
-        const run = () =>
-            generateOffers({
-                table,
-                random: seededRandom(3),
-                traderExp: 1000,
-                context: { filters: traderContext(1) },
-                enchanting
-            });
-
-        expect(run()).toEqual(run());
-    });
-
-    it('runs a full session against every table', () => {
-        for (const table of tables.values()) {
-            const merchant = new Merchant({
-                table,
-                random: seededRandom(11),
-                context: { filters: traderContext(1) },
-                enchanting
-            });
-
-            for (let round = 0; round < 40; round += 1) {
-                for (let index = 0; index < merchant.offers().length; index += 1) merchant.trade(index);
-                merchant.resupply();
+        it('counts the tiers, groups and trades', () => {
+            let tiers = 0;
+            let groups = 0;
+            let trades = 0;
+            for (const table of tables.values()) {
+                tiers += table.tiers.length;
+                for (const tier of table.tiers) {
+                    groups += tier.groups.length;
+                    for (const group of tier.groups) trades += group.trades.length;
+                }
             }
 
-            expect(merchant.experience).toBeGreaterThan(0);
-            for (const offer of merchant.offers()) expect(offer.wants[0]?.count).toBeGreaterThanOrEqual(1);
-        }
-    });
-});
+            expect(tiers).toBe(110);
+            // The files write 130 groups; the 25 legacy tiers that hold their
+            // trades directly each normalize into one more.
+            expect(groups).toBe(155);
+            expect(trades).toBe(384);
+        });
+
+        it('uses six trade item functions, all of them implemented', () => {
+            const used = functionsIn(tables.values());
+
+            expect([...used].sort()).toEqual([
+                'enchant_book_for_trading',
+                'enchant_with_levels',
+                'exploration_map',
+                'random_aux_value',
+                'random_dye',
+                'set_potion'
+            ]);
+            for (const name of used) expect(VANILLA_TRADE_FUNCTIONS.has(name)).toBe(true);
+        });
+
+        it('generates offers for every table, reporting only the trades a variant rules out', () => {
+            const codes = new Set<string>();
+            let offers = 0;
+
+            for (const table of tables.values()) {
+                const generated = generateOffers({
+                    table,
+                    random: seededRandom(7),
+                    traderExp: 1000,
+                    context: { filters: traderContext(3) },
+                    enchanting,
+                    report: (code) => codes.add(code)
+                });
+                offers += generated.length;
+                for (const offer of generated) {
+                    expect(offer.wants.length).toBeGreaterThan(0);
+                    expect(offer.gives.length).toBeGreaterThan(0);
+                    for (const stack of [...offer.wants, ...offer.gives]) expect(stack.count).toBeGreaterThan(0);
+                }
+            }
+
+            // The cartographer's biome maps are gated on the trader's mark
+            // variant, so a trader of one variant drops the trades of the others.
+            expect([...codes]).toEqual(['trading.noChoiceSurvived']);
+            expect(offers).toBeGreaterThan(100);
+        });
+
+        it('repeats the offers of one trader for one seed', () => {
+            const table = [...tables.values()][0]!;
+            const run = () =>
+                generateOffers({
+                    table,
+                    random: seededRandom(3),
+                    traderExp: 1000,
+                    context: { filters: traderContext(1) },
+                    enchanting
+                });
+
+            expect(run()).toEqual(run());
+        });
+
+        it('runs a full session against every table', () => {
+            for (const table of tables.values()) {
+                const merchant = new Merchant({
+                    table,
+                    random: seededRandom(11),
+                    context: { filters: traderContext(1) },
+                    enchanting
+                });
+
+                for (let round = 0; round < 40; round += 1) {
+                    for (let index = 0; index < merchant.offers().length; index += 1) merchant.trade(index);
+                    merchant.resupply();
+                }
+
+                expect(merchant.experience).toBeGreaterThan(0);
+                for (const offer of merchant.offers()) expect(offer.wants[0]?.count).toBeGreaterThanOrEqual(1);
+            }
+        });
+    }
+);
 
 const serverPack = bedrockServerPack();
 
 describe.runIf(enabled && serverPack !== undefined && samplesPack !== undefined)(
     'the vanilla trade tables of the Bedrock Dedicated Server',
+    { tags: ['real-data'] },
     () => {
-        const files = tradeFilesIn(serverPack!);
-        const diagnostics: Diagnostic[] = [];
-        const { tables, binary } = parsePack(files, tradeFilesIn(samplesPack!), (diagnostic) =>
-            diagnostics.push(diagnostic)
-        );
+        let files: ReadonlyMap<string, string> = new Map();
+        let diagnostics: Diagnostic[] = [];
+        let tables: ReadonlyMap<string, TradeTable> = new Map();
+        let binary = 0;
+
+        beforeAll(() => {
+            files = tradeFilesIn(serverPack!);
+            diagnostics = [];
+            const result = parsePack(files, tradeFilesIn(samplesPack!), (diagnostic) => diagnostics.push(diagnostic));
+            tables = result.tables;
+            binary = result.binary;
+        });
 
         it('reads all 27 files, 11 of them through the samples copy', () => {
             expect(files.size).toBe(27);

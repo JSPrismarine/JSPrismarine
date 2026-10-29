@@ -36,7 +36,7 @@ const reportCoverage = (message: string): void => {
     console.warn(`[parity progress] ${message}`);
 };
 
-describe.skipIf(!datapack)('every Java identifier in the vanilla 26.3 datapack', () => {
+describe.skipIf(!datapack)('every Java identifier in the vanilla 26.3 datapack', { tags: ['real-data'] }, () => {
     it('maps to Bedrock or is allow-listed, with nothing left over', { timeout: 120_000 }, () => {
         const { definitions } = load([{ kind: 'datapack', path: datapack! }]);
         const report = reportIdentifiers(definitions, createPackIdentifierResolver());

@@ -403,27 +403,33 @@ describe('buildWoodlandMansion', () => {
  * pnpm exec vitest run src/world/generators/datadriven/javaStructureMansion.test.ts
  * ```
  */
-describe.skipIf(JAVA_TEMPLATE_BYTES.size === 0)('the mansion against the real templates', () => {
-    it('names only templates this server carries', () => {
-        const named = new Set(SPREAD_SEEDS.flatMap((seed) => mansionAt(seed).names));
+describe.skipIf(JAVA_TEMPLATE_BYTES.size === 0)(
+    'the mansion against the real templates',
+    { tags: ['real-data'] },
+    () => {
+        it('names only templates this server carries', () => {
+            const named = new Set(SPREAD_SEEDS.flatMap((seed) => mansionAt(seed).names));
 
-        // Eight mansions between them draw most of the room collections.
-        expect(named.size).toBeGreaterThan(30);
-        expect([...named].filter((identifier) => JAVA_TEMPLATE_SOURCE.template(identifier) === undefined)).toEqual([]);
-    });
+            // Eight mansions between them draw most of the room collections.
+            expect(named.size).toBeGreaterThan(30);
+            expect([...named].filter((identifier) => JAVA_TEMPLATE_SOURCE.template(identifier) === undefined)).toEqual(
+                []
+            );
+        });
 
-    it('composes the real templates into one building of the size a mansion has', () => {
-        const store = createStructureTemplateStore(JAVA_TEMPLATE_SOURCE);
-        const layout = laidOut(buildWoodlandMansion(contextOf(store, THREE_FLOOR_SEED)))!;
-        const box = unionOf(layout.pieces);
+        it('composes the real templates into one building of the size a mansion has', () => {
+            const store = createStructureTemplateStore(JAVA_TEMPLATE_SOURCE);
+            const layout = laidOut(buildWoodlandMansion(contextOf(store, THREE_FLOOR_SEED)))!;
+            const box = unionOf(layout.pieces);
 
-        expect(layout.pieces.length).toBeGreaterThan(100);
-        // Nothing hangs below the generation point, and the 11 by 11 grid of 8 block cells
-        // bounds how far a mansion can reach.
-        expect(box.minY).toBe(layout.origin.y);
-        expect(box.maxX - box.minX + 1).toBeLessThanOrEqual(11 * 8 + 8);
-        expect(box.maxZ - box.minZ + 1).toBeLessThanOrEqual(11 * 8 + 8);
-        // Two storeys, the third floor nineteen blocks up and its roof over that.
-        expect(box.maxY - box.minY + 1).toBe(31);
-    });
-});
+            expect(layout.pieces.length).toBeGreaterThan(100);
+            // Nothing hangs below the generation point, and the 11 by 11 grid of 8 block cells
+            // bounds how far a mansion can reach.
+            expect(box.minY).toBe(layout.origin.y);
+            expect(box.maxX - box.minX + 1).toBeLessThanOrEqual(11 * 8 + 8);
+            expect(box.maxZ - box.minZ + 1).toBeLessThanOrEqual(11 * 8 + 8);
+            // Two storeys, the third floor nineteen blocks up and its roof over that.
+            expect(box.maxY - box.minY + 1).toBe(31);
+        });
+    }
+);

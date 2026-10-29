@@ -72,15 +72,19 @@ describe('the world generation registry bundle', () => {
         expect(() => readRegistryBundle(bundle)).toThrow(/format version 99/);
     });
 
-    it.skipIf(sources === undefined)('is the registries the loader reads off disk, document for document', () => {
-        const registries = loadJavaWorldgenRegistries(sources!);
-        const read = readRegistryBundle(buildRegistryBundle(registries));
+    it.skipIf(sources === undefined)(
+        'is the registries the loader reads off disk, document for document',
+        { tags: ['real-data'] },
+        () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const read = readRegistryBundle(buildRegistryBundle(registries));
 
-        for (const name of registryNames(registries)) {
-            expect([...read[name].keys()], name).toEqual([...registries[name].keys()]);
-            for (const [id, document] of registries[name]) {
-                expect(read[name].get(id), `${name} ${id}`).toEqual(document);
+            for (const name of registryNames(registries)) {
+                expect([...read[name].keys()], name).toEqual([...registries[name].keys()]);
+                for (const [id, document] of registries[name]) {
+                    expect(read[name].get(id), `${name} ${id}`).toEqual(document);
+                }
             }
         }
-    });
+    );
 });

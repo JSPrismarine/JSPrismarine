@@ -28,7 +28,7 @@ const SEED = 1234n;
 /** How long one chunk may take. Terrain alone is about 0.6 seconds, decoration adds to it. */
 const CHUNK_TIMEOUT = 180_000;
 
-describe.skipIf(!enabled)('the data-driven overworld', () => {
+describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, () => {
     let terrainOnly: DataDrivenGenerator;
 
     beforeAll(() => {

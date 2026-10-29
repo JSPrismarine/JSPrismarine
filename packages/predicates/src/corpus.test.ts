@@ -241,7 +241,7 @@ const parseLootTable = (
     visit(table, '');
 };
 
-describe.skipIf(!enabled)('the vanilla 26.3 grammar corpus', () => {
+describe.skipIf(!enabled)('the vanilla 26.3 grammar corpus', { tags: ['real-data'] }, () => {
     it(
         'parses every predicate, loot condition, loot function and provider without an error',
         { timeout: 300_000 },

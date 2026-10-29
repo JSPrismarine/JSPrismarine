@@ -123,7 +123,7 @@ const registriesPath = join(
 );
 const hasReport = existsSync(registriesPath);
 
-describe.skipIf(!hasReport)('against Mojang’s own registry report', () => {
+describe.skipIf(!hasReport)('against Mojang’s own registry report', { tags: ['real-data'] }, () => {
     it('matches the 26.3 minecraft:game_rule registry exactly', () => {
         // The data generator's report, this repository's pinned Java source.
         const registries = JSON.parse(readFileSync(registriesPath, 'utf8')) as {

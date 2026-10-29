@@ -209,7 +209,7 @@ const loadCorpus = (): Corpus => {
     return corpus;
 };
 
-describe.skipIf(!enabled)('the vanilla 26.3 loot corpus', () => {
+describe.skipIf(!enabled)('the vanilla 26.3 loot corpus', { tags: ['real-data'] }, () => {
     it('parses every table with no error', { timeout: 300_000 }, () => {
         const { registry, tableCount } = loadCorpus();
 

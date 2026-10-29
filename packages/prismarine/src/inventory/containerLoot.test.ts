@@ -106,7 +106,7 @@ const blockEntityItems = (nbt: ReturnType<BlockEntity['toNBT']>): readonly (Cont
     // the next load reads, rather than out of anything this module kept.
     blockEntityRecord(nbt).items ?? [];
 
-describe.skipIf(!java)('a generated container filling on its first open', () => {
+describe.skipIf(!java)('a generated container filling on its first open', { tags: ['real-data'] }, () => {
     it('puts what the dungeon table rolled into the chest', () => {
         const items = openedChest(1234n).filter((item) => item !== undefined);
 

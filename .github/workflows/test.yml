@@ -40,7 +40,7 @@ jobs:
               run: pnpm run typecheck
 
             - name: 🧪 Test
-              run: pnpm run test
+              run: pnpm run test --tagsFilter='!real-data'
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
@@ -60,9 +60,9 @@ jobs:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
 
-    # A dozen suites read Mojang's published data and skip when it is absent, which is every
-    # run of the matrix above: nothing there fetches a source. This job is where they run. It
-    # is Linux only because the sources are 1.1 GB unpacked and one download is enough.
+    # Suites that read Mojang's published data carry the `real-data` tag. The matrix above
+    # filters them out because it does not fetch sources; this job prepares and runs them.
+    # It is Linux only because the sources are 1.1 GB unpacked and one download is enough.
     real-data:
         name: 🗃️ Real data suites
         runs-on: ubuntu-latest
@@ -99,6 +99,30 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-jsp-sources-
 
+            # These outputs are derived from the pinned Java source jar and the repository's
+            # generator. Restore them before extraction and datagen:java on repeat runs.
+            - name: Cache generated Java data
+              id: java_data_cache
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine/java
+                      node_modules/.cache/jsprismarine/java-reports
+                      node_modules/.cache/jsprismarine/java-structures
+                      node_modules/.cache/jsprismarine/vanilla-datapack
+                  key: ${{ runner.os }}-jsp-java-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**') }}
+
+            # The fetched-source cache predates the separate generated-data key. On a miss,
+            # discard its old generated outputs so datagen cannot mistake them for this key.
+            - name: Discard uncached Java data
+              if: ${{ steps.java_data_cache.outputs.cache-hit != 'true' }}
+              run: |
+                  rm -rf node_modules/.cache/jsprismarine/java-reports
+                  rm -rf node_modules/.cache/jsprismarine/java-structures
+                  rm -rf node_modules/.cache/jsprismarine/vanilla-datapack
+                  rm -rf node_modules/.cache/jsprismarine/java/*/dump-classes
+                  rm -rf node_modules/.cache/jsprismarine/java/*/dump-out
+
             - name: ⬇️ Fetch the pinned sources
               run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 
@@ -122,7 +146,7 @@ jobs:
               run: pnpm run build
 
             - name: 🧪 Test
-              run: pnpm run test
+              run: pnpm exec vitest run --tagsFilter=real-data
 
             - name: 📊 Publish the parity dashboard
               id: parity_dashboard

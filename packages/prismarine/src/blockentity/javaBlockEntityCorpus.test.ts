@@ -100,7 +100,7 @@ const translateCorpus = (root: string): Translated[] => {
 
 const root = templateRoot();
 
-describe.skipIf(root === undefined)('the Java 26.3 structure template corpus', () => {
+describe.skipIf(root === undefined)('the Java 26.3 structure template corpus', { tags: ['real-data'] }, () => {
     const corpus = root === undefined ? [] : translateCorpus(root);
     const of = (javaType: string): Translated[] => corpus.filter((entry) => entry.javaType === javaType);
     const withContent = (javaType: string): Translated[] => of(javaType).filter((entry) => entry.added.length > 0);

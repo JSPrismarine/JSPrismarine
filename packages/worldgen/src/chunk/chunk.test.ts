@@ -291,7 +291,7 @@ const chunkVectors = vectors.chunk;
  * These read the pinned Java Edition server jar,
  * which a clean checkout does not have.
  */
-describe.skipIf(!vanilla)('the overworld chunk sampler', () => {
+describe.skipIf(!vanilla)('the overworld chunk sampler', { tags: ['real-data'] }, () => {
     if (!vanilla) return;
     const data = vanilla.data;
     const settings = data.settings(chunkVectors.settings);

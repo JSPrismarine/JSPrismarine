@@ -31,7 +31,7 @@ const TIMEOUT = 900_000;
 
 const CHECKER = fileURLToPath(new URL('../../../../test/chunkParity.ts', import.meta.url));
 
-describe.runIf(enabled)('a chunk built by workers', () => {
+describe.runIf(enabled)('a chunk built by workers', { tags: ['real-data'] }, () => {
     it(
         'matches inline generation through both worker paths',
         () => {

@@ -81,7 +81,7 @@ const mcdocCheckout = (): string => {
     throw new Error(`no vanilla-mcdoc checkout under ${root}; run the bedrock-data fetch:sources script`);
 };
 
-describe.skipIf(!enabled)('the vanilla 26.3 datapack', () => {
+describe.skipIf(!enabled)('the vanilla 26.3 datapack', { tags: ['real-data'] }, () => {
     it('loads with the counts from the research notes', { timeout: 120_000 }, () => {
         const { definitions, diagnostics } = load([{ kind: 'datapack', path: extractVanillaDatapack() }]);
 

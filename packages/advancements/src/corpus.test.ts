@@ -176,7 +176,7 @@ const UNUSED_IN_VANILLA: readonly TriggerName[] = [
 
 const player: EntityView = { type: 'minecraft:player', position: { x: 0, y: 64, z: 0 } };
 
-describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', () => {
+describe.skipIf(!enabled)('the vanilla 26.3 advancement corpus', { tags: ['real-data'] }, () => {
     it('parses all 1866 files without a diagnostic', { timeout: 300_000 }, () => {
         const datapack = extractVanillaDatapack();
         const { resolver, advancements } = buildResolver(datapack);

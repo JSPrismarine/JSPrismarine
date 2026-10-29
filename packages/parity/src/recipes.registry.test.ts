@@ -43,20 +43,25 @@ const compareRecipes = (): { gaps: string[]; files: number; compiled: number; de
     return { gaps: [...new Set(gaps)], files: definitions.recipesJava.size, compiled: report.recipes.length, detail };
 };
 
-describeFamily(FAMILIES.recipesRegistry, [REFERENCES.javaServerJar], () => {
-    const { gaps, files, compiled, detail } = compareRecipes();
-    const verdict = checkAllowList(FAMILIES.recipesRegistry, gaps);
+describeFamily(
+    FAMILIES.recipesRegistry,
+    [REFERENCES.javaServerJar],
+    () => {
+        const { gaps, files, compiled, detail } = compareRecipes();
+        const verdict = checkAllowList(FAMILIES.recipesRegistry, gaps);
 
-    it('reads and compiles every vanilla recipe by id', () => {
-        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
-    });
+        it('reads and compiles every vanilla recipe by id', () => {
+            expect(verdict.unexpected, detail.join('\n')).toEqual([]);
+        });
 
-    it('carries no stale allow-list entry', () => {
-        expect(verdict.stale).toEqual([]);
-    });
+        it('carries no stale allow-list entry', () => {
+            expect(verdict.stale).toEqual([]);
+        });
 
-    it('reports the current recipe comparison coverage', () => {
-        reportParityProgress(FAMILIES.recipesRegistry, { sourceFiles: files, compiledRecipes: compiled });
-        expect(compiled).toBeGreaterThan(0);
-    });
-});
+        it('reports the current recipe comparison coverage', () => {
+            reportParityProgress(FAMILIES.recipesRegistry, { sourceFiles: files, compiledRecipes: compiled });
+            expect(compiled).toBeGreaterThan(0);
+        });
+    },
+    { tags: ['real-data'] }
+);

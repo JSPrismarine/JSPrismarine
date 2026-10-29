@@ -126,7 +126,7 @@ const report = (label: string, measurement: Measurement): void => {
     );
 };
 
-describe.skipIf(!enabled)('the shipped structure template corpus', () => {
+describe.skipIf(!enabled)('the shipped structure template corpus', { tags: ['real-data'] }, () => {
     it('reads every Java Edition 26.3 template in the server jar with no error', { timeout: 300000 }, () => {
         const jarPath = javaJar();
         expect(jarPath, 'the pinned Java server jar is not in the cache').toBeDefined();

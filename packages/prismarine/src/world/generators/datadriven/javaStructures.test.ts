@@ -51,7 +51,7 @@ const TRAIL_RUINS_CHUNK = { x: -113, z: 50 };
  */
 const DESERT_WELL_CHUNK = { x: -691, z: -239 };
 
-describe.skipIf(!enabled)('the structures the data-driven overworld generates', () => {
+describe.skipIf(!enabled)('the structures the data-driven overworld generates', { tags: ['real-data'] }, () => {
     let generator: DataDrivenGenerator;
     const chunks = new Map<string, Chunk>();
 

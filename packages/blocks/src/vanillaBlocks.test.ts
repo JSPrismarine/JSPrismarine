@@ -33,7 +33,7 @@ const vanillaBehaviorPack = (): string => {
     throw new Error(`no bedrock-samples behavior pack under ${root}; run the bedrock-data fetch:sources script`);
 };
 
-describe.skipIf(!enabled)("Mojang's own data-driven blocks", () => {
+describe.skipIf(!enabled)("Mojang's own data-driven blocks", { tags: ['real-data'] }, () => {
     it('loads all 98 files with no error', { timeout: 60_000 }, () => {
         const { definitions, diagnostics } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
 

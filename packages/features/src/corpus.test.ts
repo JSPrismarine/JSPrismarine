@@ -134,7 +134,7 @@ const corpus = (): Corpus => {
     return loaded;
 };
 
-describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', () => {
+describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { tags: ['real-data'] }, () => {
     it('reads all 240 configured features with no errors', () => {
         const { featureSources, loader } = corpus();
         const failures: string[] = [];

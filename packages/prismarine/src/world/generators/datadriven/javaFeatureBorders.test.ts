@@ -48,7 +48,7 @@ const CROWN_COLUMNS = [
 /** The lowest y of {@link CROWN_COLUMNS}. */
 const CROWN_FLOOR = 126;
 
-describe.skipIf(!enabled)('a feature that straddles a chunk border', () => {
+describe.skipIf(!enabled)('a feature that straddles a chunk border', { tags: ['real-data'] }, () => {
     let crownAlone: Chunk;
     let trunkChunk: Chunk;
 

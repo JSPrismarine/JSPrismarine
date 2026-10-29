@@ -46,20 +46,25 @@ const compareAddActor = (): { gaps: string[]; advertised: number; detail: string
     return { gaps, advertised: identifiers.length, detail };
 };
 
-describeFamily(FAMILIES.entitiesAddActor, [REFERENCES.bedrockActorIdentifiers, REFERENCES.bedrockBehaviorPack], () => {
-    const { gaps, advertised, detail } = compareAddActor();
-    const verdict = checkAllowList(FAMILIES.entitiesAddActor, gaps);
+describeFamily(
+    FAMILIES.entitiesAddActor,
+    [REFERENCES.bedrockActorIdentifiers, REFERENCES.bedrockBehaviorPack],
+    () => {
+        const { gaps, advertised, detail } = compareAddActor();
+        const verdict = checkAllowList(FAMILIES.entitiesAddActor, gaps);
 
-    it('can build the packet for every actor type the server advertises', () => {
-        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
-    });
+        it('can build the packet for every actor type the server advertises', () => {
+            expect(verdict.unexpected, detail.join('\n')).toEqual([]);
+        });
 
-    it('carries no stale allow-list entry', () => {
-        expect(verdict.stale).toEqual([]);
-    });
+        it('carries no stale allow-list entry', () => {
+            expect(verdict.stale).toEqual([]);
+        });
 
-    it('reports how many advertised actor types have a packet comparison', () => {
-        reportParityProgress(FAMILIES.entitiesAddActor, { advertisedActors: advertised });
-        expect(advertised).toBeGreaterThan(0);
-    });
-});
+        it('reports how many advertised actor types have a packet comparison', () => {
+            reportParityProgress(FAMILIES.entitiesAddActor, { advertisedActors: advertised });
+            expect(advertised).toBeGreaterThan(0);
+        });
+    },
+    { tags: ['real-data'] }
+);

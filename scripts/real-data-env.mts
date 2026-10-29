@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 /**
  * Resolves the environment the real-data test suites read, and fails when a path is missing.
  *
- * A dozen suites across the repository are gated behind an environment variable because they
- * read the fetched Bedrock and Java sources, which a clean checkout does not have. Each one
+ * Data-dependent tests across the repository are gated behind environment variables because
+ * they read fetched Bedrock and Java sources, which a clean checkout does not have. Each one
  * skips silently when its variable is unset, so "the suite passes" and "the suite never ran"
  * look identical. This script is what makes CI tell them apart: it derives every path from
  * `packages/bedrock-data/sources.json`, checks the path exists, and refuses to emit anything

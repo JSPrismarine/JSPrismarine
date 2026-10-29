@@ -19,24 +19,6 @@ let server: Server | null = null;
 const port = 19278;
 const fleets: Fleet[] = [];
 
-beforeAll(async () => {
-    stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-fleet-'));
-    vi.stubEnv('JSP_DIR', stateRoot);
-
-    server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
-    await server.bootstrap('127.0.0.1', port);
-}, 60_000);
-
-afterEach(() => {
-    fleets.splice(0).forEach((fleet) => fleet.stop());
-});
-
-afterAll(() => {
-    server?.getRaknet()?.kill();
-    vi.unstubAllEnvs();
-    rmSync(stateRoot, { recursive: true, force: true });
-}, 30_000);
-
 const newFleet = (options: Partial<ConstructorParameters<typeof Fleet>[0]> & { namePrefix: string }) => {
     const fleet = new Fleet({
         host: '127.0.0.1',
@@ -56,7 +38,25 @@ const newFleet = (options: Partial<ConstructorParameters<typeof Fleet>[0]> & { n
     return fleet;
 };
 
-describe('a fleet against a real server', () => {
+describe('a fleet against a real server', { tags: ['real-data'] }, () => {
+    beforeAll(async () => {
+        stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-fleet-'));
+        vi.stubEnv('JSP_DIR', stateRoot);
+
+        server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
+        await server.bootstrap('127.0.0.1', port);
+    }, 60_000);
+
+    afterEach(() => {
+        fleets.splice(0).forEach((fleet) => fleet.stop());
+    });
+
+    afterAll(() => {
+        server?.getRaknet()?.kill();
+        vi.unstubAllEnvs();
+        rmSync(stateRoot, { recursive: true, force: true });
+    }, 30_000);
+
     it('connects every bot and the server sees all of them', async () => {
         const fleet = newFleet({ namePrefix: 'Connect' });
         await fleet.connect();

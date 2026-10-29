@@ -147,138 +147,142 @@ describe('entity equipment', () => {
  * JSP_CONTENT_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/entity/equipment
  * ```
  */
-describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the equipment the vanilla pack stack rolls', () => {
-    /** Built once: the pack stack takes a minute and every test here reads the same build. */
-    let built: ServerContent | undefined;
-    const vanilla = (): ServerContent => (built ??= buildServerContent({}));
+describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
+    'the equipment the vanilla pack stack rolls',
+    { tags: ['real-data'] },
+    () => {
+        /** Built once: the pack stack takes a minute and every test here reads the same build. */
+        let built: ServerContent | undefined;
+        const vanilla = (): ServerContent => (built ??= buildServerContent({}));
 
-    /** What one table puts in each slot, over enough rolls to catch a gate that never fires. */
-    const over = (table: string, rolls: number) => {
-        const content = vanilla();
-        const counts = new Map<string, number>();
+        /** What one table puts in each slot, over enough rolls to catch a gate that never fires. */
+        const over = (table: string, rolls: number) => {
+            const content = vanilla();
+            const counts = new Map<string, number>();
 
-        for (let roll = 0; roll < rolls; roll++) {
-            const equipment = rollMobEquipment({
-                content,
-                table,
-                itemOf: (drop) => itemOfDrop(drop, content)
-            });
+            for (let roll = 0; roll < rolls; roll++) {
+                const equipment = rollMobEquipment({
+                    content,
+                    table,
+                    itemOf: (drop) => itemOfDrop(drop, content)
+                });
 
-            for (const slot of MOB_EQUIPMENT_SLOTS) {
-                const drop = equipment[slot];
-                if (drop === undefined) continue;
-                const key = `${slot}:${drop.identifier}`;
-                counts.set(key, (counts.get(key) ?? 0) + 1);
-            }
-        }
-
-        return counts;
-    };
-
-    it('arms each mob that vanilla always arms, in the main hand', () => {
-        // The weapon pools of these six carry no gate at all, so every roll produces one. This
-        // is the census the whole change exists for: before it, every one of these was empty.
-        const weapons: readonly (readonly [string, string])[] = [
-            ['loot_tables/entities/skeleton_gear.json', 'minecraft:bow'],
-            ['loot_tables/entities/pillager_gear.json', 'minecraft:crossbow'],
-            ['loot_tables/entities/vindicator_gear.json', 'minecraft:iron_axe'],
-            ['loot_tables/entities/wither_skeleton_gear.json', 'minecraft:stone_sword'],
-            ['loot_tables/entities/piglin_brute_gear.json', 'minecraft:golden_axe'],
-            ['loot_tables/entities/vex_gear.json', 'minecraft:iron_sword']
-        ];
-
-        for (const [table, weapon] of weapons) {
-            expect(over(table, 50).get(`mainhand:${weapon}`), table).toBe(50);
-        }
-    }, 180_000);
-
-    it('arms a zombie at the rate its table states rather than every time or never', () => {
-        // The number the whole dialect exists for. `zombie_equipment.json` gates its weapon
-        // pool on `random_regional_difficulty_chance` at `max_chance: 0.05`, which the Java
-        // grammar read as no gate at all (2000 of 2000) and the pruning read as no pool at all
-        // (0 of 2000).
-        const rolls = 2000;
-        const counts = over('loot_tables/entities/zombie_equipment.json', rolls);
-        const armed = [...counts].filter(([key]) => key.startsWith('mainhand:')).reduce((sum, [, n]) => sum + n, 0);
-        const wearing = [...counts].filter(([key]) => key.startsWith('head:')).reduce((sum, [, n]) => sum + n, 0);
-
-        console.debug(`zombie_equipment.json over ${rolls} rolls: armed ${armed}, helmeted ${wearing}`);
-
-        expect(armed / rolls).toBeGreaterThan(0.02);
-        expect(armed / rolls).toBeLessThan(0.08);
-        // The armor pool runs at 0.15, and every set starts with a helmet.
-        expect(wearing / rolls).toBeGreaterThan(0.1);
-        expect(wearing / rolls).toBeLessThan(0.2);
-    }, 180_000);
-
-    it('dresses a mob in the tiered armor sets, which the pruning dropped whole', () => {
-        // The `tiers` ladder over six sets, reached through nested entry `pools`, which is the
-        // part of the grammar nothing here could read before.
-        const worn = new Set(
-            [...over('loot_tables/entities/skeleton_gear.json', 500).keys()].filter(
-                (key) => !key.startsWith('mainhand:')
-            )
-        );
-
-        expect(worn.size).toBeGreaterThan(0);
-        expect([...worn].some((key) => key.startsWith('head:'))).toBe(true);
-    }, 180_000);
-
-    it('holds an item on every vanilla type whose component names a table', () => {
-        const content = vanilla();
-        const registry = content.equipmentLoot;
-
-        // Every `minecraft:equipment.table` a type names, base definition and
-        // component groups alike, because a zombie names one table as itself
-        // and another as a rider.
-        const named = new Map<string, Set<string>>();
-        const visit = (type: string, value: unknown): void => {
-            if (Array.isArray(value)) {
-                for (const member of value) visit(type, member);
-                return;
-            }
-            if (value === null || typeof value !== 'object') return;
-            for (const [key, member] of Object.entries(value)) {
-                if (key === 'minecraft:equipment' && member !== null && typeof member === 'object') {
-                    const table = (member as Record<string, unknown>)['table'];
-                    if (typeof table === 'string') named.set(type, (named.get(type) ?? new Set()).add(table));
+                for (const slot of MOB_EQUIPMENT_SLOTS) {
+                    const drop = equipment[slot];
+                    if (drop === undefined) continue;
+                    const key = `${slot}:${drop.identifier}`;
+                    counts.set(key, (counts.get(key) ?? 0) + 1);
                 }
-                visit(type, member);
             }
+
+            return counts;
         };
-        for (const [type, definition] of content.definitions.entities) visit(type, definition.data);
 
-        const tables = new Set([...named.values()].flatMap((own) => [...own]));
-        const rolls = 200;
-        const rollsSomething = (table: string): boolean =>
-            Array.from({ length: rolls }).some(
-                () =>
-                    Object.keys(rollMobEquipment({ content, table, itemOf: (drop) => itemOfDrop(drop, content) }))
-                        .length > 0
+        it('arms each mob that vanilla always arms, in the main hand', () => {
+            // The weapon pools of these six carry no gate at all, so every roll produces one. This
+            // is the census the whole change exists for: before it, every one of these was empty.
+            const weapons: readonly (readonly [string, string])[] = [
+                ['loot_tables/entities/skeleton_gear.json', 'minecraft:bow'],
+                ['loot_tables/entities/pillager_gear.json', 'minecraft:crossbow'],
+                ['loot_tables/entities/vindicator_gear.json', 'minecraft:iron_axe'],
+                ['loot_tables/entities/wither_skeleton_gear.json', 'minecraft:stone_sword'],
+                ['loot_tables/entities/piglin_brute_gear.json', 'minecraft:golden_axe'],
+                ['loot_tables/entities/vex_gear.json', 'minecraft:iron_sword']
+            ];
+
+            for (const [table, weapon] of weapons) {
+                expect(over(table, 50).get(`mainhand:${weapon}`), table).toBe(50);
+            }
+        }, 180_000);
+
+        it('arms a zombie at the rate its table states rather than every time or never', () => {
+            // The number the whole dialect exists for. `zombie_equipment.json` gates its weapon
+            // pool on `random_regional_difficulty_chance` at `max_chance: 0.05`, which the Java
+            // grammar read as no gate at all (2000 of 2000) and the pruning read as no pool at all
+            // (0 of 2000).
+            const rolls = 2000;
+            const counts = over('loot_tables/entities/zombie_equipment.json', rolls);
+            const armed = [...counts].filter(([key]) => key.startsWith('mainhand:')).reduce((sum, [, n]) => sum + n, 0);
+            const wearing = [...counts].filter(([key]) => key.startsWith('head:')).reduce((sum, [, n]) => sum + n, 0);
+
+            console.debug(`zombie_equipment.json over ${rolls} rolls: armed ${armed}, helmeted ${wearing}`);
+
+            expect(armed / rolls).toBeGreaterThan(0.02);
+            expect(armed / rolls).toBeLessThan(0.08);
+            // The armor pool runs at 0.15, and every set starts with a helmet.
+            expect(wearing / rolls).toBeGreaterThan(0.1);
+            expect(wearing / rolls).toBeLessThan(0.2);
+        }, 180_000);
+
+        it('dresses a mob in the tiered armor sets, which the pruning dropped whole', () => {
+            // The `tiers` ladder over six sets, reached through nested entry `pools`, which is the
+            // part of the grammar nothing here could read before.
+            const worn = new Set(
+                [...over('loot_tables/entities/skeleton_gear.json', 500).keys()].filter(
+                    (key) => !key.startsWith('mainhand:')
+                )
             );
-        const producing = [...tables].filter(rollsSomething);
 
-        console.debug(
-            `${named.size} of ${content.definitions.entities.size} vanilla types carry the component, ` +
-                `naming ${tables.size} tables, of which ${producing.length} roll something in ${rolls} bodies`
-        );
+            expect(worn.size).toBeGreaterThan(0);
+            expect([...worn].some((key) => key.startsWith('head:'))).toBe(true);
+        }, 180_000);
 
-        // Every table a component names rolls something. Under the pruning,
-        // five of them had no pool left to roll and produced nothing at any
-        // sample size, zombies among them.
-        expect([...tables].sort()).toEqual(producing.sort());
-        expect(tables.size).toBe(18);
+        it('holds an item on every vanilla type whose component names a table', () => {
+            const content = vanilla();
+            const registry = content.equipmentLoot;
 
-        // Read rather than guessed: the registry compiled all 18 with no error,
-        // and the only thing it reports is the `functions` it names and skips.
-        expect(registry.diagnostics.errors).toEqual([]);
-    }, 180_000);
+            // Every `minecraft:equipment.table` a type names, base definition and
+            // component groups alike, because a zombie names one table as itself
+            // and another as a rider.
+            const named = new Map<string, Set<string>>();
+            const visit = (type: string, value: unknown): void => {
+                if (Array.isArray(value)) {
+                    for (const member of value) visit(type, member);
+                    return;
+                }
+                if (value === null || typeof value !== 'object') return;
+                for (const [key, member] of Object.entries(value)) {
+                    if (key === 'minecraft:equipment' && member !== null && typeof member === 'object') {
+                        const table = (member as Record<string, unknown>)['table'];
+                        if (typeof table === 'string') named.set(type, (named.get(type) ?? new Set()).add(table));
+                    }
+                    visit(type, member);
+                }
+            };
+            for (const [type, definition] of content.definitions.entities) visit(type, definition.data);
 
-    it('asks for a table Java has no counterpart for, which is why it reads the Bedrock one', () => {
-        // The reason this does not go through `ServerContent.loot`: Java equips a mob from
-        // code, so its registry has `entities/skeleton` and no `entities/skeleton_gear`.
-        expect(vanilla().loot.ids).toContain('minecraft:entities/skeleton');
-        expect(vanilla().loot.ids).not.toContain('minecraft:entities/skeleton_gear');
-        expect(vanilla().definitions.lootTables.has('loot_tables/entities/skeleton_gear.json')).toBe(true);
-    }, 180_000);
-});
+            const tables = new Set([...named.values()].flatMap((own) => [...own]));
+            const rolls = 200;
+            const rollsSomething = (table: string): boolean =>
+                Array.from({ length: rolls }).some(
+                    () =>
+                        Object.keys(rollMobEquipment({ content, table, itemOf: (drop) => itemOfDrop(drop, content) }))
+                            .length > 0
+                );
+            const producing = [...tables].filter(rollsSomething);
+
+            console.debug(
+                `${named.size} of ${content.definitions.entities.size} vanilla types carry the component, ` +
+                    `naming ${tables.size} tables, of which ${producing.length} roll something in ${rolls} bodies`
+            );
+
+            // Every table a component names rolls something. Under the pruning,
+            // five of them had no pool left to roll and produced nothing at any
+            // sample size, zombies among them.
+            expect([...tables].sort()).toEqual(producing.sort());
+            expect(tables.size).toBe(18);
+
+            // Read rather than guessed: the registry compiled all 18 with no error,
+            // and the only thing it reports is the `functions` it names and skips.
+            expect(registry.diagnostics.errors).toEqual([]);
+        }, 180_000);
+
+        it('asks for a table Java has no counterpart for, which is why it reads the Bedrock one', () => {
+            // The reason this does not go through `ServerContent.loot`: Java equips a mob from
+            // code, so its registry has `entities/skeleton` and no `entities/skeleton_gear`.
+            expect(vanilla().loot.ids).toContain('minecraft:entities/skeleton');
+            expect(vanilla().loot.ids).not.toContain('minecraft:entities/skeleton_gear');
+            expect(vanilla().definitions.lootTables.has('loot_tables/entities/skeleton_gear.json')).toBe(true);
+        }, 180_000);
+    }
+);

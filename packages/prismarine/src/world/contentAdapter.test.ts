@@ -108,7 +108,7 @@ const enabled = sources !== undefined;
 /** Terrain alone is about 0.6 seconds a chunk, and the biome source runs before it. */
 const CHUNK_TIMEOUT = 180_000;
 
-describe.skipIf(!enabled)('the biomes of a generated overworld', () => {
+describe.skipIf(!enabled)('the biomes of a generated overworld', { tags: ['real-data'] }, () => {
     let generator: DataDrivenGenerator;
 
     beforeAll(() => {

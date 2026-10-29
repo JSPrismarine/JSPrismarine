@@ -176,53 +176,58 @@ const compareDistributions = (): {
     return { gaps, detail, results, qualified, tables: definitions.lootTablesJava.size };
 };
 
-describeFamily(FAMILIES.lootDistribution, [REFERENCES.javaServerJar], () => {
-    const { gaps, detail, results, qualified, tables } = compareDistributions();
-    const verdict = checkAllowList(FAMILIES.lootDistribution, gaps);
-    const tested = results.filter((result) => result.pValue !== undefined);
+describeFamily(
+    FAMILIES.lootDistribution,
+    [REFERENCES.javaServerJar],
+    () => {
+        const { gaps, detail, results, qualified, tables } = compareDistributions();
+        const verdict = checkAllowList(FAMILIES.lootDistribution, gaps);
+        const tested = results.filter((result) => result.pValue !== undefined);
 
-    it('rolls every predictable table into the distribution its own weights declare', () => {
-        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
-    });
-
-    it('carries no stale allow-list entry', () => {
-        expect(verdict.stale).toEqual([]);
-    });
-
-    it('reports the current statistical coverage in the loot corpus', () => {
-        reportParityProgress(FAMILIES.lootDistribution, {
-            tables,
-            qualifiedTables: qualified,
-            statisticallyTestedTables: tested.length
+        it('rolls every predictable table into the distribution its own weights declare', () => {
+            expect(verdict.unexpected, detail.join('\n')).toEqual([]);
         });
-        expect(qualified).toBeGreaterThan(0);
-        expect(tested.length).toBeGreaterThan(0);
-    });
 
-    it('draws enough samples for the fit to mean something', () => {
-        // The sample size is chosen per table so the rarest item is expected often enough to be
-        // a cell of its own rather than merged away, and the whole row draws over a million
-        // stacks. A fit that stood on a handful of draws could not tell a broken weight from
-        // the luck of the draw.
-        const capped = tested.filter((result) => result.rolls === MAXIMUM_ROLLS);
-        for (const result of tested) {
-            if (result.rolls === MAXIMUM_ROLLS) continue;
-            expect(result.rarestExpected, result.id).toBeGreaterThanOrEqual(TARGET_RAREST_CELL - 1);
-        }
-
-        reportParityProgress(FAMILIES.lootDistribution, {
-            tablesAtRollCap: capped.length,
-            sampledStacks: results.reduce((total, result) => total + result.draws, 0)
+        it('carries no stale allow-list entry', () => {
+            expect(verdict.stale).toEqual([]);
         });
-        expect(results.reduce((total, result) => total + result.draws, 0)).toBeGreaterThan(400_000);
-    });
 
-    it('spreads the p-values out instead of clustering them at one, which a stuck test would', () => {
-        // A test that always returned 1 would pass the fit row without measuring anything. Over
-        // fifty fair fits the p-values should land across the unit interval, so some of them
-        // have to be unremarkable rather than perfect.
-        const middling = tested.filter((result) => (result.pValue ?? 1) > 0.01 && (result.pValue ?? 1) < 0.99);
+        it('reports the current statistical coverage in the loot corpus', () => {
+            reportParityProgress(FAMILIES.lootDistribution, {
+                tables,
+                qualifiedTables: qualified,
+                statisticallyTestedTables: tested.length
+            });
+            expect(qualified).toBeGreaterThan(0);
+            expect(tested.length).toBeGreaterThan(0);
+        });
 
-        expect(middling.length).toBeGreaterThanOrEqual(tested.length / 3);
-    });
-});
+        it('draws enough samples for the fit to mean something', () => {
+            // The sample size is chosen per table so the rarest item is expected often enough to be
+            // a cell of its own rather than merged away, and the whole row draws over a million
+            // stacks. A fit that stood on a handful of draws could not tell a broken weight from
+            // the luck of the draw.
+            const capped = tested.filter((result) => result.rolls === MAXIMUM_ROLLS);
+            for (const result of tested) {
+                if (result.rolls === MAXIMUM_ROLLS) continue;
+                expect(result.rarestExpected, result.id).toBeGreaterThanOrEqual(TARGET_RAREST_CELL - 1);
+            }
+
+            reportParityProgress(FAMILIES.lootDistribution, {
+                tablesAtRollCap: capped.length,
+                sampledStacks: results.reduce((total, result) => total + result.draws, 0)
+            });
+            expect(results.reduce((total, result) => total + result.draws, 0)).toBeGreaterThan(400_000);
+        });
+
+        it('spreads the p-values out instead of clustering them at one, which a stuck test would', () => {
+            // A test that always returned 1 would pass the fit row without measuring anything. Over
+            // fifty fair fits the p-values should land across the unit interval, so some of them
+            // have to be unremarkable rather than perfect.
+            const middling = tested.filter((result) => (result.pValue ?? 1) > 0.01 && (result.pValue ?? 1) < 0.99);
+
+            expect(middling.length).toBeGreaterThanOrEqual(tested.length / 3);
+        });
+    },
+    { tags: ['real-data'] }
+);

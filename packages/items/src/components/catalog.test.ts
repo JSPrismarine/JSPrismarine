@@ -248,7 +248,7 @@ const reportsRoot = process.env.JSP_JAVA_REPORTS;
 const componentsDir = reportsRoot === undefined ? undefined : resolve(reportsRoot, 'reports/minecraft/components/item');
 const corpus = componentsDir !== undefined && existsSync(componentsDir) ? describe : describe.skip;
 
-corpus('every real Java item component file', () => {
+corpus('every real Java item component file', { tags: ['real-data'] }, () => {
     it('parses with no errors across all 1658 items', () => {
         const files = readdirSync(componentsDir!).filter((file) => file.endsWith('.json'));
         expect(files.length).toBe(itemTypesTable.javaItemCount);

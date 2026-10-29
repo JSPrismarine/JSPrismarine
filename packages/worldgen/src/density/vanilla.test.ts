@@ -22,7 +22,7 @@ const dimensions: DimensionVectors[] = vectors.density.dimensions;
  * These read the pinned Java Edition server jar,
  * which a clean checkout does not have.
  */
-describe.skipIf(!vanilla)('the real vanilla worldgen data', () => {
+describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'] }, () => {
     if (!vanilla) return;
     const data = vanilla.data;
 

@@ -60,7 +60,7 @@ const leaves = (value: PlainNbt, prefix = ''): Map<string, string> => {
     return flat;
 };
 
-describe.skipIf(!enabled)('the data driven vanilla blocks against the captured server', () => {
+describe.skipIf(!enabled)('the data driven vanilla blocks against the captured server', { tags: ['real-data'] }, () => {
     /** Built once: loading and resolving the pack takes seconds and every test reads the same result. */
     let result: ReturnType<typeof buildBlockProperties> | undefined;
     const built = (): ReturnType<typeof buildBlockProperties> => {

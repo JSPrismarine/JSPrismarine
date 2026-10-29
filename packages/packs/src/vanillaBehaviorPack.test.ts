@@ -89,7 +89,7 @@ const sizes = (corpus: string, definitions: Definitions): Record<string, number>
     return counted;
 };
 
-describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
+describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', { tags: ['real-data'] }, () => {
     it('is the one pack in the BDS folder that declares the vanilla header UUID', () => {
         // The criterion the default stack selects by, checked against the
         // shipped folder: if a release ever renames the vanilla pack's

@@ -242,7 +242,7 @@ const javaDatapack = (): Definitions | undefined => {
 
 const java = javaDatapack();
 
-describe.skipIf(!java)('what Java’s own tables drop', () => {
+describe.skipIf(!java)('what Java’s own tables drop', { tags: ['real-data'] }, () => {
     /**
      * One content over all 1447 Java tables, shared by every case here.
      *

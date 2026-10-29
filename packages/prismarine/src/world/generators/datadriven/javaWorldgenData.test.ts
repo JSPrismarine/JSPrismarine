@@ -16,7 +16,7 @@ import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorld
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
 
-describe.skipIf(!enabled)('the Java world generation registries', () => {
+describe.skipIf(!enabled)('the Java world generation registries', { tags: ['real-data'] }, () => {
     const registries = enabled ? loadJavaWorldgenRegistries(sources!) : undefined;
 
     it('reads the structure registries the generator places from', () => {

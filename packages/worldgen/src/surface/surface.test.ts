@@ -139,18 +139,24 @@ const runsOf = (chunk: BlockArraySurfaceChunk, blockX: number, blockZ: number): 
  * which a clean checkout does not have. Everything else in this file reads the
  * committed vectors instead, so the default run stays offline.
  */
-describe.skipIf(!loadVanillaWorldgenData())('the committed registry documents against the jar', () => {
-    const vanilla = loadVanillaWorldgenData();
-    if (!vanilla) return;
+describe.skipIf(!loadVanillaWorldgenData())(
+    'the committed registry documents against the jar',
+    { tags: ['real-data'] },
+    () => {
+        const vanilla = loadVanillaWorldgenData();
+        if (!vanilla) return;
 
-    it('holds the same density functions, noises and noise settings the jar does', () => {
-        expect(Object.keys(registryVectors.densityFunctions).sort()).toEqual(
-            [...vanilla.data.densityFunctionIds].sort()
-        );
-        expect(Object.keys(registryVectors.noises).sort()).toEqual([...vanilla.data.noiseIds].sort());
-        expect(Object.keys(registryVectors.noiseSettings).sort()).toEqual([...vanilla.data.noiseSettingsIds].sort());
-    });
-});
+        it('holds the same density functions, noises and noise settings the jar does', () => {
+            expect(Object.keys(registryVectors.densityFunctions).sort()).toEqual(
+                [...vanilla.data.densityFunctionIds].sort()
+            );
+            expect(Object.keys(registryVectors.noises).sort()).toEqual([...vanilla.data.noiseIds].sort());
+            expect(Object.keys(registryVectors.noiseSettings).sort()).toEqual(
+                [...vanilla.data.noiseSettingsIds].sort()
+            );
+        });
+    }
+);
 
 describe('the material rule registry', () => {
     it('parses every rule and condition the 26.3 data holds', () => {

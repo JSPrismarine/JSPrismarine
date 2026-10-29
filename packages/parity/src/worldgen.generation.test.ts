@@ -53,86 +53,103 @@ const prepare = async (): Promise<void> => {
 
 const needs = [REFERENCES.generationCorpus, REFERENCES.javaWorldgenData, REFERENCES.javaServerJar];
 
-describeFamily(FAMILIES.worldgenCorpus, needs, () => {
-    beforeAll(prepare, CORPUS_TIMEOUT);
+describeFamily(
+    FAMILIES.worldgenCorpus,
+    needs,
+    () => {
+        beforeAll(prepare, CORPUS_TIMEOUT);
 
-    it('regenerates every chunk the golden recorded, block for block', () => {
-        const diff = diffChunks(golden, captured);
-        const verdict = checkAllowList(FAMILIES.worldgenCorpus, diff.gaps);
+        it('regenerates every chunk the golden recorded, block for block', () => {
+            const diff = diffChunks(golden, captured);
+            const verdict = checkAllowList(FAMILIES.worldgenCorpus, diff.gaps);
 
-        expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
-    });
-
-    it('carries no stale allow-list entry', () => {
-        expect(checkAllowList(FAMILIES.worldgenCorpus, diffChunks(golden, captured).gaps).stale).toEqual([]);
-    });
-
-    it('covers the whole column of every chunk the plan declares', () => {
-        expect(captured.chunks).toHaveLength(CORPUS_CHUNKS.length);
-        expect(captured.samples).toHaveLength(WHOLE_CHUNKS.length);
-        // One digest per 16 block section, so a divergence is located in y rather than reported
-        // against the whole chunk.
-        const sections = golden.dimension.height / 16;
-        for (const chunk of captured.chunks) expect(chunk.digests.sections, chunk.id).toHaveLength(sections);
-    });
-
-    it('was captured against the Java data this checkout pins', () => {
-        // `loadGenerationCorpus` throws on a mismatch, so reaching here is the assertion. The
-        // commit is checked for shape only: what it is worth is that it is written down.
-        expect(golden.provenance.commit).toMatch(/^[0-9a-f]{40}$/);
-        expect(golden.provenance.protocol).not.toBe('');
-    });
-});
-
-describeFamily(FAMILIES.worldgenFeatures, needs, () => {
-    beforeAll(prepare, CORPUS_TIMEOUT);
-
-    it('places the same blocks the decoration pass placed when the corpus was captured', () => {
-        const diff = diffCensus(golden, captured);
-        const verdict = checkAllowList(FAMILIES.worldgenFeatures, diff.gaps);
-
-        expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
-    });
-
-    it('carries no stale allow-list entry', () => {
-        expect(checkAllowList(FAMILIES.worldgenFeatures, diffCensus(golden, captured).gaps).stale).toEqual([]);
-    });
-
-    it('counts a decorated chunk over more block states than the terrain pass alone produces', () => {
-        const decorated = captured.chunks.filter((chunk) => chunk.tier === 'full');
-        const terrain = captured.chunks.filter((chunk) => chunk.tier === 'terrain');
-
-        expect(decorated.length).toBe(CORPUS_CHUNKS.filter((entry) => entry.tier === 'full').length);
-        const richestTerrain = Math.max(...terrain.map((chunk) => Object.keys(chunk.census).length));
-        const poorestDecorated = Math.min(...decorated.map((chunk) => Object.keys(chunk.census).length));
-        expect(poorestDecorated).toBeGreaterThan(richestTerrain);
-    });
-});
-
-describeFamily(FAMILIES.worldgenStructures, needs, () => {
-    beforeAll(prepare, CORPUS_TIMEOUT);
-
-    it('starts every structure the golden recorded, in the same chunk and the same box', () => {
-        const diff = diffStructures(golden, captured);
-        const verdict = checkAllowList(FAMILIES.worldgenStructures, diff.gaps);
-
-        expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
-    });
-
-    it('carries no stale allow-list entry', () => {
-        expect(checkAllowList(FAMILIES.worldgenStructures, diffStructures(golden, captured).gaps).stale).toEqual([]);
-    });
-
-    it('scans the chunks the plan declares and builds every structure type it finds', () => {
-        const structureTypes = new Set(captured.structures.map((placement) => placement.structure));
-
-        reportParityProgress(FAMILIES.worldgenStructures, {
-            scannedChunks: STRUCTURE_SCAN_CHUNKS,
-            structurePlacements: captured.structures.length,
-            structureTypes: structureTypes.size
+            expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
         });
-        expect(captured.structures.length).toBe(golden.structures.length);
-        // A type with no builder places nothing, so an empty list is what a green row means.
-        expect(captured.unbuiltStructureTypes).toEqual([]);
-    });
-});
+
+        it('carries no stale allow-list entry', () => {
+            expect(checkAllowList(FAMILIES.worldgenCorpus, diffChunks(golden, captured).gaps).stale).toEqual([]);
+        });
+
+        it('covers the whole column of every chunk the plan declares', () => {
+            expect(captured.chunks).toHaveLength(CORPUS_CHUNKS.length);
+            expect(captured.samples).toHaveLength(WHOLE_CHUNKS.length);
+            // One digest per 16 block section, so a divergence is located in y rather than reported
+            // against the whole chunk.
+            const sections = golden.dimension.height / 16;
+            for (const chunk of captured.chunks) expect(chunk.digests.sections, chunk.id).toHaveLength(sections);
+        });
+
+        it('was captured against the Java data this checkout pins', () => {
+            // `loadGenerationCorpus` throws on a mismatch, so reaching here is the assertion. The
+            // commit is checked for shape only: what it is worth is that it is written down.
+            expect(golden.provenance.commit).toMatch(/^[0-9a-f]{40}$/);
+            expect(golden.provenance.protocol).not.toBe('');
+        });
+    },
+    { tags: ['real-data'] }
+);
+
+describeFamily(
+    FAMILIES.worldgenFeatures,
+    needs,
+    () => {
+        beforeAll(prepare, CORPUS_TIMEOUT);
+
+        it('places the same blocks the decoration pass placed when the corpus was captured', () => {
+            const diff = diffCensus(golden, captured);
+            const verdict = checkAllowList(FAMILIES.worldgenFeatures, diff.gaps);
+
+            expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
+        });
+
+        it('carries no stale allow-list entry', () => {
+            expect(checkAllowList(FAMILIES.worldgenFeatures, diffCensus(golden, captured).gaps).stale).toEqual([]);
+        });
+
+        it('counts a decorated chunk over more block states than the terrain pass alone produces', () => {
+            const decorated = captured.chunks.filter((chunk) => chunk.tier === 'full');
+            const terrain = captured.chunks.filter((chunk) => chunk.tier === 'terrain');
+
+            expect(decorated.length).toBe(CORPUS_CHUNKS.filter((entry) => entry.tier === 'full').length);
+            const richestTerrain = Math.max(...terrain.map((chunk) => Object.keys(chunk.census).length));
+            const poorestDecorated = Math.min(...decorated.map((chunk) => Object.keys(chunk.census).length));
+            expect(poorestDecorated).toBeGreaterThan(richestTerrain);
+        });
+    },
+    { tags: ['real-data'] }
+);
+
+describeFamily(
+    FAMILIES.worldgenStructures,
+    needs,
+    () => {
+        beforeAll(prepare, CORPUS_TIMEOUT);
+
+        it('starts every structure the golden recorded, in the same chunk and the same box', () => {
+            const diff = diffStructures(golden, captured);
+            const verdict = checkAllowList(FAMILIES.worldgenStructures, diff.gaps);
+
+            expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
+        });
+
+        it('carries no stale allow-list entry', () => {
+            expect(checkAllowList(FAMILIES.worldgenStructures, diffStructures(golden, captured).gaps).stale).toEqual(
+                []
+            );
+        });
+
+        it('scans the chunks the plan declares and builds every structure type it finds', () => {
+            const structureTypes = new Set(captured.structures.map((placement) => placement.structure));
+
+            reportParityProgress(FAMILIES.worldgenStructures, {
+                scannedChunks: STRUCTURE_SCAN_CHUNKS,
+                structurePlacements: captured.structures.length,
+                structureTypes: structureTypes.size
+            });
+            expect(captured.structures.length).toBe(golden.structures.length);
+            // A type with no builder places nothing, so an empty list is what a green row means.
+            expect(captured.unbuiltStructureTypes).toEqual([]);
+        });
+    },
+    { tags: ['real-data'] }
+);

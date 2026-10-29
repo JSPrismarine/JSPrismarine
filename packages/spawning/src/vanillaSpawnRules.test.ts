@@ -132,7 +132,7 @@ const permissiveWorld = {
     villageBorderDistance: () => 4
 } satisfies SpawnWorld;
 
-describe.runIf(enabled)('the vanilla spawn rules', () => {
+describe.runIf(enabled)('the vanilla spawn rules', { tags: ['real-data'] }, () => {
     const files = composeVanillaSpawnRules();
     const diagnostics: Diagnostic[] = [];
     const rules: SpawnRule[] = [];

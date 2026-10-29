@@ -225,7 +225,7 @@ const filterTestsIn = (value: unknown, found: Set<string>): void => {
     }
 };
 
-describe.runIf(enabled)('the vanilla entity pack', () => {
+describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () => {
     const files = composeVanillaEntities();
     const types = new EntityTypes();
     const diagnostics = types.load(files);

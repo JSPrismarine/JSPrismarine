@@ -126,70 +126,78 @@ const vanillaBlockTables = () =>
         })
     );
 
-describe.skipIf(!datapack)('every block of the Bedrock palette, against the Java 26.3 tables', () => {
-    it('resolves a table for all but the reviewed blocks that drop nothing', () => {
-        const content = vanillaBlockTables();
+describe.skipIf(!datapack)(
+    'every block of the Bedrock palette, against the Java 26.3 tables',
+    { tags: ['real-data'] },
+    () => {
+        it('resolves a table for all but the reviewed blocks that drop nothing', () => {
+            const content = vanillaBlockTables();
 
-        const unresolved = vanillaBlockPalette()
-            .entries.map((entry) => entry.identifier)
-            .filter((identifier) => blockLootTableOf(content, identifier) === undefined);
+            const unresolved = vanillaBlockPalette()
+                .entries.map((entry) => entry.identifier)
+                .filter((identifier) => blockLootTableOf(content, identifier) === undefined);
 
-        // The 182 Bedrock-only blocks are the generated list rather than a
-        // hand-kept one: the chemistry set, the hard glass, the deprecated
-        // palette entries and the rest that no Java block state reaches.
-        expect(unresolved.filter((identifier) => BEDROCK_ONLY_BLOCKS.has(identifier))).toHaveLength(182);
-        expect(unresolved.filter((identifier) => !BEDROCK_ONLY_BLOCKS.has(identifier))).toEqual(
-            [...DROPS_NOTHING, ...JAVA_PUBLISHES_NO_TABLE].sort()
-        );
-        expect(unresolved).toHaveLength(243);
-    });
+            // The 182 Bedrock-only blocks are the generated list rather than a
+            // hand-kept one: the chemistry set, the hard glass, the deprecated
+            // palette entries and the rest that no Java block state reaches.
+            expect(unresolved.filter((identifier) => BEDROCK_ONLY_BLOCKS.has(identifier))).toHaveLength(182);
+            expect(unresolved.filter((identifier) => !BEDROCK_ONLY_BLOCKS.has(identifier))).toEqual(
+                [...DROPS_NOTHING, ...JAVA_PUBLISHES_NO_TABLE].sort()
+            );
+            expect(unresolved).toHaveLength(243);
+        });
 
-    it('resolves the tables of the blocks Bedrock splits off from a non-default state', () => {
-        const content = vanillaBlockTables();
+        it('resolves the tables of the blocks Bedrock splits off from a non-default state', () => {
+            const content = vanillaBlockTables();
 
-        // One of each shape the split takes: a double slab, a lit machine, a
-        // powered diode and a berried vine. All of them dropped nothing while
-        // the index only knew what a Java block's default state mapped to.
-        expect(blockLootTableOf(content, 'minecraft:black_concrete_double_slab')).toBe(
-            'minecraft:blocks/black_concrete_slab'
-        );
-        expect(blockLootTableOf(content, 'minecraft:double_cut_copper_slab')).toBe('minecraft:blocks/cut_copper_slab');
-        expect(blockLootTableOf(content, 'minecraft:lit_furnace')).toBe('minecraft:blocks/furnace');
-        expect(blockLootTableOf(content, 'minecraft:powered_repeater')).toBe('minecraft:blocks/repeater');
-        expect(blockLootTableOf(content, 'minecraft:cave_vines_head_with_berries')).toBe('minecraft:blocks/cave_vines');
-    });
+            // One of each shape the split takes: a double slab, a lit machine, a
+            // powered diode and a berried vine. All of them dropped nothing while
+            // the index only knew what a Java block's default state mapped to.
+            expect(blockLootTableOf(content, 'minecraft:black_concrete_double_slab')).toBe(
+                'minecraft:blocks/black_concrete_slab'
+            );
+            expect(blockLootTableOf(content, 'minecraft:double_cut_copper_slab')).toBe(
+                'minecraft:blocks/cut_copper_slab'
+            );
+            expect(blockLootTableOf(content, 'minecraft:lit_furnace')).toBe('minecraft:blocks/furnace');
+            expect(blockLootTableOf(content, 'minecraft:powered_repeater')).toBe('minecraft:blocks/repeater');
+            expect(blockLootTableOf(content, 'minecraft:cave_vines_head_with_berries')).toBe(
+                'minecraft:blocks/cave_vines'
+            );
+        });
 
-    it('rolls the real tables of the two blocks the state decides the count of', () => {
-        const content = vanillaBlockTables();
+        it('rolls the real tables of the two blocks the state decides the count of', () => {
+            const content = vanillaBlockTables();
 
-        // `minecraft:blocks/black_concrete_slab` sets the count to 2 behind a
-        // match_block on `type=double`, and `minecraft:blocks/shelf_mushroom`
-        // behind one on `age=1`. Neither branch can be taken without the Java
-        // state, and the double slab could not reach its table at all.
-        expect(
-            rollBlockDrops(content, {
-                identifier: 'minecraft:black_concrete_double_slab',
-                states: { 'minecraft:vertical_half': 'bottom' }
-            })
-        ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 2 }]);
-        expect(
-            rollBlockDrops(content, {
-                identifier: 'minecraft:black_concrete_slab',
-                states: { 'minecraft:vertical_half': 'top' }
-            })
-        ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 1 }]);
+            // `minecraft:blocks/black_concrete_slab` sets the count to 2 behind a
+            // match_block on `type=double`, and `minecraft:blocks/shelf_mushroom`
+            // behind one on `age=1`. Neither branch can be taken without the Java
+            // state, and the double slab could not reach its table at all.
+            expect(
+                rollBlockDrops(content, {
+                    identifier: 'minecraft:black_concrete_double_slab',
+                    states: { 'minecraft:vertical_half': 'bottom' }
+                })
+            ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 2 }]);
+            expect(
+                rollBlockDrops(content, {
+                    identifier: 'minecraft:black_concrete_slab',
+                    states: { 'minecraft:vertical_half': 'top' }
+                })
+            ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 1 }]);
 
-        expect(
-            rollBlockDrops(content, {
-                identifier: 'minecraft:shelf_mushroom',
-                states: { growth: 1, 'minecraft:cardinal_direction': 'west' }
-            })
-        ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 2 }]);
-        expect(
-            rollBlockDrops(content, {
-                identifier: 'minecraft:shelf_mushroom',
-                states: { growth: 0, 'minecraft:cardinal_direction': 'west' }
-            })
-        ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 1 }]);
-    });
-});
+            expect(
+                rollBlockDrops(content, {
+                    identifier: 'minecraft:shelf_mushroom',
+                    states: { growth: 1, 'minecraft:cardinal_direction': 'west' }
+                })
+            ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 2 }]);
+            expect(
+                rollBlockDrops(content, {
+                    identifier: 'minecraft:shelf_mushroom',
+                    states: { growth: 0, 'minecraft:cardinal_direction': 'west' }
+                })
+            ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 1 }]);
+        });
+    }
+);

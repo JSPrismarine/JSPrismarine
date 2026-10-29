@@ -240,7 +240,7 @@ const reconstruct = (recipe: Recipe): RecipeInput | undefined => {
     }
 };
 
-describe.skipIf(!enabled)('the vanilla 26.3 recipe corpus', () => {
+describe.skipIf(!enabled)('the vanilla 26.3 recipe corpus', { tags: ['real-data'] }, () => {
     it('parses, matches and compiles all 2042 files', { timeout: 180_000 }, () => {
         const root = extractVanillaData();
         const recipeRoot = join(root, 'data', 'minecraft', 'recipe');

@@ -108,7 +108,7 @@ const equipmentTables = (): readonly string[] => {
     return [...named].sort();
 };
 
-describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', () => {
+describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', { tags: ['real-data'] }, () => {
     it('reads the whole zombie table at the rate it states', { timeout: 120_000 }, () => {
         const asJava = rollMany(registryOf('java'), ZOMBIE);
         const asBedrock = rollMany(registryOf('bedrock'), ZOMBIE);

@@ -125,40 +125,45 @@ const compareEntityStats = (): {
     return { gaps, measured, disagreements, detail };
 };
 
-describeFamily(FAMILIES.entitiesStats, [REFERENCES.javaEntityAttributes, REFERENCES.bedrockBehaviorPack], () => {
-    const { gaps, measured, disagreements, detail } = compareEntityStats();
-    const verdict = checkAllowList(FAMILIES.entitiesStats, gaps);
+describeFamily(
+    FAMILIES.entitiesStats,
+    [REFERENCES.javaEntityAttributes, REFERENCES.bedrockBehaviorPack],
+    () => {
+        const { gaps, measured, disagreements, detail } = compareEntityStats();
+        const verdict = checkAllowList(FAMILIES.entitiesStats, gaps);
 
-    it('runs every mob on the value the stat decision gives it', () => {
-        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
-    });
-
-    it('carries no stale allow-list entry', () => {
-        expect(verdict.stale).toEqual([]);
-    });
-
-    it('reports the current Java and runtime stat comparison volume', () => {
-        const java = loadJavaEntityAttributes();
-        const names = new Set(Object.values(java).flatMap((row) => Object.keys(row.attributes)));
-        const values = Object.values(java).reduce((sum, row) => sum + Object.keys(row.attributes).length, 0);
-
-        reportParityProgress(FAMILIES.entitiesStats, {
-            javaEntityTypes: Object.keys(java).length,
-            javaAttributes: names.size,
-            javaAttributeValues: values,
-            sharedStats: measured.length,
-            bedrockEntityTypes: new Set(measured.map((row) => row.bedrockId)).size
+        it('runs every mob on the value the stat decision gives it', () => {
+            expect(verdict.unexpected, detail.join('\n')).toEqual([]);
         });
-        expect(new Set(measured.map((row) => row.stat))).toEqual(new Set(sharedStats()));
-    });
 
-    it('leaves every surviving disagreement to a stat Bedrock decides or a reviewed row', () => {
-        expect(detail).toEqual([]);
-        expect(
-            disagreements.every((row) => {
-                const kind = statRuling(row.bedrockId, row.stat).kind;
-                return kind === 'bedrock' || kind === 'exception';
-            })
-        ).toBe(true);
-    });
-});
+        it('carries no stale allow-list entry', () => {
+            expect(verdict.stale).toEqual([]);
+        });
+
+        it('reports the current Java and runtime stat comparison volume', () => {
+            const java = loadJavaEntityAttributes();
+            const names = new Set(Object.values(java).flatMap((row) => Object.keys(row.attributes)));
+            const values = Object.values(java).reduce((sum, row) => sum + Object.keys(row.attributes).length, 0);
+
+            reportParityProgress(FAMILIES.entitiesStats, {
+                javaEntityTypes: Object.keys(java).length,
+                javaAttributes: names.size,
+                javaAttributeValues: values,
+                sharedStats: measured.length,
+                bedrockEntityTypes: new Set(measured.map((row) => row.bedrockId)).size
+            });
+            expect(new Set(measured.map((row) => row.stat))).toEqual(new Set(sharedStats()));
+        });
+
+        it('leaves every surviving disagreement to a stat Bedrock decides or a reviewed row', () => {
+            expect(detail).toEqual([]);
+            expect(
+                disagreements.every((row) => {
+                    const kind = statRuling(row.bedrockId, row.stat).kind;
+                    return kind === 'bedrock' || kind === 'exception';
+                })
+            ).toBe(true);
+        });
+    },
+    { tags: ['real-data'] }
+);
