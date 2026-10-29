@@ -9,7 +9,7 @@ import type PacketHandler from './handler/PacketHandler';
 import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
 
 /** Either handler kind the registry holds. Which one applies depends on the phases the handler declares. */
-type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any>;
+export type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any>;
 
 export default class PacketRegistry {
     private server: Pick<Server, 'getLogger'>;

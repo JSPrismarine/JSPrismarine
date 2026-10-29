@@ -8,10 +8,19 @@ import Timer from '../utils/Timer';
 import type ClientConnection from './ClientConnection';
 import { takesConnection } from './handler/ConnectionPacketHandler';
 import BatchPacket from './packet/BatchPacket';
+import type DataPacket from './packet/DataPacket';
 import { readPacketId } from './packet/DataPacket';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketRegistry from './PacketRegistry';
+import type { RegisteredHandler } from './PacketRegistry';
+import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { Transport, TransportConnection } from './transport/Transport';
+
+/** A decoded packet the phase gate has paired with the handler it will run. */
+interface GatedPacket {
+    readonly packet: DataPacket;
+    readonly handler: RegisteredHandler;
+}
 
 /** What the dispatcher needs from each collaborator; the server wires its own parts in. */
 export interface NetworkDispatcherOptions<C extends TransportConnection> {
@@ -131,6 +140,18 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
     }
 
+    /**
+     * The inbound pipeline, assembled once and run per frame with the connection the frame
+     * arrived on as the context: split the batch, decode each packet through the connection's
+     * codec, log what the filter admits, gate on the connection's phase, and dispatch.
+     */
+    private readonly inbound: Pipeline<Buffer, never, ClientConnection> = Pipeline.start<Buffer, ClientConnection>()
+        .pipe((frame, connection) => this.splitBatch(frame, connection))
+        .pipe((buffer, connection) => this.decodePacket(buffer, connection))
+        .pipe((packet) => this.logInbound(packet))
+        .pipe((packet, connection) => this.gatePhase(packet, connection))
+        .pipe((gated, connection) => this.dispatch(gated, connection));
+
     private async handleFrame(payload: Buffer, inetAddr: InetAddress): Promise<void> {
         let connection: ClientConnection | null;
         if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
@@ -139,63 +160,97 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
 
         try {
-            // Read batch content and handle them
-            const batched = new BatchPacket(payload);
-            batched.compressed = connection.hasCompression;
-
-            // Read all packets inside batch and handle them
-            for (const buf of await batched.asyncDecode()) {
-                const pid = readPacketId(buf);
-
-                // Resolved through the codec this connection negotiated, so each session
-                // decodes with the id layout of its own protocol version.
-                const packet = connection.codec.createPacket(pid, buf);
-                if (packet === null) {
-                    this.logger.warn(`Packet 0x${pid.toString(16)} isn't implemented`);
-                    continue;
-                }
-
-                try {
-                    packet.decode();
-                } catch (error: unknown) {
-                    this.logger.error(error);
-                    this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
-                    continue;
-                }
-
-                try {
-                    const handler = this.packetRegistry.getHandler(packet.getName());
-                    if (this.logFilter.shouldLog(packet))
-                        this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
-
-                    // The phase gate: a handler runs only in the phases it declared. A
-                    // retail client routinely races the next step - `ClientCacheStatus`
-                    // lands while the login is still being handled - so the drop is a
-                    // debug line, as it was when the same packets were dropped for
-                    // arriving "before login completed".
-                    if (!handler.phases.includes(connection.phase)) {
-                        this.logger.debug(
-                            `Dropped §b${packet.constructor.name}§r: not accepted in the ${connection.phase} phase`
-                        );
-                        continue;
-                    }
-
-                    // A handshake- or login-phase handler takes the bare connection; every
-                    // other handler needs the player session that login creates. A packet
-                    // that reaches the wrong side of that line is dropped rather than
-                    // handed an object of the wrong shape.
-                    const session = connection.getPlayerSession();
-                    if (takesConnection(handler)) await handler.handle(packet, this.server, connection);
-                    else if (session !== null) await handler.handle(packet, this.server, session);
-                    else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
-                } catch (error: unknown) {
-                    this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
-                    this.logger.error(error);
-                }
-            }
+            await this.inbound.run(payload, connection);
         } catch (error: unknown) {
             this.logger.error(error);
         }
+    }
+
+    /** Inflates one frame into the encoded packets batched inside it. */
+    private async splitBatch(payload: Buffer, connection: ClientConnection): Promise<readonly Buffer[]> {
+        const batched = new BatchPacket(payload);
+        batched.compressed = connection.hasCompression;
+        return batched.asyncDecode();
+    }
+
+    /**
+     * Builds and decodes one packet, or yields nothing for an id the connection's codec does
+     * not know or a payload that does not decode as the packet it claims to be.
+     */
+    private decodePacket(buffer: Buffer, connection: ClientConnection): readonly DataPacket[] {
+        const pid = readPacketId(buffer);
+
+        // Resolved through the codec this connection negotiated, so each session decodes
+        // with the id layout of its own protocol version.
+        const packet = connection.codec.createPacket(pid, buffer);
+        if (packet === null) {
+            this.logger.warn(`Packet 0x${pid.toString(16)} isn't implemented`);
+            return [];
+        }
+
+        try {
+            packet.decode();
+        } catch (error: unknown) {
+            this.logger.error(error);
+            this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
+            return [];
+        }
+
+        return [packet];
+    }
+
+    /** Logs the packets the traffic-log filter admits; drops nothing. */
+    private logInbound(packet: DataPacket): readonly DataPacket[] {
+        if (this.logFilter.shouldLog(packet)) this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
+        return [packet];
+    }
+
+    /**
+     * The phase gate: pairs the packet with its handler, and yields nothing when the handler
+     * does not accept the connection's current phase. A retail client routinely races the
+     * next step - `ClientCacheStatus` lands while the login is still being handled - so the
+     * drop is a debug line, as it was when the same packets were dropped for arriving
+     * "before login completed".
+     */
+    private gatePhase(packet: DataPacket, connection: ClientConnection): readonly GatedPacket[] {
+        let handler: RegisteredHandler;
+        try {
+            handler = this.packetRegistry.getHandler(packet.getName());
+        } catch (error: unknown) {
+            this.handlerError(packet, error);
+            return [];
+        }
+
+        if (!handler.phases.includes(connection.phase)) {
+            this.logger.debug(`Dropped §b${packet.constructor.name}§r: not accepted in the ${connection.phase} phase`);
+            return [];
+        }
+
+        return [{ packet, handler }];
+    }
+
+    /** Runs the handler, with the collaborator its phases entitle it to. */
+    private async dispatch({ packet, handler }: GatedPacket, connection: ClientConnection): Promise<readonly never[]> {
+        try {
+            // A handshake- or login-phase handler takes the bare connection; every other
+            // handler needs the player session that login creates. A packet that reaches
+            // the wrong side of that line is dropped rather than handed an object of the
+            // wrong shape.
+            const session = connection.getPlayerSession();
+            if (takesConnection(handler)) await handler.handle(packet, this.server, connection);
+            else if (session !== null) await handler.handle(packet, this.server, session);
+            else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
+        } catch (error: unknown) {
+            this.handlerError(packet, error);
+        }
+
+        return [];
+    }
+
+    /** One failure shape for the lookup and the handler itself, as the old dispatch had it. */
+    private handlerError(packet: DataPacket, error: unknown): void {
+        this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
+        this.logger.error(error);
     }
 
     private async handleRaw(payload: Buffer, inetAddr: InetAddress): Promise<void> {
