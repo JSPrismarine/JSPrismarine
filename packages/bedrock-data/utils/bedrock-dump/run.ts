@@ -40,6 +40,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -47,10 +48,13 @@ import { bedrockServerPath } from '../fetch/bds.ts';
 import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
 import { dumpArgs, selectPasses } from './cli.ts';
 import type { Pass } from './cli.ts';
+import { describePending, sessionVerdict, VERIFY_INTERVAL_MS } from './completion.ts';
+import type { PendingChunk } from './completion.ts';
 import { hostNodeArgs } from './host.ts';
 import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
-import { REFERENCE_DIMENSION, REFERENCE_SEED } from './region.ts';
+import { blockBounds, REFERENCE_DIMENSION, REFERENCE_REGION, REFERENCE_SEED, tileRegion } from './region.ts';
+import type { ReferenceRegion } from './region.ts';
 import {
     CONTAINER_CLIS,
     NATIVE_PLATFORM,
@@ -63,7 +67,7 @@ import {
 import type { ProbeCommand, ServerLauncher } from './runner.ts';
 import { READY_LINE, stageServer, startServer } from './server.ts';
 import type { StagedServer } from './server.ts';
-import { readReferenceWorld } from './world.ts';
+import { readPendingChunks, readReferenceWorld } from './world.ts';
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repositoryRoot = resolve(packageDirectory, '../..');
@@ -193,6 +197,44 @@ const writeJson = async (path: string, value: unknown, indent = 0): Promise<void
     console.log(`Wrote ${path}`);
 };
 
+/**
+ * Flushes every loaded chunk to the world database and reports which chunks of the given tiles
+ * the save does not hold fully generated, while the server keeps running.
+ *
+ * `save hold` starts the flush, `save query` answers once the files are consistent on disk, the
+ * database is read while the engine is not writing it, and `save resume` lets it write again.
+ */
+const flushAndVerify = async (
+    server: ReturnType<typeof startServer>,
+    databasePath: string,
+    tiles: readonly ReferenceRegion[]
+): Promise<PendingChunk[]> => {
+    const from = server.lines.length;
+    server.send('save hold');
+    const deadline = Date.now() + TIMEOUTS.stop;
+    for (;;) {
+        const at = server.lines.length;
+        server.send('save query');
+        try {
+            await server.waitForLine((line) => line.includes('Data saved'), 'the held save to finish', 2_000, at);
+            break;
+        } catch (error) {
+            if (Date.now() >= deadline) throw error;
+        }
+    }
+    try {
+        return await readPendingChunks(databasePath, tiles);
+    } finally {
+        server.send('save resume');
+        await server.waitForLine(
+            (line) => line.includes('Changes to the world are resumed'),
+            'the save to resume',
+            TIMEOUTS.stop,
+            from
+        );
+    }
+};
+
 /** Boots the staged server, waits for a marker, stops it cleanly and returns its output. */
 const capture = async (
     staged: StagedServer,
@@ -268,6 +310,80 @@ const runDumpPass = async (): Promise<void> => {
 // Pass: the reference world
 // ---------------------------------------------------------------------------
 
+/**
+ * Generates the reference region and returns only once every chunk of it is fully generated on
+ * disk, booting the server again as often as that takes.
+ *
+ * The completion signal is the saved database and nothing else. `createTickingArea` resolves on
+ * registration, `dimension.getBlock` answers for chunks the generator has barely started on, and
+ * a running engine serializes loaded chunks on its own slow cadence, so no live signal can be
+ * trusted. What can be trusted: a clean stop writes every loaded chunk, and each chunk's
+ * finalized-state record says whether generation and population finished. So this pass creates
+ * the ticking areas over the console — the command's limit is ten areas of a hundred chunks,
+ * enough for the whole region at once, where the Script API's per-pack budget is not — polls a
+ * flushed save for a progress lower bound, stops the server once that stops moving, verifies the
+ * save offline, and boots another session for whatever is left. Ticking areas persist in the
+ * world, so a later session resumes exactly where the save ended.
+ */
+const generateReferenceRegion = async (staged: StagedServer): Promise<void> => {
+    const tiles = tileRegion(REFERENCE_REGION);
+    const total = REFERENCE_REGION.chunksX * REFERENCE_REGION.chunksZ;
+    const databasePath = join(staged.worldDirectory, 'db');
+    const started = Date.now();
+
+    for (let session = 1; ; session++) {
+        console.log(`  Session ${session}: generating the reference region`);
+        const server = startServer({
+            ...launcher.launch(staged.root),
+            cwd: staged.root,
+            onLine: (line) => console.log(`  ${line}`)
+        });
+        try {
+            await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', TIMEOUTS.boot);
+            for (const [index, tile] of tiles.entries()) {
+                const { from, to } = blockBounds(tile);
+                // Session 1 creates the areas; later sessions re-send and the engine refuses
+                // the duplicate names, which costs a log line each and nothing else.
+                server.send(`tickingarea add ${from[0]} 0 ${from[1]} ${to[0]} 0 ${to[1]} jsp-ref-${index}`);
+            }
+
+            let lastPending = Number.POSITIVE_INFINITY;
+            let stagnant = 0;
+            for (;;) {
+                await delay(VERIFY_INTERVAL_MS);
+                const pending = await flushAndVerify(server, databasePath, tiles);
+                stagnant = pending.length < lastPending ? 0 : stagnant + 1;
+                lastPending = pending.length;
+                const verdict = sessionVerdict(pending.length, Date.now() - started, TIMEOUTS.reference, stagnant);
+                if (verdict === 'wait') {
+                    console.log(`  ${describePending(pending, total)}`);
+                    continue;
+                }
+                if (verdict === 'timeout') {
+                    throw new Error(`The reference region never finished: ${describePending(pending, total)}`);
+                }
+                break;
+            }
+        } finally {
+            // The stop is the signal that can be trusted: a clean exit writes every loaded chunk.
+            const status = await server.stop(TIMEOUTS.stop);
+            if (status !== 0) console.warn(`The server exited with status ${status} while generating.`);
+            launcher.cleanup();
+        }
+
+        // The exact check, against the closed database the next boot would read.
+        const pending = await readPendingChunks(databasePath, tiles);
+        if (pending.length === 0) {
+            console.log(`  ${total} of ${total} chunks fully generated and saved.`);
+            return;
+        }
+        if (Date.now() - started >= TIMEOUTS.reference) {
+            throw new Error(`The reference region never finished: ${describePending(pending, total)}`);
+        }
+        console.log(`  ${describePending(pending, total)}; booting another session`);
+    }
+};
+
 const runReferenceWorldPass = async (): Promise<void> => {
     console.log('Pass 2 of 4: the reference world');
     const staged = await stageServer({
@@ -284,15 +400,8 @@ const runReferenceWorldPass = async (): Promise<void> => {
             'tick-distance': '4'
         }
     });
-    await writeDumpPack(staged.root, staged.worldDirectory, 'refworld');
 
-    const lines = await capture(
-        staged,
-        (line) => line.includes('DUMP end '),
-        'the reference region to finish generating',
-        TIMEOUTS.reference
-    );
-    assertComplete(collectDumpTables(lines));
+    await generateReferenceRegion(staged);
 
     const golden = await readReferenceWorld(join(staged.worldDirectory, 'db'), {
         minecraftVersion: pinnedServer.serverVersion,

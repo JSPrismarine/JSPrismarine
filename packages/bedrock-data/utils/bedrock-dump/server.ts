@@ -147,9 +147,17 @@ export interface RunningServer {
     /**
      * Resolves with the first line, past or future, the predicate accepts.
      *
+     * @param fromIndex - Index into {@link RunningServer.lines} to start matching past lines
+     * from. A caller that sends a command the server answers more than once per run passes the
+     * length of `lines` at send time, so an earlier answer is not mistaken for this one.
      * @throws Error when the server exits or the timeout passes first.
      */
-    waitForLine(matches: (line: string) => boolean, what: string, timeoutMs: number): Promise<string>;
+    waitForLine(
+        matches: (line: string) => boolean,
+        what: string,
+        timeoutMs: number,
+        fromIndex?: number
+    ): Promise<string>;
     /** Writes one console command, as a terminal would. */
     send(command: string): void;
     /**
@@ -230,9 +238,9 @@ export const startServer = (options: StartOptions): RunningServer => {
 
     return {
         lines,
-        waitForLine: (matches, what, timeoutMs) =>
+        waitForLine: (matches, what, timeoutMs, fromIndex = 0) =>
             new Promise<string>((resolve, reject) => {
-                const already = lines.find(matches);
+                const already = lines.slice(fromIndex).find(matches);
                 if (already !== undefined) {
                     resolve(already);
                     return;

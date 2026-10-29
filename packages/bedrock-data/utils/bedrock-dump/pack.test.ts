@@ -1,20 +1,11 @@
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-    PACK_DIRECTORY,
-    PACK_UUID,
-    passScriptSource,
-    renderManifest,
-    renderRegionModule,
-    writeDumpPack
-} from './pack.ts';
+import { PACK_DIRECTORY, PACK_UUID, passScriptSource, renderManifest, writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
-import { blockBounds, REFERENCE_DIMENSION, REFERENCE_REGION, tileRegion } from './region.ts';
 import { READY_LINE, startServer } from './server.ts';
 
 let workspace: string;
@@ -30,47 +21,22 @@ afterEach(async () => {
 describe('renderManifest', () => {
     it('points the script module at the pass it is asked for', () => {
         // The manifest is this module's own output, so parsing it back is reading a known shape.
-        const manifest = JSON.parse(renderManifest('refworld')) as {
+        const manifest = JSON.parse(renderManifest('dump')) as {
             header: { uuid: string };
             modules: { entry: string; type: string }[];
             dependencies: { module_name: string }[];
         };
         expect(manifest.header.uuid).toBe(PACK_UUID);
-        expect(manifest.modules[0]).toMatchObject({ type: 'script', entry: 'scripts/refworld.js' });
+        expect(manifest.modules[0]).toMatchObject({ type: 'script', entry: 'scripts/dump.js' });
         expect(manifest.dependencies.map((dependency) => dependency.module_name)).toEqual(['@minecraft/server']);
     });
 });
 
-describe('renderRegionModule', () => {
-    it('is a module the pack script can import, carrying one tile per ticking area', async () => {
-        const file = join(workspace, 'region.js');
-        await writeFile(file, renderRegionModule());
-        const module: { DIMENSION: string; TILES: { id: string; chunks: number; from: number[]; to: number[] }[] } =
-            await import(pathToFileURL(file).href);
-
-        const tiles = tileRegion(REFERENCE_REGION);
-        expect(module.DIMENSION).toBe(REFERENCE_DIMENSION);
-        expect(module.TILES).toHaveLength(tiles.length);
-        expect(new Set(module.TILES.map((tile) => tile.id)).size).toBe(tiles.length);
-        expect(module.TILES[0]).toMatchObject(blockBounds(tiles[0]!));
-        expect(module.TILES.reduce((total, tile) => total + tile.chunks, 0)).toBe(
-            REFERENCE_REGION.chunksX * REFERENCE_REGION.chunksZ
-        );
-    });
-});
-
 describe('writeDumpPack', () => {
-    it('stages the dump pass with no region module, which it does not import', async () => {
+    it('stages the dump pass with its script beside the manifest', async () => {
         const packDirectory = await writeDumpPack(workspace, join(workspace, 'worlds', 'w'), 'dump');
         expect(packDirectory).toBe(join(workspace, 'development_behavior_packs', PACK_DIRECTORY));
         expect((await stat(join(packDirectory, 'scripts', 'dump.js'))).isFile()).toBe(true);
-        await expect(stat(join(packDirectory, 'scripts', 'region.js'))).rejects.toThrow();
-    });
-
-    it('stages the reference pass with the region module beside its script', async () => {
-        const packDirectory = await writeDumpPack(workspace, join(workspace, 'worlds', 'w'), 'refworld');
-        expect((await stat(join(packDirectory, 'scripts', 'refworld.js'))).isFile()).toBe(true);
-        expect(await readFile(join(packDirectory, 'scripts', 'region.js'), 'utf8')).toContain('export const TILES');
     });
 
     it.each(['place', 'domains'] as const)(

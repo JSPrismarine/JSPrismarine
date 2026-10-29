@@ -154,6 +154,25 @@ describe('startServer', () => {
         );
     });
 
+    it('ignores past lines before fromIndex, so a repeated answer is not matched twice', async () => {
+        const server = await startFake(FAKE_SERVER);
+        await server.waitForLine((line) => line.includes(READY_LINE), 'the ready line', 5000);
+
+        server.send('Data saved');
+        await server.waitForLine((line) => line.includes('Data saved'), 'the first save', 5000);
+
+        const from = server.lines.length;
+        await expect(
+            server.waitForLine((line) => line.includes('Data saved'), 'a second save', 150, from)
+        ).rejects.toThrow(/Waited 150 ms/);
+
+        server.send('Data saved');
+        await expect(
+            server.waitForLine((line) => line.includes('Data saved'), 'the second save', 5000, from)
+        ).resolves.toContain('Data saved');
+        await server.stop(5000);
+    });
+
     it('fails the wait when the line never comes', async () => {
         const server = await startFake(FAKE_SERVER);
         await expect(server.waitForLine((line) => line.includes('never'), 'a line nobody writes', 150)).rejects.toThrow(

@@ -27,6 +27,8 @@ import { createHash } from 'node:crypto';
 
 import type { Database as DatabaseType } from '@jsprismarine/leveldb';
 
+import { describePending, FULLY_GENERATED, pendingChunks } from './completion.ts';
+import type { PendingChunk } from './completion.ts';
 import { Database } from './codecs.ts';
 import { SaveCursor } from './reader.ts';
 import type { ReferenceRegion } from './region.ts';
@@ -283,6 +285,29 @@ interface LoadedChunk {
     blockEntities: number;
 }
 
+/** Reads a chunk's finalized state without decoding anything else of it. */
+const finalizedStateOf = (database: DatabaseType, x: number, z: number): number | null => {
+    const finalized = database.get(chunkKey(x, z, Tag.FinalizedState));
+    return finalized === null ? null : finalized.readInt32LE(0);
+};
+
+/**
+ * Opens a saved world read-only and reports which chunks of the given tiles are not fully
+ * generated yet. The capture's flush-and-verify loop calls this between `save hold` and
+ * `save resume`, while the files are consistent and the engine is not writing.
+ */
+export const readPendingChunks = async (
+    databasePath: string,
+    tiles: readonly ReferenceRegion[]
+): Promise<PendingChunk[]> => {
+    const database = await Database.open(databasePath, { readOnly: true, createIfMissing: false });
+    try {
+        return pendingChunks(tiles, (x, z) => finalizedStateOf(database, x, z));
+    } finally {
+        await database.close();
+    }
+};
+
 const loadChunk = (database: DatabaseType, x: number, z: number): LoadedChunk => {
     const subChunks: SavedSubChunk[] = [];
     for (let i = 0; i < OVERWORLD_SUB_CHUNKS; i++) {
@@ -412,7 +437,8 @@ const digestChunk = (
  * Read-only matters twice: the database may still be locked by a server that has not finished
  * exiting, and a reader that writes would change the very bytes it is meant to record.
  *
- * @throws Error when a chunk of the region is missing, which means the generator never ran there.
+ * @throws Error when chunks of the region are missing, with expected-versus-saved counts and the
+ * missing coordinates. A partial region is never reduced to a golden.
  */
 export const readReferenceWorld = async (
     databasePath: string,
@@ -426,14 +452,20 @@ export const readReferenceWorld = async (
         const chunks: ReferenceChunk[] = [];
         const samples: ReferenceChunkSample[] = [];
         const counts = new Map<string, number>();
+        const missing: PendingChunk[] = [];
 
         for (const { x, z } of chunksOf(region)) {
+            // A chunk saved mid-generation stores records this reader cannot decode, so its
+            // state gates the decode rather than the other way around.
+            const state = finalizedStateOf(database, x, z);
+            if (state !== FULLY_GENERATED) {
+                missing.push({ x, z, state });
+                continue;
+            }
             const chunk = loadChunk(database, x, z);
             if (chunk.subChunks.length === 0) {
-                throw new Error(
-                    `Chunk ${x},${z} of the reference region has no sub chunks saved. The ticking ` +
-                        'area never reached it, or the server was killed before it wrote the world.'
-                );
+                missing.push({ x, z, state });
+                continue;
             }
             const surface = surfaceOf(chunk);
             chunks.push(digestChunk(x, z, chunk, surface, counts));
@@ -451,6 +483,14 @@ export const readReferenceWorld = async (
                     return slice[slotOf(Math.floor(column / 16), level % 16, column % 16)] ?? -1;
                 })
             });
+        }
+
+        if (missing.length > 0) {
+            const expected = region.chunksX * region.chunksZ;
+            throw new Error(
+                `The reference region is incomplete: ${describePending(missing, expected, 20)}. The ` +
+                    'ticking areas never finished them, or their chunks were released before a save.'
+            );
         }
 
         return {

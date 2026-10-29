@@ -8,7 +8,7 @@ import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { ReferenceRegion } from './region.ts';
-import { decodeSavedBiomes, decodeSavedSubChunk, readReferenceWorld } from './world.ts';
+import { decodeSavedBiomes, decodeSavedSubChunk, readPendingChunks, readReferenceWorld } from './world.ts';
 
 const BLOCKS_PER_SUB_CHUNK = 4096;
 const COLUMNS = 256;
@@ -220,15 +220,35 @@ describe('readReferenceWorld', () => {
         expect(after.heightmap).toBe(before.heightmap);
     });
 
-    it('refuses a region the generator never reached', async () => {
+    it('refuses a region the generator never reached, listing every missing chunk', async () => {
         await writeWorld(join(workspace, 'db'), { secondChunkSurface: 'minecraft:oak_log' });
         await expect(
             readReferenceWorld(join(workspace, 'db'), {
                 minecraftVersion: '1.26.51.1',
                 seed: '2026102500',
-                region: { chunkX: 0, chunkZ: 0, chunksX: 3, chunksZ: 1 },
+                region: { chunkX: 0, chunkZ: 0, chunksX: 4, chunksZ: 1 },
                 sample: SAMPLE
             })
-        ).rejects.toThrow(/Chunk 2,0 of the reference region has no sub chunks/);
+        ).rejects.toThrow(/incomplete: 2 of 4 chunks fully generated; pending 2: 2,0 3,0/);
+    });
+
+    it('refuses a chunk saved mid-generation rather than decoding its records', async () => {
+        await writeWorld(join(workspace, 'db'), { secondChunkSurface: 'minecraft:oak_log' });
+        const database = await Database.open(join(workspace, 'db'));
+        // Finalized state 0: the generator was still working on the chunk when it was saved.
+        database.put(chunkKey(1, 0, 0x36), Buffer.from(Uint32Array.of(0).buffer));
+        await database.close();
+
+        await expect(read(workspace)).rejects.toThrow(
+            /incomplete: 1 of 2 chunks fully generated; pending 1: 1,0\(state 0\)/
+        );
+    });
+
+    it('reports which chunks a running capture still has to wait for', async () => {
+        await writeWorld(join(workspace, 'db'), { secondChunkSurface: 'minecraft:oak_log' });
+        const pending = await readPendingChunks(join(workspace, 'db'), [
+            { chunkX: 0, chunkZ: 0, chunksX: 3, chunksZ: 1 }
+        ]);
+        expect(pending).toEqual([{ x: 2, z: 0, state: null }]);
     });
 });

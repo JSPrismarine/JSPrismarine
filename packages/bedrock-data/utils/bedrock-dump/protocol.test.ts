@@ -68,7 +68,7 @@ describe('collectDumpTables', () => {
 describe('the pack scripts', () => {
     // The scripts run inside the engine and cannot import from the repository, so they repeat
     // the prefix as a literal. This is what keeps the copy honest.
-    it.each(['dump.js', 'refworld.js'])('%s writes the prefix this module parses', async (script) => {
+    it.each(['dump.js'])('%s writes the prefix this module parses', async (script) => {
         const source = await readFile(join(here, 'pack', 'scripts', script), 'utf8');
         expect(source).toContain(`const PREFIX = '${DUMP_PREFIX}'`);
     });
