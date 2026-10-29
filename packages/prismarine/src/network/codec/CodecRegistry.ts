@@ -1,8 +1,25 @@
 import Codec2193 from './Codec2193';
 import type { ProtocolCodec } from './ProtocolCodec';
 
+/**
+ * Builds a protocol-version-keyed registry over a codec list and names its newest member.
+ * The server's registry below is built from the codecs it ships; a test can build one over
+ * fakes to exercise negotiation across versions that do not exist yet.
+ * @param {readonly ProtocolCodec[]} list - the codecs, each on a distinct protocol version.
+ * @returns the lookup map and the codec with the highest protocol version.
+ */
+export const buildCodecRegistry = (
+    list: readonly ProtocolCodec[]
+): { codecs: ReadonlyMap<number, ProtocolCodec>; latest: ProtocolCodec } => {
+    const codecs = new Map(list.map((codec) => [codec.protocolVersion, codec]));
+    if (codecs.size !== list.length) throw new Error('Two codecs claim the same protocol version!');
+
+    const latest = list.reduce((newest, codec) => (codec.protocolVersion > newest.protocolVersion ? codec : newest));
+    return { codecs, latest };
+};
+
 /** Every codec the server speaks, keyed by protocol version. */
-const codecs: ReadonlyMap<number, ProtocolCodec> = new Map([[Codec2193.protocolVersion, Codec2193]]);
+const { codecs, latest } = buildCodecRegistry([Codec2193]);
 
 /**
  * The codec for a protocol version a client announced.
@@ -12,4 +29,4 @@ const codecs: ReadonlyMap<number, ProtocolCodec> = new Map([[Codec2193.protocolV
 export const codecForProtocol = (protocolVersion: number): ProtocolCodec | undefined => codecs.get(protocolVersion);
 
 /** The newest codec the server speaks: what a refusal names as the version to use. */
-export const latestCodec: ProtocolCodec = Codec2193;
+export const latestCodec: ProtocolCodec = latest;

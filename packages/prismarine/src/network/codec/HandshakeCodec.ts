@@ -1,5 +1,5 @@
-import Codec2193 from './Codec2193';
 import type DataPacket from '../packet/DataPacket';
+import { latestCodec } from './CodecRegistry';
 import type { ProtocolCodec } from './ProtocolCodec';
 
 /**
@@ -17,8 +17,8 @@ const HANDSHAKE_PACKETS = [
 
 const handshakeIds: Readonly<Record<string, number>> = Object.fromEntries(
     HANDSHAKE_PACKETS.map((name) => {
-        const netId = Codec2193.netIdOf(name);
-        if (netId === undefined) throw new Error(`Handshake packet ${name} has no id in the 2193 codec!`);
+        const netId = latestCodec.netIdOf(name);
+        if (netId === undefined) throw new Error(`Handshake packet ${name} has no id in the latest codec!`);
         return [name, netId] as const;
     })
 );
@@ -36,13 +36,13 @@ const handshakeNetIds: ReadonlySet<number> = new Set(Object.values(handshakeIds)
  * refusal names, and what a payload would be version-gated against before negotiation.
  */
 class HandshakeCodec implements ProtocolCodec {
-    public readonly protocolVersion = Codec2193.protocolVersion;
-    public readonly minecraftVersions = Codec2193.minecraftVersions;
+    public readonly protocolVersion = latestCodec.protocolVersion;
+    public readonly minecraftVersions = latestCodec.minecraftVersions;
     public readonly ids = handshakeIds;
 
     public createPacket(netId: number, buffer?: Buffer): DataPacket | null {
         if (!handshakeNetIds.has(netId)) return null;
-        return Codec2193.createPacket(netId, buffer);
+        return latestCodec.createPacket(netId, buffer);
     }
 
     public netIdOf(name: string): number | undefined {
