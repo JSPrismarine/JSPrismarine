@@ -81,9 +81,9 @@ Both were deleted after this note was written: 59 KB of unversioned, unreproduci
 
 ## 6. Multi-version
 
-`sources.json` pins one Bedrock Dedicated Server, 1.26.51.1, with one url, one sha256 and one size. `packages/minecraft/datagen/manifest.json` is already shaped for more than one: `versions` is keyed by network protocol version, each entry carries its own `schemas`, `source`, `blocks` and `recipes` pins, output lands in `src/generated/v<protocol>/`, and `defaultProtocolVersion` re-exports one of them at the unversioned paths. Only `2193` is declared.
+`sources.json` pins one Bedrock Dedicated Server, 1.26.51.1, with one url, one sha256 and one size. `packages/minecraft/datagen/manifest.json` is already shaped for more than one: `versions` is keyed by network protocol version, each entry carries its own `schemas`, `source`, `blocks` and `recipes` pins, output lands in `src/generated/v<protocol>/`, and `defaultProtocolVersion` re-exports one of them at the unversioned paths. `2193` and `2225` are declared, 2193 as the default.
 
-So the gap is not the capture, which is scripted, and not the generator, which is keyed. It is that the Bedrock side has no per-version pin for the capture to walk. [protocol-2225-delta.md](protocol-2225-delta.md) records the matching blocker from the other end: a second version entry also requires a block palette and recipe files captured from a server of *that* version, and no such capture exists here. `docs/plans/server-rearchitecture.md` holds the versioning plan for `packages/bedrock-data`.
+So the gap is not the capture, which is scripted, and not the generator, which is keyed. It is that the Bedrock side has no per-version pin for the capture to walk. The 2225 entry shows the split exactly: its enums come from a pinned release asset and are generated, and its `blocks` and `recipes` are absent because both are captured from a BDS of that version and no such capture exists here. [protocol-2225-delta.md](protocol-2225-delta.md) records what that entry has, what it lacks and the commands that fill the rest. `docs/plans/server-rearchitecture.md` holds the versioning plan for `packages/bedrock-data`.
 
 ## 7. Upstream availability
 

@@ -33,10 +33,14 @@ locator.
 The protocol stack supports exactly one version. `Identifiers.Protocol` is a hard-coded `2193`
 imported by packets, handlers, commands, the startup log, and raknet's `ServerName`. Packet IDs
 are baked into `static NetID` at import time, several packets import bedrock-data tables at module
-load, bedrock-data itself is pinned to one BDS release with unversioned tables, and
-`packages/minecraft/datagen/manifest.json` pins generated enums to 2193. Protocol 2225 appears
-nowhere in source. Everything is force-tied to a single version; this coupling is an explicit
-target of the re-architecture.
+load, and bedrock-data itself is pinned to one BDS release with unversioned tables. Everything is
+force-tied to a single version; this coupling is an explicit target of the re-architecture.
+
+`packages/minecraft/datagen/manifest.json` has since been keyed by protocol version and declares
+both 2193 and 2225, with 2193 as the default. The 2225 entry carries enums only: its block palette
+and recipes need a BDS 1.26.60.6 capture that does not exist yet, which
+[protocol-2225-delta.md](../research/protocol-2225-delta.md) records along with the commands that
+would produce it.
 
 Other recorded pain points:
 
@@ -261,7 +265,9 @@ under `src/jsp/java/` tracks Java releases on its own schedule.
 - Still missing: per-version captures under `src/jsp/v<protocol>/` for the files captured from
   a BDS of that version (`required_item_list.json` first; the NBT captures as they are
   refreshed), and per-version BDS and bedrock-samples pins. The 2225 dump exists upstream, but
-  nothing captures a 2225 BDS yet, so `item_table.json` cannot be built for it.
+  nothing captures a 2225 BDS yet, so `item_table.json` cannot be built for it. The same capture
+  is what `packages/minecraft`'s 2225 entry waits on for its block palette and recipes, so one
+  BDS 1.26.60.6 run unblocks both.
 
 ### build.js changes, once the inputs exist
 

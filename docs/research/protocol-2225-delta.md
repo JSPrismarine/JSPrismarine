@@ -48,7 +48,7 @@ Each is verified against both the v1.26.60 schema ordinals and gophertunnel v1.6
 These changed at 2225 and are verifiable from the same sources, but are not carried by `Codec2225` yet; a 2225 session inherits the 2193 layout for them. Each needs its own slice because it touches shared serializers or generated enums.
 
 - **PlayerListPacket / PlayerSkinPacket / SerializedSkin** — `PlayerListAddEntry` gains a `PlayFab ID` string before the platform online id, and `SerializedSkin` loses its own `PlayFabID` field (gophertunnel's 1.26.60 update treats this as the release's breaking change). The skin serializer in `utils/skin/Skin.ts` is shared by the player list, the skin packet and login decoding, so moving the field means threading the protocol version through it.
-- **ItemStackRequestPacket / PlayerAuthInputPacket** — new `ItemStackRequestReservedAction` variant; `ItemStackRequestActionType` gains `CraftReservedAction = 18`, pushing `CraftNonImplemented` to 19 and `CraftResults` to 20. The action-type enum is generated into `@jsprismarine/minecraft` from the 2193 schemas, so handling this renumber needs the versioned enum data (see the datagen note below) and a version-aware `ItemStackRequest` reader. Until then a 2225 client's crafting requests would be misread; the gap is recorded here rather than guessed around.
+- **ItemStackRequestPacket / PlayerAuthInputPacket** — new `ItemStackRequestReservedAction` variant; `ItemStackRequestActionType` gains `CraftReservedAction = 18`, pushing `CraftNonImplemented` to 19 and `CraftResults` to 20. The enum half is no longer a blocker: `@jsprismarine/minecraft` now generates `generated/v2225/ItemStackRequestActionType.ts` with `CRAFT_RESERVED_ACTION = 18`, `CRAFTING_NON_IMPLEMENTED_DEPRECATED = 19` and `CRAFTING_RESULTS_DEPRECATED = 20` beside the 2193 enum (see the datagen note below). What is left is a version-aware `ItemStackRequest` reader that picks the enum by the session's protocol; until that exists a 2225 client's crafting requests are still read against the 2193 numbering.
 - **LevelEventGenericPacket** — an optional trailing int64 `serverHandle` when the event id is 1900/1901.
 - **The eight new packets' payloads** — ids are known (above); no class is implemented.
 
@@ -65,7 +65,36 @@ The preview.21 section also prints mass "enum value changed" rows (GameType, Bui
 
 ## Datagen and bedrock-data inputs
 
-A `"2225"` entry in `packages/minecraft/datagen/manifest.json` is *not* added yet. The schema inputs exist (the v1.26.60 `metadata.zip` above carries `x-enum-binary-value`, so it could serve as its own values release), but every generator loops over every declared version and a version entry also requires `blocks` (a two-pass block palette captured from a BDS of that version) and `recipes` (files unpacked from that BDS). No BDS 1.26.60 capture exists in this repository, and fabricating either input is worse than not declaring the version. The same holds for `packages/bedrock-data`, whose versioning plan is in `docs/plans/server-rearchitecture.md`.
+`packages/minecraft/datagen/manifest.json` declares `"2225"`, for its enums only.
+
+**What it has.** The entry pins the v1.26.60 `metadata.zip` (sha256 `a030a45d…`, measured on download). That asset carries `x-enum-binary-value` itself, so unlike 2193 it is its own values release and `values` points back at the same asset. `pnpm --filter @jsprismarine/minecraft run generate` writes `datagen/snapshot/v2225/enums.json` and all 31 enums to `src/generated/v2225/`. Regenerating twice produces byte-identical output, and adding the version changed nothing under `src/generated/v2193/` or the unversioned re-exports — 2193 stays `defaultProtocolVersion` until 2225 is complete.
+
+Five enums differ from 2193 in content; the rest differ only in the `Source:` provenance line.
+
+| Enum                         | Upstream                   | Change at 2225                                                               |
+| ---------------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `ItemStackRequestActionType` | `ItemStackRequestActionType` | `CRAFT_RESERVED_ACTION = 18`; `CRAFTING_NON_IMPLEMENTED_DEPRECATED` 18 → 19, `CRAFTING_RESULTS_DEPRECATED` 19 → 20 |
+| `ContainerUiId`              | `ContainerEnumName`        | `RESERVED_CONTAINER_A`–`D` = 67–70                                            |
+| `WindowTypes`                | `ContainerType`            | `RESERVED_CONTAINER_TYPE = 38`                                                |
+| `DisconnectReason`           | `DisconnectFailReason`     | `SUB_CLIENT_LOGIN_NOT_BOUND = 150`                                            |
+| `LevelSoundEvent`            | `SharedTypes::Legacy::LevelSoundEvent` | `ICE_BALL_BREAK = 614`; `UNDEFINED` 614 → 615                     |
+
+Every one of these is a change this note already predicted from the changelog, which is the cross-check. No consumer was migrated and no wire behavior changed: the 2225 enums are generated and exported, and reading them is a later slice.
+
+**What it still lacks.** Six enums have no schema in any release and come from the frozen 1.26.40 `enums.html` — `LevelEvent`, `ActorDataIDs`, `ActorFlags`, `ServerAuthMovementMode`, `AbilitiesIndex`, `CraftingDataEntryType`. The 2225 copies of those are 1.26.40 answers carried forward, so the four `LevelEvent` members 1.26.60 removed are still present at 2225. Mojang publishes no newer HTML dump; correcting these needs a second source.
+
+The entry declares neither `blocks` nor `recipes`, because both are captured from a BDS 1.26.60.6 and no such capture exists here. `generate-blocks.js` and `generate-recipes.js` skip a non-default version that declares neither, printing the commands below; the default version still fails closed. To fill them in:
+
+```sh
+pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol 2225
+pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette --protocol 2225
+pnpm --filter @jsprismarine/minecraft run generate:blocks
+pnpm --filter @jsprismarine/minecraft run generate:recipes
+```
+
+`merge-block-palette.mjs` finds its output directory by the Minecraft version a capture reports, so declaring `"2225"` is what gives a 1.26.60 capture a home; the merge would have refused one before. BDS is Linux x86-64 only — `packages/bedrock-data/utils/bedrock-dump/runner.ts` runs it in a container from another platform, and that path is not yet validated end to end. Once the two snapshots exist, add `blocks` and `recipes` to the 2225 entry shaped like 2193's.
+
+The same BDS dependency holds for `packages/bedrock-data`, whose versioning plan is in `docs/plans/server-rearchitecture.md`.
 
 ## Sources
 
