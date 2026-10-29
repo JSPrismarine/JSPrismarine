@@ -4,6 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 
 import Server from './Server';
 import type SessionManager from './SessionManager';
+import type { ServerTicker } from './modules/ticker';
 import { stub } from './testing/stub.test.helper';
 
 /**
@@ -32,6 +33,7 @@ const shutdownServer = (fields: Record<string, unknown> = {}): Server =>
         console: undefined,
         raknet: undefined,
         sessionManager: stub<SessionManager>({ getAllPlayers: () => [] }),
+        ticker: stub<ServerTicker>({ stop: () => {} }),
         disable: async () => {},
         removeAllListeners: () => {},
         ...fields

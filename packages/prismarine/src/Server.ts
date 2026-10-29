@@ -19,7 +19,6 @@ import type { StationRegistry } from './crafting/CraftingStation';
 import type RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
-import { TickEvent } from './events/Events';
 import { CreativeInventory } from './inventory/CreativeInventory';
 import ClientConnection from './network/ClientConnection';
 import { joinContentPayloads } from './network/contentPayloads';
@@ -36,11 +35,12 @@ import { bansModule } from './modules/bans';
 import { permissionsModule } from './modules/permissions';
 import { recipesModule, stationsModule } from './modules/recipes';
 import { socialModule } from './modules/social';
+import { ServerTicker, tickerModule } from './modules/ticker';
 import { bansToken, chatToken, permissionsToken, queryToken, recipesToken, stationsToken } from './modules/tokens';
 import type { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
-import { attachProfiler, ServerProfiler, startProfileSpan } from './profiling/ServerProfiler';
+import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
 import ChunkScheduler from './world/ChunkScheduler';
 import WorldManager from './world/WorldManager';
 
@@ -49,48 +49,6 @@ import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
 import pkg from '../package.json' with { type: 'json' };
-
-type LateTickProfile = {
-    elapsedMs: number;
-    tickHandlersMs: number;
-    worldUpdatesMs: number;
-    chunkSchedulerMs: number;
-    timerDelayMs: number;
-    slowestWorldName: string | null;
-    slowestWorldMs: number;
-};
-
-/** Refreshes the process title often enough to show recent tick health without writing every second. */
-const PROCESS_TITLE_UPDATE_INTERVAL_SECONDS = 5;
-
-const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
-    const totals = profiles.reduce(
-        (summary, profile) => ({
-            elapsedMs: summary.elapsedMs + profile.elapsedMs,
-            tickHandlersMs: summary.tickHandlersMs + profile.tickHandlersMs,
-            worldUpdatesMs: summary.worldUpdatesMs + profile.worldUpdatesMs,
-            chunkSchedulerMs: summary.chunkSchedulerMs + profile.chunkSchedulerMs,
-            timerDelayMs: summary.timerDelayMs + profile.timerDelayMs,
-            otherMs:
-                summary.otherMs +
-                Math.max(
-                    0,
-                    profile.elapsedMs - profile.tickHandlersMs - profile.worldUpdatesMs - profile.chunkSchedulerMs
-                )
-        }),
-        { elapsedMs: 0, tickHandlersMs: 0, worldUpdatesMs: 0, chunkSchedulerMs: 0, timerDelayMs: 0, otherMs: 0 }
-    );
-    const average = (duration: number) => `${(duration / profiles.length).toFixed(0)} ms`;
-    const slowestWorld = profiles.reduce<LateTickProfile | undefined>(
-        (slowest, profile) => (!slowest || profile.slowestWorldMs > slowest.slowestWorldMs ? profile : slowest),
-        undefined
-    );
-    const slowestWorldDetail = slowestWorld?.slowestWorldName
-        ? `; slowest world update ${slowestWorld.slowestWorldName} (${slowestWorld.slowestWorldMs.toFixed(0)} ms)`
-        : '';
-
-    return `Lag profile over ${profiles.length} late tick(s): avg work ${average(totals.elapsedMs)}/tick (tick handlers ${average(totals.tickHandlersMs)}, world updates ${average(totals.worldUpdatesMs)}, chunk scheduler ${average(totals.chunkSchedulerMs)}, other ${average(totals.otherMs)}); timer callback delays ${totals.timerDelayMs.toFixed(0)} ms total${slowestWorldDetail}`;
-};
 
 /**
  * JSPrismarine's main server class.
@@ -209,49 +167,18 @@ export default class Server extends EventEmitter {
     private readonly interruptHolds = new Set<() => void>();
 
     /**
-     * The current ticker timer.
+     * The tick loop, run by the `prismarine:ticker` module. Constructed here so
+     * its counters ({@link Server.getTick}, {@link Server.getTPS},
+     * {@link Server.getTickMs}) read before the kernel starts.
      * @internal
      */
-    private tickerTimer: NodeJS.Timeout | undefined;
-
-    /**
-     * The current TPS.
-     * @internal
-     */
-    private tps = 20;
-    /**
-     * Exponential moving average of how long a tick's work took, in milliseconds. Zero until
-     * the first tick completes.
-     */
-    private tickMs = 0;
-    /** Weight of the newest tick in {@link tickMs}: the last ten or so ticks carry most of it. */
-    private static readonly TICK_MS_SMOOTHING = 0.2;
-
-    /**
-     * The current tick.
-     * @internal
-     */
-    private currentTick = 0n;
+    private readonly ticker: ServerTicker;
 
     /**
      * If the server is headless.
      * @internal
      */
     private readonly headless: boolean;
-
-    // TODO: Move this somewhere else.
-    private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
-
-    /**
-     * How far behind schedule the loop may fall before it stops trying to make the time
-     * back. Below this, missed ticks are run back to back until the clock is caught: a
-     * hitch of a few ticks should not leave the world permanently running late. Above it,
-     * the backlog is written off - a ten second stall would otherwise be repaid as two
-     * hundred consecutive ticks, running the world at maximum speed and starving the
-     * event loop exactly when it is already struggling.
-     * @internal
-     */
-    private static readonly MAX_CATCH_UP_MS = 2000;
 
     /**
      * Creates a new server instance.
@@ -289,6 +216,19 @@ export default class Server extends EventEmitter {
         this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this);
+        this.ticker = new ServerTicker({
+            emitTick: (event) => this.emit('tick', event),
+            getWorlds: () => this.worldManager.getWorlds(),
+            tickFunctions: () => this.commandManager.tickFunctions(),
+            getChunkScheduler: () => this.chunkScheduler,
+            getChunkSendBudgetMs: () => this.config.getChunkSendBudgetMs(),
+            isTickingEnabled: () => this.config.getEnableTicking(),
+            isProcessTitleEnabled: () => this.config.getEnableProcessTitle(),
+            isHeadless: () => this.headless,
+            isStopping: () => this.stopping,
+            getProfileOwner: () => this,
+            getLogger: () => this.logger
+        });
         this.kernel = this.buildKernel();
     }
 
@@ -306,6 +246,7 @@ export default class Server extends EventEmitter {
         kernel.register(stationsModule());
         kernel.register(bansModule(this));
         kernel.register(socialModule(this));
+        kernel.register(tickerModule(this.ticker));
         return kernel;
     }
 
@@ -488,195 +429,6 @@ export default class Server extends EventEmitter {
             }
         });
 
-        if (this.config.getEnableTicking()) {
-            // Monotonic, not wall clock: `Date.now()` follows the system time, and an NTP
-            // correction or a VM resume moves it under the scheduler. A forward step used to
-            // read as accumulated lateness and trigger a catch-up burst; a backward one as
-            // time to kill, stalling the server for the size of the step.
-            const now = () => performance.now();
-
-            // Every tick's deadline is derived from one fixed origin, so a tick that runs
-            // long is absorbed rather than shifting every deadline behind it.
-            //
-            // The previous form corrected the same lateness twice - once against the last
-            // period (`MINECRAFT_TICK_TIME_MS - executionTime`, where `executionTime` was
-            // measured from the *end* of the previous tick and so already included its
-            // sleep) and again against the accumulated total. Two corrections for one error
-            // is a loop gain of two, and the loop oscillated accordingly: it alternated a
-            // near-zero gap with a near-100ms one, averaging a correct 20 TPS while never
-            // actually holding 50ms. Everything leaving the tick in a batch - entity
-            // movement, chunk sends - went out in pairs separated by silence.
-            let epoch = now();
-            let nextTickExpectedStartAt = epoch;
-
-            // Completion times of the ticks within the last second, oldest first.
-            const recentTicks: number[] = [];
-            const lateTickProfiles: LateTickProfile[] = [];
-            const maxProfileCount = Math.ceil(Server.MAX_CATCH_UP_MS / Server.MINECRAFT_TICK_TIME_MS);
-            const tick = async () => {
-                if (this.stopping) return;
-                const tickStartedAt = now();
-                const timerDelayMs = Math.max(0, tickStartedAt - nextTickExpectedStartAt);
-                let tickHandlersMs = 0;
-                let worldUpdatesMs = 0;
-                let chunkSchedulerMs = 0;
-                let slowestWorldName: string | null = null;
-                let slowestWorldMs = 0;
-                const endTickProfile = startProfileSpan(this, 'Server.tick');
-
-                // The next tick is scheduled from `finally`, and everything that can throw is
-                // inside the `try`, because the timer for the next tick is installed only
-                // once this one has finished. Anything escaping - a chunk that will not
-                // generate, a world update, a plugin's tick listener - used to leave no timer
-                // behind, and the server then sat there accepting connections while time
-                // stood still. A tick that fails is worth a log line; it is not worth the
-                // server.
-                try {
-                    const event = new TickEvent(this.getTick());
-
-                    // Awaited, so a plugin's tick handler runs *inside* this tick like every
-                    // other piece of tick work. Discarding the promise let its continuation
-                    // land in the middle of some later tick, and its rejection could not
-                    // reach the catch below - it surfaced as an unhandled rejection instead.
-                    let phaseStartedAt = now();
-                    const endTickHandlersProfile = startProfileSpan(this, 'Server.tickHandlers');
-                    try {
-                        await this.emit('tick', event);
-                    } finally {
-                        tickHandlersMs = now() - phaseStartedAt;
-                        endTickHandlersProfile();
-                    }
-
-                    const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
-
-                    // Update all worlds.
-                    phaseStartedAt = now();
-                    try {
-                        await Promise.all(
-                            this.worldManager.getWorlds().map(async (world) => {
-                                const worldStartedAt = now();
-                                const endWorldProfile = startProfileSpan(this, `World.update:${world.getName()}`);
-                                try {
-                                    await world.update(event.getTick());
-                                } finally {
-                                    endWorldProfile();
-                                    const elapsedMs = now() - worldStartedAt;
-                                    if (elapsedMs > slowestWorldMs) {
-                                        slowestWorldMs = elapsedMs;
-                                        slowestWorldName = world.getName();
-                                    }
-                                }
-                            })
-                        );
-                    } finally {
-                        worldUpdatesMs = now() - phaseStartedAt;
-                    }
-
-                    // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
-                    // worlds, as Java runs it, so a function sees the world the tick left.
-                    const endFunctionsProfile = startProfileSpan(this, 'Server.tickFunctions');
-                    try {
-                        await this.commandManager.tickFunctions();
-                    } finally {
-                        endFunctionsProfile();
-                    }
-
-                    // Whatever fits in this tick's slice; the rest waits for the next one.
-                    phaseStartedAt = now();
-                    const endChunkSchedulerProfile = startProfileSpan(this, 'Server.chunkScheduler');
-                    try {
-                        this.chunkScheduler.setBudget(this.config.getChunkSendBudgetMs());
-                        await this.chunkScheduler.tick();
-                    } finally {
-                        chunkSchedulerMs = now() - phaseStartedAt;
-                        endChunkSchedulerProfile();
-                    }
-
-                    if (
-                        this.config.getEnableProcessTitle() &&
-                        this.getTick() % (ticksPerSecond * PROCESS_TITLE_UPDATE_INTERVAL_SECONDS) === 0 &&
-                        !this.headless
-                    ) {
-                        // Update the process title with TPS and tick.
-                        process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
-                    }
-                } catch (error: unknown) {
-                    this.logger.error(error);
-                } finally {
-                    endTickProfile();
-                    this.currentTick++;
-                    const endTime = now();
-                    const elapsedMs = endTime - tickStartedAt;
-
-                    // TPS over a sliding window of the last second. The window used to be
-                    // rebased whenever it crossed a second, which left the next reading
-                    // measured over a single tick - noise, reported as a rate.
-                    // Never pruned below two, so there is always a pair to measure between.
-                    // Dropping to one collapses the window to zero width, and the reading
-                    // then holds its last value - a server slowed past one tick a second
-                    // would have gone on reporting whatever it managed before, which for a
-                    // server that had never yet been measured is the optimistic 20 it starts
-                    // life with.
-                    recentTicks.push(endTime);
-                    while (recentTicks.length > 2 && endTime - recentTicks[0]! > 1000) recentTicks.shift();
-                    const window = endTime - recentTicks[0]!;
-                    // Deliberately not clamped to 20. A loop making up lost time genuinely
-                    // runs faster than that, and hiding it behind the target rate meant the
-                    // one metric that should expose the fault reported perfect health.
-                    if (window > 0) this.tps = ((recentTicks.length - 1) * 1000) / window;
-                    // Work per tick, smoothed. TPS alone hides load: the loop holds 20 TPS
-                    // until a tick overruns its 50 ms, so this is what shows a tick at 40.
-                    this.tickMs =
-                        this.tickMs === 0
-                            ? elapsedMs
-                            : this.tickMs + (elapsedMs - this.tickMs) * Server.TICK_MS_SMOOTHING;
-
-                    // One correction, against one deadline.
-                    let sleepTime = epoch + this.getTick() * Server.MINECRAFT_TICK_TIME_MS - endTime;
-                    if (sleepTime <= 0) {
-                        lateTickProfiles.push({
-                            elapsedMs,
-                            tickHandlersMs,
-                            worldUpdatesMs,
-                            chunkSchedulerMs,
-                            timerDelayMs,
-                            slowestWorldName,
-                            slowestWorldMs
-                        });
-                        if (lateTickProfiles.length > maxProfileCount) lateTickProfiles.shift();
-                    } else {
-                        lateTickProfiles.length = 0;
-                    }
-
-                    if (-sleepTime > Server.MAX_CATCH_UP_MS) {
-                        // Too far behind to make up. Move the origin forward by the debt so
-                        // the schedule resumes from here instead of chasing a deadline that
-                        // has already passed for the next forty ticks.
-                        const behindBy = -sleepTime;
-                        epoch += behindBy;
-                        sleepTime = 0;
-                        this.logger.warn(
-                            `Can't keep up! Skipping ${(behindBy / Server.MINECRAFT_TICK_TIME_MS).toFixed(0)} ticks (${behindBy.toFixed(0)} ms behind)`,
-                            'Server/tick'
-                        );
-                        this.logger.verbose(summarizeLateTicks(lateTickProfiles), 'Server/tick');
-                    }
-
-                    // Not while shutting down: `shutdown` clears the timer, and a tick still
-                    // in flight at that moment would otherwise install a fresh one behind it.
-                    if (!this.stopping) {
-                        const delay = Math.max(0, sleepTime);
-                        nextTickExpectedStartAt = endTime + delay;
-                        this.tickerTimer = setTimeout(tick, delay);
-                        this.tickerTimer.unref();
-                    }
-                }
-            };
-
-            // Start ticking
-            void tick();
-        }
-
         this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
         this.remoteConsole?.markRunning();
     }
@@ -758,7 +510,11 @@ export default class Server extends EventEmitter {
         );
         await this.console?.disable();
 
-        clearInterval(this.tickerTimer);
+        // Before any teardown awaits: a tick still in flight sees `stopping` and
+        // stops rescheduling, and the pending timer dies here rather than firing
+        // into a server mid-teardown. The kernel stops the ticker module again
+        // inside `disable()`, which is a no-op by then.
+        this.ticker.stop();
 
         try {
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
@@ -1114,7 +870,7 @@ export default class Server extends EventEmitter {
      * @returns {number} The current Tick.
      */
     public getTick(): number {
-        return Number(this.currentTick);
+        return this.ticker.getTick();
     }
 
     /**
@@ -1122,7 +878,7 @@ export default class Server extends EventEmitter {
      * @returns {number} The current TPS.
      */
     public getTPS(): number {
-        return Number.parseFloat(this.tps.toFixed(2));
+        return this.ticker.getTPS();
     }
 
     /**
@@ -1131,6 +887,6 @@ export default class Server extends EventEmitter {
      * reads well under the 50 ms period. Zero until the first tick completes.
      */
     public getTickMs(): number {
-        return Number.parseFloat(this.tickMs.toFixed(2));
+        return this.ticker.getTickMs();
     }
 }

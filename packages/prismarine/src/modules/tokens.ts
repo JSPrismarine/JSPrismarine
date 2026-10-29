@@ -6,6 +6,7 @@ import type StationRegistry from '../crafting/CraftingStation';
 import type { RecipeManager } from '../crafting/RecipeManager';
 import type { PermissionManager } from '../permission/PermissionManager';
 import type { QueryManager } from '../query/QueryManager';
+import type { Ticker } from './ticker';
 
 // Service tokens for the manager modules the server registers on its kernel.
 // They carry the manager classes while no narrower interfaces exist; the types
@@ -23,3 +24,9 @@ export const stationsToken = createToken<StationRegistry>('prismarine:stations')
 export const chatToken = createToken<ChatManager>('prismarine:chat');
 /** The query responder, provided by the `prismarine:social` module. */
 export const queryToken = createToken<QueryManager>('prismarine:query');
+/**
+ * The tick loop's counters (tick number, TPS, tick duration), provided by the
+ * `prismarine:ticker` module. Tick work is observed through the server's typed
+ * `tick` event, which the loop emits and awaits every tick.
+ */
+export const tickerToken = createToken<Ticker>('prismarine:ticker');
