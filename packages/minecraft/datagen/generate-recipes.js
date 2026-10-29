@@ -18,6 +18,7 @@ import process from 'node:process';
 import { readArchive } from './brarchive.js';
 
 import { bedrockServerCachePath } from './bedrock-server.ts';
+import { publicIdOf } from './recipe-ids.ts';
 import { versionsOf } from './versions.js';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
@@ -342,8 +343,7 @@ const composeLayers = (layers) => {
             for (const [kind, recipe] of Object.entries(contents)) {
                 if (kind === 'format_version') continue;
 
-                const sourceId = recipe.description?.identifier ?? path.basename(file, '.json');
-                const id = config.recipes.idAliases?.[sourceId] ?? sourceId;
+                const id = recipe.description?.identifier ?? path.basename(file, '.json');
                 definitions.set(id, { kind, recipe, id, layer: name });
             }
         }
@@ -430,7 +430,7 @@ const generateVersion = async (protocol, isDefault) => {
         }
 
         for (const station of stationsOf(recipe)) {
-            for (const expanded of expand(reader(recipe, `${station}/${id}`))) {
+            for (const expanded of expand(reader(recipe, publicIdOf(config.recipes.idAliases, station, id)))) {
                 recipes.push({ ...expanded, station });
             }
         }
