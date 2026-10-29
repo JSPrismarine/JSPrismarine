@@ -75,7 +75,7 @@ bedrock-data build. Add `--recurse-submodules` to the clone command if you want 
 ## Documentation
 
 - [Docs](https://jsprismarine.github.io/JSPrismarine/).
-- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/documents/Running_JSPrismarine.html).
+- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/guide/running.html).
 
 ## Remarks
 
