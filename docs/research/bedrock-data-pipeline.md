@@ -19,7 +19,7 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 
 | Artifact | Producer | Inputs | Refresh command | Automated? |
 |---|---|---|---|---|
-| `src/jsp/bedrock/*.json` | `utils/bedrock-dump/run.ts`, pass `dump` | pinned BDS plus the generated dump behavior pack (`utils/bedrock-dump/pack.ts`) | `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass dump` | yes, weekly in CI |
+| `src/jsp/bedrock/*.json` | `utils/bedrock-dump/run.ts`, pass `dump` | pinned BDS plus the generated dump behavior pack (`utils/bedrock-dump/pack.ts`) | `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass dump` | yes, weekly in CI |
 | `src/jsp/reference_world.json` | same, pass `refworld` | pinned BDS, fixed seed and dimension from `utils/bedrock-dump/region.ts` | `… -- --pass refworld` | yes |
 | `src/jsp/required_item_list.json` (146 KB) | same, pass `packets` | pinned BDS, via `packages/client/tools/capture-server-data.mjs` | `… -- --pass packets` | yes |
 | `src/jsp/block_definitions.json` (99 KB) | same, pass `packets` | same | same | yes |
@@ -32,7 +32,7 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 | `packages/minecraft/datagen/snapshot/v2193/enums.json`, `enums.html` | `datagen/import-schemas.js` | same release assets | `pnpm --filter @jsprismarine/minecraft run generate:import` | yes |
 | `packages/minecraft/src/generated/v2193/` blocks | `datagen/generate-blocks.js` | `snapshot/v2193/block-palette.json` | `pnpm --filter @jsprismarine/minecraft run generate:blocks` | yes, given the palette |
 | `packages/minecraft/src/generated/v2193/` recipes | `datagen/generate-recipes.js` + `brarchive.js` | an unpacked BDS at `BEDROCK_SERVER` or `recipes.bedrockServer` in `datagen/manifest.json`; reads `behavior_packs/vanilla*/__brarchive/recipes.brarchive` | `pnpm --filter @jsprismarine/minecraft run generate:recipes` | scriptable, but wants a path nothing hands it |
-| `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json` | `utils/bedrock-dump/run.ts`, pass `palette` | pinned BDS, `datagen/palette-pack/` scripts staged by `pack.ts` | `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette` | yes |
+| `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json` | `utils/bedrock-dump/run.ts`, pass `palette` | pinned BDS, `datagen/palette-pack/` scripts staged by `pack.ts` | `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette` | yes |
 
 ## 2. What `dump:bedrock` actually does
 

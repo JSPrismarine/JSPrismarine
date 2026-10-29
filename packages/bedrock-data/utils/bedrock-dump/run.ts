@@ -21,8 +21,8 @@
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
- * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass refworld
- * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --protocol 2225
+ * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass refworld
+ * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --protocol 2225
  * ```
  *
  * `sources.json` pins one server per Bedrock protocol version. `--protocol <n>` captures a

@@ -5,7 +5,7 @@ which values each property accepts. It is captured from a Bedrock Dedicated Serv
 job that captures the rest of the Bedrock data:
 
 ```sh
-pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette
+pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette
 pnpm --filter @jsprismarine/minecraft run generate:blocks
 ```
 

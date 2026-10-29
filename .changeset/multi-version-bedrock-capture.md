@@ -24,7 +24,7 @@ Java Edition releases, which have no Bedrock protocol version.
 The block palette was the one artifact a human still had to make, through two server runs with
 two hand edits between them. It is now the `palette` pass of the same job, reusing the manifest
 writer the other passes already had, so
-`pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette` produces
+`pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette` produces
 `snapshot/v<protocol>/block-palette.json` with no manual step. `generate-recipes.js` defaults to
 the server `fetch:sources` already unpacks instead of needing a hand-set path, keeping
 `BEDROCK_SERVER` as the escape hatch.

@@ -57,7 +57,7 @@ for (const version of versionsOf(manifest, HERE)) {
 function howToCapture(protocol) {
     return (
         `  pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol ${protocol}\n` +
-        `  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette --protocol ${protocol}\n` +
+        `  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette --protocol ${protocol}\n` +
         `  pnpm --filter @jsprismarine/minecraft run generate:blocks\n` +
         'See datagen/README-palette.md.'
     );

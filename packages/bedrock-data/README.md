@@ -66,7 +66,7 @@ content log on, and drives four passes over the console, each with a world of it
 Run one pass with `--pass`, and pass `--force` to copy the server again:
 
 ```sh
-pnpm run dump:bedrock -- --pass refworld
+pnpm run dump:bedrock --pass refworld
 ```
 
 ### Where the capture can run

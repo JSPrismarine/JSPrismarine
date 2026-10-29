@@ -272,7 +272,7 @@ The entry declares `recipes` and still declares no `blocks`. Recipes were genera
 
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol 2225
-pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette --protocol 2225
+pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette --protocol 2225
 pnpm --filter @jsprismarine/minecraft run generate:blocks
 ```
 

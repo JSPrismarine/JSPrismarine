@@ -96,7 +96,7 @@ jobs:
               run: pnpm run build
 
             - name: 📼 Capture the Bedrock goldens
-              run: pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- ${{ steps.protocol.outputs.flag }}
+              run: pnpm --filter @jsprismarine/bedrock-data run dump:bedrock ${{ steps.protocol.outputs.flag }}
 
             - name: 🏭 Run the Java data generator
               run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
