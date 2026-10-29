@@ -32,6 +32,151 @@ No packet was removed and no existing id moved. 1.26.60 added:
 
 The retail `MinecraftPacketIds.json` omits the two stonecutter packets and SetPassengerOfBlock from its enum while the changelog and gophertunnel's `id.go` both carry them at 0x162, 0x163 and 0x165; the two sources that state values agree, so the table above keeps all eight. `v2225.ts` lists the ids; none has a packet class in this repository yet, so the codec decodes them to `null` and the dispatcher drops them with a warning, the same treatment every other unimplemented id gets.
 
+## Why a 1.26.60 client was disconnected with "Terracotta"
+
+Diagnosis, 2026-10-29, from the report that a retail 1.26.60 client could not join and was
+shown the coded error name **Terracotta**.
+
+### What "Terracotta" means
+
+It is not one reason. Bedrock's Ore UI maps `DisconnectFailReason` values onto a hand-curated
+set of material names, many reasons to one name, and Terracotta is the leftover bucket: 17 of
+the 157 reason indices display under it. The index-by-index mapping is
+[GeyserMC's support-bot tag set](https://github.com/GeyserMC/GeyserDiscordBot/tree/master/src/main/resources/tags/disconnect)
+(one `.tag` file per index, added in
+[PR #392](https://github.com/GeyserMC/GeyserDiscordBot/pull/392)), whose ordinals agree with
+[CloudburstMC's `DisconnectFailReason`](https://github.com/GeyserMC/Protocol/blob/3.0/bedrock-codec/src/main/java/org/cloudburstmc/protocol/bedrock/data/DisconnectFailReason.java)
+and with [gophertunnel's constant block](https://github.com/Sandertv/gophertunnel/blob/master/minecraft/protocol/packet/disconnect.go).
+
+The useful half of the mapping is what Terracotta is **not**. Each failure class worth
+suspecting has its own name, and none of them is this one:
+
+| Failure class                                    | Name shown  |
+| ------------------------------------------------ | ----------- |
+| Outdated client or server, version mismatch       | Chain       |
+| Resource pack rejected, missing or incompatible   | Rabbit      |
+| Bad, unknown or unexpected packet                 | Block       |
+| Login chain, JWT or authentication failure        | Guardian    |
+| Timeout                                           | Kelp        |
+| Block palette mismatch, bad chunk heights/widths  | Boat, Lead, Ladder |
+
+Of the 17 Terracotta reasons, the ones a live connection can realistically reach are 66
+`ConnectionLost`, 69 `ReasonNotSet` and 62 `DisconnectPacket` (deprecated). Gophertunnel leaves
+66 and 67 as holes in its constant block precisely because they are client-internal: a server
+never sends them. So Terracotta on a direct connect means **the session died without either
+side naming a reason** — the client tore the link down itself, or the link simply stopped.
+
+That rules out most of the candidates and points at one shape of bug: the client hits something
+fatal while parsing the join, aborts locally, and reports a lost connection rather than a
+protocol error.
+
+Caveat on secondary sources: consumer guides uniformly describe Terracotta as a Microsoft
+account login failure. They are all tracking
+[MCPE-142234](https://bugs-legacy.mojang.com/browse/MCPE-142234), a 1.17.3x bug fixed in
+1.17.34, from before the Ore UI code table existed. They disagree with the enum data; prefer the
+enum data. Separately, the index 149 `UnsupportedTransport` tag carries a note that from 26.60
+it also appears when the NetherNet signaling server is unreachable — a real 1.26.60-specific
+Terracotta, but it applies to Realms and friends-list joins, not to a direct RakNet connect.
+
+### Ranked causes
+
+**1. `PlayerListPacket` was sent in the 2193 layout. [confirmed, fixed]**
+
+This is the one. At 2225 the PlayFab id changes owner: `PlayerListAddEntry` gains a `PlayFab ID`
+string at ordinal 5, between `XBL XUID` and `Platform Online ID`, and `SerializedSkin` loses its
+own `PlayFabID` from ordinal 1. Confirmed field for field by diffing `PlayerListAddEntry.json`
+and `SerializedSkin.json` between the v1.26.51 and v1.26.60 `metadata.zip` releases, and it is
+the change gophertunnel calls its 1.26.60 breaking change.
+
+Why it kills the join rather than garbling a name:
+
+- The server sends `PlayerList` during the join burst, from
+  `ResourcePackClientResponseHandler` (`addToPlayerList` then `sendPlayerList`), after
+  `AvailableCommands` and before `PlayStatus(PlayerSpawn)`. The client parses it while still
+  joining.
+- Reading 2193 bytes with the 2225 layout, the client is one string ahead of itself by the time
+  it reaches `Build Platform`. That field is a fixed four-byte little-endian int, not a varint,
+  so the client reads its bytes as a string length and gets an enormous one. The read runs off
+  the entry and into the skin.
+- A client that blows up mid-parse drops the connection without sending a `Disconnect`, which
+  is reason 66 `ConnectionLost` — Terracotta.
+
+The codebase has already been bitten by exactly this packet in exactly this way. `Skin.networkSerialize`
+carries a note that a missing tail field meant "the entry after this one in the player list is
+read from the wrong place, and the client drops the join", and #2582 records a 1.26.51 client
+with a character-creator skin dropping the join over a persona-piece layout error. Same packet,
+same mechanism, same symptom class.
+
+Fixed: `PlayerListPacket2225` and `PlayerSkinPacket2225`, registered in `Codec2225`, with the
+layout threaded through `Skin.networkSerialize` as a `SkinWireLayout` flag rather than a
+protocol version — only this one field has ever moved. Covered in `Codec2225.test.ts`, including
+a test that a 2225 reader cannot parse 2193 entry bytes.
+
+**2. Nothing else the server sends during a join has an unimplemented 2225 layout. [confirmed]**
+
+Diffing every schema in both `metadata.zip` releases by `x-ordinal-index` gives a complete
+structural delta of 18 types, and no type was removed. After the fix above, the remainder splits
+into types `Codec2225` already carries (`LevelSettings`, `AddActorPacketPayload`,
+`AddPlayerPacketPayload`, `AnimatePacketPayload`, `LevelChunkPacketPayload`,
+`ItemUseOnActorInventoryTransaction`, `ItemReleaseInventoryTransaction`) and types this server
+implements no packet for at all (`DimensionDefinition`, `AttributeLayerData`,
+`EnvironmentAttributeData`, `ClientboundUpdateSoundDataPacketPayload`, `Fade`, `SeekTo`,
+`SetPitch`, `SetVolume`, `NoiseAlignment`). None of the latter is on a join path.
+
+This is the strongest statement available from the docs: the layout surface for a 2225 join is
+now complete, and any remaining failure is data, not layout.
+
+**3. Stale item registry and crafting data from 2193-era captures. [speculative, not a
+login-time disconnect]**
+
+`ItemRegistryPacket`, `CraftingDataPacket` and the creative contents are built from
+bedrock-data tables captured at 2193. These are server-authoritative: the client adopts the
+numbering the server sends rather than checking it against its own, which is the entire reason
+the registry is on the wire. A stale table shows up as missing or wrong items in a session that
+joined successfully, not as a refused join. Rank it low for this symptom, real for behavior
+afterwards.
+
+**4. Stale block palette. [speculative, ruled out as a login-time cause]**
+
+With hashed runtime ids the block palette is not on the wire at all — `StartGamePacket` carries
+only the blocks the server invented, and the client resolves everything else through its own
+palette by hash. A 1.26.60 client therefore cannot reject the server's palette at login. The
+2225 permutation changes (chorus plant, fire, redstone dust gained states) move those blocks'
+hashes, so chunks containing them resolve wrongly, but that is a post-spawn rendering fault and
+would surface as `BlockMismatch` (Boat), not Terracotta.
+
+**5. Biome definitions. [speculative]**
+
+`BiomeDefinitionListPacket` is sent during the burst, so a malformed one could kill a join. But
+no biome type appears in the 2225 structural delta, so there is no known layout reason for it to
+be malformed, and its data is not version-gated the way the item registry is. No evidence either
+way; listed for completeness.
+
+**6. The six enums frozen at 1.26.40. [speculative, not login-time]**
+
+`LevelEvent`, `ActorDataIDs`, `ActorFlags`, `ServerAuthMovementMode`, `AbilitiesIndex` and
+`CraftingDataEntryType` have no schema in any release and are carried forward from the 1.26.40
+`enums.html`, so the 2225 copies still contain the four `LevelEvent` members 1.26.60 removed.
+Those are gameplay events, not join packets.
+
+### What is not blocked on a BDS capture
+
+Everything above. The fix, and the completeness argument behind it, rest on Mojang's published
+schemas and gophertunnel, both of which are already pinned here. A real 1.26.60 BDS capture
+(item registry, block palette, recipes, biomes) is needed for causes 3 to 5 — correct item
+numbering, correct block hashes, correct recipes for a 1.26.60 session — but none of those is
+what shows a client Terracotta at login.
+
+### What could not be reproduced
+
+No retail Bedrock client is available here, and `packages/client` cannot stand in for one: it
+hardcodes `PROTOCOL_VERSION = 2193` and, more to the point, decodes with the `@jsprismarine/protocol`
+stack rather than with `Codec2225`, so pointing it at 2225 would exercise a 2193 reader against a
+2225 server and produce a failure of its own making. The reproduction here is therefore at the
+codec seam rather than over a socket: `Codec2225.test.ts` asserts that a 2225 reader cannot
+consume the bytes the unfixed server produced. A socket-level reproduction needs the client to
+grow a codec-aware decoder, which is its own slice.
+
 ## Layout changes implemented in Codec2225
 
 Each is verified against both the v1.26.60 schema ordinals and gophertunnel v1.63.0's marshal order, implemented as a subclass with both wire directions, and round-trip tested in `Codec2225.test.ts`.
@@ -41,15 +186,15 @@ Each is verified against both the v1.26.60 schema ordinals and gophertunnel v1.6
 - **StartGamePacket** — `Editor Level Migration Version` int8 inserted into LevelSettings at ordinal 11, between `Is Exported From Editor` and `Day Cycle Stop Time`; every later LevelSettings field moves one field later. New `EditorLevelMigrationVersion` enum (Legacy 0, EditorAchievements 1).
 - **AddActorPacket** — trailing optional `Passenger Block Data` (`PassengerOfBlockArguments`: BlockPos, Vec3 offset, float rotation, float rotation limit, uint8 emote type).
 - **AddPlayerPacket** — the same optional `Passenger Block Data`, inserted between the actor links and the device id.
+- **PlayerListPacket / PlayerSkinPacket / SerializedSkin** — the PlayFab id moves out of the skin and onto the entry: `PlayerListAddEntry` gains a `PlayFab ID` string at ordinal 5, between `XBL XUID` and `Platform Online ID`, and `SerializedSkin` loses its own `PlayFabID` from ordinal 1. Gophertunnel treats this as 1.26.60's breaking change. `Skin.networkSerialize` takes a `SkinWireLayout` flag rather than a protocol version, because this is the only field the skin has ever moved. Sending the 2193 layout here is what disconnected a 1.26.60 client with "Terracotta"; see the diagnosis above.
 - **InventoryTransactionPacket** — `Hand` uint8 inserted into `ItemUseOnActorInventoryTransaction` between the hotbar slot and the item (ordinal 4), and appended to `ItemReleaseInventoryTransaction` after the from-position (ordinal 5). The use-item body keeps the hand byte it already had at 2193.
 
 ## Verified but not implemented
 
 These changed at 2225 and are verifiable from the same sources, but are not carried by `Codec2225` yet; a 2225 session inherits the 2193 layout for them. Each needs its own slice because it touches shared serializers or generated enums.
 
-- **PlayerListPacket / PlayerSkinPacket / SerializedSkin** — `PlayerListAddEntry` gains a `PlayFab ID` string before the platform online id, and `SerializedSkin` loses its own `PlayFabID` field (gophertunnel's 1.26.60 update treats this as the release's breaking change). The skin serializer in `utils/skin/Skin.ts` is shared by the player list, the skin packet and login decoding, so moving the field means threading the protocol version through it.
 - **ItemStackRequestPacket / PlayerAuthInputPacket** — new `ItemStackRequestReservedAction` variant; `ItemStackRequestActionType` gains `CraftReservedAction = 18`, pushing `CraftNonImplemented` to 19 and `CraftResults` to 20. The enum half is no longer a blocker: `@jsprismarine/minecraft` now generates `generated/v2225/ItemStackRequestActionType.ts` with `CRAFT_RESERVED_ACTION = 18`, `CRAFTING_NON_IMPLEMENTED_DEPRECATED = 19` and `CRAFTING_RESULTS_DEPRECATED = 20` beside the 2193 enum (see the datagen note below). What is left is a version-aware `ItemStackRequest` reader that picks the enum by the session's protocol; until that exists a 2225 client's crafting requests are still read against the 2193 numbering.
-- **LevelEventGenericPacket** — an optional trailing int64 `serverHandle` when the event id is 1900/1901.
+- **LevelEventGenericPacket** — an optional trailing int64 `serverHandle` when the event id is 1900/1901. Changelog only: `LevelEventGenericPacketPayload.json` is byte-identical between the two releases and declares its body as opaque compound tag data, so the schemas neither confirm nor contradict this. Implementing it needs a second source.
 - **The eight new packets' payloads** — ids are known (above); no class is implemented.
 
 Not applicable: `ClientboundUpdateSoundDataPacket` (reworked into a tagged event variant), `ClientboundAttributeLayerSyncPacket` (payload reworked into a oneOf) and `DimensionDataPacket` (`Cloud Height` added) also changed, but this server implements no class for any of them, so there is nothing to version.
@@ -66,6 +211,21 @@ The preview.21 section also prints mass "enum value changed" rows (GameType, Bui
 ## Datagen and bedrock-data inputs
 
 `packages/minecraft/datagen/manifest.json` declares `"2225"`, for its enums only.
+
+**The pin is correct.** Re-verified 2026-10-29 by downloading the asset fresh: `v1.26.60`'s
+`metadata.zip` hashes to the pinned `a030a45d…`, and every schema inside it declares
+`"x-protocol-version": 2225`. This is the retail 1.26.60 release (published 2026-10-27, the
+same day as BDS 1.26.60.6), not a preview. Two things that look like discrepancies are not:
+
+- The `v1.26.60-preview.25` asset also named in the manifest belongs to the **2193** entry, as
+  its `values` source — the first release whose schemas carry `x-enum-binary-value`, at protocol
+  2211. It is not the 2225 entry's schema pin and does not need correcting.
+- The schemas carry `"x-minecraft-version": "1.26.60-beta.0"`, an artifact of Mojang generating
+  the docs from the beta branch. `x-protocol-version` is the field that decides, and it is 2225.
+
+A `v1.26.61` release has since appeared (2026-10-29). Its `metadata.zip` extracts to a
+byte-identical tree — same schemas, same `x-protocol-version: 2225` — differing only in zip
+container metadata, so there is nothing to re-pin.
 
 **What it has.** The entry pins the v1.26.60 `metadata.zip` (sha256 `a030a45d…`, measured on download). That asset carries `x-enum-binary-value` itself, so unlike 2193 it is its own values release and `values` points back at the same asset. `pnpm --filter @jsprismarine/minecraft run generate` writes `datagen/snapshot/v2225/enums.json` and all 31 enums to `src/generated/v2225/`. Regenerating twice produces byte-identical output, and adding the version changed nothing under `src/generated/v2193/` or the unversioned re-exports — 2193 stays `defaultProtocolVersion` until 2225 is complete.
 
