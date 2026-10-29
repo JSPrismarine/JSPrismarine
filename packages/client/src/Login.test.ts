@@ -5,6 +5,14 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+// The full test run reuses workers without isolating modules. Another server test can leave
+// its mocked RakNet listener in the worker, so this integration suite must reload the real one.
+vi.hoisted(() => {
+    vi.doUnmock('@jsprismarine/raknet');
+    vi.resetModules();
+});
+
 import Client from './Client';
 
 /**

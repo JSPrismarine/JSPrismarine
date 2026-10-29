@@ -19,7 +19,8 @@
  */
 import { existsSync } from 'node:fs';
 import { isSea } from 'node:sea';
-import { fileURLToPath } from 'node:url';
+import { isAbsolute, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import Piscina from 'piscina';
 
@@ -193,9 +194,15 @@ export const defaultGenerationWorker = (): string => {
  */
 const fileBehind = (specifier: string): string | undefined => {
     if (specifier.startsWith('file:')) return fileURLToPath(specifier);
-    if (specifier.startsWith('.') || specifier.startsWith('/')) return specifier;
+    if (specifier.startsWith('.') || isAbsolute(specifier)) return specifier;
 
     return undefined;
+};
+
+const workerModuleSpecifier = (specifier: string): string => {
+    if (specifier.startsWith('file:')) return specifier;
+    const file = fileBehind(specifier);
+    return file === undefined ? specifier : pathToFileURL(resolve(file)).href;
 };
 
 /**
@@ -209,7 +216,10 @@ const piscinaRunner: TaskRunnerFactory = (options) =>
         filename: options.worker ?? defaultGenerationWorker(),
         minThreads: options.workers,
         maxThreads: options.workers,
-        workerData: { pipeline: options.pipeline, setup: options.setup } satisfies GenerationWorkerData
+        workerData: {
+            pipeline: workerModuleSpecifier(options.pipeline),
+            setup: options.setup
+        } satisfies GenerationWorkerData
     });
 
 /**

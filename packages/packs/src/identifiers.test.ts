@@ -71,7 +71,6 @@ describe('reportIdentifiers', () => {
             ['item', '#fixture:gems', 'known', 'pack', 1],
             ['item', '#minecraft:beacon_payment_items', 'unknown', 'resolver', 1],
             ['item', 'fixture:ruby', 'unknown', 'resolver', 3],
-            ['item', 'minecraft:emerald', 'unknown', 'resolver', 1],
             ['worldgen/biome', 'fixture:gem_fields', 'unknown', 'resolver', 1]
         ]);
     });

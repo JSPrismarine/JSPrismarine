@@ -26,7 +26,7 @@ const fakeRecipient = (chunks: Array<[number, number]>, costMs = 0, clock?: { no
 describe('world', () => {
     describe('ChunkScheduler', () => {
         it('sends everything when the budget is generous', async () => {
-            const scheduler = new ChunkScheduler(1000);
+            const scheduler = new ChunkScheduler(1000, () => {}, 3);
             const { recipient, delivered } = fakeRecipient([
                 [0, 0],
                 [1, 0],
@@ -114,7 +114,7 @@ describe('world', () => {
         });
 
         it('sends each player their own nearest chunks first', async () => {
-            const scheduler = new ChunkScheduler(1000);
+            const scheduler = new ChunkScheduler(1000, () => {}, 3);
             const { recipient, delivered, sender } = fakeRecipient([
                 [9, 9],
                 [1, 1],
@@ -414,7 +414,7 @@ describe('world', () => {
         });
 
         it('keeps serving everyone else when one player fails', async () => {
-            const scheduler = new ChunkScheduler(1000, () => {});
+            const scheduler = new ChunkScheduler(1000, () => {}, 3);
 
             const broken = new ChunkSender();
             broken.enqueue(0, 0);

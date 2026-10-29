@@ -135,6 +135,7 @@ describe('DevTools over an external Node inspector connection', () => {
     let child: ReturnType<typeof spawn>;
     let client: Awaited<ReturnType<typeof connect>>;
     let frontendUrl: string;
+    let outputLines: ReturnType<typeof createInterface>;
 
     beforeEach(async () => {
         // A separate process is essential: a same-thread inspector cannot test real pauses.
@@ -149,19 +150,25 @@ describe('DevTools over an external Node inspector connection', () => {
             import { openDevTools } from ${JSON.stringify(new URL('./DevTools.ts', import.meta.url).href)};
             import { Logger } from ${JSON.stringify(import.meta.resolve('@jsprismarine/logger'))};
             import { createDevToolsLogTransport } from ${JSON.stringify(new URL('./DevTools.ts', import.meta.url).href)};
+            import { createInterface } from 'node:readline';
             const session = openDevTools();
             process.stdout.write(JSON.stringify({ endpoint: session.endpointUrl, frontend: session.frontendUrl }) + '\\n');
+            createInterface({ input: process.stdin }).on('line', (url) => {
+                void import(url).then(
+                    () => process.stdout.write('probe-complete\\n'),
+                    (error) => process.stdout.write('probe-error:' + String(error) + '\\n')
+                );
+            });
             session.waitForDebugger();
             globalThis.devtoolsReady = true;
             globalThis.devtoolsLogger = new Logger('debug', [createDevToolsLogTransport()]);
             setInterval(() => {}, 1000);
         `
             ],
-            { stdio: ['ignore', 'pipe', 'pipe'] }
+            { stdio: ['pipe', 'pipe', 'pipe'] }
         );
-        const lines = createInterface({ input: child.stdout! });
-        const [line] = await once(lines, 'line');
-        lines.close();
+        outputLines = createInterface({ input: child.stdout! });
+        const [line] = await once(outputLines, 'line');
         const urls = object(JSON.parse(line));
         expect(urls.endpoint).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\//);
         expect(new URL(String(urls.frontend)).searchParams.get('ws')).toBe(String(urls.endpoint).slice(5));
@@ -173,6 +180,7 @@ describe('DevTools over an external Node inspector connection', () => {
 
     afterEach(async () => {
         client?.close();
+        outputLines?.close();
         if (child && child.exitCode === null && child.signalCode === null) {
             const exited = once(child, 'exit');
             child.kill('SIGKILL');
@@ -192,6 +200,13 @@ describe('DevTools over an external Node inspector connection', () => {
                 return object(response.result).value;
             })
             .toBe(true);
+    };
+
+    const importModule = (source: string) => {
+        const finished = once(outputLines, 'line').then(([line]) => line);
+        const url = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+        child.stdin!.write(`${url}\n`);
+        return finished;
     };
 
     it('waits for the debugger before continuing initialization', async () => {
@@ -239,15 +254,14 @@ describe('DevTools over an external Node inspector connection', () => {
         'hits line breakpoints with condition %s, inspects locals, and steps',
         async (condition) => {
             await start();
-            await client.send('Runtime.evaluate', {
-                expression: `
-            globalThis.probe = function probe(value) {
-                const doubled = value * 2;
-                return doubled + 1;
-            };
-            //# sourceURL=jsprismarine-devtools-probe.js
-        `
-            });
+            const probeSource = `
+globalThis.probe = function probe(value) {
+    const doubled = value * 2;
+    return doubled + 1;
+};
+//# sourceURL=jsprismarine-devtools-probe.js
+`;
+            expect(await importModule(probeSource)).toBe('probe-complete');
             const breakpoint = await client.send('Debugger.setBreakpointByUrl', {
                 url: 'jsprismarine-devtools-probe.js',
                 lineNumber: 3,
@@ -255,12 +269,31 @@ describe('DevTools over an external Node inspector connection', () => {
             });
             expect(breakpoint.locations).not.toEqual([]);
             if (condition) {
-                const skipped = await client.send('Runtime.evaluate', { expression: 'probe(2)', returnByValue: true });
+                const skippedPaused = client.event('Debugger.paused');
+                const skippedEvaluation = importModule('globalThis.probeResult = globalThis.probe(2);');
+                const skippedOutcome = await Promise.race([
+                    skippedPaused.then((params) => ({ type: 'paused' as const, params })),
+                    skippedEvaluation.then((result) => ({ type: 'evaluated' as const, result }))
+                ]);
+                if (skippedOutcome.type !== 'evaluated') {
+                    throw new Error('Conditional breakpoint paused for a value that did not match');
+                }
+                expect(skippedOutcome.result).toBe('probe-complete');
+                const skipped = await client.send('Runtime.evaluate', {
+                    expression: 'probeResult',
+                    returnByValue: true
+                });
                 expect(object(skipped.result).value).toBe(5);
             }
             const paused = client.event('Debugger.paused');
-            const evaluated = client.send('Runtime.evaluate', { expression: 'probe(7)', returnByValue: true });
-            const pause = await paused;
+            const evaluated = importModule('globalThis.probeResult = globalThis.probe(7);');
+            const outcome = await Promise.race([
+                paused.then((params) => ({ type: 'paused' as const, params })),
+                evaluated.then((result) => ({ type: 'evaluated' as const, result }))
+            ]);
+            if (outcome.type !== 'paused')
+                throw new Error('Conditional line breakpoint did not pause on a matching value');
+            const pause = outcome.params;
             expect(pause.hitBreakpoints).toContain(breakpoint.breakpointId);
             const frames = pause.callFrames;
             if (!Array.isArray(frames)) throw new Error('Missing paused call frames');
@@ -273,12 +306,25 @@ describe('DevTools over an external Node inspector connection', () => {
             expect(object(local.result).value).toBe(14);
             const stepped = client.event('Debugger.paused');
             await client.send('Debugger.stepOver');
-            await stepped;
+            const stepOutcome = await Promise.race([
+                stepped.then((params) => ({ type: 'paused' as const, params })),
+                evaluated.then((result) => ({ type: 'evaluated' as const, result }))
+            ]);
+            if (stepOutcome.type !== 'paused')
+                throw new Error('Debugger step-over completed without pausing on the next line');
             await client.send('Debugger.resume');
-            expect(object((await evaluated).result).value).toBe(15);
+            expect(await evaluated).toBe('probe-complete');
             await client.send('Debugger.removeBreakpoint', { breakpointId: breakpoint.breakpointId });
-            const unpaused = await client.send('Runtime.evaluate', { expression: 'probe(7)', returnByValue: true });
+            expect(
+                await importModule('globalThis.probeResult = globalThis.probe(7); globalThis.probeAfterRemoval = true;')
+            ).toBe('probe-complete');
+            const unpaused = await client.send('Runtime.evaluate', { expression: 'probeResult', returnByValue: true });
             expect(object(unpaused.result).value).toBe(15);
+            const afterRemoval = await client.send('Runtime.evaluate', {
+                expression: 'probeAfterRemoval',
+                returnByValue: true
+            });
+            expect(object(afterRemoval.result).value).toBe(true);
         }
     );
 
@@ -286,18 +332,29 @@ describe('DevTools over an external Node inspector connection', () => {
         'hits %s instrumentation breakpoints',
         async (instrumentation) => {
             await start();
-            const breakpoint = await client.send('Debugger.setInstrumentationBreakpoint', { instrumentation });
-            const paused = client.event('Debugger.paused');
             const map = Buffer.from(
                 JSON.stringify({ version: 3, sources: ['probe.ts'], names: [], mappings: 'AAAA' })
             ).toString('base64');
-            const evaluated = client.send('Runtime.evaluate', {
-                expression: `globalThis.instrumented = 42;\n//# sourceURL=instrumented.js\n//# sourceMappingURL=data:application/json;base64,${map}`
-            });
-            expect((await paused).reason).toBe('instrumentation');
+            const source = [
+                'globalThis.instrumented = 42;',
+                '//# sourceURL=instrumented.js',
+                ...(instrumentation === 'beforeScriptWithSourceMapExecution'
+                    ? [`//# sourceMappingURL=data:application/json;base64,${map}`]
+                    : [])
+            ].join('\n');
+            const paused = client.event('Debugger.paused');
+            const breakpoint = await client.send('Debugger.setInstrumentationBreakpoint', { instrumentation });
+            const probeFinished = importModule(source);
+            const outcome = await Promise.race([
+                paused.then((params) => ({ type: 'paused' as const, params })),
+                probeFinished.then((line) => ({ type: 'finished' as const, line }))
+            ]);
+            if (outcome.type !== 'paused')
+                throw new Error(`Probe completed without an instrumentation pause: ${outcome.line}`);
+            expect(outcome.params.reason).toBe('instrumentation');
             await client.send('Debugger.removeBreakpoint', { breakpointId: breakpoint.breakpointId });
             await client.send('Debugger.resume');
-            await evaluated;
+            expect(await probeFinished).toBe('probe-complete');
             const result = await client.send('Runtime.evaluate', { expression: 'instrumented', returnByValue: true });
             expect(object(result.result).value).toBe(42);
         }
@@ -305,26 +362,38 @@ describe('DevTools over an external Node inspector connection', () => {
 
     it('pauses on function calls and caught exceptions', async () => {
         await start();
-        const fn = await client.send('Runtime.evaluate', {
-            expression: 'globalThis.callProbe = () => 42'
-        });
+        expect(await importModule('globalThis.callProbe = () => 42;')).toBe('probe-complete');
+        const fn = await client.send('Runtime.evaluate', { expression: 'callProbe' });
         const breakpoint = await client.send('Debugger.setBreakpointOnFunctionCall', {
             objectId: object(fn.result).objectId
         });
         const callPaused = client.event('Debugger.paused');
-        const called = client.send('Runtime.evaluate', { expression: 'callProbe()', returnByValue: true });
-        expect((await callPaused).hitBreakpoints).toContain(breakpoint.breakpointId);
+        const called = importModule('globalThis.callResult = globalThis.callProbe();');
+        const callOutcome = await Promise.race([
+            callPaused.then((params) => ({ type: 'paused' as const, params })),
+            called.then((result) => ({ type: 'evaluated' as const, result }))
+        ]);
+        if (callOutcome.type !== 'paused')
+            throw new Error('Function call breakpoint did not pause before the call completed');
+        expect(callOutcome.params.hitBreakpoints).toContain(breakpoint.breakpointId);
         await client.send('Debugger.removeBreakpoint', { breakpointId: breakpoint.breakpointId });
         await client.send('Debugger.resume');
-        expect(object((await called).result).value).toBe(42);
+        expect(await called).toBe('probe-complete');
+        const callResult = await client.send('Runtime.evaluate', { expression: 'callResult', returnByValue: true });
+        expect(object(callResult.result).value).toBe(42);
 
         await client.send('Debugger.setPauseOnExceptions', { state: 'all' });
         const exceptionPaused = client.event('Debugger.paused');
-        const evaluated = client.send('Runtime.evaluate', { expression: 'try { throw new Error("probe"); } catch {}' });
-        expect((await exceptionPaused).reason).toBe('exception');
+        const evaluated = importModule('try { throw new Error("probe"); } catch {}');
+        const exceptionOutcome = await Promise.race([
+            exceptionPaused.then((params) => ({ type: 'paused' as const, params })),
+            evaluated.then((result) => ({ type: 'evaluated' as const, result }))
+        ]);
+        if (exceptionOutcome.type !== 'paused') throw new Error('Debugger did not pause on the caught exception');
+        expect(exceptionOutcome.params.reason).toBe('exception');
         await client.send('Debugger.setPauseOnExceptions', { state: 'none' });
         await client.send('Debugger.resume');
-        await evaluated;
+        expect(await evaluated).toBe('probe-complete');
     });
 
     it('captures CPU profiles and heap allocation samples', async () => {

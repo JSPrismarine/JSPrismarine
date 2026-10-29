@@ -137,7 +137,9 @@ describe('the data entity record', () => {
         const partial = new NBTTagCompound('');
         partial.addValue(DATA_ENTITY_TAG, new Types.StringVal('{"identifier":"minecraft:cow"}'));
 
-        expect(dataEntityRecordIn(partial)).toEqual({
+        const restored = dataEntityRecordIn(partial);
+
+        expect(restored).toMatchObject({
             identifier: 'minecraft:cow',
             componentGroups: [],
             properties: {},
@@ -150,5 +152,6 @@ describe('the data entity record', () => {
             loveTicks: 0,
             breedCooldown: 0
         });
+        expect(restored?.persistentIdentity).toMatch(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i);
     });
 });

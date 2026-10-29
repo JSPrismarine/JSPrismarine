@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import type { ContentPosition } from '../content/world/adapter';
 import { definitionsOf } from '../content/ContentOptions';
-import { fixtureContentOptions } from '../content/testing';
+import { fixtureContentOptions, fixtureItemDefinitions } from '../content/testing';
 import { unwiredWorld } from '../content/world/unwired';
 import { Dimensions } from '../world/Dimension';
 import { GameRules } from '../world/GameRuleManager';
@@ -107,10 +108,18 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
  */
 const blastContentOptions = () =>
     fixtureContentOptions({
+        itemDefinitions: [
+            ...fixtureItemDefinitions(),
+            ...vanillaItemDefinitions().filter(({ identifier }) => identifier === 'minecraft:cobblestone')
+        ],
         world: {
             at: () => {
                 const base = unwiredWorld();
-                return { ...base, blocks: { ...base.blocks, data: () => undefined, setData: () => {} } };
+                return {
+                    ...base,
+                    blocks: { ...base.blocks, data: () => undefined, setData: () => {} },
+                    entities: { ...base.entities, drop: () => {} }
+                };
             }
         }
     });
@@ -272,7 +281,9 @@ describe('explosions', () => {
         it("yields what the block's Java loot table says, not the block", async () => {
             // The fixture's `minecraft:blocks/stone` drops cobblestone, which is the point:
             // an explosion rolls the same table a pickaxe does rather than a path of its own.
-            const quarry = scene({ solid: true, content: buildServerContent(blastContentOptions()) });
+            const content = buildServerContent(blastContentOptions());
+            expect(content.items.types.has('minecraft:cobblestone')).toBe(true);
+            const quarry = scene({ solid: true, content });
 
             await explode(quarry.world, new Vector3(0, 64, 0), { power: 3 });
 

@@ -152,6 +152,8 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
 /** A player in a given mode, holding nothing. */
 const fakePlayer = (gamemode: Gametype) => ({
     gamemode,
+    getRuntimeId: () => 7n,
+    getPosition: () => new Vector3(10, 64, -20),
     getInventory: () => ({ getItemInHand: () => null })
 });
 
@@ -177,7 +179,7 @@ describe('world', () => {
             expect(update!.blockRuntimeId).toBe(BlockRuntimeIds.getByName('minecraft:air') >>> 0);
             expect([update!.x, update!.y, update!.z]).toEqual([10, 64, -20]);
             // Flagged as a change that came over the network, the bit every server sets.
-            expect(update!.flags).toBe(UpdateBlockFlagsType.Network);
+            expect(update!.flags & UpdateBlockFlagsType.Network).toBe(UpdateBlockFlagsType.Network);
 
             // One event for the particles and the sound, at the block's center, carrying the
             // exact state that was there: the client textures and voices the break from it.

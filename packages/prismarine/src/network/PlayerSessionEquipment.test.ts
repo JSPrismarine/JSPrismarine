@@ -91,7 +91,8 @@ const viewer = () => {
     const session = stub<PlayerSession>({
         send: async (packet) => void sent.push(packet),
         sendAbilities: async () => {},
-        sendArmorFor: async () => {}
+        sendArmorFor: async () => {},
+        sendStatusEffects: async () => {}
     });
 
     return { player: stub<Player>({ getNetworkSession: () => session }), sent };

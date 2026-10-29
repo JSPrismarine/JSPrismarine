@@ -27,6 +27,7 @@ const playerDouble = (recorded: Recorded): Player =>
         getPosition: () => new Vector3(1.5, 65, 1.5),
         getFallDistance: () => 3,
         getFood: () => 11,
+        getStatusEffects: () => [],
         isOnGround: () => true,
         gamemode: Gametype.SURVIVAL,
         addFood: (nutrition: number, saturation: number) => void recorded.fed.push({ nutrition, saturation }),
@@ -151,10 +152,17 @@ describe('the item actor port', () => {
 
     it('reports an action whose system this server has not written, once', () => {
         const { port, recorded } = portUnderTest();
-        port.perform({ kind: 'apply-effects', target: SOURCE, effects: [] });
-        port.perform({ kind: 'apply-effects', target: SOURCE, effects: [] });
+        const action = {
+            kind: 'launch-projectile',
+            identifier: 'minecraft:snowball',
+            source: SOURCE,
+            power: 1,
+            inaccuracy: 0
+        } as const;
+        port.perform(action);
+        port.perform(action);
 
         expect(recorded.logged).toHaveLength(1);
-        expect(recorded.logged[0]).toContain('a status effect system');
+        expect(recorded.logged[0]).toContain('a live data-driven projectile runtime');
     });
 });

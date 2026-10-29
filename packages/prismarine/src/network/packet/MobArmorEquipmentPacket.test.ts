@@ -56,15 +56,15 @@ describe('MobArmorEquipmentPacket', () => {
         expect(stream.readUnsignedVarInt()).toBe(MobArmorEquipmentPacket.NetID);
         expect(stream.readUnsignedVarLong()).toBe(1234n);
 
-        // Decoding does not resolve a wire id back to a name, so a non-air slot is checked by
-        // the id it went out under. Air comes back by name with a zero id.
+        // The item id is a wire detail (air is serialized as zero), but the decoded slots still
+        // need to identify each item in the packet's documented order.
         const slots = Array.from({ length: 5 }, () => Item.networkDeserialize(stream));
-        expect(slots.map((item) => item.getRuntimeId())).toStrictEqual([
-            0,
-            chestplate.getRuntimeId(),
-            0,
-            0,
-            planks.getRuntimeId()
+        expect(slots.map((item) => item.getName())).toStrictEqual([
+            'minecraft:air',
+            chestplate.getName(),
+            'minecraft:air',
+            'minecraft:air',
+            planks.getName()
         ]);
         expect(slots[0]?.getName()).toBe('minecraft:air');
         expect(slots[1]?.count).toBe(1);

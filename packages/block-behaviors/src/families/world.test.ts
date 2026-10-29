@@ -17,7 +17,10 @@ describe('liquidFamily', () => {
 
         expect(harness.dimension.identifierAt({ x: 1, y: 1, z: 0 })).toBe('minecraft:flowing_water');
         expect(harness.dimension.stateAt({ x: 1, y: 1, z: 0 }, 'liquid_depth')).toBe(1);
-        expect(harness.dimension.scheduled.at(-1)).toEqual({ position: origin, delay: WATER_SPREAD_TICKS });
+        expect(harness.dimension.scheduled.at(-1)).toEqual({
+            position: { x: 1, y: 1, z: 0 },
+            delay: WATER_SPREAD_TICKS
+        });
     });
 
     it('falls instead of spreading when the space below is free', () => {

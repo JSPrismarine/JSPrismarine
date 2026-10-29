@@ -2,7 +2,7 @@ import type { LootContentOptions } from '@jsprismarine/loot';
 import { LootRegistry, javaLootTables, packJson } from '@jsprismarine/loot';
 import { load, readZip } from '@jsprismarine/packs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 import { FETCH_CACHE, REFERENCES } from './references.ts';
 
@@ -35,7 +35,7 @@ export const unpackVanillaDatapack = (): string => {
     const jarPath = REFERENCES.javaServerJar.locate();
     if (jarPath === undefined) throw new Error('the pinned Java server jar is not in the fetch cache');
 
-    const version = dirname(jarPath).split('/').pop() ?? 'unknown';
+    const version = basename(dirname(jarPath)) || 'unknown';
     const target = join(FETCH_CACHE, 'vanilla-datapack', version);
     const mcmeta = join(target, 'pack.mcmeta');
     if (existsSync(mcmeta)) return target;

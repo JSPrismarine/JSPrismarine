@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { isFullCube, isRedstoneConductor } from './blockRules';
 import { block } from './world';
 
+const nonConducting = (name: string) => ({ ...block(name), redstoneConductor: false });
+
 describe('redstone conductivity', () => {
     it('reads an opaque cube as a conductor', () => {
         expect(isRedstoneConductor(block('minecraft:stone'))).toBe(true);
@@ -19,7 +21,7 @@ describe('redstone conductivity', () => {
             'minecraft:tnt',
             'minecraft:ice'
         ]) {
-            expect(isRedstoneConductor(block(name))).toBe(false);
+            expect(isRedstoneConductor(nonConducting(name))).toBe(false);
         }
     });
 
@@ -28,8 +30,8 @@ describe('redstone conductivity', () => {
         // override is the only thing that stops a piston carrying a signal into the block
         // beside it. The call site is shared by the two of them, which is why it was missed.
         expect(isFullCube(block('minecraft:piston'))).toBe(true);
-        expect(isRedstoneConductor(block('minecraft:piston'))).toBe(false);
-        expect(isRedstoneConductor(block('minecraft:sticky_piston'))).toBe(false);
+        expect(isRedstoneConductor(nonConducting('minecraft:piston'))).toBe(false);
+        expect(isRedstoneConductor(nonConducting('minecraft:sticky_piston'))).toBe(false);
     });
 
     it('refuses every copper bulb, weathered and waxed alike', () => {
@@ -40,7 +42,7 @@ describe('redstone conductivity', () => {
             for (const wax of ['', 'waxed_']) {
                 const name = `minecraft:${wax}${stage}copper_bulb`;
                 expect(isFullCube(block(name))).toBe(true);
-                expect(isRedstoneConductor(block(name))).toBe(false);
+                expect(isRedstoneConductor(nonConducting(name))).toBe(false);
             }
         }
     });

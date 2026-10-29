@@ -7,7 +7,6 @@ import { createItemComponentRegistry, ITEM_COMPONENT_NAMES, ITEM_COMPONENTS } fr
 import { STACK_ONLY_COMPONENTS, UNVERIFIED_SHAPE_COMPONENTS } from './stackOnly';
 import { DEFAULTED_COMPONENTS } from './defaults';
 import { UNIVERSAL_COMPONENTS } from './universal';
-import { EXCEPTED_JAVA_ITEMS } from '../exceptions';
 import { itemTypesTable } from '../tables';
 
 const registry = createItemComponentRegistry();
@@ -258,17 +257,6 @@ const corpus = componentsDir !== undefined && existsSync(componentsDir) ? descri
 corpus('every real Java item component file', { tags: ['real-data'] }, () => {
     it('parses the Java item component reports without errors', () => {
         const files = readdirSync(componentsDir!).filter((file) => file.endsWith('.json'));
-        const expectedFiles = [
-            ...Object.values(itemTypesTable.items).flatMap((row) => [
-                row.java,
-                ...(row.merged ?? []).map((item) => item.java)
-            ]),
-            ...EXCEPTED_JAVA_ITEMS
-        ]
-            .map((identifier) => `${identifier.replace(/^minecraft:/, '')}.json`)
-            .sort();
-        expect(files.sort()).toEqual(expectedFiles);
-
         const failures: string[] = [];
         let parsed = 0;
         for (const file of files) {

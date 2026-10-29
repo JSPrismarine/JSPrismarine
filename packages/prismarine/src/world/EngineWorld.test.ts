@@ -3,11 +3,17 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { Vector3 } from '@jsprismarine/math';
+import { behaviorFor, vanillaBlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { definitionOf } from '../content/ContentOptions';
+import { buildServerContent } from '../content/ServerContent';
+import type { ServerContent } from '../content/ServerContent';
+import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
+import { serverWorldSource } from '../content/world/serverSource';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
@@ -19,6 +25,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
 import type { SystemBlock } from './WorldSystems';
+import { contentBlockTickHandlers } from './blockTicks';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 
 /**
@@ -52,7 +59,7 @@ const flatChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
-const testServer = (): Server =>
+const testServer = (content: ServerContent = testContent()): Server =>
     stub<Server>({
         getLogger: () =>
             stub<Logger>({
@@ -67,11 +74,48 @@ const testServer = (): Server =>
                 getDifficulty: () => Difficulty.NORMAL,
                 getEntityTrackingInterval: () => 20
             }),
-        // No content, so no data-driven entities, no block families to notify when a write
-        // changes a position, and no loot table behind a block the engine takes out.
-        getContent: () => testContent(),
+        // The fixture has no world behavior for water unless the fluid test asks for it.
+        getContent: () => content,
         getEntityRuntime: () => inertEntityRuntime()
     });
+
+/** Builds the liquid behavior definitions against the world this test creates. */
+const fluidContentFor = (world: () => World | undefined): ServerContent => {
+    let built: ServerContent | undefined;
+    const fixture = fixtureDefinitions();
+    const definitions = { ...fixture, blocks: new Map(fixture.blocks) };
+
+    for (const identifier of ['minecraft:water', 'minecraft:flowing_water']) {
+        definitions.blocks.set(
+            identifier,
+            definitionOf('blocks', identifier, {
+                format_version: '1.26.20',
+                'minecraft:block': {
+                    description: { identifier },
+                    components: { 'jsprismarine:behavior': behaviorFor(identifier) }
+                }
+            })
+        );
+    }
+
+    built = buildServerContent(
+        fixtureContentOptions({
+            load: () => ({ definitions, diagnostics: [] }),
+            blockPalette: vanillaBlockPalette(),
+            world: serverWorldSource({
+                worldFor: () => world(),
+                content: () => {
+                    if (built === undefined) throw new Error('fluid content was read before it finished building');
+                    return built;
+                },
+                seed: 0n,
+                difficulty: () => Difficulty.NORMAL
+            })
+        })
+    );
+
+    return built;
+};
 
 /**
  * Sets the random tick speed on a world that has finished being built.
@@ -87,15 +131,31 @@ const setRandomTickSpeed = (world: World, blocksPerSubChunk: number): void => {
 };
 
 /** A world with nine flat chunks around the origin already in memory. */
-const flatWorld = async (randomTickHandlers?: Record<string, (at: { x: number; y: number; z: number }) => void>) => {
-    const world = new World({
+const flatWorld = async (
+    randomTickHandlers?: Record<string, (at: { x: number; y: number; z: number }) => void>,
+    buildContent?: (world: () => World | undefined) => ServerContent
+) => {
+    let world: World | undefined;
+    const content = buildContent?.(() => world) ?? testContent();
+
+    world = new World({
         name: 'engine-systems-test',
         path: path.join(os.tmpdir(), 'engine-systems-test'),
-        server: testServer(),
+        server: testServer(content),
         provider: stub<BaseProvider & Provider>({ readChunk: async (x, z) => flatChunk(x, z) }),
         seed: 0n,
         generator: stub<Generator>({}),
-        randomTickHandlers
+        randomTickHandlers,
+        blockTickHandlers:
+            buildContent === undefined
+                ? undefined
+                : contentBlockTickHandlers({
+                      content,
+                      world: () => world,
+                      report: (_identifier, error) => {
+                          throw error;
+                      }
+                  })
     });
 
     for (let x = -1; x <= 1; x++) {
@@ -218,9 +278,13 @@ describe('world', () => {
 
         describe('fluids', () => {
             it('spreads a placed water source across the floor over the ticks that follow', async () => {
-                const world = await flatWorld();
+                const world = await flatWorld(undefined, fluidContentFor);
 
-                world.setLoadedBlockState(0, GROUND + 1, 0, WATER, true);
+                const content = world.getServer().getContent();
+                if (content === undefined) throw new Error('the fluid fixture built no content');
+                content.world.blockWorld
+                    .at(world.getDimension().name)
+                    .setBlock({ x: 0, y: GROUND + 1, z: 0 }, WATER.name, WATER.states);
                 expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:air');
 
                 await runTicks(world, 20);

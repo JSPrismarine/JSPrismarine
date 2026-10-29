@@ -28,7 +28,7 @@ describe('entity', () => {
                 expect(entity.getPosition().getX()).toBe(1.5);
                 expect(entity.getPosition().getY()).toBe(70);
                 expect(entity.getPosition().getZ()).toBe(-2.5);
-                expect(broadcastMove).toHaveBeenCalledWith(entity);
+                expect(broadcastMove).toHaveBeenCalledWith(entity, false);
             });
 
             // A NaN position used to be stored and broadcast, and only failed later, deep in

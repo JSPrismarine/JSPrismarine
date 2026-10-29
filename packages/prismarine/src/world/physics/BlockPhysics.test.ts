@@ -240,6 +240,7 @@ describe('falling blocks', () => {
     });
 
     it('routes unsupported sand through the data-driven entity runtime', async () => {
+        world.place(4, GROUND, 4, 'minecraft:air');
         world.place(4, GROUND + 1, 4, 'minecraft:sand');
 
         await physics.update(4, GROUND + 1, 4, 1);

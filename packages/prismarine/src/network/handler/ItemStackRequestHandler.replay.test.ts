@@ -155,7 +155,7 @@ const replay = async () => {
 
     const sent: DataPacket[] = [];
     const craftingInput = new CraftingInput();
-    const world = stub<World>({ dropContents: async () => {} });
+    const world = stub<World>({ dropContents: async () => {}, dropFromPlayer: async () => {} });
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => undefined,
         getPlayer: () =>

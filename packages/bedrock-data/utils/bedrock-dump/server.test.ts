@@ -59,7 +59,7 @@ describe('stageServer', () => {
         expect((await stat(staged.worldDirectory)).isDirectory()).toBe(true);
     });
 
-    it('leaves the binary inside the archive unexecutable', async () => {
+    it.skipIf(process.platform === 'win32')('leaves the binary inside the archive unexecutable', async () => {
         const unpacked = await fakeArchive(join(workspace, 'unpacked'));
         await stageServer({ unpacked, root: join(workspace, 'run') });
         await expect(access(join(unpacked, 'bedrock_server'), constants.X_OK)).rejects.toThrow();

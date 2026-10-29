@@ -318,7 +318,7 @@ export const applyLavaReactions = (world: WorldActions, at: BlockPosition): bool
         const neighborAt = offset(at, opposite(direction));
         const neighbor = world.getBlock(neighborAt);
         if (neighbor !== undefined && isWater(neighbor.identifier)) {
-            const becomes = state.source ? OBSIDIAN : COBBLESTONE;
+            const becomes = state.source ? OBSIDIAN : direction === 'down' ? STONE : COBBLESTONE;
             world.setBlock(at, becomes);
             world.playSound(at, 'random.fizz');
             world.notifyNeighbors(at);

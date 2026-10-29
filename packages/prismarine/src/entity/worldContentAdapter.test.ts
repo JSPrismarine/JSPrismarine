@@ -19,6 +19,7 @@ describe('the live entity content adapter', () => {
                 getRuntimeId: () => 7n,
                 getType: () => 'minecraft:player',
                 getPosition: () => position,
+                getTags: () => [],
                 gamemode: Gametype.CREATIVE
             }),
             { position }

@@ -83,7 +83,8 @@ describe('the jsprismarine_vanilla overlay generator', () => {
 
     it('matches the committed pack, so the generator and the files cannot drift', () => {
         for (const file of generated().files) {
-            expect(readFileSync(join(packDirectory, ...file.path.split('/')), 'utf8'), file.path).toBe(file.content);
+            const committed = readFileSync(join(packDirectory, ...file.path.split('/')), 'utf8').replace(/\r\n/g, '\n');
+            expect(committed, file.path).toBe(file.content);
         }
     });
 });
