@@ -217,8 +217,9 @@ the unversioned `src/generated/` paths so existing imports keep resolving.
 
 ## bedrock-data versioning
 
-`packages/bedrock-data` is not versioned yet. Versioning it needs per-version inputs that do
-not exist today, so this section records the required layout instead of faking them.
+`packages/bedrock-data` is not fully versioned yet. Its upstream dumps are now pinned per
+protocol version; the captures taken from a running server are not, so this section records
+what is in place and what the rest needs.
 
 ### What is version-sensitive
 
@@ -226,13 +227,13 @@ Every generated or converted table tracks one Bedrock release and would need a c
 protocol version:
 
 - `item_table.json` - joined from `jsp/required_item_list.json` (a capture from BDS 1.26.51.1)
-  and the submodule's `runtime_item_states.json`. Item runtime ids and the item list change
+  and the dump's `runtime_item_states.json`. Item runtime ids and the item list change
   across releases.
-- `item_components.json` - converted from the submodule's `item_components.nbt`; the set of
+- `item_components.json` - converted from the dump's `item_components.nbt`; the set of
   data-driven items changes across releases.
-- `creativeitems.ts` - generated from the submodule's `creative_items.json`; the creative
+- `creativeitems.ts` - generated from the dump's `creative_items.json`; the creative
   menu changes almost every release.
-- `entity_identifiers.json` - converted from the submodule's `entity_identifiers.dat`.
+- `entity_identifiers.json` - converted from the dump's `entity_identifiers.dat`.
 - `biome_definitions_network.json` and `jigsaw_structure_data.json` - converted from captures
   under `src/jsp/`.
 - The `src/jsp/` captures themselves (`required_item_list.json`, `block_definitions.json`,
@@ -245,15 +246,22 @@ under `src/jsp/java/` tracks Java releases on its own schedule.
 
 ### Required input layout
 
-- The `src/resources/` submodule (CloudburstMC/Data) is a single checkout and can only pin one
-  commit, so one submodule cannot serve two Bedrock versions. The plan is a directory per
-  version, `src/resources/v<protocol>/`, each its own submodule pinned to the matching
-  upstream commit - or, if upstream stops tagging per release, committed copies of only the
-  files `build.js` reads.
-- Per-version captures under `src/jsp/v<protocol>/` for the files captured from a BDS of that
-  version (`required_item_list.json` first; the NBT captures as they are refreshed).
-- `sources.json` grows the same `versions` table `packages/minecraft/datagen/manifest.json`
-  has: pins keyed by network protocol version plus a `defaultProtocolVersion`.
+- Done: the CloudburstMC/Data dumps are no longer a submodule. A submodule is one checkout at
+  one commit, so it could never serve two Bedrock versions. `sources.json` now carries the
+  same `versions` table `packages/minecraft/datagen/manifest.json` has - protocol version to
+  `minecraftVersion`, `commit`, `url` and `sha256`, plus `defaultProtocolVersion` - and the
+  existing pinned-download machinery in `utils/fetch/` caches each version under
+  `cloudburst-data/v<protocol>/`. Protocol 2193 (1.26.51) and 2225 (1.26.60) are pinned.
+
+  Two choices are worth recording. First, the selected version is linked to `src/resources`
+  rather than read through a new path, which left `build.js`, the parity goldens and the
+  blocks generators untouched. Second, an `extract` allowlist keeps the unpack to the seven
+  files anything reads, `LICENSE` included for the Apache-2.0 attribution.
+
+- Still missing: per-version captures under `src/jsp/v<protocol>/` for the files captured from
+  a BDS of that version (`required_item_list.json` first; the NBT captures as they are
+  refreshed), and per-version BDS and bedrock-samples pins. The 2225 dump exists upstream, but
+  nothing captures a 2225 BDS yet, so `item_table.json` cannot be built for it.
 
 ### build.js changes, once the inputs exist
 

@@ -16,9 +16,11 @@ pnpm is the only supported package manager. Installs with npm or yarn fail
 with a message pointing back to pnpm, and repository tooling runs one-off
 tools through `pnpm dlx` (or `pnpx`) rather than `npx`.
 
-The Bedrock resources live in a Git submodule. You don't need to initialize it
-yourself: `pnpm install` and the bedrock-data build fetch it when it is missing.
-`pnpm run dev` relies on that setup and doesn't fetch the submodule itself.
+The Bedrock resources are a pinned download, verified by hash and cached under
+`node_modules/.cache/jsprismarine/`. You don't need to fetch it yourself:
+`pnpm install`, `pnpm run dev` and the bedrock-data build all fetch it when it
+is missing. Offline from a cold cache, point `JSP_CLOUDBURST_DATA_PATH` at a
+local CloudburstMC/Data checkout.
 
 ## 2. Install dependencies
 

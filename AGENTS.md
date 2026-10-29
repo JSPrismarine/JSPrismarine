@@ -27,7 +27,7 @@ Use American English spelling in prose and documentation. Do not use British spe
   README and `package.json` before changing it.
 - Read relevant pages under `docs/` when working on runtime behavior or documentation. Follow nearby
   code and tests for conventions when no guide covers the area.
-- The `packages/bedrock-data/src/resources/` directory is a required Git submodule. `pnpm install` and bedrock-data generation initialize it when missing; use `git submodule update --init --recursive` to fetch it manually if needed.
+- `packages/bedrock-data/src/resources/` is a link to a pinned CloudburstMC/Data download, not a checked-in directory. `pnpm --filter @jsprismarine/bedrock-data run fetch:cloudburst` creates it, `pnpm install` does so through the `prepare` hook, and `--protocol <n>` selects a Bedrock version other than the manifest default. Offline, point `JSP_CLOUDBURST_DATA_PATH` at a local checkout.
 
 ## Repository rules
 
@@ -45,8 +45,9 @@ Use American English spelling in prose and documentation. Do not use British spe
   manage package versions and release changelogs. Read [the versioning policy](docs/versioning.md)
   before adding or editing a Changeset, and choose a bump for each affected package based on its
   current version and the impact of the change.
-- Treat `packages/bedrock-data/src/generated/` as generated output. Its inputs live in the resources
-  submodule, and `packages/bedrock-data/utils/build.js` generates the JSON files. Change the
+- Treat `packages/bedrock-data/src/generated/` as generated output. Its inputs are the pinned
+  CloudburstMC/Data download and the captures under `src/jsp/`, and `packages/bedrock-data/utils/build.js`
+  generates the JSON files. Change the
   generator or its source inputs when the generated data needs to change. Run
   `pnpm --filter @jsprismarine/bedrock-data run generate` to regenerate it.
 - Let pnpm update `pnpm-lock.yaml` when dependencies change. Keep dependency versions consistent

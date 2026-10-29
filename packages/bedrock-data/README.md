@@ -12,10 +12,12 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
   The item table and the three payloads a client refuses to join without live at the top level,
   the Script API registries under `src/jsp/bedrock/`, the raw engine tables under
   `src/jsp/packets/`, and the reference world in `src/jsp/reference_world.json`.
-- `src/resources/` is a Git submodule, [CloudburstMC/Data](https://github.com/CloudburstMC/Data),
-  pinned to the commit that dumped 1.26.50. `utils/build.js` reads the creative menu, the actor
-  identifiers, and the two item columns the capture does not record: each item's version and
-  its component NBT.
+- `src/resources/` is a link to a pinned download of
+  [CloudburstMC/Data](https://github.com/CloudburstMC/Data), the Apache-2.0 dumps of the Bedrock
+  tables. `utils/build.js` reads the creative menu, the actor identifiers, and the two item
+  columns the capture does not record: each item's version and its component NBT. See
+  [Pinned upstream sources](#pinned-upstream-sources) for how to fetch it and how to pick a
+  Bedrock version.
 - `src/vendor/` is data neither of the two carries, copied from projects that do. See
   [its README](src/vendor/README.md) for the source and license of each file.
 - `src/jsp/java/` is dumped from the Java Edition 26.3 server jar, which Mojang ships
@@ -88,17 +90,28 @@ world reproduces every one of them exactly.
 ## Pinned upstream sources
 
 `sources.json` pins the upstream publications the data pipeline reads: the Bedrock Dedicated
-Server zip, Mojang/bedrock-samples, the Java Edition server jar, SpyglassMC/vanilla-mcdoc and
-GeyserMC/mappings, each with a version, URL and hash, plus the CloudburstMC/Data submodule commit
-as a cross-reference.
+Server zip, Mojang/bedrock-samples, the Java Edition server jar, SpyglassMC/vanilla-mcdoc,
+GeyserMC/mappings and CloudburstMC/Data, each with a version, URL and hash.
 
 `pnpm run fetch:sources` downloads each source into
 `node_modules/.cache/jsprismarine/<source>/<version>/`, verifies its hash before unpacking, and
 skips sources whose verified content is already cached. It then writes `pack-hashes.json`, a
 sha256 per top-level folder of each source, so a version bump shows which folders changed. For
 offline work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,
-`JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH` point at local copies and bypass the
-download.
+`JSP_VANILLA_MCDOC_PATH`, `JSP_GEYSER_MAPPINGS_PATH` and `JSP_CLOUDBURST_DATA_PATH` point at
+local copies and bypass the download.
+
+### Picking a Bedrock version
+
+CloudburstMC/Data is pinned once per Bedrock protocol version, under `versions` in
+`sources.json`. Each version caches under its own `cloudburst-data/v<protocol>/` directory, so
+several versions' dumps sit side by side.
+
+`pnpm run fetch:cloudburst` fetches the version in `defaultProtocolVersion` and links it to
+`src/resources`; `pnpm run fetch:cloudburst -- --protocol 2225` picks another. `pnpm run
+generate` fetches before it builds, so a fresh clone needs no extra step. Only the files under
+`extract` are unpacked, `LICENSE` among them: the dumps are Apache-2.0 and the license travels
+with them.
 
 ## Running the Java data generator
 

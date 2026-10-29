@@ -26,9 +26,9 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 JSPrismarine runs on Linux, macOS, other Unix-based systems, and modern Windows (WSL2 recommended). It requires [Node.js](https://nodejs.org) 26.4.0 or newer and [pnpm](https://pnpm.io) 12 or newer.
 
 
-### Install the pinned pnpm version.
+### Enable (or install) corepack.
 ```bash
-npm install --global pnpm@12.15.0
+corepack enable
 ```
 
 ### Clone the repository.
@@ -50,8 +50,8 @@ pnpm run start
 
 In an interactive terminal on Node 26.9 or newer, the console UI opens by default; Node versions 26.4 through 26.8 also support it with `--experimental-ffi`. In other environments, the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/running.md#4-console).
 
-The `bedrock-data` resources submodule is initialized automatically by `pnpm install` and the
-bedrock-data build. Add `--recurse-submodules` to the clone command if you want to fetch it earlier.
+> [!NOTE]
+> The build needs the Bedrock resources, a pinned download `pnpm install` fetches for you. Building for the first time needs a network connection; after that the download is cached. To work offline from a cold start, point `JSP_CLOUDBURST_DATA_PATH` at a local [CloudburstMC/Data](https://github.com/CloudburstMC/Data) checkout.
 
 ## FAQ
 
@@ -75,7 +75,7 @@ bedrock-data build. Add `--recurse-submodules` to the clone command if you want 
 ## Documentation
 
 - [Docs](https://jsprismarine.github.io/JSPrismarine/).
-- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/guide/running.html).
+- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/documents/Running_JSPrismarine.html).
 
 ## Remarks
 
