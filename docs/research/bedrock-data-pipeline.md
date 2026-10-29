@@ -10,7 +10,7 @@ Written against this repository at `4b4e86d0d3`: `packages/bedrock-data/sources.
 - One artifact is genuinely manual: `packages/minecraft/datagen/snapshot/v2193/block-palette.json`, whose two-pass procedure is in `packages/minecraft/datagen/README-palette.md`.
 - One artifact looks manual and is not quite: `generate-recipes.js` reads an unpacked server off a path, and the path is one `fetch:sources` already produces.
 - The real missing capability is multi-version. `sources.json` pins exactly one Bedrock Dedicated Server; `packages/minecraft/datagen/manifest.json` is already keyed per protocol version.
-- Two committed files have no code reference anywhere in `packages/` and have not been touched since the monorepo migration: `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`.
+- Two committed files had no code reference anywhere in `packages/` and had not been touched since the monorepo migration: `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`. Both have since been deleted.
 
 ## 1. The per-artifact table
 
@@ -31,8 +31,6 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 | `packages/minecraft/src/generated/v2193/` blocks | `datagen/generate-blocks.js` | `snapshot/v2193/block-palette.json` | `pnpm --filter @jsprismarine/minecraft run generate:blocks` | yes, given the palette |
 | `packages/minecraft/src/generated/v2193/` recipes | `datagen/generate-recipes.js` + `brarchive.js` | an unpacked BDS at `BEDROCK_SERVER` or `recipes.bedrockServer` in `datagen/manifest.json`; reads `behavior_packs/vanilla*/__brarchive/recipes.brarchive` | `pnpm --filter @jsprismarine/minecraft run generate:recipes` | scriptable, but wants a path nothing hands it |
 | `packages/minecraft/datagen/snapshot/v2193/block-palette.json` | `datagen/extract-block-palette.mjs` + `merge-block-palette.mjs`, after two human-run server passes | an unpacked BDS, `datagen/palette-pack/`, hand-edited `world_behavior_packs.json` and `manifest.json` | `README-palette.md`, start to finish | **no** |
-| `src/jsp/block_id_map.json` (19 KB) | unknown; predates the monorepo migration | — | — | unreferenced, see section 5 |
-| `src/jsp/runtime_block_states.dat` (40 KB) | unknown; predates the monorepo migration | — | — | unreferenced, see section 5 |
 
 ## 2. What `dump:bedrock` actually does
 
@@ -70,17 +68,13 @@ Two hand edits between two server runs is what stops this being a script. Nothin
 
 ## 5. Dead files
 
-`src/jsp/block_id_map.json` (19661 bytes) and `src/jsp/runtime_block_states.dat` (40459 bytes) have **no reference from any code in this repository**. A repository-wide search for either name outside `.git/` returns six hits, all prose: `docs/plans/server-rearchitecture.md:239`, `docs/research/extraction-and-parity-verification.md:189`, `docs/research/java-datapacks.md:332` (which calls the id map legacy), `docs/research/prior-art-data-driven-servers.md:124`, `packages/bedrock-data/CHANGELOG.md:23` and `packages/prismarine/CHANGELOG.md:62`. No `import`, no `readFile`, no path string in `packages/`.
+`src/jsp/block_id_map.json` (19661 bytes) and `src/jsp/runtime_block_states.dat` (40459 bytes) had **no reference from any code in this repository**. A repository-wide search for either name outside `.git/` returned six hits, all prose, and `git log` on the two paths returned one commit, `fa683134ca`, the monorepo migration. They had been inert since.
 
 ```sh
 rg -n 'block_id_map|runtime_block_states' --glob '!.git'
-git log --oneline -- packages/bedrock-data/src/jsp/block_id_map.json \
-    packages/bedrock-data/src/jsp/runtime_block_states.dat
 ```
 
-The second command returns one commit, `fa683134ca`, the monorepo migration. Both files have been inert since.
-
-Recommendation: delete both. They are an unversioned, unreproducible 59 KB that no code reads, and nothing in the pipeline above regenerates them. That is a code change and out of scope here.
+Both were deleted after this note was written: 59 KB of unversioned, unreproducible data that no code read and nothing in the pipeline above regenerates. The hits that remain are historical CHANGELOG entries and descriptions of the files other projects ship under the same names.
 
 ## 6. Multi-version
 

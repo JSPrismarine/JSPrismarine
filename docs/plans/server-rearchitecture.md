@@ -237,8 +237,8 @@ protocol version:
 - `biome_definitions_network.json` and `jigsaw_structure_data.json` - converted from captures
   under `src/jsp/`.
 - The `src/jsp/` captures themselves (`required_item_list.json`, `block_definitions.json`,
-  `block_id_map.json`, `runtime_block_states.dat`) and the BDS/bedrock-samples pins in
-  `sources.json`.
+  `biome_definitions_network.nbt`, `jigsaw_structure_data.nbt`) and the BDS/bedrock-samples
+  pins in `sources.json`.
 
 Version-stable: the vendor files (`r16_to_current_item_map.json`, `item_tags.json`) describe
 pre-flattening legacy names and move only when Mojang renames items, and the Java-side data
