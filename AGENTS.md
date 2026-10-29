@@ -27,6 +27,7 @@ Use American English spelling in prose and documentation. Do not use British spe
   README and `package.json` before changing it.
 - Read relevant pages under `docs/` when working on runtime behavior or documentation. Follow nearby
   code and tests for conventions when no guide covers the area.
+- `pnpm dev` runs `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` first, which fetches the pinned Java Edition server jar and runs Mojang's data generator when the world generation cache is incomplete. It is a no-op on a warm cache. Keep it out of `prepare`, `start` and CI: it is a 62 MB download that only somebody starting a server needs. It needs a JDK 25 or newer, found through `JSP_JAVA_HOME`, `JAVA_HOME`, `PATH` or macOS's `java_home`.
 - `packages/bedrock-data/src/resources/` is a link to a pinned CloudburstMC/Data download, not a checked-in directory. `pnpm --filter @jsprismarine/bedrock-data run fetch:cloudburst` creates it, `pnpm install` does so through the `prepare` hook, and `--protocol <n>` selects a Bedrock version other than the manifest default. Offline, point `JSP_CLOUDBURST_DATA_PATH` at a local checkout.
 
 ## Repository rules

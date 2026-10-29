@@ -16,11 +16,44 @@ pnpm is the only supported package manager. Installs with npm or yarn fail
 with a message pointing back to pnpm, and repository tooling runs one-off
 tools through `pnpm dlx` (or `pnpx`) rather than `npx`.
 
+*   1.2 A JDK 25 or newer, to run the default overworld. See
+    [World generation data](#13-world-generation-data) below for what it is for and how to skip it.
+
 The Bedrock resources are a pinned download, verified by hash and cached under
 `node_modules/.cache/jsprismarine/`. You don't need to fetch it yourself:
 `pnpm install`, `pnpm run dev` and the bedrock-data build all fetch it when it
 is missing. Offline from a cold cache, point `JSP_CLOUDBURST_DATA_PATH` at a
 local CloudburstMC/Data checkout.
+
+### 1.3 World generation data
+
+The default `Overworld` generator builds terrain from Mojang's published Java Edition world
+generation data. That data is not shipped with this server; it comes from a pinned Java Edition
+server jar that `pnpm run dev` fetches and runs Mojang's data generator against, caching the
+result under `node_modules/.cache/jsprismarine/`.
+
+This happens automatically the first time you run `pnpm run dev`, and takes a 62 MB download and
+a couple of minutes. Afterwards the step compares a few file names and exits, so later runs are
+instant and need no network.
+
+`pnpm install` does not do this, so installing stays quick for anyone who only builds or tests
+the repository. `pnpm run start` does not do it either; a production host arranges the cache
+once, or points `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` at a copy produced elsewhere.
+
+Running the data generator needs a JDK 25 or newer. JSPrismarine looks at `JSP_JAVA_HOME`,
+`JAVA_HOME`, the `java` on your `PATH` and, on macOS, `/usr/libexec/java_home`; set
+`JSP_JAVA_HOME` if you have several and want to choose. Without a JDK, `pnpm run dev` stops with
+a message instead of starting a broken world.
+
+To run with no Java at all, set `generator` to `Flat` for your world in `jsp/config.json`. A flat
+world needs none of this data. It is also not Minecraft terrain, so this is a deliberate choice
+rather than a fallback the server makes for you.
+
+To arrange the cache by hand, or to refresh it:
+
+```bash
+    $ pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
+```
 
 ## 2. Install dependencies
 

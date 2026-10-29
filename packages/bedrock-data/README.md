@@ -173,8 +173,9 @@ places, inside chunk generation. The extracted directory is read one file at a t
 
 The generator writes no `pack.mcmeta`, so this step writes one from the `pack_version` the jar
 declares in its `version.json`; that file is what marks the directory as a loadable datapack. The
-same `version.json` names the JDK the jar needs, found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on
-macOS, `/usr/libexec/java_home`.
+same `version.json` names the JDK the jar needs, found through `JSP_JAVA_HOME`, `JAVA_HOME`, the
+`java` on `PATH` or, on macOS, `/usr/libexec/java_home`. The pinned Java Edition 26.3 jar asks for
+JDK 25 or newer; an older `java` earlier on `PATH` is skipped rather than used.
 
 A second run is a no-op once all three directories hold the files the step checks for. Pass
 `--force` to regenerate:
@@ -185,6 +186,21 @@ pnpm run datagen:java -- --force
 
 The output is about 53 MB of Mojang's content and is never committed. `JSP_VANILLA_DATAPACK` and
 `JSP_JAVA_REPORTS` point consumers at a copy produced elsewhere.
+
+### Doing it in one step
+
+`pnpm run ensure:worldgen` is the same work arranged for somebody who just wants a server
+running. It checks the three directories, and only if something is missing does it download the
+jar and run the generator. `pnpm dev` at the repository root runs it first, which is what makes
+`pnpm install && pnpm dev` enough on a clean clone.
+
+On a complete cache it compares file names and exits, so repeat runs cost a fraction of a second
+and touch no network. When it cannot finish it prints one line saying why rather than a stack
+trace: no JDK, no network, or a generator that failed. It asks about the JDK before downloading
+the jar, so a machine without Java finds out immediately.
+
+`pnpm install` deliberately does not do this. The jar is a 62 MB download that only somebody
+running a server needs, and builds, tests and CI arrange their own data.
 
 ## Installation
 

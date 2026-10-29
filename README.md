@@ -53,6 +53,9 @@ In an interactive terminal on Node 26.9 or newer, the console UI opens by defaul
 > [!NOTE]
 > The build needs the Bedrock resources, a pinned download `pnpm install` fetches for you. Building for the first time needs a network connection; after that the download is cached. To work offline from a cold start, point `JSP_CLOUDBURST_DATA_PATH` at a local [CloudburstMC/Data](https://github.com/CloudburstMC/Data) checkout.
 
+> [!NOTE]
+> `pnpm install && pnpm run dev` is enough to get a development server running. The first `pnpm run dev` also fetches Mojang's Java Edition world generation data, which the default overworld is built from; that takes a 62 MB download, a couple of minutes and a JDK 25 or newer. Later runs reuse the cache and need no network. See [World generation data](docs/running.md#13-world-generation-data) for how to point it at your own copy, or how to run a flat world with no Java at all.
+
 ## FAQ
 
 - Can I contribute?
