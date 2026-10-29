@@ -1,9 +1,8 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { BuildPlatform } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../../network/NetworkUtil';
-import type UUID from '../../utils/UUID';
-import type Skin from '../../utils/skin/Skin';
-import Identifiers from '../Identifiers';
+import UUID from '../../utils/UUID';
+import Skin from '../../utils/skin/Skin';
 import DataPacket from './DataPacket';
 
 /** The fields of one player list entry. A Remove entry needs only `uuid`. */
@@ -191,8 +190,6 @@ export enum PlayerListAction {
  * trusted-skin flag lives inside the skin, so nothing follows the entries.
  */
 export default class PlayerListPacket extends DataPacket {
-    public static NetID = Identifiers.PlayerListPacket;
-
     public entries: PlayerListEntry[] = [];
     public type!: number;
 
@@ -206,6 +203,37 @@ export default class PlayerListPacket extends DataPacket {
 
             entry.getUUID().networkSerialize(this);
             if (adding) entry.networkSerialize(this);
+        }
+    }
+
+    /** Reads the entries back, the mirror of {@link encodePayload}. */
+    public decodePayload(): void {
+        this.entries = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.readUnsignedVarInt(); // Variant selector: 1 for Add, 0 for Remove.
+            this.type = this.readByte(); // Action.
+
+            const uuid = UUID.networkDeserialize(this);
+            if (this.type !== PlayerListAction.TYPE_ADD) {
+                this.entries.push(new PlayerListEntry({ uuid }));
+                continue;
+            }
+
+            this.entries.push(
+                new PlayerListEntry({
+                    uuid,
+                    runtimeId: this.readVarLong(),
+                    name: NetworkUtil.readString(this),
+                    xuid: NetworkUtil.readString(this),
+                    platformChatId: NetworkUtil.readString(this),
+                    buildPlatform: this.readIntLE(),
+                    skin: Skin.networkDeserialize(this),
+                    isTeacher: this.readBoolean(),
+                    isHost: this.readBoolean(),
+                    isSubClient: this.readBoolean(),
+                    color: this.readIntLE()
+                })
+            );
         }
     }
 }

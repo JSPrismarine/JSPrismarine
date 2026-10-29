@@ -284,6 +284,63 @@ describe('network', () => {
                 expect(copy.isSubClient()).toBe(true);
                 expect(copy.getColor()).toBe(0xff112233 | 0);
             });
+
+            it('round-trips an Add entry with every field', () => {
+                const packet = new PlayerListPacket();
+                packet.type = PlayerListAction.TYPE_ADD;
+                packet.entries = [
+                    new PlayerListEntry({
+                        uuid: UUID.fromString('12345678-1234-1234-1234-123456789abc'),
+                        runtimeId: 7n,
+                        name: 'Steve',
+                        xuid: '2535400000000000',
+                        platformChatId: 'chat',
+                        buildPlatform: 8,
+                        skin: classicSkin(),
+                        isTeacher: false,
+                        isHost: true,
+                        isSubClient: true,
+                        color: 0xff112233
+                    })
+                ];
+                packet.encode();
+
+                const decoded = new PlayerListPacket(packet.getBuffer());
+                decoded.decode();
+
+                expect(decoded.type).toBe(PlayerListAction.TYPE_ADD);
+                expect(decoded.entries).toHaveLength(1);
+                const entry = decoded.entries[0]!;
+                expect(entry.getUUID().toString()).toBe('12345678-1234-1234-1234-123456789abc');
+                expect(entry.getRuntimeId()).toBe(7n);
+                expect(entry.getName()).toBe('Steve');
+                expect(entry.getXUID()).toBe('2535400000000000');
+                expect(entry.getPlatformChatId()).toBe('chat');
+                expect(entry.getBuildPlatform()).toBe(8);
+                expect(entry.getSkin()?.getId()).toBe('classic-skin');
+                expect(entry.isTeacher()).toBe(false);
+                expect(entry.isHost()).toBe(true);
+                expect(entry.isSubClient()).toBe(true);
+                expect(entry.getColor()).toBe(0xff112233 | 0);
+                expect(decoded.feof()).toBe(true);
+            });
+
+            it('round-trips a Remove entry as the action and the UUID alone', () => {
+                const packet = new PlayerListPacket();
+                packet.type = PlayerListAction.TYPE_REMOVE;
+                packet.entries = [
+                    new PlayerListEntry({ uuid: UUID.fromString('12345678-1234-1234-1234-123456789abc') })
+                ];
+                packet.encode();
+
+                const decoded = new PlayerListPacket(packet.getBuffer());
+                decoded.decode();
+
+                expect(decoded.type).toBe(PlayerListAction.TYPE_REMOVE);
+                expect(decoded.entries).toHaveLength(1);
+                expect(decoded.entries[0]!.getUUID().toString()).toBe('12345678-1234-1234-1234-123456789abc');
+                expect(decoded.feof()).toBe(true);
+            });
         });
     });
 });

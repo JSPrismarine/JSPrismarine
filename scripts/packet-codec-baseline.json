@@ -1,4 +1,3 @@
 {
-    "packages/prismarine/src/network/packet/AvailableCommandsPacket.ts": "4d74334050134b74b0b47622b4c9f599e9642906f5aeaf0d042c884cea29e430",
-    "packages/prismarine/src/network/packet/PlayerListPacket.ts": "ff1191296a84beb9a7e31af46cdc2f93cea30111377aeb751569ebf0e73e10de"
+    "packages/prismarine/src/network/packet/AvailableCommandsPacket.ts": "4d74334050134b74b0b47622b4c9f599e9642906f5aeaf0d042c884cea29e430"
 }
