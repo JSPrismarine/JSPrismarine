@@ -13,8 +13,13 @@ Progress (2026-10-29):
   barrel are exported from `@jsprismarine/prismarine` as the module API.
 - Remaining: commands and worlds modules (and the `WorldChange` stream formalization), the
   version-independent intent/update vocabulary, NetherNet and Java transports, the 2225 packets
-  deferred from the delta codec, and `bedrock-data`'s versioned source inputs (see
-  "bedrock-data versioning" below).
+  deferred from the delta codec, per-codec data injection (`StartGamePacket` and
+  `ItemRegistryPacket` still import bedrock-data tables at module load), and `bedrock-data`'s
+  versioned source inputs (see "bedrock-data versioning" below).
+- Accepted deviation: `ServerName` advertises only the newest supported version rather than every
+  registered codec version. This matches what a Bedrock Dedicated Server of that version
+  advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
+  advertising the oldest told a current client it had found an older server.
 
 ## Problem
 
