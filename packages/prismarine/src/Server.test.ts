@@ -121,7 +121,7 @@ describe('Server', () => {
         await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
     });
 
-    it('measures how long its ticks take once it is ticking', async () => {
+    it('measures how long its ticks take once it is ticking', { tags: ['performance'] }, async () => {
         const prismarine = new Server({
             logger: new Logger(),
             config: debugConfig('test-world-ticking', { ticking: true })

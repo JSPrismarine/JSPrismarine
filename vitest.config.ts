@@ -53,7 +53,10 @@ export default defineConfig({
     },
     test: {
         bail: 0,
-        tags: [{ name: 'real-data', description: 'Tests that require fetched game data.' }],
+        tags: [
+            { name: 'real-data', description: 'Tests that require fetched game data.' },
+            { name: 'performance', description: 'Tests whose timing or workload depends on the host machine.' }
+        ],
         environment: 'node',
         exclude,
         fsModuleCache: true,

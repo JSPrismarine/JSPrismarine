@@ -40,7 +40,7 @@ jobs:
               run: pnpm run typecheck
 
             - name: 🧪 Test
-              run: pnpm run test --tagsFilter='!real-data'
+              run: pnpm run test --tagsFilter='!real-data && !performance'
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
@@ -62,6 +62,7 @@ jobs:
 
     # Suites that read Mojang's published data carry the `real-data` tag. The matrix above
     # filters them out because it does not fetch sources; this job prepares and runs them.
+    # Machine-sensitive load and timing tests carry `performance` and are excluded from CI.
     # It is Linux only because the sources are 1.1 GB unpacked and one download is enough.
     real-data:
         name: 🗃️ Real data suites
@@ -146,7 +147,7 @@ jobs:
               run: pnpm run build
 
             - name: 🧪 Test
-              run: pnpm exec vitest run --tagsFilter=real-data
+              run: pnpm exec vitest run --tagsFilter='real-data && !performance'
 
             - name: 📊 Publish the parity dashboard
               id: parity_dashboard

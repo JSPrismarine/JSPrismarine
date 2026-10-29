@@ -232,7 +232,7 @@ describe('C3 / C5 / C8 - offline path', () => {
 });
 
 describe('C7 - hostile first datagram sequence number', () => {
-    it('bounds the NACK window instead of walking 16.7M holes', () => {
+    it('bounds the NACK window instead of walking 16.7M holes', { tags: ['performance'] }, () => {
         const { session } = makeSession();
         const frameSet = new FrameSet();
         frameSet.sequenceNumber = 0xffffff;
@@ -415,7 +415,7 @@ describe('P4 - acknowledgments are resolved without expanding ranges', () => {
         return stream.getBuffer();
     };
 
-    it('decodes the full 24 bit space from ten bytes without allocating it', () => {
+    it('decodes the full 24 bit space from ten bytes without allocating it', { tags: ['performance'] }, () => {
         const datagram = rangeDatagram(0xc0, 0, 0xffffff);
         expect(datagram.byteLength).toBe(10);
 

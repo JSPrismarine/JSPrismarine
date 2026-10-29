@@ -75,6 +75,8 @@ Use American English spelling in prose and documentation. Do not use British spe
 
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
   behavior and public contracts, and add regression coverage for bugs when the task calls for tests.
+  Tag tests that assert wall-clock timing or host-dependent load as `performance`, and exclude them
+  from CI test selectors. Keep CI assertions on deterministic, observable behavior.
   Keep implementation totals (for example, registered functions, commands, components, behaviors,
   or entity types) as non-gating progress reported through `reportProgress` from
   `.test/reportProgress.ts`; it emits a GitHub Actions warning in CI and calls `console.warn`

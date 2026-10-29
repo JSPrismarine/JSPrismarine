@@ -38,7 +38,7 @@ const newFleet = (options: Partial<ConstructorParameters<typeof Fleet>[0]> & { n
     return fleet;
 };
 
-describe('a fleet against a real server', { tags: ['real-data'] }, () => {
+describe('a fleet against a real server', { tags: ['real-data', 'performance'] }, () => {
     beforeAll(async () => {
         stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-fleet-'));
         vi.stubEnv('JSP_DIR', stateRoot);
