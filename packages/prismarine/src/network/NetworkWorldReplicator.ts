@@ -16,6 +16,7 @@ import type { WorldChange } from '../world/WorldChange';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
 import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
+import { broadcastSharedBatches } from './MinecraftSession';
 import type { ActorEvent } from './packet/ActorEventPacket';
 import ActorEventPacket from './packet/ActorEventPacket';
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
@@ -519,20 +520,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return;
         }
 
-        const batch = new BatchPacket();
-        try {
-            batch.addPacket(packet);
-            batch.compressionLevel = this.server.getConfig().getPacketCompressionLevel();
-            batch.encode();
-        } catch (error: unknown) {
-            this.server.getLogger().error(error);
-            return;
-        }
-
-        const content = batch.getBuffer();
-        for (const player of audience) {
-            player.getNetworkSession().getConnection().sendSharedBatch(content, packet);
-        }
+        broadcastSharedBatches(
+            audience.map((player) => player.getNetworkSession().getConnection()),
+            packet,
+            this.server.getConfig().getPacketCompressionLevel(),
+            (error) => this.server.getLogger().error(error)
+        );
     }
 }
 

@@ -25,6 +25,17 @@ export interface ProtocolCodec {
     createPacket(netId: number, buffer?: Buffer): DataPacket | null;
 
     /**
+     * The instance an outbound packet must encode as under this codec. Gameplay code builds
+     * the base packet classes; when this codec substitutes a class for that packet's name,
+     * the base instance would put the wrong layout on the wire. Returns the packet itself
+     * when its class already encodes this codec's layout, otherwise a copy under the
+     * substituted class, carrying the same fields.
+     * @param {DataPacket} packet - the packet as the caller built it.
+     * @returns {DataPacket} the instance to encode for this codec's wire.
+     */
+    prepareOutbound(packet: DataPacket): DataPacket;
+
+    /**
      * The wire id under a packet class name.
      * @param {string} name - the packet class name, for example `'LoginPacket'`.
      * @returns {number | undefined} the id, or `undefined` for a name this codec does not list.

@@ -2,6 +2,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import BinaryStream from '@jsprismarine/binaryutils';
 import Zlib from 'zlib';
 import { CompressionProvider } from '../CompressionProvider.js';
+import type { ProtocolCodec } from '../codec/ProtocolCodec';
 import DataPacket from './DataPacket';
 
 /**
@@ -32,6 +33,39 @@ export default class BatchPacket extends DataPacket {
 
     /** See {@link getPacketNames}. */
     private readonly packetNames: string[] = [];
+
+    /**
+     * The codec whose wire the batched packets encode for, when a session owns the send.
+     * `MinecraftSession` sets it from the session before encoding, so a batch built from
+     * base packet classes carries the negotiated version's layouts and wire ids. Unset -
+     * tests and decode-side batches - a packet encodes as its own class, as it always did.
+     */
+    public codec?: ProtocolCodec;
+
+    /** The packets {@link addPacket} took, encoded when the batch itself encodes. */
+    private pending: DataPacket[] = [];
+
+    /**
+     * Encodes what {@link addPacket} queued into the payload stream. Under a {@link codec},
+     * every packet is converted to that codec's class and re-encoded under its wire id, even
+     * one already encoded: a broadcast hands the same instance to one batch per codec, and
+     * the bytes of the previous codec's encode must not leak into this one's.
+     */
+    private flushPending(): void {
+        for (let packet of this.pending.splice(0, this.pending.length)) {
+            if (this.codec !== undefined) {
+                packet = this.codec.prepareOutbound(packet);
+                const netId = this.codec.netIdOf(packet.getName());
+                if (netId !== undefined) packet.setNetId(netId);
+                packet.encode();
+            } else if (!packet.getEncoded()) {
+                packet.encode();
+            }
+
+            this.payload.writeUnsignedVarInt(packet.getBuffer().byteLength);
+            this.payload.write(packet.getBuffer());
+        }
+    }
 
     public decodeHeader(): void {
         const pid = this.readByte();
@@ -73,6 +107,7 @@ export default class BatchPacket extends DataPacket {
     }
 
     public encodePayload(): void {
+        this.flushPending();
         if (this.compressed) {
             this.writeByte(PacketCompressionAlgorithm.ZLIB);
         }
@@ -97,6 +132,8 @@ export default class BatchPacket extends DataPacket {
             return;
         }
 
+        this.flushPending();
+
         const deflated = await new Promise<Buffer>((resolve, reject) => {
             Zlib.deflateRaw(this.payload.getBuffer(), { level: this.compressionLevel }, (error, result) =>
                 error ? reject(error) : resolve(result)
@@ -115,13 +152,14 @@ export default class BatchPacket extends DataPacket {
         this.encoded = true;
     }
 
+    /**
+     * Queues a packet for the batch. Encoding happens when the batch encodes, under
+     * {@link codec} when one is set by then: at add time the batch does not yet know which
+     * session - and so which protocol version - it is for.
+     * @param {DataPacket} packet - The packet to carry.
+     */
     public addPacket(packet: DataPacket): void {
-        if (!packet.getEncoded()) {
-            packet.encode();
-        }
-
-        this.payload.writeUnsignedVarInt(packet.getBuffer().byteLength);
-        this.payload.write(packet.getBuffer());
+        this.pending.push(packet);
         this.packetNames.push(packet.getName());
     }
 
@@ -138,6 +176,7 @@ export default class BatchPacket extends DataPacket {
     }
 
     public getPackets(): Buffer[] {
+        this.flushPending();
         const stream = new BinaryStream(this.payload.getBuffer());
         const packets: Buffer[] = [];
         do {

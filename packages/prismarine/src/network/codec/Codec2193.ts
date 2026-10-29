@@ -21,6 +21,7 @@ export class Codec2193 implements ProtocolCodec {
     public readonly ids: Readonly<Record<string, number>> = packetIds;
 
     private byId: Map<number, PacketClass> | null = null;
+    private overridesByName: Readonly<Record<string, PacketClass>> | null = null;
 
     /**
      * The packet classes this codec substitutes for the barrel's, by class name. A delta
@@ -32,10 +33,14 @@ export class Codec2193 implements ProtocolCodec {
         return {};
     }
 
+    private overrides(): Readonly<Record<string, PacketClass>> {
+        return (this.overridesByName ??= this.packetOverrides());
+    }
+
     private table(): Map<number, PacketClass> {
         if (this.byId === null) {
             this.byId = new Map();
-            const overrides = this.packetOverrides();
+            const overrides = this.overrides();
             for (const [name, packet] of Object.entries(Packets)) {
                 const id = this.netIdOf(name);
                 if (id !== undefined) this.byId.set(id, overrides[name] ?? packet);
@@ -54,6 +59,23 @@ export class Codec2193 implements ProtocolCodec {
         packet.setNetId(netId);
         packet.codecProtocol = this.protocolVersion;
         return packet;
+    }
+
+    /**
+     * The outbound instance for this codec's wire; see {@link ProtocolCodec.prepareOutbound}.
+     *
+     * A substituted class extends the base class it replaces, so a copy built from the base
+     * instance's own properties starts from the subclass's defaults for the fields its
+     * version added and carries every field the caller set. The copy encodes from scratch,
+     * so the copied stream state is cleared before it matters.
+     */
+    public prepareOutbound(packet: DataPacket): DataPacket {
+        const override = this.overrides()[packet.getName()];
+        if (override === undefined || packet instanceof override) return packet;
+
+        const prepared = Object.assign(new override(), packet);
+        prepared.codecProtocol = this.protocolVersion;
+        return prepared;
     }
 
     /** The wire id under a packet class name; see {@link ProtocolCodec.netIdOf}. */

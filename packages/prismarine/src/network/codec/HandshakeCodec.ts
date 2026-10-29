@@ -48,6 +48,11 @@ class HandshakeCodec implements ProtocolCodec {
     public netIdOf(name: string): number | undefined {
         return handshakeIds[name];
     }
+
+    /** Identity: the handshake packets' layouts are stable across versions by definition. */
+    public prepareOutbound(packet: DataPacket): DataPacket {
+        return packet;
+    }
 }
 
 export default new HandshakeCodec();

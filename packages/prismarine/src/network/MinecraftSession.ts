@@ -108,6 +108,7 @@ export default class MinecraftSession {
     public sendBatch(batch: BatchPacket, direct = true): void {
         if (this.dropsBatch(batch)) return;
 
+        batch.codec = this.codec;
         batch.encode();
         void this.ordered(() => this.frameBatch(batch, direct));
     }
@@ -126,6 +127,7 @@ export default class MinecraftSession {
         this.pendingAsyncSends++;
         try {
             await this.chain(async () => {
+                batch.codec = this.codec;
                 await batch.encodeAsync();
                 this.frameBatch(batch, direct);
 
@@ -177,8 +179,10 @@ export default class MinecraftSession {
     }
 
     public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
-        // The session's codec owns the wire id; a packet built directly would otherwise
-        // fall back to the 2193 table whatever this session negotiated.
+        // The session's codec owns the wire: a packet built directly would otherwise encode
+        // the 2193 layout under the 2193 id whatever this session negotiated. The codec swaps
+        // in its own class when the layout changed, and stamps the id either way.
+        packet = this.codec.prepareOutbound(packet);
         const netId = this.codec.netIdOf(packet.getName());
         if (netId !== undefined) packet.setNetId(netId);
 
@@ -263,3 +267,46 @@ export default class MinecraftSession {
         this.connection.close();
     }
 }
+
+/**
+ * Fans one packet out as shared batches, compressed once per protocol codec.
+ *
+ * The shared-batch win - one deflate serving every recipient - used to be one global batch,
+ * which handed a 2225 session the 2193 layout for any packet whose wire changed between
+ * them. Sessions are grouped by codec and each group gets bytes encoded under its own: the
+ * single compression survives within a group, and a mixed-version audience each receives its
+ * negotiated layout. A group whose encode fails is logged and skipped; the others still send.
+ * @param {readonly MinecraftSession[]} sessions - Who receives it.
+ * @param {DataPacket} packet - The packet, as the caller built it.
+ * @param {number} compressionLevel - The batch compression level.
+ * @param {(error: unknown) => void} onError - Where an encode failure goes.
+ */
+export const broadcastSharedBatches = (
+    sessions: readonly MinecraftSession[],
+    packet: DataPacket,
+    compressionLevel: number,
+    onError: (error: unknown) => void
+): void => {
+    const byCodec = new Map<ProtocolCodec, MinecraftSession[]>();
+    for (const session of sessions) {
+        const group = byCodec.get(session.codec);
+        if (group === undefined) byCodec.set(session.codec, [session]);
+        else group.push(session);
+    }
+
+    for (const [codec, group] of byCodec) {
+        const batch = new BatchPacket();
+        batch.codec = codec;
+        batch.compressionLevel = compressionLevel;
+        try {
+            batch.addPacket(packet);
+            batch.encode();
+        } catch (error: unknown) {
+            onError(error);
+            continue;
+        }
+
+        const content = batch.getBuffer();
+        for (const session of group) session.sendSharedBatch(content, packet);
+    }
+};

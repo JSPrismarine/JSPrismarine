@@ -27,7 +27,7 @@ import { WorldReplicators } from './network/NetworkWorldReplicator';
 import { PacketLogFilter } from './network/PacketLogFilter';
 import PacketRegistry from './network/PacketRegistry';
 import type { DataPacket } from './network/Packets';
-import BatchPacket from './network/packet/BatchPacket';
+import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
 import { networkModule, ServerNetworking } from './modules/network';
@@ -507,23 +507,14 @@ export default class Server extends EventEmitter {
         const audience = this.sessionManager.getAllPlayers();
         if (audience.length === 0) return;
 
-        // Compressed once for everybody. This was a serial `await` in a loop that built a
-        // fresh batch per player, so a packet going to twenty clients meant twenty runs of
-        // zlib over identical bytes, each waiting on the one before it.
-        const batch = new BatchPacket();
-        try {
-            batch.addPacket(dataPacket);
-            batch.compressionLevel = this.config.getPacketCompressionLevel();
-            batch.encode();
-        } catch (error: unknown) {
-            this.logger.error(error);
-            return;
-        }
-
-        const content = batch.getBuffer();
-        for (const onlinePlayer of audience) {
-            onlinePlayer.getNetworkSession().getConnection().sendSharedBatch(content, dataPacket);
-        }
+        // Compressed once per protocol codec rather than once per player: within a codec the
+        // bytes are identical, across codecs a changed packet layout is not.
+        broadcastSharedBatches(
+            audience.map((onlinePlayer) => onlinePlayer.getNetworkSession().getConnection()),
+            dataPacket,
+            this.config.getPacketCompressionLevel(),
+            (error) => this.logger.error(error)
+        );
     }
 
     /**
