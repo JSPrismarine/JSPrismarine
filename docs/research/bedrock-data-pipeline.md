@@ -6,8 +6,8 @@ Written against this repository at `4b4e86d0d3`: `packages/bedrock-data/sources.
 
 ## Summary
 
-- Capture is already automated, against the common assumption that it is a human sitting in front of a server. One command, `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock`, stages the pinned server, boots it three times and writes every golden under `packages/bedrock-data/src/jsp/`. `.github/workflows/capture.yml` runs it weekly and on a `sources.json` change, and opens a pull request rather than pushing goldens.
-- One artifact is genuinely manual: `packages/minecraft/datagen/snapshot/v2193/block-palette.json`, whose two-pass procedure is in `packages/minecraft/datagen/README-palette.md`.
+- Capture is already automated, against the common assumption that it is a human sitting in front of a server. One command, `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock`, stages the pinned server, boots it and writes every golden under `packages/bedrock-data/src/jsp/`. `.github/workflows/capture.yml` runs it weekly and on a `sources.json` change, and opens a pull request rather than pushing goldens.
+- One artifact used to be genuinely manual, `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`. It is now the `palette` pass of the same job; `packages/minecraft/datagen/README-palette.md` documents the command.
 - One artifact looks manual and is not quite: `generate-recipes.js` reads an unpacked server off a path, and the path is one `fetch:sources` already produces.
 - The real missing capability is multi-version. `sources.json` pins exactly one Bedrock Dedicated Server; `packages/minecraft/datagen/manifest.json` is already keyed per protocol version.
 - Two committed files had no code reference anywhere in `packages/` and had not been touched since the monorepo migration: `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`. Both have since been deleted.
@@ -30,7 +30,7 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 | `packages/minecraft/datagen/snapshot/v2193/enums.json`, `enums.html` | `datagen/import-schemas.js` | same release assets | `pnpm --filter @jsprismarine/minecraft run generate:import` | yes |
 | `packages/minecraft/src/generated/v2193/` blocks | `datagen/generate-blocks.js` | `snapshot/v2193/block-palette.json` | `pnpm --filter @jsprismarine/minecraft run generate:blocks` | yes, given the palette |
 | `packages/minecraft/src/generated/v2193/` recipes | `datagen/generate-recipes.js` + `brarchive.js` | an unpacked BDS at `BEDROCK_SERVER` or `recipes.bedrockServer` in `datagen/manifest.json`; reads `behavior_packs/vanilla*/__brarchive/recipes.brarchive` | `pnpm --filter @jsprismarine/minecraft run generate:recipes` | scriptable, but wants a path nothing hands it |
-| `packages/minecraft/datagen/snapshot/v2193/block-palette.json` | `datagen/extract-block-palette.mjs` + `merge-block-palette.mjs`, after two human-run server passes | an unpacked BDS, `datagen/palette-pack/`, hand-edited `world_behavior_packs.json` and `manifest.json` | `README-palette.md`, start to finish | **no** |
+| `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json` | `utils/bedrock-dump/run.ts`, pass `palette` | pinned BDS, `datagen/palette-pack/` scripts staged by `pack.ts` | `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette` | yes |
 
 ## 2. What `dump:bedrock` actually does
 
@@ -42,7 +42,7 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 
 The timeouts in `run.ts` size the job: 180 s to boot, 900 s for the dump pack, 2400 s for the reference region.
 
-`.github/workflows/capture.yml` runs all three on `ubuntu-latest` with a 180-minute budget, triggered by `schedule` (weekly, Mondays), by a push to `master` touching `packages/bedrock-data/sources.json`, `packages/bedrock-data/utils/bedrock-dump/**` or the workflow itself, and by `workflow_dispatch`. The workflow's own comment gives the reason for the weekly run: Mojang re-uploads and pulls versions with no retention promise, so a weekly run turns "the pinned zip is gone" into a failing job rather than a surprise during the next bump.
+`.github/workflows/capture.yml` runs them on `ubuntu-latest` with a 180-minute budget, triggered by `schedule` (weekly, Mondays), by a push to `master` touching `packages/bedrock-data/sources.json`, `packages/bedrock-data/utils/bedrock-dump/**` or the workflow itself, and by `workflow_dispatch`. The workflow's own comment gives the reason for the weekly run: Mojang re-uploads and pulls versions with no retention promise, so a weekly run turns "the pinned zip is gone" into a failing job rather than a surprise during the next bump.
 
 ### Fetching the inputs
 
@@ -50,14 +50,16 @@ The timeouts in `run.ts` size the job: 180 s to boot, 900 s for the dump pack, 2
 
 `utils/fetch/fetch.ts` sends a browser User-Agent: "The minecraft.net CDN resets the HTTP/2 stream for non-browser User-Agents", so curl's default fails.
 
-## 3. The one manual artifact
+## 3. The artifact that used to be manual
 
-`snapshot/v2193/block-palette.json` needs a human because of two facts that hold together:
+`snapshot/v<protocol>/block-palette.json` needs two server runs rather than one because of two facts that hold together:
 
 - Runtime block ids are hashes of a block's name and states, so the wire carries no palette at all. `StartGamePacket` lists only the blocks a server added itself, which for vanilla is nothing.
 - The Script API over-reports. It answers for the game's *internal* blocks, where a flattened name still carries its legacy states, and taken whole it implies 56957 states against the 17487 the network has. The extras cannot be filtered by name either: `minecraft:cardinal_direction` is legacy on a door and genuine on a shelf.
 
-So which *properties* a block has comes from a saved world's sub-chunk palettes, and which *values* each property takes comes from the game, asked block by block. `README-palette.md` is the procedure: copy `palette-pack/` into the server's `development_behavior_packs/`, write the pack uuid into `worlds/<level>/world_behavior_packs.json`, point `manifest.json` at `scripts/place.js`, run and stop cleanly, then re-point `manifest.json` at `scripts/domains.js` and run again, grep the log, and finally `extract-block-palette.mjs` plus `merge-block-palette.mjs`.
+So which *properties* a block has comes from a saved world's sub-chunk palettes, and which *values* each property takes comes from the game, asked block by block.
+
+The procedure used to be two hand edits between two server runs: copy `palette-pack/` into the server's `development_behavior_packs/`, write the pack uuid into `world_behavior_packs.json`, point `manifest.json` at `scripts/place.js`, run and stop cleanly, re-point it at `scripts/domains.js`, run again, grep the log, then merge. Nothing in that needed human judgment, and it is now the `palette` pass: `pack.ts` already wrote a manifest per pass for the other two passes, so the palette's two halves reuse it and the hand-edited manifest is gone.
 
 Two hand edits between two server runs is what stops this being a script. Nothing in the procedure needs human judgment, so it is automatable; it just has not been automated.
 

@@ -7,7 +7,7 @@
  * counterpart; it writes `src/jsp/java/`, which tracks Java releases and is not keyed by
  * Bedrock protocol version.
  *
- * Three passes, each a fresh world in the same staged server:
+ * Four passes, each a fresh world in the same staged server:
  *
  * - `dump` runs the dump behavior pack and writes one JSON file per Script API table into
  *   `src/jsp/v<protocol>/bedrock/`;
@@ -15,7 +15,9 @@
  *   `src/jsp/v<protocol>/reference_world.json`, which `packages/parity/` compares a generator
  *   against;
  * - `packets` logs a client in and records what the server sends every joining client, which
- *   is `packages/client/tools/capture-server-data.mjs`.
+ *   is `packages/client/tools/capture-server-data.mjs`;
+ * - `palette` runs the two halves of the block palette capture and writes
+ *   `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`.
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
@@ -76,7 +78,7 @@ const { values } = parseArgs({
     }
 });
 
-const PASSES = ['dump', 'refworld', 'packets'] as const;
+const PASSES = ['dump', 'refworld', 'packets', 'palette'] as const;
 type Pass = (typeof PASSES)[number];
 
 const requested: Pass[] =
@@ -172,7 +174,7 @@ const capture = async (
 // ---------------------------------------------------------------------------
 
 const runDumpPass = async (): Promise<void> => {
-    console.log('Pass 1 of 3: the dump pack');
+    console.log('Pass 1 of 4: the dump pack');
     const staged = await stageServer({
         unpacked,
         root: runRoot,
@@ -206,7 +208,7 @@ const runDumpPass = async (): Promise<void> => {
 // ---------------------------------------------------------------------------
 
 const runReferenceWorldPass = async (): Promise<void> => {
-    console.log('Pass 2 of 3: the reference world');
+    console.log('Pass 2 of 4: the reference world');
     const staged = await stageServer({
         unpacked,
         root: runRoot,
@@ -241,11 +243,95 @@ const runReferenceWorldPass = async (): Promise<void> => {
 };
 
 // ---------------------------------------------------------------------------
+// Pass: the block palette
+// ---------------------------------------------------------------------------
+
+/**
+ * Captures `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`.
+ *
+ * Two server runs, because neither source alone is the answer: a saved world knows which
+ * properties the network carries for a block, and only the game knows which values each of
+ * them accepts. `README-palette.md` has the reasoning.
+ *
+ * The two runs used to need a human to re-point the pack manifest between them. `pack.ts`
+ * writes the manifest per pass, so here they are just two calls.
+ */
+const runPalettePass = async (): Promise<void> => {
+    console.log('Pass 4 of 4: the block palette');
+    const datagen = join(repositoryRoot, 'packages/minecraft/datagen');
+    const scratch = join(runRoot, 'palette');
+    await mkdir(scratch, { recursive: true });
+    const statesFile = join(scratch, 'states.json');
+    const domainsFile = join(scratch, 'domains.jsonl');
+
+    const runScript = (script: string, args: string[]): void => {
+        const result = spawnSync(process.execPath, [join(datagen, script), ...args], {
+            cwd: repositoryRoot,
+            stdio: 'inherit'
+        });
+        if (result.status !== 0) throw new Error(`${script} exited with status ${result.status}`);
+    };
+
+    // First run: place one of every block type, so the save carries their network states.
+    const placed = await stageServer({
+        unpacked,
+        root: runRoot,
+        force: false,
+        levelName: 'jsp-palette-place',
+        properties: { 'level-seed': REFERENCE_SEED, 'view-distance': '4' }
+    });
+    await writeDumpPack(placed.root, placed.worldDirectory, 'place');
+    const placeLines = await capture(
+        placed,
+        (line) => line.includes('PALETTE PLACED '),
+        'every block type to be placed',
+        TIMEOUTS.dump
+    );
+    const summary = placeLines.find((line) => line.includes('PALETTE PLACED '))?.trim();
+    console.log(`  ${summary ?? 'PALETTE PLACED (not reported)'}`);
+
+    // The save is only written by a clean stop, which `capture` does, so the db is readable now.
+    runScript('extract-block-palette.mjs', [join(placed.worldDirectory, 'db'), statesFile]);
+
+    // Second run: ask the game which values each property accepts, block by block.
+    const described = await stageServer({
+        unpacked,
+        root: runRoot,
+        force: false,
+        levelName: 'jsp-palette-domains',
+        properties: { 'level-seed': REFERENCE_SEED, 'view-distance': '4' }
+    });
+    await writeDumpPack(described.root, described.worldDirectory, 'domains');
+    const domainLines = await capture(
+        described,
+        (line) => line.includes('PALETTE END'),
+        'the game to describe every block type',
+        TIMEOUTS.dump
+    );
+
+    const blocks = domainLines
+        .filter((line) => line.includes('PALETTE BLOCK '))
+        .map((line) => line.slice(line.indexOf('PALETTE BLOCK ') + 'PALETTE BLOCK '.length).trim());
+    if (blocks.length === 0) throw new Error('The domains pass logged no PALETTE BLOCK lines.');
+    await writeFile(domainsFile, `${blocks.join('\n')}\n`);
+    console.log(`  ${blocks.length} block types described.`);
+
+    // The merge resolves its own output directory from `datagen/manifest.json`, by the
+    // Minecraft version, and refuses a version that manifest does not declare.
+    runScript('merge-block-palette.mjs', [
+        statesFile,
+        domainsFile,
+        pinnedServer.minecraftVersion,
+        `bedrock-server-${pinnedServer.serverVersion}`
+    ]);
+};
+
+// ---------------------------------------------------------------------------
 // Pass: what the server sends a joining client
 // ---------------------------------------------------------------------------
 
 const runPacketPass = async (): Promise<void> => {
-    console.log('Pass 3 of 3: the packet capture');
+    console.log('Pass 3 of 4: the packet capture');
     const tool = join(repositoryRoot, 'packages/client/tools/capture-server-data.mjs');
     if (!existsSync(join(repositoryRoot, 'packages/client/dist/index.es.js'))) {
         throw new Error('The capture client is not built. Run `pnpm run build` first.');
@@ -293,7 +379,8 @@ const runPacketPass = async (): Promise<void> => {
 const passes: Record<Pass, () => Promise<void>> = {
     dump: runDumpPass,
     refworld: runReferenceWorldPass,
-    packets: runPacketPass
+    packets: runPacketPass,
+    palette: runPalettePass
 };
 
 console.log(

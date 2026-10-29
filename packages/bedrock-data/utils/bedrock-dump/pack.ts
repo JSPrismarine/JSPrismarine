@@ -1,11 +1,14 @@
 /**
  * Writes the dump behavior pack into a staged server and enables it for the world.
  *
- * The pack has two entry scripts and one manifest, and which script runs is the only difference
- * between the two Bedrock passes. Rather than keeping two manifests in step, this module writes
- * the manifest for the pass it is asked for, copies the scripts beside it, and generates
- * `scripts/region.js` from `region.ts` so that the region the reference pass loads is the same
- * one the reader hashes.
+ * Which entry script runs is the only difference between the passes. Rather than keeping a
+ * manifest per pass in step by hand, this module writes the manifest for the pass it is asked
+ * for, copies that pass's script beside it, and generates `scripts/region.js` from `region.ts`
+ * so that the region the reference pass loads is the same one the reader hashes.
+ *
+ * The block palette's two passes work the same way, which is what lets `run.ts` capture it with
+ * no hand-edited manifest. Their scripts live in `packages/minecraft/datagen/palette-pack`,
+ * beside the snapshot they produce.
  *
  * Nothing here writes into the extracted Bedrock Dedicated Server tree. The pack goes into the
  * staged run directory, which is this job's own.
@@ -36,8 +39,21 @@ const PACK_VERSION = [1, 0, 0];
  */
 const SERVER_MODULE_VERSION = '2.0.0';
 
-/** Which of the pack's two passes to run. */
-export type DumpPass = 'dump' | 'refworld';
+/**
+ * Which pass to run. `dump` and `refworld` use the scripts beside this module; `place` and
+ * `domains` are the two halves of the block palette capture, whose scripts belong to
+ * `packages/minecraft` because its snapshot is what they produce.
+ */
+export type DumpPass = 'dump' | 'refworld' | 'place' | 'domains';
+
+/** The palette passes, whose scripts come from `packages/minecraft/datagen/palette-pack`. */
+const PALETTE_PASSES = new Set<DumpPass>(['place', 'domains']);
+
+/** Where a pass's entry script is copied from. */
+export const passScriptSource = (pass: DumpPass): string =>
+    PALETTE_PASSES.has(pass)
+        ? join(here, '../../../minecraft/datagen/palette-pack/scripts', `${pass}.js`)
+        : join(here, 'pack', 'scripts', `${pass}.js`);
 
 /**
  * Renders `scripts/region.js`, the reference region in the form the pack script imports.
@@ -106,7 +122,7 @@ export const writeDumpPack = async (serverRoot: string, worldDirectory: string, 
     await mkdir(scripts, { recursive: true });
 
     await writeFile(join(packDirectory, 'manifest.json'), renderManifest(pass));
-    await copyFile(join(here, 'pack', 'scripts', `${pass}.js`), join(scripts, `${pass}.js`));
+    await copyFile(passScriptSource(pass), join(scripts, `${pass}.js`));
     if (pass === 'refworld') await writeFile(join(scripts, 'region.js'), renderRegionModule());
 
     await mkdir(worldDirectory, { recursive: true });

@@ -5,7 +5,14 @@ import { pathToFileURL } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { PACK_DIRECTORY, PACK_UUID, renderManifest, renderRegionModule, writeDumpPack } from './pack.ts';
+import {
+    PACK_DIRECTORY,
+    PACK_UUID,
+    passScriptSource,
+    renderManifest,
+    renderRegionModule,
+    writeDumpPack
+} from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { blockBounds, REFERENCE_DIMENSION, REFERENCE_REGION, tileRegion } from './region.ts';
 import { READY_LINE, startServer } from './server.ts';
@@ -64,6 +71,24 @@ describe('writeDumpPack', () => {
         const packDirectory = await writeDumpPack(workspace, join(workspace, 'worlds', 'w'), 'refworld');
         expect((await stat(join(packDirectory, 'scripts', 'refworld.js'))).isFile()).toBe(true);
         expect(await readFile(join(packDirectory, 'scripts', 'region.js'), 'utf8')).toContain('export const TILES');
+    });
+
+    it.each(['place', 'domains'] as const)(
+        'stages the %s palette pass from the datagen pack, with no hand-edited manifest',
+        async (pass) => {
+            const packDirectory = await writeDumpPack(workspace, join(workspace, 'worlds', 'w'), pass);
+            expect((await stat(join(packDirectory, 'scripts', `${pass}.js`))).isFile()).toBe(true);
+            // The manifest is this module's own output, so parsing it back is reading a known shape.
+            const manifest = JSON.parse(await readFile(join(packDirectory, 'manifest.json'), 'utf8')) as {
+                modules: { entry: string }[];
+            };
+            expect(manifest.modules[0]?.entry).toBe(`scripts/${pass}.js`);
+        }
+    );
+
+    it('takes the palette scripts from packages/minecraft, which owns the snapshot', () => {
+        expect(passScriptSource('place')).toContain(join('minecraft', 'datagen', 'palette-pack'));
+        expect(passScriptSource('dump')).toContain(join('bedrock-dump', 'pack', 'scripts'));
     });
 
     it('enables the pack for the world by uuid', async () => {
