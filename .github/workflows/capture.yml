@@ -12,6 +12,10 @@ env:
 # Weekly matters for a reason the research note records: Mojang re-uploads and pulls versions
 # with no retention promise, and a weekly run is what turns "the pinned zip is gone" into a
 # failing job instead of a surprise during the next bump.
+#
+# `sources.json` pins one server per Bedrock protocol version. The scheduled and push runs
+# capture its `defaultProtocolVersion`; dispatch with `protocol` to capture another pinned one,
+# which is how a new version's goldens get made before it becomes the default.
 on:
     schedule:
         - cron: '17 4 * * 1'
@@ -23,6 +27,13 @@ on:
             - 'packages/bedrock-data/utils/bedrock-dump/**'
             - '.github/workflows/capture.yml'
     workflow_dispatch:
+        inputs:
+            protocol:
+                description: >-
+                    Bedrock protocol version to capture, as pinned in packages/bedrock-data/sources.json.
+                    Leave empty for that file's defaultProtocolVersion, which is what the scheduled run uses.
+                required: false
+                type: string
 
 permissions:
     contents: write
@@ -34,6 +45,14 @@ jobs:
         # The pinned zip is the Linux x86-64 build and the job refuses to run anywhere else.
         runs-on: ubuntu-latest
         timeout-minutes: 180
+        env:
+            # `sources.json` pins a server per protocol version. An empty input means the
+            # scripts pick its `defaultProtocolVersion`, which is what every run but a
+            # deliberate dispatch wants.
+            PROTOCOL: ${{ inputs.protocol || '' }}
+            # Everything a capture rewrites, including the block palette the `palette` pass
+            # now produces under `packages/minecraft`.
+            CAPTURED_PATHS: 'packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json packages/minecraft/datagen/snapshot'
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -54,15 +73,28 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-jsp-sources-
 
+            - name: 🔢 Resolve the protocol version
+              id: protocol
+              run: |
+                  set -euo pipefail
+                  if [ -n "$PROTOCOL" ]; then
+                      echo "flag=--protocol $PROTOCOL" >> "$GITHUB_OUTPUT"
+                      echo "label=$PROTOCOL" >> "$GITHUB_OUTPUT"
+                  else
+                      default="$(jq -r '.bds.defaultProtocolVersion' packages/bedrock-data/sources.json)"
+                      echo "flag=" >> "$GITHUB_OUTPUT"
+                      echo "label=$default" >> "$GITHUB_OUTPUT"
+                  fi
+
             - name: ⬇️ Fetch the pinned sources
-              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources ${{ steps.protocol.outputs.flag }}
 
             # The packet pass logs a real client into the server, so the client has to be built.
             - name: 🔨 Build
               run: pnpm run build
 
             - name: 📼 Capture the Bedrock goldens
-              run: pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
+              run: pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- ${{ steps.protocol.outputs.flag }}
 
             - name: 🏭 Run the Java data generator
               run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
@@ -72,8 +104,11 @@ jobs:
 
             - name: 🔎 Show what moved
               run: |
-                  git status --short -- packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json
-                  git diff --stat -- packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json
+                  set -euo pipefail
+                  # shellcheck disable=SC2086
+                  git status --short -- $CAPTURED_PATHS
+                  # shellcheck disable=SC2086
+                  git diff --stat -- $CAPTURED_PATHS
 
             # The suites read the goldens that were just rewritten, so a capture that broke
             # something fails here rather than in the pull request it would otherwise open.
@@ -91,22 +126,23 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   BASE: ${{ github.ref_name }}
                   RUN_ID: ${{ github.run_id }}
+                  PROTOCOL_LABEL: ${{ steps.protocol.outputs.label }}
               run: |
                   set -euo pipefail
-                  paths="packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json"
+                  paths="$CAPTURED_PATHS"
                   # shellcheck disable=SC2086
                   if git diff --quiet -- $paths && [ -z "$(git ls-files --others --exclude-standard -- $paths)" ]; then
                       echo "Every golden is unchanged; nothing to open."
                       exit 0
                   fi
-                  branch="capture/${BASE}-${RUN_ID}"
+                  branch="capture/${BASE}-${PROTOCOL_LABEL}-${RUN_ID}"
                   git config user.name 'github-actions[bot]'
                   git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
                   git switch -c "$branch"
                   # shellcheck disable=SC2086
                   git add -- $paths
-                  git commit -m 'chore(bedrock-data): refresh the captured goldens'
+                  git commit -m "chore(bedrock-data): refresh the protocol ${PROTOCOL_LABEL} goldens"
                   git push origin "$branch"
                   gh pr create --base "$BASE" --head "$branch" \
-                      --title 'chore(bedrock-data): refresh the captured goldens' \
-                      --body "The capture job re-ran against the pinned sources and a golden moved. Review the diff: an upstream change explains it, or the capture itself regressed. Run $RUN_ID."
+                      --title "chore(bedrock-data): refresh the protocol ${PROTOCOL_LABEL} goldens" \
+                      --body "The capture job re-ran against the pinned protocol ${PROTOCOL_LABEL} sources and a golden moved. Review the diff: an upstream change explains it, or the capture itself regressed. Run $RUN_ID."
