@@ -200,6 +200,7 @@ const capture = async (
     timeoutMs: number
 ): Promise<string[]> => {
     const server = startServer({
+        // Nothing connects to the server in these passes; they drive it over its console alone.
         ...launcher.launch(staged.root),
         cwd: staged.root,
         onLine: (line) => {
@@ -406,7 +407,8 @@ const runPacketPass = async (): Promise<void> => {
     });
 
     const server = startServer({
-        ...launcher.launch(staged.root),
+        // The only pass whose client has to reach the server, so the only one that publishes ports.
+        ...launcher.launch(staged.root, { clientConnects: true }),
         cwd: staged.root,
         onLine: (line) => console.log(`  ${line}`)
     });
@@ -448,5 +450,7 @@ console.log(
         `(Minecraft ${pinnedServer.minecraftVersion}, protocol ${protocolVersion}) from ${unpacked}, ` +
         `running ${launcher.description}`
 );
+// Before any staging, so a missing image is reported as itself rather than as a pass that stalled.
+launcher.ensureImage();
 for (const pass of requested) await passes[pass]();
 console.log(`Capture complete. Review the diff under ${outDirectory} before committing it.`);

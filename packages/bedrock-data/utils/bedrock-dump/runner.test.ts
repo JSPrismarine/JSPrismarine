@@ -10,6 +10,7 @@ import {
     containerName,
     containerRunArgs,
     createLauncher,
+    describeImageFailure,
     parseRunnerPreference,
     probeContainerRuntime,
     selectRunner
@@ -263,7 +264,41 @@ describe('createLauncher', () => {
         expect(args).toContain(CONTAINER_PLATFORM);
         expect(args).toContain('/cache/run:/bds');
         expect(args.at(-1)).toBe('./bedrock_server');
-        for (const port of PUBLISHED_UDP_PORTS) expect(args).toContain(`127.0.0.1:${port}:${port}/udp`);
+    });
+
+    it('publishes the UDP ports only for the pass whose client connects', () => {
+        const launcher = createLauncher({ kind: 'container', runtime: docker, emulated: true });
+        const published = launcher.launch('/cache/run', { clientConnects: true }).args;
+        for (const port of PUBLISHED_UDP_PORTS) expect(published).toContain(`127.0.0.1:${port}:${port}/udp`);
+        // A port a pass never uses is one more way for it to fail on `port is already allocated`.
+        expect(launcher.launch('/cache/run').args).not.toContain('-p');
+        expect(launcher.launch('/cache/run', { clientConnects: false }).args).not.toContain('-p');
+    });
+
+    it('pulls the image only when the host does not already have it', () => {
+        const { run, calls } = scriptedProbe({ docker: { status: 0, stdout: '', stderr: '' } });
+        createLauncher({ kind: 'container', runtime: docker, emulated: true }, { run }).ensureImage();
+        expect(calls).toEqual([{ command: 'docker', args: ['image', 'inspect', DEFAULT_CONTAINER_IMAGE] }]);
+    });
+
+    it('pulls for the emulated platform when the image is missing', () => {
+        let first = true;
+        const run: ProbeCommand = (command, args) => {
+            calls.push({ command, args });
+            const outcome: ProbeOutcome = { status: first ? 1 : 0, stdout: '', stderr: '' };
+            first = false;
+            return outcome;
+        };
+        const calls: { command: string; args: readonly string[] }[] = [];
+        createLauncher({ kind: 'container', runtime: docker, emulated: true }, { run }).ensureImage();
+        expect(calls[1]?.args).toEqual(['pull', '--platform', CONTAINER_PLATFORM, DEFAULT_CONTAINER_IMAGE]);
+    });
+
+    it('reports a failed pull against the image rather than as a stalled pass', () => {
+        const { run } = scriptedProbe({ docker: { status: 1, stdout: '', stderr: 'no such host' } });
+        const launcher = createLauncher({ kind: 'container', runtime: docker, emulated: true }, { run });
+        expect(() => launcher.ensureImage()).toThrow(/no such host/);
+        expect(() => launcher.ensureImage()).toThrow(new RegExp(RUNNER_ENV.image));
     });
 
     it('warns that an emulated run is slow, and does not warn when it is not', () => {
@@ -304,5 +339,29 @@ describe('createLauncher', () => {
 
     it('names the container after the process, so two captures do not collide', () => {
         expect(containerName(4242)).toBe('jsp-bedrock-capture-4242');
+    });
+});
+
+describe('describeImageFailure', () => {
+    it('reads a missing credential helper as the PATH problem it is, not a broken install', () => {
+        const message = describeImageFailure('docker', 'ubuntu:24.04', {
+            status: 1,
+            stdout: '',
+            stderr: 'error getting credentials - err: exec: "docker-credential-desktop": executable file not found'
+        });
+        expect(message).toContain("docker-credential-desktop is not on this shell's PATH");
+        expect(message).toContain('docker pull ubuntu:24.04');
+        expect(message).toContain('/Applications/Docker.app/Contents/Resources/bin');
+    });
+
+    it('repeats whatever the CLI said for any other failure', () => {
+        const message = describeImageFailure('podman', 'ubuntu:24.04', {
+            status: 125,
+            stdout: '',
+            stderr: 'manifest unknown'
+        });
+        expect(message).toContain('manifest unknown');
+        expect(message).not.toContain('PATH');
+        expect(message).toContain(RUNNER_ENV.image);
     });
 });

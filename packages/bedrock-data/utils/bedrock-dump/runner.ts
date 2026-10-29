@@ -55,12 +55,22 @@ export const CONTAINER_CLIS = ['docker', 'podman'] as const;
 /**
  * What every timeout is multiplied by when the container is emulated.
  *
- * A round number, not a measurement: nobody has published a figure for this engine under
- * Rosetta or qemu, and the cost of guessing high is a stalled run taking longer to say so.
+ * A round number with room to spare. Measured once on an M-series Mac through Docker Desktop,
+ * which translates x86-64 with Rosetta rather than qemu, the server reached its ready line in
+ * seven seconds and the dump pack walked every registry in three and a half, which is the same
+ * order as a native run. A host whose runtime falls back to qemu is the case this margin is for,
+ * and the cost of guessing high is only that a genuinely stalled run takes longer to say so.
  */
 export const EMULATION_SLOWDOWN = 4;
 
-/** UDP ports the packet pass's client connects to, published when the server runs in a container. */
+/**
+ * UDP ports a container publishes for the one pass whose client has to reach the server.
+ *
+ * Only the `packets` pass connects to the server, so only it asks for these. Publishing them for
+ * every pass made the capture fail on `port is already allocated` whenever anything else on the
+ * machine held 19132 — another capture, a leaked container, or a JSPrismarine server somebody
+ * left running — in a pass that had no use for the port.
+ */
 export const PUBLISHED_UDP_PORTS = [19132, 19133] as const;
 
 /** Environment variables that steer the runner, named like the rest of the pipeline's overrides. */
@@ -294,6 +304,17 @@ export interface ServerCommand {
     env?: Record<string, string>;
 }
 
+/** What a pass needs of the runner beyond the staged directory. */
+export interface LaunchNeeds {
+    /**
+     * A client on the host connects to the server, so a container has to publish its UDP ports.
+     *
+     * Only the `packets` pass does. The others drive the server over its console alone, and a
+     * published port they never use is one more way for the pass to fail.
+     */
+    clientConnects?: boolean;
+}
+
 /** Starts the staged server one way or the other, and cleans up after itself. */
 export interface ServerLauncher {
     readonly kind: RunnerKind;
@@ -309,7 +330,16 @@ export interface ServerLauncher {
      */
     readonly timeoutScale: number;
     /** The command for a staged server's run directory. */
-    launch(runRoot: string): ServerCommand;
+    launch(runRoot: string, needs?: LaunchNeeds): ServerCommand;
+    /**
+     * Makes sure the run can start without the runner reaching for a registry.
+     *
+     * Called once before the first pass, because an image pull failing six minutes into a staged
+     * capture reports as the server exiting with a CLI status rather than as what it is.
+     *
+     * @throws Error naming the image and what the CLI said when the image cannot be obtained.
+     */
+    ensureImage(): void;
     /**
      * Removes anything the last {@link launch} may have leaked.
      *
@@ -331,6 +361,30 @@ export interface LauncherOptions {
     run?: ProbeCommand;
 }
 
+/**
+ * Explains a failed image pull, including the one failure that has nothing to do with the image.
+ *
+ * Docker Desktop configures `credsStore`, so every registry request shells out to
+ * `docker-credential-desktop`. A shell whose `PATH` lacks Docker's own `bin` directory therefore
+ * fails to pull a *public* image with a message about a missing executable, which reads like a
+ * broken install rather than a `PATH`. The remedy is to pull the image once from a shell that has
+ * the helper, after which the capture never touches a registry again, so say that.
+ */
+export const describeImageFailure = (cli: string, image: string, pull: ProbeOutcome): string => {
+    const said = (pull.stderr.trim() || pull.stdout.trim()).split('\n').slice(-3).join(' ');
+    // The name is quoted inside the CLI's message, so match the executable rather than the token.
+    const credentialHelper = /docker-credential-[\w.-]+/.exec(said)?.[0];
+    return (
+        `${cli} could not obtain ${image}, which the capture runs the staged server in: ${said}` +
+        (credentialHelper === undefined
+            ? `\nPull it by hand, or name an image the host already has in ${RUNNER_ENV.image}.`
+            : `\n${credentialHelper} is not on this shell's PATH, so ${cli} cannot talk to a registry even ` +
+              `for a public image. Run \`${cli} pull ${image}\` from a shell that has Docker's own bin ` +
+              'directory on PATH (on macOS, /Applications/Docker.app/Contents/Resources/bin) and re-run ' +
+              'the capture: with the image cached, nothing in the capture reaches a registry.')
+    );
+};
+
 /** The name the container is given, so a leak is identifiable and removable. */
 export const containerName = (pid: number): string => `jsp-bedrock-capture-${pid}`;
 
@@ -347,6 +401,7 @@ export const createLauncher = (plan: RunnerPlan, options: LauncherOptions = {}):
             description: `natively on ${NATIVE_PLATFORM}/${NATIVE_ARCH}`,
             timeoutScale: 1,
             launch: (runRoot) => ({ command: `${runRoot}/${SERVER_BINARY}`, args: [] }),
+            ensureImage: () => {},
             cleanup: () => {}
         };
     }
@@ -363,7 +418,7 @@ export const createLauncher = (plan: RunnerPlan, options: LauncherOptions = {}):
                   'as long as it does on x86-64, and the reference world pass longest of all.'
                 : ''),
         timeoutScale: plan.emulated ? EMULATION_SLOWDOWN : 1,
-        launch: (runRoot) => ({
+        launch: (runRoot, needs) => ({
             command: plan.runtime.command,
             args: containerRunArgs({
                 image,
@@ -371,13 +426,24 @@ export const createLauncher = (plan: RunnerPlan, options: LauncherOptions = {}):
                 runRoot,
                 platform: plan.emulated ? CONTAINER_PLATFORM : undefined,
                 user: options.user,
-                udpPorts: PUBLISHED_UDP_PORTS,
+                udpPorts: needs?.clientConnects === true ? PUBLISHED_UDP_PORTS : undefined,
                 // The server loads its own shared objects out of its working directory, which is
                 // the mount; the native path sets the same variable in the child's environment.
                 env: { LD_LIBRARY_PATH: '.' },
                 command: [`./${SERVER_BINARY}`]
             })
         }),
+        ensureImage: () => {
+            if (run === undefined) return;
+            if (run(plan.runtime.command, ['image', 'inspect', image]).status === 0) return;
+            const pull = run(plan.runtime.command, [
+                'pull',
+                ...(plan.emulated ? ['--platform', CONTAINER_PLATFORM] : []),
+                image
+            ]);
+            if (pull.status === 0) return;
+            throw new Error(describeImageFailure(plan.runtime.command, image, pull));
+        },
         cleanup: () => {
             // `--rm` covers the ordinary exit; this covers the CLI being killed out from under it.
             run?.(plan.runtime.command, ['rm', '--force', name]);
