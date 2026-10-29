@@ -142,4 +142,66 @@ describe('ItemStackRequestPacket', () => {
 
         expect(() => decode(out.getBuffer())).toThrow(/5000/);
     });
+
+    it('round-trips the retained fields of a mixed batch of actions', () => {
+        const packet = new ItemStackRequestPacket();
+        packet.requests = [
+            {
+                requestId: -5,
+                actions: [
+                    {
+                        type: ItemStackRequestActionType.TAKE,
+                        count: 3,
+                        source: {
+                            container: { containerId: ContainerUiId.HOTBAR, dynamicId: 2 },
+                            slotId: 1,
+                            stackNetId: 42
+                        },
+                        destination: {
+                            container: { containerId: ContainerUiId.CURSOR, dynamicId: null },
+                            slotId: 0,
+                            stackNetId: -5
+                        }
+                    },
+                    { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 7, repetitions: 2 },
+                    { type: ItemStackRequestActionType.MINE_BLOCK, hotbarSlot: 4 },
+                    { type: ItemStackRequestActionType.LAB_TABLE_COMBINE },
+                    { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 99, repetitions: 1 }
+                ],
+                filterStrings: ['Anvil Name'],
+                filterStringCause: 14
+            }
+        ];
+        packet.encode();
+
+        const decoded = new ItemStackRequestPacket(packet.getBuffer());
+        decoded.decode();
+
+        expect(decoded.requests).toHaveLength(1);
+        const request = decoded.requests[0]!;
+        expect(request.requestId).toBe(-5);
+        expect(request.filterStrings).toEqual(['Anvil Name']);
+        expect(request.filterStringCause).toBe(14);
+        expect(request.actions).toEqual([
+            {
+                type: ItemStackRequestActionType.TAKE,
+                count: 3,
+                source: {
+                    container: { containerId: ContainerUiId.HOTBAR, dynamicId: 2 },
+                    slotId: 1,
+                    stackNetId: 42
+                },
+                destination: {
+                    container: { containerId: ContainerUiId.CURSOR, dynamicId: null },
+                    slotId: 0,
+                    stackNetId: -5
+                }
+            },
+            { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 7, repetitions: 2 },
+            { type: ItemStackRequestActionType.MINE_BLOCK, hotbarSlot: 4 },
+            { type: ItemStackRequestActionType.LAB_TABLE_COMBINE },
+            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 99, repetitions: 1 }
+        ]);
+        expect(decoded.feof()).toBe(true);
+    });
 });

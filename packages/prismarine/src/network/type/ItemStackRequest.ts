@@ -325,3 +325,138 @@ export const readItemStackRequest = (stream: BinaryStream): ItemStackRequest => 
 
     return { requestId, actions, filterStrings, filterStringCause: stream.readIntLE() }; // StringsToFilterOrigin.
 };
+
+/** Writes a FullContainerName, the mirror of `readFullContainerName`. */
+const writeFullContainerName = (stream: BinaryStream, container: FullContainerName): void => {
+    stream.writeByte(container.containerId);
+    stream.writeBoolean(container.dynamicId !== null);
+    if (container.dynamicId !== null) stream.writeUnsignedIntLE(container.dynamicId);
+};
+
+/** Writes an ItemStackRequestSlotInfo, the mirror of `readSlotInfo`. */
+const writeSlotInfo = (stream: BinaryStream, slot: ItemStackRequestSlotInfo): void => {
+    writeFullContainerName(stream, slot.container);
+    stream.writeByte(slot.slotId);
+    stream.writeIntLE(slot.stackNetId); // Net Id Variant, four fixed bytes.
+};
+
+/**
+ * Writes one action's payload, the mirror of `readAction`.
+ *
+ * The reader keeps only the fields something acts on and steps over the rest, so this writes
+ * a zero or an empty list in each slot the model does not hold: a decoded request encodes to
+ * a wire-valid packet carrying the same retained data, not necessarily the same bytes.
+ * @throws when the type is unknown, since its payload layout is unknown with it.
+ */
+const writeAction = (stream: BinaryStream, action: ItemStackRequestAction): void => {
+    switch (action.type) {
+        case ItemStackRequestActionType.TAKE:
+        case ItemStackRequestActionType.PLACE:
+            stream.writeByte(action.count ?? 0);
+            writeSlotInfo(stream, action.source!);
+            writeSlotInfo(stream, action.destination!);
+            break;
+
+        case ItemStackRequestActionType.SWAP:
+            writeSlotInfo(stream, action.source!);
+            writeSlotInfo(stream, action.destination!);
+            break;
+
+        case ItemStackRequestActionType.DROP:
+            stream.writeByte(action.count ?? 0);
+            writeSlotInfo(stream, action.source!);
+            stream.writeBoolean(false); // Randomly, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.DESTROY:
+        case ItemStackRequestActionType.CRAFTING_CONSUME_INPUT:
+            stream.writeByte(action.count ?? 0);
+            writeSlotInfo(stream, action.source!);
+            break;
+
+        case ItemStackRequestActionType.CRAFTING_CREATE_SPECIFIC_RESULT:
+            stream.writeByte(0); // Results Index, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.LAB_TABLE_COMBINE:
+        case ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED:
+            break; // Dataless.
+
+        case ItemStackRequestActionType.BEACON_PAYMENT:
+            stream.writeVarInt(0); // Primary Effect Id, dropped by the reader.
+            stream.writeVarInt(0); // Secondary Effect Id, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.MINE_BLOCK:
+            stream.writeVarInt(action.hotbarSlot ?? 0); // Slot.
+            stream.writeVarInt(0); // Predicted Durability, dropped by the reader.
+            stream.writeIntLE(0); // Net Id Variant, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.CRAFTING_RECIPE:
+            stream.writeUnsignedVarInt(action.recipeNetId ?? 0);
+            stream.writeByte(action.repetitions ?? 0); // Number of requested crafts.
+            break;
+
+        case ItemStackRequestActionType.CRAFTING_RECIPE_AUTO:
+            stream.writeUnsignedVarInt(action.recipeNetId ?? 0);
+            stream.writeByte(action.repetitions ?? 0); // Number of requested crafts.
+            stream.writeUnsignedVarInt(0); // Ingredients, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.CREATIVE_CREATE:
+            stream.writeUnsignedVarInt(action.creativeItemNetId ?? 0);
+            stream.writeByte(action.repetitions ?? 0); // Number of requested crafts.
+            break;
+
+        case ItemStackRequestActionType.CRAFTING_RECIPE_OPTIONAL:
+            stream.writeUnsignedVarInt(0); // Recipe Net Id, dropped by the reader.
+            stream.writeIntLE(0); // Filtered String Index, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.CRAFT_REPAIR_AND_DISENCHANT:
+            stream.writeIntLE(0); // Recipe Net Id, a net id variant, dropped by the reader.
+            stream.writeByte(action.repetitions ?? 0); // Number of requested crafts.
+            stream.writeVarInt(0); // Repair Cost, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.CRAFTING_LOOM:
+            NetworkUtil.writeString(stream, ''); // Pattern Name Id, dropped by the reader.
+            stream.writeByte(0); // Num Crafts, dropped by the reader.
+            break;
+
+        case ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED:
+            stream.writeUnsignedVarInt(0); // Craft Results, dropped by the reader.
+            stream.writeByte(0); // Num Crafts, dropped by the reader.
+            break;
+
+        default:
+            throw new Error(`Unknown item stack request action type ${action.type}`);
+    }
+};
+
+/**
+ * Writes one ItemStackRequest, the mirror of {@link readItemStackRequest}: Client Request Id,
+ * Actions - each as its variant index, the same type as a byte, then its payload - Strings To
+ * Filter, and StringsToFilterOrigin.
+ */
+export const writeItemStackRequest = (stream: BinaryStream, request: ItemStackRequest): void => {
+    stream.writeVarInt(request.requestId); // Client Request Id.
+
+    stream.writeUnsignedVarInt(request.actions.length);
+    for (const action of request.actions) {
+        // The variant index runs two behind the type from the lab table on; see `actionTypeOf`.
+        const selector =
+            action.type >= FIRST_SELECTOR_PAST_THE_GAP + SELECTOR_GAP ? action.type - SELECTOR_GAP : action.type;
+        stream.writeUnsignedVarInt(selector);
+        stream.writeByte(action.type); // The same action as a byte.
+        writeAction(stream, action);
+    }
+
+    stream.writeUnsignedVarInt(request.filterStrings.length); // Strings To Filter.
+    for (const filterString of request.filterStrings) {
+        NetworkUtil.writeString(stream, filterString);
+    }
+
+    stream.writeIntLE(request.filterStringCause); // StringsToFilterOrigin.
+};

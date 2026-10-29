@@ -1,6 +1,5 @@
-import Identifiers from '../Identifiers';
 import type { ItemStackRequest } from '../type/ItemStackRequest';
-import { readItemStackRequest } from '../type/ItemStackRequest';
+import { readItemStackRequest, writeItemStackRequest } from '../type/ItemStackRequest';
 import DataPacket from './DataPacket';
 
 /** The most requests one packet carries. The docs cap `Requests` at 100 entries. */
@@ -20,10 +19,16 @@ const MAX_REQUESTS = 100;
  * **Bound To:** Server
  */
 export default class ItemStackRequestPacket extends DataPacket {
-    public static NetID = Identifiers.ItemStackRequestPacket;
-
     /** Requests, in the order the client sent them. */
     public requests: ItemStackRequest[] = [];
+
+    /** Writes Requests: a varuint count, then each request in full. */
+    public encodePayload(): void {
+        this.writeUnsignedVarInt(this.requests.length);
+        for (const request of this.requests) {
+            writeItemStackRequest(this, request);
+        }
+    }
 
     /**
      * Reads Requests: a varuint count, then each request in full.
