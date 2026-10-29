@@ -10,6 +10,12 @@ import type DataPacket from '@jsprismarine/prismarine/network/packet/DataPacket'
 import LevelChunkPacket from '@jsprismarine/prismarine/network/packet/LevelChunkPacket';
 import NetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/NetworkSettingsPacket';
 import PlayStatusPacket from '@jsprismarine/prismarine/network/packet/PlayStatusPacket';
+import PlayerListPacket, {
+    PlayerListAction,
+    PlayerListEntry
+} from '@jsprismarine/prismarine/network/packet/PlayerListPacket';
+import Skin from '@jsprismarine/prismarine/utils/skin/Skin';
+import UUID from '@jsprismarine/prismarine/utils/UUID';
 import RequestNetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/RequestNetworkSettingsPacket';
 import PlayStatus from '@jsprismarine/prismarine/network/type/PlayStatus';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
@@ -56,6 +62,31 @@ const connectionRecorder = () => {
     });
     return { sent, hangups, connection };
 };
+
+/** A player list entry's skin, with the PlayFab id whose home the two versions disagree on. */
+const listSkin = () =>
+    Skin.fromJWT({
+        SkinId: 'classic-skin',
+        CapeId: '',
+        SkinResourcePatch: '',
+        PlayFabId: 'PFID-abc123',
+        SkinImageHeight: 1,
+        SkinImageWidth: 1,
+        SkinGeometryData: '',
+        SkinAnimationData: '',
+        CapeImageHeight: 0,
+        CapeImageWidth: 0,
+        CapeOnClassicSkin: false,
+        SkinData: Buffer.from([0, 0, 0, 255]).toString('base64'),
+        CapeData: '',
+        PremiumSkin: false,
+        PersonaSkin: false,
+        SkinColor: '#0',
+        ArmSize: 'wide',
+        AnimatedImageData: [],
+        PersonaPieces: [],
+        PieceTintColors: []
+    });
 
 const server = stub<Server>({ getLogger: () => stub<ReturnType<Server['getLogger']>>({ info: () => {} }) });
 
@@ -122,6 +153,55 @@ describe(FAMILIES.protocolNegotiation, () => {
 
         // A packet already carrying the codec's layout passes through untouched.
         expect(Codec2225.prepareOutbound(prepared)).toBe(prepared);
+    });
+
+    it('the player list a session receives matches the layout its own version reads', () => {
+        // The join burst sends `PlayerList` before the client spawns, so a session handed the
+        // wrong layout here never finishes joining. At 2225 the PlayFab id sits on the entry
+        // rather than inside the skin, which is a different number of strings ahead of the
+        // fixed-width `Build Platform` field - so each version's bytes are unreadable to the
+        // other, and `prepareOutbound` is what keeps a session on its own side of that.
+        const built = () => {
+            const packet = new PlayerListPacket();
+            packet.type = PlayerListAction.TYPE_ADD;
+            packet.entries = [
+                new PlayerListEntry({
+                    uuid: UUID.fromString('0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0'),
+                    runtimeId: 11n,
+                    name: 'Joiner',
+                    xuid: '2535',
+                    skin: listSkin()
+                })
+            ];
+            return packet;
+        };
+
+        const encodeFor = (codec: ProtocolCodec): Buffer => {
+            const prepared = codec.prepareOutbound(built());
+            prepared.setNetId(codec.netIdOf('PlayerListPacket')!);
+            prepared.encode();
+            return prepared.getBuffer();
+        };
+
+        const bytes2193 = encodeFor(Codec2193);
+        const bytes2225 = encodeFor(Codec2225);
+        expect(bytes2225.equals(bytes2193)).toBe(false);
+
+        /** Whether a codec's reader consumes the whole packet, as a real client must. */
+        const reads = (codec: ProtocolCodec, bytes: Buffer): boolean => {
+            const packet = codec.createPacket(codec.netIdOf('PlayerListPacket')!, bytes)!;
+            try {
+                packet.decode();
+            } catch {
+                return false;
+            }
+            return packet.feof();
+        };
+
+        expect(reads(Codec2193, bytes2193)).toBe(true);
+        expect(reads(Codec2225, bytes2225)).toBe(true);
+        expect(reads(Codec2225, bytes2193)).toBe(false);
+        expect(reads(Codec2193, bytes2225)).toBe(false);
     });
 
     it('an older unsupported client is told it is outdated, status before the hangup', async () => {

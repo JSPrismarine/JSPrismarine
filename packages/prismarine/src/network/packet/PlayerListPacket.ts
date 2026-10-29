@@ -2,7 +2,8 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import { BuildPlatform } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
-import Skin from '../../utils/skin/Skin';
+import Skin, { SKIN_WIRE_2193 } from '../../utils/skin/Skin';
+import type { SkinWireLayout } from '../../utils/skin/Skin';
 import DataPacket from './DataPacket';
 
 /** The fields of one player list entry. A Remove entry needs only `uuid`. */
@@ -79,7 +80,7 @@ export class PlayerListEntry {
      *
      * @throws Error when the entry has no skin. An Add entry cannot be written without one.
      */
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: BinaryStream, layout: SkinWireLayout = SKIN_WIRE_2193): void {
         const skin = this.getSkin();
         if (skin === null) {
             throw new Error(`Player list entry ${this.getUUID().toString()} has no skin, so it cannot be added`);
@@ -88,9 +89,12 @@ export class PlayerListEntry {
         stream.writeVarLong(this.getRuntimeId() ?? 0n);
         NetworkUtil.writeString(stream, this.getName() ?? '');
         NetworkUtil.writeString(stream, this.getXUID());
+        // From 2225 the PlayFab id is an entry field here, ahead of the platform online id,
+        // and the skin below no longer carries its own.
+        if (!layout.carriesPlayFabId) NetworkUtil.writeString(stream, skin.getPlayFabId());
         NetworkUtil.writeString(stream, this.getPlatformChatId() ?? '');
         stream.writeIntLE(this.getBuildPlatform() ?? BuildPlatform.UNKNOWN);
-        skin.networkSerialize(stream);
+        skin.networkSerialize(stream, layout);
         stream.writeBoolean(this.isTeacher());
         stream.writeBoolean(this.isHost());
         stream.writeBoolean(this.isSubClient());
@@ -202,8 +206,17 @@ export default class PlayerListPacket extends DataPacket {
             this.writeByte(this.type);
 
             entry.getUUID().networkSerialize(this);
-            if (adding) entry.networkSerialize(this);
+            if (adding) entry.networkSerialize(this, this.skinLayout());
         }
+    }
+
+    /**
+     * Which `SerializedSkin` layout this packet's entries use, and so where the PlayFab id
+     * sits. The seam protocol 2225 overrides; 2193 keeps the id inside the skin.
+     * @returns {SkinWireLayout} the layout.
+     */
+    protected skinLayout(): SkinWireLayout {
+        return SKIN_WIRE_2193;
     }
 
     /** Reads the entries back, the mirror of {@link encodePayload}. */
@@ -219,15 +232,25 @@ export default class PlayerListPacket extends DataPacket {
                 continue;
             }
 
+            const layout = this.skinLayout();
+            const runtimeId = this.readVarLong();
+            const name = NetworkUtil.readString(this);
+            const xuid = NetworkUtil.readString(this);
+            const playFabId = layout.carriesPlayFabId ? null : NetworkUtil.readString(this);
+            const platformChatId = NetworkUtil.readString(this);
+            const buildPlatform = this.readIntLE();
+            const skin = Skin.networkDeserialize(this, layout);
+            if (playFabId !== null) skin.setPlayFabId(playFabId);
+
             this.entries.push(
                 new PlayerListEntry({
                     uuid,
-                    runtimeId: this.readVarLong(),
-                    name: NetworkUtil.readString(this),
-                    xuid: NetworkUtil.readString(this),
-                    platformChatId: NetworkUtil.readString(this),
-                    buildPlatform: this.readIntLE(),
-                    skin: Skin.networkDeserialize(this),
+                    runtimeId,
+                    name,
+                    xuid,
+                    platformChatId,
+                    buildPlatform,
+                    skin,
                     isTeacher: this.readBoolean(),
                     isHost: this.readBoolean(),
                     isSubClient: this.readBoolean(),

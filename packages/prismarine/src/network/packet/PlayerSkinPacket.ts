@@ -1,5 +1,6 @@
 import UUID from '../../utils/UUID';
-import Skin from '../../utils/skin/Skin';
+import Skin, { SKIN_WIRE_2193 } from '../../utils/skin/Skin';
+import type { SkinWireLayout } from '../../utils/skin/Skin';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -24,15 +25,24 @@ export default class PlayerSkinPacket extends DataPacket {
     /** Writes the UUID, the skin, and the two localized names. */
     public encodePayload(): void {
         this.uuid.networkSerialize(this);
-        this.skin.networkSerialize(this);
+        this.skin.networkSerialize(this, this.skinLayout());
         NetworkUtil.writeString(this, this.newSkinName);
         NetworkUtil.writeString(this, this.oldSkinName);
+    }
+
+    /**
+     * Which `SerializedSkin` layout this packet's skin uses. The seam protocol 2225
+     * overrides, where the skin no longer carries a PlayFab id of its own.
+     * @returns {SkinWireLayout} the layout.
+     */
+    protected skinLayout(): SkinWireLayout {
+        return SKIN_WIRE_2193;
     }
 
     /** Reads the UUID, the skin, and the two localized names. */
     public decodePayload(): void {
         this.uuid = UUID.networkDeserialize(this);
-        this.skin = Skin.networkDeserialize(this);
+        this.skin = Skin.networkDeserialize(this, this.skinLayout());
         this.newSkinName = NetworkUtil.readString(this);
         this.oldSkinName = NetworkUtil.readString(this);
     }

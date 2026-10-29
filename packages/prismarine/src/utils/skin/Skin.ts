@@ -57,6 +57,26 @@ interface JWT {
 }
 
 /**
+ * Which `SerializedSkin` layout a caller is reading or writing.
+ *
+ * Only one field has ever moved, so the layout is one flag rather than a protocol version:
+ * protocol 2193 carries the PlayFab id inside the skin, at ordinal 1 between the id and the
+ * resource patch, and protocol 2225 drops it from the skin and carries it on the enclosing
+ * `PlayerListAddEntry` instead. Verified against the `SerializedSkin.json` schemas in Mojang's
+ * v1.26.51 and v1.26.60 `metadata.zip`.
+ */
+export interface SkinWireLayout {
+    /** Whether the skin itself carries the PlayFab id. True through 2193, false from 2225. */
+    readonly carriesPlayFabId: boolean;
+}
+
+/** The protocol 2193 `SerializedSkin` layout: the PlayFab id travels inside the skin. */
+export const SKIN_WIRE_2193: SkinWireLayout = { carriesPlayFabId: true };
+
+/** The protocol 2225 `SerializedSkin` layout: the PlayFab id has moved out to the entry. */
+export const SKIN_WIRE_2225: SkinWireLayout = { carriesPlayFabId: false };
+
+/**
  * A string field of the client data, or empty when the client did not send one.
  *
  * Every one of these is optional in practice: a client omits what does not apply to it, and
@@ -334,9 +354,9 @@ export default class Skin {
      * four colors of four bytes each, with no count, under the piece type's lower-case member
      * name (`facialhair`, not the client data's `facial_hair`; see {@link PIECE_TYPE_NAMES}).
      */
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: BinaryStream, layout: SkinWireLayout = SKIN_WIRE_2193): void {
         NetworkUtil.writeString(stream, this.getId());
-        NetworkUtil.writeString(stream, this.getPlayFabId());
+        if (layout.carriesPlayFabId) NetworkUtil.writeString(stream, this.getPlayFabId());
         NetworkUtil.writeString(stream, this.getResourcePatch());
 
         // Skin image
@@ -417,11 +437,13 @@ export default class Skin {
      * the flag is set. `TrustedSkinFlag` is compared case-insensitively: the docs spell it
      * `"True"`, gophertunnel writes `true`.
      */
-    public static networkDeserialize(stream: BinaryStream): Skin {
+    public static networkDeserialize(stream: BinaryStream, layout: SkinWireLayout = SKIN_WIRE_2193): Skin {
         const skin = new Skin();
 
         skin.id = NetworkUtil.readString(stream);
-        skin.playFabId = NetworkUtil.readString(stream);
+        // Empty under the 2225 layout: the caller reads the id off the enclosing entry and
+        // puts it back with `setPlayFabId`, so the field is never left undefined.
+        skin.playFabId = layout.carriesPlayFabId ? NetworkUtil.readString(stream) : '';
         skin.resourcePatch = NetworkUtil.readString(stream);
         skin.image = SkinImage.networkDeserialize(stream);
 
@@ -483,6 +505,15 @@ export default class Skin {
 
     public getPlayFabId(): string {
         return this.playFabId;
+    }
+
+    /**
+     * Puts the PlayFab id back on a skin read under the 2225 layout, where it arrived on the
+     * enclosing player list entry rather than inside the skin.
+     * @param {string} playFabId - the id the entry carried.
+     */
+    public setPlayFabId(playFabId: string): void {
+        this.playFabId = playFabId;
     }
 
     public getResourcePatch(): string {

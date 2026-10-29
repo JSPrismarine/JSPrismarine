@@ -13,6 +13,12 @@ import InventoryTransactionPacket2225 from '../packet/InventoryTransactionPacket
 import { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import LevelChunkPacket2225 from '../packet/LevelChunkPacket2225';
 import { Metadata } from '../../entity/Metadata';
+import { BuildPlatform } from '@jsprismarine/minecraft';
+import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../packet/PlayerListPacket';
+import PlayerListPacket2225 from '../packet/PlayerListPacket2225';
+import PlayerSkinPacket from '../packet/PlayerSkinPacket';
+import PlayerSkinPacket2225 from '../packet/PlayerSkinPacket2225';
+import Skin from '../../utils/skin/Skin';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
 import UUID from '../../utils/UUID';
 import Codec2193 from './Codec2193';
@@ -65,6 +71,8 @@ describe('network/codec', () => {
                 AnimatePacket: AnimatePacket2225,
                 InventoryTransactionPacket: InventoryTransactionPacket2225,
                 LevelChunkPacket: LevelChunkPacket2225,
+                PlayerListPacket: PlayerListPacket2225,
+                PlayerSkinPacket: PlayerSkinPacket2225,
                 StartGamePacket: StartGamePacket2225
             };
             for (const [name, packetClass] of Object.entries(changed)) {
@@ -215,6 +223,120 @@ describe('network/codec', () => {
             const decodedRelease = roundTrip(release);
             expect(decodedRelease.hand).toBe(HandSlot.OFFHAND);
             expect(decodedRelease.transactionData).toMatchObject({ hotbarSlot: 3 });
+        });
+
+        describe('the PlayFab id move', () => {
+            const skin = () =>
+                Skin.fromJWT({
+                    SkinId: 'classic-skin',
+                    CapeId: '',
+                    SkinResourcePatch: '',
+                    PlayFabId: 'PFID-abc123',
+                    SkinImageHeight: 1,
+                    SkinImageWidth: 1,
+                    SkinGeometryData: '',
+                    SkinAnimationData: '',
+                    CapeImageHeight: 0,
+                    CapeImageWidth: 0,
+                    CapeOnClassicSkin: false,
+                    SkinData: Buffer.from([0, 0, 0, 255]).toString('base64'),
+                    CapeData: '',
+                    PremiumSkin: false,
+                    PersonaSkin: false,
+                    SkinColor: '#0',
+                    ArmSize: 'wide',
+                    AnimatedImageData: [],
+                    PersonaPieces: [],
+                    PieceTintColors: []
+                });
+
+            const addPacket = <T extends PlayerListPacket>(packet: T): T => {
+                packet.type = PlayerListAction.TYPE_ADD;
+                packet.entries = [
+                    new PlayerListEntry({
+                        uuid: UUID.fromString('0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0'),
+                        runtimeId: 11n,
+                        name: 'Terracotta',
+                        xuid: '2535',
+                        platformChatId: '',
+                        buildPlatform: BuildPlatform.WIN32,
+                        skin: skin()
+                    })
+                ];
+                return packet;
+            };
+
+            /**
+             * The regression this whole subclass exists for. A 2225 client reads the entry's
+             * PlayFab id before the platform online id, so against 2193 bytes it is a string
+             * short by the time it reaches `Build Platform` - four fixed little-endian bytes
+             * it then reads as a string length. The read runs away and the join dies with the
+             * connection rather than a named reason, which the client shows as "Terracotta".
+             */
+            it('a 2225 reader cannot parse the 2193 entry layout', () => {
+                const legacy = addPacket(new PlayerListPacket());
+                legacy.setNetId(Codec2225.netIdOf('PlayerListPacket')!);
+                legacy.encode();
+
+                const reader = new PlayerListPacket2225(legacy.getBuffer());
+                // Either it throws reading past the buffer, or it survives with a desynced
+                // read that leaves the stream unconsumed. Both end the client's join.
+                let parsed = true;
+                try {
+                    reader.decode();
+                } catch {
+                    parsed = false;
+                }
+                expect(parsed && reader.feof()).toBe(false);
+            });
+
+            it('carries the PlayFab id on the entry at 2225 and inside the skin at 2193', () => {
+                const at2225 = roundTrip(addPacket(new PlayerListPacket2225()));
+                expect(at2225.entries[0]!.getSkin()!.getPlayFabId()).toBe('PFID-abc123');
+                expect(at2225.entries[0]!.getName()).toBe('Terracotta');
+                expect(at2225.entries[0]!.getBuildPlatform()).toBe(BuildPlatform.WIN32);
+
+                const legacy = addPacket(new PlayerListPacket());
+                legacy.setNetId(Codec2193.netIdOf('PlayerListPacket')!);
+                legacy.encode();
+                const at2193 = new PlayerListPacket(legacy.getBuffer());
+                at2193.decode();
+                expect(at2193.feof()).toBe(true);
+                expect(at2193.entries[0]!.getSkin()!.getPlayFabId()).toBe('PFID-abc123');
+
+                // The same fields, a different layout: the move is real, not a no-op.
+                expect(at2225.getBuffer().equals(legacy.getBuffer())).toBe(false);
+            });
+
+            it('substitutes the 2225 classes for the player list and the skin packet', () => {
+                const list = Codec2225.prepareOutbound(addPacket(new PlayerListPacket()));
+                expect(list).toBeInstanceOf(PlayerListPacket2225);
+                expect(list.getName()).toBe('PlayerListPacket');
+                expect((list as PlayerListPacket).entries).toHaveLength(1);
+
+                const skinPacket = new PlayerSkinPacket();
+                skinPacket.uuid = UUID.fromString('0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0');
+                skinPacket.skin = skin();
+                skinPacket.newSkinName = 'new';
+                skinPacket.oldSkinName = 'old';
+                expect(Codec2225.prepareOutbound(skinPacket)).toBeInstanceOf(PlayerSkinPacket2225);
+                // 2193 keeps its own class, so nothing about that wire moved.
+                expect(Codec2193.prepareOutbound(skinPacket)).toBe(skinPacket);
+            });
+
+            it('round-trips a skin packet whose skin no longer carries the id', () => {
+                const packet = new PlayerSkinPacket2225();
+                packet.uuid = UUID.fromString('0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0');
+                packet.skin = skin();
+                packet.newSkinName = 'new';
+                packet.oldSkinName = 'old';
+
+                const decoded = roundTrip(packet);
+                expect(decoded.newSkinName).toBe('new');
+                expect(decoded.skin.getId()).toBe('classic-skin');
+                // Dropped from the wire at 2225, so it reads back empty rather than undefined.
+                expect(decoded.skin.getPlayFabId()).toBe('');
+            });
         });
     });
 });
