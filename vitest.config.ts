@@ -52,7 +52,7 @@ export default defineConfig({
         }
     },
     test: {
-        bail: 2,
+        bail: 0,
         environment: 'node',
         exclude,
         fsModuleCache: true,
