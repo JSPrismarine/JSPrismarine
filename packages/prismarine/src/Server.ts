@@ -547,8 +547,20 @@ export default class Server extends EventEmitter {
     }
 
     /**
+     * The module kernel the server runs on: the supported way to resolve the
+     * services the manager modules provide. Resolve a service with a token from
+     * `modules/tokens`, e.g. `server.getKernel().get(bansToken)`.
+     * @returns {Kernel} The kernel.
+     */
+    public getKernel(): Kernel {
+        return this.kernel;
+    }
+
+    /**
      * Returns the query manager.
      * @returns {QueryManager} The query manager.
+     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(queryToken)`,
+     * with `queryToken` from `@jsprismarine/prismarine/modules/tokens`.
      */
     public getQueryManager(): QueryManager {
         return this.kernel.get(queryToken);
@@ -715,6 +727,8 @@ export default class Server extends EventEmitter {
     /**
      * Returns the chat manager.
      * @returns {ChatManager} The chat manager.
+     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(chatToken)`,
+     * with `chatToken` from `@jsprismarine/prismarine/modules/tokens`.
      */
     public getChatManager(): ChatManager {
         return this.kernel.get(chatToken);
@@ -731,6 +745,8 @@ export default class Server extends EventEmitter {
     /**
      * Every recipe the server knows.
      * @returns {RecipeManager} the manager.
+     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(recipesToken)`,
+     * with `recipesToken` from `@jsprismarine/prismarine/modules/tokens`.
      */
     public getRecipeManager(): RecipeManager {
         return this.kernel.get(recipesToken);
@@ -739,6 +755,8 @@ export default class Server extends EventEmitter {
     /**
      * Where a player can craft, and what each block does with a grid.
      * @returns {StationRegistry} the registry.
+     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(stationsToken)`,
+     * with `stationsToken` from `@jsprismarine/prismarine/modules/tokens`.
      */
     public getStationRegistry(): StationRegistry {
         return this.kernel.get(stationsToken);
@@ -781,6 +799,8 @@ export default class Server extends EventEmitter {
     /**
      * Returns the permission manager.
      * @returns {PermissionManager} The permission manager.
+     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(permissionsToken)`,
+     * with `permissionsToken` from `@jsprismarine/prismarine/modules/tokens`.
      */
     public getPermissionManager(): PermissionManager {
         return this.kernel.get(permissionsToken);
@@ -789,6 +809,8 @@ export default class Server extends EventEmitter {
     /**
      * Returns the ban manager.
      * @returns {BanManager} The ban manager.
+     * @deprecated Resolve it through the kernel instead: `server.getKernel().get(bansToken)`,
+     * with `bansToken` from `@jsprismarine/prismarine/modules/tokens`.
      */
     public getBanManager(): BanManager {
         return this.kernel.get(bansToken);

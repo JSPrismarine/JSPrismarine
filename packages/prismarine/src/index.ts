@@ -1,4 +1,10 @@
 export * from './Managers';
+// The module API: the kernel the server runs on, the service tokens its
+// modules provide, and the kernel types a module author needs.
+export { Kernel, KernelError, createToken } from '@jsprismarine/kernel';
+export type { Module, ModuleContext, ServiceToken } from '@jsprismarine/kernel';
+export * from './modules/tokens';
+export type { Networking } from './modules/network';
 export * from './block/';
 export * from './command/';
 export * from './config/';
