@@ -1,3 +1,5 @@
+import { FAMILIES } from '../families.ts';
+
 /** The totals row in a rendered parity dashboard. */
 export interface DashboardTotals {
     /** Comparisons that ran and passed. */
@@ -57,17 +59,20 @@ export const parseDashboardMeasurements = (markdown: string): readonly Dashboard
     return section
         .split(/\r?\n/)
         .filter((line) => line.startsWith('| '))
-        .slice(2)
-        .map((line) => {
+        .flatMap((line) => {
             const columns = line
                 .split('|')
                 .slice(1, -1)
                 .map((column) => column.trim());
+
+            if (columns[0] === 'Family' && columns[1] === 'Measurement') return [];
+            if (columns.every((column) => /^:?-{3,}:?$/.test(column))) return [];
+
             const value = columns[2];
             if (columns.length !== 3 || value === undefined || !/^\d+(?:\.\d+)?$/.test(value)) {
                 throw new Error(`Parity dashboard measurement row has an unexpected shape: ${line}`);
             }
-            return { family: columns[0] ?? '', name: columns[1] ?? '', value: Number(value) };
+            return [{ family: columns[0] ?? '', name: columns[1] ?? '', value: Number(value) }];
         });
 };
 
@@ -91,20 +96,44 @@ const coverageTrend = (previous: readonly DashboardMeasurement[], current: reado
     const fell: string[] = [];
     const added: string[] = [];
     const removed: string[] = [];
+    const entityDetails = { added: 0, increased: 0, fell: 0, removed: 0 };
+
+    const isEntityDetail = (measurement: DashboardMeasurement): boolean =>
+        measurement.family === FAMILIES.integrationEntityCoverage && measurement.name.startsWith('entity:');
 
     for (const [key, measurement] of currentByKey) {
         const old = previousByKey.get(key);
-        if (old === undefined) added.push(`${key} ${measurement.value}`);
-        else if (measurement.value > old.value) increased.push(`${key} +${measurement.value - old.value}`);
-        else if (measurement.value < old.value) fell.push(`${key} ${measurement.value - old.value}`);
+        if (old === undefined) {
+            if (isEntityDetail(measurement)) entityDetails.added += 1;
+            else added.push(`${key} ${measurement.value}`);
+        } else if (measurement.value > old.value) {
+            if (isEntityDetail(measurement)) entityDetails.increased += 1;
+            else increased.push(`${key} +${measurement.value - old.value}`);
+        } else if (measurement.value < old.value) {
+            if (isEntityDetail(measurement)) entityDetails.fell += 1;
+            else fell.push(`${key} ${measurement.value - old.value}`);
+        }
     }
-    for (const key of previousByKey.keys()) if (!currentByKey.has(key)) removed.push(key);
+    for (const [key, measurement] of previousByKey) {
+        if (!currentByKey.has(key)) {
+            if (isEntityDetail(measurement)) entityDetails.removed += 1;
+            else removed.push(key);
+        }
+    }
+
+    const entityChanges = [
+        entityDetails.added === 0 ? '' : `${entityDetails.added} added`,
+        entityDetails.increased === 0 ? '' : `${entityDetails.increased} increased`,
+        entityDetails.fell === 0 ? '' : `${entityDetails.fell} fell`,
+        entityDetails.removed === 0 ? '' : `${entityDetails.removed} removed`
+    ].filter((part) => part !== '');
 
     const changes = [
         increased.length === 0 ? '' : `increased: ${increased.join(', ')}`,
         fell.length === 0 ? '' : `fell: ${fell.join(', ')}`,
         added.length === 0 ? '' : `added: ${added.join(', ')}`,
-        removed.length === 0 ? '' : `removed: ${removed.join(', ')}`
+        removed.length === 0 ? '' : `removed: ${removed.join(', ')}`,
+        entityChanges.length === 0 ? '' : `entity detail measurements: ${entityChanges.join(', ')}`
     ].filter((part) => part !== '');
 
     if (changes.length > 0) return `Coverage measurements ${changes.join('; ')}.`;

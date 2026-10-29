@@ -39,6 +39,24 @@ describe('parity dashboard trend', () => {
         ]);
     });
 
+    it('reads measurements from the folded entity detail table', () => {
+        const withEntityDetails = `${dashboard}
+<details><summary>Entity-level details (1 measurements)</summary>
+
+| Family | Measurement | Current |
+| --- | --- | ---: |
+| integration.entity-coverage | entity:minecraft:zombie:component-coverage | 3 |
+
+</details>
+`;
+
+        expect(parseDashboardMeasurements(withEntityDetails)).toEqual([
+            { family: 'integration.tags', name: 'block_memberships', value: 18 },
+            { family: 'integration.tags', name: 'item_tags', value: 4 },
+            { family: 'integration.entity-coverage', name: 'entity:minecraft:zombie:component-coverage', value: 3 }
+        ]);
+    });
+
     it('rejects a report without a totals row', () => {
         expect(() => parseDashboardTotals('# Parity dashboard')).toThrow('no total row');
     });
@@ -74,5 +92,23 @@ describe('parity dashboard trend', () => {
         expect(describeParityTrend(totals(), totals(), prior, current)).toContain(
             'Coverage measurements increased: integration.tags/block_memberships +2; fell: integration.tags/item_tags -1.'
         );
+    });
+
+    it('summarizes entity-level changes without listing every entity identifier', () => {
+        const prior = [
+            { family: 'integration.entity-coverage', name: 'entity:minecraft:zombie:component-coverage', value: 3 },
+            { family: 'integration.entity-coverage', name: 'entity:minecraft:skeleton:component-coverage', value: 2 }
+        ];
+        const current = [
+            { family: 'integration.entity-coverage', name: 'entity:minecraft:zombie:component-coverage', value: 4 },
+            { family: 'integration.entity-coverage', name: 'entity:minecraft:creeper:component-coverage', value: 3 }
+        ];
+
+        const trend = describeParityTrend(totals(), totals(), prior, current);
+
+        expect(trend).toContain('entity detail measurements: 1 added, 1 increased, 1 removed');
+        expect(trend).not.toContain('minecraft:zombie');
+        expect(trend).not.toContain('minecraft:skeleton');
+        expect(trend).not.toContain('minecraft:creeper');
     });
 });

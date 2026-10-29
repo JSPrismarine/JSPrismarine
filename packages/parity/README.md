@@ -175,13 +175,13 @@ increased or fell. The updater searches every comment page for its marker and ed
 bot comment in place. The renderer is a pure function with its own tests,
 [`src/dashboard/render.ts`](src/dashboard/render.ts).
 
-The entity coverage row reports per-entity counts for hook-backed, data-only, trigger, goal, and
-registered no-hook components, plus the active component and goal counts after spawn. It also
-reports entity/component pairs for registered components without direct hooks, and entity-specific
-identifiers for unimplemented components and runtime reports. No-hook identifiers are grouped by
-namespace in the metric label, such as `minecraft[physics,collision_box]`. These measurements are non-gating;
-the comparison still gates on source/runtime mismatches, undeclared active components, unimplemented
-components, spawn/tick failures, and entity definition errors.
+The entity coverage summary reports aggregate component counts and runtime results. Per-entity
+component counts and identifiers for unimplemented components, registered components without
+direct hooks, and runtime reports appear in the collapsed **Entity-level details** section. The PR
+trend condenses changes to those measurements into added, increased, fell, and removed counts.
+No-hook identifiers are grouped by namespace, such as `minecraft[physics,collision_box]`. These
+measurements are non-gating; the comparison still gates on source/runtime mismatches, undeclared
+active components, unimplemented components, spawn/tick failures, and entity definition errors.
 
 ## Adding a comparison
 

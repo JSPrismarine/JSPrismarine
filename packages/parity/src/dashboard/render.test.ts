@@ -98,6 +98,32 @@ describe('dashboard renderer', () => {
         expect(markdown).toContain('| integration.tags | block_memberships | 18 |');
     });
 
+    it('folds per-entity measurements while keeping aggregate coverage visible', () => {
+        const measurements: ParityMeasurement[] = [
+            { family: FAMILIES.integrationEntityCoverage, name: 'sourceEntityDeclarations', value: 129 },
+            {
+                family: FAMILIES.integrationEntityCoverage,
+                name: 'entity:minecraft:zombie:component-coverage:declared=3,hookBacked=1',
+                value: 3
+            },
+            {
+                family: FAMILIES.integrationEntityCoverage,
+                name: 'entity:minecraft:zombie:registered-no-hook-components:minecraft[physics]',
+                value: 1
+            }
+        ];
+
+        const markdown = renderDashboard(fixtureReport, fixtureAllowList, measurements);
+        const summary = markdown.split('<details>')[0] ?? '';
+
+        expect(summary).toContain('| integration.entity-coverage | sourceEntityDeclarations | 129 |');
+        expect(summary).not.toContain('minecraft:zombie');
+        expect(markdown).toContain('<details><summary>Entity-level details (2 measurements)</summary>');
+        expect(markdown).toContain(
+            '| integration.entity-coverage | entity:minecraft:zombie:component-coverage:declared=3,hookBacked=1 | 3 |'
+        );
+    });
+
     it('reads a defect-only family as defects rather than green', () => {
         expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, accepted: 0, defects: 1 })).toBe('defects');
         expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, accepted: 2, defects: 0 })).toBe('green');

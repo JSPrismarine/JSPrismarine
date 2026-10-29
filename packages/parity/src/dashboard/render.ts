@@ -1,5 +1,5 @@
 import type { AllowListEntry } from '../allowlist.ts';
-import { ALL_FAMILIES, familyOf } from '../families.ts';
+import { ALL_FAMILIES, FAMILIES, familyOf } from '../families.ts';
 import type { ParityMeasurement } from '../progress.ts';
 
 /** One test as the Vitest JSON reporter records it. */
@@ -70,6 +70,11 @@ export const statusOf = (counts: FamilyCounts): FamilyStatus => {
 
 const emptyCounts = (): FamilyCounts => ({ passed: 0, failed: 0, notMeasured: 0, accepted: 0, defects: 0 });
 
+const entityDetailMeasurement = (measurement: ParityMeasurement): boolean =>
+    measurement.family === FAMILIES.integrationEntityCoverage && measurement.name.startsWith('entity:');
+
+const measurementRow = ({ family, name, value }: ParityMeasurement): string => `| ${family} | ${name} | ${value} |`;
+
 /**
  * Renders the parity dashboard: one Markdown table with a row per family, counting passed,
  * failed and not-measured tests from the Vitest JSON report, and allow-listed gaps from the
@@ -127,6 +132,12 @@ export const renderDashboard = (
         total.defects += counts.defects;
     }
 
+    const sortedMeasurements = measurements.toSorted((left, right) =>
+        `${left.family}/${left.name}`.localeCompare(`${right.family}/${right.name}`, 'en')
+    );
+    const summaryMeasurements = sortedMeasurements.filter((measurement) => !entityDetailMeasurement(measurement));
+    const entityMeasurements = sortedMeasurements.filter(entityDetailMeasurement);
+
     const lines = [
         '# Parity dashboard',
         '',
@@ -147,13 +158,23 @@ export const renderDashboard = (
         '',
         '| Family | Measurement | Current |',
         '| --- | --- | ---: |',
-        ...measurements
-            .toSorted((left, right) =>
-                `${left.family}/${left.name}`.localeCompare(`${right.family}/${right.name}`, 'en')
-            )
-            .map((measurement) => `| ${measurement.family} | ${measurement.name} | ${measurement.value} |`),
-        ''
+        ...summaryMeasurements.map(measurementRow)
     ];
+
+    if (entityMeasurements.length > 0) {
+        lines.push(
+            '',
+            `<details><summary>Entity-level details (${entityMeasurements.length} measurements)</summary>`,
+            '',
+            '| Family | Measurement | Current |',
+            '| --- | --- | ---: |',
+            ...entityMeasurements.map(measurementRow),
+            '',
+            '</details>'
+        );
+    }
+
+    lines.push('');
 
     return lines.join('\n');
 };
