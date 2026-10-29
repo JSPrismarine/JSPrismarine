@@ -111,13 +111,14 @@ export default class Server extends EventEmitter {
     private readonly worldManager: WorldManager;
 
     /**
-     * The module kernel the managers run on. The kernel starts inside
-     * {@link Server.enable} and stops inside {@link Server.disable}, so its
-     * modules keep their place in the hand-ordered lifecycle of the pieces not
-     * yet converted. A kernel starts once, so {@link Server.enable} builds a
-     * fresh one each time for {@link Server.reload}'s disable-then-enable cycle.
+     * The module kernel the managers run on. Built once in the constructor; the
+     * kernel starts inside {@link Server.enable} and stops inside
+     * {@link Server.disable}, so its modules keep their place in the
+     * hand-ordered lifecycle of the pieces not yet converted. A kernel restarts
+     * cleanly, so the same instance — and the managers its modules constructed —
+     * carries through {@link Server.reload}'s disable-then-enable cycle.
      */
-    private kernel: Kernel;
+    private readonly kernel: Kernel;
 
     /**
      * Feeds chunks to players a slice at a time.
@@ -324,9 +325,6 @@ export default class Server extends EventEmitter {
         // produce payloads says so here rather than on the first join.
         joinContentPayloads(this.content, this.logger);
         await this.packetRegistry.enable();
-        // A fresh kernel per enable: a kernel starts once, and reload() runs
-        // disable() then enable() on the same server.
-        this.kernel = this.buildKernel();
         await this.kernel.start();
         await this.commandManager.enable();
         await this.worldManager.enable();
