@@ -6,7 +6,8 @@
  * "when all the chunks in the area are loaded and ticking", which is also when the generator has
  * finished with them. The region is wider than one area may cover, so it comes in tiles. The
  * Script API also limits total ticking chunks per pack, so completed areas must be released when
- * the next tile would exceed that budget.
+ * the next tile would exceed that budget — and the release has to be given a tick to land, or the
+ * area that triggered it never resolves and the pass hangs for its whole timeout.
  *
  * The chunks reach disk when the server shuts down cleanly, so the job sends `stop` after the
  * last marker rather than killing the process. Nothing here reads the world back; that is
@@ -25,6 +26,9 @@ const PREFIX = 'DUMP ';
 
 let rows = 0;
 let errors = 0;
+
+/** Resolves on the next tick, which is when a ticking area removal has taken effect. */
+const nextTick = () => new Promise((resolve) => system.runTimeout(resolve, 1));
 
 const emit = (table, value) => {
     rows++;
@@ -51,7 +55,11 @@ world.afterEvents.worldLoad.subscribe(async () => {
             to: { x: tile.to[0], y: 0, z: tile.to[1] }
         };
         try {
-            if (!manager.hasCapacity(area)) manager.removeAllTickingAreas();
+            if (!manager.hasCapacity(area)) {
+                // Releasing and re-creating in one tick never resolves, so let the removal land.
+                manager.removeAllTickingAreas();
+                await nextTick();
+            }
             if (!manager.hasCapacity(area)) {
                 throw new Error(
                     `The ticking area manager's ${manager.maxChunkCount}-chunk budget cannot fit ` +
