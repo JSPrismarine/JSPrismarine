@@ -98,6 +98,7 @@
         "@jsprismarine/features": "workspace:*",
         "@jsprismarine/item-behaviors": "workspace:*",
         "@jsprismarine/items": "workspace:*",
+        "@jsprismarine/kernel": "workspace:*",
         "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/lighting": "workspace:*",
         "@jsprismarine/logger": "workspace:*",

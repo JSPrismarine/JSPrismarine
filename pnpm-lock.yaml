@@ -1362,6 +1362,9 @@ importers:
       '@jsprismarine/items':
         specifier: workspace:*
         version: link:../items
+      '@jsprismarine/kernel':
+        specifier: workspace:*
+        version: link:../kernel
       '@jsprismarine/leveldb':
         specifier: workspace:*
         version: link:../leveldb

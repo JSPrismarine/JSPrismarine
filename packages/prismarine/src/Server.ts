@@ -1,3 +1,4 @@
+import { Kernel } from '@jsprismarine/kernel';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 import Console from './Console';
@@ -103,6 +104,15 @@ export default class Server extends EventEmitter {
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
+
+    /**
+     * The module kernel the managers run on. The kernel starts inside
+     * {@link Server.enable} and stops inside {@link Server.disable}, so its
+     * modules keep their place in the hand-ordered lifecycle of the pieces not
+     * yet converted. A kernel starts once, so {@link Server.enable} builds a
+     * fresh one each time for {@link Server.reload}'s disable-then-enable cycle.
+     */
+    private kernel: Kernel;
 
     /**
      * Feeds chunks to players a slice at a time.
@@ -289,6 +299,19 @@ export default class Server extends EventEmitter {
         this.chatManager = new ChatManager(this);
         this.permissionManager = new PermissionManager(this);
         this.banManager = new BanManager(this);
+        this.kernel = this.buildKernel();
+    }
+
+    /**
+     * Builds the kernel and registers the manager modules on it.
+     *
+     * Registration order is start order among modules with no dependency edge,
+     * so it mirrors the order {@link Server.enable} used to call the managers in.
+     * @internal
+     */
+    private buildKernel(): Kernel {
+        const kernel = new Kernel({ logger: this.logger });
+        return kernel;
     }
 
     /**
@@ -308,6 +331,10 @@ export default class Server extends EventEmitter {
         joinContentPayloads(this.content, this.logger);
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
+        // A fresh kernel per enable: a kernel starts once, and reload() runs
+        // disable() then enable() on the same server.
+        this.kernel = this.buildKernel();
+        await this.kernel.start();
         await this.recipeManager.enable();
         this.stationRegistry.registerRecipeStations(this);
         await this.banManager.enable();
@@ -414,6 +441,7 @@ export default class Server extends EventEmitter {
         this.entityRuntimes.closeAll();
         await this.commandManager.disable();
         await this.banManager.disable();
+        await this.kernel.stop();
         await this.recipeManager.disable();
         await this.permissionManager.disable();
         await this.packetRegistry.disable();
