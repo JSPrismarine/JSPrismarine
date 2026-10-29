@@ -4,7 +4,7 @@ import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 import Console from './Console';
 import { ConsoleSender } from './command/ConsoleSender';
 import SessionManager from './SessionManager';
-import BanManager from './ban/BanManager';
+import type BanManager from './ban/BanManager';
 import type { Random } from './utils/Random';
 import { ChatManager } from './chat/ChatManager';
 import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport';
@@ -31,7 +31,10 @@ import type { DataPacket } from './network/Packets';
 import BatchPacket from './network/packet/BatchPacket';
 import NetworkDispatcher from './network/NetworkDispatcher';
 import RakNetTransport from './network/transport/RakNetTransport';
-import { PermissionManager } from './permission/PermissionManager';
+import type { PermissionManager } from './permission/PermissionManager';
+import { bansModule } from './modules/bans';
+import { permissionsModule } from './modules/permissions';
+import { bansToken, permissionsToken } from './modules/tokens';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
@@ -156,8 +159,6 @@ export default class Server extends EventEmitter {
     private readonly stationRegistry = new StationRegistry();
     private readonly queryManager: QueryManager;
     private readonly chatManager: ChatManager;
-    private readonly permissionManager: PermissionManager;
-    private readonly banManager: BanManager;
 
     /** The source of chance for anything that rolls - see {@link Server.getRandom}. */
     private random: Random = Math.random;
@@ -297,8 +298,6 @@ export default class Server extends EventEmitter {
         this.commandManager = new CommandManager(this);
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);
-        this.permissionManager = new PermissionManager(this);
-        this.banManager = new BanManager(this);
         this.kernel = this.buildKernel();
     }
 
@@ -311,6 +310,8 @@ export default class Server extends EventEmitter {
      */
     private buildKernel(): Kernel {
         const kernel = new Kernel({ logger: this.logger });
+        kernel.register(permissionsModule(this));
+        kernel.register(bansModule(this));
         return kernel;
     }
 
@@ -329,7 +330,6 @@ export default class Server extends EventEmitter {
         // build invented reads as a startup line and a build that cannot
         // produce payloads says so here rather than on the first join.
         joinContentPayloads(this.content, this.logger);
-        await this.permissionManager.enable();
         await this.packetRegistry.enable();
         // A fresh kernel per enable: a kernel starts once, and reload() runs
         // disable() then enable() on the same server.
@@ -337,7 +337,6 @@ export default class Server extends EventEmitter {
         await this.kernel.start();
         await this.recipeManager.enable();
         this.stationRegistry.registerRecipeStations(this);
-        await this.banManager.enable();
         await this.commandManager.enable();
         await this.worldManager.enable();
 
@@ -440,10 +439,8 @@ export default class Server extends EventEmitter {
         // After the worlds: a closing world ticks and saves through its dimension's runtime.
         this.entityRuntimes.closeAll();
         await this.commandManager.disable();
-        await this.banManager.disable();
         await this.kernel.stop();
         await this.recipeManager.disable();
-        await this.permissionManager.disable();
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
@@ -1105,7 +1102,7 @@ export default class Server extends EventEmitter {
      * @returns {PermissionManager} The permission manager.
      */
     public getPermissionManager(): PermissionManager {
-        return this.permissionManager;
+        return this.kernel.get(permissionsToken);
     }
 
     /**
@@ -1113,7 +1110,7 @@ export default class Server extends EventEmitter {
      * @returns {BanManager} The ban manager.
      */
     public getBanManager(): BanManager {
-        return this.banManager;
+        return this.kernel.get(bansToken);
     }
 
     /**
