@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import type { Frame, InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession, { debugPacketNames } from './MinecraftSession';
+import type { TransportConnection } from './transport/Transport';
 import BatchPacket from './packet/BatchPacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
@@ -36,10 +36,10 @@ const time = () => {
 const fakeSession = (dropped: Iterable<string>, dumped: Iterable<string> = [], dumpDir?: string) => {
     const framed: Buffer[] = [];
     const warnings: string[] = [];
-    const rakSession = stub<RakNetSession>({
-        sendFrame: (frame: Frame) => void framed.push(frame.content),
-        getAddress: () => stub<InetAddress>({ toToken: () => '127.0.0.1:19132' }),
-        disconnect: () => {}
+    const connection = stub<TransportConnection>({
+        token: '127.0.0.1:19132',
+        sendFrame: (payload: Buffer) => void framed.push(payload),
+        close: () => {}
     });
     const logger = stub<Logger>({
         silly: () => {},
@@ -50,7 +50,7 @@ const fakeSession = (dropped: Iterable<string>, dumped: Iterable<string> = [], d
     return {
         framed,
         warnings,
-        session: new MinecraftSession(rakSession, logger, undefined, new Set(dropped), new Set(dumped), dumpDir)
+        session: new MinecraftSession(connection, logger, undefined, new Set(dropped), new Set(dumped), dumpDir)
     };
 };
 

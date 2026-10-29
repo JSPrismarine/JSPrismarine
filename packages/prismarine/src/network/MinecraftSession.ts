@@ -1,7 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
-import type { RakNetSession } from '@jsprismarine/raknet';
-import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import type { DataPacket } from './Packets';
+import type { TransportConnection } from './transport/Transport';
 import { BatchPacket } from './Packets';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -32,7 +31,7 @@ export const debugPacketNames = (value: string | undefined): ReadonlySet<string>
 const defaultDumpDir = (): string => process.env.JSP_DEBUG_DUMP_DIR ?? path.join(os.tmpdir(), 'jsprismarine-packets');
 
 /**
- * The layer between a `ClientConnection` and its RakNet session: wraps single packets in a
+ * The layer between a `ClientConnection` and its transport: wraps single packets in a
  * batch of their own, frames encoded batches in the order they were asked for, and logs what
  * went out.
  *
@@ -41,22 +40,23 @@ const defaultDumpDir = (): string => process.env.JSP_DEBUG_DUMP_DIR ?? path.join
  * and flips `ClientConnection.hasCompression` at the same time, so the next packet in either
  * direction is the first one with an algorithm prefix. Nothing is encrypted: the server never
  * sends `ServerToClientHandshake`, and a client accepts a plaintext session when no handshake
- * arrives.
+ * arrives - and the transport's own `capabilities.encrypted` says whether the wire covers it.
  */
 export default class MinecraftSession {
-    protected readonly rakSession: RakNetSession;
+    protected readonly connection: TransportConnection;
 
     /**
      * Tail of the outbound chain, and how many asynchronous sends have not framed yet.
      *
-     * RakNet stamps a message's order index inside `sendFrame`, which is to say at the
-     * moment it is framed and not at the moment it was asked for. Everything here goes out
-     * reliable ordered on channel 0, so that stamp *is* the order the client applies things
-     * in. A chunk batch that stops to compress used to let anything sent meanwhile jump in
-     * front of it: send a LevelChunk, break a block while zlib is still working, and the
-     * UpdateBlock took the lower index - the client applied the break, then laid the older
-     * chunk snapshot over the top of it and the block came back. Two chunk batches could
-     * likewise finish compressing in the opposite order to the one they were queued in.
+     * The transport stamps a message's order index inside `sendFrame`, which is to say at
+     * the moment it is framed and not at the moment it was asked for. Everything here goes
+     * out reliable ordered on one channel - `capabilities.reliableOrdered` - so that stamp
+     * *is* the order the client applies things in. A chunk batch that stops to compress used
+     * to let anything sent meanwhile jump in front of it: send a LevelChunk, break a block
+     * while zlib is still working, and the UpdateBlock took the lower index - the client
+     * applied the break, then laid the older chunk snapshot over the top of it and the block
+     * came back. Two chunk batches could likewise finish compressing in the opposite order
+     * to the one they were queued in.
      *
      * So framing follows the order the sends were requested, not the order the work
      * finished. The counter keeps that from costing anything in the ordinary case: with no
@@ -67,14 +67,14 @@ export default class MinecraftSession {
     private pendingAsyncSends = 0;
 
     public constructor(
-        session: RakNetSession,
+        connection: TransportConnection,
         private readonly logger: Logger,
         private readonly logFilter: PacketLogFilter = new PacketLogFilter(),
         private readonly dropped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DROP_PACKETS),
         private readonly dumped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DUMP_PACKETS),
         private readonly dumpDir: string = defaultDumpDir()
     ) {
-        this.rakSession = session;
+        this.connection = connection;
     }
 
     /** Frames now if nothing is waiting to be framed, otherwise behind whatever is. */
@@ -163,12 +163,7 @@ export default class MinecraftSession {
     }
 
     private frame(content: Buffer, direct: boolean): void {
-        const sendPacket = new Protocol.Frame();
-        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
-        sendPacket.orderChannel = 0;
-        sendPacket.content = content;
-
-        this.rakSession.sendFrame(sendPacket, direct ? ConnectionPriority.IMMEDIATE : ConnectionPriority.NORMAL);
+        this.connection.sendFrame(content, direct);
     }
 
     public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
@@ -180,9 +175,7 @@ export default class MinecraftSession {
         } catch (error: unknown) {
             this.logger.error(error);
             this.logger.warn(
-                `Packet §b${packet.getName()}§r to §b${this.rakSession
-                    .getAddress()
-                    .toToken()}§r failed with: ${error instanceof Error ? error.message : String(error)}`
+                `Packet §b${packet.getName()}§r to §b${this.connection.token}§r failed with: ${error instanceof Error ? error.message : String(error)}`
             );
             return;
         }
@@ -225,7 +218,7 @@ export default class MinecraftSession {
         const name = packet.getName();
         if (!this.dumped.has(name)) return;
 
-        const address = this.rakSession.getAddress().toToken().replaceAll(':', '-');
+        const address = this.connection.token.replaceAll(':', '-');
         const file = path.join(this.dumpDir, `${Date.now()}-${address}-${name}.bin`);
         try {
             fs.mkdirSync(this.dumpDir, { recursive: true });
@@ -252,6 +245,6 @@ export default class MinecraftSession {
     }
 
     public forceDisconnect(): void {
-        this.rakSession.disconnect();
+        this.connection.close();
     }
 }

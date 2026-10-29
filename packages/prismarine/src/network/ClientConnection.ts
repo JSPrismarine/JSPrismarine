@@ -7,6 +7,7 @@ import assert from 'assert';
 import MinecraftSession from './MinecraftSession';
 import { DisconnectPacket } from './Packets';
 import type { PacketLogFilter } from './PacketLogFilter';
+import type { RakNetTransportConnection } from './transport/RakNetTransport';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -17,8 +18,12 @@ export default class ClientConnection extends MinecraftSession {
     private playerSession: PlayerSession | null = null;
     public hasCompression = false;
 
-    public constructor(session: RakNetSession, logger: Logger, logFilter?: PacketLogFilter) {
-        super(session, logger, logFilter);
+    public constructor(
+        private readonly transportConnection: RakNetTransportConnection,
+        logger: Logger,
+        logFilter?: PacketLogFilter
+    ) {
+        super(transportConnection, logger, logFilter);
     }
 
     /**
@@ -100,7 +105,11 @@ export default class ClientConnection extends MinecraftSession {
         return this.playerSession;
     }
 
+    /**
+     * The RakNet session under the transport seam, for what still wants it: the address the
+     * login handler gives the player.
+     */
     public getRakNetSession(): RakNetSession {
-        return this.rakSession;
+        return this.transportConnection.getRakNetSession();
     }
 }

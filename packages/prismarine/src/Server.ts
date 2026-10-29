@@ -468,8 +468,7 @@ export default class Server extends EventEmitter {
             server: this,
             logger: this.logger,
             logFilter: this.getPacketLogFilter(),
-            createConnection: (connection) =>
-                new ClientConnection(connection.getRakNetSession(), this.logger, this.getPacketLogFilter()),
+            createConnection: (connection) => new ClientConnection(connection, this.logger, this.getPacketLogFilter()),
             query: {
                 enabled: () => this.config.getEnableQuery(),
                 onRaw: (payload, address) => this.queryManager.onRaw(payload, address)

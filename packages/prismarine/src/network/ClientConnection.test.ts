@@ -2,15 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
+import type { RakNetTransportConnection } from './transport/RakNetTransport';
 
 describe('network', () => {
     describe('ClientConnection', () => {
-        const fakeConnection = () => new ClientConnection(stub<RakNetSession>(), stub<Logger>());
+        const fakeConnection = () => new ClientConnection(stub<RakNetTransportConnection>(), stub<Logger>());
 
         /**
          * A player whose teardown is `disable`.
