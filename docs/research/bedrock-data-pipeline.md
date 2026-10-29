@@ -10,6 +10,7 @@ Written against this repository at `4b4e86d0d3`: `packages/bedrock-data/sources.
 - One artifact used to be genuinely manual, `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`. It is now the `palette` pass of the same job; `packages/minecraft/datagen/README-palette.md` documents the command.
 - One artifact looks manual and is not quite: `generate-recipes.js` reads an unpacked server off a path, and the path is one `fetch:sources` already produces.
 - The real missing capability is multi-version. `sources.json` pins exactly one Bedrock Dedicated Server; `packages/minecraft/datagen/manifest.json` is already keyed per protocol version.
+- The capture was host-locked to Linux x86-64, which is the only platform Mojang's server runs on. It now falls back to a Linux x86-64 container on hosts that cannot run the binary, and keeps the native path where they can. [Section 9](#9-the-container-runner) has the design and why no image carries the server.
 - Two committed files had no code reference anywhere in `packages/` and had not been touched since the monorepo migration: `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`. Both have since been deleted.
 
 ## 1. The per-artifact table
@@ -34,7 +35,7 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 
 ## 2. What `dump:bedrock` actually does
 
-`utils/bedrock-dump/run.ts` refuses to run anywhere but Linux x86-64, because `sources.json` pins the Linux zip and a partial capture is worse than none. It resolves the unpacked server from `node_modules/.cache/jsprismarine/bds/<version>/unpacked` or from the `JSP_BDS_PATH` override, copies it into a run directory of its own, and never writes into the extracted archive. Then three passes, each a fresh world in that staged server:
+`utils/bedrock-dump/run.ts` runs the pinned binary on the host's own CPU where that works, which is Linux x86-64, and in a Linux x86-64 container anywhere else. [Section 9](#9-the-container-runner) covers that choice. It resolves the unpacked server from `node_modules/.cache/jsprismarine/bds/<version>/unpacked` or from the `JSP_BDS_PATH` override, copies it into a run directory of its own, and never writes into the extracted archive. Then three passes, each a fresh world in that staged server:
 
 1. **`dump`.** `utils/bedrock-dump/pack.ts` writes a behavior pack into the world's `behavior_packs`. The pack walks the Script API registries and prints each row to the content log as `DUMP <table> <json>`; `utils/bedrock-dump/protocol.ts` collects those lines back off stdout and `assertComplete` fails the pass if a table is missing. One JSON file per table lands in `src/jsp/bedrock/`, each carrying a `$comment` saying never to edit it by hand. The log is the transport because the Script API has no file write.
 2. **`refworld`.** Generates the reference region with a fixed seed through ticking areas, stops the server cleanly so the save is written, and `utils/bedrock-dump/world.ts` reduces the LevelDB save to `src/jsp/reference_world.json` — per-chunk hashes plus a few whole sample chunks. This is what `packages/parity/` compares a generator against.
@@ -104,6 +105,35 @@ Nothing here is legal advice. The posture the pipeline already takes:
 - Do not redistribute the zip or the `bedrock_server` binary. Keeping it in gitignored `node_modules/.cache/` is the right place for it, and `run.ts` treats the extracted copy as read-only.
 - `Mojang/bedrock-samples` is "(c) Mojang AB. All rights reserved" under the EULA. It is a build input. Do not vendor it.
 - The goldens this repository commits are derived facts measured from a running server, not copies of Mojang's files. Generating them locally is a safer position than pinning a third party's redistribution of the same data.
+
+## 9. The container runner
+
+Mojang builds the server for Linux x86-64 and Windows x86-64 and nothing else, so the capture was unrunnable on an Apple Silicon or Linux arm64 machine. That is a maintainer-facing limit with a real cost: refreshing a golden or adding a protocol version meant dispatching the CI workflow and waiting, or finding an x86-64 box.
+
+`utils/bedrock-dump/runner.ts` picks between two ways to start the same staged server.
+
+- **Native**, which is what the capture always did: run the staged `bedrock_server` with the run directory as its working directory. Chosen whenever the host is `linux/x64`, so `ubuntu-latest` in `.github/workflows/capture.yml` takes the same path it did before and the job is not slowed by a container it does not need.
+- **Container**, chosen on any other host that has a working container runtime. It mounts the run directory at `/bds` and runs `./bedrock_server` out of the mount.
+
+The choice is made from capabilities rather than from the platform alone. A container CLI on `PATH` is not a runtime, because Docker Desktop leaves a CLI behind that fails every command while its VM is stopped, so the probe runs `version --format {{.Server.Version}}` and only a daemon that answers counts. When neither runner is possible, the error names what to install, what to start, and which variable to set, instead of restating the platform.
+
+### Why no image carries the server
+
+The container mounts the staged copy and runs it; no image this repository builds, caches or pushes contains Mojang's binary. That keeps the posture [section 8](#8-legal-posture) already takes, where the zip lives in gitignored `node_modules/.cache/` and the extracted tree is read-only. A third-party "BDS image" would have been less work and is the wrong trade twice over: it redistributes the server, and it asks the capture to trust a stranger's build of the thing every golden is measured from.
+
+The image is `docker.io/library/ubuntu:24.04`, a stock LTS base with nothing added. The server is dynamically linked against the glibc and libstdc++ of a recent Ubuntu, and the tag is fully qualified so a host with a rewritten default registry resolves the same image. `JSP_BDS_CONTAINER_IMAGE` overrides it when a server version wants a shared object the base lacks.
+
+### Keeping the four passes identical
+
+Every pass drives the server interactively, so the container run is a foreground process rather than a service: `-i` for the stdin the `stop` command goes to, no `-t` because a pty would change how the engine buffers the lines `run.ts` reads, `--rm` and `--init` so it leaves nothing behind, and a `--name` so a CLI killed by a timeout or a Ctrl+C can still have its container force-removed. `docker run` returns the container's exit status, which is what the existing status check reads. The `packets` pass needs its client to reach the server, so the container publishes UDP 19132 and 19133 on `127.0.0.1` only. On a Linux host the container runs as the invoking uid and gid, so the staged world and the save are not left owned by root; elsewhere the runtime maps ownership itself and a uid with no passwd entry inside the image is the larger risk.
+
+The timeouts in section 2 are sized for a native run, so an emulated one multiplies all four by four. Translated instructions are slow enough that the 2400-second reference budget would otherwise expire mid-generation and report a stall that is only emulation.
+
+Everything else in the pipeline already ran on the host and still does. `world.ts` reads the LevelDB save, the palette pass's `extract-block-palette.mjs` and `merge-block-palette.mjs` run under the host's Node, and the output directories are the host's.
+
+### Overrides
+
+`JSP_BDS_RUNNER` takes `auto`, `native` or `container`, with `docker` and `podman` accepted as aliases for `container`; `JSP_BDS_CONTAINER_CLI` names a CLI instead of probing; `JSP_BDS_CONTAINER_IMAGE` names the image; and `JSP_BDS_PATH`, which already existed, points at an unpacked server on either runner. Forcing a runner is for diagnosis, either reproducing a container-only problem on an x86-64 machine or making a host that was expected to run natively fail loudly instead of falling back.
 
 ## Sources
 

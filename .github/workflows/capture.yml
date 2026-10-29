@@ -42,7 +42,9 @@ permissions:
 jobs:
     capture:
         name: 📼 Capture the pinned Bedrock Dedicated Server
-        # The pinned zip is the Linux x86-64 build and the job refuses to run anywhere else.
+        # The pinned zip is the Linux x86-64 build, so this runner starts it directly. Off that
+        # platform the capture falls back to a Linux x86-64 container, which is slower and buys
+        # nothing here; `utils/bedrock-dump/runner.ts` prefers native and so never engages it.
         runs-on: ubuntu-latest
         timeout-minutes: 180
         env:

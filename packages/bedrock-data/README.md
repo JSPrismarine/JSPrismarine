@@ -54,13 +54,14 @@ captured data. Set `JSP_JAVA_SERVER_JAR` to use an existing inner jar, or run
 `pnpm run dump:bedrock` is the other half of the same capture-time task, run on a Bedrock
 version bump and weekly rather than as part of the build. It copies the fetched server into
 `node_modules/.cache/jsprismarine/bds-run/<version>/`, makes the binary executable, turns the
-content log on, and drives three passes over the console, each with a world of its own:
+content log on, and drives four passes over the console, each with a world of its own:
 
-| Pass       | What it does                                                                            | What it writes                                  |
-| ---------- | --------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `dump`     | Runs the dump behavior pack, which walks every Script API registry                        | `src/jsp/bedrock/<table>.json`                  |
-| `refworld` | Generates the reference region through ticking areas, then reduces the saved world        | `src/jsp/reference_world.json`                  |
-| `packets`  | Logs a client in and records what the server sends it                                     | `src/jsp/*.json`, `src/jsp/*.nbt`, `src/jsp/packets/*.bin` |
+| Pass       | What it does                                                                       | What it writes                                                                     |
+| ---------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `dump`     | Runs the dump behavior pack, which walks every Script API registry                 | `src/jsp/v<protocol>/bedrock/<table>.json`                                         |
+| `refworld` | Generates the reference region through ticking areas, then reduces the saved world | `src/jsp/v<protocol>/reference_world.json`                                         |
+| `packets`  | Logs a client in and records what the server sends it                              | `src/jsp/v<protocol>/*.json`, `*.nbt`, `packets/*.bin`                             |
+| `palette`  | Places every block type, then asks the game which values each property takes       | `packages/minecraft/datagen/snapshot/v<protocol>/block-palette.json`               |
 
 Run one pass with `--pass`, and pass `--force` to copy the server again:
 
@@ -68,10 +69,48 @@ Run one pass with `--pass`, and pass `--force` to copy the server again:
 pnpm run dump:bedrock -- --pass refworld
 ```
 
-Mojang publishes the server for Linux x86-64 and Windows and `sources.json` pins the Linux zip,
-so the job refuses to run anywhere else. `.github/workflows/capture.yml` is where it runs for
-real; locally it needs a Linux x86-64 machine, with `JSP_BDS_PATH` pointing at an unpacked
-server for offline work.
+### Where the capture can run
+
+Mojang publishes the server for Linux x86-64 and Windows, and `sources.json` pins the Linux zip.
+On a Linux x86-64 machine `dump:bedrock` starts that binary directly, which is also what
+`.github/workflows/capture.yml` does on its `ubuntu-latest` runner. On any other host, an Apple
+Silicon Mac or a Linux arm64 box, it starts the same staged copy inside a Linux x86-64 container
+instead. You get the same four passes and the same files in the same places; only the thing that
+executes the binary changes.
+
+The container path needs a container runtime whose daemon is running. The capture tries `docker`
+and then `podman`, and it asks each one for its *server* version rather than just looking on your
+`PATH`, because an installed Docker CLI with Docker Desktop stopped is the common case and it
+cannot start anything. If neither answers, the capture stops before it stages anything and tells
+you what to install or start.
+
+Nothing is built or pulled that contains Mojang's binary. The container mounts the run directory
+under `node_modules/.cache/jsprismarine/bds-run/<version>/`, which already holds the copy the
+capture staged from the fetch cache, and runs `./bedrock_server` out of the mount. The image is a
+stock `docker.io/library/ubuntu:24.04`, chosen because the server is dynamically linked against
+the glibc and libstdc++ of a recent Ubuntu and because redistributing the server in an image of
+our own is not something this project does. The server's UDP ports are published on `127.0.0.1`
+only, for the `packets` pass's client, and the container is removed when the run ends or when you
+interrupt it.
+
+On an arm64 host the image is an emulated `linux/amd64` one, running under Rosetta or qemu.
+Expect it to be several times slower than a native run, and `refworld`, already the longest pass,
+to be the one you wait on. The capture prints a warning when it starts under emulation, and it
+multiplies every stage timeout by four so that a slow run reports a stall only when something is
+genuinely stuck.
+
+Four environment variables steer this, alongside the rest of the pipeline's `JSP_*` overrides:
+
+| Variable                   | What it does                                                                                 |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `JSP_BDS_RUNNER`           | `auto` (the default), `native`, or `container`. `docker` and `podman` also select `container`. |
+| `JSP_BDS_CONTAINER_CLI`    | The CLI to use instead of probing for one, for anything that takes `docker run` arguments.     |
+| `JSP_BDS_CONTAINER_IMAGE`  | A different base image, if the stock Ubuntu is missing a shared object your server version wants. |
+| `JSP_BDS_PATH`             | An unpacked server to capture, instead of the fetch cache. Works on either runner.              |
+
+Forcing a runner is for diagnosis. `JSP_BDS_RUNNER=container` on a Linux x86-64 machine is how
+you reproduce a container-only problem, and `JSP_BDS_RUNNER=native` makes the capture fail loudly
+rather than quietly fall back when you expected the host's own CPU to be used.
 
 ### The reference world
 
