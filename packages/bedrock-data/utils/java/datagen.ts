@@ -26,68 +26,35 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 import { hashFile } from '../fetch/hash.ts';
-import { loadSourceDescriptors } from '../fetch/manifest.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
 import { extractJavaStructures } from './extract-structures.ts';
 import { findJdkHome } from './jdk.ts';
+import {
+    cacheRoot,
+    javaServerJarPath,
+    loadJavaServerSource,
+    worldgenCacheComplete,
+    worldgenCachePaths
+} from './worldgen-cache.ts';
 
-const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const cacheRoot = resolve(packageDir, '../../node_modules/.cache/jsprismarine');
 const force = process.argv.includes('--force');
-
-/**
- * Files that prove a previous run finished. Each names a registry a different reader depends on,
- * so a half-written cache fails the check instead of being skipped over.
- */
-const DATAPACK_WITNESSES = [
-    'pack.mcmeta',
-    'data/minecraft/worldgen/noise_settings/overworld.json',
-    'data/minecraft/worldgen/biome/plains.json',
-    'data/minecraft/tags/block/logs.json',
-    'data/minecraft/loot_table/blocks/stone.json'
-];
-const REPORT_WITNESSES = [
-    'reports/blocks.json',
-    'reports/registries.json',
-    'reports/biome_parameters/minecraft/overworld.json'
-];
-
-const hasAll = (root: string, witnesses: readonly string[]): boolean =>
-    witnesses.every((witness) => existsSync(join(root, ...witness.split('/'))));
 
 // ---------------------------------------------------------------------------
 // The pinned jar
 // ---------------------------------------------------------------------------
 
-const descriptors = await loadSourceDescriptors(join(packageDir, 'sources.json'));
-const javaServer = descriptors.find((descriptor) => descriptor.name === 'java-server');
-if (javaServer === undefined) throw new Error('sources.json no longer pins a java-server source');
+const javaServer = await loadJavaServerSource();
 
 const version = javaServer.version;
-const override = process.env[javaServer.envOverride];
-const jarPath =
-    override !== undefined && override !== ''
-        ? override
-        : join(cacheRoot, javaServer.name, version, javaServer.fileName);
+const jarPath = javaServerJarPath(javaServer);
 
-const datapackDir = join(cacheRoot, 'vanilla-datapack', version);
-const reportsDir = join(cacheRoot, 'java-reports', version, 'generated');
-const structuresDir = join(cacheRoot, 'java-structures', version);
-const workDir = join(cacheRoot, 'java-datagen', version);
+const paths = worldgenCachePaths(version);
+const { datapack: datapackDir, reports: reportsDir, structures: structuresDir, work: workDir } = paths;
 
-/** One template every overworld needs, which proves the extraction finished. */
-const STRUCTURE_WITNESSES = ['village/plains/houses/plains_small_house_1.nbt'];
-
-if (
-    hasAll(datapackDir, DATAPACK_WITNESSES) &&
-    hasAll(reportsDir, REPORT_WITNESSES) &&
-    hasAll(structuresDir, STRUCTURE_WITNESSES) &&
-    !force
-) {
+if (worldgenCacheComplete(paths) && !force) {
     console.log(
         `Java ${version} datapack, reports and structure templates are already in ${cacheRoot}; ` +
             'pass --force to regenerate.'
