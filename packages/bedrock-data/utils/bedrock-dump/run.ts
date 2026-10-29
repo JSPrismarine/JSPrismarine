@@ -134,7 +134,12 @@ const capture = async (
         cwd: staged.root,
         onLine: (line) => {
             // Progress, not the rows: those are read off the collected lines afterwards.
-            if (!line.includes('DUMP ') || line.includes('DUMP begin') || line.includes('DUMP end')) {
+            if (
+                !line.includes('DUMP ') ||
+                line.includes('DUMP begin') ||
+                line.includes('DUMP end') ||
+                line.includes('DUMP errors {"table":"reference-tiles"')
+            ) {
                 console.log(`  ${line}`);
             }
         }

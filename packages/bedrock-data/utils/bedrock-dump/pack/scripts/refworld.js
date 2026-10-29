@@ -4,7 +4,9 @@
  * A Bedrock server generates a chunk when something loads it, and on a fresh world with nobody
  * connected nothing does. A ticking area is the handle on that: `createTickingArea` resolves
  * "when all the chunks in the area are loaded and ticking", which is also when the generator has
- * finished with them. The region is wider than one area may cover, so it comes in tiles.
+ * finished with them. The region is wider than one area may cover, so it comes in tiles. The
+ * Script API also limits total ticking chunks per pack, so completed areas must be released when
+ * the next tile would exceed that budget.
  *
  * The chunks reach disk when the server shuts down cleanly, so the job sends `stop` after the
  * last marker rather than killing the process. Nothing here reads the world back; that is
@@ -31,23 +33,32 @@ const emit = (table, value) => {
 
 world.afterEvents.worldLoad.subscribe(async () => {
     const dimension = world.getDimension(DIMENSION);
+    const manager = world.tickingAreaManager;
     console.warn(
         `${PREFIX}begin ${JSON.stringify({
             seed: String(world.seed),
             dimension: DIMENSION,
             tiles: TILES.length,
-            maxTickingChunks: world.tickingAreaManager?.maxChunkCount ?? null
+            maxTickingChunks: manager?.maxChunkCount ?? null
         })}`
     );
 
     for (const tile of TILES) {
         const started = Date.now();
+        const area = {
+            dimension,
+            from: { x: tile.from[0], y: 0, z: tile.from[1] },
+            to: { x: tile.to[0], y: 0, z: tile.to[1] }
+        };
         try {
-            await world.tickingAreaManager.createTickingArea(tile.id, {
-                dimension,
-                from: { x: tile.from[0], y: 0, z: tile.from[1] },
-                to: { x: tile.to[0], y: 0, z: tile.to[1] }
-            });
+            if (!manager.hasCapacity(area)) manager.removeAllTickingAreas();
+            if (!manager.hasCapacity(area)) {
+                throw new Error(
+                    `The ticking area manager's ${manager.maxChunkCount}-chunk budget cannot fit ` +
+                        `tile ${tile.id} (${tile.chunks} chunks).`
+                );
+            }
+            await manager.createTickingArea(tile.id, area);
             emit('reference-tiles', {
                 id: tile.id,
                 chunks: tile.chunks,
