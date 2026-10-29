@@ -12,6 +12,7 @@ import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
+import type { WorldChange } from '../world/WorldChange';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
 import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
@@ -54,6 +55,9 @@ interface BlockEntityChange {
  * many, so one stands for all of them. Never encoded, never sent - only its type name is read.
  */
 const BLOCK_BATCH_LABEL = new UpdateBlockPacket();
+
+/** The pending-map key for a position, which is what makes the last write to it win. */
+const positionKey = (position: Vector3): string => `${position.getX()},${position.getY()},${position.getZ()}`;
 
 /**
  * Turns what happened in one world into packets, and decides who gets them.
@@ -151,14 +155,23 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public blockChanged(position: Vector3, blockRuntimeId: number): void {
-        // Keyed by position, so a block written twice within a tick - which liquid physics does
-        // constantly, and a cascade of falling sand does by nature - travels once, as whatever it
-        // finally settled on.
-        this.pendingBlocks.set(`${position.getX()},${position.getY()},${position.getZ()}`, {
-            position,
-            blockRuntimeId
-        });
+    public worldChanged(change: WorldChange): void {
+        switch (change.kind) {
+            case 'block-set':
+                // Keyed by position, so a block written twice within a tick - which liquid
+                // physics does constantly, and a cascade of falling sand does by nature -
+                // travels once, as whatever it finally settled on.
+                this.pendingBlocks.set(positionKey(change.position), {
+                    position: change.position,
+                    blockRuntimeId: change.blockRuntimeId
+                });
+                return;
+            case 'block-entity-set':
+                this.pendingBlockEntities.set(positionKey(change.position), {
+                    position: change.position,
+                    tags: change.tags
+                });
+        }
     }
 
     /**
@@ -236,11 +249,6 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
 
         return batch.getBuffer();
-    }
-
-    /** @inheritdoc */
-    public blockEntityChanged(position: Vector3, tags: NBTTagCompound): void {
-        this.pendingBlockEntities.set(`${position.getX()},${position.getY()},${position.getZ()}`, { position, tags });
     }
 
     /**

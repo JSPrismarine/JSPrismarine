@@ -187,8 +187,11 @@ const liveWorld = (
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
         namedSound: (_at, name) => void sounds.push(name),
-        blockChanged: (at, runtimeId) =>
-            void changed.push(`${at.getX()},${at.getY()},${at.getZ()} ${BlockRuntimeIds.getState(runtimeId)?.name}`)
+        worldChanged: (change) => {
+            if (change.kind !== 'block-set') return;
+            const { position: at, blockRuntimeId } = change;
+            changed.push(`${at.getX()},${at.getY()},${at.getZ()} ${BlockRuntimeIds.getState(blockRuntimeId)?.name}`);
+        }
     });
     return { world, chunk, sounds, changed, redstoneUpdates };
 };

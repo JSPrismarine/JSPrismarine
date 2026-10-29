@@ -40,8 +40,7 @@ const worldTicking = ({
         };
 
     const sink: WorldChangeSink = {
-        blockChanged: () => calls.push('blockChanged'),
-        blockEntityChanged: () => calls.push('blockEntityChanged'),
+        worldChanged: (change) => calls.push(`worldChanged:${change.kind}`),
         blockSound: () => calls.push('blockSound'),
         namedSound: () => calls.push('namedSound'),
         namedParticle: () => calls.push('namedParticle'),

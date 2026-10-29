@@ -67,7 +67,7 @@ describe('network', () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            replicator.blockEntityChanged(new Vector3(1, 2, 3), signTags());
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
             await replicator.flushBlockEntities();
 
             expect(near.sent).toHaveLength(1);
@@ -82,7 +82,7 @@ describe('network', () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            replicator.blockEntityChanged(new Vector3(1, 2, 3), signTags());
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
 
             // The flush runs after the tick's block changes have gone out. A block entity
             // update that overtook the block update it belongs to would be dropped by the
@@ -97,8 +97,8 @@ describe('network', () => {
             const first = new NBTTagCompound('');
             first.addValue('id', new Types.StringVal('Chest'));
 
-            replicator.blockEntityChanged(new Vector3(1, 2, 3), first);
-            replicator.blockEntityChanged(new Vector3(1, 2, 3), signTags());
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: first });
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
             await replicator.flushBlockEntities();
 
             // The last write wins, and the superseded one costs nothing.
@@ -113,7 +113,7 @@ describe('network', () => {
             const far = playerAt(40 * 16 + 8, 8);
             const replicator = replicatorOver([near.player, far.player]);
 
-            replicator.blockEntityChanged(new Vector3(1, 2, 3), signTags());
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
             await replicator.flushBlockEntities();
 
             expect(near.sent).toHaveLength(1);
@@ -124,7 +124,7 @@ describe('network', () => {
             const near = playerAt(8, 8);
             const replicator = replicatorOver([near.player]);
 
-            replicator.blockEntityChanged(new Vector3(1, 2, 3), signTags());
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(1, 2, 3), tags: signTags() });
             await replicator.flushBlockEntities();
             await replicator.flushBlockEntities();
 
@@ -145,7 +145,7 @@ describe('network', () => {
             tags.addValue('id', new Types.StringVal('Sign'));
             tags.addValue('FrontText', front);
 
-            replicator.blockEntityChanged(new Vector3(-7, 70, 12), tags);
+            replicator.worldChanged({ kind: 'block-entity-set', position: new Vector3(-7, 70, 12), tags });
             await replicator.flushBlockEntities();
 
             near.sent[0]!.encode();

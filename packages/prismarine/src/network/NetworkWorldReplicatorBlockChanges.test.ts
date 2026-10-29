@@ -47,7 +47,7 @@ describe('NetworkWorldReplicator block changes', () => {
         const fireRuntimeId = BlockRuntimeIds.tryGetByState('minecraft:fire', { age: 0 });
         if (fireRuntimeId === null) throw new Error('minecraft:fire age 0 must be in the block palette');
 
-        replicator.blockChanged(new Vector3(8, 64, 8), fireRuntimeId);
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: fireRuntimeId });
         await replicator.flushBlockChanges();
 
         const batch = new BatchPacket(batches[0]!);

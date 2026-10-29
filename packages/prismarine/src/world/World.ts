@@ -1570,7 +1570,7 @@ export class World implements Service {
      * @param {NBTTagCompound} tags - Its complete data, as the chunk would serialize it.
      */
     public blockEntityChanged(position: Vector3, tags: NBTTagCompound): void {
-        this.changes.blockEntityChanged(position, tags);
+        this.changes.worldChanged({ kind: 'block-entity-set', position, tags });
     }
 
     /**
@@ -1612,7 +1612,7 @@ export class World implements Service {
         const runtimeId = this.loadedBlockRuntimeIdAt(x, y, z);
         if (runtimeId === undefined) return;
 
-        this.changes.blockChanged(new Vector3(x, y, z), runtimeId);
+        this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
     }
 
     /**
@@ -1810,7 +1810,7 @@ export class World implements Service {
         const next: SystemBlock = { name: state.name, states: state.properties };
         this.systems.onBlockChanged({ x, y, z }, { name: previous.name, states: previous.properties }, next);
 
-        this.changes.blockChanged(new Vector3(x, y, z), runtimeId);
+        this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
 
         this.blockUpdates.scheduleAround(x, y, z, now, delay);
 

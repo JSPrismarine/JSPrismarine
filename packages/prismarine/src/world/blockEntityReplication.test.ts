@@ -78,7 +78,10 @@ const flatWorld = async () => {
     const reported: { position: Vector3; tags: NBTTagCompound }[] = [];
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
-        blockEntityChanged: (position, tags) => void reported.push({ position, tags })
+        worldChanged: (change) => {
+            if (change.kind !== 'block-entity-set') return;
+            reported.push({ position: change.position, tags: change.tags });
+        }
     });
 
     return { world, reported };

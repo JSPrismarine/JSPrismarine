@@ -1,6 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Player from '../Player';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
@@ -10,6 +9,7 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 // declared next to the packet that carries it, which is why the world has to reach into the
 // network layer for a type it otherwise has no business knowing.
 import type { ActorEvent } from '../network/packet/ActorEventPacket';
+import type { WorldChange } from './WorldChange';
 
 /**
  * Where a world reports what just happened in it.
@@ -32,33 +32,23 @@ import type { ActorEvent } from '../network/packet/ActorEventPacket';
  */
 export interface WorldChangeSink {
     /**
-     * A block is now something other than what it was.
+     * One {@link WorldChange}: the single entry point for the durable changes to the world's
+     * content, where the transient facts below each keep a method of their own.
      *
-     * Recorded rather than sent, and put on the wire once by
-     * {@link WorldChangeSink.flushBlockChanges} - the same treatment {@link entityMoved} gets, and
-     * for the same reason. A flood or a collapse changes thousands of blocks in one tick, and a
-     * packet each is a compression pass each.
-     * @param {Vector3} position - Where the block is.
-     * @param {number} blockRuntimeId - What it is now.
+     * A `block-set` is recorded rather than sent, and put on the wire once by
+     * {@link WorldChangeSink.flushBlockChanges} - the same treatment {@link entityMoved} gets,
+     * and for the same reason. A flood or a collapse changes thousands of blocks in one tick,
+     * and a packet each is a compression pass each.
+     *
+     * A `block-entity-set` covers the changes made after a client already has the chunk, whose
+     * own payload carries the block entities - before it existed they reached nobody at all. It
+     * is recorded too, and put on the wire by {@link WorldChangeSink.flushBlockEntities}, which
+     * runs after {@link WorldChangeSink.flushBlockChanges}. The order is a correctness
+     * guarantee rather than an economy: a client drops a block entity update for a position it
+     * has no block entity at, so the block has to be announced first.
+     * @param {WorldChange} change - What the world now holds.
      */
-    blockChanged(position: Vector3, blockRuntimeId: number): void;
-
-    /**
-     * A block entity's data is not what it was: a sign's text, a chest's contents, a
-     * lectern's page, a flower pot's plant.
-     *
-     * A chunk carries its block entities in its own payload, so this covers the changes made
-     * after a client already has the chunk - which, before it existed, reached nobody at all.
-     *
-     * Recorded rather than sent, and put on the wire by
-     * {@link WorldChangeSink.flushBlockEntities}, which runs after
-     * {@link WorldChangeSink.flushBlockChanges}. The order is a correctness guarantee rather
-     * than an economy: a client drops a block entity update for a position it has no block
-     * entity at, so the block has to be announced first.
-     * @param {Vector3} position - The block the block entity sits in.
-     * @param {NBTTagCompound} tags - Its complete data, as the chunk would serialize it.
-     */
-    blockEntityChanged(position: Vector3, tags: NBTTagCompound): void;
+    worldChanged(change: WorldChange): void;
 
     /**
      * A block made a noise, such as a hit while it is mined.
@@ -162,7 +152,7 @@ export interface WorldChangeSink {
      * nothing did - a mob's equipment was written once, at the spawn, and a villager's trade
      * offer and an enderman's carried block reached no client at all.
      *
-     * Sent rather than recorded, which is the opposite of {@link blockEntityChanged} and right
+     * Sent rather than recorded, which is the opposite of a `block-entity-set` and right
      * for the opposite reason. A batched flush earns its keep where many changes share a tick,
      * and equipment changes a handful of times in a mob's life: the guard that matters is the
      * one in `entity/data/liveBodies.ts`, which drops a write whose bytes match what the body
@@ -234,7 +224,7 @@ export interface WorldChangeSink {
      *
      * Runs after {@link WorldChangeSink.flushBlockChanges} so that a block entity placed and
      * filled in the same tick is announced as a block before it is announced as a block
-     * entity - see {@link WorldChangeSink.blockEntityChanged}.
+     * entity - see {@link WorldChangeSink.worldChanged}.
      * @returns {Promise<void>} Resolves once they are on their way.
      */
     flushBlockEntities(): Promise<void>;
@@ -254,8 +244,7 @@ export interface WorldChangeSink {
  * to place a block.
  */
 export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
-    blockChanged: () => {},
-    blockEntityChanged: () => {},
+    worldChanged: () => {},
     blockSound: () => {},
     namedSound: () => {},
     namedParticle: () => {},
