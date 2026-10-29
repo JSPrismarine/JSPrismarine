@@ -22,10 +22,12 @@
         "",
         "`versions` declares every protocol release this package generates data for, keyed by",
         "network protocol version. Each entry carries the pins and paths that are specific to",
-        "that release; `thresholds`, `enums`, `unmapped` and `rules` are shared policy that",
-        "holds across versions. Generated output lands in `src/generated/v<protocol>/`, and the",
-        "version named by `defaultProtocolVersion` is also re-exported at the unversioned",
-        "`src/generated/` paths so existing imports keep working."
+        "that release; `thresholds`, `enums`, `legacy`, `unmapped` and `rules` are shared policy",
+        "that holds across versions. Generated output lands in `src/generated/v<protocol>/`, and",
+        "the version named by `defaultProtocolVersion` is also re-exported at the unversioned",
+        "`src/generated/` paths so existing imports keep working. The enums `legacy` covers are",
+        "the exception: no release describes them, so they are written once and shared rather",
+        "than copied per version."
     ],
     "defaultProtocolVersion": 2193,
     "versions": {
@@ -230,6 +232,50 @@
         "$comment": "A parser that quietly returns a subset is worse than one that stops. If the document changes shape these fail the run instead of producing a small, plausible diff.",
         "minEnums": 100,
         "minMembersPerEnum": 2
+    },
+    "legacy": {
+        "$comment": [
+            "The enums no release describes, and what is known to be wrong with them.",
+            "",
+            "A JSON schema exists only for a type that some packet field is declared with. The",
+            "enums below travel as plain integers - `LevelEventPacket` declares its `Event Id` as",
+            "an int32 and says nothing more - so no release since Mojang stopped publishing",
+            "`enums.html` after 1.26.40 carries them. Every declared version would otherwise write",
+            "its own copy of the same 1.26.40 answer, differing only in the line that claims where",
+            "it came from, which reads as versioned data and is not.",
+            "",
+            "So the generator writes these once, to `src/generated/unversioned/`, and each",
+            "`v<protocol>/` directory re-exports them. The file says in its own header that it is",
+            "not versioned and that its values are the 1.26.40 ones. An enum is treated this way",
+            "only when every declared version's schema extract reports it absent; the first",
+            "release that describes one makes it versioned again, with no change needed here.",
+            "",
+            "Confirmed 2026-10-29 against the full v1.26.51 and v1.26.60 `metadata.zip` schema",
+            "sets - 1014 files, every enum-typed schema read by member name, not by title - and",
+            "against the repository's branches and the other release asset, `developer_notes.zip`.",
+            "None of the six appears anywhere under any name.",
+            "",
+            "`knownGaps` is where a verified divergence from a current source goes. Each entry is",
+            "rendered into the generated file as a comment so the gap travels with the data. The",
+            "values themselves are never edited to match a third party: this package takes its",
+            "numbers from Mojang, and a third-party table is an oracle that says where to look,",
+            "not a source to copy. An entry here is a defect report, not a correction."
+        ],
+        "dir": "unversioned",
+        "knownGaps": {
+            "LevelEvent": [
+                "Incomplete above 2168. ParticleCreakingHeartTrail = 9816 was added after 1.26.40",
+                "and is not below; Mojang's changelog records four more, SoundPaintingPlace 9817",
+                "through CauldronDyeShulkerBox 9820, added after 1.26.40 and removed again at",
+                "1.26.60, which this dump never saw either way.",
+                "",
+                "ALL_PLAYERS_SLEEPING = 3617, DEPRECATED = 3618 and _9800 = 3619 are the numbers",
+                "the 1.26.40 dump printed, and they are list positions rather than values:",
+                "gophertunnel reads the same three as AllPlayersSleeping = 9800 and",
+                "SleepingPlayers = 9801. Nothing in this repository sends any of the three, and",
+                "guessing which source is right is not something this file may do."
+            ]
+        }
     },
     "enums": {
         "$comment": "Ours on the left, Mojang's on the right. An entry here is a decision that this enum is part of the package's public API; absence is not an oversight, it is a no. The upstream name is not stable across releases - LevelSoundEvent sits under Puv::Legacy at 748 and SharedTypes::Legacy later - which is why the mapping is data and not a convention.",

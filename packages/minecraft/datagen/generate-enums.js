@@ -17,6 +17,13 @@
  * enum it has. `enums.html`, the last HTML dump Mojang published, is the source for the rest:
  * a schema exists only for a type a packet field is declared with, and some of the enums
  * this package exports travel as plain integers.
+ *
+ * An enum *every* declared version falls back to that dump for is not versioned data. Those
+ * are written once, to `src/generated/unversioned/`, with a header saying so and whatever
+ * `manifest.json` records about how they have drifted since 1.26.40; each version directory
+ * re-exports them. Without that, every version writes a copy of one frozen answer and the
+ * `Source:` line is the only thing that differs between them - which looks like data that
+ * was checked against each release, and is not.
  */
 
 import crypto from 'node:crypto';
@@ -143,8 +150,12 @@ export const toIdentifier = (name) => {
  *   Some of these enums travel as a *string* rather than a number - `LevelSoundEventPacket`
  *   names its sound rather than numbering it since 1.21.130 - and the identifier this
  *   generator makes (`ITEM_USE_ON`) is not what goes on the wire (`item.use.on`).
+ *
+ * `notes` are extra header lines. They carry what a reader has to know before trusting the
+ * values - that this enum is not versioned, and which of its members are known to be wrong -
+ * so that the warning lives on the enum rather than in a document beside it.
  */
-const render = (name, mojangName, members, provenance, rules = {}) => {
+const render = (name, mojangName, members, provenance, rules = {}, notes = []) => {
     const { aliases = {}, extras = {}, skip = [], names = false } = rules;
     const seen = new Set();
     const lines = [];
@@ -208,6 +219,7 @@ const render = (name, mojangName, members, provenance, rules = {}) => {
         ' * Generated - do not edit. Change `datagen/manifest.json` and run `pnpm generate`.',
         ` * Source: ${provenance}`,
         ` * Upstream name: ${mojangName}`,
+        ...notes.flatMap((note) => [' *', ...note.split('\n').map((line) => (line === '' ? ' *' : ` * ${line}`))]),
         ' */',
         `export enum ${name} {`,
         ...lines,
@@ -310,27 +322,27 @@ const verify = (enums) => {
 /** The enums the manifest declares public, minus its comment keys. */
 const publicEnums = () => Object.entries(manifest.enums).filter(([name]) => !name.startsWith('$'));
 
-const main = async () => {
-    const compareOnly = process.argv.includes('--compare');
-    const verifyOnly = process.argv.includes('--verify');
+/** Where the enums no release describes are written, relative to `src/generated/`. */
+const UNVERSIONED = manifest.legacy.dir;
 
-    for (const version of versionsOf(manifest, HERE)) {
-        console.log(`Protocol ${version.protocol}${version.isDefault ? ' (default)' : ''}:`);
-        await generateVersion(version, { compareOnly, verifyOnly });
-    }
-};
-
-const generateVersion = async (version, { compareOnly, verifyOnly }) => {
-    const { config, outDir, isDefault } = version;
+/**
+ * Everything one version's two documents have to say, before anything is written.
+ *
+ * Reading every version first is what lets the writing phase tell a per-version enum from
+ * one that is merely the same frozen answer repeated: that is a fact about the whole set,
+ * not about any one version.
+ */
+const readVersion = async (version) => {
+    const { config } = version;
 
     const html = await readSource(version);
-    const legacy = parseEnums(html);
+    const dump = parseEnums(html);
 
     // Fail closed. A document that has changed shape yields fewer enums, and the wrong answer
     // to "how many" is a reason to stop rather than to write a small, plausible diff.
-    if (legacy.size < manifest.thresholds.minEnums) {
+    if (dump.size < manifest.thresholds.minEnums) {
         throw new Error(
-            `Only ${legacy.size} enums parsed, the manifest expects at least ` +
+            `Only ${dump.size} enums parsed, the manifest expects at least ` +
                 `${manifest.thresholds.minEnums}. Refusing to generate from this.`
         );
     }
@@ -341,20 +353,21 @@ const generateVersion = async (version, { compareOnly, verifyOnly }) => {
     // and only for the enums the extract says it looked for and could not find.
     const enums = new Map();
     const provenanceOf = new Map();
+    const fromDump = new Set();
     const schemaProvenance = `${config.schemas.repo} release ${config.schemas.release} (Minecraft ${config.schemas.minecraftVersion}, protocol ${config.schemas.networkProtocolVersion})`;
-    const legacyProvenance = `${config.source.repo}@${config.source.ref} (Minecraft ${config.source.minecraftVersion}, protocol ${config.source.networkProtocolVersion}; no schema in ${config.schemas.release})`;
+    const dumpProvenance = `${config.source.repo}@${config.source.ref} (Minecraft ${config.source.minecraftVersion}, protocol ${config.source.networkProtocolVersion})`;
     for (const [, mojangName] of publicEnums()) {
         if (schemas.enums.has(mojangName)) {
             enums.set(mojangName, schemas.enums.get(mojangName));
             provenanceOf.set(mojangName, schemaProvenance);
-        } else if (schemas.absent.has(mojangName) && legacy.has(mojangName)) {
-            enums.set(mojangName, legacy.get(mojangName));
-            provenanceOf.set(mojangName, legacyProvenance);
+        } else if (schemas.absent.has(mojangName) && dump.has(mojangName)) {
+            enums.set(mojangName, dump.get(mojangName));
+            provenanceOf.set(mojangName, dumpProvenance);
+            fromDump.add(mojangName);
         }
     }
 
-    const wanted = publicEnums();
-    const missing = wanted.filter(([, mojangName]) => !enums.has(mojangName));
+    const missing = publicEnums().filter(([, mojangName]) => !enums.has(mojangName));
     if (missing.length > 0) {
         throw new Error(
             `The manifest asks for enums neither document has: ` +
@@ -362,52 +375,163 @@ const generateVersion = async (version, { compareOnly, verifyOnly }) => {
         );
     }
 
-    if (verifyOnly) return verify(enums);
+    return { version, enums, provenanceOf, fromDump };
+};
 
+/**
+ * The enums that are not versioned data: the ones no declared version has a schema for.
+ *
+ * An enum some version does describe stays per-version, because then a difference between
+ * two versions is a real one. Only an enum every version falls back to the same frozen
+ * 1.26.40 dump for is shared - otherwise each version writes a copy of one answer and the
+ * provenance line is the only thing that varies, which reads as versioned data and is not.
+ *
+ * The members have to match across versions for that claim to hold. They are read from the
+ * same pinned commit, so they will, and a version that pinned a different `enums.html` is
+ * told to stop sharing rather than having one version's copy silently win.
+ */
+const unversionedEnums = (reads) => {
+    const shared = [...reads[0].fromDump].filter((mojangName) => reads.every((read) => read.fromDump.has(mojangName)));
+
+    for (const mojangName of shared) {
+        const [first, ...rest] = reads;
+        const expected = JSON.stringify(first.enums.get(mojangName));
+        for (const read of rest) {
+            if (JSON.stringify(read.enums.get(mojangName)) === expected) continue;
+
+            throw new Error(
+                `${mojangName} has no schema in any declared version, so it is written once - but ` +
+                    `protocol ${read.version.protocol} reads different members for it than ` +
+                    `${first.version.protocol} does. They pin different copies of ` +
+                    `${first.version.config.source.path}; give each version its own copy instead of sharing one.`
+            );
+        }
+    }
+
+    return new Set(shared);
+};
+
+/** The header lines that say an enum is not versioned, and what is known to be wrong with it. */
+const unversionedNotes = (name, reads) => {
+    const { source } = reads[0].version.config;
+    const protocols = reads.map((read) => read.version.protocol);
+    const gap = manifest.legacy.knownGaps?.[name];
+
+    return [
+        [
+            'NOT VERSIONED. No `bedrock-protocol-docs` release describes this enum: a schema',
+            'exists only for a type some packet field is declared with, and this one travels as',
+            `a plain integer. The members below come from the last \`${path.basename(source.path)}\` Mojang`,
+            `published, for Minecraft ${source.minecraftVersion}, and every protocol this package generates`,
+            `reads them unchanged: ${protocols.join(', ')}.`,
+            '',
+            `Treat them as approximate above protocol ${source.networkProtocolVersion}. A member added since then is`,
+            'missing, and a member removed since then is still here. No source this package will',
+            'take numbers from publishes this enum per version, so that is a known gap and not',
+            'something to correct in the generated file.'
+        ].join('\n'),
+        ...(gap ? [`Known to be wrong:\n\n${gap.join('\n')}`] : [])
+    ];
+};
+
+const main = async () => {
+    const compareOnly = process.argv.includes('--compare');
+    const verifyOnly = process.argv.includes('--verify');
+
+    const reads = [];
+    for (const version of versionsOf(manifest, HERE)) reads.push(await readVersion(version));
+
+    if (verifyOnly) {
+        for (const read of reads) {
+            console.log(`Protocol ${read.version.protocol}${read.version.isDefault ? ' (default)' : ''}:`);
+            verify(read.enums);
+        }
+        return;
+    }
+
+    const unversioned = unversionedEnums(reads);
+    writeUnversioned(reads, unversioned, { compareOnly });
+    for (const read of reads) writeVersion(read, unversioned, { compareOnly });
+};
+
+/** One copy of each enum no version describes, under `src/generated/<dir>/`. */
+const writeUnversioned = (reads, unversioned, { compareOnly }) => {
+    const outDir = path.join(SRC_DIR, 'generated', UNVERSIONED);
     if (!compareOnly) fs.mkdirSync(outDir, { recursive: true });
 
-    for (const [name, mojangName] of wanted) {
+    console.log(`Not versioned (${unversioned.size}):`);
+
+    for (const [name, mojangName] of publicEnums()) {
+        if (!unversioned.has(mojangName)) continue;
+
+        const members = reads[0].enums.get(mojangName);
+        const source = render(
+            name,
+            mojangName,
+            members,
+            reads[0].provenanceOf.get(mojangName),
+            (manifest.rules ?? {})[name],
+            unversionedNotes(name, reads)
+        );
+
+        write(path.join(outDir, `${name}.ts`), source, name, members.length, { compareOnly });
+    }
+};
+
+const writeVersion = ({ version, enums, provenanceOf }, unversioned, { compareOnly }) => {
+    const { outDir, isDefault, protocol } = version;
+    if (!compareOnly) fs.mkdirSync(outDir, { recursive: true });
+
+    console.log(`Protocol ${protocol}${isDefault ? ' (default)' : ''}:`);
+
+    for (const [name, mojangName] of publicEnums()) {
         const members = enums.get(mojangName);
         if (members.length < manifest.thresholds.minMembersPerEnum) {
             throw new Error(`${mojangName} has ${members.length} member(s), which is too few to be right.`);
         }
 
-        const source = render(name, mojangName, members, provenanceOf.get(mojangName), (manifest.rules ?? {})[name]);
-        const target = path.join(outDir, `${name}.ts`);
+        // A version directory still answers for every public enum, so nothing has to know
+        // which of them are versioned to import one. The re-export is where it says so.
+        const source = unversioned.has(mojangName)
+            ? reexport(`../${UNVERSIONED}/${name}`, `${name} is not versioned; see generated/${UNVERSIONED}/.`)
+            : render(name, mojangName, members, provenanceOf.get(mojangName), (manifest.rules ?? {})[name]);
 
-        if (compareOnly) {
-            const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
-            const state = existing === null ? 'new' : existing === source ? 'unchanged' : 'CHANGED';
-            console.log(`  ${state.padEnd(9)} ${name}  (${members.length} members)`);
-            continue;
-        }
-
-        fs.writeFileSync(target, source);
-        console.log(`  ${name}  ${members.length} members`);
+        write(path.join(outDir, `${name}.ts`), source, name, members.length, { compareOnly });
     }
 
     // The default version answers the unversioned paths: a one-line re-export per enum keeps
     // every existing `generated/<Name>` import working without duplicating any data.
     if (!compareOnly && isDefault) {
-        for (const [name] of wanted) {
-            fs.writeFileSync(
-                path.join(SRC_DIR, 'generated', `${name}.ts`),
-                [
-                    '// Generated by datagen/generate-enums.js. Do not edit.',
-                    `// Re-exports the default protocol version, ${version.protocol}.`,
-                    `export * from './v${version.protocol}/${name}';`,
-                    ''
-                ].join('\n')
-            );
+        for (const [name, mojangName] of publicEnums()) {
+            const [from, why] = unversioned.has(mojangName)
+                ? [`./${UNVERSIONED}/${name}`, `${name} is not versioned; see generated/${UNVERSIONED}/.`]
+                : [`./v${protocol}/${name}`, `Re-exports the default protocol version, ${protocol}.`];
+
+            fs.writeFileSync(path.join(SRC_DIR, 'generated', `${name}.ts`), reexport(from, why));
         }
-        console.log(`  re-exported ${wanted.length} enum(s) at the unversioned paths`);
+        console.log(`  re-exported ${publicEnums().length} enum(s) at the unversioned paths`);
     }
 
     console.log(
         compareOnly
-            ? `\nCompared ${wanted.length} enum(s) against ${outDir}. Nothing written.`
-            : `\nWrote ${wanted.length} enum(s) to ${outDir}.`
+            ? `\nCompared ${publicEnums().length} enum(s) against ${outDir}. Nothing written.`
+            : `\nWrote ${publicEnums().length} enum(s) to ${outDir}.`
     );
+};
+
+const reexport = (from, why) =>
+    ['// Generated by datagen/generate-enums.js. Do not edit.', `// ${why}`, `export * from '${from}';`, ''].join('\n');
+
+const write = (target, source, name, members, { compareOnly }) => {
+    if (compareOnly) {
+        const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
+        const state = existing === null ? 'new' : existing === source ? 'unchanged' : 'CHANGED';
+        console.log(`  ${state.padEnd(9)} ${name}  (${members} members)`);
+        return;
+    }
+
+    fs.writeFileSync(target, source);
+    console.log(`  ${name}  ${members} members`);
 };
 
 // Only when run, never when imported: `toIdentifier` is exported for tests, and importing it

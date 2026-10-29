@@ -28,6 +28,7 @@ Paths in the first column are relative to `packages/bedrock-data/` unless they s
 | `src/jsp/packets/*.bin` | same, pass `packets`, `--extended` | same | same | yes |
 | `node_modules/.cache/jsprismarine/<source>/<version>/` | `utils/fetch/fetch-sources.ts` | `sources.json` | `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` | yes, prerequisite of everything below it |
 | `packages/minecraft/src/generated/v2193/` enums | `datagen/import-schemas.js` then `generate-enums.js` | pinned `Mojang/bedrock-protocol-docs` release assets named in `datagen/manifest.json` | `pnpm --filter @jsprismarine/minecraft run generate:enums` | yes |
+| `packages/minecraft/src/generated/unversioned/` enums | same | the frozen 1.26.40 `enums.html`, for the six enums no release describes | same | yes |
 | `packages/minecraft/datagen/snapshot/v2193/enums.json`, `enums.html` | `datagen/import-schemas.js` | same release assets | `pnpm --filter @jsprismarine/minecraft run generate:import` | yes |
 | `packages/minecraft/src/generated/v2193/` blocks | `datagen/generate-blocks.js` | `snapshot/v2193/block-palette.json` | `pnpm --filter @jsprismarine/minecraft run generate:blocks` | yes, given the palette |
 | `packages/minecraft/src/generated/v2193/` recipes | `datagen/generate-recipes.js` + `brarchive.js` | an unpacked BDS at `BEDROCK_SERVER` or `recipes.bedrockServer` in `datagen/manifest.json`; reads `behavior_packs/vanilla*/__brarchive/recipes.brarchive` | `pnpm --filter @jsprismarine/minecraft run generate:recipes` | scriptable, but wants a path nothing hands it |
