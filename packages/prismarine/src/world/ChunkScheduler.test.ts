@@ -468,5 +468,83 @@ describe('world', () => {
             expect(await scheduler.tick()).toBe(0);
             expect(delivered).toEqual([]);
         });
+
+        it('close waits for a delivery still generating and never flushes it', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const sender = new ChunkSender();
+            sender.enqueue(0, 0);
+
+            let finish: () => void = () => {};
+            const generation = new Promise<void>((resolve) => {
+                finish = resolve;
+            });
+            let flushed = 0;
+            scheduler.add({
+                sender,
+                deliver: () => generation,
+                flush: async () => {
+                    flushed++;
+                },
+                isConnected: () => true
+            });
+            await scheduler.tick();
+
+            let closed = false;
+            const closing = scheduler.close().then(() => {
+                closed = true;
+            });
+            for (let turn = 0; turn < 4; turn++) await Promise.resolve();
+            const closedBeforeGeneration = closed;
+
+            finish();
+            await closing;
+
+            expect(closedBeforeGeneration).toBe(false);
+            expect(flushed).toBe(0);
+        });
+
+        it('close waits for a flush already dispatching', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const sender = new ChunkSender();
+            sender.enqueue(0, 0);
+
+            let finish: () => void = () => {};
+            const dispatch = new Promise<void>((resolve) => {
+                finish = resolve;
+            });
+            let flushDone = false;
+            scheduler.add({
+                sender,
+                deliver: async () => {},
+                flush: async () => {
+                    await dispatch;
+                    flushDone = true;
+                },
+                isConnected: () => true
+            });
+            // First tick delivers; second starts the flush of what the first produced.
+            await scheduler.tick();
+            for (let turn = 0; turn < 4; turn++) await Promise.resolve();
+            await scheduler.tick();
+
+            const closing = scheduler.close();
+            finish();
+            await closing;
+
+            expect(flushDone).toBe(true);
+        });
+
+        it('serves a player added after close, so a reload starts clean', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 2);
+            const before = fakeRecipient([[0, 0]]);
+            scheduler.add(before.recipient);
+            await scheduler.close();
+
+            const after = fakeRecipient([[1, 1]]);
+            scheduler.add(after.recipient);
+            expect(await scheduler.tick()).toBe(1);
+            expect(after.delivered).toEqual([[1, 1]]);
+            expect(before.delivered).toEqual([]);
+        });
     });
 });

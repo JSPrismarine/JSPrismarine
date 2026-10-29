@@ -69,6 +69,12 @@ export class ChunkScheduler {
     /** Recipients whose current batch flush is still in progress. */
     private readonly flushing = new Set<ChunkRecipient>();
 
+    /**
+     * Flushes still dispatching, kept apart from {@link inFlight} because that set's size is
+     * the delivery depth gate and a flush must not eat into it. Only {@link close} reads this.
+     */
+    private readonly flushTasks = new Set<Promise<void>>();
+
     public constructor(
         private budgetMs: number = DEFAULT_BUDGET_MS,
         private readonly onFailure: ChunkFailureHandler = () => {},
@@ -185,10 +191,30 @@ export class ChunkScheduler {
             }
         };
 
-        void flush().finally(() => {
+        const task = flush().finally(() => {
+            this.flushTasks.delete(task);
             this.flushing.delete(recipient);
             if (this.readyToFlush.has(recipient)) this.flushRecipient(recipient);
         });
+        this.flushTasks.add(task);
+    }
+
+    /**
+     * Drops every recipient and waits for the background work already started.
+     *
+     * For shutdown, before the worlds close: a delivery is a chunk still generating, and one
+     * left running would land in a world mid-teardown. Dropping the recipients first means a
+     * delivery that completes while this waits finds nobody to flush to. The scheduler stays
+     * usable afterwards - `reload()` disables and re-enables the same server instance.
+     */
+    public async close(): Promise<void> {
+        this.recipients.clear();
+        this.readyToFlush.clear();
+
+        // A delivery's `finally` may start one last flush, so drain until both sets stay empty.
+        while (this.inFlight.size > 0 || this.flushTasks.size > 0) {
+            await Promise.allSettled([...this.inFlight, ...this.flushTasks]);
+        }
     }
 }
 
