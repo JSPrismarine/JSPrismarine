@@ -31,6 +31,7 @@ The first nine notes, written 2026-10-24, asked how a Bedrock server becomes dat
 
 - [packet-codec-enforcement.md](packet-codec-enforcement.md): existing one-way packet codecs, enforcement options, and a fingerprinted legacy baseline.
 - [protocol-2225-delta.md](protocol-2225-delta.md): everything that changed on the wire between protocol 2193 and 2225 (Minecraft 1.26.60), verified against Mojang's release schemas and gophertunnel, with what `Codec2225` implements and what is still inherited from 2193.
+- [packet-versioning-architectures.md](packet-versioning-architectures.md): how to carry more protocol versions without transform chains or class sprawl, a taxonomy of real wire deltas, four candidate architectures compared against prior art, and the recommendation to keep the delta codec with a written pruning policy.
 - [prior-art-data-driven-servers.md](prior-art-data-driven-servers.md): how seventeen servers, engines and data projects model blocks, items and entities as data plus code, load packs and verify parity, with a pattern recommendation and reusable pieces.
 - [engine-behavior-inventory.md](engine-behavior-inventory.md): the behaviors a server must implement for 1463 blocks, 1623 items, 129 entities and the world, grouped into families with sizing.
 - [extraction-and-parity-verification.md](extraction-and-parity-verification.md): what the Script API and Endstone DevTools can dump, the extended packet capture, reference worlds, the parity test suite and caching.
