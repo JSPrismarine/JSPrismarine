@@ -1,7 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
-import type { Metadata } from '../../entity/Metadata';
-import type { Item } from '../../item/Item';
-import Identifiers from '../Identifiers';
+import { Metadata } from '../../entity/Metadata';
+import { Item } from '../../item/Item';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -21,8 +20,6 @@ import DataPacket from './DataPacket';
  * | Is From Fishing | boolean | |
  */
 export default class AddItemActorPacket extends DataPacket {
-    public static NetID = Identifiers.AddItemActorPacket;
-
     /** Zero means the item has no unique id of its own and goes out under its runtime id. */
     public uniqueEntityId = 0n;
     public runtimeEntityId!: bigint;
@@ -46,5 +43,21 @@ export default class AddItemActorPacket extends DataPacket {
         this.metadata.networkSerialize(this);
 
         this.writeBoolean(this.isFromFishing);
+    }
+
+    /** Reads the seven fields back, the mirror of {@link encodePayload}. */
+    public decodePayload(): void {
+        this.uniqueEntityId = this.readVarLong();
+        this.runtimeEntityId = this.readUnsignedVarLong();
+
+        this.item = Item.networkDeserialize(this);
+
+        this.position = NetworkUtil.readVector3(this);
+        this.motion = NetworkUtil.readVector3(this);
+
+        this.metadata = new Metadata(false);
+        this.metadata.networkDeserialize(this);
+
+        this.isFromFishing = this.readBoolean();
     }
 }
