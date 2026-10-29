@@ -141,7 +141,7 @@ describe('Server', () => {
         }
     });
 
-    it('refreshes the process title every five seconds', async () => {
+    it('refreshes the process title every five seconds', { tags: ['performance'] }, async () => {
         const descriptor = Object.getOwnPropertyDescriptor(process, 'title');
         if (descriptor === undefined) throw new Error('process.title has no property descriptor');
         let title = process.title;
