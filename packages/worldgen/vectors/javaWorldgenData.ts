@@ -114,7 +114,7 @@ export const loadVanillaWorldgenData = (): VanillaWorldgenData | undefined => {
     if (!jar) {
         throw new Error(
             'The pinned Java server jar is not unpacked. Run ' +
-                '`pnpm --filter @jsprismarine/bedrock-data run dump:java` or point JSP_JAVA_SERVER_JAR at one.'
+                '`pnpm --filter @jsprismarine/bedrock-data run ensure:java-server` or point JSP_JAVA_SERVER_JAR at one.'
         );
     }
 

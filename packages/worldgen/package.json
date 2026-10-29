@@ -40,9 +40,9 @@
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
-        "test": "vitest run",
+        "test": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
-        "vectors": "node utils/oracle/run.mjs"
+        "vectors": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && node utils/oracle/run.mjs"
     },
     "repository": {
         "type": "git",

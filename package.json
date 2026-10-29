@@ -21,7 +21,7 @@
         "build:docs": "pnpm --filter @jsprismarine/docs run docs",
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
-        "test": "vitest run --coverage",
+        "test": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && vitest run --coverage",
         "typecheck": "turbo run typecheck && tsc-ts -p tsconfig.scripts.json",
         "lint": "concurrently --prefix '{name}' pnpm:lint:prettier pnpm:lint:biome pnpm:lint:custom",
         "lint:prettier": "prettier --check .",

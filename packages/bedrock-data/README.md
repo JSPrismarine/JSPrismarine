@@ -41,6 +41,12 @@ for 26.3); the script finds one through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macO
 counts measured in `docs/research/java-code-only-behavior.md`; a version bump updates those
 counts with the goldens.
 
+The root test command and `@jsprismarine/worldgen` test and vector commands prepare the inner
+server jar automatically. They download and verify the pinned outer jar, then cache its inner
+server jar under `node_modules/.cache/jsprismarine/java/`. This step does not run Java or change
+captured data. Set `JSP_JAVA_SERVER_JAR` to use an existing inner jar, or run
+`pnpm --filter @jsprismarine/bedrock-data run ensure:java-server` to prepare it separately.
+
 ## Refreshing the Bedrock captures
 
 `pnpm run dump:bedrock` is the other half of the same capture-time task, run on a Bedrock

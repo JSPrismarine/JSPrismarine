@@ -36,8 +36,8 @@ those and compare exactly, not within a tolerance. What matches today:
 | All six aquifer functions, the three dimensions that have them | 6 positions each | exact |
 | Overworld chunk columns with aquifers applied | 9 columns, 384 blocks each | exact |
 
-Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`, which needs the
-pinned jar (`pnpm --filter @jsprismarine/bedrock-data run dump:java`) and a JDK 25 or newer.
+Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`. The command prepares
+the pinned jar automatically and needs a JDK 25 or newer to compile and run the Java oracle.
 
 26.3 computes the whole density and noise stack in single precision. This package rounds through
 `Math.fround` at every point Java narrows a value, which is why the comparisons above are exact
@@ -234,7 +234,7 @@ names say so. Everything above compares against Java Edition, where exact equali
 beside it, run the same way:
 
 ```sh
-pnpm --filter @jsprismarine/bedrock-data run dump:java
+pnpm --filter @jsprismarine/bedrock-data run ensure:java-server
 JAR=node_modules/.cache/jsprismarine/java/26.3/extracted/META-INF/versions/26.3/server-26.3.jar
 javac -cp "$JAR:node_modules/.cache/jsprismarine/java/26.3/libraries/*" \
   -d /tmp/surface-dumper packages/worldgen/utils/oracle/DumpSurfaceVectors.java
