@@ -174,6 +174,45 @@ describe('network', () => {
                     })
                 );
             });
+
+            it('round-trips ids, movement, attributes, metadata and links', () => {
+                const pk = buildPacket();
+                pk.uniqueEntityId = -1n;
+                pk.metadata.setPropertyValue(MetadataFlag.COLOR, FlagType.BYTE, 7);
+                pk.syncedProperties.intProps.push({ index: 1, value: -4 });
+                pk.links = [
+                    {
+                        targetA: 2n,
+                        targetB: 9n,
+                        type: ActorLinkType.Riding,
+                        immediate: true,
+                        passengerInitiated: false,
+                        vehicleAngularVelocity: 0.5
+                    }
+                ];
+                pk.encode();
+
+                const decoded = new AddActorPacket(pk.getBuffer());
+                decoded.decode();
+
+                expect(decoded.uniqueEntityId).toBe(-1n);
+                expect(decoded.runtimeEntityId).toBe(2n);
+                expect(decoded.type).toBe('minecraft:pig');
+                expect(decoded.position).toEqual(new Vector3(1, 2, 3));
+                expect(decoded.motion).toEqual(new Vector3(0, 0, 0));
+                expect(decoded.pitch).toBe(10);
+                expect(decoded.yaw).toBe(20);
+                expect(decoded.headYaw).toBe(30);
+
+                expect(decoded.attributes).toHaveLength(1);
+                expect(decoded.attributes[0]!.getName()).toBe(AttributeIds.Health);
+                expect(decoded.attributes[0]!.getValue()).toBe(10);
+
+                expect(decoded.metadata.getData()).toEqual(pk.metadata.getData());
+                expect(decoded.syncedProperties.intProps).toEqual([{ index: 1, value: -4 }]);
+                expect(decoded.links).toEqual(pk.links);
+                expect(decoded.feof()).toBe(true);
+            });
         });
     });
 });

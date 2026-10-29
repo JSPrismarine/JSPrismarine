@@ -1,8 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
-import type { Attribute } from '../../entity/Attribute';
-import type { Metadata } from '../../entity/Metadata';
+import { Attribute } from '../../entity/Attribute';
+import { Metadata } from '../../entity/Metadata';
 import { SyncedProperties } from '../type/SyncedProperties';
-import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
@@ -33,6 +32,10 @@ export interface ActorLink {
     vehicleAngularVelocity: number;
 }
 
+/** Whether a link's `Type` byte names one of the {@link ActorLinkType} values. */
+const isActorLinkType = (value: number): value is ActorLink['type'] =>
+    value === ActorLinkType.None || value === ActorLinkType.Riding || value === ActorLinkType.Passenger;
+
 /**
  * Spawns an entity other than a player on the client.
  *
@@ -54,8 +57,6 @@ export interface ActorLink {
  * | Actor Links | ActorLink[] | varuint32 count, then each {@link ActorLink} |
  */
 export default class AddActorPacket extends DataPacket {
-    public static NetID = Identifiers.AddActorPacket;
-
     /** Zero means the entity has no unique id of its own and goes out under its runtime id. */
     public uniqueEntityId = 0n;
     public runtimeEntityId!: bigint;
@@ -110,6 +111,58 @@ export default class AddActorPacket extends DataPacket {
             this.writeBoolean(link.immediate);
             this.writeBoolean(link.passengerInitiated);
             this.writeFloatLE(link.vehicleAngularVelocity);
+        }
+    }
+
+    /**
+     * Reads the 2193 layout back, the mirror of {@link encodePayload}.
+     *
+     * The Y Body Rotation is read past rather than kept: the server tracks no body yaw of
+     * its own, and the encoder writes `yaw` there.
+     * @throws {Error} when a link's `Type` byte is not an {@link ActorLinkType}.
+     */
+    public decodePayload(): void {
+        this.uniqueEntityId = this.readVarLong();
+        this.runtimeEntityId = this.readUnsignedVarLong();
+
+        this.type = NetworkUtil.readString(this);
+
+        this.position = NetworkUtil.readVector3(this);
+        this.motion = NetworkUtil.readVector3(this);
+
+        this.pitch = this.readFloatLE();
+        this.yaw = this.readFloatLE();
+        this.headYaw = this.readFloatLE();
+        this.readFloatLE(); // Y Body Rotation, written from yaw.
+
+        this.attributes = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            this.attributes.push(Attribute.networkDeserializeInitial(this));
+        }
+
+        this.metadata = new Metadata(false);
+        this.metadata.networkDeserialize(this);
+
+        this.syncedProperties = SyncedProperties.networkDeserialize(this);
+
+        this.links = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const targetA = this.readVarLong();
+            const targetB = this.readVarLong();
+
+            const type = this.readByte();
+            if (!isActorLinkType(type)) {
+                throw new Error(`Actor link ${targetA} -> ${targetB} carries unknown link type ${type}`);
+            }
+
+            this.links.push({
+                targetA,
+                targetB,
+                type,
+                immediate: this.readBoolean(),
+                passengerInitiated: this.readBoolean(),
+                vehicleAngularVelocity: this.readFloatLE()
+            });
         }
     }
 }

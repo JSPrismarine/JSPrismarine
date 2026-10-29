@@ -1,5 +1,4 @@
 {
-    "packages/prismarine/src/network/packet/AddActorPacket.ts": "b27cfccd2e6db82a1be9c8ece6db736cc06478af221afc1108e9d8c7dfd2d192",
     "packages/prismarine/src/network/packet/AddItemActorPacket.ts": "103de6a98d6c22f97e8498a99d7062d74692e328976dee093a6bede3496720ea",
     "packages/prismarine/src/network/packet/AddPlayerPacket.ts": "0a228d48de78b653379f8dbc7e6e669c7b44a3caca7de2b7bf456802e0e8575d",
     "packages/prismarine/src/network/packet/AvailableCommandsPacket.ts": "4d74334050134b74b0b47622b4c9f599e9642906f5aeaf0d042c884cea29e430",
