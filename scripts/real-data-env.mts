@@ -27,7 +27,8 @@ const cacheRoot = path.join(repoRoot, 'node_modules/.cache/jsprismarine');
 
 /** The pins this script reads. `packages/bedrock-data/sources.json` is the manifest. */
 interface Sources {
-    bds: { version: string };
+    /** Pinned per Bedrock protocol version; the cache segment is `v<protocol>`. */
+    bds: { defaultProtocolVersion: number };
     bedrockSamples: { tag: string };
     javaServer: { version: string };
     geyserMappings: { commit: string };
@@ -51,6 +52,9 @@ const readSources = (): Sources => {
 
 const sources = readSources();
 
+/** The cache directory holding the default protocol version's unpacked server. */
+const bdsUnpacked = path.join(cacheRoot, 'bds', `v${sources.bds.defaultProtocolVersion}`, 'unpacked');
+
 const FETCH = 'pnpm --filter @jsprismarine/bedrock-data run fetch:sources';
 const DATAGEN = 'pnpm --filter @jsprismarine/bedrock-data run datagen:java';
 const DUMP = 'pnpm --filter @jsprismarine/bedrock-data run dump:java';
@@ -66,12 +70,12 @@ const DUMP = 'pnpm --filter @jsprismarine/bedrock-data run dump:java';
  * the member rather than falling back to the cache.
  */
 const paths: RequiredPath[] = [
-    { name: 'JSP_BDS_PATH', value: path.join(cacheRoot, 'bds', sources.bds.version, 'unpacked'), filledBy: FETCH },
+    { name: 'JSP_BDS_PATH', value: bdsUnpacked, filledBy: FETCH },
     {
         // `packages/prismarine/src/content/packStack.ts` reads this as the folder of BDS vanilla
         // layers, and composes the content stack out of whichever of them are named `vanilla`.
         name: 'JSP_VANILLA_BEHAVIOR_PACK',
-        value: path.join(cacheRoot, 'bds', sources.bds.version, 'unpacked', 'behavior_packs'),
+        value: path.join(bdsUnpacked, 'behavior_packs'),
         filledBy: FETCH
     },
     {

@@ -1,6 +1,6 @@
 {
-    "bds": {
-        "version": "1.26.51.1",
+    "bds/v2193": {
+        "version": "v2193",
         "entries": {
             "allowlist.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
             "bedrock_server": "e93e739f373a84edfff7c9cd76fcb090c2176744b412e1143f1b38e91a49bed4",
@@ -32,22 +32,28 @@
             "version.json": "87d10cc94dad2eb95aba526812739a4136b2be46efc5b6bf0ee2aef4bedb2d13"
         }
     },
-    "java-server": {
-        "version": "26.3",
+    "cloudburst-data/v2193": {
+        "version": "v2193",
         "entries": {
-            "server.jar": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64"
+            "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+            "biome_definitions.json": "58f979d56c93d3dfadc01a35050968063b3ce2cd5fd14ee79c159fb3b78e8b69",
+            "blocks.json": "8291ff5229f56a4a47196a202308ca9fa324e1c81f3cff6be4c2d5d2dad34983",
+            "creative_items.json": "ebbb851dbaa18bbf89f0a1b3e0c4e2b0f6f47bd631076f60552b3eec2d2fa832",
+            "entity_identifiers.dat": "152a67ea826b1dba79040a61a91d256a04bc558eff9275341223b8d28505b782",
+            "item_components.nbt": "d7ae67c058b995f1e8baaa4177e0f8155d77e5a8b6742c5cfec6ca8332ae7674",
+            "runtime_item_states.json": "240b17a148e277afc114ba9030b92e2903c957c47b1f2970d50ae3683ac6ff11"
         }
     },
-    "vanilla-mcdoc": {
-        "version": "425ed21ad8cf5fceef19904e4973118c55b4d2bf",
+    "cloudburst-data/v2225": {
+        "version": "v2225",
         "entries": {
-            ".github": "96cbe93308f8f8c5fbc2443e00aa78680251d54c4e621347cdd958bc4a178127",
-            ".gitignore": "7e951e1fe34e488e6a9388f0646898ba9e977039a4c0c0be8693bd6e30893659",
-            ".vscode": "cf7814e0936d3e9da6d613c49b997ad1702a852ddb05150dbd5d00c123a5167f",
-            "LICENSE": "9e1f65b99367f79c6b9c263082a02041431ffb12e2bba74b3b89f63f6e3d9ebd",
-            "README.md": "c8efa9d3c43abeae2e091507816b4a665984753251e5b4b93893544eeb8bfa73",
-            "java": "5b3d173ca8a317cf9e8d5787f057ec4f7747a69a23c9ec39cc03d8367c5dbff3",
-            "spyglass.json": "6df4b9c63122b246909cd24f1f58f057421d979936095b95f7fc6f2e19a58fcf"
+            "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+            "biome_definitions.json": "58f979d56c93d3dfadc01a35050968063b3ce2cd5fd14ee79c159fb3b78e8b69",
+            "blocks.json": "559c723407303f4adc03dc76048a5a02000a26feed787623ba6112b94c986064",
+            "creative_items.json": "2e45424df8c1b0f6bd7dadc62f96eecb503059e1d09caee663638356103ddc19",
+            "entity_identifiers.dat": "5f01f36caa4ea927e62a544b9e887415bdc43c3d4a7a3e994299871d589036bb",
+            "item_components.nbt": "4af00111861dfb90a03e087053e8b6d9d3e581efe51ca75daad03d31fbff5717",
+            "runtime_item_states.json": "1dca3a7482201b7c2609cd2b03fa96c7406ed14af79b27e3e5ea8ce540df68ec"
         }
     },
     "geyser-mappings": {
@@ -72,28 +78,22 @@
             "util.json": "0f7dde5bbfa2ce4519cf585caa463a3628446a8d97f31bbea8451dfe385cf3eb"
         }
     },
-    "cloudburst-data/v2193": {
-        "version": "v2193",
+    "java-server": {
+        "version": "26.3",
         "entries": {
-            "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
-            "biome_definitions.json": "58f979d56c93d3dfadc01a35050968063b3ce2cd5fd14ee79c159fb3b78e8b69",
-            "blocks.json": "8291ff5229f56a4a47196a202308ca9fa324e1c81f3cff6be4c2d5d2dad34983",
-            "creative_items.json": "ebbb851dbaa18bbf89f0a1b3e0c4e2b0f6f47bd631076f60552b3eec2d2fa832",
-            "entity_identifiers.dat": "152a67ea826b1dba79040a61a91d256a04bc558eff9275341223b8d28505b782",
-            "item_components.nbt": "d7ae67c058b995f1e8baaa4177e0f8155d77e5a8b6742c5cfec6ca8332ae7674",
-            "runtime_item_states.json": "240b17a148e277afc114ba9030b92e2903c957c47b1f2970d50ae3683ac6ff11"
+            "server.jar": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64"
         }
     },
-    "cloudburst-data/v2225": {
-        "version": "v2225",
+    "vanilla-mcdoc": {
+        "version": "425ed21ad8cf5fceef19904e4973118c55b4d2bf",
         "entries": {
-            "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
-            "biome_definitions.json": "58f979d56c93d3dfadc01a35050968063b3ce2cd5fd14ee79c159fb3b78e8b69",
-            "blocks.json": "559c723407303f4adc03dc76048a5a02000a26feed787623ba6112b94c986064",
-            "creative_items.json": "2e45424df8c1b0f6bd7dadc62f96eecb503059e1d09caee663638356103ddc19",
-            "entity_identifiers.dat": "5f01f36caa4ea927e62a544b9e887415bdc43c3d4a7a3e994299871d589036bb",
-            "item_components.nbt": "4af00111861dfb90a03e087053e8b6d9d3e581efe51ca75daad03d31fbff5717",
-            "runtime_item_states.json": "1dca3a7482201b7c2609cd2b03fa96c7406ed14af79b27e3e5ea8ce540df68ec"
+            ".github": "96cbe93308f8f8c5fbc2443e00aa78680251d54c4e621347cdd958bc4a178127",
+            ".gitignore": "7e951e1fe34e488e6a9388f0646898ba9e977039a4c0c0be8693bd6e30893659",
+            ".vscode": "cf7814e0936d3e9da6d613c49b997ad1702a852ddb05150dbd5d00c123a5167f",
+            "LICENSE": "9e1f65b99367f79c6b9c263082a02041431ffb12e2bba74b3b89f63f6e3d9ebd",
+            "README.md": "c8efa9d3c43abeae2e091507816b4a665984753251e5b4b93893544eeb8bfa73",
+            "java": "5b3d173ca8a317cf9e8d5787f057ec4f7747a69a23c9ec39cc03d8367c5dbff3",
+            "spyglass.json": "6df4b9c63122b246909cd24f1f58f057421d979936095b95f7fc6f2e19a58fcf"
         }
     }
 }

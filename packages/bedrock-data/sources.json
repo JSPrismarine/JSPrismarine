@@ -22,14 +22,45 @@
         "$comment": [
             "The Linux Bedrock Dedicated Server zip, the only publication with features, feature",
             "rules, structures and worldgen. The CDN resets connections from curl's default",
-            "User-Agent, so the fetcher sends a browser one. Mojang publishes no checksum beyond",
-            "a content-md5 header; the sha256 was measured on download and matches the research",
-            "note and the Bedrock-OSS/BDS-Versions sha1 cross-check."
+            "User-Agent, so the fetcher sends a browser one.",
+            "",
+            "Pinned per Bedrock protocol version, the same shape as `cloudburstData` below, so a",
+            "capture can target a version without editing this file. Each entry caches under",
+            "`node_modules/.cache/jsprismarine/bds/v<protocol>/`, so several versions coexist.",
+            "`--protocol <n>` on `fetch:sources` and `dump:bedrock` selects one and",
+            "`defaultProtocolVersion` is used when nothing asks. Unlike the 1.2 MB",
+            "CloudburstMC/Data archives, these are ~95 MB each, so `fetch:sources` downloads only",
+            "the selected version rather than every pinned one.",
+            "",
+            "Mojang publishes no checksum beyond a content-md5 header, so each `sha256` was",
+            "measured on download. Each `sha1` is Mojang's build hash as recorded by",
+            "Bedrock-OSS/BDS-Versions, kept as an independent cross-check of the measured sha256;",
+            "both were confirmed to match on 2026-10-29. Mojang makes no retention promise for",
+            "older builds: if a download starts failing, the pin has been pulled rather than",
+            "corrupted.",
+            "",
+            "`minecraftVersion` is the game version the protocol belongs to; `serverVersion` is",
+            "the BDS build number, which carries an extra component and moves independently."
         ],
-        "version": "1.26.51.1",
-        "url": "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.26.51.1.zip",
-        "sha256": "ad91d3b824e51ea50b5bb601c295cbd8f543a29b14315c2ad89ff27311e2d860",
-        "sizeInBytes": 94926669
+        "defaultProtocolVersion": 2193,
+        "versions": {
+            "2193": {
+                "minecraftVersion": "1.26.51",
+                "serverVersion": "1.26.51.1",
+                "url": "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.26.51.1.zip",
+                "sha1": "0610779dc0b8461736fc3aff74d72e53fe8c37e2",
+                "sha256": "ad91d3b824e51ea50b5bb601c295cbd8f543a29b14315c2ad89ff27311e2d860",
+                "sizeInBytes": 94926669
+            },
+            "2225": {
+                "minecraftVersion": "1.26.60",
+                "serverVersion": "1.26.60.6",
+                "url": "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.26.60.6.zip",
+                "sha1": "9a4e462342d393af7f990205e932de4a64936c7c",
+                "sha256": "cbbd5414fa6a310353ed1fc76a0ba691c3fd1ea852fd04bb76764ee4c1afdb98",
+                "sizeInBytes": 98094690
+            }
+        }
     },
     "bedrockSamples": {
         "$comment": [

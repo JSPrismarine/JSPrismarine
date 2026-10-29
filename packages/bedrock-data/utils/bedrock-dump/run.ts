@@ -19,7 +19,12 @@
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
  * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass refworld
+ * pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --protocol 2225
  * ```
+ *
+ * `sources.json` pins one server per Bedrock protocol version. `--protocol <n>` captures a
+ * version other than its `defaultProtocolVersion`; the server for that version has to be in
+ * the cache already, which `fetch:sources --protocol <n>` puts there.
  *
  * Mojang publishes the server for Linux x86-64 and Windows, and `sources.json` pins the Linux
  * zip, so the job runs on Linux and refuses anywhere else rather than producing half a capture.
@@ -34,7 +39,7 @@ import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
-import { loadSourceDescriptors } from '../fetch/manifest.ts';
+import { bdsDescriptor, loadBdsData, selectBdsVersion } from '../fetch/manifest.ts';
 import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { REFERENCE_DIMENSION, REFERENCE_SEED } from './region.ts';
@@ -63,6 +68,8 @@ const { values } = parseArgs({
         pass: { type: 'string', multiple: true },
         /** Copy the server archive again even when the run directory already holds one. */
         force: { type: 'boolean', default: false },
+        /** Which pinned server to capture. Defaults to the manifest's `defaultProtocolVersion`. */
+        protocol: { type: 'string' },
         /** Where the capture writes. Defaults to the package's `src/jsp`. */
         out: { type: 'string', default: jspDirectory }
     }
@@ -97,9 +104,12 @@ if (process.platform !== 'linux' || process.arch !== 'x64') {
     );
 }
 
-const descriptors = await loadSourceDescriptors(join(packageDirectory, 'sources.json'));
-const bds = descriptors.find((descriptor) => descriptor.name === 'bds');
-if (bds === undefined) throw new Error('sources.json no longer pins a bds source');
+const bdsData = await loadBdsData(join(packageDirectory, 'sources.json'));
+const requestedProtocol = values.protocol === undefined ? undefined : Number(values.protocol);
+if (requestedProtocol !== undefined && !Number.isInteger(requestedProtocol))
+    throw new Error('--protocol needs a Bedrock protocol version, such as --protocol 2193');
+const { protocolVersion, version: pinnedServer } = selectBdsVersion(bdsData, requestedProtocol);
+const bds = bdsDescriptor(bdsData, protocolVersion);
 
 const override = process.env[bds.envOverride];
 const unpacked =
@@ -108,8 +118,9 @@ const unpacked =
 if (!existsSync(join(unpacked, 'bedrock_server'))) {
     throw new Error(
         `${unpacked} holds no bedrock_server. Run ` +
-            '`pnpm --filter @jsprismarine/bedrock-data run fetch:sources` first, or set ' +
-            `${bds.envOverride} to an unpacked server of version ${bds.version}.`
+            '`pnpm --filter @jsprismarine/bedrock-data run fetch:sources ' +
+            `--protocol ${protocolVersion}\` first, or set ` +
+            `${bds.envOverride} to an unpacked server of version ${pinnedServer.serverVersion}.`
     );
 }
 
@@ -180,7 +191,7 @@ const runDumpPass = async (): Promise<void> => {
                 'reported it. Written by `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock`',
                 'from the Script API of the pinned Bedrock Dedicated Server; never edit by hand.'
             ],
-            minecraftVersion: bds.version,
+            minecraftVersion: pinnedServer.serverVersion,
             rows
         });
     }
@@ -218,7 +229,7 @@ const runReferenceWorldPass = async (): Promise<void> => {
     assertComplete(collectDumpTables(lines));
 
     const golden = await readReferenceWorld(join(staged.worldDirectory, 'db'), {
-        minecraftVersion: bds.version,
+        minecraftVersion: pinnedServer.serverVersion,
         seed: REFERENCE_SEED,
         dimension: REFERENCE_DIMENSION
     });
@@ -262,7 +273,7 @@ const runPacketPass = async (): Promise<void> => {
                 '--extended',
                 join(outDirectory, 'packets'),
                 '--server',
-                `bedrock-server-${bds.version}`
+                `bedrock-server-${pinnedServer.serverVersion}`
             ],
             { cwd: repositoryRoot, stdio: 'inherit' }
         );
@@ -282,6 +293,9 @@ const passes: Record<Pass, () => Promise<void>> = {
     packets: runPacketPass
 };
 
-console.log(`Capturing Bedrock Dedicated Server ${bds.version} from ${unpacked}`);
+console.log(
+    `Capturing Bedrock Dedicated Server ${pinnedServer.serverVersion} ` +
+        `(Minecraft ${pinnedServer.minecraftVersion}, protocol ${protocolVersion}) from ${unpacked}`
+);
 for (const pass of requested) await passes[pass]();
 console.log(`Capture complete. Review the diff under ${outDirectory} before committing it.`);

@@ -10,7 +10,13 @@ import { linkResources, parseProtocolArgument } from './cloudburst.ts';
 import { fetchSource, hashSourceContent, resolveContentRoot } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
-import { cloudburstDescriptor, type CloudburstData, type SourceDescriptor } from './manifest.ts';
+import {
+    bdsDescriptor,
+    cloudburstDescriptor,
+    type BdsData,
+    type CloudburstData,
+    type SourceDescriptor
+} from './manifest.ts';
 import { extractZip, readZipEntriesFrom, readZipEntry } from './unzip.ts';
 
 /** Builds a zip archive of stored (uncompressed) entries, for tests only. */
@@ -214,6 +220,66 @@ describe('an extract allowlist', () => {
         expect(second.fromCache).toBe(false);
         const root = await resolveContentRoot(second.contentPath);
         await expect(readFile(join(root, 'blocks.json'), 'utf8')).resolves.toBe('{}');
+    });
+});
+
+describe('bdsDescriptor', () => {
+    const data: BdsData = {
+        defaultProtocolVersion: 2193,
+        versions: {
+            '2193': {
+                minecraftVersion: '1.26.51',
+                serverVersion: '1.26.51.1',
+                url: 'https://example.invalid/bedrock-server-1.26.51.1.zip',
+                sha1: 'a'.repeat(40),
+                sha256: 'a'.repeat(64),
+                sizeInBytes: 1
+            },
+            '2225': {
+                minecraftVersion: '1.26.60',
+                serverVersion: '1.26.60.6',
+                url: 'https://example.invalid/bedrock-server-1.26.60.6.zip',
+                sha1: 'b'.repeat(40),
+                sha256: 'b'.repeat(64),
+                sizeInBytes: 2
+            }
+        }
+    };
+
+    it('caches each protocol version under its own directory', () => {
+        expect(bdsDescriptor(data, 2193).version).toBe('v2193');
+        expect(bdsDescriptor(data, 2225).version).toBe('v2225');
+        expect(bdsDescriptor(data, 2225).url).toBe('https://example.invalid/bedrock-server-1.26.60.6.zip');
+    });
+
+    it('names the zip by its server build, which differs from the protocol', () => {
+        expect(bdsDescriptor(data, 2225).fileName).toBe('bedrock-server-1.26.60.6.zip');
+    });
+
+    it('falls back to the manifest default and shares one override variable', () => {
+        const fallback = bdsDescriptor(data);
+        expect(fallback.version).toBe('v2193');
+        expect(fallback.envOverride).toBe('JSP_BDS_PATH');
+    });
+
+    it('names the pinned versions when asked for one that is not pinned', () => {
+        expect(() => bdsDescriptor(data, 1234)).toThrow(/protocol 1234; pinned: 2193, 2225/);
+    });
+});
+
+describe('the pinned servers in sources.json', () => {
+    it('verifies each sha256 against the measured size and Mojang build hash', async () => {
+        const { loadBdsData } = await import('./manifest.ts');
+        const pinned = await loadBdsData(join(import.meta.dirname, '../../sources.json'));
+        expect(Object.keys(pinned.versions).length).toBeGreaterThan(0);
+        expect(pinned.versions[String(pinned.defaultProtocolVersion)]).toBeDefined();
+        for (const [protocol, version] of Object.entries(pinned.versions)) {
+            expect(version.sha256, `protocol ${protocol}`).toMatch(/^[0-9a-f]{64}$/);
+            expect(version.sha1, `protocol ${protocol}`).toMatch(/^[0-9a-f]{40}$/);
+            expect(version.sizeInBytes, `protocol ${protocol}`).toBeGreaterThan(0);
+            expect(version.url, `protocol ${protocol}`).toContain(`bedrock-server-${version.serverVersion}.zip`);
+            expect(version.serverVersion, `protocol ${protocol}`).toContain(version.minecraftVersion);
+        }
     });
 });
 

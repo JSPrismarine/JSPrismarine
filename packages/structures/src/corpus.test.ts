@@ -29,7 +29,7 @@ const enabled = process.env.JSP_STRUCTURE_CORPUS === '1';
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 // The pinned versions are this repository's own manifest, parsed JSON.
 const sources = JSON.parse(readFileSync(join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8')) as {
-    bds: { version: string };
+    bds: { defaultProtocolVersion: number };
     javaServer: { version: string };
 };
 const cache = join(repoRoot, 'node_modules/.cache/jsprismarine');
@@ -46,8 +46,8 @@ const walk = (directory: string, found: string[] = []): string[] => {
 const bdsRoot = (): string | undefined => {
     const candidates = [
         process.env.JSP_BDS_PATH,
-        join(cache, 'bds', sources.bds.version, 'unpacked'),
-        join(cache, 'bds', sources.bds.version)
+        join(cache, 'bds', `v${sources.bds.defaultProtocolVersion}`, 'unpacked'),
+        join(cache, 'bds', `v${sources.bds.defaultProtocolVersion}`)
     ].filter((candidate): candidate is string => candidate !== undefined);
     return candidates.find((candidate) => existsSync(join(candidate, 'behavior_packs')));
 };
