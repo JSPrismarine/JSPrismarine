@@ -15,8 +15,8 @@ import { serverWorldSource } from './content/world/serverSource';
 import { EntityRuntimes } from './entity/data/live';
 import type { LiveEntityRuntime } from './entity/data/live';
 import type { ServerWorldHandle } from './content/world/serverSource';
-import { StationRegistry } from './crafting/CraftingStation';
-import RecipeManager from './crafting/RecipeManager';
+import type { StationRegistry } from './crafting/CraftingStation';
+import type RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { TickEvent } from './events/Events';
@@ -34,7 +34,8 @@ import RakNetTransport from './network/transport/RakNetTransport';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
 import { permissionsModule } from './modules/permissions';
-import { bansToken, permissionsToken } from './modules/tokens';
+import { recipesModule, stationsModule } from './modules/recipes';
+import { bansToken, permissionsToken, recipesToken, stationsToken } from './modules/tokens';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
@@ -142,7 +143,6 @@ export default class Server extends EventEmitter {
      * about their connections - see {@link WorldChangeSink}.
      */
     private readonly worldReplicators = new WorldReplicators(this);
-    private readonly recipeManager: RecipeManager;
 
     /**
      * This server's creative menu.
@@ -152,11 +152,6 @@ export default class Server extends EventEmitter {
      */
     private readonly creativeInventory = new CreativeInventory(() => this.getContent());
 
-    /**
-     * The blocks a player can craft at. Derived from the recipe book once it is loaded, so a
-     * plugin's recipe brings its station with it.
-     */
-    private readonly stationRegistry = new StationRegistry();
     private readonly queryManager: QueryManager;
     private readonly chatManager: ChatManager;
 
@@ -291,7 +286,6 @@ export default class Server extends EventEmitter {
         this.profiler = profile ? new ServerProfiler() : undefined;
         if (this.profiler) attachProfiler(this, this.profiler);
         this.packetRegistry = new PacketRegistry(this);
-        this.recipeManager = new RecipeManager(this);
         this.worldManager = new WorldManager(this);
         this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
@@ -311,6 +305,8 @@ export default class Server extends EventEmitter {
     private buildKernel(): Kernel {
         const kernel = new Kernel({ logger: this.logger });
         kernel.register(permissionsModule(this));
+        kernel.register(recipesModule(this));
+        kernel.register(stationsModule());
         kernel.register(bansModule(this));
         return kernel;
     }
@@ -335,8 +331,6 @@ export default class Server extends EventEmitter {
         // disable() then enable() on the same server.
         this.kernel = this.buildKernel();
         await this.kernel.start();
-        await this.recipeManager.enable();
-        this.stationRegistry.registerRecipeStations(this);
         await this.commandManager.enable();
         await this.worldManager.enable();
 
@@ -440,7 +434,6 @@ export default class Server extends EventEmitter {
         this.entityRuntimes.closeAll();
         await this.commandManager.disable();
         await this.kernel.stop();
-        await this.recipeManager.disable();
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
@@ -1052,7 +1045,7 @@ export default class Server extends EventEmitter {
      * @returns {RecipeManager} the manager.
      */
     public getRecipeManager(): RecipeManager {
-        return this.recipeManager;
+        return this.kernel.get(recipesToken);
     }
 
     /**
@@ -1060,7 +1053,7 @@ export default class Server extends EventEmitter {
      * @returns {StationRegistry} the registry.
      */
     public getStationRegistry(): StationRegistry {
-        return this.stationRegistry;
+        return this.kernel.get(stationsToken);
     }
 
     public getConfig(): Config {
