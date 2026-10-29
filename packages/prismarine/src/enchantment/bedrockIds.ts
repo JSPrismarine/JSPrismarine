@@ -4,9 +4,9 @@
  * `PlayerEnchantOptionsPacket` carries an `EnchantType` as a uint8, so an
  * offer the client can draw needs the number and not the id. The table is
  * derived from the `EnchantType` enum rather than written out beside it:
- * every member's name snake-cased is its Java id, except the two curses,
+ * every member's name lowercased is its Java id, except the two curses,
  * which Java spells the other way round (`binding_curse`, not
- * `curse_of_binding`).
+ * `curse_of_binding`), and the two sentinels, which name no enchantment.
  *
  * A Java id with no entry is one the client's own registry does not list -
  * `sweeping_edge`, and every enchantment a datapack adds. There is no packet
@@ -14,23 +14,22 @@
  * be drawn; see `projectToBedrock` in `@jsprismarine/enchantments` for what
  * the client gets instead. The mechanics still run either way.
  */
-import { EnchantType } from '../network/packet/PlayerEnchantOptionsPacket';
+import { EnchantType } from '@jsprismarine/minecraft';
 
 /** The two Bedrock names Java does not spell the same way round. */
 const RENAMED: Readonly<Record<string, string>> = {
-    CurseOfBinding: 'minecraft:binding_curse',
-    CurseOfVanishing: 'minecraft:vanishing_curse'
+    CURSE_OF_BINDING: 'minecraft:binding_curse',
+    CURSE_OF_VANISHING: 'minecraft:vanishing_curse'
 };
 
-const snakeCase = (name: string): string =>
-    name
-        .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-        .replace(/([A-Z])([A-Z][a-z])/g, '$1_$2')
-        .toLowerCase();
+/** The upstream sentinels, which number nothing a Java id could name. */
+const SENTINELS = new Set<string>(['NUM_ENCHANTMENTS', 'INVALID_ENCHANTMENT']);
 
 const byJavaId = new Map<string, EnchantType>(
     Object.entries(EnchantType).flatMap(([name, value]) =>
-        typeof value === 'number' ? [[RENAMED[name] ?? `minecraft:${snakeCase(name)}`, value] as const] : []
+        typeof value === 'number' && !SENTINELS.has(name)
+            ? [[RENAMED[name] ?? `minecraft:${name.toLowerCase()}`, value] as const]
+            : []
     )
 );
 

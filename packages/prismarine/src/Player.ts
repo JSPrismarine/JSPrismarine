@@ -22,7 +22,7 @@ import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import { ChangeDimensionPacket } from './network/Packets';
-import { PlayerRespawnState } from './network/packet/RespawnPacket';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
@@ -964,7 +964,7 @@ export default class Player extends Human {
         // respawn screen was stuck on "Respawning" - it was still waiting for this.
         await this.getNetworkSession().sendRespawn(
             (await this.getRespawnPoint()).announced,
-            PlayerRespawnState.SearchingForSpawn
+            PlayerRespawnState.SEARCHING_FOR_SPAWN
         );
 
         // The bare translation key, as with the join and leave messages: the client renders

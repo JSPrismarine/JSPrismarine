@@ -18,7 +18,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
-import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
+import { ArmorSlot } from '@jsprismarine/minecraft';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
 import { damageCauseOf } from '../entity/DamageCause';
@@ -95,10 +95,10 @@ export interface ServerItemActorPort extends ItemActorPort {
 
 /** The armor inventory index each `minecraft:equippable` slot name writes into. */
 const ARMOR_INDEX: Partial<Record<EquipmentSlot, number>> = {
-    head: ArmorSlot.Head,
-    chest: ArmorSlot.Torso,
-    legs: ArmorSlot.Legs,
-    feet: ArmorSlot.Feet
+    head: ArmorSlot.HEAD,
+    chest: ArmorSlot.TORSO,
+    legs: ArmorSlot.LEGS,
+    feet: ArmorSlot.FEET
 };
 
 /**

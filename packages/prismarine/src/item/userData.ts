@@ -27,7 +27,7 @@ import type { EnchantmentDefinition, EnchantmentRegistry } from '@jsprismarine/e
 import { bedrockEnchantType } from '../enchantment/bedrockIds';
 import { ITEMS_TAG, itemSlotsToNbt } from '../inventory/itemNbt';
 import type { StoredItemStack } from '../inventory/persistence';
-import { EnchantType } from '../network/packet/PlayerEnchantOptionsPacket';
+import { EnchantType } from '@jsprismarine/minecraft';
 
 /**
  * The `ench` entry that turns the glint on without naming an enchantment.

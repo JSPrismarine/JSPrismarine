@@ -24,7 +24,8 @@ import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
 import type DataPacket from '../packet/DataPacket';
-import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import RespawnPacket from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import SetSpawnPositionPacket from '../packet/SetSpawnPositionPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
@@ -261,9 +262,9 @@ describe('ResourcePackClientResponseHandler', () => {
 
         const respawns = packets.filter((packet) => packet instanceof RespawnPacket);
         expect(respawns.map(({ state }) => state)).toEqual([
-            PlayerRespawnState.SearchingForSpawn,
-            PlayerRespawnState.SearchingForSpawn,
-            PlayerRespawnState.ReadyToSpawn
+            PlayerRespawnState.SEARCHING_FOR_SPAWN,
+            PlayerRespawnState.SEARCHING_FOR_SPAWN,
+            PlayerRespawnState.READY_TO_SPAWN
         ]);
         expect(respawns.map(({ runtimeEntityId }) => runtimeEntityId)).toEqual([0n, 0n, 0n]);
         expect(respawns.map(({ position }) => position?.getY())).toEqual([69 + 1.62, 69, 70 + 1.62]);

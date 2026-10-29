@@ -67,7 +67,7 @@ import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayStatus from './type/PlayStatus';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
-import type { PlayerRespawnState } from './packet/RespawnPacket';
+import type { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from './packet/RespawnPacket';
 import ActorEventPacket, { ActorEvent } from './packet/ActorEventPacket';
 import SetHealthPacket from './packet/SetHealthPacket';

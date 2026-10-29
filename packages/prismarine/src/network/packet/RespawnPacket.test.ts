@@ -3,7 +3,8 @@ import { netIdFor } from '../codec/v2193';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
-import RespawnPacket, { PlayerRespawnState } from './RespawnPacket';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import RespawnPacket from './RespawnPacket';
 
 /**
  * Header, Position, State, Player Runtime Id. The floats are little endian: 1.5 is 0x3fc00000,
@@ -33,7 +34,7 @@ describe('network', () => {
             it('writes Position, State and Player Runtime Id in docs order', () => {
                 const pk = new RespawnPacket();
                 pk.position = new Vector3(1.5, 64.25, -3.75);
-                pk.state = PlayerRespawnState.ReadyToSpawn;
+                pk.state = PlayerRespawnState.READY_TO_SPAWN;
                 pk.runtimeEntityId = 7n;
                 pk.encode();
 
@@ -42,7 +43,7 @@ describe('network', () => {
 
             it('writes the origin when there is no position', () => {
                 const pk = new RespawnPacket();
-                pk.state = PlayerRespawnState.SearchingForSpawn;
+                pk.state = PlayerRespawnState.SEARCHING_FOR_SPAWN;
                 pk.runtimeEntityId = 0n;
                 pk.encode();
 
@@ -57,15 +58,15 @@ describe('network', () => {
                 expect(pk.position?.getX()).toBeCloseTo(1.5, 6);
                 expect(pk.position?.getY()).toBeCloseTo(64.25, 6);
                 expect(pk.position?.getZ()).toBeCloseTo(-3.75, 6);
-                expect(pk.state).toBe(PlayerRespawnState.ReadyToSpawn);
+                expect(pk.state).toBe(PlayerRespawnState.READY_TO_SPAWN);
                 expect(pk.runtimeEntityId).toBe(7n);
                 expect(pk.feof()).toBe(true);
             });
 
             it('numbers the states the way the docs do', () => {
-                expect(PlayerRespawnState.SearchingForSpawn).toBe(0);
-                expect(PlayerRespawnState.ReadyToSpawn).toBe(1);
-                expect(PlayerRespawnState.ClientReadyToSpawn).toBe(2);
+                expect(PlayerRespawnState.SEARCHING_FOR_SPAWN).toBe(0);
+                expect(PlayerRespawnState.READY_TO_SPAWN).toBe(1);
+                expect(PlayerRespawnState.CLIENT_READY_TO_SPAWN).toBe(2);
             });
 
             it('uses the network id the client expects', () => {

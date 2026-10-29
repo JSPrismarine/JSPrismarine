@@ -1,16 +1,13 @@
+import { ArmorSlot } from '@jsprismarine/minecraft';
 import DataPacket from './DataPacket';
 
 /**
- * A piece of armor, as the Armor Slot varint32 of an `ArmorSlotAndDamagePair` numbers it. The
- * values are `SharedTypes::Legacy::ArmorSlot` from Mojang's datagen snapshot.
+ * A piece of armor, as the Armor Slot varint32 of an `ArmorSlotAndDamagePair` numbers it.
+ * Upstream this is `SharedTypes::Legacy::ArmorSlot`, generated from Mojang's 1.26.51 release
+ * documentation in `@jsprismarine/minecraft`.
+ * @deprecated Import `ArmorSlot` from `@jsprismarine/minecraft` instead.
  */
-export enum ArmorSlot {
-    Head = 0,
-    Torso = 1,
-    Legs = 2,
-    Feet = 3,
-    Body = 4
-}
+export { ArmorSlot };
 
 /** The damage to apply to one piece of armor. */
 export interface ArmorSlotAndDamagePair {

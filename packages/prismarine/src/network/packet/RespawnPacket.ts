@@ -1,20 +1,15 @@
 import type { Vector3 } from '@jsprismarine/math';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * The `State` field, the docs' `PlayerRespawnState`.
- *
- * The first two are the server's to send; the third is only ever sent by the client.
+ * The `State` field, the docs' `PlayerRespawnState`, generated from Mojang's 1.26.51 release
+ * documentation in `@jsprismarine/minecraft`. The first two are the server's to send; the
+ * third is only ever sent by the client.
+ * @deprecated Import `PlayerRespawnState` from `@jsprismarine/minecraft` instead.
  */
-export enum PlayerRespawnState {
-    /** The server is looking for somewhere to put the player. */
-    SearchingForSpawn = 0,
-    /** The server's answer to the client saying it has finished loading. */
-    ReadyToSpawn = 1,
-    /** The client reporting that it has finished loading. */
-    ClientReadyToSpawn = 2
-}
+export { PlayerRespawnState };
 
 /**
  * One step of the respawn handshake, which both sides send.

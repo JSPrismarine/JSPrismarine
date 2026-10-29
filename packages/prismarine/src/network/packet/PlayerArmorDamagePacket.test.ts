@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import PlayerArmorDamagePacket, { ArmorSlot } from './PlayerArmorDamagePacket';
+import { ArmorSlot } from '@jsprismarine/minecraft';
+import PlayerArmorDamagePacket from './PlayerArmorDamagePacket';
 
 // Packet id 149 as a varuint.
 const HEADER = [0x95, 0x01];
@@ -19,8 +20,8 @@ describe('PlayerArmorDamagePacket', () => {
     it('writes the pair count, each slot as a ZigZag varint32 and each damage as an int16', () => {
         const packet = new PlayerArmorDamagePacket();
         packet.armorSlotAndDamagePairs = [
-            { armorSlot: ArmorSlot.Head, damage: 5 },
-            { armorSlot: ArmorSlot.Body, damage: -1 }
+            { armorSlot: ArmorSlot.HEAD, damage: 5 },
+            { armorSlot: ArmorSlot.BODY, damage: -1 }
         ];
         packet.encode();
 
@@ -40,8 +41,8 @@ describe('PlayerArmorDamagePacket', () => {
         packet.decode();
 
         expect(packet.armorSlotAndDamagePairs).toEqual([
-            { armorSlot: ArmorSlot.Head, damage: 5 },
-            { armorSlot: ArmorSlot.Body, damage: -1 }
+            { armorSlot: ArmorSlot.HEAD, damage: 5 },
+            { armorSlot: ArmorSlot.BODY, damage: -1 }
         ]);
         expect(packet.feof()).toBe(true);
     });

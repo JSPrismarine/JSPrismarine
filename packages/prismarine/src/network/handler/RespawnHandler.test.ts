@@ -8,7 +8,8 @@ import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import RespawnPacket from '../packet/RespawnPacket';
 import RespawnHandler from './RespawnHandler';
 
 /**
@@ -64,9 +65,9 @@ describe('RespawnHandler', () => {
         // a log filling with `RespawnPacket`.
         const { done, session, server, standingAt } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
 
-        expect(done[0]).toEqual({ state: PlayerRespawnState.ReadyToSpawn, position: standingAt });
+        expect(done[0]).toEqual({ state: PlayerRespawnState.READY_TO_SPAWN, position: standingAt });
     });
 
     it('answers a dead player as a Bedrock server does: searching at the spawn block, then ready at its eyes', async () => {
@@ -75,11 +76,11 @@ describe('RespawnHandler', () => {
         // and nothing else; describing the dead player after them left the client frozen.
         const { done, session, server } = fakeSession({ alive: false });
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
 
         expect(done).toEqual([
-            { state: PlayerRespawnState.SearchingForSpawn, position: new Vector3(100, 70, 100) },
-            { state: PlayerRespawnState.ReadyToSpawn, position: new Vector3(100, 71.62, 100) }
+            { state: PlayerRespawnState.SEARCHING_FOR_SPAWN, position: new Vector3(100, 70, 100) },
+            { state: PlayerRespawnState.READY_TO_SPAWN, position: new Vector3(100, 71.62, 100) }
         ]);
     });
 
@@ -88,7 +89,7 @@ describe('RespawnHandler', () => {
         // player is alive, and is described again after the answer, as before.
         const { done, session, server } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
 
         expect(done.map((step) => step.what).filter(Boolean)).toEqual([
             'attributes',
@@ -97,13 +98,13 @@ describe('RespawnHandler', () => {
             'inventory'
         ]);
         // After the answer, never before it.
-        expect(done[0]!.state).toBe(PlayerRespawnState.ReadyToSpawn);
+        expect(done[0]!.state).toBe(PlayerRespawnState.READY_TO_SPAWN);
     });
 
     it("ignores the states that are the server's to send", async () => {
         const { done, session, server } = fakeSession();
 
-        for (const state of [PlayerRespawnState.SearchingForSpawn, PlayerRespawnState.ReadyToSpawn]) {
+        for (const state of [PlayerRespawnState.SEARCHING_FOR_SPAWN, PlayerRespawnState.READY_TO_SPAWN]) {
             await new RespawnHandler().handle(respawn(state), server, session);
         }
 
@@ -113,7 +114,7 @@ describe('RespawnHandler', () => {
     it('drops a respawn for another runtime id', async () => {
         const { done, dropped, session, server } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn, 8n), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN, 8n), server, session);
 
         expect(done).toHaveLength(0);
         expect(dropped).toHaveLength(1);

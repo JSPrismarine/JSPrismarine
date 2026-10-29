@@ -11,7 +11,8 @@ import type { World } from '../world/World';
 import { AttributeIds, Attributes } from '../entity/Attribute';
 import { Item } from '../item/Item';
 import type DataPacket from '../network/packet/DataPacket';
-import PlayerEnchantOptionsPacket, { EnchantType } from '../network/packet/PlayerEnchantOptionsPacket';
+import { EnchantType } from '@jsprismarine/minecraft';
+import PlayerEnchantOptionsPacket from '../network/packet/PlayerEnchantOptionsPacket';
 import { stub } from '../testing/stub.test.helper';
 import { bookshelfPowerAround } from './bookshelves';
 import {
@@ -191,7 +192,7 @@ describe('the enchanting table', () => {
             // Both are mainhand enchantments, so both land in the held list.
             expect(option.enchants.equipActivatedEnchants).toEqual([]);
             for (const instance of option.enchants.heldActivatedEnchants) {
-                expect([EnchantType.Efficiency, EnchantType.Unbreaking]).toContain(instance.enchantType);
+                expect([EnchantType.EFFICIENCY, EnchantType.UNBREAKING]).toContain(instance.enchantType);
                 expect(instance.enchantLevel).toBeGreaterThan(0);
             }
         }

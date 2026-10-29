@@ -1,5 +1,6 @@
 import { Chat, ChatType } from '../../chat/Chat';
-import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
+import RespawnPacket from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '../packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
@@ -49,9 +50,9 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         if (joinSpawn === null) return [];
 
         return [
-            [eyePositionAt(joinSpawn.requested), PlayerRespawnState.SearchingForSpawn, 0n],
-            [joinSpawn.requested, PlayerRespawnState.SearchingForSpawn, 0n],
-            [eyePositionAt(joinSpawn.position), PlayerRespawnState.ReadyToSpawn, 0n]
+            [eyePositionAt(joinSpawn.requested), PlayerRespawnState.SEARCHING_FOR_SPAWN, 0n],
+            [joinSpawn.requested, PlayerRespawnState.SEARCHING_FOR_SPAWN, 0n],
+            [eyePositionAt(joinSpawn.position), PlayerRespawnState.READY_TO_SPAWN, 0n]
         ];
     }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import PlayerEnchantOptionsPacket, { EnchantType } from './PlayerEnchantOptionsPacket';
+import { EnchantType } from '@jsprismarine/minecraft';
+import PlayerEnchantOptionsPacket from './PlayerEnchantOptionsPacket';
 
 // Packet id 146 as a varuint.
 const HEADER = [0x92, 0x01];
@@ -9,9 +10,9 @@ const OPTION = {
     cost: 5,
     enchants: {
         slot: 1,
-        equipActivatedEnchants: [{ enchantType: EnchantType.Protection, enchantLevel: 2 }],
+        equipActivatedEnchants: [{ enchantType: EnchantType.PROTECTION, enchantLevel: 2 }],
         heldActivatedEnchants: [],
-        selfActivatedEnchants: [{ enchantType: EnchantType.Sharpness, enchantLevel: 1 }]
+        selfActivatedEnchants: [{ enchantType: EnchantType.SHARPNESS, enchantLevel: 1 }]
     },
     enchantName: 'abc',
     enchantNetId: 7

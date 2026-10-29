@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '../packet/RespawnPacket';
-import { PlayerRespawnState } from '../packet/RespawnPacket';
+import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -41,19 +41,19 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
 
         // The other two states are the server's own; a client echoing one back is not asking
         // for anything.
-        if (packet.state !== PlayerRespawnState.ClientReadyToSpawn) return;
+        if (packet.state !== PlayerRespawnState.CLIENT_READY_TO_SPAWN) return;
 
         if (!player.isAlive()) {
             const point = await player.getRespawnPoint();
-            await session.sendRespawn(point.block, PlayerRespawnState.SearchingForSpawn);
-            await session.sendRespawn(point.eyes, PlayerRespawnState.ReadyToSpawn);
+            await session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN);
+            await session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN);
             return;
         }
 
         // Already alive: the respawn action came first. How a Bedrock Dedicated Server answers
         // this order has not been recorded, so the player is told where they stand and
         // described again, as this server did before.
-        await session.sendRespawn(player.getPosition(), PlayerRespawnState.ReadyToSpawn);
+        await session.sendRespawn(player.getPosition(), PlayerRespawnState.READY_TO_SPAWN);
         await session.sendAttributes();
         await session.sendMetadata();
         await session.sendAbilities();
