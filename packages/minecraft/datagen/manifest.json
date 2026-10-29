@@ -169,20 +169,19 @@
         },
         "2225": {
             "$comment": [
-                "Minecraft 1.26.60, BDS 1.26.60.6. Declared for its enums only: this entry has",
-                "`schemas` and `source` and deliberately has neither `blocks` nor `recipes`, because",
-                "both of those are captured from a Bedrock Dedicated Server of this version and no",
-                "such capture exists in this repository. The generators skip a version that declares",
-                "neither rather than writing an empty catalog, and `defaultProtocolVersion` stays at",
-                "2193 until both halves are here.",
+                "Minecraft 1.26.60, BDS 1.26.60.6. This entry has `schemas`, `source` and `recipes`, and",
+                "deliberately has no `blocks`: the block palette is captured from a Bedrock Dedicated",
+                "Server of this version and that capture does not reproduce run to run yet. The generators",
+                "skip a version that declares neither rather than writing an empty catalog, and",
+                "`defaultProtocolVersion` stays at 2193 until the palette is here.",
                 "",
                 "To finish this version:",
                 "  pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol 2225",
                 "  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --protocol 2225",
                 "then follow `datagen/README-palette.md` to merge the capture into",
-                "`snapshot/v2225/block-palette.json`, and add `blocks` and `recipes` entries here",
-                "shaped like 2193's. BDS is Linux x86-64 only; `utils/bedrock-dump/runner.ts` runs it",
-                "in a container from another platform.",
+                "`snapshot/v2225/block-palette.json` and add a `blocks` entry here shaped like 2193's.",
+                "BDS is Linux x86-64 only; `utils/bedrock-dump/runner.ts` runs it in a container from",
+                "another platform.",
                 "",
                 "See `docs/research/protocol-2225-delta.md` for what 2225 changed on the wire."
             ],
@@ -225,6 +224,33 @@
                 "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
                 "minecraftVersion": "1.26.40",
                 "networkProtocolVersion": 2168
+            },
+            "recipes": {
+                "$comment": [
+                    "The same shape as 2193's, against the pinned 1.26.60.6 server. Only the target moves: the",
+                    "recipe files are Mojang's own, read out of the unpacked server for this protocol by",
+                    "`bedrockServerCachePath`, and the alias map and overrides are the item-name legacy those",
+                    "files still carry at either version.",
+                    "",
+                    "The output is 2193's recipe set exactly, differing only in the `minecraftVersion` header.",
+                    "That is a measured fact rather than a fallback: `vanilla_1.26.60` ships `structures` and a",
+                    "manifest and no recipe layer at all, so 1.26.60 revised no recipe."
+                ],
+                "source": "behavior_packs",
+                "itemAliases": "../../bedrock-data/src/vendor/r16_to_current_item_map.json",
+                "itemAliasOverrides": {
+                    "minecraft:muttonCooked": "minecraft:cooked_mutton",
+                    "minecraft:muttonRaw": "minecraft:mutton"
+                },
+                "idAliases": {
+                    "$comment": [
+                        "Source recipe IDs used as public IDs in the game packet. These are renamed here",
+                        "so source updates keep the server's American spellings without changing item names."
+                    ],
+                    "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulfur_recipeId",
+                    "crafting_table/minecraft:FireCharge_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_coal_sulfur_recipeId"
+                },
+                "target": "../src/generated/v2225/recipes.json"
             }
         }
     },

@@ -17,6 +17,24 @@
             "server.properties": "77be850ea6aebf924ca3e9df99591e143b7f47b16e6ff5142510cefe02d80f39"
         }
     },
+    "bds/v2225": {
+        "version": "v2225",
+        "entries": {
+            "allowlist.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+            "bedrock_server": "ea16b541a448e07c337848d2c5f37321b706554b5216dd942f3f11e7a8ed2bad",
+            "bedrock_server_how_to.html": "d696b0900790842db264e25500443b80923aaa788bf2bb63f591ec080c34afe9",
+            "behavior_packs": "5122af8cc1815880bcc42dffa2e7937cce210e79906a60ff141005bf0993b9b6",
+            "config": "529d3f0259aa98e49fbc5d5dc329526e0430ebf0c4b78a59cf5d9fb41bc33988",
+            "data": "1c39e84f7f8344252ad34e24170552a81c73e7e6f4b4d80b69acf951c7dea31a",
+            "definitions": "d885c2be98fe88448c5cd683d85f580b0bb619804dae98335272ad91540d1132",
+            "packetlimitconfig.json": "2760000d22b7a402baa555fcb17a830b5b8e79ba7b5cda22c55a5c99bc0ea144",
+            "permissions.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+            "profanity_filter.wlist": "62218d255df1ee0be080f7bc3d21070f705b3e22ed675ec99887f5f592d0f773",
+            "release-notes.txt": "23393b598f7b356fa2cfa9999793d0a3c11e6268f667482cb260063139a0f9ce",
+            "resource_packs": "04808947bdda311b65f839e97d85cfaac45668250d0b8ffcf8462fa53ff69f02",
+            "server.properties": "1396b2cfca8bb63383333fcefbfc2f0c591db68f66a5863912f0468f0a31de77"
+        }
+    },
     "bedrock-samples": {
         "version": "v1.26.50.4",
         "entries": {

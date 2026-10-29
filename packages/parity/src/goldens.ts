@@ -73,6 +73,20 @@ export const loadRequiredItemList = (): Record<string, RequiredItemEntry> =>
     // Parsed JSON boundary, shape documented above.
     readJson(bedrockCapture('required_item_list.json')) as Record<string, RequiredItemEntry>;
 
+/**
+ * Reads the same capture for a protocol version other than the default.
+ *
+ * The package keeps one capture directory per version and exports the default version's
+ * unversioned, so a comparison about a second version has to name it.
+ */
+export const loadRequiredItemListAt = (protocolVersion: number): Record<string, RequiredItemEntry> =>
+    // Parsed JSON boundary, shape documented above.
+    readJson(bedrockCaptureAt(protocolVersion, 'required_item_list.json')) as Record<string, RequiredItemEntry>;
+
+/** One file of the capture directory for a named protocol version. */
+export const bedrockCaptureAt = (protocolVersion: number, file: string): string =>
+    join(bedrockDataRoot, 'src/jsp', `v${protocolVersion}`, file);
+
 /** One item as the submodule's `runtime_item_states.json` dump records it. */
 export interface RuntimeItemState {
     name: string;

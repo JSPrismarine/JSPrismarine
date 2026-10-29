@@ -3,6 +3,8 @@ import path from 'node:path';
 import process from 'node:process';
 import zlib from 'node:zlib';
 
+import { ensureCloudburstData } from './fetch/cloudburst.ts';
+
 /**
  * The Bedrock captures live under `src/jsp/v<protocol>/`, one directory per protocol version,
  * the same shape as `packages/minecraft/src/generated/`. `sources.json` says which of them the
@@ -14,6 +16,20 @@ import zlib from 'node:zlib';
 const defaultProtocolVersion = JSON.parse(fs.readFileSync(path.resolve('sources.json'), 'utf8')).bds
     .defaultProtocolVersion;
 const jsp = `jsp/v${defaultProtocolVersion}`;
+
+/**
+ * Every protocol version with a capture of its own, lowest first.
+ *
+ * Read off the directories rather than off `sources.json`, because a pinned server is only a
+ * version this package *can* capture; a `v<protocol>` directory holding an item list is one
+ * it has.
+ */
+const capturedProtocolVersions = fs
+    .readdirSync(path.resolve('src/jsp'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^v\d+$/.test(entry.name))
+    .map((entry) => Number(entry.name.slice(1)))
+    .filter((version) => fs.existsSync(path.resolve('src/jsp', `v${version}`, 'required_item_list.json')))
+    .sort((a, b) => a - b);
 
 /**
  * Binary payloads, turned into JSON so that a bundler can carry them.
@@ -65,23 +81,43 @@ const requireSource = (file) => {
     process.exit(1);
 };
 
+/**
+ * The same conversion for every other captured version, under `src/generated/v<protocol>/`.
+ *
+ * Only the payloads that version actually captured: a capture directory is written a file at
+ * a time, and a version whose jigsaw rules have not been captured yet should be missing that
+ * one export rather than silently carrying another version's bytes.
+ */
+for (const protocolVersion of capturedProtocolVersions) {
+    if (protocolVersion === defaultProtocolVersion) continue;
+
+    for (const name of ['jigsaw_structure_data.nbt', 'biome_definitions_network.nbt']) {
+        const source = path.resolve('src/jsp', `v${protocolVersion}`, name);
+        if (fs.existsSync(source)) files.push(path.join('jsp', `v${protocolVersion}`, name));
+    }
+}
+
 for (const file of files) {
     const filename = path.basename(file);
 
     const source = requireSource(file);
-    const target = path.resolve('src/generated', `${filename.split('.').slice(0, -1).join('.')}.json`);
+    // A version's payloads land beside its item table; the default version's keep the
+    // unversioned path every consumer already imports.
+    const directory = file.startsWith(`jsp/v`) && !file.startsWith(`${jsp}/`) ? file.split('/')[1] : '';
+    const target = path.resolve('src/generated', directory, `${filename.split('.').slice(0, -1).join('.')}.json`);
 
     if (!force && isUpToDate(source, target)) {
         continue;
     }
 
-    console.log(`Converting ${filename}...`);
+    console.log(`Converting ${path.join(directory, filename)}...`);
 
     const raw = fs.readFileSync(source);
     console.log(`file size: ${raw.length} bytes`);
 
     const data = raw.toString('base64');
 
+    fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, JSON.stringify({ data }, null, 0));
 }
 
@@ -184,18 +220,20 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
     );
 }
 
-// The item table a Bedrock Dedicated Server 1.26.51.1 sent, with the one column the capture tool
-// does not record: `Item Version`. The submodule's dump of 1.26.50 (same protocol, 2193) has it,
-// so the two are joined here, and the join refuses to produce anything when they disagree on a
-// name, an id or the component flag. A table whose versions came from a different item list
-// than its ids would put the wrong number on the wire without anything noticing.
-const itemListSource = requireSource(`${jsp}/required_item_list.json`);
-const itemStatesSource = requireSource('resources/runtime_item_states.json');
-const itemTableTarget = path.resolve('src/generated/item_table.json');
-if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
-    console.log('Generating item_table.json...');
-    const captured = JSON.parse(fs.readFileSync(itemListSource, 'utf8'));
-    const dumped = JSON.parse(fs.readFileSync(itemStatesSource, 'utf8'));
+/**
+ * Joins one version's captured item list with the `Item Version` column the capture tool does
+ * not record.
+ *
+ * `required_item_list.json` is what the server sent a joining client: every name and the
+ * number it travels as. `Item Version` is not in `ItemRegistryPacket`, so it comes from the
+ * CloudburstMC dump of the same Bedrock version. The join refuses to produce anything when
+ * the two disagree on a name, an id or the component flag: a table whose versions came from
+ * a different item list than its ids would put the wrong number on the wire without anything
+ * noticing.
+ */
+const joinItemTable = (itemListFile, itemStatesFile) => {
+    const captured = JSON.parse(fs.readFileSync(itemListFile, 'utf8'));
+    const dumped = JSON.parse(fs.readFileSync(itemStatesFile, 'utf8'));
 
     const versions = new Map();
     for (const { name, id, version, componentBased } of dumped) {
@@ -209,7 +247,7 @@ if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
         versions.set(name, version);
     }
 
-    const table = Object.fromEntries(
+    return Object.fromEntries(
         Object.entries(captured).map(([name, entry]) => {
             const version = versions.get(name);
             if (version === undefined) {
@@ -218,8 +256,52 @@ if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
             return [name, { ...entry, version }];
         })
     );
+};
 
-    fs.writeFileSync(itemTableTarget, JSON.stringify(table, null, 0));
+// The default version's table, at the unversioned path every consumer already imports.
+const itemListSource = requireSource(`${jsp}/required_item_list.json`);
+const itemStatesSource = requireSource('resources/runtime_item_states.json');
+const itemTableTarget = path.resolve('src/generated/item_table.json');
+if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
+    console.log('Generating item_table.json...');
+    fs.writeFileSync(itemTableTarget, JSON.stringify(joinItemTable(itemListSource, itemStatesSource), null, 0));
+}
+
+/**
+ * The same table for every other captured version, under `src/generated/v<protocol>/`.
+ *
+ * The item registry is server-authoritative - the client adopts the numbering it is sent - so
+ * these are not a drop-in replacement for the default table; they are what a session speaking
+ * that protocol has to send to match what vanilla of that version sends. Picking one per
+ * session is a later slice; publishing the data is this one.
+ *
+ * Each needs the CloudburstMC dump of its own version for the `Item Version` column, which
+ * `src/resources` cannot supply because it links exactly one. `ensureCloudburstData` resolves
+ * it from the per-version cache, verifying a 1.2 MB archive that `fetch:sources` has usually
+ * already put there.
+ */
+for (const protocolVersion of capturedProtocolVersions) {
+    if (protocolVersion === defaultProtocolVersion) continue;
+
+    const itemList = path.resolve('src/jsp', `v${protocolVersion}`, 'required_item_list.json');
+    const target = path.resolve('src/generated', `v${protocolVersion}`, 'item_table.json');
+
+    const dump = await ensureCloudburstData(protocolVersion);
+    if (dump.fromOverride) {
+        // One local checkout is one version, and the join below would report the mismatch as
+        // the two files disagreeing about an item rather than as the wrong dump being read.
+        throw new Error(
+            `JSP_CLOUDBURST_DATA_PATH supplies one CloudburstMC/Data checkout, which cannot also be ` +
+                `protocol ${protocolVersion}. Unset it, or remove src/jsp/v${protocolVersion}/.`
+        );
+    }
+
+    const itemStates = path.join(dump.path, 'runtime_item_states.json');
+    if (force || !isUpToDate([itemList, itemStates], target)) {
+        console.log(`Generating v${protocolVersion}/item_table.json...`);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, JSON.stringify(joinItemTable(itemList, itemStates), null, 0));
+    }
 }
 
 // `Item Component Data` for every item that has any. The submodule holds the components as one

@@ -127,7 +127,7 @@ This is the strongest statement available from the docs: the layout surface for 
 now complete, and any remaining failure is data, not layout.
 
 **3. Stale item registry and crafting data from 2193-era captures. [speculative, not a
-login-time disconnect]**
+login-time disconnect; measured since]**
 
 `ItemRegistryPacket`, `CraftingDataPacket` and the creative contents are built from
 bedrock-data tables captured at 2193. These are server-authoritative: the client adopts the
@@ -135,6 +135,13 @@ numbering the server sends rather than checking it against its own, which is the
 the registry is on the wire. A stale table shows up as missing or wrong items in a session that
 joined successfully, not as a refused join. Rank it low for this symptom, real for behavior
 afterwards.
+
+Measured on 2026-10-29 against a real 1.26.60.6 capture: the item table gains four names
+(`minecraft:disc_press`, `minecraft:frostbite_spawn_egg`, `minecraft:ice_crystal`,
+`minecraft:icicle`), loses none, and moves 82 runtime ids. The recipes are unchanged — 1.26.60
+ships no recipe layer. The 2225 table is published as `@jsprismarine/bedrock-data/v2225`;
+selecting it per session is a later slice, so a 2225 session still sends the 2193 numbering,
+which a client accepts because the registry is authoritative.
 
 **4. Stale block palette. [speculative, ruled out as a login-time cause]**
 
@@ -169,11 +176,13 @@ what shows a client Terracotta at login.
 
 ### What could not be reproduced
 
-No retail Bedrock client is available here, and `packages/client` cannot stand in for one: it
-hardcodes `PROTOCOL_VERSION = 2193` and, more to the point, decodes with the `@jsprismarine/protocol`
-stack rather than with `Codec2225`, so pointing it at 2225 would exercise a 2193 reader against a
-2225 server and produce a failure of its own making. The reproduction here is therefore at the
-codec seam rather than over a socket: `Codec2225.test.ts` asserts that a 2225 reader cannot
+No retail Bedrock client is available here, and `packages/client` cannot stand in for one. It
+speaks 2225 now — `Client` takes a `protocolVersion`, reports the matching `GameVersion`, and
+reads `StartGamePacket` with `StartGamePacket2225`, which is what the 1.26.60 data capture
+needed — but it decodes with the `@jsprismarine/protocol` stack rather than with `Codec2225`,
+and that stack carries the one 2225 layout the capture needs and no others. It is a data
+capture client, not a conformance client. The reproduction here is therefore at the codec seam
+rather than over a socket: `Codec2225.test.ts` asserts that a 2225 reader cannot
 consume the bytes the unfixed server produced. A socket-level reproduction needs the client to
 grow a codec-aware decoder, which is its own slice.
 
@@ -249,13 +258,12 @@ The gap at 2225 is narrower than the removals above suggest, because the 1.26.40
 
 `AbilitiesIndex` is the one of the remaining five that was cross-checked: gophertunnel v1.63.0's `protocol/ability.go` lists the same twenty members in the same order, ending at `AbilityCount`. The other four were not checked against anything, and the generated header says as much rather than implying they were. A third-party table is an oracle that says where to look here, never a source to copy from — this package takes its numbers from Mojang.
 
-The entry declares neither `blocks` nor `recipes`, because both are captured from a BDS 1.26.60.6 and no such capture exists here. `generate-blocks.js` and `generate-recipes.js` skip a non-default version that declares neither, printing the commands below; the default version still fails closed. To fill them in:
+The entry declares `recipes` and still declares no `blocks`. Recipes were generated on 2026-10-29 against the pinned BDS 1.26.60.6 and reproduce; the output is 2193's recipe set exactly apart from the `minecraftVersion` header, because `vanilla_1.26.60` ships no recipe layer at all. The block palette is the half that is missing, and it is missing for a reason upstream of the manifest: the `palette` pass does not reproduce run to run — 54 blocks are neighbor-sensitive or randomized and three need a support block the place pass does not give them. Capturing it now would pin unstable data. `generate-blocks.js` skips a non-default version that declares no `blocks`; the default version still fails closed. To fill it in, once the palette producer imposes an order:
 
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol 2225
 pnpm --filter @jsprismarine/bedrock-data run dump:bedrock -- --pass palette --protocol 2225
 pnpm --filter @jsprismarine/minecraft run generate:blocks
-pnpm --filter @jsprismarine/minecraft run generate:recipes
 ```
 
 `merge-block-palette.mjs` finds its output directory by the Minecraft version a capture reports, so declaring `"2225"` is what gives a 1.26.60 capture a home; the merge would have refused one before. BDS is Linux x86-64 only — `packages/bedrock-data/utils/bedrock-dump/runner.ts` runs it in a container from another platform, and that path is not yet validated end to end. Once the two snapshots exist, add `blocks` and `recipes` to the 2225 entry shaped like 2193's.

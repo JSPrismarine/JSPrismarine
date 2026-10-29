@@ -15,6 +15,8 @@ export const FAMILIES = {
     registryBlocks: 'registry.blocks',
     /** Item names, numeric ids and component flags against the item list capture. */
     registryItems: 'registry.items',
+    /** The protocol 2225 item table against the 1.26.60 capture it is built from. */
+    registryItems2225: 'registry.items-2225',
     /** The advertised actor types against the entity identifiers golden. */
     registryEntities: 'registry.entities',
     /** Biome names and numeric ids against the biome definitions golden. */
