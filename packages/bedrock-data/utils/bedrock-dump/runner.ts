@@ -385,6 +385,47 @@ export const describeImageFailure = (cli: string, image: string, pull: ProbeOutc
     );
 };
 
+/**
+ * The launcher for this host, decided the way every capture entry point decides it.
+ *
+ * Reads the `JSP_BDS_*` environment, probes for a container runtime only when the answer is not
+ * already native, and maps file ownership on Linux where a root-owned world would otherwise be
+ * left behind. `run.ts` and `bringup.ts` both start a staged server; this is the one place the
+ * decision is made so they cannot drift.
+ *
+ * @param run Runs the probe and cleanup commands. Injected so the pure parts stay testable.
+ * @throws Error naming the one remaining action when no runner is possible.
+ */
+export const launcherForHost = (run: ProbeCommand): ServerLauncher => {
+    const preference = parseRunnerPreference(process.env[RUNNER_ENV.runner]);
+    const nativeHost = process.platform === NATIVE_PLATFORM && process.arch === NATIVE_ARCH;
+    const forcedCli = process.env[RUNNER_ENV.cli];
+    // Probing starts a CLI, so it is skipped when native is already the answer.
+    const probe =
+        preference === 'native' || (preference === 'auto' && nativeHost)
+            ? { failures: [] }
+            : probeContainerRuntime(forcedCli !== undefined && forcedCli !== '' ? [forcedCli] : CONTAINER_CLIS, run);
+
+    const plan = selectRunner({
+        platform: process.platform,
+        arch: process.arch,
+        preference,
+        containerRuntime: 'runtime' in probe ? probe.runtime : undefined,
+        probeFailures: 'failures' in probe ? probe.failures : undefined
+    });
+
+    // On a Linux host a container writing as root would leave the staged world and the save owned
+    // by root. Elsewhere the runtime already maps ownership, and a uid with no passwd entry inside
+    // the image is the bigger risk.
+    const { getuid, getgid } = process;
+    const user =
+        process.platform === 'linux' && getuid !== undefined && getgid !== undefined
+            ? `${getuid()}:${getgid()}`
+            : undefined;
+
+    return createLauncher(plan, { image: process.env[RUNNER_ENV.image], user, run });
+};
+
 /** The name the container is given, so a leak is identifiable and removable. */
 export const containerName = (pid: number): string => `jsp-bedrock-capture-${pid}`;
 

@@ -55,15 +55,7 @@ import { writeDumpPack } from './pack.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { blockBounds, REFERENCE_DIMENSION, REFERENCE_REGION, REFERENCE_SEED, tileRegion } from './region.ts';
 import type { ReferenceRegion } from './region.ts';
-import {
-    CONTAINER_CLIS,
-    NATIVE_PLATFORM,
-    RUNNER_ENV,
-    createLauncher,
-    parseRunnerPreference,
-    probeContainerRuntime,
-    selectRunner
-} from './runner.ts';
+import { launcherForHost } from './runner.ts';
 import type { ProbeCommand, ServerLauncher } from './runner.ts';
 import { READY_LINE, stageServer, startServer } from './server.ts';
 import type { StagedServer } from './server.ts';
@@ -118,37 +110,7 @@ const runProbe: ProbeCommand = (command, args) => {
     };
 };
 
-const preference = parseRunnerPreference(process.env[RUNNER_ENV.runner]);
-const nativeHost = process.platform === NATIVE_PLATFORM && process.arch === 'x64';
-const forcedCli = process.env[RUNNER_ENV.cli];
-// Probing starts a CLI, so it is skipped when native is already the answer.
-const probe =
-    preference === 'native' || (preference === 'auto' && nativeHost)
-        ? { failures: [] }
-        : probeContainerRuntime(forcedCli !== undefined && forcedCli !== '' ? [forcedCli] : CONTAINER_CLIS, runProbe);
-
-const plan = selectRunner({
-    platform: process.platform,
-    arch: process.arch,
-    preference,
-    containerRuntime: 'runtime' in probe ? probe.runtime : undefined,
-    probeFailures: 'failures' in probe ? probe.failures : undefined
-});
-
-// On a Linux host a container writing as root would leave the staged world and the save owned
-// by root. Elsewhere the runtime already maps ownership, and a uid with no passwd entry inside
-// the image is the bigger risk.
-const { getuid, getgid } = process;
-const hostUser =
-    process.platform === 'linux' && getuid !== undefined && getgid !== undefined
-        ? `${getuid()}:${getgid()}`
-        : undefined;
-
-const launcher: ServerLauncher = createLauncher(plan, {
-    image: process.env[RUNNER_ENV.image],
-    user: hostUser,
-    run: runProbe
-});
+const launcher: ServerLauncher = launcherForHost(runProbe);
 
 /** The stage budgets for this run, sized for the runner that was chosen. */
 const TIMEOUTS = {
