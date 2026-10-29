@@ -21,11 +21,35 @@ export interface SourceDescriptor {
     fileName: string;
     /** Environment variable that points at a local copy and skips the download. */
     envOverride: string;
+    /**
+     * Archive paths, relative to a GitHub archive's `<repo>-<commit>/` wrapper
+     * directory, that are worth unpacking. Everything else in the archive is
+     * left compressed. Absent means unpack the whole archive.
+     */
+    extract?: string[];
 }
 
 interface PinnedArchive {
     url: string;
     sha256: string;
+}
+
+/** One pinned CloudburstMC/Data archive: the game data for a single protocol version. */
+export interface CloudburstVersion extends PinnedArchive {
+    /** The Minecraft version the dump was taken from, such as `1.26.51`. */
+    minecraftVersion: string;
+    commit: string;
+}
+
+/** The `cloudburstData` section: one archive per Bedrock protocol version. */
+export interface CloudburstData {
+    repo: string;
+    /** The protocol version used when a caller does not ask for one. */
+    defaultProtocolVersion: number;
+    /** The files the fetch unpacks, by name at the archive root. */
+    extract: string[];
+    /** Pinned archives keyed by protocol version, as decimal strings. */
+    versions: Record<string, CloudburstVersion>;
 }
 
 interface SourcesManifest {
@@ -34,19 +58,67 @@ interface SourcesManifest {
     javaServer: PinnedArchive & { version: string; sha1: string };
     geyserMappings: PinnedArchive & { commit: string };
     vanillaMcdoc: PinnedArchive & { commit: string };
-    cloudburstData: { repo: string; commit: string; path: string };
+    cloudburstData: CloudburstData;
 }
+
+const readManifest = async (manifestPath: string): Promise<SourcesManifest> =>
+    // The manifest is parsed JSON, which the compiler cannot see the shape of.
+    JSON.parse(await readFile(manifestPath, 'utf8')) as SourcesManifest;
+
+/** The `<source>` cache segment the CloudburstMC/Data archives live under. */
+export const CLOUDBURST_SOURCE_NAME = 'cloudburst-data';
+
+/** Reads the `cloudburstData` section of `sources.json`. */
+export const loadCloudburstData = async (manifestPath: string): Promise<CloudburstData> =>
+    (await readManifest(manifestPath)).cloudburstData;
+
+/**
+ * Resolves the protocol version a caller asked for against the manifest,
+ * falling back to `defaultProtocolVersion`.
+ *
+ * @throws Error naming the pinned protocol versions when the requested one is
+ * not among them.
+ */
+export const selectCloudburstVersion = (
+    data: CloudburstData,
+    protocolVersion?: number
+): { protocolVersion: number; version: CloudburstVersion } => {
+    const wanted = protocolVersion ?? data.defaultProtocolVersion;
+    const version = data.versions[String(wanted)];
+    if (version === undefined) {
+        const pinned = Object.keys(data.versions).join(', ');
+        throw new Error(`sources.json pins no CloudburstMC/Data archive for protocol ${wanted}; pinned: ${pinned}`);
+    }
+    return { protocolVersion: wanted, version };
+};
+
+/**
+ * The descriptor for one protocol version's CloudburstMC/Data archive. Each
+ * version caches under its own `v<protocol>` directory, so several Bedrock
+ * versions' data coexist without colliding.
+ */
+export const cloudburstDescriptor = (data: CloudburstData, protocolVersion?: number): SourceDescriptor => {
+    const { protocolVersion: resolved, version } = selectCloudburstVersion(data, protocolVersion);
+    return {
+        name: CLOUDBURST_SOURCE_NAME,
+        version: `v${resolved}`,
+        url: version.url,
+        hash: { algorithm: 'sha256', value: version.sha256 },
+        unpack: true,
+        fileName: `Data-${version.commit}.zip`,
+        envOverride: 'JSP_CLOUDBURST_DATA_PATH',
+        extract: data.extract
+    };
+};
 
 /**
  * Reads `sources.json` and returns one descriptor per fetched source. The
  * Java server jar is pinned by Mojang's own sha1 (which is also the object
- * name in its URL); everything else by sha256. The CloudburstMC entry is a
- * cross-reference to the Git submodule, not a download, so it has no
- * descriptor.
+ * name in its URL); everything else by sha256. CloudburstMC/Data has one
+ * descriptor per pinned protocol version, from {@link cloudburstDescriptor}.
  */
 export const loadSourceDescriptors = async (manifestPath: string): Promise<SourceDescriptor[]> => {
-    // The manifest is parsed JSON, which the compiler cannot see the shape of.
-    const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as SourcesManifest;
+    const manifest = await readManifest(manifestPath);
     return [
         {
             name: 'bds',

@@ -125,12 +125,21 @@ export const readZipEntries = async (
  * stored and deflate methods, which is all the pinned sources use, and fails
  * on zip64. Every entry is written as a regular file; entry names that could
  * escape the destination abort the unpack.
+ *
+ * @param accept - Decides which entry names are written. Names are checked for
+ *   safety whether or not they are accepted, so a hostile archive fails the
+ *   whole unpack rather than only the part a caller asked for.
  */
-export const extractZip = async (archivePath: string, destination: string): Promise<void> => {
+export const extractZip = async (
+    archivePath: string,
+    destination: string,
+    accept: (name: string) => boolean = () => true
+): Promise<void> => {
     const buffer = await readFile(archivePath);
     const entries = readCentralDirectory(buffer);
     for (const entry of entries) assertSafeEntryName(entry.name);
     for (const entry of entries) {
+        if (!accept(entry.name)) continue;
         if (entry.name.endsWith('/')) {
             await mkdir(join(destination, entry.name), { recursive: true });
             continue;

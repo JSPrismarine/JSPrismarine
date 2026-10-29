@@ -9,8 +9,8 @@
         "`node_modules/.cache/jsprismarine/<source>/<version>/`, verifies the hash before",
         "unpacking, and skips sources whose verified content is already present. For offline",
         "work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,",
-        "`JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH` point at local copies and",
-        "bypass the download.",
+        "`JSP_VANILLA_MCDOC_PATH`, `JSP_GEYSER_MAPPINGS_PATH` and `JSP_CLOUDBURST_DATA_PATH`",
+        "point at local copies and bypass the download.",
         "",
         "Hashes for `bds` and `javaServer` are cross-checked against the research notes in",
         "`docs/research/bedrock-data-extraction.md` and `docs/research/java-datapacks.md`. The",
@@ -83,13 +83,48 @@
     },
     "cloudburstData": {
         "$comment": [
-            "Cross-reference only, not fetched here: the CloudburstMC/Data commit the",
-            "`src/resources` submodule pins. `.gitmodules` and the submodule pointer are the",
-            "authority; this entry records the commit so a bump of either shows up in this",
-            "file's history. Keep it in sync with `git submodule status`."
+            "CloudburstMC/Data, the Apache-2.0 dumps of the Bedrock entity, item, block and biome",
+            "tables. This replaced a Git submodule: a submodule pins one commit, while `versions`",
+            "pins one archive per Bedrock protocol version, so several versions' data coexist.",
+            "",
+            "`utils/fetch/fetch-cloudburst.ts` downloads the selected version into",
+            "`node_modules/.cache/jsprismarine/cloudburst-data/v<protocol>/`, verifies the sha256",
+            "before unpacking, unpacks only the `extract` names, and links the result to",
+            "`src/resources` so every consumer sees one stable path. `--protocol <n>` selects a",
+            "version and `JSP_CLOUDBURST_DATA_PATH` points at a local checkout for offline work.",
+            "",
+            "Upstream has no tags, so each pin is a commit on master and the archive hash was",
+            "measured from codeload on 2026-10-29. Keep `LICENSE` in `extract`: the dumps are",
+            "Apache-2.0 and the license text has to travel with them.",
+            "",
+            "`blocks.json` is only read when `@jsprismarine/blocks` regenerates its tables, but it",
+            "is extracted with the rest: it is already inside the same 1.2 MB archive, so leaving",
+            "it out would buy no bandwidth and cost an opt-in fetch path."
         ],
         "repo": "CloudburstMC/Data",
-        "commit": "dee8f65b08496e278cc2b64f304a249c4db99e12",
-        "path": "src/resources"
+        "defaultProtocolVersion": 2193,
+        "extract": [
+            "LICENSE",
+            "biome_definitions.json",
+            "blocks.json",
+            "creative_items.json",
+            "entity_identifiers.dat",
+            "item_components.nbt",
+            "runtime_item_states.json"
+        ],
+        "versions": {
+            "2193": {
+                "minecraftVersion": "1.26.51",
+                "commit": "dee8f65b08496e278cc2b64f304a249c4db99e12",
+                "url": "https://codeload.github.com/CloudburstMC/Data/zip/dee8f65b08496e278cc2b64f304a249c4db99e12",
+                "sha256": "578918c74355cdd27a073ed7155423a9c8afed3cd802464289136a03fc56959e"
+            },
+            "2225": {
+                "minecraftVersion": "1.26.60",
+                "commit": "0021592b1a4253528bad1e1d8b537e306e097557",
+                "url": "https://codeload.github.com/CloudburstMC/Data/zip/0021592b1a4253528bad1e1d8b537e306e097557",
+                "sha256": "d852e9a1a7ad6089ae67e263b5b7d7cd3ad1e59111a4b1e21a2d2b32a12add99"
+            }
+        }
     }
 }

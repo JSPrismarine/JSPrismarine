@@ -6,10 +6,11 @@ import { createHash } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { linkResources, parseProtocolArgument } from './cloudburst.ts';
 import { fetchSource, hashSourceContent, resolveContentRoot } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
-import type { SourceDescriptor } from './manifest.ts';
+import { cloudburstDescriptor, type CloudburstData, type SourceDescriptor } from './manifest.ts';
 import { extractZip, readZipEntriesFrom, readZipEntry } from './unzip.ts';
 
 /** Builds a zip archive of stored (uncompressed) entries, for tests only. */
@@ -158,6 +159,125 @@ describe('extractZip', () => {
         const archive = join(dir, 'evil.zip');
         await writeFile(archive, zip);
         await expect(extractZip(archive, join(dir, 'out'))).rejects.toThrow(/unsafe name/);
+    });
+
+    it('checks every name for safety even when the filter would skip it', async () => {
+        const zip = buildZip({ 'pack/a.txt': 'alpha', '../evil.txt': 'nope' });
+        const archive = join(dir, 'mixed.zip');
+        await writeFile(archive, zip);
+        await expect(extractZip(archive, join(dir, 'out'), (name) => name === 'pack/a.txt')).rejects.toThrow(
+            /unsafe name/
+        );
+    });
+});
+
+describe('an extract allowlist', () => {
+    const allowlisted = (hashValue: string, extract: string[]): SourceDescriptor => ({
+        ...archiveDescriptor(hashValue),
+        extract
+    });
+
+    it('unpacks only the named files from behind the wrapper directory', async () => {
+        const zip = buildZip({
+            'Data-abc123/entity_identifiers.dat': 'entities',
+            'Data-abc123/LICENSE': 'apache',
+            'Data-abc123/recipes.json': 'huge'
+        });
+        const fetched = await fetchSource(allowlisted(sha256(zip), ['LICENSE', 'entity_identifiers.dat']), {
+            cacheRoot: join(dir, 'cache'),
+            env: {},
+            fetchImpl: stubFetch(zip).impl
+        });
+
+        const root = await resolveContentRoot(fetched.contentPath);
+        await expect(readFile(join(root, 'LICENSE'), 'utf8')).resolves.toBe('apache');
+        await expect(readFile(join(root, 'entity_identifiers.dat'), 'utf8')).resolves.toBe('entities');
+        await expect(readFile(join(root, 'recipes.json'), 'utf8')).rejects.toThrow();
+    });
+
+    it('re-unpacks when the allowlist grows, even though the pin is unchanged', async () => {
+        const zip = buildZip({ 'Data-abc123/LICENSE': 'apache', 'Data-abc123/blocks.json': '{}' });
+        const cacheRoot = join(dir, 'cache');
+        const hashValue = sha256(zip);
+        await fetchSource(allowlisted(hashValue, ['LICENSE']), {
+            cacheRoot,
+            env: {},
+            fetchImpl: stubFetch(zip).impl
+        });
+
+        const second = await fetchSource(allowlisted(hashValue, ['LICENSE', 'blocks.json']), {
+            cacheRoot,
+            env: {},
+            fetchImpl: stubFetch(zip).impl
+        });
+
+        expect(second.fromCache).toBe(false);
+        const root = await resolveContentRoot(second.contentPath);
+        await expect(readFile(join(root, 'blocks.json'), 'utf8')).resolves.toBe('{}');
+    });
+});
+
+describe('cloudburstDescriptor', () => {
+    const data: CloudburstData = {
+        repo: 'CloudburstMC/Data',
+        defaultProtocolVersion: 2193,
+        extract: ['LICENSE'],
+        versions: {
+            '2193': {
+                minecraftVersion: '1.26.51',
+                commit: 'aaa',
+                url: 'https://example.invalid/aaa.zip',
+                sha256: 'a'.repeat(64)
+            },
+            '2225': {
+                minecraftVersion: '1.26.60',
+                commit: 'bbb',
+                url: 'https://example.invalid/bbb.zip',
+                sha256: 'b'.repeat(64)
+            }
+        }
+    };
+
+    it('caches each protocol version under its own directory', () => {
+        expect(cloudburstDescriptor(data, 2193).version).toBe('v2193');
+        expect(cloudburstDescriptor(data, 2225).version).toBe('v2225');
+        expect(cloudburstDescriptor(data, 2225).url).toBe('https://example.invalid/bbb.zip');
+    });
+
+    it('falls back to the manifest default and shares one override variable', () => {
+        const fallback = cloudburstDescriptor(data);
+        expect(fallback.version).toBe('v2193');
+        expect(fallback.envOverride).toBe('JSP_CLOUDBURST_DATA_PATH');
+        expect(fallback.extract).toEqual(['LICENSE']);
+    });
+
+    it('names the pinned versions when asked for one that is not pinned', () => {
+        expect(() => cloudburstDescriptor(data, 1234)).toThrow(/protocol 1234; pinned: 2193, 2225/);
+    });
+});
+
+describe('linkResources', () => {
+    it('points the stable path at a version directory and follows a switch', async () => {
+        const link = join(dir, 'resources');
+        for (const version of ['v2193', 'v2225']) {
+            await mkdir(join(dir, version), { recursive: true });
+            await writeFile(join(dir, version, 'entity_identifiers.dat'), version);
+        }
+
+        expect(await linkResources(join(dir, 'v2193'), link)).toBe('symlink');
+        await expect(readFile(join(link, 'entity_identifiers.dat'), 'utf8')).resolves.toBe('v2193');
+
+        expect(await linkResources(join(dir, 'v2193'), link)).toBe('unchanged');
+        expect(await linkResources(join(dir, 'v2225'), link)).toBe('symlink');
+        await expect(readFile(join(link, 'entity_identifiers.dat'), 'utf8')).resolves.toBe('v2225');
+    });
+});
+
+describe('parseProtocolArgument', () => {
+    it('reads a protocol version and defaults to none', () => {
+        expect(parseProtocolArgument(['node', 'script.ts', '--protocol', '2225'])).toBe(2225);
+        expect(parseProtocolArgument(['node', 'script.ts'])).toBeUndefined();
+        expect(() => parseProtocolArgument(['node', 'script.ts', '--protocol'])).toThrow(/--protocol needs/);
     });
 });
 

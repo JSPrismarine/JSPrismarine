@@ -43,8 +43,9 @@
         "dump:java": "node utils/java-dump/run.mjs",
         "extract:structures": "node utils/java/extract-structures.ts",
         "ensure:java-server": "node utils/java-dump/ensure-server.ts",
+        "fetch:cloudburst": "node utils/fetch/fetch-cloudburst.ts",
         "fetch:sources": "node utils/fetch/fetch-sources.ts",
-        "generate": "node ../../scripts/ensure-submodules.mts && node utils/build.js",
+        "generate": "node utils/fetch/fetch-cloudburst.ts && node utils/build.js",
         "build": "pnpm run generate && vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "pnpm run build",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"

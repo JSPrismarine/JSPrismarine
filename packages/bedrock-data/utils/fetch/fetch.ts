@@ -50,7 +50,15 @@ interface FetchMarker {
     url: string;
     algorithm: string;
     hash: string;
+    /** The allowlist the cached content was unpacked with, when there was one. */
+    extract?: string[];
 }
+
+/** Whether a cache marker was written by the same pin and the same allowlist. */
+const markerMatches = (marker: FetchMarker | undefined, descriptor: SourceDescriptor): boolean =>
+    marker?.url === descriptor.url &&
+    marker.hash === descriptor.hash.value &&
+    (marker.extract ?? []).join('\u0000') === (descriptor.extract ?? []).join('\u0000');
 
 const readMarker = async (markerPath: string): Promise<FetchMarker | undefined> => {
     try {
@@ -67,6 +75,17 @@ const download = async (url: string, destination: string, fetchImpl: typeof fetc
         throw new Error(`Download failed for ${url}: HTTP ${response.status}`);
     }
     await pipeline(Readable.fromWeb(response.body), createWriteStream(destination));
+};
+
+/**
+ * Turns a descriptor's extract allowlist into an entry filter. The names in
+ * the allowlist are relative to a GitHub archive's `<repo>-<commit>/` wrapper
+ * directory, so the filter drops the first path segment before comparing.
+ */
+const allowlistFilter = (extract: string[] | undefined): ((name: string) => boolean) => {
+    if (extract === undefined) return () => true;
+    const wanted = new Set(extract);
+    return (name) => wanted.has(name.split('/').slice(1).join('/'));
 };
 
 /**
@@ -97,7 +116,7 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
     const markerPath = join(versionDir, MARKER_FILE);
 
     const marker = await readMarker(markerPath);
-    if (marker?.url === descriptor.url && marker.hash === descriptor.hash.value) {
+    if (markerMatches(marker, descriptor)) {
         return { descriptor, contentPath, fromOverride: false, fromCache: true };
     }
 
@@ -117,13 +136,14 @@ export const fetchSource = async (descriptor: SourceDescriptor, options: FetchOp
 
     if (descriptor.unpack) {
         await rm(contentPath, { recursive: true, force: true });
-        await extractZip(archivePath, contentPath);
+        await extractZip(archivePath, contentPath, allowlistFilter(descriptor.extract));
     }
 
     const written: FetchMarker = {
         url: descriptor.url,
         algorithm: descriptor.hash.algorithm,
-        hash: descriptor.hash.value
+        hash: descriptor.hash.value,
+        ...(descriptor.extract === undefined ? {} : { extract: descriptor.extract })
     };
     await writeFile(markerPath, `${JSON.stringify(written, undefined, 4)}\n`);
     return { descriptor, contentPath, fromOverride: false, fromCache: false };
