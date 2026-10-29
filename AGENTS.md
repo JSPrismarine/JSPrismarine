@@ -35,6 +35,9 @@ Use American English spelling in prose and documentation. Do not use British spe
   completed, validated slices and stage only the files in each slice. Follow
   [commit discipline](.agents/skills/commit-discipline/SKILL.md) when committing. Push, tag, publish,
   or create or modify a pull request only when the user asks.
+- Keep history linear. Integrate by rebasing onto the target branch. To combine parallel work, rebase
+  the side branch onto the target and fast-forward the target onto it. Leave merge commits out of
+  this repository's history.
 - When adding a skill under `.agents/skills/<name>/`, add a relative symlink at
   `.claude/skills/<name>` pointing to that directory so Claude Code discovers it. Keep the skill
   files in `.agents/skills/` as the source of truth.

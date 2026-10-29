@@ -27,4 +27,6 @@ completed slice after its relevant checks pass, in dependency order.
   recent commit on that branch, edit that commit in the branch history.
 - On `master`, create a new commit for corrections. Never amend, rebase, or otherwise rewrite its
   existing history unless the user explicitly asks.
+- Integrate branches by rebasing, so history stays linear. Rebase the feature branch onto its target,
+  then fast-forward the target. `git merge --ff-only` keeps a merge commit from slipping in.
 - Keep history edits local. Push only when the user requests it.
