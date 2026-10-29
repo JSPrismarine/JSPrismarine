@@ -426,7 +426,7 @@ Surveyed in `packages/prismarine/src` at the commit this note was written agains
 
 ### Already data
 
-- Block states and runtime ids. `packages/minecraft/src/generated/block-schemas.ts` (1477 blocks, 22079 states, from `datagen/snapshot/block-palette.json`) feeds `block/state/BlockStateSchema.ts`; `block/state/BlockRuntimeIds.ts` hashes `{name, states}` with FNV-1a-32. Chunks store the hashes.
+- Block states and runtime ids. `packages/minecraft/src/generated/block-schemas.ts` (1477 blocks, 22079 states, from `datagen/snapshot/v2193/block-palette.json`) feeds `block/state/BlockStateSchema.ts`; `block/state/BlockRuntimeIds.ts` hashes `{name, states}` with FNV-1a-32. Chunks store the hashes.
 - The item table, item components, creative menu, item tags and recipes. `network/packet/ItemRegistryPacket.ts` writes `item_table` and `item_components` from bedrock-data; `inventory/CreativeInventory.ts` reads `creativeitems`; `crafting/VanillaRecipes.ts` loads `packages/minecraft/src/generated/recipes.json` (1967 recipes composed from the BDS layers by `datagen/generate-recipes.js`).
 - Packet payloads replayed verbatim: biome definitions, jigsaw structure data, actor identifiers, data-driven block definitions.
 

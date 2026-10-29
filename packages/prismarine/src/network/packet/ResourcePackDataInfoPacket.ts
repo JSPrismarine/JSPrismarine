@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
  *
  * The packet docs give the field as a bare uint8. The names and numbers are Mojang's `PackType`
  * enum in the datagen snapshot behind `@jsprismarine/minecraft`
- * (`packages/minecraft/datagen/snapshot/enums.html`); gophertunnel uses the same numbers.
+ * (`packages/minecraft/datagen/snapshot/v2193/enums.html`); gophertunnel uses the same numbers.
  */
 export enum PackType {
     Invalid = 0,

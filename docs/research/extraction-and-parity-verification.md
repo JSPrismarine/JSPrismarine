@@ -102,7 +102,7 @@ Passes and output tables, each a JSONL file after `grep 'DUMP <table>' | sed`:
 | Table | Source calls | Row | Rows | Size estimate |
 |---|---|---|---|---|
 | `block-types` | `BlockTypes.getAll()`, `BlockPermutation.resolve(id)`, `getTags()`, `getItemStack()`, the four liquid methods, `localizationKey` | `{ id, tags, item, localizationKey, water: {contain, blocking, destroyed, spawns} }` | 1477 | 250 KB (Allay's `block_tags.json` is 55 KB for the same tags) |
-| `block-domains` | as `domains.js` | `{ name, props: { [p]: { values, default } } }` | 1477 | 331 KB, the size of `snapshot/block-palette.json` |
+| `block-domains` | as `domains.js` | `{ name, props: { [p]: { values, default } } }` | 1477 | 331 KB, the size of `snapshot/v2193/block-palette.json` |
 | `block-placed` | place each default permutation on stone inside the ticking area, read `getComponents()`, `map_color`, `movable`, `precipitation_interactions`, `inventory?.container?.size`, `getRedstonePower()` | `{ id, components, mapColor, tintMethod, movementType, stickyType, snow, rain, inventorySize }` | 1477 | 300 KB |
 | `block-states` | `BlockStates.getAll()` | `{ id, validValues }` | about 200 | 20 KB |
 | `items` | `ItemTypes.getAll()`, `new ItemStack(id)`, `maxAmount`, `isStackable`, `weight`, `getTags()`, each of the ten components | `{ id, maxAmount, stackable, tags, durability?, food?, cooldown?, enchantable?, potion?, dyeable?, compostable?, inventorySize? }` | 1623 | 500 KB (Allay's `items.json` is 486 KB for ten numeric fields per item) |

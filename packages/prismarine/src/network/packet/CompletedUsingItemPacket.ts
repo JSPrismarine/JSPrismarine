@@ -5,7 +5,7 @@ import DataPacket from './DataPacket';
  *
  * Mojang's page for protocol 2193 leaves the field a bare int32 and lists no members. The
  * values are those of `ItemUseMethod` in Mojang's enum snapshot at
- * `packages/minecraft/datagen/snapshot/enums.html`, which gophertunnel reads the same way.
+ * `packages/minecraft/datagen/snapshot/v2193/enums.html`, which gophertunnel reads the same way.
  */
 export enum ItemUseMethod {
     Unknown = -1,

@@ -2,13 +2,12 @@
  * Derives JSPrismarine's own block state catalog from a captured Bedrock server.
  *
  * Runs once per protocol version the manifest declares under `versions`. Each version's
- * source and destination are in
- * `datagen/manifest.json`; nothing here decides either.
+ * source and destination are in `datagen/manifest.json`; nothing here decides either.
  *
  * The input used to be `canonical_block_states.nbt`, a third party dump extracted with a
  * native mod hooking the server binary - the one leg of the extraction still leaning on
- * somebody else. It is now `snapshot/block-palette.json`, captured from a Bedrock Dedicated
- * Server directly. `datagen/README-palette.md` says how.
+ * somebody else. It is now that version's `snapshot/v<protocol>/block-palette.json`, captured
+ * from a Bedrock Dedicated Server directly. `datagen/README-palette.md` says how.
  *
  * What comes out is a description of *which properties each block has and which values they
  * accept* - not an ordered palette. Runtime ids are hashes computed from a block's own name
