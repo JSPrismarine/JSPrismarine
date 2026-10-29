@@ -9,6 +9,7 @@ import {
     ResourcePacksInfoPacket,
     ServerToClientHandshakePacket,
     StartGamePacket,
+    StartGamePacket2225,
     TextPacket
 } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
@@ -22,14 +23,28 @@ import type { StartGame } from '@jsprismarine/protocol';
 import type { ITransport, TransportStats } from './net/ITransport';
 
 /**
- * The protocol version this client speaks.
+ * The protocol version this client speaks unless it is told otherwise.
  *
- * One version, hardcoded, exactly as the server does it. A mismatch is refused by both ends
- * with a message that says which side is behind, which is the least a client owes somebody
- * who cannot connect.
+ * One default, exactly as the server has one. A mismatch is refused by both ends with a
+ * message that says which side is behind, which is the least a client owes somebody who
+ * cannot connect.
  */
 export const PROTOCOL_VERSION = 2193;
 export const MINECRAFT_VERSION = '1.26.51';
+
+/**
+ * The Minecraft version string that goes with each protocol this client can speak, and the
+ * `StartGamePacket` layout to read at it.
+ *
+ * A server refuses a login whose protocol is not its own, so capturing data from a 1.26.60
+ * server means speaking 2225 to it. Only `StartGamePacket` differs between the two layouts
+ * among the packets this client decodes; everything else it reads is unchanged at 2225, and
+ * everything it sends during a login is too.
+ */
+const PROTOCOLS = new Map([
+    [2193, { minecraftVersion: MINECRAFT_VERSION, startGame: StartGamePacket }],
+    [2225, { minecraftVersion: '1.26.60', startGame: StartGamePacket2225 }]
+]);
 
 export interface ClientOptions {
     readonly host: string;
@@ -41,6 +56,16 @@ export interface ClientOptions {
     /** Supply one for single player; omit it and the client dials over UDP. */
     readonly transport?: ITransport;
     readonly loginTimeoutMs?: number;
+    /**
+     * Which protocol to speak. Defaults to {@link PROTOCOL_VERSION}.
+     *
+     * A server admits one version and refuses every other, so this is only worth setting to
+     * reach a server of a version this client does not default to - which is what the
+     * Bedrock capture tool does when it records a newer server's data.
+     *
+     * @throws Error from the constructor when the version has no layout here.
+     */
+    readonly protocolVersion?: number;
 }
 
 /**
@@ -65,6 +90,9 @@ export default class Client extends EventEmitter {
     private readonly transport: ITransport;
     private readonly session: ClientSession;
 
+    /** The protocol this client speaks, resolved from the options. */
+    private readonly protocolVersion: number;
+
     private login: LoginSequence | null = null;
     private startGame: StartGame | null = null;
     private connected = false;
@@ -73,7 +101,23 @@ export default class Client extends EventEmitter {
         super();
 
         this.logger = options.logger ?? new Logger();
-        this.auth = options.auth ?? new OfflineAuthProvider({ displayName: options.displayName ?? 'Player' });
+
+        this.protocolVersion = options.protocolVersion ?? PROTOCOL_VERSION;
+        const protocol = PROTOCOLS.get(this.protocolVersion);
+        if (protocol === undefined) {
+            throw new Error(
+                `This client speaks protocol ${[...PROTOCOLS.keys()].join(' and ')}, not ${this.protocolVersion}`
+            );
+        }
+
+        this.auth =
+            options.auth ??
+            new OfflineAuthProvider({
+                displayName: options.displayName ?? 'Player',
+                // A server checks the version a client reports against the protocol it
+                // announced, so the two have to be set together.
+                clientData: { gameVersion: protocol.minecraftVersion }
+            });
 
         this.registry.registerAll([
             NetworkSettingsPacket,
@@ -83,7 +127,7 @@ export default class Client extends EventEmitter {
             ItemRegistryPacket,
             ResourcePacksInfoPacket,
             ResourcePackStackPacket,
-            StartGamePacket,
+            protocol.startGame,
             TextPacket
         ]);
 
@@ -119,7 +163,7 @@ export default class Client extends EventEmitter {
         this.connected = true;
 
         this.login = new LoginSequence(this.session, this.auth, this.logger, {
-            protocolVersion: PROTOCOL_VERSION,
+            protocolVersion: this.protocolVersion,
             serverAddress: `${this.options.host}:${this.options.port ?? 19132}`,
             timeoutMs: this.options.loginTimeoutMs
         });

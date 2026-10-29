@@ -18,6 +18,7 @@ import ResourcePackStackPacket from './ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './ResourcePacksInfoPacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
 import StartGamePacket from './StartGamePacket';
+import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
 
 export {
@@ -41,10 +42,12 @@ export {
     ResourcePacksInfoPacket,
     SetLocalPlayerAsInitializedPacket,
     StartGamePacket,
+    StartGamePacket2225,
     TextPacket
 };
 
 export { GameRuleType } from './StartGamePacket';
+export { EditorLevelMigrationVersion } from './StartGamePacket2225';
 export {
     CreativeItemCategory,
     creativeCategoryOf,

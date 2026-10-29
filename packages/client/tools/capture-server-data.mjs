@@ -71,7 +71,13 @@ const { values } = parseArgs({
         /** Where the raw engine table payloads go. Empty means do not record them. */
         extended: { type: 'string', default: '' },
         /** What the captured files say they came from, e.g. `bedrock-server-1.26.51.1`. */
-        server: { type: 'string', default: '' }
+        server: { type: 'string', default: '' },
+        /**
+         * Which protocol to log in with. A server admits its own version and no other, so
+         * this has to match the server being captured; `dump:bedrock` passes the version it
+         * staged. Defaults to the client's own.
+         */
+        protocol: { type: 'string', default: '' }
     }
 });
 
@@ -98,7 +104,8 @@ const client = new Client({
     // Sixteen characters is the longest name a server admits; one more and it disconnects
     // with a reason left blank.
     displayName: 'DataCapture',
-    loginTimeoutMs: 60_000
+    loginTimeoutMs: 60_000,
+    ...(values.protocol === '' ? {} : { protocolVersion: Number(values.protocol) })
 });
 
 // Everything the client owns is unref'ed, so without this the process exits before the login

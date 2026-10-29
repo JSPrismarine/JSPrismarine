@@ -423,7 +423,11 @@ const runPacketPass = async (): Promise<void> => {
                 '--extended',
                 join(outDirectory, 'packets'),
                 '--server',
-                `bedrock-server-${pinnedServer.serverVersion}`
+                `bedrock-server-${pinnedServer.serverVersion}`,
+                // The server refuses a login at any version but its own, so the client is
+                // told which one it is dialling rather than defaulting to its own.
+                '--protocol',
+                String(protocolVersion)
             ]),
             { cwd: repositoryRoot, stdio: 'inherit' }
         );

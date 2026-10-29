@@ -94,6 +94,14 @@ export interface StartGame {
     editorWorldType: number;
     createdInEditor: boolean;
     exportedFromEditor: boolean;
+    /**
+     * Which editor level migrations the world has had applied, an int8.
+     *
+     * Added to the level settings at protocol 2225 and absent from the 2193 wire, so this is
+     * `undefined` on a 2193 packet and set on a 2225 one. {@link StartGamePacket2225} is the
+     * class that reads and writes it.
+     */
+    editorLevelMigrationVersion?: number;
     dayCycleStopTime: number;
     educationEditionOffer: number;
     educationFeaturesEnabled: boolean;
@@ -190,6 +198,19 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
         return PacketIdentifier.START_GAME;
     }
 
+    /**
+     * Writes the level settings field 2225 inserted, which at 2193 is not on the wire.
+     *
+     * A hook rather than a branch on a version number: this class is the 2193 layout and
+     * writes nothing here, and {@link StartGamePacket2225} is the one layout that does.
+     */
+    protected serializeEditorLevelMigrationVersion(_stream: NetworkBinaryStream, _data: StartGame): void {}
+
+    /** Reads the field {@link serializeEditorLevelMigrationVersion} writes. */
+    protected deserializeEditorLevelMigrationVersion(_stream: NetworkBinaryStream): number | undefined {
+        return undefined;
+    }
+
     protected serializePayload(stream: NetworkBinaryStream, data: StartGame): void {
         stream.writeVarLong(data.entityId);
         stream.writeUnsignedVarLong(data.runtimeEntityId);
@@ -213,6 +234,7 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
         stream.writeVarInt(data.editorWorldType);
         stream.writeBoolean(data.createdInEditor);
         stream.writeBoolean(data.exportedFromEditor);
+        this.serializeEditorLevelMigrationVersion(stream, data);
         stream.writeVarInt(data.dayCycleStopTime);
         stream.writeUnsignedVarInt(data.educationEditionOffer);
         stream.writeBoolean(data.educationFeaturesEnabled);
@@ -364,6 +386,7 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
         const editorWorldType = stream.readVarInt();
         const createdInEditor = stream.readBoolean();
         const exportedFromEditor = stream.readBoolean();
+        const editorLevelMigrationVersion = this.deserializeEditorLevelMigrationVersion(stream);
         const dayCycleStopTime = stream.readVarInt();
         const educationEditionOffer = stream.readUnsignedVarInt();
         const educationFeaturesEnabled = stream.readBoolean();
@@ -511,6 +534,7 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
             editorWorldType,
             createdInEditor,
             exportedFromEditor,
+            ...(editorLevelMigrationVersion === undefined ? {} : { editorLevelMigrationVersion }),
             dayCycleStopTime,
             educationEditionOffer,
             educationFeaturesEnabled,
