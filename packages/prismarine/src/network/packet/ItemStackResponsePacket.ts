@@ -1,5 +1,4 @@
 import { ItemStackResponseResult } from '@jsprismarine/minecraft';
-import Identifiers from '../Identifiers';
 import type { FullContainerName } from '../type/ItemStackRequest';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
@@ -75,8 +74,6 @@ export interface ItemStackResponse {
  * **Bound To:** Client
  */
 export default class ItemStackResponsePacket extends DataPacket {
-    public static NetID = Identifiers.ItemStackResponsePacket;
-
     public responses: ItemStackResponse[] = [];
 
     /**
@@ -128,6 +125,50 @@ export default class ItemStackResponsePacket extends DataPacket {
                     this.writeVarInt(slot.durabilityCorrection);
                 }
             }
+        }
+    }
+
+    /**
+     * Reads Responses back, the mirror of {@link encodePayload}.
+     *
+     * The two Requested Slot / Slot bytes collapse into the one {@link ItemStackResponseSlotInfo.slot}
+     * field, and the Redacted half of Custom Name is read past: the encoder never writes one.
+     */
+    public decodePayload(): void {
+        this.responses = [];
+        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
+            const result: ItemStackResponseResult = this.readByte();
+            const requestId = this.readVarInt();
+
+            const containers: ItemStackResponseContainerInfo[] = [];
+            const accepted = this.readBoolean();
+            if (!accepted) {
+                this.responses.push({ result, requestId, containers });
+                continue;
+            }
+
+            for (let j = 0, containerCount = this.readUnsignedVarInt(); j < containerCount; j++) {
+                const containerId = this.readByte();
+                const dynamicId = this.readBoolean() ? this.readUnsignedIntLE() : null;
+
+                const slots: ItemStackResponseSlotInfo[] = [];
+                for (let k = 0, slotCount = this.readUnsignedVarInt(); k < slotCount; k++) {
+                    const slot = this.readByte(); // Requested Slot.
+                    this.readByte(); // Slot, the same number again.
+                    const count = this.readByte(); // Amount.
+
+                    const itemStackId = this.readBoolean() ? this.readVarInt() : 0;
+
+                    const customName = NetworkUtil.readString(this); // Custom Name: Unredacted.
+                    if (this.readBoolean()) NetworkUtil.readString(this); // Custom Name: Redacted.
+
+                    slots.push({ slot, count, itemStackId, customName, durabilityCorrection: this.readVarInt() });
+                }
+
+                containers.push({ container: { containerId, dynamicId }, slots });
+            }
+
+            this.responses.push({ result, requestId, containers });
         }
     }
 }

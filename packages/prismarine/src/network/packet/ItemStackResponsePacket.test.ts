@@ -252,4 +252,30 @@ describe('ItemStackResponsePacket', () => {
 
         expect(() => encode(packet)).toThrow(RangeError);
     });
+
+    it('round-trips an acceptance and a refusal', () => {
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [
+            {
+                result: ItemStackResponseResult.OK,
+                requestId: -1,
+                containers: [
+                    {
+                        container: { containerId: 12, dynamicId: 7 },
+                        slots: [
+                            { slot: 3, count: 0, itemStackId: 0, customName: '', durabilityCorrection: 0 },
+                            { slot: 5, count: 2, itemStackId: 9, customName: 'Named', durabilityCorrection: -3 }
+                        ]
+                    }
+                ]
+            },
+            { result: ItemStackResponseResult.ERROR, requestId: -3, containers: [] }
+        ];
+
+        const decoded = new ItemStackResponsePacket(encode(packet));
+        decoded.decode();
+
+        expect(decoded.responses).toEqual(packet.responses);
+        expect(decoded.feof()).toBe(true);
+    });
 });
