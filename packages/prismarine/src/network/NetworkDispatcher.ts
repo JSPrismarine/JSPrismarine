@@ -114,7 +114,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
         // Read before the tear-down below, which detaches the session and takes the
         // player out of its world. A player is only added to a world once the client
-        // reports itself initialised, so a session whose player is not in one belongs
+        // reports itself initialized, so a session whose player is not in one belongs
         // to a client that gave up between login and spawn.
         const player = session?.getPlayerSession()?.getPlayer() ?? null;
         const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
