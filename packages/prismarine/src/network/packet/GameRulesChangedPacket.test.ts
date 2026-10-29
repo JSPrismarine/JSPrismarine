@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { GameRule } from './GameRulesChangedPacket';
-import GameRulesChangedPacket, { GameRuleValueType } from './GameRulesChangedPacket';
+import type { GameRule } from '../type/GameRule';
+import GameRulesChangedPacket from './GameRulesChangedPacket';
+import { GameRuleValueType } from '../type/GameRule';
 
 describe('GameRulesChangedPacket', () => {
     // Header 0x48 and a count of three. Then, per rule, the name after its varuint length,

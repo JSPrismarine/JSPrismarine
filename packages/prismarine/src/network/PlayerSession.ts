@@ -75,7 +75,7 @@ import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
-import type { GameRule } from './packet/GameRulesChangedPacket';
+import type { GameRule } from './type/GameRule';
 import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
 import UpdatePlayerGameTypePacket from './packet/UpdatePlayerGameTypePacket';
 import TextPacket from './packet/TextPacket';

@@ -1,8 +1,8 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
 import type Server from '../Server';
-import type { GameRule } from '../network/packet/GameRulesChangedPacket';
-import { GameRuleValueType, writeGameRule } from '../network/packet/GameRulesChangedPacket';
+import type { GameRule } from '../network/type/GameRule';
+import { GameRuleValueType, writeGameRule } from '../network/type/GameRule';
 
 /**
  * The rules every world registers, spelled the way the client spells them.

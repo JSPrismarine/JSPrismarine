@@ -9,10 +9,10 @@ import UUID from '../../utils/UUID';
 import GameRuleManager from '../../world/GameRuleManager';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
-import { readGameRule, writeGameRule } from './GameRulesChangedPacket';
+import { readGameRule, writeGameRule } from '../type/GameRule';
 
 import type { BlockProperty } from '@jsprismarine/protocol';
-import type { GameRule } from './GameRulesChangedPacket';
+import type { GameRule } from '../type/GameRule';
 
 /**
  * Tells a joining client who it is, where it is, and what world it is in.
