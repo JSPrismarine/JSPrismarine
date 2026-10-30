@@ -77,7 +77,7 @@ import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbso
 import MoveActorDeltaPacket from '@jsprismarine/protocol/packet/MoveActorDeltaPacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import MultiplayerSettingsPacket from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
-import NetworkSettingsPacket from './packet/NetworkSettingsPacket';
+import NetworkSettingsPacket from '@jsprismarine/protocol/packet/NetworkSettingsPacket';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
 import NpcRequestPacket from '@jsprismarine/protocol/packet/NpcRequestPacket';
 import OnScreenTextureAnimationPacket from '@jsprismarine/protocol/packet/OnScreenTextureAnimationPacket';
@@ -100,7 +100,7 @@ import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
-import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
+import RequestNetworkSettingsPacket from '@jsprismarine/protocol/packet/RequestNetworkSettingsPacket';
 import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import ResourcePackChunkDataPacket from '@jsprismarine/protocol/packet/ResourcePackChunkDataPacket';
 import ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';

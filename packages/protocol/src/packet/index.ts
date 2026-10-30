@@ -115,6 +115,7 @@ export { PositionMode } from './MovePlayerPacket';
 export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
 export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
+export { CompressionThreshold } from './NetworkSettingsPacket';
 export { TextPacketType } from './TextPacket';
 export { BossBarColor, BossBarOverlay, BossEventUpdateType } from './BossEventPacket';
 export { CreditsState } from './ShowCreditsPacket';

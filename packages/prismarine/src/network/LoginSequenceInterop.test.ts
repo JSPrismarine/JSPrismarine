@@ -1,12 +1,10 @@
-import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import {
     DisconnectPacket,
     LoginPacket,
     NetworkBinaryStream,
-    NetworkSettingsPacket,
     PlayStatus,
     PlayStatusPacket,
-    RequestNetworkSettingsPacket,
     ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePackStatus,
@@ -16,9 +14,7 @@ import { describe, expect, it } from 'vitest';
 
 import ServerDisconnectPacket from './packet/DisconnectPacket';
 import ServerLoginPacket from './packet/LoginPacket';
-import ServerNetworkSettingsPacket, { CompressionThreshold } from './packet/NetworkSettingsPacket';
 import ServerPlayStatusPacket from './packet/PlayStatusPacket';
-import ServerRequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
 import ServerResourcePackClientResponsePacket from './packet/ResourcePackClientResponsePacket';
 import ServerResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ServerResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
@@ -66,47 +62,6 @@ const readAsServer = <T extends NetworkPacket>(packet: T, buffer: Buffer): T => 
 };
 
 describe('login sequence interop', () => {
-    describe('RequestNetworkSettings', () => {
-        it('agrees byte for byte and both sides read the whole packet', () => {
-            const server = new ServerRequestNetworkSettingsPacket();
-            server.protocolVersion = 2193;
-            const bytes = serverBytes(server);
-
-            expect(clientBytes(new RequestNetworkSettingsPacket({ protocolVersion: 2193 }))).toEqual(bytes);
-            expect(readAsClient(new RequestNetworkSettingsPacket(), bytes).protocolVersion).toBe(2193);
-            expect(readAsServer(new ServerRequestNetworkSettingsPacket(), bytes).protocolVersion).toBe(2193);
-        });
-    });
-
-    describe('NetworkSettings', () => {
-        const data = {
-            compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
-            compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
-            clientThrottlingEnabled: false,
-            clientThrottleThreshold: 0,
-            clientThrottleScalar: 0
-        };
-
-        it('agrees byte for byte and the client reads the whole packet', () => {
-            const server = new ServerNetworkSettingsPacket();
-            Object.assign(server, data);
-            const bytes = serverBytes(server);
-
-            expect(clientBytes(new NetworkSettingsPacket(data))).toEqual(bytes);
-            expect(readAsClient(new NetworkSettingsPacket(), bytes)).toEqual(data);
-        });
-
-        it('carries CompressionAlgorithm None through both codecs', () => {
-            // 0xffff, which only survives because the field is two bytes wide on both sides.
-            const none = { ...data, compressionAlgorithm: PacketCompressionAlgorithm.NONE };
-            const bytes = clientBytes(new NetworkSettingsPacket(none));
-
-            expect(readAsServer(new ServerNetworkSettingsPacket(), bytes).compressionAlgorithm).toBe(
-                PacketCompressionAlgorithm.NONE
-            );
-        });
-    });
-
     describe('Login', () => {
         const data = { protocolVersion: 2193, chainData: '{"chain":[]}', clientData: 'a.b.c' };
 

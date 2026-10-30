@@ -4,6 +4,14 @@ import { PacketIdentifier } from '../PacketIdentifier';
 import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
+/** Values the server commonly uses for the smallest payload worth compressing. */
+export enum CompressionThreshold {
+    /** A threshold of zero disables compression for every packet. */
+    COMPRESS_NOTHING = 0,
+    /** A threshold of one byte compresses every nonempty payload. */
+    COMPRESS_EVERYTHING = 1
+}
+
 /** The fields of a `NetworkSettingsPacket`, in wire order. */
 export interface NetworkSettings {
     /**

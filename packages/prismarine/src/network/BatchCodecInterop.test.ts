@@ -1,9 +1,14 @@
-import { BATCH_PACKET_ID, BatchCodec, UNCOMPRESSED_BATCH } from '@jsprismarine/protocol';
+import {
+    BATCH_PACKET_ID,
+    BatchCodec,
+    CompressionThreshold,
+    NetworkSettingsPacket,
+    RequestNetworkSettingsPacket,
+    UNCOMPRESSED_BATCH
+} from '@jsprismarine/protocol';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 import BatchPacket from './packet/BatchPacket';
-import NetworkSettingsPacket, { CompressionThreshold } from './packet/NetworkSettingsPacket';
-import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
 import TextPacket from './packet/TextPacket';
 import TextPacketType from './type/TextPacketType';
 
@@ -19,19 +24,19 @@ import TextPacketType from './type/TextPacketType';
  */
 
 const requestNetworkSettings = (protocolVersion: number) => {
-    const packet = new RequestNetworkSettingsPacket();
-    packet.protocolVersion = protocolVersion;
+    const packet = new RequestNetworkSettingsPacket({ protocolVersion });
     packet.encode();
     return packet;
 };
 
 const networkSettings = () => {
-    const packet = new NetworkSettingsPacket();
-    packet.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
-    packet.compressionAlgorithm = PacketCompressionAlgorithm.ZLIB;
-    packet.clientThrottlingEnabled = false;
-    packet.clientThrottleThreshold = 0;
-    packet.clientThrottleScalar = 0;
+    const packet = new NetworkSettingsPacket({
+        compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
+        compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+        clientThrottlingEnabled: false,
+        clientThrottleThreshold: 0,
+        clientThrottleScalar: 0
+    });
     packet.encode();
     return packet;
 };

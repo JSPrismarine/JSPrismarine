@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { CompressionThreshold, NetworkSettingsPacket, RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,9 +11,7 @@ import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
 import Identifiers from '../Identifiers';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
-import RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import PlayStatus from '../type/PlayStatus';
 import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
 
@@ -44,7 +43,7 @@ const fakeConnection = () => {
 };
 
 const request = (protocolVersion: number): RequestNetworkSettingsPacket =>
-    Object.assign(new RequestNetworkSettingsPacket(), { protocolVersion });
+    new RequestNetworkSettingsPacket({ protocolVersion });
 
 describe('RequestNetworkSettingsHandler', () => {
     const info = vi.fn();
@@ -59,7 +58,7 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(sent[0]!.packet).toBeInstanceOf(NetworkSettingsPacket);
         // What every later batch is framed under: `BatchPacket` deflates everything with
         // zlib, so the threshold is 1 and the algorithm ZLib. Throttling is off.
-        expect(sent[0]!.packet).toMatchObject({
+        expect(sent[0]!.packet.getPacketData()).toMatchObject({
             compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
             compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
             clientThrottlingEnabled: false,

@@ -1,10 +1,10 @@
 import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { CompressionThreshold, NetworkSettingsPacket } from '@jsprismarine/protocol';
+import type { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
 import { codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
 import type Server from '../../Server';
-import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
 import type ClientConnection from '../ClientConnection';
-import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import PlayStatus from '../type/PlayStatus';
 
@@ -17,23 +17,27 @@ export default class RequestNetworkSettingsHandler implements ConnectionPacketHa
         server: Server,
         connection: ClientConnection
     ): Promise<void> {
+        const request = packet.getPacketData();
+        if (request === null) throw new Error('RequestNetworkSettingsPacket has no payload');
+
         // The one negotiation point: the client's first packet names its protocol version,
         // and either the registry has a codec for it or the connection ends here.
-        const codec = codecForProtocol(packet.protocolVersion);
+        const codec = codecForProtocol(request.protocolVersion);
         if (codec === undefined) {
-            await RequestNetworkSettingsHandler.refuseProtocol(packet.protocolVersion, server, connection);
+            await RequestNetworkSettingsHandler.refuseProtocol(request.protocolVersion, server, connection);
             return;
         }
 
         connection.codec = codec;
         connection.phase = 'login';
 
-        const networkSettings = new NetworkSettingsPacket();
-        networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
-        networkSettings.compressionAlgorithm = PacketCompressionAlgorithm.ZLIB;
-        networkSettings.clientThrottlingEnabled = false;
-        networkSettings.clientThrottleThreshold = 0;
-        networkSettings.clientThrottleScalar = 0;
+        const networkSettings = new NetworkSettingsPacket({
+            compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
+            compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+            clientThrottlingEnabled: false,
+            clientThrottleThreshold: 0,
+            clientThrottleScalar: 0
+        });
 
         connection.hasCompression = true;
 
