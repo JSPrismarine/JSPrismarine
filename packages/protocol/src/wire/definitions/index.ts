@@ -27,7 +27,7 @@ import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
-import { containerClosePacket, containerOpenPacket, mobEquipmentPacket } from './containers';
+import { containerClosePacket, containerOpenPacket, containerSetDataPacket, mobEquipmentPacket } from './containers';
 import { modalFormRequestPacket, modalFormResponsePacket } from './forms';
 import { gameRulesChangedPacket } from './gameRulesChanged';
 import { interactPacket } from './interaction';
@@ -81,6 +81,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         chunkRadiusUpdatedPacket,
         containerClosePacket,
         containerOpenPacket,
+        containerSetDataPacket,
         gameRulesChangedPacket,
         interactPacket,
         inventoryTransactionPacket,

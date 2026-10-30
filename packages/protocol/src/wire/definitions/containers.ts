@@ -25,6 +25,24 @@ export const containerOpenPacket = definePacket('ContainerOpenPacket', {
 /** What `ContainerOpenPacket` carries. */
 export type ContainerOpenPayload = PayloadOf<typeof containerOpenPacket>;
 
+/**
+ * The `ContainerSetDataPacket` field list.
+ *
+ * The same `ID` means a different property in each kind of container, so the client reads it
+ * against whatever `Container ID` currently has open.
+ */
+export const containerSetDataPacket = definePacket('ContainerSetDataPacket', {
+    /** `Container ID`: the open container the property belongs to. */
+    containerId: t.uint8,
+    /** `ID`: which property to set. */
+    id: t.varint32,
+    /** `Value`: the property's new value. */
+    value: t.varint32
+});
+
+/** What `ContainerSetDataPacket` carries. */
+export type ContainerSetDataPayload = PayloadOf<typeof containerSetDataPacket>;
+
 /** The `ContainerClosePacket` field list. */
 export const containerClosePacket = definePacket('ContainerClosePacket', {
     /** `Container Id`: the window being closed. */

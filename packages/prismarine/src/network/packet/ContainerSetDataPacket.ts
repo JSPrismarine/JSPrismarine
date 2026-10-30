@@ -1,3 +1,5 @@
+import { containerSetDataPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -31,15 +33,18 @@ export default class ContainerSetDataPacket extends DataPacket {
 
     /** Reads the container, the property, and its value. */
     public decodePayload(): void {
-        this.containerId = this.readByte();
-        this.id = this.readVarInt();
-        this.value = this.readVarInt();
+        const read = layoutAt(containerSetDataPacket, this.codecProtocol).decode(this);
+        this.containerId = read.containerId;
+        this.id = read.id;
+        this.value = read.value;
     }
 
     /** Writes the container, the property, and its value. */
     public encodePayload(): void {
-        this.writeByte(this.containerId);
-        this.writeVarInt(this.id);
-        this.writeVarInt(this.value);
+        layoutAt(containerSetDataPacket, this.codecProtocol).encode(this, {
+            containerId: this.containerId,
+            id: this.id,
+            value: this.value
+        });
     }
 }
