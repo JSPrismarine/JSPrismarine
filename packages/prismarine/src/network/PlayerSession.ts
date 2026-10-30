@@ -52,7 +52,7 @@ import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
-import ContainerOpenPacket from './packet/ContainerOpenPacket';
+import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';

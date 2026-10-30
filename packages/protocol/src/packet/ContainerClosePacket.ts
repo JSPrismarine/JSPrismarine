@@ -1,6 +1,6 @@
-import { containerClosePacket, layoutAt } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { containerClosePacket } from '../wire/definitions/containers';
 
 /**
  * Closes a container, in either direction.

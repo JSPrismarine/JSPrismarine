@@ -8,7 +8,7 @@ import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ContainerOpenPacket from './packet/ContainerOpenPacket';
+import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import PlayerSession from './PlayerSession';
 

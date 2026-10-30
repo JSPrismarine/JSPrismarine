@@ -1,6 +1,6 @@
-import { containerSetDataPacket, layoutAt } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { containerSetDataPacket } from '../wire/definitions/containers';
 
 /**
  * Sets one numbered property on an open container screen.

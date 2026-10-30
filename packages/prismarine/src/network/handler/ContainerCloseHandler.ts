@@ -3,7 +3,7 @@ import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import type { Item } from '../../item/Item';
-import ContainerClosePacket from '../packet/ContainerClosePacket';
+import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
 import type PacketHandler from './PacketHandler';
 
 /**

@@ -14,7 +14,7 @@ import type { World } from '../../world/World';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ContainerClosePacket from '../packet/ContainerClosePacket';
+import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
 import ContainerCloseHandler from './ContainerCloseHandler';
 
 const planks = (count: number) => new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count });

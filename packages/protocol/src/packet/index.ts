@@ -411,3 +411,9 @@ export { default as ResourcePackChunkRequestPacket } from './ResourcePackChunkRe
 export * from './ResourcePackChunkRequestPacket';
 export { default as ResourcePackDataInfoPacket } from './ResourcePackDataInfoPacket';
 export * from './ResourcePackDataInfoPacket';
+export { default as ContainerClosePacket } from './ContainerClosePacket';
+export * from './ContainerClosePacket';
+export { default as ContainerOpenPacket } from './ContainerOpenPacket';
+export * from './ContainerOpenPacket';
+export { default as ContainerSetDataPacket } from './ContainerSetDataPacket';
+export * from './ContainerSetDataPacket';

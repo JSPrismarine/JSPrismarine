@@ -33,9 +33,9 @@ import ClientboundStonecutterSetRecipePacket from './packet/ClientboundStonecutt
 import CodeBuilderPacket from './packet/CodeBuilderPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CompletedUsingItemPacket from '@jsprismarine/protocol/packet/CompletedUsingItemPacket';
-import ContainerClosePacket from './packet/ContainerClosePacket';
-import ContainerOpenPacket from './packet/ContainerOpenPacket';
-import ContainerSetDataPacket from './packet/ContainerSetDataPacket';
+import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
+import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
+import ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDataPacket';
 import CorrectPlayerMovePredictionPacket from './packet/CorrectPlayerMovePredictionPacket';
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';

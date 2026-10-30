@@ -1,7 +1,8 @@
 import { Vector3 } from '@jsprismarine/math';
-import { containerOpenPacket, layoutAt } from '@jsprismarine/protocol';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { containerOpenPacket } from '../wire/definitions/containers';
 
 /**
  * Opens a container for the client.
