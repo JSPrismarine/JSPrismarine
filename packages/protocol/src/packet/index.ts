@@ -11,6 +11,7 @@ import MovePlayerPacket from './MovePlayerPacket';
 import NetworkSettingsPacket from './NetworkSettingsPacket';
 import PlayStatusPacket from './PlayStatusPacket';
 import PlayerActionPacket from './PlayerActionPacket';
+import PlayerHotbarPacket from './PlayerHotbarPacket';
 import RequestChunkRadiusPacket from './RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './RequestNetworkSettingsPacket';
 import ServerToClientHandshakePacket from './ServerToClientHandshakePacket';
@@ -42,6 +43,7 @@ export {
     NetworkSettingsPacket,
     PlayStatusPacket,
     PlayerActionPacket,
+    PlayerHotbarPacket,
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
     ServerToClientHandshakePacket,
@@ -89,6 +91,7 @@ export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { BlockCoordinates, PlayerActionData } from './PlayerActionPacket';
+export type { PlayerHotbarPayload } from './PlayerHotbarPacket';
 export type { RequestChunkRadius } from './RequestChunkRadiusPacket';
 export type { Login } from './LoginPacket';
 export type { NetworkSettings } from './NetworkSettingsPacket';

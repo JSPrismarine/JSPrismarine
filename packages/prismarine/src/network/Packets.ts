@@ -92,7 +92,6 @@ import PlayerArmorDamagePacket from './packet/PlayerArmorDamagePacket';
 import PlayerAuthInputPacket from './packet/PlayerAuthInputPacket';
 import PlayerEnchantOptionsPacket from './packet/PlayerEnchantOptionsPacket';
 import PlayerFogPacket from './packet/PlayerFogPacket';
-import PlayerHotbarPacket from './packet/PlayerHotbarPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerLocationPacket from './packet/PlayerLocationPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
@@ -262,7 +261,6 @@ export {
     PlayerAuthInputPacket,
     PlayerEnchantOptionsPacket,
     PlayerFogPacket,
-    PlayerHotbarPacket,
     PlayerListPacket,
     PlayerLocationPacket,
     PlayerSkinPacket,

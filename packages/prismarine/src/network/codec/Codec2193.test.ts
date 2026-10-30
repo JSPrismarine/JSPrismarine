@@ -4,6 +4,7 @@ import { CommandRequestPacket, SetHealthPacket, SetTimePacket } from '@jsprismar
 import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
+import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import Identifiers from '../Identifiers';
@@ -30,6 +31,7 @@ describe('network/codec', () => {
                 SetDifficultyPacket.name,
                 SetHealthPacket.name,
                 ChangeDimensionPacket.name,
+                PlayerHotbarPacket.name,
                 RespawnPacket.name,
                 SetSpawnPositionPacket.name,
                 SetTimePacket.name

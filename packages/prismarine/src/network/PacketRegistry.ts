@@ -14,6 +14,7 @@ import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsE
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import SetHealthPacket from '@jsprismarine/protocol/packet/SetHealthPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
+import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SetTimePacket from '@jsprismarine/protocol/packet/SetTimePacket';
@@ -151,6 +152,7 @@ export default class PacketRegistry {
         this.registerPacket(SetDifficultyPacket);
         this.registerPacket(SetHealthPacket);
         this.registerPacket(ChangeDimensionPacket);
+        this.registerPacket(PlayerHotbarPacket);
         this.registerPacket(RespawnPacket);
         this.registerPacket(SetSpawnPositionPacket);
         this.registerPacket(SetTimePacket);
