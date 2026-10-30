@@ -31,6 +31,7 @@ export * as t from './wire/fieldTypes';
 export * from './wire/WireLayout';
 export * from './wire/wireGates';
 export * from './wire/definitions/animate';
+export * from './wire/definitions/availableActorIdentifiers';
 export * from './wire/definitions/biomeDefinitionList';
 export * from './wire/definitions/chunkRadiusUpdated';
 export * from './wire/definitions/index';

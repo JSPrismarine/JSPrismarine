@@ -1,4 +1,6 @@
 import { entity_identifiers } from '@jsprismarine/bedrock-data';
+import { availableActorIdentifiersPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -14,6 +16,8 @@ import DataPacket from './DataPacket';
  * submodule), which shares protocol 2193 with 1.26.51. A client that never receives it falls
  * back to an empty table and cannot resolve the runtime ids in `AddActorPacket`.
  *
+ * The wire layout is the `availableActorIdentifiersPacket` definition in the protocol package.
+ *
  * **Bound To:** Client
  */
 export default class AvailableActorIdentifiersPacket extends DataPacket {
@@ -22,11 +26,11 @@ export default class AvailableActorIdentifiersPacket extends DataPacket {
 
     /** Writes `Identifier List`, which is the whole payload. */
     public encodePayload(): void {
-        this.write(this.identifiers);
+        layoutAt(availableActorIdentifiersPacket, this.codecProtocol).encode(this, this);
     }
 
     /** Reads `Identifier List`, which runs to the end of the packet. */
     public decodePayload(): void {
-        this.identifiers = this.readRemaining();
+        Object.assign(this, layoutAt(availableActorIdentifiersPacket, this.codecProtocol).decode(this));
     }
 }
