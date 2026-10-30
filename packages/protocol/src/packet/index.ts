@@ -442,6 +442,8 @@ export { default as AddActorPacket } from './AddActorPacket';
 export * from './AddActorPacket';
 export { default as AnimatePacket } from './AnimatePacket';
 export * from './AnimatePacket';
+export { default as AnimateEntityPacket } from './AnimateEntityPacket';
+export * from './AnimateEntityPacket';
 export { default as CameraPacket } from './CameraPacket';
 export * from './CameraPacket';
 export { default as CameraShakePacket } from './CameraShakePacket';

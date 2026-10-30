@@ -23,7 +23,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
 import { vanillaItemTypes } from '../../item/vanillaItemTypes';
-import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
+import AnimateEntityPacket from '@jsprismarine/protocol/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
@@ -708,8 +708,8 @@ describe('the server command host', () => {
             const [packet] = fixture.sent;
             expect(packet).toBeInstanceOf(AnimateEntityPacket);
             if (!(packet instanceof AnimateEntityPacket)) return;
-            expect(packet.animation).toBe('animation.pig.baby_transform');
-            expect(packet.runtimeIds).toEqual([1n, 2n]);
+            expect(packet.getPacketData()?.animation).toBe('animation.pig.baby_transform');
+            expect(packet.getPacketData()?.runtimeIds).toEqual([1n, 2n]);
         });
     });
 

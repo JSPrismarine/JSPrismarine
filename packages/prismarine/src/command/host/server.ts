@@ -11,7 +11,7 @@ import type { EntityRef, ServerCommandHost, TitleInstruction } from '@jsprismari
 import { TitleType } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
-import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
+import AnimateEntityPacket from '@jsprismarine/protocol/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
@@ -213,13 +213,15 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
             });
             if (entities.length === 0) return 0;
 
-            const packet = new AnimateEntityPacket();
-            packet.animation = request.animation;
-            packet.nextState = request.nextState ?? '';
-            packet.stopExpression = request.stopExpression ?? '';
-            packet.controller = request.controller ?? '';
-            packet.blendOutTime = request.blendOutTime ?? 0;
-            packet.runtimeIds = entities.map((entity) => entity.getRuntimeId());
+            const packet = new AnimateEntityPacket({
+                animation: request.animation,
+                nextState: request.nextState ?? '',
+                stopExpression: request.stopExpression ?? '',
+                stopExpressionVersion: 0,
+                controller: request.controller ?? '',
+                blendOutTime: request.blendOutTime ?? 0,
+                runtimeIds: entities.map((entity) => entity.getRuntimeId())
+            });
 
             // One packet naming every actor, which is what the field is for.
             // Sent to everyone who can see them, because an animation is drawn

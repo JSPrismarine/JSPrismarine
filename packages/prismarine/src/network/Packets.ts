@@ -5,7 +5,7 @@ import AddBehaviorTreePacket from '@jsprismarine/protocol/packet/AddBehaviorTree
 import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPaintingPacket from '@jsprismarine/protocol/packet/AddPaintingPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
-import AnimateEntityPacket from './packet/AnimateEntityPacket';
+import AnimateEntityPacket from '@jsprismarine/protocol/packet/AnimateEntityPacket';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
 import AutomationClientConnectPacket from '@jsprismarine/protocol/packet/AutomationClientConnectPacket';
