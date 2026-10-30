@@ -2,9 +2,9 @@ import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import type BlockPosition from '../../world/BlockPosition';
-import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import { PlayerActionType } from '../packet/PlayerActionPacket';
+import BlockPosition from '../../world/BlockPosition';
+import { PlayerActionType } from '@jsprismarine/protocol';
+import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -61,28 +61,32 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const data = packet.getPacketData();
 
-        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+        if (data === null) return;
+
+        if (data.runtimeEntityId !== player.getRuntimeId()) {
             server
                 .getLogger()
                 .debug(
-                    `Dropped action ${packet.action} from ${player.getName()}: it names runtime id ${packet.runtimeEntityId}, not their own`,
+                    `Dropped action ${data.action} from ${player.getName()}: it names runtime id ${data.runtimeEntityId}, not their own`,
                     'PlayerActionHandler/handle'
                 );
             return;
         }
 
-        if (INPUT_ONLY_ACTIONS.has(packet.action)) {
+        if (INPUT_ONLY_ACTIONS.has(data.action)) {
             server
                 .getLogger()
                 .debug(
-                    `Ignored action ${packet.action} from ${player.getName()}: block actions arrive in PlayerAuthInputPacket`,
+                    `Ignored action ${data.action} from ${player.getName()}: block actions arrive in PlayerAuthInputPacket`,
                     'PlayerActionHandler/handle'
                 );
             return;
         }
 
-        await this.handleAction(packet.action, packet.blockPosition, packet.blockFace, server, session);
+        const blockPosition = new BlockPosition(data.blockPosition.x, data.blockPosition.y, data.blockPosition.z);
+        await this.handleAction(data.action, blockPosition, data.blockFace, server, session);
     }
 
     /**

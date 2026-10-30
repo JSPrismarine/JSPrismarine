@@ -1,17 +1,8 @@
-import {
-    LevelChunkPacket,
-    MovePlayerPacket,
-    PositionMode,
-    NetworkBinaryStream,
-    PlayerActionPacket,
-    PlayerActionType
-} from '@jsprismarine/protocol';
+import { LevelChunkPacket, MovePlayerPacket, PositionMode, NetworkBinaryStream } from '@jsprismarine/protocol';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
-import BlockPosition from '../world/BlockPosition';
 import ServerLevelChunkPacket from './packet/LevelChunkPacket';
 import ServerMovePlayerPacket from './packet/MovePlayerPacket';
-import ServerPlayerActionPacket from './packet/PlayerActionPacket';
 
 import type { NetworkPacket } from '@jsprismarine/protocol';
 
@@ -85,53 +76,6 @@ describe('MovePlayer', () => {
         expect(new MovePlayerPacket().deserialize(new NetworkBinaryStream(without))).not.toHaveProperty(
             'teleportCause'
         );
-    });
-});
-
-describe('PlayerAction', () => {
-    const data = {
-        runtimeEntityId: 42n,
-        action: PlayerActionType.StartDestroyBlock,
-        blockPosition: { x: -12, y: 70, z: 34 },
-        resultPosition: { x: -12, y: 70, z: 34 },
-        blockFace: 1
-    };
-
-    it('encodes exactly what the server decodes', () => {
-        const server = new ServerPlayerActionPacket(encode(new PlayerActionPacket(data)));
-        server.decode();
-
-        expect(server.runtimeEntityId).toBe(data.runtimeEntityId);
-        expect(server.action).toBe(PlayerActionType.StartDestroyBlock);
-        expect(server.blockPosition.getX()).toBe(-12);
-        expect(server.blockPosition.getY()).toBe(70);
-        expect(server.blockPosition.getZ()).toBe(34);
-        expect(server.blockFace).toBe(1);
-    });
-
-    it('produces byte-identical output to the server encoder', () => {
-        const server = new ServerPlayerActionPacket();
-        server.runtimeEntityId = data.runtimeEntityId;
-        server.action = data.action;
-        server.blockPosition = new BlockPosition(-12, 70, 34);
-        server.resultPosition = new BlockPosition(-12, 70, 34);
-        server.blockFace = data.blockFace;
-        server.encode();
-
-        expect(encode(new PlayerActionPacket(data))).toEqual(server.getBuffer());
-    });
-
-    it('writes y signed, which is what lets a block below sea level round-trip', () => {
-        // Since 1.26.10 the position is an ordinary `BlockPos`, signed all the way through.
-        // Written unsigned, as it was up to 1.26.0, a y of -40 is not encodable at all and a
-        // y of 200 comes out as 100 on the other side, with the face read from its second byte.
-        const deep = { ...data, blockPosition: { x: 0, y: -40, z: 0 }, resultPosition: { x: 0, y: 200, z: 0 } };
-        const server = new ServerPlayerActionPacket(encode(new PlayerActionPacket(deep)));
-        server.decode();
-
-        expect(server.blockPosition.getY()).toBe(-40);
-        expect(server.resultPosition.getY()).toBe(200);
-        expect(server.blockFace).toBe(1);
     });
 });
 

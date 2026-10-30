@@ -1,5 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { PlayerAuthInputData } from '@jsprismarine/minecraft';
+import { PlayerActionType } from '@jsprismarine/protocol';
 
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
@@ -8,7 +9,6 @@ import InventoryTransactionPacket, { TransactionType } from '../packet/Inventory
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import type PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
 import { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
-import { PlayerActionType } from '../packet/PlayerActionPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { applyClientMovement } from './MovePlayerHandler';

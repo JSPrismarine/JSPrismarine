@@ -8,6 +8,7 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * 1.26.51 client writes it. Member names are the docs' names; `GetUpdatedBlock`, `DropItem`,
  * `ChangeSkin`, `SetEnchantmentSeed` and `InteractBlock` are values the docs leave unnamed.
  * Values 36 and 39 (`Count`) are not named in the docs and are left out.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-action-packet/
  */
 export enum PlayerActionType {
     StartDestroyBlock,
@@ -75,6 +76,7 @@ export interface PlayerActionData {
  * Protocol 2193 wire order after the header: Player Runtime ID (varuint64), Action (ZigZag
  * varint32), Block Position (`BlockPos`, three ZigZag varint32 with a signed y), Result Pos
  * (`BlockPos`), Face (ZigZag varint32).
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-action-packet/
  */
 export default class PlayerActionPacket extends NetworkPacket<PlayerActionData> {
     public get id(): number {

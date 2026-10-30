@@ -1,6 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, PlayerAuthInputData } from '@jsprismarine/minecraft';
+import { PlayerActionType } from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
@@ -15,7 +16,6 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import { HandSlot, ItemUseActionType } from '../packet/InventoryTransactionPacket';
-import { PlayerActionType } from '../packet/PlayerActionPacket';
 import PlayerAuthInputPacket, { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';

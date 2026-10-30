@@ -1,4 +1,5 @@
 import { Gametype } from '@jsprismarine/minecraft';
+import { PlayerActionPacket, PlayerActionType } from '@jsprismarine/protocol';
 import type { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
@@ -15,7 +16,6 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PlayerActionPacket, { PlayerActionType } from '../packet/PlayerActionPacket';
 import PlayerActionHandler from './PlayerActionHandler';
 
 const SELF = 7n;
@@ -119,12 +119,12 @@ const FAR_AWAY = new BlockPosition(5_000_000, 64, 5_000_000);
 const NOWHERE = new BlockPosition(0, 0, 0);
 
 /** A standalone `PlayerActionPacket`, as the client sends one that concerns a block or none. */
-const packet = (runtimeEntityId: bigint, action: number, blockPosition = NOWHERE): PlayerActionPacket =>
-    Object.assign(new PlayerActionPacket(), {
+const packet = (runtimeEntityId: bigint, action: PlayerActionType, blockPosition = NOWHERE): PlayerActionPacket =>
+    new PlayerActionPacket({
         runtimeEntityId,
         action,
-        blockPosition,
-        resultPosition: blockPosition,
+        blockPosition: { x: blockPosition.getX(), y: blockPosition.getY(), z: blockPosition.getZ() },
+        resultPosition: { x: blockPosition.getX(), y: blockPosition.getY(), z: blockPosition.getZ() },
         blockFace: 0
     });
 

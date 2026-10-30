@@ -1,12 +1,12 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { PlayerAuthInputData } from '@jsprismarine/minecraft';
+import { PlayerActionType } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
 import { HandSlot, ItemUseActionType } from './InventoryTransactionPacket';
-import { PlayerActionType } from './PlayerActionPacket';
 import PlayerAuthInputPacket, {
     ClientPlayMode,
     INPUT_FLAG_COUNT,

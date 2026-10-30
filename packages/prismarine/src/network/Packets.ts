@@ -86,7 +86,7 @@ import PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket
 import PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import PlayStatusPacket from '@jsprismarine/protocol/packet/PlayStatusPacket';
-import PlayerActionPacket from './packet/PlayerActionPacket';
+import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import PlayerArmorDamagePacket from '@jsprismarine/protocol/packet/PlayerArmorDamagePacket';
 import PlayerAuthInputPacket from './packet/PlayerAuthInputPacket';
 import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
