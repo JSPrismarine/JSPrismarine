@@ -7,7 +7,7 @@ import GameRuleManager from '../../world/GameRuleManager';
 import BlockPosition from '../../world/BlockPosition';
 import { Item } from '../../item/Item';
 import AddActorPacket from '../packet/AddActorPacket';
-import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
+import AddPlayerPacket from '../packet/AddPlayerPacket';
 import AnimatePacket from '../packet/AnimatePacket';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
@@ -64,7 +64,6 @@ describe('network/codec', () => {
 
         it('builds its own class for every changed packet, under the 2193 class for the rest', () => {
             const changed = {
-                AddPlayerPacket: AddPlayerPacket2225,
                 StartGamePacket: StartGamePacket2225
             };
             for (const [name, packetClass] of Object.entries(changed)) {
@@ -165,7 +164,8 @@ describe('network/codec', () => {
         });
 
         it('round-trips the Passenger Block Data AddPlayerPacket gained before the device id', () => {
-            const packet = new AddPlayerPacket2225();
+            const packet = new AddPlayerPacket();
+            packet.codecProtocol = 2225;
             packet.uuid = UUID.fromString('00000000-0000-4000-8000-000000000001');
             packet.name = 'Steve';
             packet.runtimeEntityId = 3n;

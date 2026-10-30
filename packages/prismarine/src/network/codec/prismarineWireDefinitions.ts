@@ -9,6 +9,7 @@
  * server bytes either way.
  */
 import { addActorPacket } from '../packet/addActor.wire';
+import { addPlayerPacket } from '../packet/addPlayer.wire';
 import { inventoryTransactionPacket } from '../packet/inventoryTransaction.wire';
 import { playerListPacket } from '../packet/playerList.wire';
 import { playerSkinPacket } from '../packet/playerSkin.wire';
@@ -17,8 +18,7 @@ import type { PacketDefinition } from '@jsprismarine/protocol';
 
 /** The prismarine-side declaratively defined packets, keyed by packet name. */
 export const prismarineWireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
-    [addActorPacket, inventoryTransactionPacket, playerListPacket, playerSkinPacket].map((definition) => [
-        definition.name,
-        definition
-    ])
+    [addActorPacket, addPlayerPacket, inventoryTransactionPacket, playerListPacket, playerSkinPacket].map(
+        (definition) => [definition.name, definition]
+    )
 );

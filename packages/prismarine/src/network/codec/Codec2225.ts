@@ -1,4 +1,3 @@
-import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
 import { Codec2193 } from './Codec2193';
 import type { PacketClass } from './Codec2193';
@@ -24,7 +23,6 @@ class Codec2225 extends Codec2193 {
 
     protected override packetOverrides(): Readonly<Record<string, PacketClass>> {
         return {
-            AddPlayerPacket: AddPlayerPacket2225,
             StartGamePacket: StartGamePacket2225
         };
     }
