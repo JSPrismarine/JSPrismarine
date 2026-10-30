@@ -70,8 +70,8 @@ import MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPa
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEffectPacket from '@jsprismarine/protocol/packet/MobEffectPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
-import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
-import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
+import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
+import ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
 import MotionPredictionHintsPacket from './packet/MotionPredictionHintsPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import MoveActorDeltaPacket from '@jsprismarine/protocol/packet/MoveActorDeltaPacket';

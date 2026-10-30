@@ -1,6 +1,6 @@
-import { layoutAt, modalFormRequestPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { modalFormRequestPacket } from '../wire/definitions/forms';
 
 /**
  * A custom form for the client to show, answered by `ModalFormResponsePacket`.

@@ -417,3 +417,7 @@ export { default as ContainerOpenPacket } from './ContainerOpenPacket';
 export * from './ContainerOpenPacket';
 export { default as ContainerSetDataPacket } from './ContainerSetDataPacket';
 export * from './ContainerSetDataPacket';
+export { default as ModalFormRequestPacket } from './ModalFormRequestPacket';
+export * from './ModalFormRequestPacket';
+export { default as ModalFormResponsePacket } from './ModalFormResponsePacket';
+export * from './ModalFormResponsePacket';

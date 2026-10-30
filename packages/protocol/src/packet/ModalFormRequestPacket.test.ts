@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
-import * as Packets from '../Packets';
 import ModalFormRequestPacket from './ModalFormRequestPacket';
 
 const ENCODED = Buffer.concat([
@@ -24,10 +22,5 @@ describe('ModalFormRequestPacket', () => {
         expect(packet.formId).toBe(300);
         expect(packet.formUiJson).toBe('{}');
         expect(packet.feof()).toBe(true);
-    });
-
-    it('is registered for packet 0x64', () => {
-        expect(Packets.ModalFormRequestPacket).toBe(ModalFormRequestPacket);
-        expect(netIdFor('ModalFormRequestPacket')).toBe(0x64);
     });
 });

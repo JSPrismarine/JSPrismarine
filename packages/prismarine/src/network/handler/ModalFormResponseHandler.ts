@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ModalFormResponsePacket from '../packet/ModalFormResponsePacket';
-import { ModalFormCancelReason } from '../packet/ModalFormResponsePacket';
+import type ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
+import { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
 import type PacketHandler from './PacketHandler';
 
 /**

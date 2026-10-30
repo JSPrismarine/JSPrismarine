@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ModalFormResponsePacket, { ModalFormCancelReason } from '../packet/ModalFormResponsePacket';
+import ModalFormResponsePacket, { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
 import ModalFormResponseHandler from './ModalFormResponseHandler';
 
 const fakeSession = () => {

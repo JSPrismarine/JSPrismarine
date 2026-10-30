@@ -1,6 +1,6 @@
-import { layoutAt, modalFormResponsePacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { modalFormResponsePacket } from '../wire/definitions/forms';
 
 /** Why a form closed without a response. */
 export enum ModalFormCancelReason {
