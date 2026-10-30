@@ -40,7 +40,7 @@ Two of the twenty carry both systems. `Camel` and `HappyGhast` have a `registerG
 `brainProvider`, so a server must run both schedulers for them. `DUAL_SYSTEM_MOBS` reports that
 list, and `BrainMobDefinition.alsoRunsGoals` reports it per mob.
 
-[docs/research/java-code-only-behavior.md](../../docs/research/java-code-only-behavior.md) section 4
+[docs/research/java-code-only-behavior.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/java-code-only-behavior.md) section 4
 is the source for the two-system split and for the twenty-mob list.
 
 ## The source

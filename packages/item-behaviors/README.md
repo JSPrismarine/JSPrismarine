@@ -208,7 +208,7 @@ the client report its prediction and the server agree or correct, not accept a t
 PlayerBlockAction [...] the server validates that it agrees with the client's prediction").
 
 The two formulas disagree in at least four places, measured in
-[the edition differences note](../../docs/research/edition-behavior-differences.md) section 2:
+[the edition differences note](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/edition-behavior-differences.md) section 2:
 
 - Haste adds 20% per level in Java. Bedrock multiplies by `(0.2 × level + 1) × 1.2^level`.
 - Mining Fatigue is `0.3^(amplifier + 1)` in 26.3's code. Bedrock uses `0.3^level × 0.7^level`.
