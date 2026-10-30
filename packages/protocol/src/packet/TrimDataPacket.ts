@@ -1,5 +1,8 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { trimDataPacket } from '../wire/definitions/trimData';
+import { protocolVersion } from '../wire/versions/v2193';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -30,14 +33,17 @@ export interface TrimData {
 }
 
 /**
+ * The definition carries no version gate, so it resolves to the same frozen layout at every
+ * protocol; the oldest supported version stands in for the packet class, which does not know
+ * its session's protocol.
+ */
+const layout = () => layoutAt(trimDataPacket, protocolVersion);
+
+/**
  * Every armor trim pattern and material the client should know about. The server sends it
  * once during the join, before the client needs to render trimmed armor.
  *
- * Protocol 2193 layout, in wire order: `TrimPattern List` as a varuint32 count followed by one
- * {@link TrimPattern} per entry (`Item Name`, then `Pattern Id`), then `TrimMaterial List` as a
- * varuint32 count followed by one {@link TrimMaterial} per entry (`Material Id`, `Color`, then
- * `Item Name`). The docs type the ids and item names as `hashed_string`, which the wire carries
- * as a plain string: a varuint32 byte length followed by UTF-8. The client hashes it on receipt.
+ * The wire layout is the `trimDataPacket` definition in `wire/definitions`.
  */
 export default class TrimDataPacket extends NetworkPacket<TrimData> {
     public get id(): number {
@@ -45,40 +51,10 @@ export default class TrimDataPacket extends NetworkPacket<TrimData> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: TrimData): void {
-        stream.writeUnsignedVarInt(data.patterns.length);
-        for (const pattern of data.patterns) {
-            stream.writeString(pattern.itemName);
-            stream.writeString(pattern.patternId);
-        }
-
-        stream.writeUnsignedVarInt(data.materials.length);
-        for (const material of data.materials) {
-            stream.writeString(material.materialId);
-            stream.writeString(material.color);
-            stream.writeString(material.itemName);
-        }
+        layout().encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): TrimData {
-        const patterns: TrimPattern[] = [];
-        let patternCount = stream.readUnsignedVarInt();
-        while (patternCount-- > 0) {
-            patterns.push({
-                itemName: stream.readString(),
-                patternId: stream.readString()
-            });
-        }
-
-        const materials: TrimMaterial[] = [];
-        let materialCount = stream.readUnsignedVarInt();
-        while (materialCount-- > 0) {
-            materials.push({
-                materialId: stream.readString(),
-                color: stream.readString(),
-                itemName: stream.readString()
-            });
-        }
-
-        return { patterns, materials };
+        return layout().decode(stream);
     }
 }
