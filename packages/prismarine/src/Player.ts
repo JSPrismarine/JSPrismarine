@@ -21,7 +21,7 @@ import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
-import { ChangeDimensionPacket } from './network/Packets';
+import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
@@ -522,11 +522,12 @@ export default class Player extends Human {
         // Every send opens a loading screen on the client, and the client reports each one
         // back by the id the packet carried, so each send gets a fresh packet with its own id.
         const changeDimension = async (dimension: Dimension) => {
-            const packet = new ChangeDimensionPacket();
-            packet.dimension = dimension;
-            packet.position = this.getPosition();
-            packet.respawn = false;
-            packet.loadingScreenId = session.beginLoadingScreen();
+            const packet = new ChangeDimensionPacket({
+                dimension,
+                position: this.getPosition(),
+                respawn: false,
+                loadingScreenId: session.beginLoadingScreen()
+            });
             await session.send(packet);
         };
 

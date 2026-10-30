@@ -1,16 +1,16 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
-import { changeDimensionPacket, layoutAt } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
+import { changeDimensionPacket } from '../wire/definitions/worldStatus';
+import { layoutAt } from '../wire/WireLayout';
+import type { ChangeDimensionPayload } from './ChangeDimensionPacket';
+
 /**
- * The bytes the hand-written encoder produced, recorded before the class moved to the
- * declarative layout, one case per branch of the optional screen id.
- *
- * The dimension is negative because it is a ZigZag varint32, and two position components are
- * negative because a `Vec3` is three signed floats.
+ * Bytes captured from the hand-written encoder, with one case for each optional screen-id
+ * branch. The first uses negative dimension and position values to exercise signed encoding.
  */
-const CASES = [
+const cases: readonly { branch: string; bytes: Buffer; payload: ChangeDimensionPayload }[] = [
     {
         branch: 'without a loading screen id',
         bytes: Buffer.from('010000c0bf00209643000000c50100', 'hex'),
@@ -36,7 +36,7 @@ const CASES = [
 describe('the declarative ChangeDimension layout', () => {
     const layout = layoutAt(changeDimensionPacket, 2193);
 
-    for (const { branch, bytes, payload } of CASES) {
+    for (const { branch, bytes, payload } of cases) {
         it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {
             const stream = new BinaryStream();
             layout.encode(stream, payload);

@@ -1,4 +1,5 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
+import ChangeDimensionPacket from './ChangeDimensionPacket';
 import ClientToServerHandshakePacket from './ClientToServerHandshakePacket';
 import CraftingDataPacket from './CraftingDataPacket';
 import CreativeContentPacket from './CreativeContentPacket';
@@ -28,6 +29,7 @@ import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
 
 export {
+    ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
     ClientToServerHandshakePacket,
     CraftingDataPacket,
@@ -74,6 +76,7 @@ export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 export { TextPacketType } from './TextPacket';
 
 export type { ChunkRadiusUpdated } from './ChunkRadiusUpdatedPacket';
+export type { ChangeDimensionPayload } from './ChangeDimensionPacket';
 export type { CreativeContent, CreativeEntry, CreativeGroup } from './CreativeContentPacket';
 export type {
     CraftingData,

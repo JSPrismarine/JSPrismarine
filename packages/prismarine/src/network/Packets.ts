@@ -20,7 +20,6 @@ import BookEditPacket from './packet/BookEditPacket';
 import BossEventPacket from './packet/BossEventPacket';
 import CameraPacket from './packet/CameraPacket';
 import CameraShakePacket from './packet/CameraShakePacket';
-import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ClientCacheBlobStatusPacket from './packet/ClientCacheBlobStatusPacket';
 import ClientCacheMissResponsePacket from './packet/ClientCacheMissResponsePacket';
@@ -191,7 +190,6 @@ export {
     BossEventPacket,
     CameraPacket,
     CameraShakePacket,
-    ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
     ClientCacheBlobStatusPacket,
     ClientCacheMissResponsePacket,

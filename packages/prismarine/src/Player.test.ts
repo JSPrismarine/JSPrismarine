@@ -18,7 +18,7 @@ import type { PermissionManager } from './permission/PermissionManager';
 import { MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from '@jsprismarine/minecraft';
-import ChangeDimensionPacket from './network/packet/ChangeDimensionPacket';
+import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import RemoveActorPacket from './network/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
@@ -705,7 +705,10 @@ describe('Player', () => {
             await player.setWorld(target);
 
             const changes = sent.filter((packet) => packet instanceof ChangeDimensionPacket);
-            const ids = changes.flatMap((packet) => (packet.loadingScreenId === null ? [] : [packet.loadingScreenId]));
+            const ids = changes.flatMap((packet) => {
+                const id = packet.getPacketData()?.loadingScreenId;
+                return id === null || id === undefined ? [] : [id];
+            });
             expect(changes.length).toBeGreaterThan(1);
             expect(ids).toHaveLength(changes.length);
             expect(new Set(ids).size).toBe(ids.length);
