@@ -16,7 +16,7 @@ import type { ChunkScheduler } from '../../world/ChunkScheduler';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LoginPacket from '../packet/LoginPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
@@ -152,7 +152,7 @@ describe('network', () => {
                 pk.identity = IDENTITY;
                 pk.protocol = Codec2193.protocolVersion;
 
-                const sent: DataPacket[] = [];
+                const sent: NetworkPacket[] = [];
                 const quiet = stub<ClientConnection>({
                     codec: Codec2193,
                     getRakNetSession: () =>
@@ -272,7 +272,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.protocol = Codec2193.protocolVersion - 10;
 
-                const sent: DataPacket[] = [];
+                const sent: NetworkPacket[] = [];
                 const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
                     codec: Codec2193,
@@ -298,7 +298,7 @@ describe('network', () => {
                 pk.identity = '11111111-2222-3333-4444-555555555555';
                 pk.protocol = Codec2193.protocolVersion;
 
-                const sent: DataPacket[] = [];
+                const sent: NetworkPacket[] = [];
                 const fullServer = stub<Server>({
                     ...server,
                     getSessionManager: () =>
@@ -331,7 +331,7 @@ describe('network', () => {
                 const pk = new LoginPacket();
                 pk.protocol = Codec2193.protocolVersion + 10;
 
-                const sent: DataPacket[] = [];
+                const sent: NetworkPacket[] = [];
                 const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
                     codec: Codec2193,

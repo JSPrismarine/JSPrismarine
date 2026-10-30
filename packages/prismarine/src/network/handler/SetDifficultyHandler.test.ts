@@ -8,13 +8,13 @@ import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import SetDifficultyPacket from '../packet/SetDifficultyPacket';
 import SetDifficultyHandler from './SetDifficultyHandler';
 
 const fakeSession = (configured: Difficulty) => {
     const logged: string[] = [];
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
 
     return {
         logged,

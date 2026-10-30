@@ -27,7 +27,7 @@ import Codec2225 from '../codec/Codec2225';
 import type { ProtocolCodec } from '../codec/ProtocolCodec';
 import type PlayerSession from '../PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
@@ -66,7 +66,7 @@ const harness = ({
 } = {}) => {
     const sent: string[] = [];
     /** The packets written straight to the connection, for the tests that read their fields. */
-    const packets: DataPacket[] = [];
+    const packets: NetworkPacket[] = [];
     const record = (name: string) => async () => void sent.push(name);
     const kick = vi.fn(async (_reason: string, _code?: DisconnectReason) => {});
     const debug = vi.fn((_message: string, _context?: string) => {});
@@ -99,7 +99,7 @@ const harness = ({
 
     const connection = stub<ClientConnection>({
         codec,
-        sendDataPacket: async (packet: DataPacket) => {
+        sendDataPacket: async (packet: NetworkPacket) => {
             sent.push(packet.constructor.name);
             packets.push(packet);
         }

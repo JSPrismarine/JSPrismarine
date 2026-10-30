@@ -9,7 +9,7 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
 import CommandOutputPacket, { CommandOutputType } from '../packet/CommandOutputPacket';
 import CommandRequestPacket from '../packet/CommandRequestPacket';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import CommandRequestHandler from './CommandRequestHandler';
@@ -20,7 +20,7 @@ const origin = (type: CommandOriginType): CommandOriginData =>
 /** Runs the handler against one request, with a command manager whose dispatch answers `ran`. */
 const run = async (packet: CommandRequestPacket, ran: boolean) => {
     const dispatched: { sender: unknown; target: unknown; input: string }[] = [];
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const logged: string[] = [];
     const player = stub<Player>({ getName: () => 'Steve' });
     const server = stub<Server>({

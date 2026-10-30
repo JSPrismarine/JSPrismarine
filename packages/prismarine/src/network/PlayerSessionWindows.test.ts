@@ -7,7 +7,7 @@ import { Item } from '../item/Item';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import PlayerSession from './PlayerSession';
@@ -21,7 +21,7 @@ import PlayerSession from './PlayerSession';
  * sends. The player's inventory is recorded by window, with how many packets had gone before it.
  */
 const sessionFor = () => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const inventories: Array<{ windowId: number; after: number }> = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)

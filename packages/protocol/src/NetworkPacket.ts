@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import NetworkBinaryStream from './NetworkBinaryStream';
 import type { ProtocolContext } from './ProtocolContext';
+import { netIdFor, protocolVersion } from './wire/versions/v2193';
 
 /**
  * A Bedrock packet with its wire header and packet-specific payload codec.
@@ -11,7 +12,7 @@ import type { ProtocolContext } from './ProtocolContext';
  * body. Typed packet classes supply a payload object and implement both payload directions.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
-export default abstract class NetworkPacket<T> extends BinaryStream {
+export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     // The actual packet id is represented by the first 10 bits of the packet ID.
     private static PID_MASK = 0x3ff;
     private static SUB_CLIENT_MASK = 0x03;
@@ -23,6 +24,8 @@ export default abstract class NetworkPacket<T> extends BinaryStream {
 
     public senderSubClientId = 0;
     public targetSubClientId = 0;
+    /** Version stamped by the connection codec for version-gated payloads. */
+    public codecProtocol = protocolVersion;
     protected encoded = false;
     private networkId: number | undefined;
 
@@ -102,6 +105,9 @@ export default abstract class NetworkPacket<T> extends BinaryStream {
      */
     protected abstract serializePayload(stream: NetworkBinaryStream, packetData: T, context?: ProtocolContext): void;
 
+    /** Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}. */
+    public encodePayload(): void {}
+
     /**
      * Serializes the network packet into a binary stream.
      * @param stream - The binary stream to serialize into.
@@ -111,6 +117,7 @@ export default abstract class NetworkPacket<T> extends BinaryStream {
     public serialize(stream: NetworkBinaryStream, context?: ProtocolContext): Buffer {
         if (this.packetData === null)
             throw new Error(`Cannot serialize packet without data, PID: ${this.getId().toString(16)}`);
+        if (context !== undefined) this.codecProtocol = context.protocolVersion;
         stream.writeUnsignedVarInt(this.headerValue());
         this.serializePayload(stream, this.packetData, context);
         return stream.getBuffer();
@@ -124,6 +131,9 @@ export default abstract class NetworkPacket<T> extends BinaryStream {
      */
     protected abstract deserializePayload(stream: NetworkBinaryStream, context?: ProtocolContext): T;
 
+    /** Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}. */
+    public decodePayload(): void {}
+
     /**
      * Deserializes the network packet from a binary stream.
      * @param stream - The stream containing the packet header and body.
@@ -132,6 +142,7 @@ export default abstract class NetworkPacket<T> extends BinaryStream {
      */
     public deserialize(stream: NetworkBinaryStream, context?: ProtocolContext): T {
         this.readHeader(stream);
+        if (context !== undefined) this.codecProtocol = context.protocolVersion;
         try {
             this.packetData = this.deserializePayload(stream, context);
         } catch (e: unknown) {
@@ -180,6 +191,9 @@ export default abstract class NetworkPacket<T> extends BinaryStream {
 
     /** Default id supplied by a typed packet class or by the version's packet table. */
     protected getDefaultId(): number {
+        const tableId = netIdFor(this.getName());
+        if (tableId !== undefined) return tableId;
+
         const id: unknown = Reflect.get(this, 'id');
         if (typeof id !== 'number') throw new Error(`Packet ${this.getName()} has no default network id`);
         return id;

@@ -24,10 +24,10 @@ import Codec2225 from './Codec2225';
 import { codecForProtocol, latestCodec } from './CodecRegistry';
 import { packetIds as packetIds2193 } from '@jsprismarine/protocol/wire/versions/v2193';
 import { addedPacketIds } from '@jsprismarine/protocol/wire/versions/v2225';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 /** Encodes under the 2225 codec's id, then decodes through the codec, as a session would. */
-const roundTrip = <T extends DataPacket>(packet: T): T => {
+const roundTrip = <T extends NetworkPacket>(packet: T): T => {
     packet.setNetId(Codec2225.netIdOf(packet.getName())!);
     packet.encode();
 

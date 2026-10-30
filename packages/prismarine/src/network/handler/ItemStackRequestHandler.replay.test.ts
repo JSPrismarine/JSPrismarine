@@ -18,7 +18,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from '../packet/ItemStackResponsePacket';
 import type { ItemStackResponse } from '../packet/ItemStackResponsePacket';
@@ -153,7 +153,7 @@ const replay = async () => {
             })
     });
 
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const craftingInput = new CraftingInput();
     const world = stub<World>({ dropContents: async () => {}, dropFromPlayer: async () => {} });
     const session = stub<PlayerSession>({

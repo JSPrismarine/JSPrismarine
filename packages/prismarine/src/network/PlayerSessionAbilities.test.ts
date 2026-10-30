@@ -5,7 +5,7 @@ import type Player from '../Player';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import UpdateAbilitiesPacket, { AbilityLayerFlag, AbilityLayerType } from './packet/UpdateAbilitiesPacket';
 import PlayerSession from './PlayerSession';
 
@@ -23,7 +23,7 @@ const floatLE = (value: number): Buffer => {
 
 /** A session whose connection records what goes out, speaking for `player`. */
 const sessionFor = (player: Player) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });

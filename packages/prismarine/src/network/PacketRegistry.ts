@@ -1,5 +1,6 @@
 import * as Handlers from './Handlers';
 import * as Packets from './Packets';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 import type { PlayerSession } from '../';
 import type Server from '../Server';
@@ -11,10 +12,11 @@ import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
 
 /** Either handler kind the registry holds. Which one applies depends on the phases the handler declares. */
 export type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any>;
+type PacketClass = new (...args: never[]) => NetworkPacket<unknown>;
 
 export default class PacketRegistry {
     private server: Pick<Server, 'getLogger'>;
-    private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
+    private readonly packets: Map<number, PacketClass> = new Map();
     private readonly handlers: Map<string, RegisteredHandler> = new Map();
 
     public constructor(server: Pick<Server, 'getLogger'>) {
@@ -47,7 +49,7 @@ export default class PacketRegistry {
      *   renames a colliding class. Defaults to the class name for callers that register one
      *   packet directly.
      */
-    public registerPacket(packet: typeof Packets.DataPacket, name: string = packet.name): void {
+    public registerPacket(packet: PacketClass, name: string = packet.name): void {
         // Resolved against the newest codec rather than 2193's: a packet a later protocol added
         // has no id at 2193, and the barrel carries it all the same so that a session which
         // negotiated the newer version can build one.
@@ -64,7 +66,7 @@ export default class PacketRegistry {
      * Get a packet by it's network ID.
      * @param id - the NetID.
      */
-    public getPacket(id: number): any {
+    public getPacket(id: number): PacketClass {
         if (!this.packets.has(id)) throw new Error(`Invalid packet with id ${id}!`);
 
         return this.packets.get(id)!;

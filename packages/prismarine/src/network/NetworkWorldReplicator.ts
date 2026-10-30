@@ -1,4 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -14,7 +15,6 @@ import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
 import type { WorldChange } from '../world/WorldChange';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
-import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type { ActorEvent } from './packet/ActorEventPacket';
@@ -138,20 +138,20 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /**
      * Sends a packet to every player in this world, however far away they are.
-     * @param {DataPacket} packet - The packet to send.
+     * @param packet - The packet to send.
      * @param {object} [options] - Recipients to leave out.
      */
-    public send<T extends DataPacket>(packet: T, options?: Pick<AudienceOptions, 'exclude'>): void {
+    public send<T extends NetworkPacket<unknown>>(packet: T, options?: Pick<AudienceOptions, 'exclude'>): void {
         this.sendToAll(this.getViewers(null, options), packet);
     }
 
     /**
      * Sends a packet to the players near `position`.
      * @param {Vector3} position - Where it happened.
-     * @param {DataPacket} packet - The packet to send.
+     * @param packet - The packet to send.
      * @param {AudienceOptions} [options] - A tighter radius, or recipients to leave out.
      */
-    public sendAround<T extends DataPacket>(position: Vector3, packet: T, options?: AudienceOptions): void {
+    public sendAround<T extends NetworkPacket<unknown>>(position: Vector3, packet: T, options?: AudienceOptions): void {
         this.sendToAll(this.getViewers(position, options), packet);
     }
 
@@ -508,9 +508,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * The buffer is safe to share: `getBuffer()` returns a fresh copy on the write path,
      * RakNet only reads it, and fragmentation takes read-only slices of it.
      * @param {Player[]} audience - Who receives it.
-     * @param {DataPacket} packet - The packet to send.
+     * @param packet - The packet to send.
      */
-    private sendToAll<T extends DataPacket>(audience: Player[], packet: T): void {
+    private sendToAll<T extends NetworkPacket<unknown>>(audience: Player[], packet: T): void {
         if (audience.length === 0) return;
 
         // One recipient is the common case for anything happening near a single player, and

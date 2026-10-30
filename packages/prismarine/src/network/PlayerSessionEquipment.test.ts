@@ -18,7 +18,7 @@ import Device from '../utils/Device';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
@@ -45,7 +45,7 @@ const nth = <T>(packets: readonly T[], index: number, what: string): T => {
 
 /** A session whose connection records what goes out, speaking for `player`. */
 const sessionFor = (player: Player) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });
@@ -87,7 +87,7 @@ const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Dev
 
 /** The player being shown to, recording the packets its session was asked to send. */
 const viewer = () => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const session = stub<PlayerSession>({
         send: async (packet) => void sent.push(packet),
         sendAbilities: async () => {},

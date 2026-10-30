@@ -1,5 +1,5 @@
 import type ClientConnection from '../ClientConnection';
-import type { DataPacket } from '../Packets';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Server } from '../../';
 import type { SessionPhase } from '../SessionPhase';
 import type PacketHandler from './PacketHandler';
@@ -11,7 +11,7 @@ import type PacketHandler from './PacketHandler';
  * {@link phases} name only phases in which no session exists yet - `handshake` and `login` -
  * which is how {@link takesConnection} tells the two handler kinds apart at runtime.
  */
-export default interface ConnectionPacketHandler<T extends DataPacket> {
+export default interface ConnectionPacketHandler<T extends NetworkPacket<unknown>> {
     /** The session phases in which the packet is accepted; both run before a session exists. */
     readonly phases: readonly SessionPhase[];
 

@@ -10,7 +10,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
 import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
 
@@ -22,11 +22,11 @@ const fakeServer = ({ op }: { op: boolean }) => {
     const logged: string[] = [];
     const applied: Array<[string, Gametype | undefined]> = [];
     const committed: Array<[number, boolean | undefined]> = [];
-    const sent = new Map<string, DataPacket[]>();
+    const sent = new Map<string, NetworkPacket[]>();
     let configured = 'Survival';
 
     const fakePlayer = (name: string, isOp: boolean) => {
-        const packets: DataPacket[] = [];
+        const packets: NetworkPacket[] = [];
         sent.set(name, packets);
         const session = stub<PlayerSession>({
             getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) })
@@ -67,7 +67,7 @@ const fakeServer = ({ op }: { op: boolean }) => {
 const request = (gamemode: Gametype): SetDefaultGameTypePacket =>
     Object.assign(new SetDefaultGameTypePacket(), { gamemode });
 
-const defaults = (packets: DataPacket[] | undefined): Gametype[] =>
+const defaults = (packets: NetworkPacket[] | undefined): Gametype[] =>
     (packets ?? []).map((packet) => {
         expect(packet).toBeInstanceOf(SetDefaultGameTypePacket);
         return packet instanceof SetDefaultGameTypePacket ? packet.gamemode : Gametype.UNDEFINED;

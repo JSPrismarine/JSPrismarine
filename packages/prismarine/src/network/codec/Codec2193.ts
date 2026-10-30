@@ -6,7 +6,7 @@ import {
     jigsaw_structure_data
 } from '@jsprismarine/bedrock-data';
 import type { ProtocolContext } from '@jsprismarine/protocol';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { itemData2193 } from './itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from './ProtocolCodec';
@@ -55,7 +55,7 @@ export class Codec2193 implements ProtocolCodec {
     }
 
     /** A packet instance for an inbound wire id; see {@link ProtocolCodec.createPacket}. */
-    public createPacket(netId: number, buffer?: Buffer): DataPacket | null {
+    public createPacket(netId: number, buffer?: Buffer): NetworkPacket<unknown> | null {
         const packetClass = this.table().get(netId);
         if (packetClass === undefined) return null;
 
@@ -71,7 +71,7 @@ export class Codec2193 implements ProtocolCodec {
      * A stamp and nothing else, at any number of versions: a version-gated layout or data table
      * reads the stamp when the packet encodes, and everything else ignores it.
      */
-    public prepareOutbound(packet: DataPacket): DataPacket {
+    public prepareOutbound(packet: NetworkPacket<unknown>): NetworkPacket<unknown> {
         packet.codecProtocol = this.protocolVersion;
         return packet;
     }

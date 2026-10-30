@@ -13,7 +13,7 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerClosePacket from '../packet/ContainerClosePacket';
 import ContainerCloseHandler from './ContainerCloseHandler';
 
@@ -36,7 +36,7 @@ const run = async ({
     openWindows = [3],
     packet: fields = {}
 }: Scenario = {}) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const dropped: string[] = [];
     const droppedItems: Item[] = [];
     const closed: number[] = [];

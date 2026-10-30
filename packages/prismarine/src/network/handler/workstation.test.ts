@@ -29,7 +29,7 @@ import type { World } from '../../world/World';
 import type { Logger } from '@jsprismarine/logger';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PlayerSession from '../PlayerSession';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
 import PlayerEnchantOptionsPacket from '../packet/PlayerEnchantOptionsPacket';
@@ -121,7 +121,7 @@ const scene = (open: OpenBlockContainer) => {
     const built = content();
     const inventory = new HumanInventory();
     const attributes = new Attributes(Attributes.getPlayerDefaults());
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
 
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
@@ -154,7 +154,7 @@ const scene = (open: OpenBlockContainer) => {
     const session: PlayerSession = stub<PlayerSession>({
         getPlayer: () => player,
         getOpenBlockContainer: () => open,
-        send: async (packet: DataPacket) => void sent.push(packet)
+        send: async (packet: NetworkPacket) => void sent.push(packet)
     });
 
     attributes.setValue(AttributeIds.PlayerLevel, 30);

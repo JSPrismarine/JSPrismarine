@@ -10,7 +10,7 @@ import type PlayerSession from '../network/PlayerSession';
 import type { World } from '../world/World';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Item } from '../item/Item';
-import type DataPacket from '../network/packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { EnchantType } from '@jsprismarine/minecraft';
 import PlayerEnchantOptionsPacket from '../network/packet/PlayerEnchantOptionsPacket';
 import { stub } from '../testing/stub.test.helper';
@@ -116,7 +116,7 @@ const worldOf = (blocks: ReadonlyMap<string, string> = new Map()) =>
     });
 
 const scene = (built: ServerContent, world = worldOf()) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const attributes = new Attributes(Attributes.getPlayerDefaults());
 
     const player: Player = stub<Player>({
@@ -135,7 +135,7 @@ const scene = (built: ServerContent, world = worldOf()) => {
         isFlying: () => false,
         getFood: () => 20,
         getSaturation: () => 5,
-        getNetworkSession: () => stub<PlayerSession>({ send: async (packet: DataPacket) => void sent.push(packet) })
+        getNetworkSession: () => stub<PlayerSession>({ send: async (packet: NetworkPacket) => void sent.push(packet) })
     });
 
     attributes.setValue(AttributeIds.PlayerLevel, 30);

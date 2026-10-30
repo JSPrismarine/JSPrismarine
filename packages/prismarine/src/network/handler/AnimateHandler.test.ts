@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import AnimatePacket, { AnimateAction } from '../packet/AnimatePacket';
 import type PlayerSession from '../PlayerSession';
 import AnimateHandler from './AnimateHandler';
@@ -18,8 +18,8 @@ const SELF = 7n;
  * is kept, so a packet the handler should have refused shows up as a line.
  */
 const fakeWorld = () => {
-    const toSender: DataPacket[] = [];
-    const toWatcher: DataPacket[] = [];
+    const toSender: NetworkPacket[] = [];
+    const toWatcher: NetworkPacket[] = [];
     const logged: string[] = [];
     const players: Player[] = [];
     const world = stub<World>({ getPlayers: () => players });

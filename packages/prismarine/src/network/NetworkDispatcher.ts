@@ -6,9 +6,9 @@ import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import Timer from '../utils/Timer';
 import type ClientConnection from './ClientConnection';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { takesConnection } from './handler/ConnectionPacketHandler';
 import BatchPacket from './packet/BatchPacket';
-import type DataPacket from './packet/DataPacket';
 import { readPacketId } from './packet/DataPacket';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketRegistry from './PacketRegistry';
@@ -18,7 +18,7 @@ import type { Transport, TransportConnection } from './transport/Transport';
 
 /** A decoded packet the phase gate has paired with the handler it will run. */
 interface GatedPacket {
-    readonly packet: DataPacket;
+    readonly packet: NetworkPacket<unknown>;
     readonly handler: RegisteredHandler;
 }
 
@@ -177,7 +177,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * Builds and decodes one packet, or yields nothing for an id the connection's codec does
      * not know or a payload that does not decode as the packet it claims to be.
      */
-    private decodePacket(buffer: Buffer, connection: ClientConnection): readonly DataPacket[] {
+    private decodePacket(buffer: Buffer, connection: ClientConnection): readonly NetworkPacket<unknown>[] {
         const pid = readPacketId(buffer);
 
         // Resolved through the codec this connection negotiated, so each session decodes
@@ -200,7 +200,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /** Logs the packets the traffic-log filter admits; drops nothing. */
-    private logInbound(packet: DataPacket): readonly DataPacket[] {
+    private logInbound(packet: NetworkPacket<unknown>): readonly NetworkPacket<unknown>[] {
         if (this.logFilter.shouldLog(packet)) this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
         return [packet];
     }
@@ -212,7 +212,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
      * drop is a debug line, as it was when the same packets were dropped for arriving
      * "before login completed".
      */
-    private gatePhase(packet: DataPacket, connection: ClientConnection): readonly GatedPacket[] {
+    private gatePhase(packet: NetworkPacket<unknown>, connection: ClientConnection): readonly GatedPacket[] {
         let handler: RegisteredHandler;
         try {
             handler = this.packetRegistry.getHandler(packet.getName());
@@ -248,7 +248,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /** One failure shape for the lookup and the handler itself, as the old dispatch had it. */
-    private handlerError(packet: DataPacket, error: unknown): void {
+    private handlerError(packet: NetworkPacket<unknown>, error: unknown): void {
         this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
         this.logger.error(error);
     }

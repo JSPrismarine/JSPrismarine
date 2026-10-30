@@ -1,4 +1,4 @@
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { latestCodec } from './CodecRegistry';
 import type { ProtocolCodec } from './ProtocolCodec';
 
@@ -46,7 +46,7 @@ class HandshakeCodec implements ProtocolCodec {
     public readonly itemData = latestCodec.itemData;
     public readonly context = latestCodec.context;
 
-    public createPacket(netId: number, buffer?: Buffer): DataPacket | null {
+    public createPacket(netId: number, buffer?: Buffer): NetworkPacket<unknown> | null {
         if (!handshakeNetIds.has(netId)) return null;
         return latestCodec.createPacket(netId, buffer);
     }
@@ -56,7 +56,7 @@ class HandshakeCodec implements ProtocolCodec {
     }
 
     /** Identity: the handshake packets' layouts are stable across versions by definition. */
-    public prepareOutbound(packet: DataPacket): DataPacket {
+    public prepareOutbound(packet: NetworkPacket<unknown>): NetworkPacket<unknown> {
         return packet;
     }
 }

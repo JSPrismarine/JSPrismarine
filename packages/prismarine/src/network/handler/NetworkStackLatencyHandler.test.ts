@@ -5,14 +5,14 @@ import type ClientConnection from '../ClientConnection';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkStackLatencyPacket from '../packet/NetworkStackLatencyPacket';
 import type PlayerSession from '../PlayerSession';
 import NetworkStackLatencyHandler from './NetworkStackLatencyHandler';
 
 const fakeSession = () => {
     const logged: string[] = [];
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
 
     return {

@@ -1,4 +1,4 @@
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 
@@ -35,9 +35,9 @@ export interface ProtocolCodec {
      * A packet instance for an inbound wire id, stamped with this codec's id and version.
      * @param {number} netId - the id read from the packet header.
      * @param {Buffer} [buffer] - the encoded packet, when decoding inbound bytes.
-     * @returns {DataPacket | null} the packet, or `null` for an id this codec does not know.
+     * @returns The packet, or `null` for an id this codec does not know.
      */
-    createPacket(netId: number, buffer?: Buffer): DataPacket | null;
+    createPacket(netId: number, buffer?: Buffer): NetworkPacket<unknown> | null;
 
     /**
      * The instance an outbound packet must encode as under this codec. Gameplay code builds
@@ -45,10 +45,10 @@ export interface ProtocolCodec {
      * the base instance would put the wrong layout on the wire. Returns the packet itself
      * when its class already encodes this codec's layout, otherwise a copy under the
      * substituted class, carrying the same fields.
-     * @param {DataPacket} packet - the packet as the caller built it.
-     * @returns {DataPacket} the instance to encode for this codec's wire.
+     * @param packet - the packet as the caller built it.
+     * @returns The instance to encode for this codec's wire.
      */
-    prepareOutbound(packet: DataPacket): DataPacket;
+    prepareOutbound(packet: NetworkPacket<unknown>): NetworkPacket<unknown>;
 
     /**
      * The wire id under a packet class name.

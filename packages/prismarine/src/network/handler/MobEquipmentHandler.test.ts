@@ -10,7 +10,7 @@ import { Item } from '../../item/Item';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import MobEquipmentPacket from '../packet/MobEquipmentPacket';
 import type PlayerSession from '../PlayerSession';
 import MobEquipmentHandler from './MobEquipmentHandler';
@@ -20,9 +20,9 @@ import MobEquipmentHandler from './MobEquipmentHandler';
  * not. The sender holds a sword in hotbar slot 3 and nothing anywhere else.
  */
 const fakeWorld = () => {
-    const toSender: DataPacket[] = [];
-    const toWatcher: DataPacket[] = [];
-    const toBystander: DataPacket[] = [];
+    const toSender: NetworkPacket[] = [];
+    const toWatcher: NetworkPacket[] = [];
+    const toBystander: NetworkPacket[] = [];
     const players: Player[] = [];
     const world = stub<World>({ getPlayers: () => players });
 
@@ -85,7 +85,7 @@ const selected = (slot: number, overrides: StubMembers<MobEquipmentPacket> = {})
     );
 
 /** The one relay a watcher was sent, typed for the assertions that follow. */
-const relayed = (sent: DataPacket[]): MobEquipmentPacket => {
+const relayed = (sent: NetworkPacket[]): MobEquipmentPacket => {
     expect(sent).toHaveLength(1);
     const [packet] = sent;
     expect(packet).toBeInstanceOf(MobEquipmentPacket);

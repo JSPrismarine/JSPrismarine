@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import HandshakeCodec from './codec/HandshakeCodec';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
-import type { DataPacket } from './Packets';
 import type { TransportConnection } from './transport/Transport';
 import { BatchPacket } from './Packets';
 import fs from 'node:fs';
@@ -151,14 +151,14 @@ export default class MinecraftSession {
      *
      * It must never be given a batch that has not been encoded; there is nothing here that
      * would notice. A separate entry point rather than a flag on `sendBatch` precisely because
-     * `sendBatch` calls `encode()` unconditionally and `DataPacket.encode` begins by clearing
+     * `sendBatch` calls `encode()` unconditionally and packet encoding begins by clearing
      * the buffer - reusing it for a fan-out would recompress per recipient *and* invalidate
      * the bytes already handed out.
      * @param {Buffer} content - The encoded, compressed batch.
-     * @param {DataPacket} packet - What is inside it, for the traffic log only.
+     * @param packet - What is inside it, for the traffic log only.
      * @param {boolean} [direct=false] - Force a datagram of its own.
      */
-    public sendSharedBatch(content: Buffer, packet: DataPacket, direct = false): void {
+    public sendSharedBatch(content: Buffer, packet: NetworkPacket<unknown>, direct = false): void {
         this.dump(packet);
         if (this.drops(packet.getName())) return;
 
@@ -178,7 +178,7 @@ export default class MinecraftSession {
         this.connection.sendFrame(content, direct);
     }
 
-    public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
+    public async sendDataPacket(packet: NetworkPacket<unknown>, comp = true, direct = false): Promise<void> {
         // The session's codec owns the wire: a packet built directly would otherwise encode
         // the 2193 layout under the 2193 id whatever this session negotiated. The codec swaps
         // in its own class when the layout changed, and stamps the id either way.
@@ -231,9 +231,9 @@ export default class MinecraftSession {
      * One file per packet, `<millis>-<address>-<name>.bin`, holding the packet with its header
      * and before batching and compression. A write failure is logged and otherwise ignored;
      * a debugging aid must not take the connection down with it.
-     * @param {DataPacket} packet - An encoded packet.
+     * @param packet - An encoded packet.
      */
-    private dump(packet: DataPacket): void {
+    private dump(packet: NetworkPacket<unknown>): void {
         const name = packet.getName();
         if (!this.dumped.has(name)) return;
 
@@ -277,13 +277,13 @@ export default class MinecraftSession {
  * single compression survives within a group, and a mixed-version audience each receives its
  * negotiated layout. A group whose encode fails is logged and skipped; the others still send.
  * @param {readonly MinecraftSession[]} sessions - Who receives it.
- * @param {DataPacket} packet - The packet, as the caller built it.
+ * @param packet - The packet, as the caller built it.
  * @param {number} compressionLevel - The batch compression level.
  * @param {(error: unknown) => void} onError - Where an encode failure goes.
  */
 export const broadcastSharedBatches = (
     sessions: readonly MinecraftSession[],
-    packet: DataPacket,
+    packet: NetworkPacket<unknown>,
     compressionLevel: number,
     onError: (error: unknown) => void
 ): void => {

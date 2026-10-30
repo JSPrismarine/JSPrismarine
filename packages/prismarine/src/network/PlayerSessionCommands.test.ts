@@ -18,7 +18,7 @@ import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { CommandParameterType } from './type/CommandParameter';
 import { testContent } from '../testing/entityServer';
 
@@ -33,7 +33,7 @@ const commandsSentTo = async (
     { op = false, permissions = DEFAULT_PERMISSIONS }: { op?: boolean; permissions?: string[] } = {},
     register?: (commandManager: CommandManager) => Promise<void>
 ) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const players: Player[] = [];
     const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
     const server = stub<Server>({

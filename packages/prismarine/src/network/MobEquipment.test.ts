@@ -15,14 +15,14 @@ import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
 import type Player from '../Player';
 import type ClientConnection from './ClientConnection';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import PlayerSession from './PlayerSession';
 
 /** A session whose connection records what goes out. */
 const recordingSession = () => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });

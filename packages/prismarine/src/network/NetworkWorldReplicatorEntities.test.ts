@@ -7,7 +7,7 @@ import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world/World';
-import type { DataPacket } from './Packets';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type PlayerSession from './PlayerSession';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -27,7 +27,7 @@ const fakeSession = () => {
     const dropped: bigint[] = [];
     const reconciled: bigint[][] = [];
     const queued: bigint[] = [];
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     let flushes = 0;
     const tracked = new Set<bigint>();
 
@@ -48,7 +48,7 @@ const fakeSession = () => {
                 void reconciled.push([...entities].map((one) => one.getRuntimeId())),
             queueMoveActor: (entity: Entity) => void queued.push(entity.getRuntimeId()),
             flushQueuedMoves: async () => void flushes++,
-            send: async (packet: DataPacket) => void sent.push(packet),
+            send: async (packet: NetworkPacket) => void sent.push(packet),
             tracks: (runtimeId: bigint) => tracked.has(runtimeId)
         })
     };

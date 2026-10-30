@@ -18,7 +18,7 @@ import { CommandEnum } from '../type/CommandEnum';
 import CommandEnumConstraint from '../type/CommandEnumConstraint';
 import CommandParameter, { CommandArgumentType, CommandParameterType } from '../type/CommandParameter';
 import AvailableCommandsPacket from './AvailableCommandsPacket';
-import type DataPacket from './DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { testContent } from '../../testing/entityServer';
 
 /**
@@ -401,7 +401,7 @@ describe('AvailableCommandsPacket', () => {
     });
 
     it("sends the server's default command set in a form a 2193 reader decodes to the end", async () => {
-        const sent: DataPacket[] = [];
+        const sent: NetworkPacket[] = [];
         const players: Player[] = [];
         const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
         const server = stub<Server>({

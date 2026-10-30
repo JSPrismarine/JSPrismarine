@@ -13,13 +13,12 @@
  * knows how to build its own.
  */
 import { Vector3 } from '@jsprismarine/math';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 import { SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { ContentEffectSink, ContentPosition } from '../content/world/adapter';
 import PlaySoundPacket from './packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
-
-import type { DataPacket } from './Packets';
 
 /**
  * Who hears one dimension's effects.
@@ -37,7 +36,7 @@ export interface ContentEffectAudience {
      *
      * @param radius - A cap in blocks, tighter than a recipient's view distance.
      */
-    near(position: ContentPosition, packet: DataPacket, radius: number): void;
+    near(position: ContentPosition, packet: NetworkPacket<unknown>, radius: number): void;
 }
 
 /** A game event one content package emitted, as {@link ContentEffectsOptions.onGameEvent} sees it. */
@@ -110,7 +109,7 @@ export const createContentEffectsGroup = ({ audience, onGameEvent }: ContentEffe
 
 /** What {@link replicatorEffectAudience} needs of `NetworkWorldReplicator`. */
 export interface EffectReplicator {
-    sendAround(position: Vector3, packet: DataPacket, options?: { radius?: number }): void;
+    sendAround(position: Vector3, packet: NetworkPacket<unknown>, options?: { radius?: number }): void;
 }
 
 /**

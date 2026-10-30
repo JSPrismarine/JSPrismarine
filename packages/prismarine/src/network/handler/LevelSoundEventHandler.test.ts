@@ -11,7 +11,7 @@ import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import LevelSoundEventHandler from './LevelSoundEventHandler';
 
@@ -19,7 +19,7 @@ const SENDER_ID = 7n;
 
 /** A sender at the origin, and a replicator that records what it was asked to play and where. */
 const fakeSession = () => {
-    const played: { position: Vector3; packet: DataPacket }[] = [];
+    const played: { position: Vector3; packet: NetworkPacket }[] = [];
     const world = stub<World>({});
     const player = stub<Player>({
         getName: () => 'tester',

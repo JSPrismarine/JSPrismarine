@@ -1,9 +1,9 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { SessionPhase } from '../SessionPhase';
 
-export default interface PacketHandler<T extends DataPacket> {
+export default interface PacketHandler<T extends NetworkPacket<unknown>> {
     /**
      * The session phases in which the packet is accepted. The dispatcher drops the packet in
      * any other phase. A handler that takes a `PlayerSession` can only name phases in which
@@ -12,8 +12,8 @@ export default interface PacketHandler<T extends DataPacket> {
     readonly phases: readonly SessionPhase[];
 
     /**
-     * Handle a data packet.
-     * @param {T} packet - Instance of packet we need to handle.
+     * Handles one decoded packet.
+     * @param packet - The packet instance to handle.
      * @param {Server} server - The server instance.
      * @param {PlayerSession} session - The player session.
      * @returns {Promise<void> | void} Handled packet.

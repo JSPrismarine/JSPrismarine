@@ -8,6 +8,7 @@ import {
 } from '@jsprismarine/brigadier';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import type { Vector3 } from '@jsprismarine/math';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import {
     BuildPlatform,
     CommandPermissionLevel,
@@ -43,7 +44,6 @@ import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
-import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
 import AddActorPacket from './packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
@@ -542,9 +542,9 @@ export default class PlayerSession {
      * Returns the send rather than dropping it: without this, every `await session.send(...)`
      * and every `Promise.all` over a broadcast resolved immediately and any framing error
      * went nowhere.
-     * @param {DataPacket} packet - The packet to send.
+     * @param packet - The packet to send.
      */
-    public async send(packet: DataPacket): Promise<void> {
+    public async send(packet: NetworkPacket<unknown>): Promise<void> {
         return this.connection.sendDataPacket(packet);
     }
 

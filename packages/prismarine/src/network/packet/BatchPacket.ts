@@ -4,6 +4,7 @@ import Zlib from 'zlib';
 import { CompressionProvider } from '../CompressionProvider.js';
 import type { ProtocolCodec } from '../codec/ProtocolCodec';
 import DataPacket from './DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 /**
  * @internal
@@ -43,7 +44,7 @@ export default class BatchPacket extends DataPacket {
     public codec?: ProtocolCodec;
 
     /** The packets {@link addPacket} took, encoded when the batch itself encodes. */
-    private pending: DataPacket[] = [];
+    private pending: NetworkPacket<unknown>[] = [];
 
     /**
      * Encodes what {@link addPacket} queued into the payload stream. Under a {@link codec},
@@ -156,9 +157,9 @@ export default class BatchPacket extends DataPacket {
      * Queues a packet for the batch. Encoding happens when the batch encodes, under
      * {@link codec} when one is set by then: at add time the batch does not yet know which
      * session - and so which protocol version - it is for.
-     * @param {DataPacket} packet - The packet to carry.
+     * @param packet - The packet to carry.
      */
-    public addPacket(packet: DataPacket): void {
+    public addPacket(packet: NetworkPacket<unknown>): void {
         this.pending.push(packet);
         this.packetNames.push(packet.getName());
     }

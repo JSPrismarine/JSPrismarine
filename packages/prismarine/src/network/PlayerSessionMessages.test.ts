@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import TextPacket from './packet/TextPacket';
 import PlayerSession from './PlayerSession';
 import TextPacketType from './type/TextPacketType';
 
 /** A session whose connection records what goes out. */
 const sessionWithRecorder = () => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });

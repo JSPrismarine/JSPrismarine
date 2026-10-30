@@ -27,14 +27,14 @@ import Codec2225 from './codec/Codec2225';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
-import type DataPacket from './packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 import type { CraftingData } from '@jsprismarine/protocol';
 import { testContent } from '../testing/entityServer';
 
 /** A session whose connection records what goes out, speaking for a server. */
 const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         codec,
         sendDataPacket: async (packet) => void sent.push(packet)
@@ -79,14 +79,14 @@ const contentServer = (codec: ProtocolCodec = Codec2193) => {
     };
 };
 
-const creativePacket = (sent: readonly DataPacket[]): CreativeContentPacket => {
+const creativePacket = (sent: readonly NetworkPacket[]): CreativeContentPacket => {
     const packet = sent.find((candidate) => candidate instanceof CreativeContentPacket);
     if (packet === undefined) throw new Error('no CreativeContentPacket was sent');
 
     return packet;
 };
 
-const craftingPacket = (sent: readonly DataPacket[]): CraftingDataPacket => {
+const craftingPacket = (sent: readonly NetworkPacket[]): CraftingDataPacket => {
     const packet = sent.find((candidate) => candidate instanceof CraftingDataPacket);
     if (packet === undefined) throw new Error('no CraftingDataPacket was sent');
 

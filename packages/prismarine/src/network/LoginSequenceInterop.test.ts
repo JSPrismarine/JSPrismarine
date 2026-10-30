@@ -25,13 +25,12 @@ import ServerResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import ServerPlayStatus from './type/PlayStatus';
 import ResourcePackStatusType from './type/ResourcePackStatusType';
 
-import type DataPacket from './packet/DataPacket';
 import type { NetworkPacket } from '@jsprismarine/protocol';
 
 /**
  * The packets of a join up to the first chunk, pinned across the two codecs that implement them.
  *
- * Everything named here lives twice: once in the server's `DataPacket` tree and once in
+ * Everything named here lives twice: once in the server's `NetworkPacket` tree and once in
  * `@jsprismarine/protocol`, which the bot client speaks. Both describe protocol 2193, so a
  * disagreement is a bug in one of them that nothing else would catch - the server's own client
  * would simply mis-read the server in the same shape the server mis-wrote it.
@@ -45,7 +44,7 @@ import type { NetworkPacket } from '@jsprismarine/protocol';
 const clientBytes = (packet: NetworkPacket<unknown>): Buffer => packet.serialize(new NetworkBinaryStream());
 
 /** Encodes with the server package. */
-const serverBytes = (packet: DataPacket): Buffer => {
+const serverBytes = (packet: NetworkPacket): Buffer => {
     packet.encode();
     return packet.getBuffer();
 };
@@ -59,7 +58,7 @@ const readAsClient = <T>(packet: NetworkPacket<T>, buffer: Buffer): T => {
 };
 
 /** Decodes with the server package, asserting nothing is left over. */
-const readAsServer = <T extends DataPacket>(packet: T, buffer: Buffer): T => {
+const readAsServer = <T extends NetworkPacket>(packet: T, buffer: Buffer): T => {
     packet.setReadBuffer(buffer);
     packet.decode();
     expect(packet.feof()).toBe(true);

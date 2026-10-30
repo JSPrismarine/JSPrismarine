@@ -6,13 +6,13 @@ import PlaySoundPacket from './packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
 
 import type { ContentEffectAudience, ContentGameEvent } from './contentAdapter';
-import type { DataPacket } from './Packets';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ContentPosition } from '../content/world/adapter';
 
 /** One call to {@link ContentEffectAudience.near}, kept so a test can read it back. */
 interface SentPacket {
     position: ContentPosition;
-    packet: DataPacket;
+    packet: NetworkPacket;
     radius: number;
 }
 

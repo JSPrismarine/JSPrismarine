@@ -9,7 +9,7 @@ import type ClientConnection from '../ClientConnection';
 import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
 import Identifiers from '../Identifiers';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
@@ -23,7 +23,7 @@ import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
  * has no session or player to reach for.
  */
 const fakeConnection = () => {
-    const sent: Array<{ packet: DataPacket; comp: boolean | undefined }> = [];
+    const sent: Array<{ packet: NetworkPacket; comp: boolean | undefined }> = [];
     /** Packet names and the hang-up, in the order the handler asked for them. */
     const order: string[] = [];
     const disconnect = vi.fn(async () => void order.push('disconnect'));

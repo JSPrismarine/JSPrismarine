@@ -10,7 +10,7 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
-import type { DataPacket } from './Packets';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type PlayerSession from './PlayerSession';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
@@ -25,11 +25,11 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
 /** A player at a block position, recording every packet its session is handed. */
 const playerAt = (x: number, z: number) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
 
     const player = stubOf(Player, {
         getPosition: () => new Position(x, 64, z, stub<World>()),
-        getNetworkSession: () => stub<PlayerSession>({ send: async (packet: DataPacket) => void sent.push(packet) }),
+        getNetworkSession: () => stub<PlayerSession>({ send: async (packet: NetworkPacket) => void sent.push(packet) }),
         isOnline: () => true,
         viewDistance: 4
     });

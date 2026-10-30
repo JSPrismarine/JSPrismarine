@@ -1,6 +1,5 @@
 import NetworkPacket from './NetworkPacket';
 import type NetworkBinaryStream from './NetworkBinaryStream';
-import { netIdFor, protocolVersion } from './wire/versions/v2193';
 import type { ProtocolContext } from './ProtocolContext';
 
 /**
@@ -11,38 +10,20 @@ import type { ProtocolContext } from './ProtocolContext';
  * package without keeping a second packet header or a second stream implementation. New
  * packet classes should use a typed payload and implement `serializePayload` directly.
  */
-export default class FieldNetworkPacket extends NetworkPacket<undefined> {
-    /** The negotiated wire version used by version-gated field codecs. */
-    public codecProtocol = protocolVersion;
-
-    /**
-     * The 2193 id for an older field-based packet, replaced by a codec stamp when needed.
-     * @returns The packet's default wire id.
-     */
-    protected override getDefaultId(): number {
-        return netIdFor(this.getName()) ?? -1;
-    }
-
+export default class FieldNetworkPacket extends NetworkPacket<unknown> {
     /** A field-based packet has no separate payload object. */
     public constructor(buffer?: Buffer) {
         super(undefined, buffer);
     }
 
     /** Legacy packet bodies write their fields through this stream. */
-    public encodePayload(): void {}
-
-    /** Legacy packet bodies read their fields through this stream. */
-    public decodePayload(): void {}
-
-    protected serializePayload(stream: NetworkBinaryStream, _packetData: undefined, context?: ProtocolContext): void {
-        if (context !== undefined) this.codecProtocol = context.protocolVersion;
+    protected serializePayload(stream: NetworkBinaryStream, _packetData: unknown, _context?: ProtocolContext): void {
         this.clear();
         this.encodePayload();
         if (this.getWriteIndex() > 0) stream.write(this.getWriteBuffer());
     }
 
-    protected deserializePayload(stream: NetworkBinaryStream, context?: ProtocolContext): undefined {
-        if (context !== undefined) this.codecProtocol = context.protocolVersion;
+    protected deserializePayload(stream: NetworkBinaryStream, _context?: ProtocolContext): undefined {
         this.reuse(stream.readRemaining());
         this.decodePayload();
         this.encoded = true;

@@ -25,7 +25,7 @@ import type { OpenBlockContainer } from '../PlayerSession';
 import type { World } from '../../world/World';
 import { Position } from '../../world/Position';
 import { joinContentPayloads } from '../contentPayloads';
-import type DataPacket from '../packet/DataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
@@ -99,7 +99,7 @@ const run = async (
     craftingInput = new CraftingInput(),
     options: { open?: OpenBlockContainer; player?: Player } = {}
 ) => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket[] = [];
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => options.open,
         getPlayer: () =>
