@@ -38,6 +38,7 @@ export * from './wire/definitions/levelEventGeneric';
 export * from './wire/definitions/levelSoundEvent';
 export * from './wire/definitions/playStatus';
 export * from './wire/definitions/resourcePacks';
+export * from './wire/definitions/serverToClientHandshake';
 export * from './wire/definitions/startGame';
 export * from './wire/definitions/updateAbilities';
 export * from './wire/definitions/updateSubChunkBlocks';

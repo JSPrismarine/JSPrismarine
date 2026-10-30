@@ -13,6 +13,7 @@ import { levelEventGenericPacket } from './levelEventGeneric';
 import { levelSoundEventPacket } from './levelSoundEvent';
 import { playStatusPacket } from './playStatus';
 import { resourcePacksInfoPacket, resourcePackStackPacket } from './resourcePacks';
+import { serverToClientHandshakePacket } from './serverToClientHandshake';
 import {
     networkChunkPublisherUpdatePacket,
     networkSettingsPacket,
@@ -43,6 +44,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         playStatusPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
+        serverToClientHandshakePacket,
         startGamePacket,
         updateAbilitiesPacket,
         updateSubChunkBlocksPacket,

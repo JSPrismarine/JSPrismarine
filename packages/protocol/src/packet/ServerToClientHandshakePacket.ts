@@ -1,5 +1,8 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { serverToClientHandshakePacket } from '../wire/definitions/serverToClientHandshake';
+import { protocolVersion } from '../wire/versions/v2193';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -12,10 +15,16 @@ export interface ServerToClientHandshake {
 }
 
 /**
+ * The definition carries no version gate, so it resolves to the same frozen layout at every
+ * protocol; the oldest supported version stands in for the packet class, which does not know
+ * its session's protocol.
+ */
+const layout = () => layoutAt(serverToClientHandshakePacket, protocolVersion);
+
+/**
  * The server's half of the encryption handshake, and the last packet it sends in the clear.
  *
- * Wire layout, after the packet header:
- * - `Handshake WebToken`: a string, varuint32 length then UTF-8.
+ * The wire layout is the `serverToClientHandshakePacket` definition in `wire/definitions`.
  *
  * The token carries no game state. Both ends run ECDH between their own private key and the
  * other's public key, the server's from `x5u` and the client's from the login chain, then take
@@ -33,10 +42,10 @@ export default class ServerToClientHandshakePacket extends NetworkPacket<ServerT
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: ServerToClientHandshake): void {
-        stream.writeString(data.jwt);
+        layout().encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ServerToClientHandshake {
-        return { jwt: stream.readString() };
+        return layout().decode(stream);
     }
 }
