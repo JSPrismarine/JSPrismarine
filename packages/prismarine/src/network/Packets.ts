@@ -47,7 +47,7 @@ import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import EmotePacket from '@jsprismarine/protocol/packet/EmotePacket';
 import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
 import GameRulesChangedPacket from '@jsprismarine/protocol/packet/GameRulesChangedPacket';
-import GuiDataPickItemPacket from './packet/GuiDataPickItemPacket';
+import GuiDataPickItemPacket from '@jsprismarine/protocol/packet/GuiDataPickItemPacket';
 import HurtArmorPacket from '@jsprismarine/protocol/packet/HurtArmorPacket';
 import InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';

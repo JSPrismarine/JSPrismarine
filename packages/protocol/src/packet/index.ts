@@ -252,6 +252,8 @@ export { default as GameTestRequestPacket } from './GameTestRequestPacket';
 export * from './GameTestRequestPacket';
 export { default as GameTestResultsPacket } from './GameTestResultsPacket';
 export * from './GameTestResultsPacket';
+export { default as GuiDataPickItemPacket } from './GuiDataPickItemPacket';
+export * from './GuiDataPickItemPacket';
 export { default as GraphicsOverrideParameterPacket } from './GraphicsOverrideParameterPacket';
 export * from './GraphicsOverrideParameterPacket';
 export { default as LessonProgressPacket } from './LessonProgressPacket';
