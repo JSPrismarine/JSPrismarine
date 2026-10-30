@@ -62,7 +62,12 @@ import {
 import { playerListPacket } from './playerList';
 import { playerSkinPacket } from './playerSkin';
 import { playStatusPacket } from './playStatus';
-import { resourcePackChunkRequestPacket, resourcePacksInfoPacket, resourcePackStackPacket } from './resourcePacks';
+import {
+    resourcePackChunkDataPacket,
+    resourcePackChunkRequestPacket,
+    resourcePacksInfoPacket,
+    resourcePackStackPacket
+} from './resourcePacks';
 import { serverToClientHandshakePacket } from './serverToClientHandshake';
 import {
     changeDimensionPacket,
@@ -141,6 +146,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         removeObjectivePacket,
         requestChunkRadiusPacket,
         setActorLinkPacket,
+        resourcePackChunkDataPacket,
         resourcePackChunkRequestPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,

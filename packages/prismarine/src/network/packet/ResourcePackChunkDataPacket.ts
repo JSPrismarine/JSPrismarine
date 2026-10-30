@@ -1,13 +1,14 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, resourcePackChunkDataPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
  * One chunk of a resource pack zip, in answer to a `ResourcePackChunkRequestPacket`.
  *
- * Wire order at protocol 2193: `Resource Name` as a string, `Chunk ID` as a uint32 LE,
- * `Byte Offset` as a uint64 LE, then `Chunk Data` as a varuint32 byte length followed by that
- * many bytes. The chunk may be no larger than the `Chunk Size` announced in
- * `ResourcePackDataInfoPacket`.
+ * The wire layout lives in `@jsprismarine/protocol`'s `resourcePackChunkDataPacket`
+ * definition: `Resource Name` as a string, `Chunk ID` as a uint32 LE, `Byte Offset` as a
+ * uint64 LE, then `Chunk Data` as a varuint32 byte length followed by that many bytes. The
+ * chunk may be no larger than the `Chunk Size` announced in `ResourcePackDataInfoPacket`.
  *
  * Nothing sends this yet. The server announces no downloadable packs, and
  * `ResourcePackChunkRequestHandler` disconnects a client that asks for a chunk anyway.
@@ -30,18 +31,20 @@ export default class ResourcePackChunkDataPacket extends DataPacket {
 
     /** Reads the pack name, the chunk index and offset, then the chunk itself. */
     public decodePayload(): void {
-        this.resourceName = NetworkUtil.readString(this);
-        this.chunkId = this.readUnsignedIntLE();
-        this.byteOffset = this.readUnsignedLongLE();
-        this.chunkData = this.read(this.readUnsignedVarInt());
+        const read = layoutAt(resourcePackChunkDataPacket, this.codecProtocol).decode(this);
+        this.resourceName = read.resourceName;
+        this.chunkId = read.chunkId;
+        this.byteOffset = read.byteOffset;
+        this.chunkData = read.chunkData;
     }
 
     /** Writes the pack name, the chunk index and offset, then the chunk itself. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.resourceName);
-        this.writeUnsignedIntLE(this.chunkId);
-        this.writeUnsignedLongLE(this.byteOffset);
-        this.writeUnsignedVarInt(this.chunkData.byteLength);
-        this.write(this.chunkData);
+        layoutAt(resourcePackChunkDataPacket, this.codecProtocol).encode(this, {
+            resourceName: this.resourceName,
+            chunkId: this.chunkId,
+            byteOffset: this.byteOffset,
+            chunkData: this.chunkData
+        });
     }
 }

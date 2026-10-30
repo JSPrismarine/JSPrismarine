@@ -125,3 +125,19 @@ export const resourcePackChunkRequestPacket = definePacket('ResourcePackChunkReq
     /** `Chunk`: the zero-based index of the chunk wanted. */
     chunk: t.li32
 });
+
+/**
+ * The `ResourcePackChunkDataPacket` field list.
+ *
+ * The chunk may be no larger than the `Chunk Size` announced in `ResourcePackDataInfoPacket`.
+ */
+export const resourcePackChunkDataPacket = definePacket('ResourcePackChunkDataPacket', {
+    /** `Resource Name`: the pack id and version joined by an underscore, as the request named them. */
+    resourceName: t.string,
+    /** `Chunk ID`: the zero-based index of this chunk. */
+    chunkId: t.lu32,
+    /** `Byte Offset`: where this chunk starts in the zip, in bytes. */
+    byteOffset: t.lu64,
+    /** `Chunk Data`: a varint byte length, then the chunk's bytes. */
+    chunkData: t.byteArray
+});
