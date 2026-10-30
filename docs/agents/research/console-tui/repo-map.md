@@ -185,7 +185,6 @@ Files in each package (identical scaffolding, copy from `packages/logger`):
 | `tsconfig.dts.json` | extends `./tsconfig.json`; `rootDir ./src`, `declaration`, `emitDeclarationOnly`, `paths: { "@jsprismarine/*": ["../*/dist/index.d.ts"] }` |
 | `vite.config.ts` | copy verbatim; `formats: ['es', 'cjs']` for libraries, `['es']` for the server bin |
 | `vitest.config.ts` | copy verbatim |
-| `typedoc.json` | `{ "entryPoints": ["src/index.ts"], "readme": "README.md" }` |
 | `README.md` | title, Discord and npm badges, one-line description |
 | `CHANGELOG.md` | heading `# @jsprismarine/<name>`; Changesets appends releases |
 | `.npmignore` | present in logger/color-parser (copy) |
@@ -195,10 +194,10 @@ Root registration:
 
 - `pnpm-workspace.yaml`: `packages/**` and `tools/*` globs, nothing to add. `onlyBuiltDependencies`/`allowBuilds` list `esbuild`, `scriptc`, `core-js-pure`; a dependency with a postinstall or native build (an OpenTUI native renderer, for instance) must be added here or pnpm 12 skips its build.
 - `tsconfig.build.json:48-66`: add `{ "path": "./packages/<name>/tsconfig.json" }` to `references`.
-- `tools/docs/typedoc.json`: `entryPoints: ["../../packages/*"]`, `entryPointStrategy: packages`, so a new package is picked up as long as it has `typedoc.json`. The docs build (`tools/docs/package.json`, TypeDoc 0.28 on TypeScript 6.0.3) will try to compile the new package; TSX and JSX runtime types must type-check there too.
+- `tools/docs/typedoc.json`: `entryPoints: ["../../packages/*"]`, `entryPointStrategy: packages`, and `packageOptions.entryPoints: ["src/index.ts"]`. VitePress uses TypeDoc's generated sidebar, so a package with `src/index.ts` appears in the API docs without package-specific TypeDoc config. The docs build (`tools/docs/package.json`, TypeDoc 0.28 on TypeScript 6.0.3) must still type-check each package; TSX and JSX runtime types need to be configured if a package uses them.
 - `.changeset/config.json`: nothing to add; a new package automatically joins the `fixed` glob unless excluded.
 - `turbo.json`: nothing to add.
-- `turbo/generators/config.ts` + `turbo/generators/template/*`: `pnpm turbo gen Package` scaffolds `package.json`, `README.md`, `tsconfig.json`, `typedoc.json`, `vite.config.ts`, `vitest.config.ts`, `src/index.ts`. It does not produce `tsconfig.dts.json` or `CHANGELOG.md`, and its `updateTsConfig` action is a TODO, so the reference must be added by hand.
+- `turbo/generators/config.ts` + `turbo/generators/template/*`: `pnpm turbo gen Package` scaffolds `package.json`, `README.md`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, and `src/index.ts`. It does not produce `tsconfig.dts.json` or `CHANGELOG.md`, and its `updateTsConfig` action is a TODO, so the reference must be added by hand.
 - `scripts/check-jsdoc.mts` only reads `.ts`; `biome.json` covers `packages/*/src/**` regardless of extension.
 
 ## 4. Status-bar data sources in `packages/prismarine`

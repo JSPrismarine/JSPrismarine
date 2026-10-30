@@ -77,7 +77,7 @@ export class Progress {
 
     /**
      * Clears the bar and reports the total time. Safe to call more than once.
-     * @param note - Said in place of "done, <total>", for work that stopped early. The line
+     * @param note - Said in place of "done, `<total>`", for work that stopped early. The line
      * still has to be cleared and the time still has to be reported, which is why ending a
      * run short goes through here rather than around it.
      */
