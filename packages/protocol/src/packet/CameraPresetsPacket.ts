@@ -1,6 +1,8 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import CameraPreset from '../structure/CameraPreset';
+import { cameraPresetsPacket } from '../wire/definitions/cameraPresets';
+import { protocolVersion } from '../wire/versions/v2193';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 import type { CameraPresetData } from '../structure/CameraPreset';
@@ -10,6 +12,13 @@ export interface CameraPresetsPayload {
     /** `Camera Presets`. A set instruction's `preset` is an index into this list, so the order matters. */
     cameraPresets: CameraPresetData[];
 }
+
+/**
+ * The definition carries no version gate, so it resolves to the same frozen layout at every
+ * protocol; the oldest supported version stands in for the packet class, which does not know
+ * its session's protocol.
+ */
+const layout = () => layoutAt(cameraPresetsPacket, protocolVersion);
 
 /**
  * The camera presets a client may switch to.
@@ -26,19 +35,10 @@ export default class CameraPresetsPacket extends NetworkPacket<CameraPresetsPayl
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: CameraPresetsPayload): void {
-        stream.writeUnsignedVarInt(data.cameraPresets.length);
-        for (const preset of data.cameraPresets) {
-            new CameraPreset(preset).serialize(stream);
-        }
+        layout().encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): CameraPresetsPayload {
-        const cameraPresets: CameraPresetData[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            cameraPresets.push(CameraPreset.deserialize(stream).data);
-        }
-
-        return { cameraPresets };
+        return layout().decode(stream);
     }
 }

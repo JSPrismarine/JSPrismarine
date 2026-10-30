@@ -9,6 +9,7 @@
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
+import { cameraPresetsPacket } from './cameraPresets';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
 import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
@@ -45,6 +46,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         animatePacket,
         availableActorIdentifiersPacket,
         biomeDefinitionListPacket,
+        cameraPresetsPacket,
         chunkRadiusUpdatedPacket,
         jigsawStructureDataPacket,
         levelChunkPacket,

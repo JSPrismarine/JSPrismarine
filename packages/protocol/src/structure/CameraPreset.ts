@@ -1,7 +1,56 @@
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+import { string as stringType } from '../wire/fieldTypes';
 import Vec2 from './Vec2';
 import Vec3 from './Vec3';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
+
+/**
+ * Reads one `Vec2` off the stream. `NetworkStructure`'s static `deserialize` asks for a
+ * `NetworkBinaryStream`, which this module's widened codecs no longer carry.
+ * @param stream - The stream positioned at the vector's first float.
+ * @returns The read vector.
+ */
+const readVec2 = (stream: BinaryStream): Vec2 => {
+    const vector = new Vec2(0, 0);
+    vector.deserialize(stream);
+    return vector;
+};
+
+/**
+ * Reads one `Vec3` off the stream; see {@link readVec2} for why the static is not used.
+ * @param stream - The stream positioned at the vector's first float.
+ * @returns The read vector.
+ */
+const readVec3 = (stream: BinaryStream): Vec3 => {
+    const vector = new Vec3(0, 0, 0);
+    vector.deserialize(stream);
+    return vector;
+};
+
+/**
+ * Reads a `brstd::optional<T>`: a presence boolean, then the value when the boolean is 1.
+ * `NetworkBinaryStream.readOptional` widened to the base stream, so the wire layout bridge
+ * can run over any `BinaryStream`.
+ * @param stream - The stream positioned at the presence byte.
+ * @param read - Reads the value once the presence byte says it is there.
+ * @returns The value, or undefined when the presence byte is 0.
+ */
+const readOptional = <T>(stream: BinaryStream, read: () => T): T | undefined =>
+    stream.readBoolean() ? read() : undefined;
+
+/**
+ * Writes a `brstd::optional<T>`: a presence boolean, then the value when it is defined.
+ * @param stream - The stream to append to.
+ * @param value - The value, or undefined to write a single 0 byte.
+ * @param write - Writes the value after the presence byte.
+ */
+const writeOptional = <T>(stream: BinaryStream, value: T | undefined, write: (value: T) => void): void => {
+    stream.writeBoolean(value !== undefined);
+    if (value !== undefined) {
+        write(value);
+    }
+};
 
 /** The docs' `SharedTypes::Comprehensive::CameraPreset::AudioListener`: where the preset hears sound from. */
 export enum CameraAudioListener {
@@ -128,87 +177,87 @@ export default class CameraPreset extends NetworkStructure {
         super();
     }
 
-    private static writeAimAssist(stream: NetworkBinaryStream, aimAssist: CameraAimAssistDefinition): void {
-        stream.writeOptional(aimAssist.presetId, (id) => stream.writeString(id));
-        stream.writeOptional(aimAssist.targetMode, (mode) => stream.writeByte(mode));
-        stream.writeOptional(aimAssist.viewAngle, (angle) => angle.serialize(stream));
-        stream.writeOptional(aimAssist.distance, (distance) => stream.writeFloatLE(distance));
+    private static writeAimAssist(stream: BinaryStream, aimAssist: CameraAimAssistDefinition): void {
+        writeOptional(stream, aimAssist.presetId, (id) => stringType.write(stream, id));
+        writeOptional(stream, aimAssist.targetMode, (mode) => stream.writeByte(mode));
+        writeOptional(stream, aimAssist.viewAngle, (angle) => angle.serialize(stream));
+        writeOptional(stream, aimAssist.distance, (distance) => stream.writeFloatLE(distance));
     }
 
-    private static readAimAssist(stream: NetworkBinaryStream): CameraAimAssistDefinition {
+    private static readAimAssist(stream: BinaryStream): CameraAimAssistDefinition {
         return {
-            presetId: stream.readOptional(() => stream.readString()),
-            targetMode: stream.readOptional(() => stream.readByte()),
-            viewAngle: stream.readOptional(() => Vec2.deserialize(stream)),
-            distance: stream.readOptional(() => stream.readFloatLE())
+            presetId: readOptional(stream, () => stringType.read(stream)),
+            targetMode: readOptional(stream, () => stream.readByte()),
+            viewAngle: readOptional(stream, () => readVec2(stream)),
+            distance: readOptional(stream, () => stream.readFloatLE())
         };
     }
 
     /** Writes the preset in wire order, one presence byte per optional field. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         const preset = this.data;
         const writeFloat = (value: number) => stream.writeFloatLE(value);
         const writeBoolean = (value: boolean) => stream.writeBoolean(value);
         const writeVector = (value: Vec2) => value.serialize(stream);
 
-        stream.writeString(preset.name);
-        stream.writeString(preset.inheritFrom);
-        stream.writeOptional(preset.posX, writeFloat);
-        stream.writeOptional(preset.posY, writeFloat);
-        stream.writeOptional(preset.posZ, writeFloat);
-        stream.writeOptional(preset.rotX, writeFloat);
-        stream.writeOptional(preset.rotY, writeFloat);
-        stream.writeOptional(preset.rotationSpeed, writeFloat);
-        stream.writeOptional(preset.snapToTarget, writeBoolean);
-        stream.writeOptional(preset.horizontalRotationLimit, writeVector);
-        stream.writeOptional(preset.verticalRotationLimit, writeVector);
-        stream.writeOptional(preset.continueTargeting, writeBoolean);
-        stream.writeOptional(preset.blockListeningRadius, writeFloat);
-        stream.writeOptional(preset.viewOffset, writeVector);
-        stream.writeOptional(preset.entityOffset, writeVector);
-        stream.writeOptional(preset.radius, writeFloat);
-        stream.writeOptional(preset.yawLimitMin, writeFloat);
-        stream.writeOptional(preset.yawLimitMax, writeFloat);
-        stream.writeOptional(preset.listener, (listener) => stream.writeByte(listener));
-        stream.writeOptional(preset.playerEffects, writeBoolean);
-        stream.writeOptional(preset.aimAssist, (aimAssist) => CameraPreset.writeAimAssist(stream, aimAssist));
-        stream.writeOptional(preset.controlScheme, (scheme) => stream.writeByte(scheme));
+        stringType.write(stream, preset.name);
+        stringType.write(stream, preset.inheritFrom);
+        writeOptional(stream, preset.posX, writeFloat);
+        writeOptional(stream, preset.posY, writeFloat);
+        writeOptional(stream, preset.posZ, writeFloat);
+        writeOptional(stream, preset.rotX, writeFloat);
+        writeOptional(stream, preset.rotY, writeFloat);
+        writeOptional(stream, preset.rotationSpeed, writeFloat);
+        writeOptional(stream, preset.snapToTarget, writeBoolean);
+        writeOptional(stream, preset.horizontalRotationLimit, writeVector);
+        writeOptional(stream, preset.verticalRotationLimit, writeVector);
+        writeOptional(stream, preset.continueTargeting, writeBoolean);
+        writeOptional(stream, preset.blockListeningRadius, writeFloat);
+        writeOptional(stream, preset.viewOffset, writeVector);
+        writeOptional(stream, preset.entityOffset, writeVector);
+        writeOptional(stream, preset.radius, writeFloat);
+        writeOptional(stream, preset.yawLimitMin, writeFloat);
+        writeOptional(stream, preset.yawLimitMax, writeFloat);
+        writeOptional(stream, preset.listener, (listener) => stream.writeByte(listener));
+        writeOptional(stream, preset.playerEffects, writeBoolean);
+        writeOptional(stream, preset.aimAssist, (aimAssist) => CameraPreset.writeAimAssist(stream, aimAssist));
+        writeOptional(stream, preset.controlScheme, (scheme) => stream.writeByte(scheme));
         stream.writeBoolean(preset.applyInheritedStartingRotation);
-        stream.writeOptional(preset.startingRotation, writeVector);
+        writeOptional(stream, preset.startingRotation, writeVector);
     }
 
     /** Reads the preset in wire order. An absent optional field is left undefined. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         const readFloat = () => stream.readFloatLE();
         const readBoolean = () => stream.readBoolean();
-        const readVec2 = () => Vec2.deserialize(stream);
-        const readVec3 = () => Vec3.deserialize(stream);
+        const readVector2 = () => readVec2(stream);
+        const readVector3 = () => readVec3(stream);
 
         this.data = {
-            name: stream.readString(),
-            inheritFrom: stream.readString(),
-            posX: stream.readOptional(readFloat),
-            posY: stream.readOptional(readFloat),
-            posZ: stream.readOptional(readFloat),
-            rotX: stream.readOptional(readFloat),
-            rotY: stream.readOptional(readFloat),
-            rotationSpeed: stream.readOptional(readFloat),
-            snapToTarget: stream.readOptional(readBoolean),
-            horizontalRotationLimit: stream.readOptional(readVec2),
-            verticalRotationLimit: stream.readOptional(readVec2),
-            continueTargeting: stream.readOptional(readBoolean),
-            blockListeningRadius: stream.readOptional(readFloat),
-            viewOffset: stream.readOptional(readVec2),
-            entityOffset: stream.readOptional(readVec3),
-            radius: stream.readOptional(readFloat),
-            yawLimitMin: stream.readOptional(readFloat),
-            yawLimitMax: stream.readOptional(readFloat),
-            listener: stream.readOptional(() => stream.readByte()),
-            playerEffects: stream.readOptional(readBoolean),
-            aimAssist: stream.readOptional(() => CameraPreset.readAimAssist(stream)),
-            controlScheme: stream.readOptional(() => stream.readByte()),
+            name: stringType.read(stream),
+            inheritFrom: stringType.read(stream),
+            posX: readOptional(stream, readFloat),
+            posY: readOptional(stream, readFloat),
+            posZ: readOptional(stream, readFloat),
+            rotX: readOptional(stream, readFloat),
+            rotY: readOptional(stream, readFloat),
+            rotationSpeed: readOptional(stream, readFloat),
+            snapToTarget: readOptional(stream, readBoolean),
+            horizontalRotationLimit: readOptional(stream, readVector2),
+            verticalRotationLimit: readOptional(stream, readVector2),
+            continueTargeting: readOptional(stream, readBoolean),
+            blockListeningRadius: readOptional(stream, readFloat),
+            viewOffset: readOptional(stream, readVector2),
+            entityOffset: readOptional(stream, readVector3),
+            radius: readOptional(stream, readFloat),
+            yawLimitMin: readOptional(stream, readFloat),
+            yawLimitMax: readOptional(stream, readFloat),
+            listener: readOptional(stream, () => stream.readByte()),
+            playerEffects: readOptional(stream, readBoolean),
+            aimAssist: readOptional(stream, () => CameraPreset.readAimAssist(stream)),
+            controlScheme: readOptional(stream, () => stream.readByte()),
             applyInheritedStartingRotation: stream.readBoolean(),
-            startingRotation: stream.readOptional(readVec2)
+            startingRotation: readOptional(stream, readVector2)
         };
     }
 }
