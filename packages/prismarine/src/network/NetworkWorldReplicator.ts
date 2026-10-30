@@ -8,7 +8,6 @@ import type Server from '../Server';
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Entity } from '../entity/Entity';
-import BlockPosition from '../world/BlockPosition';
 import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
@@ -19,7 +18,8 @@ import { BatchPacket } from './Packets';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
-import BlockActorDataPacket from './packet/BlockActorDataPacket';
+import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import Vec3 from '@jsprismarine/protocol/structure/Vec3';
@@ -274,9 +274,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.pendingBlockEntities.clear();
 
         for (const { position, tags } of changes) {
-            const packet = new BlockActorDataPacket();
-            packet.blockPosition = new BlockPosition(position.getX(), position.getY(), position.getZ());
-            packet.actorDataTags = tags;
+            const packet = new BlockActorDataPacket({
+                blockPosition: new BlockPos(position.getX(), position.getY(), position.getZ()),
+                actorDataTags: tags
+            });
 
             this.sendAround(position, packet);
         }

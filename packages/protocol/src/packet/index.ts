@@ -272,6 +272,8 @@ export { default as AwardAchievementPacket } from './AwardAchievementPacket';
 export * from './AwardAchievementPacket';
 export { default as BlockEventPacket } from './BlockEventPacket';
 export * from './BlockEventPacket';
+export { default as BlockActorDataPacket } from './BlockActorDataPacket';
+export * from './BlockActorDataPacket';
 export { default as BlockPickRequestPacket } from './BlockPickRequestPacket';
 export * from './BlockPickRequestPacket';
 export { default as CameraAimAssistActorPriorityPacket } from './CameraAimAssistActorPriorityPacket';

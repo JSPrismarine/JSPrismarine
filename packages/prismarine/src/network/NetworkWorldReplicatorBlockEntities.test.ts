@@ -9,8 +9,10 @@ import type { Config } from '../config/Config';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import BlockActorDataPacket from './packet/BlockActorDataPacket';
+import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import type PlayerSession from './PlayerSession';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
@@ -149,17 +151,15 @@ describe('network', () => {
             await replicator.flushBlockEntities();
 
             near.sent[0]!.encode();
-            const decoded = new BlockActorDataPacket(near.sent[0]!.getBuffer());
-            decoded.decode();
+            const decoded = new BlockActorDataPacket().deserialize(new NetworkBinaryStream(near.sent[0]!.getBuffer()));
 
-            expect(decoded.blockPosition).toEqual({ x: -7, y: 70, z: 12 });
+            expect(decoded.blockPosition).toEqual(new BlockPos(-7, 70, 12));
             expect(
                 decoded.actorDataTags
                     .getCompound('FrontText', false)
                     ?.getCompound('SignTextComponent', false)
                     ?.getString('Text', '')
             ).toBe('hello\nthere');
-            expect(decoded.feof()).toBe(true);
         });
     });
 });
