@@ -1,7 +1,6 @@
 /**
  * Things that happen to an actor: a one-off event, a pickup, a removal.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -28,7 +27,7 @@ export const actorEventPacket = definePacket('ActorEventPacket', {
     fireAtPosition: t.optional(vector3)
 });
 
-/** What `ActorEventPacket` carries. */
+/** Triggers an actor event, with optional coordinates for events that happen away from it. */
 export type ActorEventPayload = PayloadOf<typeof actorEventPacket>;
 
 /** The `RemoveActorPacket` field list. */
@@ -37,7 +36,7 @@ export const removeActorPacket = definePacket('RemoveActorPacket', {
     uniqueEntityId: t.varint64
 });
 
-/** What `RemoveActorPacket` carries. */
+/** Removes an actor by its unique id. */
 export type RemoveActorPayload = PayloadOf<typeof removeActorPacket>;
 
 /** The `TakeItemActorPacket` field list. */
@@ -48,7 +47,7 @@ export const takeItemActorPacket = definePacket('TakeItemActorPacket', {
     takerRuntimeEntityId: t.varuint64
 });
 
-/** What `TakeItemActorPacket` carries. */
+/** Identifies the item actor being picked up and the actor taking it. */
 export type TakeItemActorPayload = PayloadOf<typeof takeItemActorPacket>;
 
 /**
@@ -63,7 +62,7 @@ export const setActorLinkPacket = definePacket('SetActorLinkPacket', {
     link: actorLink
 });
 
-/** What `SetActorLinkPacket` carries. */
+/** Creates or clears a relationship between two actors, such as riding. */
 export type SetActorLinkPayload = PayloadOf<typeof setActorLinkPacket>;
 
 /**
@@ -91,5 +90,5 @@ export const mobEffectPacket = definePacket('MobEffectPacket', {
     ambient: t.bool
 });
 
-/** What `MobEffectPacket` carries. */
+/** Adds, updates, or removes a status effect on an actor. */
 export type MobEffectPayload = PayloadOf<typeof mobEffectPacket>;

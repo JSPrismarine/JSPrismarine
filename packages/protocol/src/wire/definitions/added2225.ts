@@ -223,17 +223,17 @@ export const serverboundRegisterAudioContentPacket = definePacket('ServerboundRe
     registrations: t.list(audioContentRegistrationEntry)
 });
 
-/** What `ClientboundMatchmakingStatePacket` carries. */
+/** Reports matchmaking state, destination, and optional information about who triggered it. */
 export type ClientboundMatchmakingStatePayload = PayloadOf<typeof clientboundMatchmakingStatePacket>;
-/** What `ServerboundStonecutterSetRecipePacket` carries. */
+/** Selects a recipe index in the serverbound stonecutter container. */
 export type ServerboundStonecutterSetRecipePayload = PayloadOf<typeof serverboundStonecutterSetRecipePacket>;
-/** What `ClientboundStonecutterSetRecipePacket` carries. */
+/** Updates a player's selected stonecutter recipe for the specified container. */
 export type ClientboundStonecutterSetRecipePayload = PayloadOf<typeof clientboundStonecutterSetRecipePacket>;
-/** What `SetPassengerOfBlockPacket` carries. */
+/** Sets or clears the block a passenger actor is riding. */
 export type SetPassengerOfBlockPayload = PayloadOf<typeof setPassengerOfBlockPacket>;
-/** What `ServerboundCursorItemDragPacket` carries. */
+/** Marks the start or stop of a cursor item split-drag. */
 export type ServerboundCursorItemDragPayload = PayloadOf<typeof serverboundCursorItemDragPacket>;
-/** What `ClientboundPlayAudioContentPacket` carries. */
+/** Plays signed audio content with its playback type and sound parameters. */
 export type ClientboundPlayAudioContentPayload = PayloadOf<typeof clientboundPlayAudioContentPacket>;
-/** What `ServerboundRegisterAudioContentPacket` carries. */
+/** Registers audio content ids and their signed metadata and playback payloads. */
 export type ServerboundRegisterAudioContentPayload = PayloadOf<typeof serverboundRegisterAudioContentPacket>;

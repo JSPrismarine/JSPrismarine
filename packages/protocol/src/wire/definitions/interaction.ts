@@ -1,7 +1,6 @@
 /**
  * What a client did to an actor it was pointing at.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -25,5 +24,5 @@ export const interactPacket = definePacket('InteractPacket', {
     position: t.optional(vector3)
 });
 
-/** What `InteractPacket` carries. */
+/** Reports a client interaction action, its target actor, and any action-specific position. */
 export type InteractPayload = PayloadOf<typeof interactPacket>;

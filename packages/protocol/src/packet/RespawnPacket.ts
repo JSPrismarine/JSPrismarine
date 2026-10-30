@@ -6,7 +6,7 @@ import type { PayloadOf } from '../wire/define';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The payload of {@link RespawnPacket}. */
+/** The respawn position, transition state, and runtime id for the respawning player. */
 export type RespawnPayload = PayloadOf<typeof respawnPacket>;
 
 /**

@@ -1,7 +1,6 @@
 /**
  * The scoreboard packets: registering an objective, filling it with lines, and taking it away.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -142,7 +141,7 @@ export const setScorePacket = definePacket('SetScorePacket', {
     entries: t.list(scorePacketEntry)
 });
 
-/** What `SetScorePacket` carries. */
+/** Adds, changes, or removes scoreboard entries and their objective scores. */
 export type SetScorePayload = PayloadOf<typeof setScorePacket>;
 
 /**
@@ -164,7 +163,7 @@ export const setDisplayObjectivePacket = definePacket('SetDisplayObjectivePacket
     sortOrder: t.varint32
 });
 
-/** What `SetDisplayObjectivePacket` carries. */
+/** Registers a scoreboard objective and selects where its title and scores appear. */
 export type SetDisplayObjectivePayload = PayloadOf<typeof setDisplayObjectivePacket>;
 
 /**
@@ -178,7 +177,7 @@ export const removeObjectivePacket = definePacket('RemoveObjectivePacket', {
     objectiveName: t.string
 });
 
-/** What `RemoveObjectivePacket` carries. */
+/** Removes an objective and all scores associated with it. */
 export type RemoveObjectivePayload = PayloadOf<typeof removeObjectivePacket>;
 
 /** One scoreboard entry and the player it stands for. */
@@ -232,5 +231,5 @@ export const setScoreboardIdentityPacket = definePacket('SetScoreboardIdentityPa
     entries: t.list(scoreboardIdentityInfo)
 });
 
-/** What `SetScoreboardIdentityPacket` carries. */
+/** Assigns scoreboard ids to players or clears those identity mappings. */
 export type SetScoreboardIdentityPayload = PayloadOf<typeof setScoreboardIdentityPacket>;

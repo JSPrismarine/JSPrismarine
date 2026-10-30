@@ -1,7 +1,6 @@
 /**
  * The boss bar at the top of a player's screen.
  *
- * The layout follows the packet's docs page at 1.26.51 and is unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/boss-event-packet/}
  */
 import { definePacket } from '../define';
@@ -34,5 +33,5 @@ export const bossEventPacket = definePacket('BossEventPacket', {
     overlay: t.uint8
 });
 
-/** What `BossEventPacket` carries. */
+/** Updates a boss bar's target actor, title, health, color, and overlay. */
 export type BossEventPayload = PayloadOf<typeof bossEventPacket>;

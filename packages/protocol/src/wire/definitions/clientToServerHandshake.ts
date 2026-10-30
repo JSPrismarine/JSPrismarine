@@ -1,6 +1,5 @@
 /**
- * `ClientToServerHandshakePacket` described as a declarative field list; layout unchanged
- * between protocols 2193 and 2225.
+ * The client's empty acknowledgement after it derives the session key and enables encryption.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-to-server-handshake-packet/}
  */
 import { definePacket } from '../define';
@@ -18,5 +17,5 @@ import type { PayloadOf } from '../define';
  */
 export const clientToServerHandshakePacket = definePacket('ClientToServerHandshakePacket', {});
 
-/** What `ClientToServerHandshakePacket` carries: nothing. */
+/** Completes the client handshake; encryption state is signaled by the first encrypted bytes. */
 export type ClientToServerHandshakePayload = PayloadOf<typeof clientToServerHandshakePacket>;

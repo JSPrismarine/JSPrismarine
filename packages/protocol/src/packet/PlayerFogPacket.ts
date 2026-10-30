@@ -6,7 +6,7 @@ import type { PayloadOf } from '../wire/define';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The payload of {@link PlayerFogPacket}. */
+/** The complete ordered list of fog identifiers the client should render. */
 export type PlayerFogPayload = PayloadOf<typeof playerFogPacket>;
 
 /**

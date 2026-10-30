@@ -36,6 +36,7 @@ export const DEFAULT_COMPRESSION_LEVEL = 7;
  */
 export const DEFAULT_MAX_DECOMPRESSED_LENGTH = 16 * 1024 * 1024;
 
+/** Settings for compressing outbound batches and bounding decompressed peer data. */
 export interface CompressionSettings {
     readonly algorithm: PacketCompressionAlgorithm;
     /** zlib only; ignored by the other algorithms. */
@@ -46,6 +47,7 @@ export interface CompressionSettings {
      * `compressionThreshold` of 0 means - not "compress everything from 0 bytes up".
      */
     readonly threshold?: number;
+    /** Maximum number of bytes an inbound compressed batch may expand to. */
     readonly maxDecompressedLength?: number;
 }
 

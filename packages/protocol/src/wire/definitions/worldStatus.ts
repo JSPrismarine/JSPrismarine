@@ -1,6 +1,6 @@
 /**
- * The small world-state packets: one or a few primitive fields each, layouts unchanged since
- * protocol 2193. Field names and order follow each packet's docs page.
+ * Primitive world-state updates for time, health, difficulty, commands, spawn positions, and
+ * respawn progress. Field names and order follow each packet's docs page.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';

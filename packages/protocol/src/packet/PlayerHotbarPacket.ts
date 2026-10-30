@@ -6,7 +6,7 @@ import type { PayloadOf } from '../wire/define';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The payload of {@link PlayerHotbarPacket}. */
+/** The selected slot, its container id, and whether the client should change selection. */
 export type PlayerHotbarPayload = PayloadOf<typeof playerHotbarPacket>;
 
 /**

@@ -14,7 +14,7 @@ export const chunkRadiusUpdatedPacket = definePacket('ChunkRadiusUpdatedPacket',
     radius: t.varint32
 });
 
-/** What `ChunkRadiusUpdatedPacket` carries; derived from the field list. */
+/** Tells the client the view distance the server granted, measured in chunks. */
 export type ChunkRadiusUpdatedPayload = PayloadOf<typeof chunkRadiusUpdatedPacket>;
 
 /**
@@ -30,5 +30,5 @@ export const requestChunkRadiusPacket = definePacket('RequestChunkRadiusPacket',
     maxRadius: t.uint8
 });
 
-/** What `RequestChunkRadiusPacket` carries; derived from the field list. */
+/** Requests a view distance and reports the largest radius the client can handle. */
 export type RequestChunkRadiusPayload = PayloadOf<typeof requestChunkRadiusPacket>;

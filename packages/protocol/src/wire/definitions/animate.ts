@@ -50,5 +50,5 @@ export const animatePacket = definePacket('AnimatePacket', {
     hand: gated<number>(SINCE_2225, t.uint8, AnimateHand.Mainhand)
 });
 
-/** What `AnimatePacket` carries, at every version; derived from the field list. */
+/** Plays an actor animation with its action, optional swing source, and hand. */
 export type AnimatePayload = PayloadOf<typeof animatePacket>;

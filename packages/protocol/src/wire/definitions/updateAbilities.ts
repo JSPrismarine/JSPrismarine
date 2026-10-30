@@ -1,6 +1,6 @@
 /**
- * `UpdateAbilitiesPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225. The payload is one "SerializedAbilitiesData".
+ * The player's permission levels and layered abilities. Clients combine the layers in order,
+ * with later flags overriding earlier ones.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-abilities-packet/}
  */
 import SerializedAbilityLayer from '../../structure/SerializedAbilityLayer';

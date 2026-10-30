@@ -1,6 +1,6 @@
 /**
- * `JigsawStructureDataPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * The jigsaw structure rules the client needs before starting the world. The captured NBT
+ * payload is carried through to the end of the packet.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/jigsaw-structure-data-packet/}
  */
 import { definePacket } from '../define';

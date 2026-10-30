@@ -5,7 +5,7 @@
  * does not depend on the protocol or server packages, so it produces the data
  * and the network layer writes it. The field names, order and widths follow
  * Mojang's own `AvailableCommandsPacket.html` schema at protocol 2193 and this
- * repository's `packages/prismarine/src/network/packet/AvailableCommandsPacket.ts`,
+ * repository's `packages/protocol/src/packet/AvailableCommandsPacket.ts`,
  * which implements that schema field for field.
  *
  * Wire order, each list a varuint count then its items:

@@ -1,6 +1,6 @@
 /**
- * `DisconnectPacket` described as a declarative field list; layout unchanged between protocols
- * 2193 and 2225.
+ * Closes a connection with a disconnect reason and an optional pair of displayed messages.
+ * The selector determines whether the packet carries the message strings.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/disconnect-packet/}
  */
 import { definePacket } from '../define';
@@ -59,5 +59,5 @@ export const disconnectPacket = definePacket('DisconnectPacket', {
     messages: disconnectMessages
 });
 
-/** What `DisconnectPacket` carries; derived from the field list. */
+/** Closes the connection with a reason and optional plain and filtered display messages. */
 export type DisconnectPayload = PayloadOf<typeof disconnectPacket>;

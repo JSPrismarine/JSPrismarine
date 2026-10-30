@@ -1,7 +1,6 @@
 /**
- * `TrimDataPacket` described as a declarative field list; layout unchanged between protocols
- * 2193 and 2225. The docs type the ids and item names as `hashed_string`, which the wire
- * carries as a plain string; the client hashes it on receipt.
+ * The armor trim patterns and materials available to the client. The docs type ids and item
+ * names as `hashed_string`; the wire carries plain strings and the client hashes them on receipt.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/trim-data-packet/}
  */
 import { definePacket } from '../define';

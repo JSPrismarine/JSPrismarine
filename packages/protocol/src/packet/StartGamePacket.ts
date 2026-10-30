@@ -7,6 +7,7 @@ import { SINCE_2225 } from '../wire/wireGates';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
+/** Coordinates used by the player position and world spawn fields in `StartGamePacket`. */
 export interface Vec3Like {
     x: number;
     y: number;
@@ -27,6 +28,7 @@ export enum EditorLevelMigrationVersion {
     EditorAchievements = 1
 }
 
+/** A named world rule with its value type, current value, and client editability. */
 export interface GameRule {
     name: string;
     /** Whether a player with the permission may change it from the client. */
@@ -36,6 +38,7 @@ export interface GameRule {
     value: boolean | number;
 }
 
+/** An experiment name and whether it is enabled for the world. */
 export interface ExperimentToggle {
     name: string;
     enabled: boolean;
@@ -61,6 +64,7 @@ export interface BlockProperty {
     definition: Buffer;
 }
 
+/** Optional world and experience identifiers shown in gathering or rich-presence UI. */
 export interface GatheringJoinInfo {
     experienceId?: WireUUID;
     experienceName?: string;
@@ -72,12 +76,18 @@ export interface GatheringJoinInfo {
     serverId?: string;
 }
 
+/** Optional store, gathering, and rich-presence details attached to a join. */
 export interface ServerJoinInformation {
     gathering?: GatheringJoinInfo;
     storeEntryPoint?: { storeId: string; storeName: string };
     presence?: { richPresenceId?: string };
 }
 
+/**
+ * The initial player identity, world settings, content definitions, and join metadata sent
+ * when the client enters a world. `StartGamePacket` gets block definitions from its
+ * {@link ProtocolContext} when this payload omits `blockProperties`.
+ */
 export interface StartGame {
     /** The player's own entity id, signed and stable for the session. */
     entityId: bigint;

@@ -196,5 +196,5 @@ export const inventoryTransactionPacket = definePacket('InventoryTransactionPack
     transactionWithHand: gated<TransactionPayload | null>(SINCE_2225, transactionBody(true), null)
 });
 
-/** What `InventoryTransactionPacket` carries, at every version; derived from the field list. */
+/** Describes an inventory transaction, its changed slots, and transaction-specific action data. */
 export type InventoryTransactionPayload = PayloadOf<typeof inventoryTransactionPacket>;

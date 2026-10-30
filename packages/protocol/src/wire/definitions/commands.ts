@@ -1,7 +1,6 @@
 /**
  * The command packets: a slash command on its way to the server, and its output coming back.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -28,7 +27,7 @@ export const commandRequestPacket = definePacket('CommandRequestPacket', {
     version: t.string
 });
 
-/** What `CommandRequestPacket` carries. */
+/** Sends a command string with its origin, internal flag, and command protocol version. */
 export type CommandRequestPayload = PayloadOf<typeof commandRequestPacket>;
 
 /**
@@ -123,5 +122,5 @@ export const commandOutputPacket = definePacket('CommandOutputPacket', {
     dataSet: t.optional(t.string)
 });
 
-/** What `CommandOutputPacket` carries. */
+/** Returns command output messages, success count, origin, and optional structured data. */
 export type CommandOutputPayload = PayloadOf<typeof commandOutputPacket>;

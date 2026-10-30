@@ -16,5 +16,5 @@ export const playStatusPacket = definePacket('PlayStatusPacket', {
     status: t.i32
 });
 
-/** What `PlayStatusPacket` carries; derived from the field list. */
+/** Reports whether login or player spawning succeeded, failed, or requires another protocol. */
 export type PlayStatusPayload = PayloadOf<typeof playStatusPacket>;

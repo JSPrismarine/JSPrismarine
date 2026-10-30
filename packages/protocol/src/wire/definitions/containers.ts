@@ -1,7 +1,6 @@
 /**
  * The container packets: opening a window, closing it, and what is held in a hand.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -55,7 +54,7 @@ export const containerOpenPacket = definePacket('ContainerOpenPacket', {
     containerEntityId: t.varint64
 });
 
-/** What `ContainerOpenPacket` carries. */
+/** Opens a client container window with its type, position, and owning actor or block. */
 export type ContainerOpenPayload = PayloadOf<typeof containerOpenPacket>;
 
 /**
@@ -73,7 +72,7 @@ export const containerSetDataPacket = definePacket('ContainerSetDataPacket', {
     value: t.varint32
 });
 
-/** What `ContainerSetDataPacket` carries. */
+/** Updates one property on the currently open container. */
 export type ContainerSetDataPayload = PayloadOf<typeof containerSetDataPacket>;
 
 /** The `ContainerClosePacket` field list. */
@@ -86,7 +85,7 @@ export const containerClosePacket = definePacket('ContainerClosePacket', {
     serverInitiatedClose: t.bool
 });
 
-/** What `ContainerClosePacket` carries. */
+/** Closes a container window and records whether the server initiated the close. */
 export type ContainerClosePayload = PayloadOf<typeof containerClosePacket>;
 
 /**
@@ -108,7 +107,7 @@ export const mobEquipmentPacket = definePacket('MobEquipmentPacket', {
     windowId: t.uint8
 });
 
-/** What `MobEquipmentPacket` carries. */
+/** Assigns an actor's equipped stack and selected inventory and hotbar slots. */
 export type MobEquipmentPayload = PayloadOf<typeof mobEquipmentPacket>;
 
 /**
@@ -132,7 +131,7 @@ export const inventorySlotPacket = definePacket('InventorySlotPacket', {
     item: itemStackDescriptor
 });
 
-/** What `InventorySlotPacket` carries. */
+/** Replaces one slot's contents, including its container and optional storage metadata. */
 export type InventorySlotPayload = PayloadOf<typeof inventorySlotPacket>;
 
 /**
@@ -153,5 +152,5 @@ export const inventoryContentPacket = definePacket('InventoryContentPacket', {
     storageItem: itemStackDescriptor
 });
 
-/** What `InventoryContentPacket` carries. */
+/** Replaces a container's full ordered slot list and its container metadata. */
 export type InventoryContentPayload = PayloadOf<typeof inventoryContentPacket>;

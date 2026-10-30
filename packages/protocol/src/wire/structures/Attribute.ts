@@ -1,6 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { NetworkUtil } from '../networkUtil';
 
+/** Named Bedrock entity attributes used in actor spawn and update packets. */
 export const AttributeIds = {
     Absorption: 'minecraft:absorption',
     PlayerSaturation: 'minecraft:player.saturation',
@@ -21,10 +22,12 @@ export const AttributeIds = {
     LavaMovement: 'minecraft:lava_movement'
 } as const;
 
+/** The supported names in {@link AttributeIds}. */
 export type AttributeId = (typeof AttributeIds)[keyof typeof AttributeIds];
 
 const MAX_FLOAT32 = 3.4028234663852886e38;
 
+/** One entity attribute with its bounds, default, current value, and wire codecs. */
 export class Attribute {
     private readonly name: string;
     private readonly min: number;
@@ -126,6 +129,7 @@ export class Attribute {
         stream.writeFloatLE(this.max);
     }
 
+    /** Reads the compact `SyncedAttribute` form sent when an actor first spawns. */
     public static networkDeserializeInitial(stream: BinaryStream): Attribute {
         const name = NetworkUtil.readString(stream);
         const min = stream.readFloatLE();

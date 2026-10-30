@@ -1,6 +1,5 @@
 /**
- * `AvailableActorIdentifiersPacket` described as a declarative field list; layout unchanged
- * between protocols 2193 and 2225.
+ * The actor type identifiers the client may need to render, sent once when the world starts.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/available-actor-identifiers-packet/}
  */
 import { definePacket } from '../define';

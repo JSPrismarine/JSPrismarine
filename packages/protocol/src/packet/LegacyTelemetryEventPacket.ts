@@ -2,7 +2,7 @@ import FieldNetworkPacket from '../FieldNetworkPacket';
 import { NetworkUtil } from '../wire/networkUtil';
 
 /**
- * What a {@link LegacyTelemetryEventPacket} reports, as the Event Type varint32 numbers it.
+ * The events a {@link LegacyTelemetryEventPacket} reports, numbered by its Event Type varint32.
  *
  * The members the docs mark `_OBSOLETE` keep their slot so the numbering of the rest stays
  * right; nothing sends them. They are spelled with an `Obsolete` suffix here.

@@ -1,7 +1,9 @@
 /**
- * The visual effect packets, layouts unchanged between protocols 2193 and 2225. Field names
- * and order follow each packet's docs page.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
+ * Client visual effects that are not actor metadata: a full-screen texture animation and a
+ * named particle effect attached to an actor or placed at a position. Field names and order
+ * follow each packet's docs page.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/on-screen-texture-animation-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
@@ -20,7 +22,7 @@ export const onScreenTextureAnimationPacket = definePacket('OnScreenTextureAnima
     animationType: t.lu32
 });
 
-/** What `OnScreenTextureAnimationPacket` carries; derived from the field list. */
+/** Selects the full-screen texture animation the client should play. */
 export type OnScreenTextureAnimationPayload = PayloadOf<typeof onScreenTextureAnimationPacket>;
 
 /**
@@ -48,5 +50,5 @@ export const spawnParticleEffectPacket = definePacket('SpawnParticleEffectPacket
     molangVariables: t.optional(t.string)
 });
 
-/** What `SpawnParticleEffectPacket` carries; derived from the field list. */
+/** Spawns a named particle effect at a position or relative to an actor. */
 export type SpawnParticleEffectPayload = PayloadOf<typeof spawnParticleEffectPacket>;

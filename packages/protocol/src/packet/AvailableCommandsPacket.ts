@@ -73,6 +73,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
     public softEnums: CommandEnum[] = [];
     public enumConstraints: CommandEnumConstraint[] = [];
 
+    /** Writes the shared enum tables and command records in the protocol's required order. */
     public encodePayload(): void {
         const enumValueIndexes: Map<string, number> = new Map();
         const postfixIndexes: Map<string, number> = new Map();

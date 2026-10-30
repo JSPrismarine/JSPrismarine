@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { randomUUID } from 'node:crypto';
 
+/** UUID value with conversion helpers for Bedrock's 16-byte protocol representation. */
 export default class UUID {
     private readonly parts: number[] = [];
     private readonly version: number;
@@ -22,24 +23,21 @@ export default class UUID {
         this.version = version || (this.parts[1]! & 0xf000) >> 12;
     }
 
+    /** Whether every 32-bit word matches another UUID. */
     public equals(uuid: UUID): boolean {
         return (
             this.parts.length === uuid.parts.length && this.parts.every((value, index) => value === uuid.parts[index])
         );
     }
 
-    /**
-     * Creates an UUID from a string hex representation
-     */
+    /** Parses a UUID in canonical hexadecimal form, with or without hyphens. */
     public static fromString(uuid: string, version = 4): UUID {
         if (!uuid) throw new Error('uuid is null or undefined');
 
         return UUID.fromBinary(Buffer.from(uuid.trim().replaceAll('-', ''), 'hex'), version);
     }
 
-    /**
-     * Creates an UUID from a binary representation
-     */
+    /** Reads exactly 16 bytes as four big-endian 32-bit words. */
     public static fromBinary(uuid: Buffer, version: number): UUID {
         if (uuid.byteLength !== 16) {
             throw new Error('UUID must have 16 bytes');
@@ -49,23 +47,20 @@ export default class UUID {
         return new UUID(stream.readInt(), stream.readInt(), stream.readInt(), stream.readInt(), version);
     }
 
-    /**
-     * Generates a random UUIDv4 (string)
-     */
+    /** Generates a random version 4 UUID in canonical string form. */
     public static randomString(): string {
         return randomUUID({
             disableEntropyCache: true
         });
     }
 
-    /**
-     * Generates a random UUIDv4
-     */
+    /** Generates a random version 4 UUID value. */
     public static fromRandom(): UUID {
         const stringUUID = UUID.randomString();
         return UUID.fromString(stringUUID, 4);
     }
 
+    /** Writes the four UUID words in big-endian order. */
     public toBinary(): Buffer {
         const stream = new BinaryStream();
         stream.writeInt(this.parts[0]!);
@@ -75,6 +70,7 @@ export default class UUID {
         return stream.getBuffer();
     }
 
+    /** Formats the UUID as lowercase hexadecimal groups separated by hyphens. */
     public toString(): string {
         const hex = this.toBinary().toString('hex');
 
@@ -88,10 +84,12 @@ export default class UUID {
         return parts.join('-');
     }
 
+    /** Returns the UUID version supplied at construction or inferred from its words. */
     public getVersion(): number {
         return this.version;
     }
 
+    /** Returns the four signed 32-bit words used by this UUID value. */
     public getParts(): number[] {
         return this.parts;
     }

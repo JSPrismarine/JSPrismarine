@@ -1,7 +1,6 @@
 /**
  * The packets that change one block, or one block actor's data.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
@@ -53,7 +52,7 @@ export const updateBlockPacket = definePacket('UpdateBlockPacket', {
     layer: t.varuint32
 });
 
-/** What `UpdateBlockPacket` carries. */
+/** Updates a block's runtime state, update flags, and layer at one position. */
 export type UpdateBlockPayload = PayloadOf<typeof updateBlockPacket>;
 
 /** The `BlockActorDataPacket` field list. */
@@ -64,5 +63,5 @@ export const blockActorDataPacket = definePacket('BlockActorDataPacket', {
     actorDataTags: networkNbtCompound
 });
 
-/** What `BlockActorDataPacket` carries. */
+/** Replaces a block actor's network NBT data at the specified block position. */
 export type BlockActorDataPayload = PayloadOf<typeof blockActorDataPacket>;

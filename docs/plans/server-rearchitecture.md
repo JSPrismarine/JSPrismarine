@@ -12,28 +12,31 @@ Progress (2026-10-30):
   done; the kernel-backed `getXxxManager()` getters are deprecated; the kernel and the token
   barrel are exported from `@jsprismarine/prismarine` as the module API; block changes flow
   through the typed `WorldChange` stream into the replicators.
+- Phase 7: Protocol package ownership is complete. `@jsprismarine/protocol` owns the packet
+  classes, wire definitions, structures, packet id tables, codec construction, codec registry,
+  and handshake filtering. Prismarine creates server codecs by supplying versioned item data,
+  block definitions, and captured payloads through `ProtocolContext`. Its packet handler registry
+  contains handlers only; Prismarine no longer has packet classes, a packet barrel, an
+  `Identifiers` facade, or a root `Protocol` export. `ServerName` receives protocol metadata
+  directly from the configured codec.
 - Wire layouts are declarative (`docs/adr/0003-declarative-wire-layouts.md`): a packet is one
   ordered field list in `@jsprismarine/protocol`, version differences are gated fields with the
   predicates in one file (`wire/wireGates.ts`), a codec resolves a frozen layout per protocol
   version, and `prepareOutbound` stamps the session's protocol and does nothing else. The
   `*2225` sibling classes are gone.
-- The wire format lives in the protocol package and nothing else does. The version tables
-  (`v2193`, `v2225`), every packet definition, and the structures they are built from -
-  `NetworkUtil`, `Skin`, `Metadata`, `Attribute`, `SyncedProperties`, `GameRule`,
-  `PassengerOfBlock`, `UUID`, `PlayerListEntry`, `ActorLink`, the inventory-transaction codecs -
-  are all in `@jsprismarine/protocol`, with re-export shims at the old prismarine paths.
-  `packages/protocol` imports nothing from `packages/prismarine`, so a third party can speak the
-  protocol without this server: a consumer compiled against the built protocol package alone
-  resolves `wireDefinitions`, `layoutAt`, the structure vocabulary and the definitions. `Item`
-  deliberately stayed in prismarine, because it is a game object; its wire half delegates to a
-  protocol-side stack-descriptor codec and packet classes convert at the boundary.
-- Every packet id has an implementation: 239 ids across both versions, none without a class.
-  The eight packets 1.26.60 added were the last gap, and their layouts come from the pinned
-  v1.26.60 release schemas (`docs/research/protocol-2225-added-packets.md`), which is also what
-  settles two conventions a careless reading gets wrong - an integer marked `Compression` is a
-  ZigZag varint rather than a fixed-width value, and a property absent from `required` travels
-  behind a presence byte. Registering a packet resolves its id against the newest codec, since a
-  packet a later protocol added has none at the older one.
+- Protocol's packet classes and wire vocabulary are directly importable from
+  `@jsprismarine/protocol`; consumers do not need Prismarine re-export shims. Its public codec
+  factory builds the packet-id lookup from Protocol's packet exports and version tables. A server
+  supplies item ids, block definitions, entity identifiers, biome definitions, and other
+  version-specific data through `ProtocolContext`, keeping data ownership at the server boundary.
+  `Item` remains a Prismarine game object; its wire half delegates to Protocol's stack-descriptor
+  codec.
+- Packet ids come from the version tables in Protocol. Packet implementations are constructed
+  from the matching Protocol classes; ids without a class decode to `null`. The eight packets
+  1.26.60 added have layouts based on the pinned v1.26.60 release schemas
+  (`docs/research/protocol-2225-added-packets.md`), which also settles two conventions: an
+  integer marked `Compression` is a ZigZag varint rather than a fixed-width value, and a property
+  absent from `required` travels behind a presence byte.
 - Layouts are held to real server bytes: the capture pipeline records one raw payload per packet
   the Bedrock Dedicated Server sends at login (`src/jsp/v<protocol>/wire/`, 41 per version), and
   the `protocol.wire-roundtrip` parity family requires `encode(decode(bytes)) === bytes` for
@@ -53,28 +56,24 @@ Progress (2026-10-30):
   to captured server bytes on top of that, which is the 34-of-41 fixture figure. Across every
   wave so far no packet's encoder and decoder were found to disagree.
 - Remaining, in rough order of value:
-  - The rest of the packet bodies: 144 ids still carry hand-written `encodePayload`/
-    `decodePayload` pairs. Four are deliberately left for individual care rather than a batch -
+  - Convert remaining hand-written Protocol packet bodies to declarative layouts. Four are
+    deliberately left for individual care rather than a batch -
     `CraftingData`, `AvailableCommands`, `ItemRegistry` and `CreativeContent`, whose
     hand-written codecs carry byte-level tests pinned against gophertunnel.
-  - Collapsing the duplicate `NetworkPacket` stack in `packages/protocol` onto the definitions,
-    so the server and the client share one wire implementation rather than two. The conversion
-    waves kept an inventory of where that duplication actually is, so this does not need a
-    survey first: `TextPacket` (`variantOf` and `BodyVariant`), `PlayerActionPacket` (five
-    fields, private block-position helpers, a verbatim `PlayerActionType`),
-    `ResourcePackClientResponsePacket` (the whole `oneOf`, `RESPONSE_TYPE_NAMES`,
-    `ALTERNATIVE_OFFSET` and a `ResourcePackStatus` duplicating prismarine's), `DisconnectPacket`
-    (the conditional string pair), `RequestNetworkSettingsPacket`, `NetworkSettingsPacket`,
-    `RequestChunkRadiusPacket`, `SetLocalPlayerAsInitializedPacket`, plus
-    `ChunkRadiusUpdatedPacket`, `MovePlayerPacket`, `PlayStatusPacket`, `ResourcePacksInfoPacket`,
-    `ResourcePackStackPacket`, `StartGamePacket`, `LevelChunkPacket`,
-    `UpdateSubChunkBlocksPacket` and `SetHudPacket`, each hand-written on the protocol side
-    against a definition that already exists.
+  - Convert the remaining straightforward `NetworkPacket` payload implementations to their
+    existing declarative definitions, so each Protocol packet layout has one source. The
+    hand-written cases that need individual treatment include `TextPacket` (`variantOf` and
+    `BodyVariant`), `PlayerActionPacket` (five fields and private block-position helpers),
+    `ResourcePackClientResponsePacket` (its `oneOf` payload), `DisconnectPacket` (conditional
+    message strings), `RequestNetworkSettingsPacket`, `NetworkSettingsPacket`,
+    `RequestChunkRadiusPacket`, `SetLocalPlayerAsInitializedPacket`, `ChunkRadiusUpdatedPacket`,
+    `MovePlayerPacket`, `PlayStatusPacket`, `ResourcePacksInfoPacket`, `ResourcePackStackPacket`,
+    and `SetHudPacket`. `StartGamePacket`, `LevelChunkPacket`, and `UpdateSubChunkBlocksPacket`
+    already use their declarative layouts.
   - The version-aware `ItemStackRequest` reader (the `CraftReservedAction` renumber at 2225).
   - Commands and worlds modules; widening the `WorldChange` stream beyond block changes; the
     version-independent intent/update vocabulary; NetherNet and Java transports.
-  - Per-codec data injection for the remaining module-load bedrock-data imports;
-    `bedrock-data`'s versioned captures beyond the wire fixtures (see "bedrock-data versioning"
+  - `bedrock-data`'s versioned captures beyond the wire fixtures (see "bedrock-data versioning"
     below); worker support for the Node single executable.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
@@ -90,11 +89,11 @@ host of inline subsystems (tick loop, RakNet wiring, packet dispatch, shutdown s
 manager takes the whole `Server`, and `getXxxManager()` accessors make `Server` a de-facto service
 locator.
 
-The protocol stack supports exactly one version. `Identifiers.Protocol` is a hard-coded `2193`
-imported by packets, handlers, commands, the startup log, and raknet's `ServerName`. Packet IDs
-are baked into `static NetID` at import time, several packets import bedrock-data tables at module
-load, and bedrock-data itself is pinned to one BDS release with unversioned tables. Everything is
-force-tied to a single version; this coupling is an explicit target of the re-architecture.
+The original protocol stack supported only version 2193. Its packet ids were baked into
+`static NetID` at import time, and packet modules loaded bedrock-data tables directly. The codec
+layer now supports protocols 2193 and 2225, and Protocol receives versioned item, block, entity,
+biome, and capture data through `ProtocolContext`. `bedrock-data`'s non-wire captures are still
+only partially versioned, so that remains a limit on adding further server versions.
 
 `packages/minecraft/datagen/manifest.json` has since been keyed by protocol version and declares
 both 2193 and 2225, with 2193 as the default. The 2225 entry carries enums only: its block palette
@@ -104,10 +103,10 @@ would produce it.
 
 Other recorded pain points:
 
-- Two parallel packet stacks: `prismarine/src/network/packet` (~171 `DataPacket` classes) and
-  `packages/protocol` (~89 `NetworkPacket` classes, used fully by the client). The client's
-  registry comment notes the server registry could not be reused because it "is built around a
-  `Server`".
+- Before Phase 7, two packet stacks lived in `packages/prismarine/src/network/packet` and
+  `packages/protocol/src/packet`, with the server and client using different packet bases. Phase 7
+  moved packet classes and ids into Protocol; Prismarine now owns handler dispatch and supplies
+  its captured data through `ProtocolContext`.
 - Dispatch is an inline closure in `Server.bootstrap` (`Server.ts:522-586`) with a binary
   pre-login/post-login handler split (`isPreLoginHandler`).
 - Gameplay code builds wire packets directly (~46 `new XxxPacket()` calls in `PlayerSession.ts`;
@@ -205,12 +204,13 @@ Four layers, independently swappable:
    outbound. The login-gate stage replaces itself with the play dispatcher after login, removing
    `isPreLoginHandler`. A shared-batch outbound stage formalizes `broadcastPacket`'s hand-rolled
    dedupe; the compression stage is a future worker seam.
-3. **Delta protocol codecs** — `ProtocolCodec { protocolVersion, ids, createPacket(netId, buf) }`.
-   `Codec2193` absorbs today's `Identifiers` plus the packet map; `Codec2225` extends it and
-   re-registers only changed packets. Packet IDs move off class statics into the codec. Sessions
-   start on a minimal layout-stable `HandshakeCodec`; the `RequestNetworkSettings` handler assigns
-   `session.codec` from the registry. `ServerName` advertises all registered codec versions. The
-   oldest codec is pruned when dropped from support.
+3. **Delta protocol codecs** — `@jsprismarine/protocol` owns the packet ids, version definitions,
+   `ProtocolCodec` factory, packet-class lookup, codec registry, and handshake filter. Prismarine
+   composes the supported codecs by supplying per-version item tables and other server-owned data
+   through `ProtocolContext`. Sessions start with the Protocol handshake codec; the
+   `RequestNetworkSettings` handler assigns `session.codec` from the configured registry.
+   `ServerName` receives that registry's newest protocol metadata. The oldest codec is pruned when
+   dropped from support.
 4. **Handlers keyed by packet name + session phase** (`handshake | login | resourcePacks | play`),
    not NetID, so ID renumbering between versions never touches handlers. A version-independent
    intent/update vocabulary (Geyser-style translation) is introduced lazily, only where versions
@@ -224,16 +224,18 @@ This gives per-version outbound encoding and record/replay debugging.
 
 The single-version force-tie is broken at each layer it exists:
 
-- `Identifiers.Protocol` and per-class `static NetID` → codec-owned IDs.
+- `Identifiers.Protocol` and per-class `static NetID` → codec-owned IDs (complete; Prismarine's
+  `Identifiers` facade is removed).
 - The three scattered version equality checks (`RequestNetworkSettingsHandler`, `LoginHandler`,
   `LoginPacket`) → one negotiation point against the codec registry.
 - Module-load imports of bedrock-data tables inside packets (`StartGamePacket`,
-  `ItemRegistryPacket`, biome/actor/jigsaw tables) → data injected per codec.
+  `ItemRegistryPacket`, biome/actor/jigsaw tables) → data injected per codec through
+  `ProtocolContext`.
 - `packages/minecraft/datagen` gains a version dimension; `bedrock-data` gains versioned source
   inputs for version-sensitive tables (block runtime IDs, item table, entity metadata numbering,
   crafting layout).
-- `raknet`'s `ServerName` advertises the codec registry's versions instead of one constant;
-  `packages/client`'s duplicated `PROTOCOL_VERSION` resolves against the shared codec layer.
+- `raknet`'s `ServerName` receives protocol metadata directly from the configured codec;
+  `packages/client`'s `PROTOCOL_VERSION` resolves against Protocol's version definitions.
 
 ## Phased plan
 
@@ -249,18 +251,21 @@ Each phase ships independently with tests green; early phases are pure extractio
 - **Phase 2 — kernel package** (parallel with 1): build `packages/kernel` with tests, including a
   helper that starts a module against only its declared dependencies; wrap existing managers as
   modules one at a time behind the `Server` façade.
-- **Phase 3 — codec layer:** fold `Identifiers` + packet map into `Codec2193`; move IDs off class
-  statics; thread `session.codec` through connections; convert negotiation; version the datagen
-  manifest and audit module-load data imports.
-- **Phase 4 — pipeline + phase-keyed handlers:** implement the pipeline with the self-replacing
+- **Phase 3 — codec layer (complete):** move packet ids and class lookup into Protocol codecs;
+  thread `session.codec` through connections; negotiate against the codec registry; version the
+  datagen manifest and inject versioned data instead of loading it from packet modules.
+- **Phase 4 — pipeline + phase-keyed handlers (complete):** implement the pipeline with the self-replacing
   login gate; convert the ~71 handlers to name+phase registrations behind an adapter, taking
   narrowed capability interfaces instead of `Server`.
-- **Phase 5 — Codec2225:** the proof of the shape. Delta codec with both wire directions and
-  round-trip tests per the packet rules; parity family covering dual-version negotiation.
-- **Phase 6 — decompose `Server.ts`:** extract ticker, networking, and lifecycle modules (moving
+- **Phase 5 — Codec2225 (complete):** add the second version codec with both wire directions and
+  parity coverage for dual-version negotiation.
+- **Phase 6 — decompose `Server.ts` (in progress):** extract ticker, networking, and lifecycle modules (moving
   catch-up clamping, double-Ctrl+C, and reconnect-race behavior verbatim); formalize the
   `WorldChange` stream; deprecate getters; publish the module API from `packages/server`; major
   changesets per `docs/versioning.md`.
+- **Phase 7 — Protocol package ownership (complete):** move packet classes, ids, wire definitions,
+  structures, and codec construction into `@jsprismarine/protocol`; pass server-owned item, block,
+  and capture data through `ProtocolContext`; remove Prismarine's packet and Protocol re-exports.
 - **Later:** worker offload behind the world boundary, SoA mob hot data in `EntityRuntimes`,
   NetherNet transport, Java transport + full translator vocabulary.
 

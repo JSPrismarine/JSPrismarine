@@ -72,5 +72,5 @@ export const levelChunkPacket = definePacket('LevelChunkPacket', {
     isClientBiomeUpdate: gated<boolean>(SINCE_2225, t.bool, false)
 });
 
-/** What `LevelChunkPacket` carries, at every version; derived from the field list. */
+/** Sends a chunk column, its cache metadata, and serialized block data to the client. */
 export type LevelChunkPayload = PayloadOf<typeof levelChunkPacket>;

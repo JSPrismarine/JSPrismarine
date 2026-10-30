@@ -1,6 +1,5 @@
 /**
- * `ServerSettingsRequestPacket` described as a declarative field list; layout unchanged
- * between protocols 2193 and 2225.
+ * The client's request for the server settings form while it opens the settings screen.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/}
  */
 import { definePacket } from '../define';
@@ -18,5 +17,5 @@ import type { PayloadOf } from '../define';
  */
 export const serverSettingsRequestPacket = definePacket('ServerSettingsRequestPacket', {});
 
-/** What `ServerSettingsRequestPacket` carries: nothing. */
+/** Requests the server's settings form; the packet's arrival carries the entire request. */
 export type ServerSettingsRequestPayload = PayloadOf<typeof serverSettingsRequestPacket>;

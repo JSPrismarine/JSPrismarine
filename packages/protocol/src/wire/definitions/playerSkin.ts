@@ -32,5 +32,5 @@ export const playerSkinPacket = definePacket('PlayerSkinPacket', {
     oldSkinName: t.string
 });
 
-/** What `PlayerSkinPacket` carries, at every version; derived from the field list. */
+/** Replaces a player's skin and carries the localized names of the old and new skins. */
 export type PlayerSkinPayload = PayloadOf<typeof playerSkinPacket>;

@@ -1,6 +1,6 @@
 /**
  * `ClientCacheStatusPacket`: whether the client keeps a blob cache of chunk and block entity
- * data. Sent once after login, unchanged since protocol 2193.
+ * data. The client sends this once after login.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/}
  */
 import { definePacket } from '../define';
@@ -14,5 +14,5 @@ export const clientCacheStatusPacket = definePacket('ClientCacheStatusPacket', {
     enabled: t.bool
 });
 
-/** What `ClientCacheStatusPacket` carries; derived from the field list. */
+/** Tells the server whether the client supports caching chunk and block entity data. */
 export type ClientCacheStatusPayload = PayloadOf<typeof clientCacheStatusPacket>;

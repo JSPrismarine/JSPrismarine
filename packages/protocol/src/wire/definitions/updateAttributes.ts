@@ -1,6 +1,6 @@
 /**
- * `UpdateAttributesPacket`: an entity's changed attributes, described as a declarative field
- * list; layout unchanged between protocols 2193 and 2225.
+ * The changed attributes for one entity, including each attribute's bounds, current value,
+ * name, and modifiers.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/}
  */
 import { definePacket } from '../define';

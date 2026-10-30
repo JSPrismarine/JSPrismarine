@@ -1,7 +1,6 @@
 /**
  * The packets that put text on the screen: chat and the title overlay.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { TextPacketType } from '../../packet/TextPacket';
@@ -132,7 +131,7 @@ export const textPacket = definePacket('TextPacket', {
     filtered: t.optional(t.string)
 });
 
-/** What `TextPacket` carries. */
+/** Sends chat, system text, or translated UI text with the fields required by its message type. */
 export type TextPayload = PayloadOf<typeof textPacket>;
 
 /**
@@ -160,5 +159,5 @@ export const setTitlePacket = definePacket('SetTitlePacket', {
     filteredTitleMessage: t.string
 });
 
-/** What `SetTitlePacket` carries. */
+/** Controls the title overlay text, timing, subtitle, and action bar shown to the player. */
 export type SetTitlePayload = PayloadOf<typeof setTitlePacket>;

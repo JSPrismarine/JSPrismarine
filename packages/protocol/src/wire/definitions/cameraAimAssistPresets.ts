@@ -1,6 +1,5 @@
 /**
- * `CameraAimAssistPresetsPacket` described as a declarative field list; layout unchanged
- * between protocols 2193 and 2225.
+ * The categories and presets the client uses to build its camera aim-assist registry.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-aim-assist-presets-packet/}
  */
 import CameraAimAssistCategoryDefinition from '../../structure/CameraAimAssistCategoryDefinition';

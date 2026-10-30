@@ -6,6 +6,7 @@ import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
+/** The server-signed JWT that gives the client the server key and ECDH salt. */
 export interface ServerToClientHandshake {
     /**
      * `Handshake WebToken`, a JWT signed with the server's ECDSA P-384 key. Its header carries

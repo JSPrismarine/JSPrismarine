@@ -3,7 +3,7 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The payload of {@link SetLocalPlayerAsInitializedPacket}. */
+/** Identifies the local player whose world initialization is complete. */
 export interface SetLocalPlayerAsInitialized {
     /** `Player ID`: the runtime id the server gave the player in `StartGame`. */
     runtimeEntityId: bigint;

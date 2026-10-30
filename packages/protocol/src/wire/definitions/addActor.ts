@@ -133,5 +133,5 @@ export const addActorPacket = definePacket('AddActorPacket', {
     passengerOfBlock: gated(SINCE_2225, passengerOfBlock, null)
 });
 
-/** What `AddActorPacket` carries, at every version; derived from the field list. */
+/** Spawns an actor with its position, motion, attributes, metadata, properties, and links. */
 export type AddActorPayload = PayloadOf<typeof addActorPacket>;

@@ -1,7 +1,6 @@
 /**
  * The custom form packets: the screen the server asks for, and the answer that comes back.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -17,7 +16,7 @@ export const modalFormRequestPacket = definePacket('ModalFormRequestPacket', {
     formUiJson: t.string
 });
 
-/** What `ModalFormRequestPacket` carries. */
+/** Sends a custom form id and the JSON document that defines the client's form UI. */
 export type ModalFormRequestPayload = PayloadOf<typeof modalFormRequestPacket>;
 
 /**
@@ -37,5 +36,5 @@ export const modalFormResponsePacket = definePacket('ModalFormResponsePacket', {
     formCancelReason: t.optional(t.uint8)
 });
 
-/** What `ModalFormResponsePacket` carries. */
+/** Returns a form submission or a cancellation reason for the requested form id. */
 export type ModalFormResponsePayload = PayloadOf<typeof modalFormResponsePacket>;

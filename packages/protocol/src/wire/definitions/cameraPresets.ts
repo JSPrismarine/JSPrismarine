@@ -1,6 +1,6 @@
 /**
- * `CameraPresetsPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * The camera presets a client can select. Camera instructions refer to these presets by their
+ * position in the list, so the order is part of the payload.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-presets-packet/}
  */
 import CameraPreset from '../../structure/CameraPreset';

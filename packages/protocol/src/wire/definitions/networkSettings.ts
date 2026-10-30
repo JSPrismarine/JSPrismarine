@@ -1,7 +1,6 @@
 /**
- * `RequestNetworkSettingsPacket`: the first packet of a connection, and the only one sent
- * before compression is agreed. Layout unchanged between protocols 2193 and 2225. Its answer,
- * `NetworkSettingsPacket`, is defined in `worldStatus.ts` alongside the other small ones.
+ * The client's protocol-version request, sent before compression is agreed. The server reads
+ * its version and replies with `NetworkSettingsPacket`, defined in `worldStatus.ts`.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-network-settings-packet/}
  */
 import { definePacket } from '../define';
@@ -21,5 +20,5 @@ export const requestNetworkSettingsPacket = definePacket('RequestNetworkSettings
     protocolVersion: t.i32
 });
 
-/** What `RequestNetworkSettingsPacket` carries; derived from the field list. */
+/** Announces the client's Bedrock protocol version before network settings are negotiated. */
 export type RequestNetworkSettingsPayload = PayloadOf<typeof requestNetworkSettingsPacket>;

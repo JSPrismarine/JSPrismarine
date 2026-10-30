@@ -110,5 +110,5 @@ export const playerListPacket = definePacket('PlayerListPacket', {
     bodyWithPlayFabIdOnEntry: gated<PlayerListBody | null>(SINCE_2225, playerListBody(SKIN_WIRE_2225), null)
 });
 
-/** What `PlayerListPacket` carries, at every version; derived from the field list. */
+/** Adds players and their skin details to the roster or removes roster entries by UUID. */
 export type PlayerListPayload = PayloadOf<typeof playerListPacket>;

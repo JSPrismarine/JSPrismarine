@@ -1,6 +1,6 @@
 /**
- * `ShowCreditsPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * Starts the credits for a player or reports that the player finished watching them. The
+ * packet carries the player runtime id and credits state.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-credits-packet/}
  */
 import { definePacket } from '../define';
@@ -22,5 +22,5 @@ export const showCreditsPacket = definePacket('ShowCreditsPacket', {
     creditsState: t.varint32
 });
 
-/** What `ShowCreditsPacket` carries; derived from the field list. */
+/** Starts a player's credits or reports that the player has finished watching them. */
 export type ShowCreditsPayload = PayloadOf<typeof showCreditsPacket>;

@@ -215,6 +215,11 @@ const writeColor = (stream: BinaryStream, argb: number): void => {
     stream.writeIntLE(argb);
 };
 
+/**
+ * The client's `SerializedSkin` data: image, cape, geometry, animations, and persona metadata.
+ * JWT fields are decoded here and the protocol layout writes the resulting values to the player
+ * list. Geometry and animation documents remain opaque strings for the client to interpret.
+ */
 export default class Skin {
     private id!: string;
     private playFabId!: string;

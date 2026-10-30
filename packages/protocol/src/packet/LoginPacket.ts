@@ -2,6 +2,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
 
+/** The client protocol number and the two JWT strings from its login request. */
 export interface Login {
     protocolVersion: number;
     /**

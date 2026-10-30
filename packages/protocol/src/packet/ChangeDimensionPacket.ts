@@ -6,7 +6,7 @@ import type { PayloadOf } from '../wire/define';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The payload of {@link ChangeDimensionPacket}. */
+/** The target dimension and position, respawn flag, and optional loading screen id. */
 export type ChangeDimensionPayload = PayloadOf<typeof changeDimensionPacket>;
 
 /**

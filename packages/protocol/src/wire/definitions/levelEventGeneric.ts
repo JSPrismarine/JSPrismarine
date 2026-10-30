@@ -1,6 +1,6 @@
 /**
- * `LevelEventGenericPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * A level event whose data is a network-NBT compound rather than the position and single data
+ * word carried by `LevelEventPacket`.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-event-generic-packet/}
  */
 import { definePacket } from '../define';

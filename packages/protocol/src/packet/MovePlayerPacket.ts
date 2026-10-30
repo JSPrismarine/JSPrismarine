@@ -18,6 +18,7 @@ export enum PositionMode {
     OnlyHeadRot
 }
 
+/** A player's position, rotation, movement mode, and input tick. */
 export interface MovePlayer {
     /** The player being moved, or the sending player for a server-bound packet. */
     runtimeEntityId: bigint;

@@ -14,7 +14,7 @@ export enum SpawnPositionType {
     WorldSpawn
 }
 
-/** The payload of {@link SetSpawnPositionPacket}. */
+/** A world or player spawn type, its dimension, and the related block positions. */
 export type SetSpawnPositionPayload = PayloadOf<typeof setSpawnPositionPacket>;
 
 /**

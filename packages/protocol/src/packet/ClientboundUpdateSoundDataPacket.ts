@@ -23,14 +23,14 @@ export interface SoundDataSignal {
     type: SoundDataUpdateType.Stop | SoundDataUpdateType.Pause | SoundDataUpdateType.Resume;
 }
 
-/** `SetVolume`. */
+/** Changes the playback volume of the sound identified by its server handle. */
 export interface SoundDataSetVolume {
     type: SoundDataUpdateType.SetVolume;
     /** `Volume`. */
     volume: number;
 }
 
-/** `SetPitch`. */
+/** Changes the playback pitch of the sound identified by its server handle. */
 export interface SoundDataSetPitch {
     type: SoundDataUpdateType.SetPitch;
     /** `Pitch`. */
@@ -53,11 +53,11 @@ export interface SoundDataSeekTo {
     seconds: number;
 }
 
-/** One alternative of the `oneOf<Stop, SetVolume, SetPitch, Fade, SeekTo, Pause, Resume>` every slot carries. */
+/** A stop, volume, pitch, fade, seek, pause, or resume operation for a playing sound. */
 export type SoundDataUpdate =
     SoundDataSignal | SoundDataSetVolume | SoundDataSetPitch | SoundDataFade | SoundDataSeekTo;
 
-/** The fields of a `ClientboundUpdateSoundDataPacket`, in wire order. */
+/** The sound handle and seven control slots used to update active playback. */
 export interface ClientboundUpdateSoundData {
     /** `Server Sound Handle`: the `ServerSoundHandle` a `PlaySoundPacket` or `RecordStartedPacket` gave the sound. */
     serverSoundHandle: bigint;

@@ -1,7 +1,6 @@
 /**
  * What a player does that is not movement: an action on a block, a game type change, an emote.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -29,7 +28,7 @@ export const playerActionPacket = definePacket('PlayerActionPacket', {
     blockFace: t.varint32
 });
 
-/** What `PlayerActionPacket` carries. */
+/** Reports a player action with its action code, affected blocks, and face. */
 export type PlayerActionPayload = PayloadOf<typeof playerActionPacket>;
 
 /**
@@ -43,7 +42,7 @@ export const setPlayerGameTypePacket = definePacket('SetPlayerGameTypePacket', {
     gametype: t.varint32
 });
 
-/** What `SetPlayerGameTypePacket` carries. */
+/** Sets the game type for the player sending or receiving the packet. */
 export type SetPlayerGameTypePayload = PayloadOf<typeof setPlayerGameTypePacket>;
 
 /**
@@ -61,7 +60,7 @@ export const updatePlayerGameTypePacket = definePacket('UpdatePlayerGameTypePack
     tick: t.varuint64
 });
 
-/** What `UpdatePlayerGameTypePacket` carries. */
+/** Announces a player's new game type and the tick associated with the change. */
 export type UpdatePlayerGameTypePayload = PayloadOf<typeof updatePlayerGameTypePacket>;
 
 /**
@@ -85,7 +84,7 @@ export const emotePacket = definePacket('EmotePacket', {
     flags: t.uint8
 });
 
-/** What `EmotePacket` carries. */
+/** Plays a player's emote with its identity, duration, platform, and display flags. */
 export type EmotePayload = PayloadOf<typeof emotePacket>;
 
 /**
@@ -99,5 +98,5 @@ export const setLocalPlayerAsInitializedPacket = definePacket('SetLocalPlayerAsI
     runtimeEntityId: t.varuint64
 });
 
-/** What `SetLocalPlayerAsInitializedPacket` carries. */
+/** Marks the local player initialized so the server can begin tracking and streaming it. */
 export type SetLocalPlayerAsInitializedPayload = PayloadOf<typeof setLocalPlayerAsInitializedPacket>;

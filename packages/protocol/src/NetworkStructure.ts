@@ -4,9 +4,7 @@ interface Constructor<T> {
     new (...args: any[]): T;
 }
 
-/**
- * Represents a network structure.
- */
+/** Base class for protocol structures that read and write fields on a `NetworkBinaryStream`. */
 export default abstract class NetworkStructure {
     /**
      * Serializes the network structure to a binary stream.

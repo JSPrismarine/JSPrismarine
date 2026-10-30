@@ -5,6 +5,7 @@ interface SkinCapeData {
     image: SkinImage;
 }
 
+/** Cape identifier and pixel image carried inside a serialized player skin. */
 export default class SkinCape {
     private readonly id: string;
     private readonly image: SkinImage;
@@ -14,10 +15,12 @@ export default class SkinCape {
         this.image = image;
     }
 
+    /** Returns the cape's content identifier. */
     public getId(): string {
         return this.id;
     }
 
+    /** Returns the cape image. */
     public getImage(): SkinImage {
         return this.image;
     }

@@ -402,5 +402,5 @@ export const startGamePacket = definePacket('StartGamePacket', {
     ownerId: t.string
 });
 
-/** What `StartGamePacket` carries, at every version; derived from the field list. */
+/** Initializes the client with the player, world, game rules, registries, and server settings. */
 export type StartGamePayload = PayloadOf<typeof startGamePacket>;

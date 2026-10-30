@@ -6,7 +6,7 @@ import type { PayloadOf } from '../wire/define';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The payload of {@link UpdateAdventureSettingsPacket}. */
+/** The player's PvM, MvP, world immutability, name tag, and auto-jump settings. */
 export type UpdateAdventureSettingsPayload = PayloadOf<typeof updateAdventureSettingsPacket>;
 
 /**

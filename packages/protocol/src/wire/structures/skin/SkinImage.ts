@@ -1,5 +1,6 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
+/** Pixel dimensions and RGBA bytes for a skin or cape image. */
 export default class SkinImage {
     public width: number;
     public height: number;
@@ -11,6 +12,7 @@ export default class SkinImage {
         this.data = data;
     }
 
+    /** Writes dimensions, byte length, and image data in the `SkinImage` wire format. */
     public networkSerialize(stream: BinaryStream): void {
         stream.writeUnsignedIntLE(this.width);
         stream.writeUnsignedIntLE(this.height);
@@ -18,6 +20,7 @@ export default class SkinImage {
         stream.write(this.data);
     }
 
+    /** Reads a `SkinImage` from its dimensions and length-prefixed image bytes. */
     public static networkDeserialize(stream: BinaryStream): SkinImage {
         const width = stream.readUnsignedIntLE();
         const height = stream.readUnsignedIntLE();

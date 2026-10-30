@@ -1,6 +1,6 @@
 /**
- * `ServerToClientHandshakePacket` described as a declarative field list; layout unchanged
- * between protocols 2193 and 2225.
+ * The server's encryption handshake token: a signed JWT whose public key and salt let the
+ * client derive the session key.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-to-client-handshake-packet/}
  */
 import { definePacket } from '../define';

@@ -3,6 +3,7 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
+/** The client's requested view distance and the largest distance it can accept. */
 export interface RequestChunkRadius {
     /** The docs' Chunk Radius: how far the client would like to see, in chunks. */
     radius: number;

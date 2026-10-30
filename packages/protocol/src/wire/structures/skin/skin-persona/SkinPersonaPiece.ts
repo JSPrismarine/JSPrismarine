@@ -1,3 +1,4 @@
+/** One equipped persona cosmetic with its pack, piece, type, and product identifiers. */
 export default class SkinPersonaPiece {
     private readonly def: boolean;
     private readonly packId: string;
@@ -25,22 +26,27 @@ export default class SkinPersonaPiece {
         this.productId = productId;
     }
 
+    /** Whether the client marks this piece as the default for its type. */
     public isDefault(): boolean {
         return this.def;
     }
 
+    /** Returns the pack that supplies the cosmetic piece. */
     public getPackId(): string {
         return this.packId;
     }
 
+    /** Returns the persona slot, such as body, hair, or face accessory. */
     public getPieceType(): string {
         return this.pieceType;
     }
 
+    /** Returns the marketplace product identifier. */
     public getProductId(): string {
         return this.productId;
     }
 
+    /** Returns the cosmetic piece identifier within its pack. */
     public getPieceId(): string {
         return this.pieceId;
     }

@@ -1,5 +1,6 @@
 /**
- * The resource pack negotiation packets, layouts unchanged between protocols 2193 and 2225.
+ * Resource pack negotiation payloads. The info packet advertises pack metadata and whether
+ * packs are required; the stack packet selects the order and experiments for the world.
  * Field names and order follow each packet's docs page.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */

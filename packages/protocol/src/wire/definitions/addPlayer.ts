@@ -122,5 +122,5 @@ export const addPlayerPacket = definePacket('AddPlayerPacket', {
     buildPlatform: t.li32
 });
 
-/** What `AddPlayerPacket` carries, at every version; derived from the field list. */
+/** Spawns a player with identity, skin-related data, position, inventory, abilities, and links. */
 export type AddPlayerPayload = PayloadOf<typeof addPlayerPacket>;

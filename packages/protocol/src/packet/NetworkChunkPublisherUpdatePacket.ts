@@ -16,7 +16,7 @@ export interface ChunkCoord extends Record<string, number> {
     z: number;
 }
 
-/** The payload of {@link NetworkChunkPublisherUpdatePacket}. */
+/** The client's chunk-loading center, view radius, and server-built chunk coordinates. */
 export type NetworkChunkPublisherUpdatePayload = Omit<WirePayload, 'savedChunks'> & {
     savedChunks: ChunkCoord[];
 };

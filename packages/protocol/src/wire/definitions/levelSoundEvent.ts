@@ -1,6 +1,8 @@
 /**
- * The sound packets described as declarative field lists; layouts unchanged between
- * protocols 2193 and 2225. Field names and order follow each packet's docs page.
+ * Sound playback packets for named audio, world sound events, and stopping active sounds.
+ * `PlaySoundPacket` names an audio resource and position, `LevelSoundEventPacket` describes an
+ * event such as a block break or mob step, and `StopSoundPacket` cancels playback by name.
+ * Field names and order follow each packet's docs page.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/play-sound-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-sound-event-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
@@ -51,7 +53,7 @@ export const playSoundPacket = definePacket('PlaySoundPacket', {
     playbackPositionSeconds: t.optional(t.lf32)
 });
 
-/** What `PlaySoundPacket` carries; derived from its field list. */
+/** Plays a named sound at a position with volume, pitch, and optional playback controls. */
 export type PlaySoundPacketPayload = PayloadOf<typeof playSoundPacket>;
 
 /**
@@ -101,5 +103,5 @@ export const stopSoundPacket = definePacket('StopSoundPacket', {
     stopMusicLegacy: t.bool
 });
 
-/** What `StopSoundPacket` carries; derived from the field list. */
+/** Stops a named sound, all sounds, or legacy music playback on the client. */
 export type StopSoundPayload = PayloadOf<typeof stopSoundPacket>;

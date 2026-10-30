@@ -1,6 +1,6 @@
 /**
- * `UpdateSubChunkBlocksPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * Block changes within one sub-chunk. Standard blocks and extra blocks such as waterlogged
+ * states travel in separate lists after the sub-chunk origin.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-sub-chunk-blocks-packet/}
  */
 import BlockPos from '../../structure/BlockPos';

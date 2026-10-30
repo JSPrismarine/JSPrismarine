@@ -112,13 +112,16 @@ export type MetadataValue = MetadataEntry[1];
 /** Metadata properties by id. */
 export type MetadataContainer = Map<number, MetadataEntry>;
 
+/** Stores typed actor metadata values and writes them as a `SynchedActorDataList`. */
 export class MetadataWriter {
     private readonly metadata: MetadataContainer = new Map();
 
+    /** Returns a property's value, or `null` if that property is not set. */
     public getPropertyValue(key: number): MetadataValue | null {
         return this.metadata.get(key)?.[1] ?? null;
     }
 
+    /** Stores a property together with its wire type. */
     public setPropertyValue(key: number, ...entry: MetadataEntry): void {
         this.metadata.set(key, entry);
     }
@@ -141,10 +144,12 @@ export class MetadataWriter {
         return typeof value === 'bigint' ? value : 0n;
     }
 
+    /** Stores a property as a signed 64-bit value. */
     public setLong(key: number, value: bigint): void {
         this.setPropertyValue(key, FlagType.LONG, value);
     }
 
+    /** Stores a property as a signed 16-bit value. */
     public setShort(key: number, value: number): void {
         this.setPropertyValue(key, FlagType.SHORT, value);
     }
@@ -243,10 +248,7 @@ export class MetadataWriter {
         this.setDataFlag(flagId >= 64 ? FLAGS_TWO : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
-    /**
-     * Get the property value as a boolean.
-     * @returns {typeof metadata} The metadata object.
-     */
+    /** Returns all stored properties keyed by their actor data id. */
     public getData() {
         return this.metadata;
     }

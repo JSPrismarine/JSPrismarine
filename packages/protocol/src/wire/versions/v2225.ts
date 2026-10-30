@@ -17,8 +17,8 @@ export const protocolVersion = 2225;
 export const minecraftVersions: readonly string[] = ['1.26.60'];
 
 /**
- * The packets 1.26.60 added, by the class name the packet barrel would export. None has a
- * class yet, so the codec knows the ids as protocol surface and decodes them to `null`.
+ * The packets 1.26.60 added, keyed by the names their classes export from the packet barrel.
+ * The codec uses these names to pair each new id with its Protocol packet implementation.
  */
 export const addedPacketIds = {
     ClientboundMatchmakingStatePacket: 0x161,

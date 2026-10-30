@@ -1,6 +1,6 @@
 /**
- * `SyncActorPropertyPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * The client-synchronized property definitions for an actor type. The network-NBT compound
+ * carries the actor identifier and its property schema.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sync-actor-property-packet/}
  */
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';

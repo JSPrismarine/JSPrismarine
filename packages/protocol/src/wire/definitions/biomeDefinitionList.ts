@@ -1,6 +1,6 @@
 /**
- * `BiomeDefinitionListPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225.
+ * The biome definitions available to the client for rendering and world generation. The
+ * server-supplied definition payload is carried as bytes to the end of the packet.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/biome-definition-list-packet/}
  */
 import { definePacket } from '../define';

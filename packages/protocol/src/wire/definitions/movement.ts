@@ -1,7 +1,6 @@
 /**
  * The packets that say where something is and how fast it is going.
  *
- * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
@@ -65,7 +64,7 @@ export const movePlayerPacket = definePacket('MovePlayerPacket', {
     tick: t.varuint64
 });
 
-/** What `MovePlayerPacket` carries. */
+/** Updates a player's position, rotation, ground state, riding actor, and movement tick. */
 export type MovePlayerPayload = PayloadOf<typeof movePlayerPacket>;
 
 /** The `MoveActorAbsolutePacket` field list, one `MoveActorAbsoluteData`. */
@@ -84,7 +83,7 @@ export const moveActorAbsolutePacket = definePacket('MoveActorAbsolutePacket', {
     headYaw: byteRotation
 });
 
-/** What `MoveActorAbsolutePacket` carries. */
+/** Sets an actor's absolute position, rotation, and movement flags. */
 export type MoveActorAbsolutePayload = PayloadOf<typeof moveActorAbsolutePacket>;
 
 /** The `SetActorMotionPacket` field list. */
@@ -97,5 +96,5 @@ export const setActorMotionPacket = definePacket('SetActorMotionPacket', {
     tick: t.varuint64
 });
 
-/** What `SetActorMotionPacket` carries. */
+/** Sets an actor's velocity and the input tick associated with the change. */
 export type SetActorMotionPayload = PayloadOf<typeof setActorMotionPacket>;

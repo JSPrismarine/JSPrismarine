@@ -1,6 +1,6 @@
 /**
- * `GameRulesChangedPacket`: the rules whose values changed, described as a declarative field
- * list; layout unchanged between protocols 2193 and 2225.
+ * The game rules whose values changed during a session. Entries use the same `GameRule`
+ * structure that `StartGamePacket` uses for the initial world settings.
  *
  * The `GameRule` structure and its codecs are shared with `StartGamePacket`.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/game-rules-changed-packet/}
