@@ -1,17 +1,17 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { item_table as ItemTable2225 } from '@jsprismarine/bedrock-data/v2225';
+import { NetworkBinaryStream } from '@jsprismarine/protocol';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
-import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import { reportProgress } from '../../../../../.test/reportProgress';
+import { reportProgress } from '../../../../.test/reportProgress';
 
-import { NetworkUtil } from '../NetworkUtil';
-import Identifiers from '../Identifiers';
-import ItemRegistryPacket from './ItemRegistryPacket';
-
-import type { ItemRegistryEntry } from '@jsprismarine/protocol';
+import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
+import type { ItemRegistryEntry, ProtocolContext } from '@jsprismarine/protocol';
+import Identifiers from './Identifiers';
+import { itemDataForProtocol } from './codec/itemData';
 
 /** Packet id 162 as a varuint. */
 const HEADER = [0xa2, 0x01];
@@ -45,9 +45,14 @@ const entryBytes = (name: string, runtimeId: number, componentBased: boolean, ve
     ];
 };
 
-const encode = (): Buffer => {
+const contextFor = (protocolVersion: number): ProtocolContext => ({
+    protocolVersion,
+    itemData: itemDataForProtocol(protocolVersion)
+});
+
+const encode = (protocolVersion = 2193): Buffer => {
     const pk = new ItemRegistryPacket();
-    pk.encode();
+    pk.encode(contextFor(protocolVersion));
     return pk.getBuffer();
 };
 
@@ -61,24 +66,17 @@ interface DecodedEntry {
 
 /** Reads the whole packet back the way a client would, and checks nothing is left over. */
 const decode = (buffer: Buffer): DecodedEntry[] => {
-    const stream = new BinaryStream(buffer);
-    expect(stream.readUnsignedVarInt()).toBe(0xa2);
-
-    const count = stream.readUnsignedVarInt();
-    const entries: DecodedEntry[] = [];
-    for (let i = 0; i < count; i++) {
-        const name = NetworkUtil.readString(stream);
-        const runtimeId = stream.readShortLE();
-        const componentBased = stream.readBoolean();
-        const version = stream.readVarInt();
-
-        const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
-        reader.setUseVarint(true);
-        entries.push({ name, runtimeId, componentBased, version, components: reader.parse() });
-    }
-
+    const stream = new NetworkBinaryStream(buffer);
+    const data = new ItemRegistryPacket().deserialize(stream);
     expect(stream.feof()).toBe(true);
-    return entries;
+
+    return data.items.map((entry) => ({
+        name: entry.name,
+        runtimeId: entry.runtimeId,
+        componentBased: entry.componentBased,
+        version: entry.version,
+        components: entry.componentData ?? new NBTTagCompound()
+    }));
 };
 
 describe('network', () => {
@@ -165,7 +163,7 @@ describe('network', () => {
                 }
             });
 
-            it('returns the same cached table on every encode', () => {
+            it('writes the same captured table on every encode', () => {
                 expect(encode()).toEqual(buffer);
             });
 
@@ -177,9 +175,8 @@ describe('network', () => {
                     version: DATA_DRIVEN
                 };
 
-                const pk = new ItemRegistryPacket();
-                pk.entries = [stick];
-                pk.encode();
+                const pk = new ItemRegistryPacket({ items: [stick] });
+                pk.encode(contextFor(2193));
 
                 const written = decode(pk.getBuffer());
                 expect(written).toHaveLength(1);
@@ -200,17 +197,18 @@ describe('network', () => {
                 const components = new NBTTagCompound();
                 components.addValue('item_properties', properties);
 
-                const pk = new ItemRegistryPacket();
-                pk.entries = [
-                    {
-                        name: 'mypack:sword',
-                        runtimeId: 10001,
-                        componentBased: true,
-                        version: DATA_DRIVEN,
-                        componentData: components
-                    }
-                ];
-                pk.encode();
+                const pk = new ItemRegistryPacket({
+                    items: [
+                        {
+                            name: 'mypack:sword',
+                            runtimeId: 10001,
+                            componentBased: true,
+                            version: DATA_DRIVEN,
+                            componentData: components
+                        }
+                    ]
+                });
+                pk.encode(contextFor(2193));
 
                 const [written] = decode(pk.getBuffer());
                 expect(written?.components.getCompound('item_properties', false)?.getNumber('damage', 0)).toBe(3);
@@ -222,30 +220,30 @@ describe('network', () => {
                 const components = new NBTTagCompound();
                 components.addValue('item_properties', properties);
 
-                const pk = new ItemRegistryPacket();
-                pk.entries = [
-                    {
-                        name: 'mypack:sword',
-                        runtimeId: 10001,
-                        componentBased: true,
-                        version: DATA_DRIVEN,
-                        componentData: components
-                    },
-                    {
-                        name: 'minecraft:stick',
-                        runtimeId: -268,
-                        componentBased: false,
-                        version: 2,
-                        componentData: new NBTTagCompound()
-                    }
-                ];
-                pk.encode();
+                const pk = new ItemRegistryPacket({
+                    items: [
+                        {
+                            name: 'mypack:sword',
+                            runtimeId: 10001,
+                            componentBased: true,
+                            version: DATA_DRIVEN,
+                            componentData: components
+                        },
+                        {
+                            name: 'minecraft:stick',
+                            runtimeId: -268,
+                            componentBased: false,
+                            version: 2,
+                            componentData: new NBTTagCompound()
+                        }
+                    ]
+                });
+                pk.encode(contextFor(2193));
 
-                const decoded = new ItemRegistryPacket(pk.getBuffer());
-                decoded.decode();
+                const decoded = new ItemRegistryPacket().deserialize(new NetworkBinaryStream(pk.getBuffer()));
 
-                expect(decoded.entries).toHaveLength(2);
-                const [sword, stick] = decoded.entries!;
+                expect(decoded.items).toHaveLength(2);
+                const [sword, stick] = decoded.items;
                 expect(sword!.name).toBe('mypack:sword');
                 expect(sword!.runtimeId).toBe(10001);
                 expect(sword!.componentBased).toBe(true);
@@ -265,10 +263,7 @@ describe('network', () => {
              */
             describe('per protocol version', () => {
                 const encodeAt = (protocol: number): Buffer => {
-                    const pk = new ItemRegistryPacket();
-                    pk.codecProtocol = protocol;
-                    pk.encode();
-                    return pk.getBuffer();
+                    return encode(protocol);
                 };
 
                 it('sends 2193 the bytes it sent before a version was selectable', () => {

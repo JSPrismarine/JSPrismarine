@@ -16,7 +16,7 @@ import Flat from '../../world/generators/Flat';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
 import FeatureRegistryPacket from '../packet/FeatureRegistryPacket';
-import ItemRegistryPacket from '../packet/ItemRegistryPacket';
+import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
 import type ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
@@ -249,8 +249,8 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         // Every item the content build resolved, with the numbers the
         // captured table gives them. Without it a pack's own item has no row
         // the client could resolve it through.
-        const itemRegistry = new ItemRegistryPacket();
-        itemRegistry.entries = payloads?.items ?? null;
+        const itemRegistry =
+            payloads === undefined ? new ItemRegistryPacket() : new ItemRegistryPacket({ items: [...payloads.items] });
         await connection.sendDataPacket(itemRegistry);
 
         // Register each type's render-facing properties before any actor of that type spawns.

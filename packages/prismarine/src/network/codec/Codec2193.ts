@@ -110,7 +110,8 @@ export class Codec2193 implements ProtocolCodec {
         const packetClass = this.table().get(netId);
         if (packetClass === undefined) return null;
 
-        const packet = new packetClass(buffer);
+        const packet = new packetClass();
+        if (buffer !== undefined) packet.setReadBuffer(buffer);
         packet.setNetId(netId);
         packet.codecProtocol = this.protocolVersion;
         return packet;

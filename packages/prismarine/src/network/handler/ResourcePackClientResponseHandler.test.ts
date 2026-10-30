@@ -33,7 +33,7 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import ItemRegistryPacket from '../packet/ItemRegistryPacket';
+import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 
@@ -337,7 +337,7 @@ describe('ResourcePackClientResponseHandler', () => {
         );
 
         const items = packets.find((packet) => packet instanceof ItemRegistryPacket);
-        expect(items?.entries).toBe(payloads.items);
+        expect(items?.getPacketData()?.items).toEqual(payloads.items);
     });
 
     /**
@@ -359,11 +359,11 @@ describe('ResourcePackClientResponseHandler', () => {
                 session
             );
 
-            return packets.find((packet) => packet instanceof ItemRegistryPacket)?.entries;
+            return packets.find((packet) => packet instanceof ItemRegistryPacket)?.getPacketData()?.items;
         };
 
-        expect(await sentTo(Codec2193)).toBe(payloads.items);
-        expect(await sentTo(Codec2225)).toBe(at2225.items);
+        expect(await sentTo(Codec2193)).toEqual(payloads.items);
+        expect(await sentTo(Codec2225)).toEqual(at2225.items);
     });
 
     it('sends nothing game-related before StartGame', async () => {

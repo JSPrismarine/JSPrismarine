@@ -53,7 +53,7 @@ import InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
 import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
-import ItemRegistryPacket from './packet/ItemRegistryPacket';
+import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';

@@ -10,7 +10,7 @@ import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddPlayerPacket from '../packet/AddPlayerPacket';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
-import ItemRegistryPacket from '../packet/ItemRegistryPacket';
+import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import LevelChunkPacket from '../packet/LevelChunkPacket';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { BuildPlatform } from '@jsprismarine/minecraft';
