@@ -37,7 +37,7 @@ import { chunkRadiusUpdatedPacket, requestChunkRadiusPacket } from './chunkRadiu
 import { clientCacheStatusPacket } from './clientCache';
 import { commandOutputPacket, commandRequestPacket } from './commands';
 import { disconnectPacket } from './disconnect';
-import { onScreenTextureAnimationPacket } from './effects';
+import { onScreenTextureAnimationPacket, spawnParticleEffectPacket } from './effects';
 import {
     containerClosePacket,
     containerOpenPacket,
@@ -170,6 +170,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         setScoreboardIdentityPacket,
         setScorePacket,
         setTitlePacket,
+        spawnParticleEffectPacket,
         showCreditsPacket,
         startGamePacket,
         takeItemActorPacket,

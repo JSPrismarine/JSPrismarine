@@ -1,5 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, spawnParticleEffectPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -11,9 +12,10 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: `Dimension Id` as a byte, `Actor Id` as a ZigZag varint64,
- * `Position` as three little-endian floats, `Effect Name` as a string, then `Molang Variables`
- * as a presence byte followed by a string when the byte is set.
+ * The wire layout lives in `@jsprismarine/protocol`'s `spawnParticleEffectPacket` definition:
+ * `Dimension Id` as a byte, `Actor Id` as a ZigZag varint64, `Position` as three little-endian
+ * floats, `Effect Name` as a string, then `Molang Variables` as a presence byte followed by a
+ * string when the byte is set.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
  */
 export default class SpawnParticleEffectPacket extends DataPacket {
@@ -40,25 +42,23 @@ export default class SpawnParticleEffectPacket extends DataPacket {
 
     /** Reads the dimension, the actor, the position, the effect name and the variables. */
     public decodePayload(): void {
-        this.dimensionId = this.readByte();
-        this.actorId = this.readVarLong();
-        this.position = NetworkUtil.readVector3(this);
-        this.effectName = NetworkUtil.readString(this);
-        this.molangVariables = this.readBoolean() ? NetworkUtil.readString(this) : undefined;
+        const payload = layoutAt(spawnParticleEffectPacket, this.codecProtocol).decode(this);
+
+        this.dimensionId = payload.dimensionId;
+        this.actorId = payload.actorId;
+        this.position = payload.position;
+        this.effectName = payload.effectName;
+        this.molangVariables = payload.molangVariables ?? undefined;
     }
 
     /** Writes the dimension, the actor, the position, the effect name and the variables. */
     public encodePayload(): void {
-        this.writeByte(this.dimensionId);
-        this.writeVarLong(this.actorId);
-        NetworkUtil.writeVector3(this, this.position);
-        NetworkUtil.writeString(this, this.effectName);
-
-        if (this.molangVariables === undefined) {
-            this.writeBoolean(false);
-        } else {
-            this.writeBoolean(true);
-            NetworkUtil.writeString(this, this.molangVariables);
-        }
+        layoutAt(spawnParticleEffectPacket, this.codecProtocol).encode(this, {
+            dimensionId: this.dimensionId,
+            actorId: this.actorId,
+            position: this.position,
+            effectName: this.effectName,
+            molangVariables: this.molangVariables ?? null
+        });
     }
 }
