@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
+import { Dimensions } from '../world/Dimension';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
@@ -14,7 +15,18 @@ import { Item as ItemEntity } from './other/Item';
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
  * to answer for that as well as name itself.
  */
-const world = stub<World>({ getName: () => 'test', getServer: () => testEntityServer() });
+const world = stub<World>({
+    getName: () => 'test',
+    getServer: () => testEntityServer(),
+    getDimension: () => Dimensions.Overworld
+});
+
+/** The same stand-in, but a Nether world, so the actor NBT has a dimension to name. */
+const netherWorld = stub<World>({
+    getName: () => 'nether',
+    getServer: () => testEntityServer(),
+    getDimension: () => Dimensions.Nether
+});
 
 const floats = (values: number[]) => new Set(values.map((value) => new Types.FloatVal(value)));
 
@@ -223,6 +235,53 @@ describe('entity', () => {
 
             expect(written.getShort('Air', 0)).toBe(300);
             expect(written.getByte('Invulnerable', 1)).toBe(0);
+        });
+
+        describe('portals', () => {
+            it('keeps the portal cooldown across a save', () => {
+                const source = actor('minecraft:cow', (root) =>
+                    root.addValue('PortalCooldown', new Types.NumberVal(123))
+                );
+
+                const restored = EntitySerializer.fromNBT(source, world);
+                expect(restored.getPortalCooldown()).toBe(123);
+
+                const written = EntitySerializer.toNBT(restored);
+                expect(written.getNumber('PortalCooldown', -1)).toBe(123);
+                expect(EntitySerializer.fromNBT(written, world).getPortalCooldown()).toBe(123);
+            });
+
+            it('writes a zero cooldown for an actor that never had one', () => {
+                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), world));
+
+                expect(written.getNumber('PortalCooldown', -1)).toBe(0);
+            });
+
+            it('writes the cooldown the entity has now, not the one it was loaded with', () => {
+                const restored = EntitySerializer.fromNBT(
+                    actor('minecraft:cow', (root) => root.addValue('PortalCooldown', new Types.NumberVal(300))),
+                    world
+                );
+                restored.setPortalCooldown(7);
+
+                expect(EntitySerializer.toNBT(restored).getNumber('PortalCooldown', -1)).toBe(7);
+            });
+
+            it("names the dimension of the world the entity is in, by Bedrock's id", () => {
+                const overworld = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), world));
+                const nether = EntitySerializer.toNBT(EntitySerializer.fromNBT(actor('minecraft:cow'), netherWorld));
+
+                expect(overworld.getNumber('DimensionId', -1)).toBe(0);
+                expect(nether.getNumber('DimensionId', -1)).toBe(1);
+            });
+
+            it('overwrites a stale DimensionId from the file with the world the entity is in', () => {
+                const source = actor('minecraft:cow', (root) => root.addValue('DimensionId', new Types.NumberVal(2)));
+
+                const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, netherWorld));
+
+                expect(written.getNumber('DimensionId', -1)).toBe(1);
+            });
         });
 
         describe('identity', () => {

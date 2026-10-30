@@ -396,6 +396,7 @@ export default class Player extends Human {
         this.flying =
             data.flying === true && (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR);
         this.spawnPoint = data.spawn;
+        if (data.portalCooldown !== undefined) this.setPortalCooldown(data.portalCooldown);
     }
 
     /**

@@ -294,6 +294,14 @@ export interface WorldPlayerData {
      */
     spawn?: StoredSpawnPoint;
     /**
+     * Ticks left before the player may enter a portal again, Bedrock's `PortalCooldown`.
+     *
+     * Set when a player changes dimension, so logging out inside the arrival portal and back
+     * in does not send them straight back. Absent on a record written before this field
+     * existed, which reads as no cooldown.
+     */
+    portalCooldown?: number;
+    /**
      * When this record was written, in milliseconds since the epoch.
      *
      * Each world keeps its own player records, so a player who logged out of the nether has a

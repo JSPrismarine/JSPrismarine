@@ -5,8 +5,8 @@
  * under Bedrock's own tag, so a vanilla tool and the game itself read the record, and a field
  * it has no schema for goes under a namespaced tag of this project's own. `Inventory`, `Armor`,
  * `Offhand`, `EnderChestInventory`, `SelectedInventorySlot`, `PlayerGameType`, `Pos`,
- * `Rotation` and the `Attributes` list are all Bedrock's. The advancement progress and the
- * enchantment seed are not, so they live under {@link SAVED_TAG}.
+ * `Rotation`, `PortalCooldown` and the `Attributes` list are all Bedrock's. The advancement
+ * progress and the enchantment seed are not, so they live under {@link SAVED_TAG}.
  *
  * Item stacks go through `inventory/itemNbt.ts`, which is the one place that states Bedrock's
  * item compound; a container block entity writes its stacks through the same module.
@@ -220,6 +220,7 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     root.addValue('Attributes', attributesToNbt(data));
     inventoryToNbt(root, data.inventory);
 
+    if (data.portalCooldown !== undefined) root.addValue('PortalCooldown', new Types.NumberVal(data.portalCooldown));
     if (data.spawn !== undefined) {
         root.addValue(SPAWN_TAGS.x, new Types.NumberVal(Math.floor(data.spawn.x)));
         root.addValue(SPAWN_TAGS.y, new Types.NumberVal(Math.floor(data.spawn.y)));
@@ -293,6 +294,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
             : {}),
         ...(advancements === '' ? {} : { advancements: parseAdvancements(advancements) }),
         ...(spawn === undefined ? {} : { spawn }),
+        ...(nbt.has('PortalCooldown') ? { portalCooldown: nbt.getNumber('PortalCooldown', 0) } : {}),
         ...(saved?.has('savedAt') ? { savedAt: saved.getDouble('savedAt', 0) } : {}),
         ...(inventory === undefined ? {} : { inventory }),
         ...(legacyAttributes.health === undefined ? {} : { health: legacyAttributes.health }),

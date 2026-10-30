@@ -2971,6 +2971,7 @@ export class World implements Service {
             // record is the whole state: leaving the field out of a save after `/kill` would
             // keep a bed this player no longer has.
             ...(player.getSpawnPoint() === undefined ? {} : { spawn: player.getSpawnPoint() }),
+            portalCooldown: player.getPortalCooldown(),
             savedAt: Date.now()
         } satisfies WorldPlayerData;
 

@@ -34,7 +34,17 @@ const TNT_IDENTIFIER = 'minecraft:tnt';
  * - must *not* be listed: stripping it and then defaulting it would quietly replace a burning
  * actor's `Fire: -20` with a zero on the next save.
  */
-const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'Tags', 'JSPFuse', 'Fuse', 'fuse'] as const;
+const REWRITTEN = [
+    'identifier',
+    'Pos',
+    'Rotation',
+    'Tags',
+    'JSPFuse',
+    'Fuse',
+    'fuse',
+    'PortalCooldown',
+    'DimensionId'
+] as const;
 
 export class EntitySerializer {
     /**
@@ -74,6 +84,7 @@ export class EntitySerializer {
 
         for (const tag of stringsIn(nbt, 'Tags')) entity.addTag(tag);
         for (const effect of activeEffectsIn(nbt)) entity.addStatusEffect(effect, false);
+        entity.setPortalCooldown(nbt.getNumber('PortalCooldown', 0));
 
         entity.persistentNbt = remainder(nbt);
         return entity;
@@ -86,6 +97,10 @@ export class EntitySerializer {
         nbt.addValue('identifier', new Types.StringVal(entity.getType()));
         nbt.addValue('Pos', floats([position.getX(), position.getY(), position.getZ()]));
         nbt.addValue('Rotation', floats([entity.yaw, entity.pitch]));
+        // Both are Bedrock's own tags. The dimension is the world's, not a stored value: an
+        // entity is in exactly the dimension of the world that holds it.
+        nbt.addValue('PortalCooldown', new Types.NumberVal(entity.getPortalCooldown()));
+        nbt.addValue('DimensionId', new Types.NumberVal(entity.getWorld().getDimension().id));
         const tags = entity.getTags();
         if (tags.length > 0) nbt.addValue('Tags', new Set(tags.map((tag) => new Types.StringVal(tag))));
         else nbt.remove('Tags');

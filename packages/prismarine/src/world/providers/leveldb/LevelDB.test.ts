@@ -345,6 +345,8 @@ describe('world', () => {
                     getPosition: () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 1 }),
                     getTags: () => [],
                     getStatusEffects: () => [],
+                    getPortalCooldown: () => 0,
+                    getWorld: () => stub<World>({ getDimension: () => Dimensions.Overworld }),
                     shouldPersist: () => persistent,
                     yaw: 0,
                     pitch: 0
