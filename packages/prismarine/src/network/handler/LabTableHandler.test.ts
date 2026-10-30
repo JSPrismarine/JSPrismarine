@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import LabTablePacket, { LabTableType } from '../packet/LabTablePacket';
+import LabTablePacket, { LabTableReactionType, LabTableType } from '@jsprismarine/protocol/packet/LabTablePacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import LabTableHandler from './LabTableHandler';
 
 const packetAt = (position: BlockPosition) =>
-    Object.assign(new LabTablePacket(), { type: LabTableType.StartCombine, position });
+    new LabTablePacket({
+        type: LabTableType.StartCombine,
+        position: new BlockPos(position.getX(), position.getY(), position.getZ()),
+        reaction: LabTableReactionType.None
+    });
 
 describe('LabTableHandler', () => {
     it('logs the action by name and the position of a lab table in reach', () => {

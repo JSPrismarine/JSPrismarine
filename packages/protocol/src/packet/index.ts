@@ -10,6 +10,7 @@ import ItemRegistryPacket from './ItemRegistryPacket';
 import LevelChunkPacket from './LevelChunkPacket';
 import LevelEventPacket from './LevelEventPacket';
 import LecternUpdatePacket from './LecternUpdatePacket';
+import LabTablePacket from './LabTablePacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
 import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
@@ -74,6 +75,7 @@ export {
     LevelChunkPacket,
     LevelEventPacket,
     LecternUpdatePacket,
+    LabTablePacket,
     LoginPacket,
     MovePlayerPacket,
     MotionPredictionHintsPacket,
@@ -163,6 +165,8 @@ export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { LevelEvent } from './LevelEventPacket';
 export type { LecternUpdate } from './LecternUpdatePacket';
+export { LabTableReactionType, LabTableType } from './LabTablePacket';
+export type { LabTable } from './LabTablePacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';

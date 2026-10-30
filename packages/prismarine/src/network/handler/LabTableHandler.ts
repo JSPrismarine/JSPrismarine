@@ -1,7 +1,8 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type LabTablePacket from '../packet/LabTablePacket';
-import { LabTableType } from '../packet/LabTablePacket';
+import type LabTablePacket from '@jsprismarine/protocol/packet/LabTablePacket';
+import { LabTableType } from '@jsprismarine/protocol/packet/LabTablePacket';
+import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -23,7 +24,10 @@ export default class LabTableHandler implements PacketHandler<LabTablePacket> {
     /** Checks the position names a lab table in reach, then logs the action and position. */
     public handle(packet: LabTablePacket, server: Server, session: PlayerSession): void {
         const player = session.getPlayer();
-        const { position } = packet;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a LabTablePacket without decoded data');
+
+        const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
 
         const rejection = blockTargetRejection(player, position, LAB_TABLES);
@@ -40,7 +44,7 @@ export default class LabTableHandler implements PacketHandler<LabTablePacket> {
         server
             .getLogger()
             .debug(
-                `${player.getName()} ran ${LabTableType[packet.type] ?? packet.type} on the lab table at ${where}. Chemistry is not simulated`,
+                `${player.getName()} ran ${LabTableType[data.type] ?? data.type} on the lab table at ${where}. Chemistry is not simulated`,
                 'LabTableHandler/handle'
             );
     }
