@@ -6,6 +6,7 @@
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
+import { itemStackDescriptor } from '../structureTypes';
 
 import type { PayloadOf } from '../define';
 
@@ -36,3 +37,25 @@ export const containerClosePacket = definePacket('ContainerClosePacket', {
 
 /** What `ContainerClosePacket` carries. */
 export type ContainerClosePayload = PayloadOf<typeof containerClosePacket>;
+
+/**
+ * The `MobEquipmentPacket` field list.
+ *
+ * An empty hand is an air stack, not an omission: the descriptor carries its fixed set of
+ * fields whatever the id is.
+ */
+export const mobEquipmentPacket = definePacket('MobEquipmentPacket', {
+    /** `Target Runtime ID`. */
+    runtimeEntityId: t.varuint64,
+    /** `Item`. */
+    item: itemStackDescriptor,
+    /** `Slot`: where in the inventory the stack sits. */
+    inventorySlot: t.uint8,
+    /** `Selected Slot`: which hotbar slot is held. */
+    hotbarSlot: t.uint8,
+    /** `Container ID`: the window the slot is in. */
+    windowId: t.uint8
+});
+
+/** What `MobEquipmentPacket` carries. */
+export type MobEquipmentPayload = PayloadOf<typeof mobEquipmentPacket>;

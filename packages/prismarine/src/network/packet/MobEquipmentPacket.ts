@@ -1,3 +1,5 @@
+import { layoutAt, mobEquipmentPacket } from '@jsprismarine/protocol';
+
 import { Item } from '../../item/Item';
 import DataPacket from './DataPacket';
 
@@ -34,18 +36,21 @@ export default class MobEquipmentPacket extends DataPacket {
      * server nothing and the payload was left in the stream unread.
      */
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-        this.item = Item.networkDeserialize(this);
-        this.inventorySlot = this.readByte();
-        this.hotbarSlot = this.readByte();
-        this.windowId = this.readByte();
+        const read = layoutAt(mobEquipmentPacket, this.codecProtocol).decode(this);
+        this.runtimeEntityId = read.runtimeEntityId;
+        this.item = Item.fromStackDescriptor(this, read.item);
+        this.inventorySlot = read.inventorySlot;
+        this.hotbarSlot = read.hotbarSlot;
+        this.windowId = read.windowId;
     }
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.item.networkSerialize(this);
-        this.writeByte(this.inventorySlot);
-        this.writeByte(this.hotbarSlot);
-        this.writeByte(this.windowId);
+        layoutAt(mobEquipmentPacket, this.codecProtocol).encode(this, {
+            runtimeEntityId: this.runtimeEntityId,
+            item: this.item.toStackDescriptor(this),
+            inventorySlot: this.inventorySlot,
+            hotbarSlot: this.hotbarSlot,
+            windowId: this.windowId
+        });
     }
 }
