@@ -1,7 +1,7 @@
-import { MatchmakingState, layoutAt, clientboundMatchmakingStatePacket } from '@jsprismarine/protocol';
-import type { MatchmakingStateOptions } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { MatchmakingState, clientboundMatchmakingStatePacket } from '../wire/definitions/added2225';
+import type { MatchmakingStateOptions } from '../wire/definitions/added2225';
 
 /**
  * Tells a client how its matchmaking request is going.

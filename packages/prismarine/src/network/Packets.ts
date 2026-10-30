@@ -27,8 +27,8 @@ import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheSt
 import ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/packet/ClientMovementPredictionSyncPacket';
 import ClientboundDebugRendererPacket from './packet/ClientboundDebugRendererPacket';
 import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
-import ClientboundMatchmakingStatePacket from './packet/ClientboundMatchmakingStatePacket';
-import ClientboundPlayAudioContentPacket from './packet/ClientboundPlayAudioContentPacket';
+import ClientboundMatchmakingStatePacket from '@jsprismarine/protocol/packet/ClientboundMatchmakingStatePacket';
+import ClientboundPlayAudioContentPacket from '@jsprismarine/protocol/packet/ClientboundPlayAudioContentPacket';
 import ClientboundStonecutterSetRecipePacket from './packet/ClientboundStonecutterSetRecipePacket';
 import CodeBuilderPacket from './packet/CodeBuilderPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
@@ -115,9 +115,9 @@ import ServerSettingsResponsePacket from './packet/ServerSettingsResponsePacket'
 import ServerboundCursorItemDragPacket from './packet/ServerboundCursorItemDragPacket';
 import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
-import ServerboundMatchmakingCancelPacket from './packet/ServerboundMatchmakingCancelPacket';
+import ServerboundMatchmakingCancelPacket from '@jsprismarine/protocol/packet/ServerboundMatchmakingCancelPacket';
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
-import ServerboundRegisterAudioContentPacket from './packet/ServerboundRegisterAudioContentPacket';
+import ServerboundRegisterAudioContentPacket from '@jsprismarine/protocol/packet/ServerboundRegisterAudioContentPacket';
 import ServerboundStonecutterSetRecipePacket from './packet/ServerboundStonecutterSetRecipePacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket';

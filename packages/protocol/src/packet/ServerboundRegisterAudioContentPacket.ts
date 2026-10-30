@@ -1,7 +1,7 @@
-import { layoutAt, serverboundRegisterAudioContentPacket } from '@jsprismarine/protocol';
-import type { AudioContentRegistrationEntry } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { serverboundRegisterAudioContentPacket } from '../wire/definitions/added2225';
+import type { AudioContentRegistrationEntry } from '../wire/definitions/added2225';
 
 /**
  * A client registering the audio content it may be asked to play.

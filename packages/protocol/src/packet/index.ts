@@ -427,3 +427,11 @@ export { default as RequestPermissionsPacket } from './RequestPermissionsPacket'
 export * from './RequestPermissionsPacket';
 export { default as SetPlayerInventoryOptionsPacket } from './SetPlayerInventoryOptionsPacket';
 export * from './SetPlayerInventoryOptionsPacket';
+export { default as ClientboundMatchmakingStatePacket } from './ClientboundMatchmakingStatePacket';
+export * from './ClientboundMatchmakingStatePacket';
+export { default as ServerboundMatchmakingCancelPacket } from './ServerboundMatchmakingCancelPacket';
+export * from './ServerboundMatchmakingCancelPacket';
+export { default as ClientboundPlayAudioContentPacket } from './ClientboundPlayAudioContentPacket';
+export * from './ClientboundPlayAudioContentPacket';
+export { default as ServerboundRegisterAudioContentPacket } from './ServerboundRegisterAudioContentPacket';
+export * from './ServerboundRegisterAudioContentPacket';

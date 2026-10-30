@@ -1,6 +1,6 @@
-import { layoutAt, serverboundMatchmakingCancelPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { serverboundMatchmakingCancelPacket } from '../wire/definitions/added2225';
 
 /**
  * Asks the server to cancel the matchmaking request in flight. The payload is empty.

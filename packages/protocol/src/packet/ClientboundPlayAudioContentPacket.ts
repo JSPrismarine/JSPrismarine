@@ -1,7 +1,7 @@
-import { AudioContentPlaybackType, layoutAt, clientboundPlayAudioContentPacket } from '@jsprismarine/protocol';
-import type { PlaySoundPayload, SignedAudioContent } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { AudioContentPlaybackType, clientboundPlayAudioContentPacket } from '../wire/definitions/added2225';
+import type { PlaySoundPayload, SignedAudioContent } from '../wire/definitions/added2225';
 
 /**
  * Plays a piece of registered audio content, carrying a whole `PlaySound` payload with it.
