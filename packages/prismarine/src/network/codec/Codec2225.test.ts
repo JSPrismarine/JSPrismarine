@@ -17,7 +17,6 @@ import { BuildPlatform } from '@jsprismarine/minecraft';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../packet/PlayerListPacket';
 import PlayerListPacket2225 from '../packet/PlayerListPacket2225';
 import PlayerSkinPacket from '../packet/PlayerSkinPacket';
-import PlayerSkinPacket2225 from '../packet/PlayerSkinPacket2225';
 import Skin from '../../utils/skin/Skin';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
 import UUID from '../../utils/UUID';
@@ -69,7 +68,6 @@ describe('network/codec', () => {
                 AddActorPacket: AddActorPacket2225,
                 AddPlayerPacket: AddPlayerPacket2225,
                 PlayerListPacket: PlayerListPacket2225,
-                PlayerSkinPacket: PlayerSkinPacket2225,
                 StartGamePacket: StartGamePacket2225
             };
             for (const [name, packetClass] of Object.entries(changed)) {
@@ -315,24 +313,16 @@ describe('network/codec', () => {
                 expect(at2225.getBuffer().equals(legacy.getBuffer())).toBe(false);
             });
 
-            it('substitutes the 2225 classes for the player list and the skin packet', () => {
+            it('substitutes the 2225 class for the player list packet', () => {
                 const list = Codec2225.prepareOutbound(addPacket(new PlayerListPacket()));
                 expect(list).toBeInstanceOf(PlayerListPacket2225);
                 expect(list.getName()).toBe('PlayerListPacket');
                 expect((list as PlayerListPacket).entries).toHaveLength(1);
-
-                const skinPacket = new PlayerSkinPacket();
-                skinPacket.uuid = UUID.fromString('0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0');
-                skinPacket.skin = skin();
-                skinPacket.newSkinName = 'new';
-                skinPacket.oldSkinName = 'old';
-                expect(Codec2225.prepareOutbound(skinPacket)).toBeInstanceOf(PlayerSkinPacket2225);
-                // 2193 keeps its own class, so nothing about that wire moved.
-                expect(Codec2193.prepareOutbound(skinPacket)).toBe(skinPacket);
             });
 
             it('round-trips a skin packet whose skin no longer carries the id', () => {
-                const packet = new PlayerSkinPacket2225();
+                const packet = new PlayerSkinPacket();
+                packet.codecProtocol = 2225;
                 packet.uuid = UUID.fromString('0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0');
                 packet.skin = skin();
                 packet.newSkinName = 'new';
