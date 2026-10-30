@@ -87,3 +87,17 @@ export const emotePacket = definePacket('EmotePacket', {
 
 /** What `EmotePacket` carries. */
 export type EmotePayload = PayloadOf<typeof emotePacket>;
+
+/**
+ * The `SetLocalPlayerAsInitializedPacket` field list.
+ *
+ * The last step of a join: until this arrives the server has a player nobody can see, and
+ * chunk streaming and entity tracking are both keyed off it.
+ */
+export const setLocalPlayerAsInitializedPacket = definePacket('SetLocalPlayerAsInitializedPacket', {
+    /** `Player ID`: an `ActorRuntimeID`, the runtime id the server gave the player in `StartGame`. */
+    runtimeEntityId: t.varuint64
+});
+
+/** What `SetLocalPlayerAsInitializedPacket` carries. */
+export type SetLocalPlayerAsInitializedPayload = PayloadOf<typeof setLocalPlayerAsInitializedPacket>;
