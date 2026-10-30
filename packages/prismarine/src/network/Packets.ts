@@ -129,7 +129,7 @@ import SetPassengerOfBlockPacket from '@jsprismarine/protocol/packet/SetPassenge
 import SetPlayerFurnaceOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
-import SettingsCommandPacket from './packet/SettingsCommandPacket';
+import SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
 import ShowCreditsPacket from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import ShowProfilePacket from '@jsprismarine/protocol/packet/ShowProfilePacket';
 import ShowStoreOfferPacket from '@jsprismarine/protocol/packet/ShowStoreOfferPacket';

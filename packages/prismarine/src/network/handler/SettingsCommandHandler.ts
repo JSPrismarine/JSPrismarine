@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type SettingsCommandPacket from '../packet/SettingsCommandPacket';
+import type SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -18,6 +18,8 @@ export default class SettingsCommandHandler implements PacketHandler<SettingsCom
     /** Dispatches the command line as the player who sent it. */
     public async handle(packet: SettingsCommandPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
-        await server.getCommandManager().dispatchCommand(player, player, packet.command);
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a SettingsCommandPacket without decoded data');
+        await server.getCommandManager().dispatchCommand(player, player, data.command);
     }
 }

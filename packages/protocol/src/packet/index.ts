@@ -310,6 +310,8 @@ export { default as SetScorePacket } from './SetScorePacket';
 export * from './SetScorePacket';
 export { default as SetScoreboardIdentityPacket } from './SetScoreboardIdentityPacket';
 export * from './SetScoreboardIdentityPacket';
+export { default as SettingsCommandPacket } from './SettingsCommandPacket';
+export * from './SettingsCommandPacket';
 export { default as SimulationTypePacket } from './SimulationTypePacket';
 export * from './SimulationTypePacket';
 export { default as SubChunkPacket } from './SubChunkPacket';

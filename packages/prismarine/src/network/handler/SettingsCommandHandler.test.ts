@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SettingsCommandPacket from '../packet/SettingsCommandPacket';
+import SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
 import SettingsCommandHandler from './SettingsCommandHandler';
 
 describe('SettingsCommandHandler', () => {
@@ -24,7 +24,7 @@ describe('SettingsCommandHandler', () => {
                 })
         });
         const session = stub<PlayerSession>({ getPlayer: () => player });
-        const packet = Object.assign(new SettingsCommandPacket(), {
+        const packet = new SettingsCommandPacket({
             command: '/gamerule showcoordinates true',
             suppressOutput: true
         });
