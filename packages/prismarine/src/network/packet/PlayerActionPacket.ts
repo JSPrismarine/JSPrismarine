@@ -1,5 +1,6 @@
-import type BlockPosition from '../../world/BlockPosition';
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, playerActionPacket } from '@jsprismarine/protocol';
+
+import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
 
 /**
@@ -67,18 +68,29 @@ export default class PlayerActionPacket extends DataPacket {
     public blockFace!: number;
 
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-        this.action = this.readVarInt();
-        this.blockPosition = NetworkUtil.readBlockPosition(this);
-        this.resultPosition = NetworkUtil.readBlockPosition(this);
-        this.blockFace = this.readVarInt();
+        const read = layoutAt(playerActionPacket, this.codecProtocol).decode(this);
+        this.runtimeEntityId = read.runtimeEntityId;
+        this.action = read.action;
+        this.blockPosition = new BlockPosition(read.blockPosition.x, read.blockPosition.y, read.blockPosition.z);
+        this.resultPosition = new BlockPosition(read.resultPosition.x, read.resultPosition.y, read.resultPosition.z);
+        this.blockFace = read.blockFace;
     }
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeVarInt(this.action);
-        NetworkUtil.writeBlockPosition(this, this.blockPosition);
-        NetworkUtil.writeBlockPosition(this, this.resultPosition);
-        this.writeVarInt(this.blockFace);
+        layoutAt(playerActionPacket, this.codecProtocol).encode(this, {
+            runtimeEntityId: this.runtimeEntityId,
+            action: this.action,
+            blockPosition: {
+                x: this.blockPosition.getX(),
+                y: this.blockPosition.getY(),
+                z: this.blockPosition.getZ()
+            },
+            resultPosition: {
+                x: this.resultPosition.getX(),
+                y: this.resultPosition.getY(),
+                z: this.resultPosition.getZ()
+            },
+            blockFace: this.blockFace
+        });
     }
 }
