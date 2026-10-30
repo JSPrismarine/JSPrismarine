@@ -17,7 +17,7 @@ import { BuildPlatform } from '@jsprismarine/minecraft';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../packet/PlayerListPacket';
 import PlayerSkinPacket from '../packet/PlayerSkinPacket';
 import Skin from '../../utils/skin/Skin';
-import StartGamePacket2225 from '../packet/StartGamePacket2225';
+import StartGamePacket from '../packet/StartGamePacket';
 import UUID from '../../utils/UUID';
 import Codec2193 from './Codec2193';
 import Codec2225 from './Codec2225';
@@ -62,26 +62,17 @@ describe('network/codec', () => {
             expect(new Set(ids).size).toBe(ids.length);
         });
 
-        it('builds its own class for every changed packet, under the 2193 class for the rest', () => {
-            const changed = {
-                StartGamePacket: StartGamePacket2225
-            };
-            for (const [name, packetClass] of Object.entries(changed)) {
-                const packet = Codec2225.createPacket(Codec2225.netIdOf(name)!);
-                expect(packet, name).toBeInstanceOf(packetClass);
-                // The subclass answers to the base name, so handlers and id lookups by name
-                // never see the version suffix.
-                expect(packet!.getName(), name).toBe(name);
-                expect(packet!.codecProtocol, name).toBe(2225);
-
-                const packet2193 = Codec2193.createPacket(Codec2193.netIdOf(name)!);
-                expect(packet2193, name).not.toBeInstanceOf(packetClass);
+        it('builds one class per packet at every version, stamped with its own protocol', () => {
+            // The packets whose wire changed at 2225 carry the difference as data: the same
+            // class decodes under both codecs, and the stamp picks the layout.
+            for (const name of ['StartGamePacket', 'LevelChunkPacket', 'PlayerListPacket', 'SetTimePacket']) {
+                const at2225 = Codec2225.createPacket(Codec2225.netIdOf(name)!)!;
+                const at2193 = Codec2193.createPacket(Codec2193.netIdOf(name)!)!;
+                expect(at2225.constructor, name).toBe(at2193.constructor);
+                expect(at2225.getName(), name).toBe(name);
+                expect(at2225.codecProtocol, name).toBe(2225);
+                expect(at2193.codecProtocol, name).toBe(2193);
             }
-
-            const unchanged = Codec2225.createPacket(Codec2225.netIdOf('SetTimePacket')!)!;
-            const inherited = Codec2193.createPacket(Codec2193.netIdOf('SetTimePacket')!)!;
-            expect(unchanged.constructor).toBe(inherited.constructor);
-            expect(unchanged.getName()).toBe('SetTimePacket');
         });
 
         it('round-trips the trailing Hand byte AnimatePacket gained', () => {
@@ -114,7 +105,8 @@ describe('network/codec', () => {
         });
 
         it('round-trips the Editor Level Migration Version int8 StartGamePacket gained', () => {
-            const packet = new StartGamePacket2225();
+            const packet = new StartGamePacket();
+            packet.codecProtocol = 2225;
             packet.entityId = -2n;
             packet.runtimeEntityId = 7n;
             packet.gamemode = 1;

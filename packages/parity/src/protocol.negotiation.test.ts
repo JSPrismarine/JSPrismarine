@@ -118,8 +118,9 @@ describe(FAMILIES.protocolNegotiation, () => {
 
     it('the two sessions decode the same wire id into their own packet classes', () => {
         // The negotiated codec is what makes the versions differ afterwards: the same
-        // LevelChunk id builds the 2193 layout on one session and the 2225 layout - the one
-        // with the trailing Is Client Biome Update boolean - on the other.
+        // LevelChunk id builds the same class on both sessions, stamped with each session's
+        // protocol, and the stamp picks the layout - 2225's is the one with the trailing
+        // Is Client Biome Update boolean.
         const id2193 = Codec2193.netIdOf('LevelChunkPacket')!;
         const id2225 = Codec2225.netIdOf('LevelChunkPacket')!;
         expect(id2225).toBe(id2193);
@@ -128,30 +129,39 @@ describe(FAMILIES.protocolNegotiation, () => {
         const of2225 = Codec2225.createPacket(id2225)!;
         expect(of2193.getName()).toBe('LevelChunkPacket');
         expect(of2225.getName()).toBe('LevelChunkPacket');
-        expect(of2225).toBeInstanceOf(of2193.constructor);
-        expect(of2193).not.toBeInstanceOf(of2225.constructor);
+        expect(of2225.constructor).toBe(of2193.constructor);
+        expect(of2193.codecProtocol).toBe(2193);
         expect(of2225.codecProtocol).toBe(2225);
     });
 
     it('outbound, each codec prepares a base-class packet as its own layout', () => {
-        // Gameplay code builds the base classes; the negotiated codec decides what encodes.
-        // 2193 sends the instance as built, 2225 swaps in its own class - same fields,
-        // 2225 wire layout - so a 1.26.60 client is never handed 2193 bytes.
-        const outbound = new LevelChunkPacket();
-        outbound.chunkX = 4;
-        outbound.chunkZ = -3;
-        outbound.subChunkCount = 2;
-        outbound.data = Buffer.from([1, 2, 3]);
+        // Gameplay code builds one class per packet; the negotiated codec stamps its
+        // protocol on the instance and the layout walker does the rest - so a 1.26.60
+        // client is never handed 2193 bytes.
+        const chunk = () => {
+            const outbound = new LevelChunkPacket();
+            outbound.chunkX = 4;
+            outbound.chunkZ = -3;
+            outbound.subChunkCount = 2;
+            outbound.data = Buffer.from([1, 2, 3]);
+            return outbound;
+        };
 
-        expect(Codec2193.prepareOutbound(outbound)).toBe(outbound);
+        const encodeFor = (codec: ProtocolCodec): Buffer => {
+            const prepared = codec.prepareOutbound(chunk());
+            expect(prepared.codecProtocol).toBe(codec.protocolVersion);
+            prepared.encodePayload();
+            return prepared.getBuffer();
+        };
 
-        const prepared = Codec2225.prepareOutbound(outbound);
-        expect(prepared).not.toBe(outbound);
-        expect(prepared.constructor).toBe(Codec2225.createPacket(Codec2225.netIdOf('LevelChunkPacket')!)!.constructor);
-        expect(prepared.codecProtocol).toBe(2225);
-        expect(prepared).toMatchObject({ chunkX: 4, chunkZ: -3, subChunkCount: 2 });
+        const bytes2193 = encodeFor(Codec2193);
+        const bytes2225 = encodeFor(Codec2225);
 
-        // A packet already carrying the codec's layout passes through untouched.
+        // The 2225 layout is the 2193 one plus the trailing Is Client Biome Update boolean.
+        expect(bytes2225).toStrictEqual(Buffer.concat([bytes2193, Buffer.from([0])]));
+
+        // Preparing is idempotent: the stamp is the whole per-send cost.
+        const prepared = Codec2225.prepareOutbound(chunk());
         expect(Codec2225.prepareOutbound(prepared)).toBe(prepared);
     });
 

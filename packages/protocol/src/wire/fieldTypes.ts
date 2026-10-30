@@ -165,6 +165,35 @@ export const byteArray = type<Buffer>(
     (s) => s.read(s.readUnsignedVarInt())
 );
 
+/** A plain coordinate triple, for the positions the wire carries. */
+export interface Vec3Like {
+    x: number;
+    y: number;
+    z: number;
+}
+
+/** `Vec3`: three little-endian floats, x then y then z. */
+export const vec3 = type<Vec3Like>(
+    'Vec3',
+    (s, v) => {
+        s.writeFloatLE(v.x);
+        s.writeFloatLE(v.y);
+        s.writeFloatLE(v.z);
+    },
+    (s) => ({ x: s.readFloatLE(), y: s.readFloatLE(), z: s.readFloatLE() })
+);
+
+/** `BlockPos` as the signed triple: three ZigZag varints, x then y then z. */
+export const blockPos = type<Vec3Like>(
+    'BlockPos',
+    (s, v) => {
+        s.writeVarInt(v.x);
+        s.writeVarInt(v.y);
+        s.writeVarInt(v.z);
+    },
+    (s) => ({ x: s.readVarInt(), y: s.readVarInt(), z: s.readVarInt() })
+);
+
 /** `i32` (big-endian): a signed 32-bit integer, as `PlayStatus` carries its status. */
 export const i32 = type<number>(
     'i32',

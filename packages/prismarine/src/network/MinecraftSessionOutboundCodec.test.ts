@@ -14,7 +14,6 @@ import AnimatePacket from './packet/AnimatePacket';
 import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import StartGamePacket from './packet/StartGamePacket';
-import StartGamePacket2225 from './packet/StartGamePacket2225';
 import { HandSlot } from './packet/InventoryTransactionPacket';
 
 /**
@@ -119,15 +118,16 @@ describe('network', () => {
             expect(bytes2225!.byteLength).toBe(bytes2193!.byteLength + 1);
 
             const decoded2225 = Codec2225.createPacket(Codec2225.netIdOf('StartGamePacket')!, bytes2225);
-            expect(decoded2225).toBeInstanceOf(StartGamePacket2225);
+            expect(decoded2225).toBeInstanceOf(StartGamePacket);
             decoded2225!.decode();
             expect(decoded2225!.feof()).toBe(true);
             expect(decoded2225).toMatchObject({ time: 6000, worldName: 'A world' });
 
             const decoded2193 = Codec2193.createPacket(Codec2193.netIdOf('StartGamePacket')!, bytes2193);
-            expect(decoded2193).not.toBeInstanceOf(StartGamePacket2225);
+            expect(decoded2193).toBeInstanceOf(StartGamePacket);
             decoded2193!.decode();
             expect(decoded2193!.feof()).toBe(true);
+            expect(decoded2193).toMatchObject({ time: 6000, worldName: 'A world' });
         });
 
         it('the chunk batch path encodes LevelChunkPacket under the session codec', async () => {

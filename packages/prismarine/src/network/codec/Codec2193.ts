@@ -10,8 +10,10 @@ export type PacketClass = (typeof Packets)[keyof typeof Packets];
 
 /**
  * The codec for protocol 2193, built from the packet barrel and the 2193 id table. The first
- * concrete {@link ProtocolCodec}; a later version extends it with only the packets that
- * changed: new ids through {@link netIdOf}, changed layouts through {@link packetOverrides}.
+ * concrete {@link ProtocolCodec}; a later version extends it with only its id table and its
+ * version-gated data, because a packet whose wire layout changed carries the difference as
+ * data in its declarative definition and reads the protocol stamp. One class serves every
+ * version, so a codec never substitutes classes and never copies a packet.
  *
  * The id-to-class map is built on first use rather than at module load, because this module
  * and the packet barrel import each other: the barrel's classes must finish evaluating before
@@ -24,60 +26,13 @@ export class Codec2193 implements ProtocolCodec {
     public readonly itemData: ProtocolItemData = itemData2193;
 
     private byId: Map<number, PacketClass> | null = null;
-    private overridesByName: Readonly<Record<string, PacketClass>> | null = null;
-
-    /**
-     * The packet classes this codec substitutes for the barrel's, by class name. A delta
-     * codec lists here only the packets whose wire layout changed in its version; every
-     * other name keeps the inherited class.
-     * @returns {Readonly<Record<string, PacketClass>>} the substituted classes, empty at 2193.
-     */
-    protected packetOverrides(): Readonly<Record<string, PacketClass>> {
-        return {};
-    }
-
-    private overrides(): Readonly<Record<string, PacketClass>> {
-        return (this.overridesByName ??= this.packetOverrides());
-    }
-
-    /**
-     * The barrel name of a packet instance, which is what the id and override tables are keyed by.
-     *
-     * Not `constructor.name`: a bundler renames a class whose name collides with another in the
-     * same chunk, and the compiled executables bundle. The barrel's export keys are property
-     * names, which survive that, so the class is looked up in a reverse index built from them.
-     * The walk up the prototype chain answers for a substituted subclass, whose own class the
-     * barrel does not export but whose base it does.
-     */
-    protected nameOf(packet: DataPacket): string {
-        let current: unknown = packet.constructor;
-        while (typeof current === 'function') {
-            const name = Codec2193.namesByClass().get(current);
-            if (name !== undefined) return name;
-            current = Object.getPrototypeOf(current);
-        }
-
-        return packet.getName();
-    }
-
-    private static reverseIndex: Map<unknown, string> | null = null;
-
-    private static namesByClass(): Map<unknown, string> {
-        if (Codec2193.reverseIndex === null) {
-            Codec2193.reverseIndex = new Map();
-            for (const [name, packet] of Object.entries(Packets)) Codec2193.reverseIndex.set(packet, name);
-        }
-
-        return Codec2193.reverseIndex;
-    }
 
     private table(): Map<number, PacketClass> {
         if (this.byId === null) {
             this.byId = new Map();
-            const overrides = this.overrides();
             for (const [name, packet] of Object.entries(Packets)) {
                 const id = this.netIdOf(name);
-                if (id !== undefined) this.byId.set(id, overrides[name] ?? packet);
+                if (id !== undefined) this.byId.set(id, packet);
             }
         }
 
@@ -98,24 +53,12 @@ export class Codec2193 implements ProtocolCodec {
     /**
      * The outbound instance for this codec's wire; see {@link ProtocolCodec.prepareOutbound}.
      *
-     * A substituted class extends the base class it replaces, so a copy built from the base
-     * instance's own properties starts from the subclass's defaults for the fields its
-     * version added and carries every field the caller set. The copy encodes from scratch,
-     * so the copied stream state is cleared before it matters.
+     * A stamp and nothing else, at any number of versions: a version-gated layout or data table
+     * reads the stamp when the packet encodes, and everything else ignores it.
      */
     public prepareOutbound(packet: DataPacket): DataPacket {
-        const override = this.overrides()[this.nameOf(packet)];
-        if (override === undefined || packet instanceof override) {
-            // Stamped even when the class is not substituted: a payload whose *data* is
-            // version-gated - the item registry's numbering - reads the stamp, and those
-            // packets keep one class at every version.
-            packet.codecProtocol = this.protocolVersion;
-            return packet;
-        }
-
-        const prepared = Object.assign(new override(), packet);
-        prepared.codecProtocol = this.protocolVersion;
-        return prepared;
+        packet.codecProtocol = this.protocolVersion;
+        return packet;
     }
 
     /** The wire id under a packet class name; see {@link ProtocolCodec.netIdOf}. */
