@@ -812,6 +812,7 @@ export class Item {
         if (descriptor.id === 0) {
             return new Item({
                 name: 'minecraft:air',
+                count: descriptor.stackSize,
                 canPlaceOnBlocks: userData.canPlaceOnBlocks,
                 canDestroyBlocks: userData.canDestroyBlocks
             });
