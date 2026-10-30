@@ -3,8 +3,8 @@ import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type { BookEditOperation } from '../packet/BookEditPacket';
-import BookEditPacket, { BookEditAction } from '../packet/BookEditPacket';
+import BookEditPacket, { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
+import type { BookEditOperation } from '@jsprismarine/protocol/packet/BookEditPacket';
 import BookEditHandler from './BookEditHandler';
 
 /** Steve holding `item` in slot 2 and nothing anywhere else. */
@@ -21,8 +21,7 @@ const steveHolding = (item: Item) =>
 
 const bookAndQuill = () => new Item({ runtimeId: 0, name: 'minecraft:writable_book' });
 
-const edit = (bookSlot: number, operation: BookEditOperation) =>
-    Object.assign(new BookEditPacket(), { bookSlot, operation });
+const edit = (bookSlot: number, operation: BookEditOperation) => new BookEditPacket({ bookSlot, operation });
 
 describe('BookEditHandler', () => {
     it('logs a page edit with its length', () => {

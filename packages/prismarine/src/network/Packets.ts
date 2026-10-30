@@ -16,7 +16,7 @@ import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefini
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
 import BlockEventPacket from '@jsprismarine/protocol/packet/BlockEventPacket';
 import BlockPickRequestPacket from '@jsprismarine/protocol/packet/BlockPickRequestPacket';
-import BookEditPacket from './packet/BookEditPacket';
+import BookEditPacket from '@jsprismarine/protocol/packet/BookEditPacket';
 import BossEventPacket from '@jsprismarine/protocol/packet/BossEventPacket';
 import CameraPacket from '@jsprismarine/protocol/packet/CameraPacket';
 import CameraShakePacket from '@jsprismarine/protocol/packet/CameraShakePacket';

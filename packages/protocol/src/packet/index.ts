@@ -43,6 +43,7 @@ import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
 import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
 import AvailableActorIdentifiersPacket from './AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
+import BookEditPacket from './BookEditPacket';
 import JigsawStructureDataPacket from './JigsawStructureDataPacket';
 import EducationSettingsPacket from './EducationSettingsPacket';
 import PacketViolationWarningPacket from './PacketViolationWarningPacket';
@@ -99,6 +100,7 @@ export {
     UpdatePlayerGameTypePacket,
     AvailableActorIdentifiersPacket,
     BiomeDefinitionListPacket,
+    BookEditPacket,
     JigsawStructureDataPacket,
     EducationSettingsPacket,
     PacketViolationWarningPacket,
@@ -148,6 +150,8 @@ export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
 export type { GatheringsConfig, Transfer } from './TransferPacket';
+export { BookEditAction } from './BookEditPacket';
+export type { BookEdit, BookEditOperation } from './BookEditPacket';
 export { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
 export type { ServerboundLoadingScreen } from './ServerboundLoadingScreenPacket';
 export { PackSettingValueType } from './ServerboundPackSettingChangePacket';

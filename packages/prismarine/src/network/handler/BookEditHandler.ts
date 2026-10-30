@@ -1,8 +1,10 @@
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type BookEditPacket from '../packet/BookEditPacket';
-import { BookEditAction } from '../packet/BookEditPacket';
+import type BookEditPacket from '@jsprismarine/protocol/packet/BookEditPacket';
+import { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
+
+import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
 import type PacketHandler from './PacketHandler';
 
 /** The only item a book edit can apply to. Signing turns it into a written book. */
@@ -17,9 +19,8 @@ const pageInRange = (page: number): boolean => Number.isInteger(page) && page >=
  * Why an edit cannot apply to the player's inventory, or null when the slot holds a book and
  * quill and every page number fits in one.
  */
-const bookEditRejection = (player: Player, packet: BookEditPacket): string | null => {
-    const { bookSlot, operation } = packet;
-    if (operation === null) return 'it carries no operation';
+const bookEditRejection = (player: Player, data: BookEdit): string | null => {
+    const { bookSlot, operation } = data;
 
     // `getItem` answers air for a slot the inventory does not have, so an out of range slot
     // fails the same way as an empty one.
@@ -50,8 +51,9 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
     /** Checks the slot holds a book and quill, then logs the edit by action. */
     public handle(packet: BookEditPacket, server: Server, session: PlayerSession): void {
         const player = session.getPlayer();
+        const data = packet.getPacketData();
 
-        const rejection = bookEditRejection(player, packet);
+        const rejection = data === null ? 'it carries no operation' : bookEditRejection(player, data);
         if (rejection !== null) {
             server
                 .getLogger()
@@ -59,8 +61,8 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
             return;
         }
 
-        // Narrowed above: a null operation was rejected.
-        const operation = packet.operation!;
+        if (data === null) throw new Error('BookEditPacket has no payload after validation');
+        const operation = data.operation;
         const edit =
             operation.action === BookEditAction.Finalize
                 ? `signed the book "${operation.title}" as ${operation.author}`
@@ -73,7 +75,7 @@ export default class BookEditHandler implements PacketHandler<BookEditPacket> {
         server
             .getLogger()
             .debug(
-                `${player.getName()} ${edit} in slot ${packet.bookSlot}. Books are not stored, so nothing changed`,
+                `${player.getName()} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`,
                 'BookEditHandler/handle'
             );
     }
