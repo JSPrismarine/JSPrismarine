@@ -1030,13 +1030,14 @@ importers:
         version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/mapping:
+    dependencies:
+      '@jsprismarine/minecraft':
+        specifier: workspace:*
+        version: link:../minecraft
     devDependencies:
       '@jsprismarine/bedrock-data':
         specifier: workspace:*
         version: link:../bedrock-data
-      '@jsprismarine/minecraft':
-        specifier: workspace:*
-        version: link:../minecraft
       '@jsprismarine/packs':
         specifier: workspace:*
         version: link:../packs

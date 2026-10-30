@@ -2,10 +2,14 @@
  * The vendored tables under `src/tables/`, loaded once and given the shapes
  * the generator guarantees. Everything else in the package reads the tables
  * through this module, so the parsed-JSON boundary is cast exactly once per
- * table.
+ * table. `dimensions.json` is the one hand-maintained table; its test checks
+ * the shape the cast asserts.
  */
+import type { Generator } from '@jsprismarine/minecraft';
+
 import blockStatesTableJson from './tables/blockStates.json';
 import blocksTableJson from './tables/blocks.json';
+import dimensionsTableJson from './tables/dimensions.json';
 import entitiesTableJson from './tables/entities.json';
 import itemsTableJson from './tables/items.json';
 import javaIdentifiersTableJson from './tables/javaIdentifiers.json';
@@ -88,6 +92,29 @@ export interface JavaIdentifiersTable {
     registries: Record<string, string[]>;
 }
 
+/**
+ * The Bedrock overlay over Java's vanilla dimension types, keyed by Java
+ * `dimension_type` id. Three rows, hand-maintained from the dimension research
+ * note rather than generated, because no pinned source publishes the pairing.
+ */
+export interface DimensionsTable {
+    dimensions: Record<string, DimensionsTableRow>;
+}
+
+/** One Java dimension type's Bedrock side. */
+export interface DimensionsTableRow {
+    /** The integer the client, the LevelDB chunk key and `ChangeDimension` use: 0, 1 or 2. */
+    dimensionId: number;
+    /** The client's spelling of the dimension, `minecraft:nether` for Java's `minecraft:the_nether`. */
+    bedrockName: string;
+    /** The client's floor, present only where it differs from the Java type. */
+    minY?: number;
+    /** The client's height, present only where it differs from the Java type. */
+    height?: number;
+    /** The `Generator` value `StartGame` carries for a world of this dimension. */
+    generatorType: Generator;
+}
+
 // The generated tables are data the compiler cannot type beyond the JSON
 // imports' unhelpful literals; the generator guarantees these shapes.
 /** The block table instance. */
@@ -102,3 +129,5 @@ export const entitiesTable = entitiesTableJson as unknown as EntitiesTable;
 export const registriesTable = registriesTableJson as unknown as RegistriesTable;
 /** The Java identifier census instance. */
 export const javaIdentifiersTable = javaIdentifiersTableJson as unknown as JavaIdentifiersTable;
+/** The Bedrock dimension overlay instance. */
+export const dimensionsTable = dimensionsTableJson as unknown as DimensionsTable;

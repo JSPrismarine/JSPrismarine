@@ -47,6 +47,21 @@ bedrockBiomeToJava('minecraft:taiga_hills');
 // { kind: 'loss', bedrock: { id: 19, identifier: 'minecraft:taiga_hills' }, loss: { reason: ... } }
 ```
 
+`bedrockDimensionOverlay()` is the edition boundary for dimensions. Keyed by Java `dimension_type`
+id, the three-row table `src/tables/dimensions.json` carries the Bedrock integer id, the client's
+name (`minecraft:nether` for Java's `minecraft:the_nether`), the `Generator` value `StartGame`
+sends, and a `minY` and `height` only where the client disagrees with the Java type. The Nether row
+is the one that does: Java's type is 256 tall with `logical_height` 128, and the client discards or
+crashes on sub chunks above 128, so the clamp is written as data. A type with no row is a custom
+dimension and returns `undefined`. `javaDimensionTypeOf()` reads a Bedrock name back to the Java
+id. This table is hand-maintained, not generated: no pinned source publishes the pairing.
+
+```ts
+bedrockDimensionOverlay('minecraft:the_nether');
+// { dimensionId: 1, bedrockName: 'minecraft:nether', minY: 0, height: 128, generatorType: 3 }
+javaDimensionTypeOf('minecraft:nether'); // 'minecraft:the_nether'
+```
+
 `javaBlockFluidKindOf()` reads the fluid carried by a Java block state. It returns `water` for
 water-bearing blocks such as kelp and seagrass, `water` for a state with `waterlogged=true`,
 `lava` for lava, and `empty` otherwise.

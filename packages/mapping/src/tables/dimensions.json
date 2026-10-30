@@ -1,0 +1,32 @@
+{
+    "$notice": [
+        "Hand-maintained, not generated. The Bedrock overlay over Java's vanilla dimension types,",
+        "from docs/research/data-driven-dimensions.md sections 2.1, 2.4 and 2.5.",
+        "",
+        "Keyed by Java 26.3 `dimension_type` id. `dimensionId` is the integer the client, the LevelDB",
+        "chunk key and `ChangeDimension` use. `bedrockName` is the client's spelling of the dimension.",
+        "`generatorType` is the `Generator` enum value `StartGame` carries: 1 Overworld, 3 Nether, 4 End.",
+        "`minY` and `height` are present only where the Bedrock client disagrees with the Java type:",
+        "Java's Nether is 256 tall with `logical_height` 128, the client discards or crashes on sub",
+        "chunks above 128, so the row writes the clamp as data."
+    ],
+    "dimensions": {
+        "minecraft:overworld": {
+            "dimensionId": 0,
+            "bedrockName": "minecraft:overworld",
+            "generatorType": 1
+        },
+        "minecraft:the_nether": {
+            "dimensionId": 1,
+            "bedrockName": "minecraft:nether",
+            "minY": 0,
+            "height": 128,
+            "generatorType": 3
+        },
+        "minecraft:the_end": {
+            "dimensionId": 2,
+            "bedrockName": "minecraft:the_end",
+            "generatorType": 4
+        }
+    }
+}

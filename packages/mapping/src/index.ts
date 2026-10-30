@@ -28,6 +28,7 @@ export {
     bedrockBlockPropertiesOf,
     type BedrockBlockProperties
 } from './blockProperties';
+export { bedrockDimensionOverlay, javaDimensionTypeOf, type BedrockDimensionOverlay } from './dimensionMapping';
 export { javaEntityTypeToBedrock, type EntityMappingResult } from './entityMapping';
 export { javaItemToBedrock, type BedrockItem, type ItemMappingResult } from './itemMapping';
 export {

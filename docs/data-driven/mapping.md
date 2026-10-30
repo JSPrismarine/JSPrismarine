@@ -74,6 +74,21 @@ the inverse names the Java biome that is not on the loss list, so `minecraft:the
 as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, 27 of
 Bedrock's 89 biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
 
+One more lookup is a Bedrock overlay rather than a translation. Java describes a dimension in its
+`dimension_type` JSON, and the Bedrock client has three built-in dimensions with fixed integer ids,
+its own spelling of one name, and a Nether ceiling of 128 where Java's type says 256.
+`bedrockDimensionOverlay(javaDimensionTypeId)` reads the three-row table
+`packages/mapping/src/tables/dimensions.json`, the one hand-maintained table in the package, and
+returns the id, the Bedrock name, the `Generator` value `StartGame` carries, and `minY` and
+`height` only where the client disagrees with the Java type; a type with no row is a custom
+dimension and returns `undefined`. `javaDimensionTypeOf(bedrockName)` reads the name back, so
+`minecraft:nether` answers `minecraft:the_nether`.
+
+```ts
+bedrockDimensionOverlay('minecraft:the_nether');
+// { dimensionId: 1, bedrockName: 'minecraft:nether', minY: 0, height: 128, generatorType: 3 }
+```
+
 ## Block states
 
 A block's states need translating too, and the correspondence is per block rather than per state
