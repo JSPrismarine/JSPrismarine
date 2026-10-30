@@ -147,6 +147,7 @@ tick.
 | `light` | Whether a block state dampens more light than a supplied cutoff |
 | `heldItem` | What the item in the hand is: an axe, shears, honeycomb, an igniter, a bucket, a bottle, silk touch |
 | `placement` | What the clicked face and the click position say: a pillar's axis, a slab's half |
+| `portal` | Java's `PortalShape` frame scan, the end portal frame ring, where a new nether portal goes and what it writes, the End platform, and the piglin spawn roll |
 
 ## Values come from the block
 
@@ -163,6 +164,32 @@ The state names are the palette's. `geometry.test.ts` checks `CARDINAL_DIRECTION
 captured palette's `minecraft:cardinal_direction` domain, and `rules/weathering.test.ts` walks every
 copper block in the palette and asserts that each name the three transitions produce is a block that
 exists.
+
+## Portals
+
+`rules/portal.ts` is the block half of portals: the pure geometry over `WorldActions`, with the
+constants Java's `PortalShape`, `PortalForcer` and `EndPlatformFeature` use. `portalFamily` calls
+it from four hooks.
+
+| Hook | Block | What happens |
+| --- | --- | --- |
+| `onPlace` | `fire`, `soul_fire` | `findEmptyPortalShape` scans both axes for an obsidian frame around the fire, 2 to 21 interior blocks wide and 3 to 21 tall with the corners unchecked, and `lightNetherPortal` writes `minecraft:portal` with the frame's `portal_axis` into the interior. Nothing lights in `minecraft:the_end`. |
+| `onNeighborChanged` | `portal` | When the neighbor on a vertical face or a face along the portal's axis is neither portal nor obsidian, `collapseNetherPortal` clears every portal block `connectedPortalBlocks` reaches through the plane, in one go. |
+| `onPlayerInteract` | `end_portal_frame` | After the eye goes in, `findEndPortalRing` looks for the flat ring of twelve frames, each with an eye and facing the center, and `activateEndPortal` fills the 3 by 3 with `end_portal`. |
+| `onRandomTick` | `portal` | In the Overworld, `piglinSpawnRoll` is `random() * 2000 < difficultyId`, and a hit spawns `minecraft:zombie_pigman` beside the bottom of the portal: south of a portal on the x axis, east of one on the z axis. |
+
+Two more functions are for the server's travel code rather than for a hook. `portalCreationSite`
+is Java's search for where a new portal goes: every column within 16 blocks of the target, a
+replaceable run on a solid floor with room for the 4 by 5 frame, the footprint plus a block on each
+side in the first pass and the footprint alone in the second, closest by 3D distance. When nothing
+fits the site is forced one block back from the target with y clamped to `[70, maxY - 10]`.
+`writeNetherPortal` writes the frame with corners and six portal blocks, and for a forced site an
+obsidian platform with four netherrack blocks on each side as Bedrock does. `writeEndPlatform`
+writes the 5 by 5 obsidian platform and three rows of air above it, destroying what is in the way.
+
+The block list comes from `PORTAL_BLOCK_NAMES` in `@jsprismarine/blocks`, which is the same list
+the `jsprismarine:portal` family rule matches on, so the family and the geometry agree on what a
+portal, a frame and a fire are.
 
 ## The families
 
@@ -204,7 +231,7 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `dripstone` | 8 | onBreak, onNeighborChanged, onRandomTick | Grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster. |
 | `head` | 7 | onPlace, onBreak, onNeighborChanged | Keeps its rotation and profile in a block entity and pops when the block it sits on goes. |
 | `chemistry` | 5 | none | No hooks. The chemistry workbenches open Education Edition screens a vanilla server does not implement. |
-| `portal` | 5 | onNeighborChanged, onTick, onPlayerInteract, onStepOn | Counts an entity down to a nether portal trip, ages fire out, and fills an end portal frame. The destination search across dimensions is left to the server, which owns the dimension list. |
+| `portal` | 5 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, and ages fire out. Travel is the server's. |
 | `ice` | 4 | onBreak, onRandomTick | Melts to water on a random tick above light 12, frosted ice ages through its four stages first, and a silk touch tool takes the block itself instead of leaving water. |
 | `liquid` | 4 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, burns what stands in lava, and gives a source block up to a bucket or a bottle. |
 | `rail` | 4 | onPlace, onBreak, onNeighborChanged, onRedstoneUpdate | Pops without a block below, and sets rail_data_bit on the powered rails from the signal reaching them. |
@@ -244,8 +271,9 @@ The rest are scoped to this phase:
   observable, and it is the one provisional piece of the package.
 - **The sculk catalyst.** Its charge comes from a mob death within eight blocks, and no block hook
   reports a death. The shrieker and the sensor are implemented.
-- **Portals.** The nether portal counts an entity down and the end portal frame takes an eye, but
-  the destination search and the 8:1 coordinate link need the dimension list, which the server owns.
+- **Portal travel.** The geometry is here (below), but which world is "the Nether", the 8:1
+  coordinate link, the destination search and the client's dimension change belong to the server,
+  which owns the dimension list.
 - **Redstone wire topology.** A wire fades one step per block from its neighbors. Stepping up and
   down over blocks, and the strong and weak distinction a solid block makes, need the solidity
   column the overlay is still missing.

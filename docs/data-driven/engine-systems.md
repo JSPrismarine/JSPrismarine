@@ -169,6 +169,19 @@ does. Setting the radius to 0 stops every fire in the world, and it is reversibl
 tick is gated still books its next tick, so it keeps its place in the tick list and carries on from
 where it stopped when you turn the rule back up.
 
+## Portals
+
+The block half of portals is `rules/portal.ts` in `@jsprismarine/block-behaviors`, pure functions
+over `WorldActions` with Java's constants. Fire placed inside an obsidian frame of 2 to 21 by 3 to
+21 interior blocks lights `minecraft:portal` with the frame's `portal_axis`, except in the End. A
+portal block whose frame-side or vertical neighbor is no longer portal or obsidian clears every
+portal block connected through its plane. An eye of ender that completes the flat ring of twelve
+`end_portal_frame` blocks, each facing the center, fills the 3 by 3 with `end_portal`. A portal's
+random tick in the Overworld rolls `random() * 2000 < difficultyId` for a zombified piglin beside
+the bottom of the portal. The same module carries `portalCreationSite`, `writeNetherPortal` and
+`writeEndPlatform` for the server's travel code, which owns the dimension list, the 8:1 scaling and
+the client sequence.
+
 ## Block lifecycle
 
 Placement, neighbor changes, scheduled ticks, and redstone updates reach the active resolved

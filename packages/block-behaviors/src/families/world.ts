@@ -89,7 +89,7 @@ export const PORTAL_DELAY_TICKS = 80;
 /** The portal blocks, the portal frames and the two fires. */
 export const portalFamily = defineFamily(
     'jsprismarine:portal',
-    'Counts an entity down to a nether portal trip, spreads and burns with fire, ages soul fire, and fills an end portal frame. The destination search across dimensions is left to the server, which owns the dimension list.',
+    'Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, spreads and burns with fire, and ages soul fire. Travel across dimensions is left to the server, which owns the dimension list.',
     {
         onPlace: (event, world) => {
             const name = bareName(event.block.identifier);
