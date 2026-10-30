@@ -126,7 +126,7 @@ import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGa
 import SetLastHurtByPacket from '@jsprismarine/protocol/packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from '@jsprismarine/protocol/packet/SetLocalPlayerAsInitializedPacket';
 import SetPassengerOfBlockPacket from '@jsprismarine/protocol/packet/SetPassengerOfBlockPacket';
-import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
+import SetPlayerFurnaceOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import SettingsCommandPacket from './packet/SettingsCommandPacket';

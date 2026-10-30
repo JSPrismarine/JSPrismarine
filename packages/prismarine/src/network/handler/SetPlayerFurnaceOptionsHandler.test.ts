@@ -4,14 +4,15 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { LoggedLines } from '../../testing/blockTarget.test.helper';
-import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
+import PacketRegistry from '../PacketRegistry';
 import SetPlayerFurnaceOptionsPacket, {
     FurnaceLayout,
     FurnaceLeftTabIndex,
     FurnaceType
-} from '../packet/SetPlayerFurnaceOptionsPacket';
+} from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
+import type { SetPlayerFurnaceOptions } from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerFurnaceOptionsHandler from './SetPlayerFurnaceOptionsHandler';
 
 const fakeSession = () => {
@@ -28,14 +29,16 @@ const fakeSession = () => {
     return { logged, server, session };
 };
 
-const options = (fields: StubMembers<SetPlayerFurnaceOptionsPacket> = {}) =>
-    Object.assign(new SetPlayerFurnaceOptionsPacket(), {
-        furnaceType: FurnaceType.Smoker,
+const DEFAULT_DATA: SetPlayerFurnaceOptions = {
+    furnaceType: FurnaceType.Smoker,
+    options: {
         leftTab: FurnaceLeftTabIndex.RecipeSearch,
         filtering: true,
-        layout: FurnaceLayout.Default,
-        ...fields
-    });
+        layout: FurnaceLayout.Default
+    }
+};
+
+const options = (data: SetPlayerFurnaceOptions = DEFAULT_DATA) => new SetPlayerFurnaceOptionsPacket(data);
 
 describe('SetPlayerFurnaceOptionsHandler', () => {
     it('logs the furnace, tab, filter and layout', () => {
@@ -54,7 +57,11 @@ describe('SetPlayerFurnaceOptionsHandler', () => {
         // Numeric enums accept any number; the wire can carry one the docs do not list.
         const unknown: number = 7;
 
-        new SetPlayerFurnaceOptionsHandler().handle(options({ furnaceType: unknown }), server, session);
+        new SetPlayerFurnaceOptionsHandler().handle(
+            options({ ...DEFAULT_DATA, furnaceType: unknown }),
+            server,
+            session
+        );
 
         expect(logged.debug).toEqual([]);
         expect(logged.verbose).toEqual(['Dropped furnace options from Steve: 7 is not a furnace type']);
@@ -64,7 +71,11 @@ describe('SetPlayerFurnaceOptionsHandler', () => {
         const { logged, server, session } = fakeSession();
         const unknown: number = 6;
 
-        new SetPlayerFurnaceOptionsHandler().handle(options({ leftTab: unknown }), server, session);
+        new SetPlayerFurnaceOptionsHandler().handle(
+            options({ ...DEFAULT_DATA, options: { ...DEFAULT_DATA.options, leftTab: unknown } }),
+            server,
+            session
+        );
 
         expect(logged.verbose).toEqual(['Dropped furnace options from Steve: 6 is not a furnace tab']);
     });
@@ -73,8 +84,24 @@ describe('SetPlayerFurnaceOptionsHandler', () => {
         const { logged, server, session } = fakeSession();
         const unknown: number = -1;
 
-        new SetPlayerFurnaceOptionsHandler().handle(options({ layout: unknown }), server, session);
+        new SetPlayerFurnaceOptionsHandler().handle(
+            options({ ...DEFAULT_DATA, options: { ...DEFAULT_DATA.options, layout: unknown } }),
+            server,
+            session
+        );
 
         expect(logged.verbose).toEqual(['Dropped furnace options from Steve: -1 is not a furnace layout']);
+    });
+
+    it('registers the protocol packet with its handler', async () => {
+        const server = stub<Server>({
+            getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
+        });
+        const registry = new PacketRegistry(server);
+
+        await registry.enable();
+
+        expect(registry.getPackets().get(0x15f)).toBe(SetPlayerFurnaceOptionsPacket);
+        expect(registry.getHandler('SetPlayerFurnaceOptionsPacket')).toBeInstanceOf(SetPlayerFurnaceOptionsHandler);
     });
 });

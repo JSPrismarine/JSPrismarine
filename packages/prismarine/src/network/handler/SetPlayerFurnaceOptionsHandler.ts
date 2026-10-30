@@ -1,7 +1,11 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type SetPlayerFurnaceOptionsPacket from '../packet/SetPlayerFurnaceOptionsPacket';
-import { FurnaceLayout, FurnaceLeftTabIndex, FurnaceType } from '../packet/SetPlayerFurnaceOptionsPacket';
+import type SetPlayerFurnaceOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
+import {
+    FurnaceLayout,
+    FurnaceLeftTabIndex,
+    FurnaceType
+} from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -22,18 +26,22 @@ export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<Set
 
     /** Checks the three enum fields, then logs the layout. */
     public handle(packet: SetPlayerFurnaceOptionsPacket, server: Server, session: PlayerSession): void {
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a SetPlayerFurnaceOptionsPacket without decoded data');
+
         const name = session.getPlayer().getName();
-        const furnace = FurnaceType[packet.furnaceType];
-        const tab = FurnaceLeftTabIndex[packet.leftTab];
-        const layout = FurnaceLayout[packet.layout];
+        const { furnaceType, options } = data;
+        const furnace = FurnaceType[furnaceType];
+        const tab = FurnaceLeftTabIndex[options.leftTab];
+        const layout = FurnaceLayout[options.layout];
 
         const rejection =
             furnace === undefined
-                ? `${packet.furnaceType} is not a furnace type`
+                ? `${furnaceType} is not a furnace type`
                 : tab === undefined
-                  ? `${packet.leftTab} is not a furnace tab`
+                  ? `${options.leftTab} is not a furnace tab`
                   : layout === undefined
-                    ? `${packet.layout} is not a furnace layout`
+                    ? `${options.layout} is not a furnace layout`
                     : null;
         if (rejection !== null) {
             server
@@ -45,7 +53,7 @@ export default class SetPlayerFurnaceOptionsHandler implements PacketHandler<Set
         server
             .getLogger()
             .debug(
-                `${name} arranged the ${furnace} screen: tab ${tab}, filtering ${packet.filtering ? 'on' : 'off'}, layout ${layout}. Furnace options are not stored`,
+                `${name} arranged the ${furnace} screen: tab ${tab}, filtering ${options.filtering ? 'on' : 'off'}, layout ${layout}. Furnace options are not stored`,
                 'SetPlayerFurnaceOptionsHandler/handle'
             );
     }
