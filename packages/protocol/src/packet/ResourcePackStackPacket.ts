@@ -46,6 +46,7 @@ export interface ResourcePackStack {
  * that still expects them takes the texture pack count for the behavior pack count and every
  * field after it is read from the wrong place, which on an empty stack means running off the
  * end of an eleven byte packet.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-stack-packet/
  */
 export default class ResourcePackStackPacket extends NetworkPacket<ResourcePackStack> {
     public get id(): number {

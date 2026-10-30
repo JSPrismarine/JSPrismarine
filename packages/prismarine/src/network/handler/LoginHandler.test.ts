@@ -19,7 +19,7 @@ import type ClientConnection from '../ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LoginPacket from '../packet/LoginPacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
+import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import LoginHandler from './LoginHandler';
 import { testContent } from '../../testing/entityServer';
 
@@ -166,17 +166,14 @@ describe('network', () => {
 
                 const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
                 assert(info instanceof ResourcePacksInfoPacket);
-                info.encode();
-                expect([...info.getBuffer()]).toEqual([
-                    0x06, // packet id header
-                    0x00, // Resource Pack Required
-                    0x00, // Has Addon Packs
-                    0x00, // Has Scripts
-                    0x00, // Force Disable Vibrant Visuals
-                    ...Array.from({ length: 16 }, () => 0x00), // World Template Id And Version: an all-zero uuid
-                    0x00, // and an empty version
-                    0x00 // Resource Packs count, a varuint32
-                ]);
+                expect(info.getPacketData()).toEqual({
+                    resourcePackRequired: false,
+                    hasAddonPacks: false,
+                    hasScripts: false,
+                    forceDisableVibrantVisuals: false,
+                    worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
+                    packs: []
+                });
             });
 
             /** A login the server lets past the identity checks and then refuses for who it is. */

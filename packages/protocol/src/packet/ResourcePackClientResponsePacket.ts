@@ -18,6 +18,7 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * `ResourcePackResponse` from `@jsprismarine/minecraft` is the generated equivalent, with the docs
  * names and the same values (`CANCEL` = 1 through `RESOURCE_PACK_STACK_FINISHED` = 4). This enum
  * stays exported under its own names because the client package depends on them.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-client-response-packet/
  */
 export enum ResourcePackStatus {
     None,
@@ -68,6 +69,7 @@ export interface ResourcePackResponse {
  * gophertunnel at protocol 2193 writes the same. Until protocol 748 the list was written after
  * every alternative; a real server reads the two stray bytes as the next packet and drops the
  * connection.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-client-response-packet/
  */
 export default class ResourcePackClientResponsePacket extends NetworkPacket<ResourcePackResponse> {
     public get id(): number {

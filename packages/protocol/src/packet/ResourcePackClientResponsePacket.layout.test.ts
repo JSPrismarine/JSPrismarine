@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { layoutAt, resourcePackClientResponsePacket } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { resourcePackClientResponsePacket } from '../wire/definitions/resourcePacks';
 import { describe, expect, it } from 'vitest';
 
 /**

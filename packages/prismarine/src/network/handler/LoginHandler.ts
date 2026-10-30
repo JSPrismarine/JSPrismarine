@@ -7,7 +7,7 @@ import { Position } from '../../world/Position';
 import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';
 import type LoginPacket from '../packet/LoginPacket';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
+import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
 
 export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
@@ -164,10 +164,16 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         await session.sendPlayStatus(PlayStatus.LoginSuccess);
 
         // Finalize connection handshake
-        const resourcePacksInfo = new ResourcePacksInfoPacket();
-        resourcePacksInfo.resourcePackRequired = false;
-        resourcePacksInfo.hasScripts = false;
-        resourcePacksInfo.hasAddonPacks = false;
-        await connection.sendDataPacket(resourcePacksInfo, true);
+        await connection.sendDataPacket(
+            new ResourcePacksInfoPacket({
+                resourcePackRequired: false,
+                hasAddonPacks: false,
+                hasScripts: false,
+                forceDisableVibrantVisuals: false,
+                worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
+                packs: []
+            }),
+            true
+        );
     }
 }

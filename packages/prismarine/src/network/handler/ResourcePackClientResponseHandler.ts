@@ -18,10 +18,10 @@ import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefini
 import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
-import type ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
-import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
+import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/ResourcePackClientResponsePacket';
+import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
+import { ResourcePackStatus } from '@jsprismarine/protocol';
 import StartGamePacket from '../packet/StartGamePacket';
-import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import { joinContentPayloads } from '../contentPayloads';
 import type PacketHandler from './PacketHandler';
 
@@ -90,15 +90,21 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
     ): Promise<void> {
         const player = session.getPlayer();
         const logger = server.getLogger();
+        const response = packet.getPacketData();
 
-        switch (packet.status) {
-            case ResourcePackStatusType.Refused:
+        if (response === null) {
+            logger.debug(`${player.getName()} sent an empty resource pack response; dropped`);
+            return;
+        }
+
+        switch (response.status) {
+            case ResourcePackStatus.Refused:
                 await player.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM);
                 return;
 
-            case ResourcePackStatusType.SendPacks:
+            case ResourcePackStatus.SendPacks:
                 logger.debug(
-                    `${player.getName()} asked for ${packet.packIds.length} resource pack(s); the server offers none`,
+                    `${player.getName()} asked for ${response.packIds.length} resource pack(s); the server offers none`,
                     'ResourcePackClientResponseHandler/handle'
                 );
                 await player.kick(
@@ -107,7 +113,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 );
                 return;
 
-            case ResourcePackStatusType.HaveAllPacks: {
+            case ResourcePackStatus.HaveAllPacks: {
                 if (this.joined.has(session)) {
                     logger.debug(
                         `${player.getName()} said it had all packs after its join started; dropped`,
@@ -116,14 +122,20 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                     return;
                 }
 
-                const resourcePackStack = new ResourcePackStackPacket();
-                resourcePackStack.texturePackRequired = false;
-                resourcePackStack.experimentsAlreadyEnabled = false;
-                await session.getConnection().sendDataPacket(resourcePackStack);
+                await session.getConnection().sendDataPacket(
+                    new ResourcePackStackPacket({
+                        texturePackRequired: false,
+                        texturePacks: [],
+                        gameVersion: '*',
+                        experiments: [],
+                        experimentsAlreadyEnabled: false,
+                        includeEditorPacks: false
+                    })
+                );
                 return;
             }
 
-            case ResourcePackStatusType.Completed:
+            case ResourcePackStatus.Completed:
                 if (this.joined.has(session)) {
                     logger.debug(
                         `${player.getName()} completed the resource packs twice; the second was dropped`,
@@ -143,7 +155,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
             default:
                 logger.debug(
-                    `Dropped a resource pack response with unknown status ${packet.status} from ${player.getName()}`,
+                    `Dropped a resource pack response with unknown status ${response.status} from ${player.getName()}`,
                     'ResourcePackClientResponseHandler/handle'
                 );
         }

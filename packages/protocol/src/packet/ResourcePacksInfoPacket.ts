@@ -67,6 +67,7 @@ export interface ResourcePacksInfo {
  *
  * The fourth flag and the world template arrived at 2168; a reader without them takes the
  * flag for the start of the template and drops the connection.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-packs-info-packet/
  */
 export default class ResourcePacksInfoPacket extends NetworkPacket<ResourcePacksInfo> {
     public get id(): number {

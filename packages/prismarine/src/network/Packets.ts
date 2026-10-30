@@ -104,10 +104,10 @@ import RequestNetworkSettingsPacket from '@jsprismarine/protocol/packet/RequestN
 import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import ResourcePackChunkDataPacket from '@jsprismarine/protocol/packet/ResourcePackChunkDataPacket';
 import ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
-import ResourcePackClientResponsePacket from './packet/ResourcePackClientResponsePacket';
+import ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/ResourcePackClientResponsePacket';
 import ResourcePackDataInfoPacket from '@jsprismarine/protocol/packet/ResourcePackDataInfoPacket';
-import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
-import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
+import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
+import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
 import ServerPlayerPostMovePositionPacket from '@jsprismarine/protocol/packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
