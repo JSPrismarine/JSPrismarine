@@ -405,3 +405,9 @@ export { default as PositionTrackingDBServerBroadcastPacket } from './PositionTr
 export * from './PositionTrackingDBServerBroadcastPacket';
 export { default as SubChunkRequestPacket } from './SubChunkRequestPacket';
 export * from './SubChunkRequestPacket';
+export { default as ResourcePackChunkDataPacket } from './ResourcePackChunkDataPacket';
+export * from './ResourcePackChunkDataPacket';
+export { default as ResourcePackChunkRequestPacket } from './ResourcePackChunkRequestPacket';
+export * from './ResourcePackChunkRequestPacket';
+export { default as ResourcePackDataInfoPacket } from './ResourcePackDataInfoPacket';
+export * from './ResourcePackDataInfoPacket';

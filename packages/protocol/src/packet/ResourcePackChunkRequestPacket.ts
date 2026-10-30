@@ -1,6 +1,6 @@
-import { layoutAt, resourcePackChunkRequestPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { resourcePackChunkRequestPacket } from '../wire/definitions/resourcePacks';
 
 /**
  * The client asking for one chunk of a resource pack it is downloading.

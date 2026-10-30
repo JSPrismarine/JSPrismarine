@@ -1,6 +1,6 @@
-import { layoutAt, resourcePackDataInfoPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { resourcePackDataInfoPacket } from '../wire/definitions/resourcePacks';
 
 /**
  * The docs' `PackType`: what kind of pack is about to be sent, as the `Pack Type` byte numbers
@@ -58,6 +58,7 @@ export default class ResourcePackDataInfoPacket extends FieldNetworkPacket {
     /** True when the player needs an entitlement to use the pack. */
     public isPremiumPack = false;
 
+    /** What kind of pack the transfer contains. */
     public packType: PackType = PackType.Resources;
 
     /** Reads the pack name, its size, its hash and its type. */

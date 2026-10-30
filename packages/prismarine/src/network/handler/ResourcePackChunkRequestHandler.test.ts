@@ -6,7 +6,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ResourcePackChunkRequestPacket from '../packet/ResourcePackChunkRequestPacket';
+import ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
 import ResourcePackChunkRequestHandler from './ResourcePackChunkRequestHandler';
 
 describe('ResourcePackChunkRequestHandler', () => {

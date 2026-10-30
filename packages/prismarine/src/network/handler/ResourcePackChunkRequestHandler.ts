@@ -1,7 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ResourcePackChunkRequestPacket from '../packet/ResourcePackChunkRequestPacket';
+import type ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
