@@ -185,7 +185,7 @@ describe('datapack sources', () => {
                 overlays: { entries: [{ directory: 'patch', min_format: 121, max_format: 121 }] }
             }),
             'data/fixture/recipe/base.json': RECIPE,
-            'patch/data/fixture/worldgen/biome/plains.json': JSON.stringify({ temperature: 0.8 })
+            'patch/data/fixture/trim_material/ruby.json': JSON.stringify({ asset_name: 'ruby' })
         });
 
         const { diagnostics } = load([{ kind: 'datapack', path: pack }]);

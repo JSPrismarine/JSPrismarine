@@ -50,8 +50,8 @@ interface DatapackContents {
  *
  * `pack.mcmeta` names the overlays, a path {@link routeDatapackPath} routes is a definition, and
  * a path that routes once its leading directory is dropped is an overlay's copy of one. Nothing
- * else reaches the registries, and a vanilla 26.3 datapack is 8373 files of which 6335 route -
- * the rest are the worldgen, villager trade and nested built-in pack registries this loader does
+ * else reaches the registries, and a vanilla 26.3 datapack is 8373 files of which 7483 route.
+ * The rest are the villager trade, variant and nested built-in pack registries this loader does
  * not consume, and opening each of them costs a syscall pair for bytes that go straight back out.
  *
  * Overlay directories are matched by shape rather than by name because the names are in

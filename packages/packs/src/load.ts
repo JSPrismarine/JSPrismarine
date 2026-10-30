@@ -149,7 +149,10 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
         damageTypes: new Map(),
         predicates: new Map(),
         itemModifiers: new Map(),
-        functions: new Map()
+        functions: new Map(),
+        dimensionTypes: new Map(),
+        dimensions: new Map(),
+        worldgen: new Map()
     };
 
     const units = expandStack(stack);

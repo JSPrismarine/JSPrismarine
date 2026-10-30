@@ -6,7 +6,19 @@
  * `minecraft:blocks/stone` in `lootTablesJava`.
  */
 
-/** The Java-sourced registries a loaded datapack fills. */
+/**
+ * The Java-sourced registries a loaded datapack fills.
+ *
+ * `dimensionTypes` and `dimensions` hold `data/<ns>/dimension_type/` and
+ * `data/<ns>/dimension/`, keyed by namespaced id like the gameplay registries.
+ * `worldgen` is one composite registry for every `data/<ns>/worldgen/<kind>/`
+ * directory in {@link WORLDGEN_REGISTRY_KINDS}; its identifier is
+ * `<kind>/<namespace>:<path>`, the shape tag ids already use, so
+ * `worldgen/noise_settings/overworld.json` registers as
+ * `noise_settings/minecraft:overworld`. One registry rather than seventeen
+ * keeps `Definitions` from growing a key per terrain kind, and the kind
+ * prefix is what a reference such as `worldgen/structure` resolves through.
+ */
 export const JAVA_REGISTRY_IDS = [
     'lootTablesJava',
     'recipesJava',
@@ -16,7 +28,10 @@ export const JAVA_REGISTRY_IDS = [
     'damageTypes',
     'predicates',
     'itemModifiers',
-    'functions'
+    'functions',
+    'dimensionTypes',
+    'dimensions',
+    'worldgen'
 ] as const;
 
 /** One Java-sourced registry. */
@@ -47,7 +62,10 @@ export const MERGE_MODES: Readonly<Record<JavaRegistryId, MergeMode>> = {
     damageTypes: 'override',
     predicates: 'override',
     itemModifiers: 'override',
-    functions: 'override'
+    functions: 'override',
+    dimensionTypes: 'override',
+    dimensions: 'override',
+    worldgen: 'override'
 };
 
 /**
@@ -62,15 +80,63 @@ export const FUNCTION_EXTENSION = '.mcfunction';
  * so the identifier report reads this to turn `loot_table` into the registry
  * holding the loot tables.
  */
-export const JAVA_REGISTRY_DIRECTORIES: Readonly<Record<string, Exclude<JavaRegistryId, 'tags' | 'functions'>>> = {
+export const JAVA_REGISTRY_DIRECTORIES: Readonly<
+    Record<string, Exclude<JavaRegistryId, 'tags' | 'functions' | 'worldgen'>>
+> = {
     loot_table: 'lootTablesJava',
     recipe: 'recipesJava',
     advancement: 'advancements',
     enchantment: 'enchantments',
     damage_type: 'damageTypes',
     predicate: 'predicates',
-    item_modifier: 'itemModifiers'
+    item_modifier: 'itemModifiers',
+    dimension_type: 'dimensionTypes',
+    dimension: 'dimensions'
 };
+
+/** The directory under `data/<namespace>/` whose subdirectories are the worldgen registries. */
+export const WORLDGEN_DIRECTORY = 'worldgen';
+
+/**
+ * The `data/<namespace>/worldgen/<kind>/` directories that route into the
+ * `worldgen` registry: the fourteen the data-driven generator reads, plus
+ * the three that describe a world's dimensions. Every file in them is JSON;
+ * the `.nbt` structure templates live under `data/<namespace>/structure/`,
+ * which is not a worldgen directory and stays with the generator's own
+ * template loader. A worldgen directory outside this list does not route.
+ */
+export const WORLDGEN_REGISTRY_KINDS = [
+    'biome',
+    'block_state_provider',
+    'carver',
+    'density_function',
+    'feature',
+    'flat_level_generator_preset',
+    'material_condition',
+    'material_rule',
+    'multi_noise_biome_source_parameter_list',
+    'noise',
+    'noise_settings',
+    'placed_feature',
+    'processor_list',
+    'structure',
+    'structure_set',
+    'template_pool',
+    'world_preset'
+] as const;
+
+/** One of {@link WORLDGEN_REGISTRY_KINDS}. */
+export type WorldgenRegistryKind = (typeof WORLDGEN_REGISTRY_KINDS)[number];
+
+/** Whether a `worldgen/` subdirectory name is one this loader routes. */
+export const isWorldgenRegistryKind = (kind: string): kind is WorldgenRegistryKind =>
+    (WORLDGEN_REGISTRY_KINDS as readonly string[]).includes(kind);
+
+/**
+ * The identifier a worldgen file registers under: the kind, then the
+ * namespaced id, as `noise_settings/minecraft:overworld`.
+ */
+export const worldgenIdentifier = (kind: WorldgenRegistryKind, id: string): string => `${kind}/${id}`;
 
 /** Tag registry roots under `tags/` that span two path segments, such as `worldgen/biome`. */
 const TWO_SEGMENT_TAG_ROOTS = ['worldgen'];
@@ -89,6 +155,8 @@ export interface JavaRoute {
     identifier: string;
     /** The registry a tag file tags, such as `block` or `worldgen/biome`. Only set for tags. */
     taggedRegistry?: string;
+    /** The worldgen directory the file sits in, such as `noise_settings`. Only set for `worldgen`. */
+    worldgenKind?: WorldgenRegistryKind;
 }
 
 /**
@@ -131,6 +199,18 @@ export const routeDatapackPath = (path: string): JavaRoute | undefined => {
         const tagPath = rest.slice(registrySegments).join('/');
         if (tagPath.length === 0 || !PATH_PATTERN.test(tagPath)) return undefined;
         return { registry: 'tags', identifier: `${taggedRegistry}/${namespace}:${tagPath}`, taggedRegistry };
+    }
+
+    if (folder === WORLDGEN_DIRECTORY) {
+        const [kind, ...kindRest] = rest;
+        if (!kind || !isWorldgenRegistryKind(kind) || kindRest.length === 0) return undefined;
+        const kindPath = kindRest.join('/');
+        if (!PATH_PATTERN.test(kindPath)) return undefined;
+        return {
+            registry: 'worldgen',
+            identifier: worldgenIdentifier(kind, `${namespace}:${kindPath}`),
+            worldgenKind: kind
+        };
     }
 
     const registry = JAVA_REGISTRY_DIRECTORIES[folder];

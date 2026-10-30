@@ -11,8 +11,26 @@ report. The Bedrock registries (blocks, items, entities, loot tables, trade tabl
 recipes, biomes, features, feature rules, item catalog) resolve by identifier: a later pack wins and
 its definition replaces the earlier one whole. The Java registries (`lootTablesJava`, `recipesJava`,
 `advancements`, `tags`, `enchantments`, `damageTypes`, `predicates`, `itemModifiers`, `functions`,
-keyed by namespaced id, from the 26.3 singular directory names) resolve by Java's rule: a later pack
-wins per file, except tags, whose values merge across packs unless a later file sets `replace`.
+`dimensionTypes`, `dimensions`, `worldgen`, keyed by namespaced id, from the 26.3 singular directory
+names) resolve by Java's rule: a later pack wins per file, except tags, whose values merge across
+packs unless a later file sets `replace`.
+
+`dimensionTypes` holds `data/<namespace>/dimension_type/` and `dimensions` holds
+`data/<namespace>/dimension/`, the level stems a datapack adds or overrides. `worldgen` is one
+registry for the seventeen `data/<namespace>/worldgen/<kind>/` directories in
+`WORLDGEN_REGISTRY_KINDS`: the fourteen terrain kinds the data-driven generator reads (`biome`,
+`block_state_provider`, `carver`, `density_function`, `feature`, `material_condition`,
+`material_rule`, `noise`, `noise_settings`, `placed_feature`, `processor_list`, `structure`,
+`structure_set`, `template_pool`) plus `world_preset`, `flat_level_generator_preset` and
+`multi_noise_biome_source_parameter_list`. Its identifier is `<kind>/<namespace>:<path>`, the shape
+tag ids use, so `data/minecraft/worldgen/noise_settings/overworld.json` is
+`noise_settings/minecraft:overworld` and `worldgenIdentifier('world_preset', 'minecraft:normal')`
+spells the key for a preset. A worldgen file passes the structural validator with any JSON root,
+because a density function may be a bare constant. The `.nbt` structure templates sit under
+`data/<namespace>/structure/`, which is not a worldgen directory; they do not route and stay with
+the generator's own template loader. The identifier report does not walk the three registries:
+the worldgen parsers resolve their references, and the report's field-name heuristic would see only
+a fraction of them.
 
 `functions` is the one registry whose `data` is not parsed JSON. A `.mcfunction` is text, so its
 definition carries the file verbatim and `@jsprismarine/mcfunction` compiles it; a validator is

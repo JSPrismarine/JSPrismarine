@@ -126,6 +126,12 @@ interface JavaShape {
     allowsArrayRoot?: boolean;
     /** Whether the file is text rather than JSON, which only an mcfunction is. */
     allowsTextRoot?: boolean;
+    /**
+     * Whether any JSON value is a valid root. The worldgen kinds share one
+     * registry and have no common shape, and a density function may be a bare
+     * constant: vanilla's `density_function/zero.json` is the number `0`.
+     */
+    allowsAnyRoot?: boolean;
 }
 
 const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
@@ -141,7 +147,13 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     itemModifiers: { allowsArrayRoot: true, optional: { type: 'string' } },
     // An mcfunction is text; `loadDatapack` registers it without consulting a
     // validator, and the line format is checked when it compiles.
-    functions: { allowsTextRoot: true }
+    functions: { allowsTextRoot: true },
+    dimensionTypes: {
+        required: { min_y: 'number', height: 'number' },
+        optional: { logical_height: 'number', coordinate_scale: 'number', attributes: 'object' }
+    },
+    dimensions: { required: { type: 'string', generator: 'object' } },
+    worldgen: { allowsAnyRoot: true }
 };
 
 const matchesType = (value: unknown, type: 'object' | 'array' | 'string' | 'number'): boolean => {
@@ -157,7 +169,7 @@ const validateJavaDefinition = (registry: JavaRegistryId, data: unknown): Valida
     const shape = JAVA_SHAPES[registry];
     const findings: ValidationFinding[] = [];
 
-    if (shape.allowsTextRoot) return findings;
+    if (shape.allowsTextRoot || shape.allowsAnyRoot) return findings;
     if (shape.allowsArrayRoot && Array.isArray(data)) return findings;
     if (!isRecord(data)) {
         return [

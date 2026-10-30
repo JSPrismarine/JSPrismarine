@@ -1,4 +1,10 @@
-import { JAVA_REGISTRY_DIRECTORIES, JAVA_REGISTRY_IDS } from './javaRegistries';
+import {
+    JAVA_REGISTRY_DIRECTORIES,
+    JAVA_REGISTRY_IDS,
+    WORLDGEN_DIRECTORY,
+    isWorldgenRegistryKind,
+    worldgenIdentifier
+} from './javaRegistries';
 import type { JavaRegistryId } from './javaRegistries';
 import type { Definition, Definitions } from './load';
 
@@ -229,11 +235,30 @@ const PACK_REGISTRIES: Readonly<Record<string, JavaRegistryId>> = {
 };
 
 /**
+ * The registries the report walks for references. The dimension and worldgen
+ * registries are left out. Their files name blocks as `{ Name, Properties }`
+ * states, features by `feature`, biomes by `biome` and noise settings by
+ * `settings`, none of which {@link IDENTIFIER_FIELDS} reads; the heuristic
+ * would catch only the `block` strings of flat layers and processor rules
+ * and report a fraction of what the files reference. `@jsprismarine/worldgen`
+ * resolves those references as it parses the files.
+ */
+const WALKED_REGISTRIES = JAVA_REGISTRY_IDS.filter(
+    (registry) => registry !== 'dimensionTypes' && registry !== 'dimensions' && registry !== 'worldgen'
+);
+
+/**
  * Whether the loaded pack stack closes the reference itself: a `#tag` whose
- * tag file it carries, or an element of a registry a datapack fills.
+ * tag file it carries, or an element of a registry a datapack fills. A
+ * `worldgen/<kind>` reference looks in the composite `worldgen` registry
+ * under the kind prefix its files register with.
  */
 const inPackStack = (definitions: Definitions, registry: string, id: string): boolean => {
     if (id.startsWith('#')) return definitions.tags.has(`${registry}/${id.slice(1)}`);
+    if (registry.startsWith(`${WORLDGEN_DIRECTORY}/`)) {
+        const kind = registry.slice(WORLDGEN_DIRECTORY.length + 1);
+        return isWorldgenRegistryKind(kind) && definitions.worldgen.has(worldgenIdentifier(kind, id));
+    }
     const held = PACK_REGISTRIES[registry];
     return held !== undefined && definitions[held].has(id);
 };
@@ -259,7 +284,7 @@ export const reportIdentifiers = (
 ): ReferencedIdentifier[] => {
     const counts: Counts = new Map();
 
-    for (const registry of JAVA_REGISTRY_IDS) {
+    for (const registry of WALKED_REGISTRIES) {
         for (const definition of definitions[registry].values()) {
             if (registry === 'tags') walkTag(definition.data, counts, definition);
             else walk(definition.data, counts, definition);

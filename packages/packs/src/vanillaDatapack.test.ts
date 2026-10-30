@@ -95,6 +95,13 @@ describe.skipIf(!enabled)('the vanilla 26.3 datapack', { tags: ['real-data'] }, 
         expect(definitions.enchantments.size).toBeGreaterThan(0);
         expect(definitions.damageTypes.size).toBeGreaterThan(0);
         expect(definitions.predicates.size).toBeGreaterThan(0);
+        expect(definitions.dimensionTypes.has('minecraft:the_nether')).toBe(true);
+        expect(definitions.worldgen.has('world_preset/minecraft:normal')).toBe(true);
+        expect(definitions.worldgen.has('noise_settings/minecraft:overworld')).toBe(true);
+        // Vanilla ships its stems only inside the presets.
+        expect(definitions.dimensions.size).toBe(0);
+
+        const worldPresets = [...definitions.worldgen.keys()].filter((id) => id.startsWith('world_preset/'));
 
         // The report with no resolver is what this package can answer alone:
         // the references the stack closes itself, and the rest left for the
@@ -122,6 +129,9 @@ describe.skipIf(!enabled)('the vanilla 26.3 datapack', { tags: ['real-data'] }, 
                 `${definitions.enchantments.size} enchantments`,
                 `${definitions.damageTypes.size} damage types`,
                 `${definitions.predicates.size} predicates`,
+                `${definitions.dimensionTypes.size} dimension types`,
+                `${worldPresets.length} world presets`,
+                `${definitions.worldgen.size} worldgen definitions`,
                 `${report.length} identifier references`,
                 `${closed.length} references closed by the pack`
             ].join('; ')

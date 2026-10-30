@@ -65,7 +65,8 @@ sorts after every unversioned one.
 parsed definition. The Bedrock registries are blocks, items, entities, loot tables, trade tables,
 spawn rules, recipes, biomes, features, feature rules, and the item catalog. The Java registries
 are `lootTablesJava`, `recipesJava`, `advancements`, `tags`, `enchantments`, `damageTypes`,
-`predicates`, and `itemModifiers`, keyed by namespaced id.
+`predicates`, `itemModifiers`, `functions`, `dimensionTypes`, and `dimensions`, keyed by namespaced
+id, and `worldgen`, keyed by `<kind>/<namespaced id>` such as `noise_settings/minecraft:overworld`.
 
 ## Precedence: later pack wins, whole replacement
 
@@ -89,10 +90,13 @@ The Java side targets data pack format 121.0, the format Java 26.3 declares, exa
   declaration order, each overriding whole files.
 - **Directory names.** Files route into registries by the 26.3 singular directory names under
   `data/<namespace>/`: `loot_table`, `recipe`, `advancement`, `enchantment`, `damage_type`,
-  `predicate`, `item_modifier`, and `tags`. A file like
+  `predicate`, `item_modifier`, `function`, `dimension_type`, `dimension`, `tags`, and the
+  `worldgen/<kind>` directories the package README lists. A file like
   `data/minecraft/loot_table/blocks/stone.json` registers as `minecraft:blocks/stone` in
-  `lootTablesJava`. Packs written with the pre-1.21 plural directory names will not route and are
-  silently skipped, which is one more reason to read the diagnostics report.
+  `lootTablesJava`, and `data/minecraft/worldgen/world_preset/normal.json` registers as
+  `world_preset/minecraft:normal` in `worldgen`. Packs written with the pre-1.21 plural directory
+  names will not route and are silently skipped, which is one more reason to read the diagnostics
+  report.
 - **Tag merging.** As above: values concatenate across packs in order, and `replace` discards the
   earlier values.
 
