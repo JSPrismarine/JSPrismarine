@@ -9,7 +9,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type { Entity } from '../../../entity/Entity';
-import { ChunkTag, decodeChunkKey, encodeChunkKey, encodePlayerServerKey } from './LevelDBKeys';
+import {
+    ChunkTag,
+    decodeChunkKey,
+    decodeDigest,
+    encodeActorKey,
+    encodeChunkKey,
+    encodeDigestKey,
+    encodePlayerServerKey
+} from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
 import type { DimensionType } from '../../Dimension';
@@ -731,6 +739,81 @@ describe('world', () => {
                 ]);
                 expect(sorted(provider.listChunks(Dimensions.TheEnd))).toEqual([{ x: 9, z: 9 }]);
                 await provider.disable();
+            });
+
+            it("writes a player's dimension and spawn dimension as Bedrock integers", async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                const data: WorldPlayerData = {
+                    username: 'Player',
+                    gamemode: 'Survival',
+                    position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 },
+                    dimension: 'minecraft:the_nether',
+                    spawn: { x: 10, y: 64, z: -3, dimension: 'minecraft:the_end' },
+                    savedAt: 1_700_000_000_000
+                };
+
+                await provider.enable();
+                await provider.writePlayerData('player-xuid', data);
+                expect(await provider.readPlayerData('player-xuid')).toEqual(data);
+                await provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const value = database.get(encodePlayerServerKey('player-xuid'));
+                if (value === null) throw new Error('Expected player_server record');
+
+                const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+                reader.setUseVarint(false);
+                const nbt = reader.parse();
+                expect(nbt.getNumber('DimensionId', -1)).toBe(1);
+                expect(nbt.getNumber('SpawnDimension', -1)).toBe(2);
+                await database.close();
+            });
+
+            it('lists an actor in a Nether chunk under the Nether digest only, with DimensionId 1', async () => {
+                const worldPath = scratch();
+                const netherWorld = stub<World>({ getDimension: () => Dimensions.Nether });
+                const zombie = stub<Entity>({
+                    getType: () => 'minecraft:zombified_piglin',
+                    getPosition: () => stub<Position>({ getX: () => 5, getY: () => 40, getZ: () => 5 }),
+                    getTags: () => [],
+                    getStatusEffects: () => [],
+                    getPortalCooldown: () => 0,
+                    getWorld: () => netherWorld,
+                    shouldPersist: () => true,
+                    yaw: 0,
+                    pitch: 0
+                });
+                const { provider } = harness(worldPath);
+                provider.setEntitySource((dimension) => (dimension.bedrockId === 1 ? [zombie] : []));
+                await provider.enable();
+                await provider.writeChunk(chunkIn(Dimensions.Overworld));
+                await provider.writeChunk(chunkIn(Dimensions.Nether));
+                await provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                expect(database.get(encodeDigestKey(0, 0, 0))).toBeNull();
+                const digest = database.get(encodeDigestKey(0, 0, 1));
+                if (digest === null) throw new Error('Expected a Nether digest');
+                const [actorId] = decodeDigest(digest);
+                if (actorId === undefined) throw new Error('Expected one actor in the digest');
+                const actor = database.get(encodeActorKey(actorId));
+                if (actor === null) throw new Error('Expected the actor record');
+
+                const reader = new NBTReader(new BinaryStream(actor), ByteOrder.LITTLE_ENDIAN);
+                reader.setUseVarint(false);
+                const nbt = reader.parse();
+                expect(nbt.getString('identifier', '')).toBe('minecraft:zombified_piglin');
+                expect(nbt.getNumber('DimensionId', -1)).toBe(1);
+                await database.close();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const overworld = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
+                const nether = await reopened.provider.readChunk(Dimensions.Nether, 0, 0, 1234n, generator());
+                expect(overworld.takeStoredEntities()).toEqual([]);
+                expect(nether.takeStoredEntities().map((entity) => entity.getNumber('DimensionId', -1))).toEqual([1]);
+                await reopened.provider.disable();
             });
 
             it('generates a Nether chunk the save lacks even when the Overworld has one there', async () => {

@@ -318,6 +318,13 @@ export interface WorldPlayerData {
         headYaw: number;
     };
     /**
+     * The Java id of the dimension the player was in, such as `minecraft:the_nether`.
+     *
+     * The LevelDB provider also writes it as Bedrock's `DimensionId` integer. Absent on a
+     * record written before this field existed, which reads as the Overworld.
+     */
+    dimension?: string;
+    /**
      * Advancement progress: advancement id to the criteria the player has
      * completed, each with the instant it was granted.
      *

@@ -10,6 +10,7 @@ export {
     Dimensions,
     FIRST_CUSTOM_DIMENSION_ID,
     SEA_LEVELS,
+    dimensionByBedrockId,
     dimensionByName,
     dimensionTypeOf,
     type DimensionType

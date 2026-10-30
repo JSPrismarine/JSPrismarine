@@ -151,6 +151,15 @@ export const dimensionByName = (name: string): DimensionType | undefined => {
 };
 
 /**
+ * The vanilla dimension a Bedrock integer id names: 0, 1 or 2.
+ *
+ * @returns The dimension, or undefined for any other id. A custom dimension's id is known to
+ *   its `Level`, not to this table.
+ */
+export const dimensionByBedrockId = (bedrockId: number): DimensionType | undefined =>
+    [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find((dimension) => dimension.bedrockId === bedrockId);
+
+/**
  * The sea level of each vanilla dimension, keyed by Java id, from the `sea_level` of Java 26.3's
  * three noise settings.
  *

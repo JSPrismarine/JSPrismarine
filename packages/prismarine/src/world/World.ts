@@ -2949,6 +2949,7 @@ export class World implements Service {
                 yaw: player.yaw,
                 headYaw: player.headYaw
             },
+            dimension: this.getDimension().id,
             advancements: storedAdvancements(player),
             enchantmentSeed: enchantmentSeedOf(player),
             inventory: storedInventory(player.getInventory()),

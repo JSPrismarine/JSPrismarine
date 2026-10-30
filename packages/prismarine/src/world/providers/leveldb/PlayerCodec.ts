@@ -5,8 +5,13 @@
  * under Bedrock's own tag, so a vanilla tool and the game itself read the record, and a field
  * it has no schema for goes under a namespaced tag of this project's own. `Inventory`, `Armor`,
  * `Offhand`, `EnderChestInventory`, `SelectedInventorySlot`, `PlayerGameType`, `Pos`,
- * `Rotation`, `PortalCooldown` and the `Attributes` list are all Bedrock's. The advancement
- * progress and the enchantment seed are not, so they live under {@link SAVED_TAG}.
+ * `Rotation`, `PortalCooldown`, `DimensionId`, `SpawnDimension` and the `Attributes` list are
+ * all Bedrock's. The advancement progress and the enchantment seed are not, so they live under
+ * {@link SAVED_TAG}.
+ *
+ * A dimension is written twice: Bedrock's integer, which is what the game reads and which only
+ * the three vanilla dimensions have, and the Java id under {@link SAVED_TAG}, which a custom
+ * dimension needs and which wins on the way back.
  *
  * Item stacks go through `inventory/itemNbt.ts`, which is the one place that states Bedrock's
  * item compound; a container block entity writes its stacks through the same module.
@@ -18,6 +23,7 @@ import { itemSlotsFromNbt, itemSlotsToNbt } from '../../../inventory/itemNbt';
 import type { StoredInventory, StoredItemStack } from '../../../inventory/persistence';
 import type { StoredPlayerAttribute, WorldPlayerData } from '../../World';
 import type { StoredSpawnPoint } from '../../RespawnPoint';
+import { dimensionByBedrockId, dimensionByName } from '../../Dimension';
 
 /** The compound holding every field Bedrock has no schema for. */
 const SAVED_TAG = 'JSPrismarine';
@@ -194,12 +200,27 @@ const inventoryFromNbt = (root: NBTTagCompound): StoredInventory | undefined => 
  * `/spawnpoint` that sets one - so that flag goes under {@link SAVED_TAG} with the dimension's
  * namespaced identifier, which is what this server addresses a world by.
  */
-const SPAWN_TAGS = { x: 'SpawnX', y: 'SpawnY', z: 'SpawnZ' } as const;
+const SPAWN_TAGS = { x: 'SpawnX', y: 'SpawnY', z: 'SpawnZ', dimension: 'SpawnDimension' } as const;
+
+/** Bedrock's tag for the dimension the player is in. */
+const DIMENSION_TAG = 'DimensionId';
+
+/**
+ * The Java id a dimension tag pair names: the saved string when there is one, otherwise the
+ * vanilla dimension Bedrock's integer stands for.
+ */
+const dimensionFromNbt = (saved: string | undefined, bedrockId: number | undefined): string | undefined => {
+    if (saved !== undefined && saved !== '') return saved;
+    return bedrockId === undefined ? undefined : dimensionByBedrockId(bedrockId)?.id;
+};
 
 /** The spawn point as the record carries it, out of whichever half of it is there. */
 const spawnFromNbt = (root: NBTTagCompound, saved: NBTTagCompound | null): StoredSpawnPoint | undefined => {
-    const dimension = saved?.getString('spawnDimension', '') ?? '';
-    if (dimension === '' || !root.has(SPAWN_TAGS.x)) return undefined;
+    const dimension = dimensionFromNbt(
+        saved?.getString('spawnDimension', ''),
+        root.has(SPAWN_TAGS.dimension) ? root.getNumber(SPAWN_TAGS.dimension, 0) : undefined
+    );
+    if (dimension === undefined || !root.has(SPAWN_TAGS.x)) return undefined;
 
     return {
         x: root.getNumber(SPAWN_TAGS.x, 0),
@@ -221,10 +242,14 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     inventoryToNbt(root, data.inventory);
 
     if (data.portalCooldown !== undefined) root.addValue('PortalCooldown', new Types.NumberVal(data.portalCooldown));
+    const dimensionId = data.dimension === undefined ? undefined : dimensionByName(data.dimension)?.bedrockId;
+    if (dimensionId !== undefined) root.addValue(DIMENSION_TAG, new Types.NumberVal(dimensionId));
     if (data.spawn !== undefined) {
         root.addValue(SPAWN_TAGS.x, new Types.NumberVal(Math.floor(data.spawn.x)));
         root.addValue(SPAWN_TAGS.y, new Types.NumberVal(Math.floor(data.spawn.y)));
         root.addValue(SPAWN_TAGS.z, new Types.NumberVal(Math.floor(data.spawn.z)));
+        const spawnDimensionId = dimensionByName(data.spawn.dimension)?.bedrockId;
+        if (spawnDimensionId !== undefined) root.addValue(SPAWN_TAGS.dimension, new Types.NumberVal(spawnDimensionId));
     }
 
     const saved = new NBTTagCompound(SAVED_TAG);
@@ -237,6 +262,7 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     if (data.savedAt !== undefined) saved.addValue('savedAt', new Types.DoubleVal(data.savedAt));
     if (data.flying !== undefined) saved.addValue('flying', new Types.ByteVal(data.flying ? 1 : 0));
     if (data.attributes !== undefined) saved.addValue('attributes', new Types.ByteVal(1));
+    if (data.dimension !== undefined) saved.addValue('dimension', new Types.StringVal(data.dimension));
     if (data.spawn !== undefined) {
         saved.addValue('spawnDimension', new Types.StringVal(data.spawn.dimension));
         saved.addValue('spawnForced', new Types.ByteVal(data.spawn.forced === true ? 1 : 0));
@@ -274,6 +300,10 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
     const inventory = inventoryFromNbt(nbt);
     const advancements = saved?.getString('advancements', '') ?? '';
     const spawn = spawnFromNbt(nbt, saved);
+    const dimension = dimensionFromNbt(
+        saved?.getString('dimension', ''),
+        nbt.has(DIMENSION_TAG) ? nbt.getNumber(DIMENSION_TAG, 0) : undefined
+    );
 
     return {
         ...(saved?.has('uuid') ? { uuid: saved.getString('uuid', '') } : {}),
@@ -287,6 +317,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
             yaw: savedPosition?.getDouble('yaw', rotation[0] ?? 0) ?? rotation[0] ?? 0,
             headYaw: savedPosition?.getDouble('headYaw', rotation[0] ?? 0) ?? rotation[0] ?? 0
         },
+        ...(dimension === undefined ? {} : { dimension }),
         ...(saved?.has('enchantmentSeed') ? { enchantmentSeed: saved.getNumber('enchantmentSeed', 0) } : {}),
         ...(saved?.has('flying') ? { flying: saved.getByte('flying', 0) === 1 } : {}),
         ...(saved?.has('attributes') || Object.keys(attributes).some((name) => !LEGACY_ATTRIBUTE_NAMES.has(name))
