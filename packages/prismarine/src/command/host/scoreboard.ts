@@ -15,11 +15,15 @@
  * sides. A restart starts over.
  */
 import type { EntityRef, ScoreboardCommandHost } from '@jsprismarine/commands';
+import {
+    ObjectiveSortOrder,
+    RemoveObjectivePacket,
+    SetDisplayObjectivePacket,
+    SetScorePacket,
+    ScorePacketEntryAction
+} from '@jsprismarine/protocol';
 
 import type Server from '../../Server';
-import RemoveObjectivePacket from '../../network/packet/RemoveObjectivePacket';
-import SetDisplayObjectivePacket, { ObjectiveSortOrder } from '../../network/packet/SetDisplayObjectivePacket';
-import SetScorePacket, { ScorePacketEntryAction } from '../../network/packet/SetScorePacket';
 import { carryOut, refuse } from './support';
 
 /** One objective, as `/scoreboard objectives add` declares it. */

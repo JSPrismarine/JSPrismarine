@@ -104,7 +104,6 @@ import PositionTrackingDBClientRequestPacket from './packet/PositionTrackingDBCl
 import PositionTrackingDBServerBroadcastPacket from './packet/PositionTrackingDBServerBroadcastPacket';
 import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
-import RemoveObjectivePacket from './packet/RemoveObjectivePacket';
 import RequestAbilityPacket from './packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
@@ -133,7 +132,6 @@ import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetCommandsEnabledPacket from './packet/SetCommandsEnabledPacket';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetDifficultyPacket from './packet/SetDifficultyPacket';
-import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
 import SetHealthPacket from './packet/SetHealthPacket';
 import SetLastHurtByPacket from './packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
@@ -141,8 +139,6 @@ import SetPassengerOfBlockPacket from './packet/SetPassengerOfBlockPacket';
 import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
-import SetScorePacket from './packet/SetScorePacket';
-import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
 import SetSpawnPositionPacket from './packet/SetSpawnPositionPacket';
 import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
@@ -287,7 +283,6 @@ export {
     PositionTrackingDBServerBroadcastPacket,
     PurchaseReceiptPacket,
     RemoveActorPacket,
-    RemoveObjectivePacket,
     RequestAbilityPacket,
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
@@ -316,7 +311,6 @@ export {
     SetCommandsEnabledPacket,
     SetDefaultGameTypePacket,
     SetDifficultyPacket,
-    SetDisplayObjectivePacket,
     SetHealthPacket,
     SetLastHurtByPacket,
     SetLocalPlayerAsInitializedPacket,
@@ -324,8 +318,6 @@ export {
     SetPlayerFurnaceOptionsPacket,
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
-    SetScorePacket,
-    SetScoreboardIdentityPacket,
     SetSpawnPositionPacket,
     SetTimePacket,
     SetTitlePacket,

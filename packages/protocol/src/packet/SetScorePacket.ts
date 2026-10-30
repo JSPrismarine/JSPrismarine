@@ -1,11 +1,9 @@
-import { layoutAt, setScorePacket } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { setScorePacket } from '../wire/definitions/scoreboard';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
-import type { ScorePacketEntry } from '@jsprismarine/protocol';
-
-export { ScorePacketEntryAction } from '@jsprismarine/protocol';
-export type { ScorePacketEntry } from '@jsprismarine/protocol';
+import type { ScorePacketEntry } from '../wire/definitions/scoreboard';
 
 /**
  * Adds, changes or removes lines on a scoreboard the client is already showing.

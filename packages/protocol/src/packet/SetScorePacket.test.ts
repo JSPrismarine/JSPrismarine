@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import SetScorePacket, { ScorePacketEntryAction } from './SetScorePacket';
+import SetScorePacket from './SetScorePacket';
+import { ScorePacketEntryAction } from '../wire/definitions/scoreboard';
 
 const REMOVE_WITHOUT_OBJECTIVE = Buffer.concat([
     Buffer.from([0x00]), // Selector 0, Remove.

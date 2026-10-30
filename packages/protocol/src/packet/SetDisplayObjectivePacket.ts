@@ -1,6 +1,7 @@
-import { layoutAt, setDisplayObjectivePacket } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { setDisplayObjectivePacket } from '../wire/definitions/scoreboard';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Which way the client orders an objective's lines, as the `SortOrder` ZigZag varint32 numbers it. */
 export enum ObjectiveSortOrder {

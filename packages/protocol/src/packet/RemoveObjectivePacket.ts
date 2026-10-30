@@ -1,6 +1,7 @@
-import { layoutAt, removeObjectivePacket } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { removeObjectivePacket } from '../wire/definitions/scoreboard';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Removes a scoreboard objective from the client.

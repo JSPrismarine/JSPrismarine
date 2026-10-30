@@ -1,10 +1,9 @@
-import { layoutAt, setScoreboardIdentityPacket } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { setScoreboardIdentityPacket } from '../wire/definitions/scoreboard';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
-import type { ScoreboardIdentityPacketInfo } from '@jsprismarine/protocol';
-
-export type { ScoreboardIdentityPacketInfo } from '@jsprismarine/protocol';
+import type { ScoreboardIdentityPacketInfo } from '../wire/definitions/scoreboard';
 
 /** Whether the entries attach an identity or drop one, as the leading byte numbers it. */
 export enum ScoreboardIdentityPacketType {
