@@ -13,7 +13,10 @@ export const FLAT_GENERATOR_KIND = 'minecraft:flat';
  *
  * @param settings - The layers and biome. Defaults to {@link DEFAULT_FLAT_SETTINGS}.
  */
-export const flatStem = (dimensionType: string, settings: FlatGeneratorSettings = DEFAULT_FLAT_SETTINGS): LevelStem => ({
+export const flatStem = (
+    dimensionType: string,
+    settings: FlatGeneratorSettings = DEFAULT_FLAT_SETTINGS
+): LevelStem => ({
     type: dimensionType,
     generator: { type: FLAT_GENERATOR_KIND, settings }
 });
@@ -31,7 +34,11 @@ export const flatGeneratorFactory: GeneratorFactory = {
         const generator = context.stem.generator;
         // The stem parser only produces settings for this kind, so a stem of another kind
         // reaching this factory is a registry bug rather than a data error.
-        if (generator.type !== FLAT_GENERATOR_KIND || !('settings' in generator) || !isFlatSettings(generator.settings)) {
+        if (
+            generator.type !== FLAT_GENERATOR_KIND ||
+            !('settings' in generator) ||
+            !isFlatSettings(generator.settings)
+        ) {
             throw new TypeError(`The ${context.dimension.id} stem carries no flat generator settings`);
         }
 

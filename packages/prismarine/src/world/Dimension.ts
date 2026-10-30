@@ -29,12 +29,10 @@ export const minSubChunk = (dimension: DimensionType): number => dimension.minY 
 export const subChunkCount = (dimension: DimensionType): number => dimension.height >> 4;
 
 /** The index of the highest sub chunk. */
-export const maxSubChunk = (dimension: DimensionType): number =>
-    minSubChunk(dimension) + subChunkCount(dimension) - 1;
+export const maxSubChunk = (dimension: DimensionType): number => minSubChunk(dimension) + subChunkCount(dimension) - 1;
 
 /** The highest placeable y. */
 export const maxY = (dimension: DimensionType): number => dimension.minY + dimension.height - 1;
 
 /** Whether a block y lies inside the dimension. */
-export const contains = (dimension: DimensionType, y: number): boolean =>
-    y >= dimension.minY && y <= maxY(dimension);
+export const contains = (dimension: DimensionType, y: number): boolean => y >= dimension.minY && y <= maxY(dimension);

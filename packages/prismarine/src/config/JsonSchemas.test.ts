@@ -54,7 +54,10 @@ describe('JSON schemas', () => {
                                 type: 'minecraft:overworld',
                                 generator: {
                                     type: 'minecraft:flat',
-                                    settings: { biome: 'minecraft:plains', layers: [{ block: 'minecraft:stone', height: 1 }] }
+                                    settings: {
+                                        biome: 'minecraft:plains',
+                                        layers: [{ block: 'minecraft:stone', height: 1 }]
+                                    }
                                 }
                             },
                             'minecraft:the_end': { load: 'lazy' }
@@ -136,7 +139,10 @@ describe('JSON schemas', () => {
             expect(validate({ seed: 1, dimensions: { 'minecraft:the_nether': { load: 'eager' } } })).toBe(true);
             expect(validate({ seed: 1, dimensions: { 'minecraft:the_nether': { load: 'now' } } })).toBe(false);
             expect(
-                validate({ seed: 1, dimensions: { 'minecraft:overworld': { generator: { settings: 'minecraft:overworld' } } } })
+                validate({
+                    seed: 1,
+                    dimensions: { 'minecraft:overworld': { generator: { settings: 'minecraft:overworld' } } }
+                })
             ).toBe(false);
         });
     });

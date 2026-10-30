@@ -1,7 +1,13 @@
 import type { ServerContent } from '../../content/ServerContent';
 import type { GeneratorLogger } from '../BaseGenerator';
 import { Dimensions } from '../Dimension';
-import type { Generator, GeneratorPosition, StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../Generator';
+import type {
+    Generator,
+    GeneratorPosition,
+    StructureSearchRequest,
+    StructureSearchResult,
+    SurfaceProbe
+} from '../Generator';
 import { GeneratorFactories } from '../GeneratorFactories';
 import type Chunk from '../chunk/Chunk';
 import { requireJavaWorldgenRegistries } from './datadriven/javaWorldgenData';

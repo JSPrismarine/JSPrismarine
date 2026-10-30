@@ -21,8 +21,9 @@ import SubChunk from './SubChunk';
  * and carry 8 and 16 biome sections rather than the Overworld's 24.
  */
 const clientRangeOf = (dimension: DimensionType): DimensionType =>
-    [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find((candidate) => candidate.bedrockId === dimension.bedrockId) ??
-    Dimensions.Overworld;
+    [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find(
+        (candidate) => candidate.bedrockId === dimension.bedrockId
+    ) ?? Dimensions.Overworld;
 
 /** How many bits of each chunk axis a packed key carries. See {@link Chunk.packXZ}. */
 const CHUNK_KEY_BITS = 22;

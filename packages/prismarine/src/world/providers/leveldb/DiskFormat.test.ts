@@ -118,7 +118,9 @@ describe('world', () => {
 
                 expect(key.byteLength).toBe(16);
                 expect(key.subarray(0, 4)).toEqual(Buffer.from('digp'));
-                expect(key.subarray(4)).toEqual(encodeChunkKey({ x: 5, z: -6, dimension: 1, tag: ChunkTag.Version }).subarray(0, 12));
+                expect(key.subarray(4)).toEqual(
+                    encodeChunkKey({ x: 5, z: -6, dimension: 1, tag: ChunkTag.Version }).subarray(0, 12)
+                );
             });
 
             it('always carries the dimension in a pending-actor key, the Overworld included', () => {
@@ -129,7 +131,9 @@ describe('world', () => {
                     expect(decodePendingEntityKey(key)).toEqual({ x: 7, z: -8, dimension });
                 }
                 expect(decodePendingEntityKey(encodeDigestKey(7, -8, 1))).toBeNull();
-                expect(decodePendingEntityKey(encodeChunkKey({ x: 7, z: -8, dimension: 1, tag: ChunkTag.Version }))).toBeNull();
+                expect(
+                    decodePendingEntityKey(encodeChunkKey({ x: 7, z: -8, dimension: 1, tag: ChunkTag.Version }))
+                ).toBeNull();
             });
 
             it('round-trips a list of actor ids', () => {

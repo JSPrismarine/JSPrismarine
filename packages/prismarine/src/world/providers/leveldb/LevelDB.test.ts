@@ -308,7 +308,8 @@ describe('world', () => {
         });
 
         describe('level.dat', () => {
-            const levelDat = (worldPath: string) => decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat'))).root;
+            const levelDat = (worldPath: string) =>
+                decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat'))).root;
 
             /** The vanilla `minecraft:flat` preset's Overworld stem, as a world preset file spells it. */
             const flatOverworld = parseLevelStem({
@@ -391,7 +392,9 @@ describe('world', () => {
                 const { provider } = harness(worldPath);
                 await provider.enable();
                 provider.saveLevelData({ stems: { 'minecraft:overworld': flatOverworld } });
-                provider.saveLevelData({ stems: { 'minecraft:overworld': noiseOverworld, 'minecraft:the_nether': noiseOverworld } });
+                provider.saveLevelData({
+                    stems: { 'minecraft:overworld': noiseOverworld, 'minecraft:the_nether': noiseOverworld }
+                });
                 await provider.disable();
 
                 const root = levelDat(worldPath);
@@ -577,7 +580,13 @@ describe('world', () => {
 
                 for (let cx = -2; cx <= 2; cx++) {
                     for (let cz = -2; cz <= 2; cz++) {
-                        const restored = await reopened.provider.readChunk(Dimensions.Overworld, cx, cz, 1234n, generator());
+                        const restored = await reopened.provider.readChunk(
+                            Dimensions.Overworld,
+                            cx,
+                            cz,
+                            1234n,
+                            generator()
+                        );
                         expect(restored.getBlockRuntimeId(3, -64, 4)).toBe(id('minecraft:bedrock'));
                     }
                 }

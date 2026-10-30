@@ -75,7 +75,10 @@ describe('overworldStemOf', () => {
                     'minecraft:overworld': {
                         generator: {
                             type: 'minecraft:flat',
-                            settings: { layers: [{ block: 'minecraft:sandstone', height: 2 }], biome: 'minecraft:desert' }
+                            settings: {
+                                layers: [{ block: 'minecraft:sandstone', height: 2 }],
+                                biome: 'minecraft:desert'
+                            }
                         }
                     }
                 }

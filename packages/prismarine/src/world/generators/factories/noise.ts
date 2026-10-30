@@ -78,7 +78,10 @@ const resolveSettings = (
     if (typeof generator.settings !== 'string') {
         const noiseSettings = inlineSettingsId(dimensionType);
         return {
-            registries: { ...registries, noiseSettings: new Map([...registries.noiseSettings, [noiseSettings, generator.settings]]) },
+            registries: {
+                ...registries,
+                noiseSettings: new Map([...registries.noiseSettings, [noiseSettings, generator.settings]])
+            },
             noiseSettings
         };
     }

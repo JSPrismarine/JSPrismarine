@@ -93,7 +93,9 @@ describe('world chunk requests', () => {
     });
 
     it('answers from memory once the chunk has arrived, without asking again', async () => {
-        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => new Chunk(x, z, new Map(), Dimensions.Overworld));
+        const readChunk = vi.fn(
+            async (_dimension: DimensionType, x: number, z: number) => new Chunk(x, z, new Map(), Dimensions.Overworld)
+        );
         const world = testWorld(readChunk);
 
         const first = await world.getChunk(7, 7);

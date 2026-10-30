@@ -1063,7 +1063,15 @@ export class World implements Service {
     /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
     private async readChunkInto(index: number, x: number, z: number, options?: ChunkRequestOptions): Promise<Chunk> {
         // Try - catch for provider errors
-        const chunk = await this.provider.readChunk(this.dimension, x, z, this.seed, this.generator, this.config, options);
+        const chunk = await this.provider.readChunk(
+            this.dimension,
+            x,
+            z,
+            this.seed,
+            this.generator,
+            this.config,
+            options
+        );
         this.chunks.set(index, chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         // The only thing that changes what `getLoadedChunk` should answer.

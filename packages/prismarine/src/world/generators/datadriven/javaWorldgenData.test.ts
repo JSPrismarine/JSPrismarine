@@ -18,7 +18,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../../../.test/reportProgress';
 
-import { findJavaWorldgenSources, loadJavaWorldgenRegistries, loadJavaWorldgenRegistriesFrom } from './javaWorldgenData';
+import {
+    findJavaWorldgenSources,
+    loadJavaWorldgenRegistries,
+    loadJavaWorldgenRegistriesFrom
+} from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;

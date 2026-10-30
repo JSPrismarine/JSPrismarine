@@ -362,4 +362,3 @@ export default class WorldManager implements Service {
         return this.generatorFactories;
     }
 }
-

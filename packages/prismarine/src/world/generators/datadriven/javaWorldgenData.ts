@@ -26,14 +26,9 @@ import { join } from 'node:path';
 import type { Definitions, WorldgenRegistryKind } from '@jsprismarine/packs';
 import { load } from '@jsprismarine/packs';
 import type { JavaWorldgenSources } from './javaWorldgenSources';
-import { JAVA_WORLDGEN_ENV, findJavaWorldgenSources, } from './javaWorldgenSources';
+import { JAVA_WORLDGEN_ENV, findJavaWorldgenSources } from './javaWorldgenSources';
 
-export {
-    JAVA_WORLDGEN_ENV,
-    cacheRoot,
-    findJavaWorldgenSources,
-    type JavaWorldgenSources
-} from './javaWorldgenSources';
+export { JAVA_WORLDGEN_ENV, cacheRoot, findJavaWorldgenSources, type JavaWorldgenSources } from './javaWorldgenSources';
 
 /** One registry's documents, keyed by namespaced identifier. */
 export type JavaRegistry = ReadonlyMap<string, unknown>;
