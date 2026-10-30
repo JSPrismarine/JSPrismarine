@@ -103,7 +103,9 @@ for (const file of files) {
     const source = requireSource(file);
     // A version's payloads land beside its item table; the default version's keep the
     // unversioned path every consumer already imports.
-    const directory = file.startsWith(`jsp/v`) && !file.startsWith(`${jsp}/`) ? file.split('/')[1] : '';
+    const versionDirectory = file.match(/^jsp[/\\](v\d+)[/\\]/)?.[1];
+    const directory =
+        versionDirectory === undefined || versionDirectory === `v${defaultProtocolVersion}` ? '' : versionDirectory;
     const target = path.resolve('src/generated', directory, `${filename.split('.').slice(0, -1).join('.')}.json`);
 
     if (!force && isUpToDate(source, target)) {
