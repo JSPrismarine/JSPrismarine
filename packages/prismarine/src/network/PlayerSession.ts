@@ -51,7 +51,7 @@ import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
+import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
@@ -1265,8 +1265,8 @@ export default class PlayerSession {
      * @param distance - The view distance
      */
     public async setViewDistance(distance: number): Promise<void> {
-        const packet = new ChunkRadiusUpdatedPacket();
-        packet.radius = this.player.viewDistance = distance;
+        this.player.viewDistance = distance;
+        const packet = new ChunkRadiusUpdatedPacket({ radius: distance });
         await this.connection.sendDataPacket(packet);
 
         // A retail client discards every LevelChunk that reaches it before it has asked for a

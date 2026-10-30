@@ -1,21 +1,17 @@
 import {
-    ChunkRadiusUpdatedPacket,
     LevelChunkPacket,
     MovePlayerPacket,
     PositionMode,
     NetworkBinaryStream,
     PlayerActionPacket,
-    PlayerActionType,
-    RequestChunkRadiusPacket
+    PlayerActionType
 } from '@jsprismarine/protocol';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 import BlockPosition from '../world/BlockPosition';
-import ServerChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ServerLevelChunkPacket from './packet/LevelChunkPacket';
 import ServerMovePlayerPacket from './packet/MovePlayerPacket';
 import ServerPlayerActionPacket from './packet/PlayerActionPacket';
-import ServerRequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 
 import type { NetworkPacket } from '@jsprismarine/protocol';
 
@@ -136,27 +132,6 @@ describe('PlayerAction', () => {
         expect(server.blockPosition.getY()).toBe(-40);
         expect(server.resultPosition.getY()).toBe(200);
         expect(server.blockFace).toBe(1);
-    });
-});
-
-describe('chunk radius', () => {
-    it('encodes a request the server decodes', () => {
-        const server = new ServerRequestChunkRadiusPacket(
-            encode(new RequestChunkRadiusPacket({ radius: 4, maxRadius: 12 }))
-        );
-        server.decode();
-
-        expect(server.radius).toBe(4);
-        expect(server.maxRadius).toBe(12);
-    });
-
-    it('decodes the answer the server encodes', () => {
-        const server = new ServerChunkRadiusUpdatedPacket();
-        server.radius = 8;
-        server.encode();
-
-        const decoded = new ChunkRadiusUpdatedPacket().deserialize(new NetworkBinaryStream(server.getBuffer()));
-        expect(decoded.radius).toBe(8);
     });
 });
 

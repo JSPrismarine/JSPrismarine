@@ -20,7 +20,7 @@ import BookEditPacket from './packet/BookEditPacket';
 import BossEventPacket from '@jsprismarine/protocol/packet/BossEventPacket';
 import CameraPacket from '@jsprismarine/protocol/packet/CameraPacket';
 import CameraShakePacket from '@jsprismarine/protocol/packet/CameraShakePacket';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
+import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
@@ -99,7 +99,7 @@ import PositionTrackingDBServerBroadcastPacket from '@jsprismarine/protocol/pack
 import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
-import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
+import RequestChunkRadiusPacket from '@jsprismarine/protocol/packet/RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from '@jsprismarine/protocol/packet/RequestNetworkSettingsPacket';
 import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import ResourcePackChunkDataPacket from '@jsprismarine/protocol/packet/ResourcePackChunkDataPacket';

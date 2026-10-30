@@ -6,11 +6,11 @@ import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
+import { RequestChunkRadiusPacket } from '@jsprismarine/protocol';
 import RequestChunkRadiusHandler from './RequestChunkRadiusHandler';
 
 const request = (radius: number, maxRadius: number): RequestChunkRadiusPacket =>
-    Object.assign(new RequestChunkRadiusPacket(), { radius, maxRadius });
+    new RequestChunkRadiusPacket({ radius, maxRadius });
 
 /** Runs the handler against a server with the given view distance and returns what it granted and logged. */
 const run = async (

@@ -1,6 +1,6 @@
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
-import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
+import type { RequestChunkRadiusPacket } from '@jsprismarine/protocol';
 import type Server from '../../Server';
 
 /**
@@ -19,16 +19,19 @@ export default class RequestChunkRadiusHandler implements PacketHandler<RequestC
 
     /** Grants a radius and records the exchange at debug level, since the join hinges on it. */
     public async handle(packet: RequestChunkRadiusPacket, server: Server, session: PlayerSession): Promise<void> {
-        const limits = [packet.radius, server.getConfig().getViewDistance()];
-        if (packet.maxRadius > 0) {
-            limits.push(packet.maxRadius);
+        const request = packet.getPacketData();
+        if (request === null) throw new Error('RequestChunkRadiusPacket has no payload');
+
+        const limits = [request.radius, server.getConfig().getViewDistance()];
+        if (request.maxRadius > 0) {
+            limits.push(request.maxRadius);
         }
 
         const granted = Math.max(1, Math.min(...limits));
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for a chunk radius of ${packet.radius} (max ${packet.maxRadius}), granted ${granted}`,
+                `${session.getPlayer().getName()} asked for a chunk radius of ${request.radius} (max ${request.maxRadius}), granted ${granted}`,
                 'RequestChunkRadiusHandler/handle'
             );
 
