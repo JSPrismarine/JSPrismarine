@@ -395,15 +395,26 @@ const number = (value: unknown, path: string): number => {
     return value;
 };
 
-/** Reads one axis, which Java writes either as a single number or as a `{min, max}` object. */
+/**
+ * Reads one axis in any of the three shapes Java's `Climate.Parameter` codec accepts: a single
+ * number, a `{min, max}` object, or the `[min, max]` list that `BiomeParametersDumpReport`
+ * writes into `reports/biome_parameters`.
+ */
 const parseParameter = (source: unknown, path: string): ClimateParameter => {
     if (typeof source === 'number') return climatePoint(source);
+    if (Array.isArray(source)) {
+        if (source.length !== 2) {
+            throw new TypeError(`${path}: expected [min, max], got ${JSON.stringify(source)}`);
+        }
+        return climateSpan(number(source[0], `${path}[0]`), number(source[1], `${path}[1]`));
+    }
     const raw = asObject(source, path);
     return climateSpan(number(raw['min'], `${path}.min`), number(raw['max'], `${path}.max`));
 };
 
 /**
- * Reads one `parameters` object of a `multi_noise_biome_source_parameter_list` document.
+ * Reads one `parameters` object of a `multi_noise_biome_source_parameter_list` document or of
+ * a `reports/biome_parameters` entry. Each axis may be a number, `{min, max}` or `[min, max]`.
  *
  * @throws When an axis is missing or has the wrong shape.
  */

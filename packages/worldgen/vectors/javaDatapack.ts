@@ -15,11 +15,7 @@ export interface VanillaDatapack {
     readonly readData: (relativePath: string) => unknown;
     /** Parses one JSON file under {@link reports}. */
     readonly readReport: (relativePath: string) => unknown;
-    /**
-     * Reads `reports/biome_parameters/minecraft/<name>.json` with every `[min, max]` axis
-     * rewritten to the `{ min, max }` object `parseClimateParameterPoint` reads, the way
-     * `@jsprismarine/prismarine`'s loader hands the report to this package.
-     */
+    /** Parses `reports/biome_parameters/minecraft/<name>.json` as the data generator wrote it. */
     readonly readBiomeParameters: (name: string) => unknown;
     /** Lists the `.json` files in a directory under {@link data}, as ids without the extension. */
     readonly listData: (relativeDirectory: string) => string[];
@@ -41,26 +37,6 @@ const override = (name: string): string | undefined => {
 
 // Cache files are extracted game data and therefore untrusted; they are only parsed as JSON.
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-
-/** `BiomeParametersDumpReport` writes an axis as `[min, max]`; the hand-written lists use an object. */
-const normalizeBiomeParameters = (document: unknown): unknown => {
-    if (!isRecord(document) || !Array.isArray(document['biomes'])) return document;
-    const axis = (value: unknown): unknown =>
-        Array.isArray(value) && value.length === 2 ? { min: value[0], max: value[1] } : value;
-    return {
-        biomes: document['biomes'].map((entry: unknown) => {
-            if (!isRecord(entry) || !isRecord(entry['parameters'])) return entry;
-            return {
-                ...entry,
-                parameters: Object.fromEntries(
-                    Object.entries(entry['parameters']).map(([name, value]) => [name, axis(value)])
-                )
-            };
-        })
-    };
-};
 
 /**
  * Finds the cached vanilla datapack and data generator reports that
@@ -86,8 +62,7 @@ export const findVanillaDatapack = (): VanillaDatapack | undefined => {
         reports,
         readData: (relativePath) => readJson(join(data, relativePath)),
         readReport: (relativePath) => readJson(join(reports, relativePath)),
-        readBiomeParameters: (name) =>
-            normalizeBiomeParameters(readJson(join(reports, 'biome_parameters', 'minecraft', `${name}.json`))),
+        readBiomeParameters: (name) => readJson(join(reports, 'biome_parameters', 'minecraft', `${name}.json`)),
         listData: (relativeDirectory) =>
             readdirSync(join(data, relativeDirectory))
                 .filter((entry) => entry.endsWith('.json'))

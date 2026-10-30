@@ -79,6 +79,41 @@ describe('parseBiomeSourceDefinition', () => {
         expect(definition.biomes[1]?.parameters.humidity).toEqual({ min: -5000, max: -5000 });
     });
 
+    it('reads an axis written as a [min, max] list, the shape the data generator reports use', () => {
+        const definition = parseBiomeSourceDefinition({
+            type: 'minecraft:multi_noise',
+            biomes: [
+                {
+                    biome: 'minecraft:plains',
+                    parameters: {
+                        ...POINT,
+                        temperature: [-0.15, 0.2],
+                        humidity: { min: -0.35, max: -0.1 },
+                        continentalness: 0.03
+                    }
+                }
+            ]
+        });
+        if (definition.type !== 'minecraft:multi_noise' || !('biomes' in definition)) throw new Error('wrong variant');
+        const parameters = definition.biomes[0]?.parameters;
+        expect(parameters?.temperature).toEqual({ min: -1500, max: 2000 });
+        expect(parameters?.humidity).toEqual({ min: -3500, max: -1000 });
+        expect(parameters?.continentalness).toEqual({ min: 300, max: 300 });
+    });
+
+    it('rejects a list axis that does not hold exactly two numbers', () => {
+        const withAxis = (temperature: unknown) => ({
+            type: 'minecraft:multi_noise',
+            biomes: [{ biome: 'minecraft:plains', parameters: { ...POINT, temperature } }]
+        });
+        expect(() => parseBiomeSourceDefinition(withAxis([0, 1, 2]), 'p')).toThrow(
+            'p.biomes[0].parameters.temperature: expected [min, max], got [0,1,2]'
+        );
+        expect(() => parseBiomeSourceDefinition(withAxis([0, 'warm']), 'p')).toThrow(
+            'p.biomes[0].parameters.temperature[1]: expected a finite number, got "warm"'
+        );
+    });
+
     it('names the type and the path of an unknown kind', () => {
         expect(() =>
             parseBiomeSourceDefinition({ type: 'minecraft:vanilla_layered' }, 'stem.generator.biome_source')
