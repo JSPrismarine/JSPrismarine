@@ -2,7 +2,7 @@ import { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/min
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import UpdateAbilitiesPacket, { AbilityLayer, AbilityLayerFlag, AbilityLayerType } from './UpdateAbilitiesPacket';
 
 // Flags in bit order. BUILD (0) true, FLYING (9) false, MAY_FLY (10) true, FLY_SPEED (13) and
@@ -41,7 +41,7 @@ describe('network', () => {
     describe('packet', () => {
         describe('UpdateAbilitiesPacket', () => {
             it('uses the network id the client expects', () => {
-                expect(netIdFor('UpdateAbilitiesPacket')).toBe(Identifiers.UpdateAbilitiesPacket);
+                expect(netIdFor('UpdateAbilitiesPacket')).toBe(PacketIdentifier.UPDATE_ABILITIES);
                 expect(netIdFor('UpdateAbilitiesPacket')).toBe(187);
             });
 

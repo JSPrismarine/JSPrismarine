@@ -13,7 +13,7 @@ import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import BatchPacket from './packet/BatchPacket';
-import UpdateBlockPacket, { UpdateBlockFlagsType } from './packet/UpdateBlockPacket';
+import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 
 /** A player and the block updates the replicator batches for it. */
 const replicatorFor = () => {

@@ -12,7 +12,7 @@ import { TitleType } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
-import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
+import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import TransferPacket from '../../network/packet/TransferPacket';

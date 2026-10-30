@@ -1,6 +1,7 @@
-import { AnimateAction, AnimateHand, animatePacket, layoutAt } from '@jsprismarine/protocol';
+import { AnimateAction, AnimateHand, animatePacket } from '../wire/definitions/animate';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 export { AnimateAction };
 

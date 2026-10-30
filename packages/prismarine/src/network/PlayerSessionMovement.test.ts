@@ -6,7 +6,7 @@ import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type MovePlayerPacket from './packet/MovePlayerPacket';
-import type SetActorMotionPacket from './packet/SetActorMotionPacket';
+import type SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
 import PositionMode from './type/PositionMode';
 

@@ -45,7 +45,7 @@ import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { BatchPacket } from './Packets';
-import AddActorPacket from './packet/AddActorPacket';
+import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
@@ -66,12 +66,12 @@ import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/Net
 import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayStatus from './type/PlayStatus';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
-import RemoveActorPacket from './packet/RemoveActorPacket';
+import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import type { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
-import ActorEventPacket, { ActorEvent } from './packet/ActorEventPacket';
-import SetActorDataPacket from './packet/SetActorDataPacket';
-import SetActorMotionPacket from './packet/SetActorMotionPacket';
+import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
 import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
@@ -82,9 +82,9 @@ import UpdateAbilitiesPacket, {
     AbilityLayer,
     AbilityLayerFlag,
     AbilityLayerType
-} from './packet/UpdateAbilitiesPacket';
+} from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
-import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import CommandData from './type/CommandData';
 import { CommandEnum } from './type/CommandEnum';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter';

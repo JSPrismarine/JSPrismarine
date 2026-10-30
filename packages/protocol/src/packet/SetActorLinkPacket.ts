@@ -1,9 +1,10 @@
-import { layoutAt, setActorLinkPacket } from '@jsprismarine/protocol';
-import { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
+import { ActorLinkType } from '../wire/definitions/addActor';
+import { setActorLinkPacket } from '../wire/definitions/actors';
+import { layoutAt } from '../wire/WireLayout';
 
-import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
+import type { ActorLink } from '../wire/definitions/addActor';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Starts or ends one riding relationship between two actors.

@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import UpdateClientOptionsPacket, { GraphicsMode } from '../packet/UpdateClientOptionsPacket';
+import UpdateClientOptionsPacket, { GraphicsMode } from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
 import UpdateClientOptionsHandler from './UpdateClientOptionsHandler';
 
 const fakeSession = () => {

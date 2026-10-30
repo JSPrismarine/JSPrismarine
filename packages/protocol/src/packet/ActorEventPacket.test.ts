@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import ActorEventPacket from './ActorEventPacket';
 
 describe('network', () => {
@@ -16,7 +16,7 @@ describe('network', () => {
                 packet.encode();
 
                 expect([...packet.getBuffer()]).toEqual([
-                    Identifiers.ActorEventPacket, // Header: id 27.
+                    PacketIdentifier.ACTOR_EVENT, // Header: id 27.
                     0xac,
                     0x02, // Target Runtime ID: 300 as a varuint64.
                     0x02, // Event ID: HURT_ANIMATION as a uint8.
@@ -33,7 +33,7 @@ describe('network', () => {
                 packet.encode();
 
                 expect([...packet.getBuffer()]).toEqual([
-                    Identifiers.ActorEventPacket,
+                    PacketIdentifier.ACTOR_EVENT,
                     0x01, // Target Runtime ID.
                     0x03, // Event ID: DEATH_ANIMATION.
                     0x00, // Data: 0.
@@ -55,7 +55,7 @@ describe('network', () => {
 
             it('reads every field and stops at the end of the packet', () => {
                 const bytes = Buffer.from([
-                    Identifiers.ActorEventPacket,
+                    PacketIdentifier.ACTOR_EVENT,
                     0xac,
                     0x02, // Target Runtime ID: 300.
                     0x1d, // Event ID: DRINK_POTION, 29.

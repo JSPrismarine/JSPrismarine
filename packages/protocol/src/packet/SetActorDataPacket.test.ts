@@ -3,7 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import SetActorDataPacket from './SetActorDataPacket';
 
 /** One `DataItemEntry` as the independent reader below decodes it. */
@@ -46,7 +46,7 @@ const readValue = (stream: BinaryStream, type: FlagType): unknown => {
  */
 const readPacket = (buffer: Buffer) => {
     const stream = new BinaryStream(buffer);
-    expect(stream.readUnsignedVarInt()).toBe(Identifiers.SetActorDataPacket);
+    expect(stream.readUnsignedVarInt()).toBe(PacketIdentifier.SET_ACTOR_DATA);
     const runtimeId = stream.readUnsignedVarLong();
 
     const items: DecodedItem[] = [];

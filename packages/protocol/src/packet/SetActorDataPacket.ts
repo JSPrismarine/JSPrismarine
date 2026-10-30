@@ -1,10 +1,10 @@
-import { layoutAt } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
 
-import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
-import { setActorDataPacket } from '@jsprismarine/protocol/wire/definitions/setActorData';
+import { SyncedProperties } from '../wire/structures/SyncedProperties';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { setActorDataPacket } from '../wire/definitions/setActorData';
 
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import type { Metadata } from '../wire/structures/Metadata';
 
 /**
  * Sends a delta of an entity's metadata to clients that can see it.
@@ -33,6 +33,7 @@ export default class SetActorDataPacket extends FieldNetworkPacket {
      */
     public tick: bigint = 0n;
 
+    /** Writes actor metadata, synced properties, and the client input tick. */
     public encodePayload(): void {
         layoutAt(setActorDataPacket, this.codecProtocol).encode(this, this);
     }

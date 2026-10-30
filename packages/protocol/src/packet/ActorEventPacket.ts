@@ -1,7 +1,8 @@
 import { ActorEvent } from '@jsprismarine/minecraft';
-import { actorEventPacket, layoutAt } from '@jsprismarine/protocol';
+import { actorEventPacket } from '../wire/definitions/actors';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
 
@@ -37,6 +38,7 @@ export default class ActorEventPacket extends FieldNetworkPacket {
      */
     public fireAtPosition: Vector3 | null = null;
 
+    /** Writes the event fields and the optional position presence byte. */
     public encodePayload(): void {
         // The presence byte of `Fire At Position` goes out whether or not a position follows.
         // Leaving it out ends the packet a byte early, and a client that reads past the end of
@@ -50,6 +52,7 @@ export default class ActorEventPacket extends FieldNetworkPacket {
         });
     }
 
+    /** Reads the event fields and preserves whether `Fire At Position` was present. */
     public decodePayload(): void {
         const read = layoutAt(actorEventPacket, this.codecProtocol).decode(this);
         this.runtimeEntityId = read.runtimeEntityId;

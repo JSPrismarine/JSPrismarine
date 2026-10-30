@@ -1,7 +1,8 @@
 import { Vector3 } from '@jsprismarine/math';
-import { layoutAt, spawnParticleEffectPacket } from '@jsprismarine/protocol';
+import { spawnParticleEffectPacket } from '../wire/definitions/effects';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Plays a named particle effect, including ones that only a behavior pack knows about.

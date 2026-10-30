@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import { SimpleEventSubtype } from '../packet/SimpleEventPacket';
-import type SimpleEventPacket from '../packet/SimpleEventPacket';
+import { SimpleEventSubtype } from '@jsprismarine/protocol/packet/SimpleEventPacket';
+import type SimpleEventPacket from '@jsprismarine/protocol/packet/SimpleEventPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

@@ -5,9 +5,9 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import type { ActorLink } from '../packet/AddActorPacket';
-import { ActorLinkType } from '../packet/AddActorPacket';
-import SetActorLinkPacket from '../packet/SetActorLinkPacket';
+import { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
+import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
+import SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket';
 import SetActorLinkHandler from './SetActorLinkHandler';
 
 const setup = () => {

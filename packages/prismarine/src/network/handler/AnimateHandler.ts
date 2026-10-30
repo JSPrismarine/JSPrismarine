@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import AnimatePacket, { AnimateAction } from '../packet/AnimatePacket';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import type PacketHandler from './PacketHandler';
 
 /**

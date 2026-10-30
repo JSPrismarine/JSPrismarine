@@ -30,7 +30,7 @@ import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
-import AnimatePacket, { AnimateAction } from '../../network/packet/AnimatePacket';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import { actorMotionIn } from './persistence';
 import { lookVector } from '../Archery';
 import Player from '../../Player';

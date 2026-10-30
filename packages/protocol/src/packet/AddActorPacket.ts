@@ -1,21 +1,13 @@
 import { Vector3 } from '@jsprismarine/math';
-import { layoutAt } from '@jsprismarine/protocol';
-import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
-import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
+import { layoutAt } from '../wire/WireLayout';
+import type { Attribute } from '../wire/structures/Attribute';
+import type { Metadata } from '../wire/structures/Metadata';
+import { SyncedProperties } from '../wire/structures/SyncedProperties';
+import type { PassengerOfBlock } from '../wire/structures/PassengerOfBlock';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { addActorPacket } from '../wire/definitions/addActor';
 
-import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
-
-/**
- * Re-export: the link and its type values are wire structures and live with the packet's
- * declarative layout in `@jsprismarine/protocol`. This path stays so the server's importers
- * keep working.
- */
-export { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
-export type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
+import type { ActorLink } from '../wire/definitions/addActor';
 
 /**
  * Spawns an entity other than a player on the client.

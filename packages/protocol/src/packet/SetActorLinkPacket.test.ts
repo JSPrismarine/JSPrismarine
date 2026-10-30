@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ActorLinkType } from './AddActorPacket';
+import { ActorLinkType } from '../wire/definitions/addActor';
 import SetActorLinkPacket from './SetActorLinkPacket';
 
 describe('SetActorLinkPacket', () => {

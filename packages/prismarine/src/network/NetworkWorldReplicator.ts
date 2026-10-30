@@ -17,14 +17,14 @@ import type { WorldChange } from '../world/WorldChange';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
 import { BatchPacket } from './Packets';
 import { broadcastSharedBatches } from './MinecraftSession';
-import type { ActorEvent } from './packet/ActorEventPacket';
-import ActorEventPacket from './packet/ActorEventPacket';
+import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
-import UpdateBlockPacket, { UpdateBlockFlagsType } from './packet/UpdateBlockPacket';
+import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import LevelEventPacket from './packet/LevelEventPacket';
 import PlaySoundPacket from './packet/PlaySoundPacket';
-import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.

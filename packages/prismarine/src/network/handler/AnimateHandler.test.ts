@@ -6,7 +6,7 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import AnimatePacket, { AnimateAction } from '../packet/AnimatePacket';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import type PlayerSession from '../PlayerSession';
 import AnimateHandler from './AnimateHandler';
 

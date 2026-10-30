@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import AnimatePacket from './AnimatePacket';
 
 /**
@@ -11,7 +11,7 @@ import AnimatePacket from './AnimatePacket';
  */
 const wireBytes = (action: number, runtimeId: bigint, data: number, swingSource: string | null): Buffer => {
     const out = new BinaryStream();
-    out.writeUnsignedVarInt(Identifiers.AnimatePacket);
+    out.writeUnsignedVarInt(PacketIdentifier.ANIMATE);
     out.writeByte(action);
     out.writeUnsignedVarLong(runtimeId);
     out.writeFloatLE(data);

@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import SetActorMotionPacket from './SetActorMotionPacket';
 
 describe('network', () => {
@@ -15,7 +15,7 @@ describe('network', () => {
                 packet.encode();
 
                 expect([...packet.getBuffer()]).toEqual([
-                    Identifiers.SetActorMotionPacket, // Header: id 40.
+                    PacketIdentifier.SET_ACTOR_MOTION, // Header: id 40.
                     0xac,
                     0x02, // Target Runtime ID: 300 as a varuint64.
                     0x00,

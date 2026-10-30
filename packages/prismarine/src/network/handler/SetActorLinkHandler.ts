@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type SetActorLinkPacket from '../packet/SetActorLinkPacket';
+import type SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

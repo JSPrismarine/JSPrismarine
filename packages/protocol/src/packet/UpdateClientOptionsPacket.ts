@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** The client's graphics setting, as `GraphicsMode` numbers it. */
 export enum GraphicsMode {

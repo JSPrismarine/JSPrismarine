@@ -4,7 +4,7 @@ import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
-import RemoveActorPacket from './packet/RemoveActorPacket';
+import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import PlayerSession from './PlayerSession';
 
 /**

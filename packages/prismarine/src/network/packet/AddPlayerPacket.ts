@@ -9,7 +9,7 @@ import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/Pa
 import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { addPlayerPacket } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 
-import type { ActorLink } from './AddActorPacket';
+import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
 import type { SerializedAbilitiesData } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 import type { ItemStackDescriptorData } from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
 

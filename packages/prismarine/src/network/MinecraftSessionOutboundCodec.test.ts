@@ -10,7 +10,7 @@ import type { TransportConnection } from './transport/Transport';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
-import AnimatePacket from './packet/AnimatePacket';
+import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import StartGamePacket from './packet/StartGamePacket';

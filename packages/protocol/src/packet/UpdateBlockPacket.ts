@@ -1,6 +1,7 @@
-import { layoutAt, updateBlockPacket } from '@jsprismarine/protocol';
+import { updateBlockPacket } from '../wire/definitions/blocks';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Which of a position's two block layers an update targets. */
 export enum UpdateBlockLayerType {

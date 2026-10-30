@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 import { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import BlockPosition from '../../world/BlockPosition';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import AddActorPacket, { ActorLinkType } from './AddActorPacket';
+import { ActorLinkType } from '../wire/definitions/addActor';
+import AddActorPacket from './AddActorPacket';
 import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 
 import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
@@ -20,7 +20,7 @@ import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/Pa
  */
 describe('the declarative AddActor layout against the packet class it replaces', () => {
     const passenger = (): PassengerOfBlock => ({
-        blockPosition: new BlockPosition(1, -60, 2),
+        blockPosition: new Vector3(1, -60, 2),
         offset: new Vector3(0.5, 1, -0.5),
         rotation: 180,
         rotationLimit: 90,

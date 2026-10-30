@@ -18,7 +18,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { ContentEffectSink, ContentPosition } from '../content/world/adapter';
 import PlaySoundPacket from './packet/PlaySoundPacket';
-import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 
 /**
  * Who hears one dimension's effects.

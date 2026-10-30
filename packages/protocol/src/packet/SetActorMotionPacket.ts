@@ -1,7 +1,8 @@
-import { layoutAt, setActorMotionPacket } from '@jsprismarine/protocol';
+import { setActorMotionPacket } from '../wire/definitions/movement';
+import { layoutAt } from '../wire/WireLayout';
 
 import type { Vector3 } from '@jsprismarine/math';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Gives an entity a velocity, which the receiving client then integrates itself.
@@ -35,6 +36,7 @@ export default class SetActorMotionPacket extends FieldNetworkPacket {
      */
     public tick: bigint = 0n;
 
+    /** Writes the target runtime ID, three motion components, and client input tick. */
     public encodePayload(): void {
         layoutAt(setActorMotionPacket, this.codecProtocol).encode(this, {
             runtimeEntityId: this.runtimeEntityId,
@@ -43,6 +45,7 @@ export default class SetActorMotionPacket extends FieldNetworkPacket {
         });
     }
 
+    /** Reads the target runtime ID, motion vector, and client input tick. */
     public decodePayload(): void {
         const read = layoutAt(setActorMotionPacket, this.codecProtocol).decode(this);
         this.runtimeEntityId = read.runtimeEntityId;

@@ -7,7 +7,7 @@ import { BlockState } from '../block/state/BlockState';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import BatchPacket from '../network/packet/BatchPacket';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
-import UpdateBlockPacket, { UpdateBlockFlagsType } from '../network/packet/UpdateBlockPacket';
+import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';

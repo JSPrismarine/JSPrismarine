@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SimpleEventPacket, { SimpleEventSubtype } from '../packet/SimpleEventPacket';
+import SimpleEventPacket, { SimpleEventSubtype } from '@jsprismarine/protocol/packet/SimpleEventPacket';
 import SimpleEventHandler from './SimpleEventHandler';
 
 describe('SimpleEventHandler', () => {

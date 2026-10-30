@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createContentEffectsGroup, replicatorEffectAudience } from './contentAdapter';
 import PlaySoundPacket from './packet/PlaySoundPacket';
-import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 
 import type { ContentEffectAudience, ContentGameEvent } from './contentAdapter';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';

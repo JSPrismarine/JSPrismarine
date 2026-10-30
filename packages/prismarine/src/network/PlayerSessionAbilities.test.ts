@@ -6,7 +6,10 @@ import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import UpdateAbilitiesPacket, { AbilityLayerFlag, AbilityLayerType } from './packet/UpdateAbilitiesPacket';
+import UpdateAbilitiesPacket, {
+    AbilityLayerFlag,
+    AbilityLayerType
+} from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import PlayerSession from './PlayerSession';
 
 /**

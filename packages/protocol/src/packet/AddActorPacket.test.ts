@@ -2,7 +2,8 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { FlagType, Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import AddActorPacket, { ActorLinkType } from './AddActorPacket';
+import { ActorLinkType } from '../wire/definitions/addActor';
+import AddActorPacket from './AddActorPacket';
 
 /**
  * The 2193 layout written out by hand in docs order. The parameters are the slots the second

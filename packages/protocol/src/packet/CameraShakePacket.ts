@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** How the camera moves while it shakes, as the Shake Type uint8 numbers it. */
 export enum CameraShakeType {

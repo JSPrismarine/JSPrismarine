@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ActorEventPacket from '../packet/ActorEventPacket';
-import { ActorEvent } from '../packet/ActorEventPacket';
+import type ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
+import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

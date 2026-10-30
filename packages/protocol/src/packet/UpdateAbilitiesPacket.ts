@@ -1,6 +1,8 @@
 import { AbilityLayerFlag, CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import { layoutAt, SerializedAbilityLayer, updateAbilitiesPacket } from '@jsprismarine/protocol';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import { updateAbilitiesPacket } from '../wire/definitions/updateAbilities';
+import { layoutAt } from '../wire/WireLayout';
+import SerializedAbilityLayer from '../structure/SerializedAbilityLayer';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * The "SerializedLayer" value of an ability layer, written as a uint16.
@@ -113,6 +115,7 @@ export default class UpdateAbilitiesPacket extends FieldNetworkPacket {
     public targetActorUniqueId = 0n;
     public abilityLayers: AbilityLayer[] = [];
 
+    /** Encodes the permission bytes and converts each ability layer to its bitset form. */
     public encodePayload(): void {
         layoutAt(updateAbilitiesPacket, this.codecProtocol).encode(this, {
             targetActorUniqueId: this.targetActorUniqueId,
@@ -132,6 +135,7 @@ export default class UpdateAbilitiesPacket extends FieldNetworkPacket {
         });
     }
 
+    /** Reads permission bytes and expands each serialized layer into its ability flags. */
     public decodePayload(): void {
         const read = layoutAt(updateAbilitiesPacket, this.codecProtocol).decode(this);
         this.targetActorUniqueId = read.targetActorUniqueId;

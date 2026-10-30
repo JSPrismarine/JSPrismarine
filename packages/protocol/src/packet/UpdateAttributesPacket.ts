@@ -1,9 +1,9 @@
-import { layoutAt } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
-import { updateAttributesPacket } from '@jsprismarine/protocol/wire/definitions/updateAttributes';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { updateAttributesPacket } from '../wire/definitions/updateAttributes';
 
-import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import type { Attribute } from '../wire/structures/Attribute';
 
 /**
  * Replaces some or all of one entity's attributes on the client, for instance after it takes
@@ -36,10 +36,12 @@ export default class UpdateAttributesPacket extends FieldNetworkPacket {
      */
     public tick = 0n;
 
+    /** Writes the target runtime ID, attribute list, and prediction tick. */
     public encodePayload(): void {
         layoutAt(updateAttributesPacket, this.codecProtocol).encode(this, this);
     }
 
+    /** Reads the target runtime ID, attribute list, and prediction tick. */
     public decodePayload(): void {
         Object.assign(this, layoutAt(updateAttributesPacket, this.codecProtocol).decode(this));
     }

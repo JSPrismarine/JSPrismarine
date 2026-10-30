@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type UpdateClientOptionsPacket from '../packet/UpdateClientOptionsPacket';
-import { GraphicsMode } from '../packet/UpdateClientOptionsPacket';
+import type UpdateClientOptionsPacket from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
+import { GraphicsMode } from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

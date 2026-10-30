@@ -24,7 +24,7 @@ import { DIFFICULTIES, difficultyName } from '../../config/Config';
 import PlaySoundPacket from '../../network/packet/PlaySoundPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
-import SpawnParticleEffectPacket from '../../network/packet/SpawnParticleEffectPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '../../network/packet/StopSoundPacket';
 import PositionMode from '../../network/type/PositionMode';
 import type { World } from '../../world/World';
