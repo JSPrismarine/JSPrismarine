@@ -38,3 +38,14 @@ export const removeActorPacket = definePacket('RemoveActorPacket', {
 
 /** What `RemoveActorPacket` carries. */
 export type RemoveActorPayload = PayloadOf<typeof removeActorPacket>;
+
+/** The `TakeItemActorPacket` field list. */
+export const takeItemActorPacket = definePacket('TakeItemActorPacket', {
+    /** `Item Runtime ID`: the item entity being taken. */
+    itemRuntimeEntityId: t.varuint64,
+    /** `Actor Runtime ID`: who is taking it. */
+    takerRuntimeEntityId: t.varuint64
+});
+
+/** What `TakeItemActorPacket` carries. */
+export type TakeItemActorPayload = PayloadOf<typeof takeItemActorPacket>;

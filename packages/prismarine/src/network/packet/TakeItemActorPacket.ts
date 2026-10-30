@@ -1,3 +1,5 @@
+import { layoutAt, takeItemActorPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -24,12 +26,15 @@ export default class TakeItemActorPacket extends DataPacket {
     public takerRuntimeEntityId!: bigint;
 
     public decodePayload(): void {
-        this.itemRuntimeEntityId = this.readUnsignedVarLong();
-        this.takerRuntimeEntityId = this.readUnsignedVarLong();
+        const read = layoutAt(takeItemActorPacket, this.codecProtocol).decode(this);
+        this.itemRuntimeEntityId = read.itemRuntimeEntityId;
+        this.takerRuntimeEntityId = read.takerRuntimeEntityId;
     }
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.itemRuntimeEntityId);
-        this.writeUnsignedVarLong(this.takerRuntimeEntityId);
+        layoutAt(takeItemActorPacket, this.codecProtocol).encode(this, {
+            itemRuntimeEntityId: this.itemRuntimeEntityId,
+            takerRuntimeEntityId: this.takerRuntimeEntityId
+        });
     }
 }
