@@ -2,7 +2,7 @@
 
 Status: accepted direction, implementation in progress (started 2026-10-29).
 
-Progress (2026-10-29):
+Progress (2026-10-30):
 
 - Done: Phase 0 (hygiene), Phase 1 (transport + `NetworkDispatcher` extraction), Phase 2
   (`packages/kernel` plus the bans, permissions, recipes, stations, social, ticker, and network
@@ -10,12 +10,34 @@ Progress (2026-10-29):
   (`Codec2225` delta codec with the `protocol.negotiation` parity family).
 - Phase 6: the ticker, networking (`prismarine:network`), and shutdown-interrupt extractions are
   done; the kernel-backed `getXxxManager()` getters are deprecated; the kernel and the token
-  barrel are exported from `@jsprismarine/prismarine` as the module API.
-- Remaining: commands and worlds modules (and the `WorldChange` stream formalization), the
-  version-independent intent/update vocabulary, NetherNet and Java transports, the 2225 packets
-  deferred from the delta codec, per-codec data injection (`StartGamePacket` and
-  `ItemRegistryPacket` still import bedrock-data tables at module load), and `bedrock-data`'s
-  versioned source inputs (see "bedrock-data versioning" below).
+  barrel are exported from `@jsprismarine/prismarine` as the module API; block changes flow
+  through the typed `WorldChange` stream into the replicators.
+- Wire layouts are declarative (`docs/adr/0003-declarative-wire-layouts.md`): a packet is one
+  ordered field list in `@jsprismarine/protocol`, version differences are gated fields with the
+  predicates in one file (`wire/wireGates.ts`), a codec resolves a frozen layout per protocol
+  version, and `prepareOutbound` stamps the session's protocol and does nothing else. The
+  `*2225` sibling classes are gone. The protocol version tables (`v2193`, `v2225`) live in the
+  protocol package, so the ids and layouts are usable without this server's logic.
+- Layouts are held to real server bytes: the capture pipeline records one raw payload per packet
+  the Bedrock Dedicated Server sends at login (`src/jsp/v<protocol>/wire/`, 41 per version), and
+  the `protocol.wire-roundtrip` parity family requires `encode(decode(bytes)) === bytes` for
+  every defined packet. Coverage is reported per version and grows as packet bodies convert.
+- A 2225 session gets its own item numbering (`ProtocolItemData` on the codec); the 2193 wire is
+  byte-identical throughout, asserted directly.
+- The published executables (`bun build --compile`, release and nightly workflows) carry the
+  Java worldgen data and overlay packs, fetch the vanilla behavior pack on first run, and run
+  the chunk generation pool in worker threads via embedded entrypoints; the Node single
+  executable (`pnpm run package`) provisions the same data but still generates on the server
+  thread. `pnpm install && pnpm dev` works from a clean clone; `pnpm run bringup --protocol <n>`
+  walks a client to spawn against a real BDS of that version.
+- Remaining: converting the rest of the packet bodies to declarative definitions and collapsing
+  the duplicate `NetworkPacket` stack in `packages/protocol` onto them (the server and client
+  then share one wire implementation); classes for the eight packets 1.26.60 added and the
+  version-aware `ItemStackRequest` reader; commands and worlds modules; widening the
+  `WorldChange` stream beyond block changes; the version-independent intent/update vocabulary;
+  NetherNet and Java transports; per-codec data injection for the remaining module-load
+  bedrock-data imports; `bedrock-data`'s versioned captures beyond the wire fixtures (see
+  "bedrock-data versioning" below); worker support for the Node single executable.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
   advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
