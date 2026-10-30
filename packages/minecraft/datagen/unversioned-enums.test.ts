@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
@@ -14,7 +15,7 @@ import manifest from './manifest.json' with { type: 'json' };
  * release, and nobody did.
  */
 
-const HERE = path.dirname(new URL(import.meta.url).pathname);
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const GENERATED = path.join(HERE, '..', 'src', 'generated');
 const UNVERSIONED = path.join(GENERATED, manifest.legacy.dir);
 

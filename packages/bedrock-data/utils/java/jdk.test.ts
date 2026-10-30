@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -34,7 +35,7 @@ describe('pathJavaHome', () => {
         process.env['PATH'] = join(root, 'jdk', 'bin');
 
         // The lookup resolves symlinks, and macOS serves `/var/folders` temp paths through one.
-        expect(pathJavaHome()).toBe(join(await realpath(root), 'jdk'));
+        expect(pathJavaHome()).toBe(join(realpathSync(root), 'jdk'));
     });
 
     it('takes the first java on PATH, as the shell would', async () => {
@@ -44,7 +45,7 @@ describe('pathJavaHome', () => {
             process.platform === 'win32' ? ';' : ':'
         );
 
-        expect(pathJavaHome()).toBe(join(await realpath(root), 'first'));
+        expect(pathJavaHome()).toBe(join(realpathSync(root), 'first'));
     });
 
     it('returns nothing when PATH holds no java', () => {
