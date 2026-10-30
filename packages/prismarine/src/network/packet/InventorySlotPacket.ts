@@ -1,3 +1,5 @@
+import { inventorySlotPacket, layoutAt } from '@jsprismarine/protocol';
+
 import { Item } from '../../item/Item';
 import { ContainerUiId } from '../type/ItemStackRequest';
 import DataPacket from './DataPacket';
@@ -34,44 +36,41 @@ export default class InventorySlotPacket extends DataPacket {
 
     /** Writes the five fields in docs order. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.windowId);
-        this.writeUnsignedVarInt(this.inventorySlot);
+        // A stack goes out with the id the client will name it by, when it has one. Air is a
+        // whole item instance - eight bytes - not a bare zero: writing one byte here ended the
+        // packet seven bytes early, which a real client reads as a malformed packet and hangs
+        // up on.
+        const item = this.item ?? Item.air();
+        const stackNetId = this.item && this.item.stackNetworkId > 0 ? this.item.stackNetworkId : null;
 
-        // The container name is itself optional, and the presence byte was missing: the client
-        // read the container id in its place, and every field after it landed a byte out.
-        this.writeBoolean(true);
-        this.writeByte(this.containerId);
-        this.writeBoolean(this.dynamicId !== null);
-        if (this.dynamicId !== null) this.writeIntLE(this.dynamicId);
-
-        // The storage item, which is what a bundle-like container is itself held as. Nothing
-        // here has one, so the optional is simply absent.
-        this.writeBoolean(false);
-
-        // Air is a whole item instance - eight bytes - not a bare zero. Writing one byte here
-        // ended the packet seven bytes early, which a real client reads as a malformed packet
-        // and hangs up on.
-        //
-        // A stack goes out with the id the client will name it by, when it has one.
-        if (this.item) this.item.networkSerialize(this, this.item.stackNetworkId > 0 ? this.item.stackNetworkId : null);
-        else Item.air().networkSerialize(this);
+        layoutAt(inventorySlotPacket, this.codecProtocol).encode(this, {
+            windowId: this.windowId,
+            inventorySlot: this.inventorySlot,
+            // The container name is itself optional, and the presence byte was missing: the
+            // client read the container id in its place, and every field after it landed a
+            // byte out.
+            fullContainerName: { containerId: this.containerId, dynamicId: this.dynamicId },
+            // The storage item, which is what a bundle-like container is itself held as.
+            // Nothing here has one, so the optional is simply absent.
+            storageItem: null,
+            item: item.toStackDescriptor(this, stackNetId)
+        });
     }
 
     /** Reads the five fields in docs order, as {@link InventorySlotPacket.encodePayload} writes them. */
     public decodePayload(): void {
-        this.windowId = this.readUnsignedVarInt();
-        this.inventorySlot = this.readUnsignedVarInt();
+        const read = layoutAt(inventorySlotPacket, this.codecProtocol).decode(this);
+        this.windowId = read.windowId;
+        this.inventorySlot = read.inventorySlot;
 
-        if (this.readBoolean()) {
-            this.containerId = this.readByte();
-            this.dynamicId = this.readBoolean() ? this.readIntLE() : null;
+        if (read.fullContainerName !== null) {
+            this.containerId = read.fullContainerName.containerId;
+            this.dynamicId = read.fullContainerName.dynamicId;
         }
 
-        // The storage item. Nothing here is held in one, so it is read past and not kept.
-        if (this.readBoolean()) Item.networkDeserialize(this);
-
+        // The storage item is read past and not kept: nothing here is held in one.
         // An emptied slot arrives as a whole air stack, and an empty slot is `null` here.
-        const item = Item.networkDeserialize(this);
+        const item = Item.fromStackDescriptor(this, read.item);
         this.item = item.getName() === 'minecraft:air' ? null : item;
     }
 }
