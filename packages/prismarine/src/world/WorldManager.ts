@@ -4,10 +4,9 @@ import { worldSeedOf } from '../utils/Seed';
 import { GeneratorFactories } from './GeneratorFactories';
 import { Dimensions } from './Dimension';
 import { requireJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
-import { flatStem } from './generators/factories/flat';
-import { OVERWORLD_NOISE_STEM } from './generators/factories/noise';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
-import type { LevelStem } from '@jsprismarine/worldgen';
+import { normalizeWorldData } from '../config/normalizeWorldData';
+import { overworldStemOf } from './overworldStem';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';
 import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
@@ -181,8 +180,15 @@ export default class WorldManager implements Service {
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
         const provider = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
+
+        // A world is built once, so each old key the entry still uses is said once.
+        const normalized = normalizeWorldData(worldData, this.generatorFactories.kinds());
+        for (const deprecation of normalized.deprecations) {
+            this.server.getLogger().warn(`World '${folderName}': ${deprecation}`);
+        }
+
         const generator = this.generatorFactories.build({
-            stem: legacyStemOf(worldData, Dimensions.Overworld.id),
+            stem: overworldStemOf(normalized, Dimensions.Overworld.id),
             dimension: Dimensions.Overworld,
             seed: worldSeedOf(worldData.seed),
             content: () => this.server.getContent(),
@@ -357,32 +363,3 @@ export default class WorldManager implements Service {
     }
 }
 
-/**
- * The level stem today's `generator` and `layers` config keys describe.
- *
- * `Overworld` and `Flat`, in any case, are the two kinds the old `GeneratorManager` shipped;
- * any other name is taken as a kind id, which is how a class registered through
- * `GeneratorFactories.registerClassGenerator` is reached. Interim: the config grows a preset and
- * per-dimension stems next, and this translation moves into that migration.
- */
-const legacyStemOf = (worldData: WorldData, dimensionType: string): LevelStem => {
-    const name = worldData.generator ?? 'Flat';
-    switch (name.toLowerCase()) {
-        case 'overworld':
-            return { ...OVERWORLD_NOISE_STEM, type: dimensionType };
-        case 'flat': {
-            if (worldData.layers === undefined) return flatStem(dimensionType);
-            return flatStem(dimensionType, {
-                layers: worldData.layers.map((layer) => ({
-                    block: layer.block.includes(':') ? layer.block : `minecraft:${layer.block}`,
-                    height: layer.size
-                })),
-                biome: 'minecraft:plains',
-                lakes: false,
-                features: false
-            });
-        }
-        default:
-            return { type: dimensionType, generator: { type: name, settings: undefined } };
-    }
-};

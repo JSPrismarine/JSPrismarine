@@ -45,6 +45,9 @@ const asked = new Promise<void>((resolve) => {
     announce = resolve;
 });
 
+/** The kind the held generator is registered under; the config names it under `dimensions`. */
+const HELD_KIND = 'jsprismarine:held';
+
 /** Held until the test is finished with the boot, which is what keeps the world unstarted. */
 const held = new Promise<void>((resolve) => {
     open = resolve;
@@ -78,7 +81,13 @@ const debugConfig = (levelName: string) =>
             return levelName;
         }
         public override getWorlds() {
-            return { [levelName]: { generator: 'Held', provider: 'LevelDB', seed: 1 } };
+            return {
+                [levelName]: {
+                    provider: 'LevelDB',
+                    seed: 1,
+                    dimensions: { 'minecraft:overworld': { generator: { type: HELD_KIND } } }
+                }
+            };
         }
         public override getPreloadRadius() {
             return 1;
@@ -128,7 +137,7 @@ describe('a command typed while the start region is still generating', () => {
 
         server = new Server({ logger: new Logger(), config: debugConfig('preloading'), headless: true });
         vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
-        server.getWorldManager().getGeneratorFactories().registerClassGenerator('Held', HeldGenerator);
+        server.getWorldManager().getGeneratorFactories().registerClassGenerator(HELD_KIND, HeldGenerator);
 
         // Deliberately not awaited. The point of the test is the state the server is in while
         // this is still running.
