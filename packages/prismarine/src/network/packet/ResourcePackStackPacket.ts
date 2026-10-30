@@ -36,6 +36,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     /** `Include Editor Packs`, whether an Editor world adds the vanilla editor packs to the stack. */
     public includeEditorPacks = false;
 
+    /** Reads the layout's payload and maps each entry's `uuid` onto `packId`. */
     public decodePayload(): void {
         const read = layoutAt(resourcePackStackPacket, this.codecProtocol).decode(this);
         this.texturePackRequired = read.texturePackRequired;
@@ -50,6 +51,7 @@ export default class ResourcePackStackPacket extends DataPacket {
         this.includeEditorPacks = read.includeEditorPacks;
     }
 
+    /** Writes the packet's fields through the layout, mapping `packId` back onto `uuid`. */
     public encodePayload(): void {
         layoutAt(resourcePackStackPacket, this.codecProtocol).encode(this, {
             texturePackRequired: this.texturePackRequired,

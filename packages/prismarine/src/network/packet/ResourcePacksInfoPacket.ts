@@ -24,10 +24,12 @@ export default class ResourcePacksInfoPacket extends DataPacket {
     public worldTemplate: PackIdVersion = { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' };
     public resourcePackEntries: ResourcePackEntry[] = [];
 
+    /** Reads the layout's fields straight onto the packet, replacing any entries it held. */
     public decodePayload(): void {
         Object.assign(this, layoutAt(resourcePacksInfoPacket, this.codecProtocol).decode(this));
     }
 
+    /** Writes the packet's fields through the layout; their names match the field list. */
     public encodePayload(): void {
         layoutAt(resourcePacksInfoPacket, this.codecProtocol).encode(this, this);
     }
