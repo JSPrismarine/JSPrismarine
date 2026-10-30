@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type BlockPickRequestPacket from '../packet/BlockPickRequestPacket';
+import type BlockPickRequestPacket from '@jsprismarine/protocol/packet/BlockPickRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -16,12 +16,14 @@ export default class BlockPickRequestHandler implements PacketHandler<BlockPickR
 
     /** Logs the picked position. */
     public handle(packet: BlockPickRequestPacket, server: Server, session: PlayerSession): void {
-        const { position } = packet;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a BlockPickRequestPacket without decoded data');
+        const { position } = data;
 
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} picked the block at ${position.getX()}, ${position.getY()}, ${position.getZ()}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Block picking is not implemented`,
+                `${session.getPlayer().getName()} picked the block at ${position.x}, ${position.y}, ${position.z}${data.withData ? ' with data' : ''} (${data.maxSlots} free hotbar slots). Block picking is not implemented`,
                 'BlockPickRequestHandler/handle'
             );
     }

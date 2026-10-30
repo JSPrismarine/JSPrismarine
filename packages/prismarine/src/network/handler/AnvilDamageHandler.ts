@@ -1,6 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type AnvilDamagePacket from '../packet/AnvilDamagePacket';
+import type AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
+import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -21,8 +22,12 @@ export default class AnvilDamageHandler implements PacketHandler<AnvilDamagePack
 
     /** Checks the position names an anvil in reach, then logs it. */
     public handle(packet: AnvilDamagePacket, server: Server, session: PlayerSession): void {
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle an AnvilDamagePacket without decoded data');
+
         const player = session.getPlayer();
-        const { blockPosition } = packet;
+        const { blockPosition: protocolPosition } = data;
+        const blockPosition = new BlockPosition(protocolPosition.x, protocolPosition.y, protocolPosition.z);
         const where = `${blockPosition.getX()}, ${blockPosition.getY()}, ${blockPosition.getZ()}`;
 
         const rejection = blockTargetRejection(player, blockPosition, ANVILS);

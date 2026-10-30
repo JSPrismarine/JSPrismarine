@@ -4,9 +4,9 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import BlockPosition from '../../world/BlockPosition';
 import type PlayerSession from '../PlayerSession';
-import BlockPickRequestPacket from '../packet/BlockPickRequestPacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import BlockPickRequestPacket from '@jsprismarine/protocol/packet/BlockPickRequestPacket';
 import BlockPickRequestHandler from './BlockPickRequestHandler';
 
 describe('BlockPickRequestHandler', () => {
@@ -16,8 +16,8 @@ describe('BlockPickRequestHandler', () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
         const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
-        const packet = Object.assign(new BlockPickRequestPacket(), {
-            position: new BlockPosition(1, 2, 3),
+        const packet = new BlockPickRequestPacket({
+            position: new BlockPos(1, 2, 3),
             withData: true,
             maxSlots: 4
         });
