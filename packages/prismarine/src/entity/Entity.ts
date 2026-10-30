@@ -21,6 +21,7 @@ import { boxOf } from './data/facts';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
+import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
 import {
     bedrockMobEffectId,
     mergeStatusEffect,
@@ -178,6 +179,23 @@ export class Entity {
 
     /** Ticks left of the grace period after the last hit. Counted down in {@link Entity.update}. */
     protected invulnerableTicks = 0;
+
+    /**
+     * Ticks left before this entity may enter a portal again. Counted down in {@link Entity.update}.
+     *
+     * Set on departure, so arriving inside the destination portal does not start a trip straight
+     * back. Bedrock stores it as the actor's `PortalCooldown` tag, and the serializer carries it
+     * through a save.
+     */
+    protected portalCooldown = 0;
+
+    /**
+     * The portal this entity is standing in, or undefined when it is in none.
+     *
+     * Created by the first {@link Entity.touchPortal}, advanced each tick in {@link Entity.update},
+     * and dropped once its time inside has decayed to nothing.
+     */
+    private portalContactState: PortalContact | undefined;
 
     /**
      * The size of the hit that started the current grace period.
@@ -456,7 +474,85 @@ export class Entity {
             if (this.invulnerableTicks === 0) this.lastDamageTaken = 0;
         }
 
+        if (this.portalCooldown > 0) this.portalCooldown--;
+
+        const contact = this.portalContactState;
+        if (contact !== undefined) {
+            // The trip itself is not dispatched from here yet; a contact that reaches its
+            // delay stays in place and keeps counting until the world's portal travel takes it.
+            const ready = contact.tick(this.getPortalTransitionTicks());
+            if (!ready && contact.hasExpired()) this.portalContactState = undefined;
+        }
+
         this.tickStatusEffects();
+    }
+
+    /**
+     * Ticks this entity has to stand in a nether portal before it goes through.
+     *
+     * Zero for everything that is not a player, as in vanilla: an item or a mob travels on the
+     * first contact tick. `Player` answers from its game mode.
+     * @returns The delay in ticks, from {@link PORTAL_TRANSITION_TICKS}.
+     */
+    public getPortalTransitionTicks(): number {
+        return PORTAL_TRANSITION_TICKS.other;
+    }
+
+    /**
+     * How long this entity refuses portals after a dimension change.
+     *
+     * Vanilla's `getDimensionChangingDelay`: 300 ticks for an entity, and `Player` overrides it
+     * with 10.
+     * @returns The cooldown in ticks, from {@link PORTAL_COOLDOWN_TICKS}.
+     */
+    public getDefaultPortalCooldown(): number {
+        return PORTAL_COOLDOWN_TICKS.entity;
+    }
+
+    /**
+     * Ticks left before this entity may enter a portal again.
+     */
+    public getPortalCooldown(): number {
+        return this.portalCooldown;
+    }
+
+    /**
+     * Starts the portal cooldown.
+     *
+     * Called on departure, and by the serializer when restoring a saved actor.
+     * @param ticks - The cooldown in ticks. Defaults to {@link Entity.getDefaultPortalCooldown}.
+     */
+    public setPortalCooldown(ticks: number = this.getDefaultPortalCooldown()): void {
+        this.portalCooldown = Math.max(0, Math.floor(ticks));
+    }
+
+    /**
+     * Whether this entity is still refusing portals after a recent dimension change.
+     */
+    public isOnPortalCooldown(): boolean {
+        return this.portalCooldown > 0;
+    }
+
+    /**
+     * The portal this entity is currently in contact with, if any.
+     */
+    public portalContact(): PortalContact | undefined {
+        return this.portalContactState;
+    }
+
+    /**
+     * Records that this entity overlaps a portal block on the current tick.
+     *
+     * The world calls this once per tick for each entity whose box overlaps a portal. The first
+     * call opens the contact; later calls refresh it. Ignored while on cooldown, so an entity
+     * that has just arrived is not sent straight back.
+     * @param at - Where the entity stands, kept as the contact's entry position.
+     */
+    public touchPortal(at: Vector3): void {
+        if (this.isOnPortalCooldown()) return;
+
+        this.portalContactState ??= new PortalContact(at);
+        this.portalContactState.touch(at);
     }
 
     /**

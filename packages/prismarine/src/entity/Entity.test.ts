@@ -50,5 +50,77 @@ describe('entity', () => {
                 expect(broadcastMove).not.toHaveBeenCalled();
             });
         });
+
+        describe('portals', () => {
+            const inPortal = new Vector3(0.5, 64, 0.5);
+
+            it('starts with no cooldown and no portal contact', () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                expect(entity.getPortalCooldown()).toBe(0);
+                expect(entity.isOnPortalCooldown()).toBe(false);
+                expect(entity.portalContact()).toBeUndefined();
+            });
+
+            it('opens a contact on the first touch and keeps it across touches', () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                entity.touchPortal(inPortal);
+                const contact = entity.portalContact();
+                entity.touchPortal(inPortal);
+
+                expect(contact).toBeDefined();
+                expect(entity.portalContact()).toBe(contact);
+            });
+
+            it('refuses a touch while on cooldown', () => {
+                const { entity } = entityAt(0, 64, 0);
+                entity.setPortalCooldown(10);
+
+                entity.touchPortal(inPortal);
+
+                expect(entity.isOnPortalCooldown()).toBe(true);
+                expect(entity.portalContact()).toBeUndefined();
+            });
+
+            it('waits 300 ticks by default, as a mob does in vanilla', () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                entity.setPortalCooldown();
+
+                expect(entity.getPortalCooldown()).toBe(300);
+            });
+
+            it('counts the cooldown down one per tick and stops at zero', async () => {
+                const { entity } = entityAt(0, 64, 0);
+                entity.setPortalCooldown(2);
+
+                await entity.update(1);
+                expect(entity.getPortalCooldown()).toBe(1);
+                await entity.update(2);
+                expect(entity.getPortalCooldown()).toBe(0);
+                await entity.update(3);
+                expect(entity.getPortalCooldown()).toBe(0);
+                expect(entity.isOnPortalCooldown()).toBe(false);
+            });
+
+            it('advances the contact every tick and drops it once it has decayed', async () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                entity.touchPortal(inPortal);
+                await entity.update(1);
+                expect(entity.portalContact()?.getPortalTime()).toBe(1);
+
+                // Out of the portal: one tick of decay takes the single tick inside back to zero.
+                await entity.update(2);
+                expect(entity.portalContact()).toBeUndefined();
+            });
+
+            it('goes through on the first tick inside, which is the rule for anything but a player', () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                expect(entity.getPortalTransitionTicks()).toBe(0);
+            });
+        });
     });
 });

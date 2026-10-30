@@ -1,4 +1,5 @@
 export * from './Entity';
+export * from './PortalContact';
 export * from './data/facts';
 export * from './mobLoot';
 export * from './StatusEffect';

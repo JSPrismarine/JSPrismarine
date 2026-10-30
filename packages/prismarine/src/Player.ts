@@ -7,6 +7,7 @@ import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/
 import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
+import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from './entity/PortalContact';
 import {
     breaksAFall,
     DROWNING_DAMAGE,
@@ -1142,6 +1143,28 @@ export default class Player extends Human {
      */
     public isVulnerable(): boolean {
         return this.gamemode === Gametype.SURVIVAL || this.gamemode === Gametype.ADVENTURE;
+    }
+
+    /**
+     * Ticks this player has to stand in a nether portal before going through.
+     *
+     * Vanilla reads `players_nether_portal_creative_delay` (0) for a creative player and
+     * `players_nether_portal_default_delay` (80) for everyone else; the game rules are not
+     * modeled yet, so the defaults are the answer.
+     * @returns 0 in creative, otherwise 80.
+     */
+    public override getPortalTransitionTicks(): number {
+        return this.gamemode === Gametype.CREATIVE ? PORTAL_TRANSITION_TICKS.creative : PORTAL_TRANSITION_TICKS.player;
+    }
+
+    /**
+     * How long this player refuses portals after a dimension change.
+     *
+     * Half a second, where a mob waits fifteen: `Player.getDimensionChangingDelay` in vanilla.
+     * @returns 10 ticks.
+     */
+    public override getDefaultPortalCooldown(): number {
+        return PORTAL_COOLDOWN_TICKS.player;
     }
 
     /**
