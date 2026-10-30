@@ -109,7 +109,7 @@ import ResourcePackDataInfoPacket from '@jsprismarine/protocol/packet/ResourcePa
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
-import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePositionPacket';
+import ServerPlayerPostMovePositionPacket from '@jsprismarine/protocol/packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import ServerSettingsResponsePacket from '@jsprismarine/protocol/packet/ServerSettingsResponsePacket';
 import ServerboundCursorItemDragPacket from '@jsprismarine/protocol/packet/ServerboundCursorItemDragPacket';

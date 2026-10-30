@@ -294,6 +294,8 @@ export { default as SendPartyDestinationCookiePacket } from './SendPartyDestinat
 export * from './SendPartyDestinationCookiePacket';
 export { default as ServerPresenceInfoPacket } from './ServerPresenceInfoPacket';
 export * from './ServerPresenceInfoPacket';
+export { default as ServerPlayerPostMovePositionPacket } from './ServerPlayerPostMovePositionPacket';
+export * from './ServerPlayerPostMovePositionPacket';
 export { default as ServerStatsPacket } from './ServerStatsPacket';
 export * from './ServerStatsPacket';
 export { default as ServerStoreInfoPacket } from './ServerStoreInfoPacket';
