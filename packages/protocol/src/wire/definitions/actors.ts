@@ -29,3 +29,12 @@ export const actorEventPacket = definePacket('ActorEventPacket', {
 
 /** What `ActorEventPacket` carries. */
 export type ActorEventPayload = PayloadOf<typeof actorEventPacket>;
+
+/** The `RemoveActorPacket` field list. */
+export const removeActorPacket = definePacket('RemoveActorPacket', {
+    /** `Target Actor ID`: the unique id, not the runtime one. */
+    uniqueEntityId: t.varint64
+});
+
+/** What `RemoveActorPacket` carries. */
+export type RemoveActorPayload = PayloadOf<typeof removeActorPacket>;

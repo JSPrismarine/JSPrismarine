@@ -18,7 +18,7 @@ import {
     serverboundStonecutterSetRecipePacket,
     setPassengerOfBlockPacket
 } from './added2225';
-import { actorEventPacket } from './actors';
+import { actorEventPacket, removeActorPacket } from './actors';
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
@@ -97,6 +97,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         playerListPacket,
         playerSkinPacket,
         playStatusPacket,
+        removeActorPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
         serverToClientHandshakePacket,

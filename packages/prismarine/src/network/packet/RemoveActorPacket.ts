@@ -1,3 +1,5 @@
+import { layoutAt, removeActorPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -16,10 +18,10 @@ export default class RemoveActorPacket extends DataPacket {
      * Reads the Target Actor ID. The server only sends this packet; decoding serves tests and logging.
      */
     public decodePayload(): void {
-        this.uniqueEntityId = this.readVarLong();
+        this.uniqueEntityId = layoutAt(removeActorPacket, this.codecProtocol).decode(this).uniqueEntityId;
     }
 
     public encodePayload(): void {
-        this.writeVarLong(this.uniqueEntityId);
+        layoutAt(removeActorPacket, this.codecProtocol).encode(this, { uniqueEntityId: this.uniqueEntityId });
     }
 }
