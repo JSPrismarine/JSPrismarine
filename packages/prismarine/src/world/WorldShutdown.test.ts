@@ -352,7 +352,7 @@ const shutDownMidBatch = async () => {
     await generator.parked;
     const queued = generator.requested;
 
-    // What `GeneratorManager` registers with `Server.releaseOnShutdown`, which runs before the
+    // What `GeneratorFactories` registers with `Server.releaseOnShutdown`, which runs before the
     // shutdown awaits anything - here, before `disable` is even called.
     generator.stopGenerating();
     const disabling = world.disable();

@@ -128,7 +128,7 @@ describe('a command typed while the start region is still generating', () => {
 
         server = new Server({ logger: new Logger(), config: debugConfig('preloading'), headless: true });
         vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
-        server.getWorldManager().getGeneratorManager().registerClassGenerator('Held', HeldGenerator, server);
+        server.getWorldManager().getGeneratorFactories().registerClassGenerator('Held', HeldGenerator);
 
         // Deliberately not awaited. The point of the test is the state the server is in while
         // this is still running.

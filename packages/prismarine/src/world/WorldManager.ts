@@ -1,7 +1,13 @@
 import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
-import { GeneratorManager } from './GeneratorManager';
+import { GeneratorFactories } from './GeneratorFactories';
+import { Dimensions } from './Dimension';
+import { requireJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
+import { flatStem } from './generators/factories/flat';
+import { OVERWORLD_NOISE_STEM } from './generators/factories/noise';
+import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
+import type { LevelStem } from '@jsprismarine/worldgen';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';
 import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
@@ -43,13 +49,21 @@ export default class WorldManager implements Service {
     private readonly worlds: Map<string, World> = new Map();
     private readonly worldsByDimension = new Map<string, Set<World>>();
     private defaultWorld!: World;
-    private readonly genManager: GeneratorManager;
+    private readonly generatorFactories = new GeneratorFactories();
+
+    /** Java's worldgen registries, read once for every world that needs them. */
+    private worldgenRegistries: JavaWorldgenRegistries | undefined;
     private readonly server: Server;
     private providers = new Map<string, ProviderClass>(); // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
-        this.genManager = new GeneratorManager(server);
+        server.getLogger().verbose(`Registered §b${this.generatorFactories.kinds().length}§r generator kind(s)!`);
+
+        // Here rather than in a world, because this runs before the shutdown awaits anything -
+        // which matters when the thing being given up is the reason the event loop is busy. See
+        // {@link Server.releaseOnShutdown} and {@link Generator.stopGenerating}.
+        server.releaseOnShutdown(() => this.generatorFactories.stopGenerating());
 
         // Create the worlds directory if it doesn't exist.
         if (!fs.existsSync(withCwd(WORLDS_FOLDER))) {
@@ -167,7 +181,14 @@ export default class WorldManager implements Service {
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
         const provider = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
-        const generator = this.getGeneratorManager().getGenerator(worldData.generator ?? 'Flat');
+        const generator = this.generatorFactories.build({
+            stem: legacyStemOf(worldData, Dimensions.Overworld.id),
+            dimension: Dimensions.Overworld,
+            seed: worldSeedOf(worldData.seed),
+            content: () => this.server.getContent(),
+            worldgen: () => (this.worldgenRegistries ??= requireJavaWorldgenRegistries()),
+            logger: this.server.getLogger()
+        });
 
         if (!provider) {
             // Named, and with the alternatives listed. The `Filesystem` provider was removed, so
@@ -323,7 +344,45 @@ export default class WorldManager implements Service {
         return this.defaultWorld;
     }
 
-    public getGeneratorManager(): GeneratorManager {
-        return this.genManager;
+    /** The generator kinds this server can build a dimension with. */
+    public getGeneratorFactories(): GeneratorFactories {
+        return this.generatorFactories;
+    }
+
+    /**
+     * @deprecated Use {@link WorldManager.getGeneratorFactories}. Removed in the next release.
+     */
+    public getGeneratorManager(): GeneratorFactories {
+        return this.generatorFactories;
     }
 }
+
+/**
+ * The level stem today's `generator` and `layers` config keys describe.
+ *
+ * `Overworld` and `Flat`, in any case, are the two kinds the old `GeneratorManager` shipped;
+ * any other name is taken as a kind id, which is how a class registered through
+ * `GeneratorFactories.registerClassGenerator` is reached. Interim: the config grows a preset and
+ * per-dimension stems next, and this translation moves into that migration.
+ */
+const legacyStemOf = (worldData: WorldData, dimensionType: string): LevelStem => {
+    const name = worldData.generator ?? 'Flat';
+    switch (name.toLowerCase()) {
+        case 'overworld':
+            return { ...OVERWORLD_NOISE_STEM, type: dimensionType };
+        case 'flat': {
+            if (worldData.layers === undefined) return flatStem(dimensionType);
+            return flatStem(dimensionType, {
+                layers: worldData.layers.map((layer) => ({
+                    block: layer.block.includes(':') ? layer.block : `minecraft:${layer.block}`,
+                    height: layer.size
+                })),
+                biome: 'minecraft:plains',
+                lakes: false,
+                features: false
+            });
+        }
+        default:
+            return { type: dimensionType, generator: { type: name, settings: undefined } };
+    }
+};

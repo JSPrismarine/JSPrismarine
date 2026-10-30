@@ -6,7 +6,6 @@ export type * from './Generator';
 export { GenerationStopped } from './Generator';
 export type * from './EntitySpawn';
 export * from './Dimension';
-export * from './GeneratorManager';
 export * from './GeneratorFactories';
 export * from './generators/factories';
 export { FlatGenerator, type FlatGeneratorOptions } from './generators/Flat';

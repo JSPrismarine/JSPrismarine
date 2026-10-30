@@ -14,7 +14,7 @@ import type Server from '../Server';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import { eyePositionAt } from '../entity/Human';
 import type { World } from '../world/World';
-import Flat from '../world/generators/Flat';
+import { FlatGenerator } from '../world/generators/Flat';
 
 /** The server-owned state needed to produce a Protocol `StartGame` payload. */
 export interface StartGameDataOptions {
@@ -65,7 +65,7 @@ export const createStartGameData = ({
         spawnBiomeType: 0,
         userDefinedBiomeName: 'minecraft:plains',
         dimension: world.getDimension().bedrockId,
-        generator: world.getGenerator() instanceof Flat ? Generator.FLAT : Generator.OVERWORLD,
+        generator: world.getGenerator() instanceof FlatGenerator ? Generator.FLAT : Generator.OVERWORLD,
         worldGamemode: getGametypeId(server.getConfig().getGamemode()),
         hardcore: false,
         difficulty: server.getConfig().getDifficulty(),
