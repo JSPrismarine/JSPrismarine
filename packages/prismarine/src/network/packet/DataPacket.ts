@@ -1,10 +1,6 @@
-import BinaryStream from '@jsprismarine/binaryutils';
-import { netIdFor, protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 const PID_MASK = 0x3ff;
-const SENDER_SHIFT = 10;
-const RECEIVER_SHIFT = 12;
-const SUBCLIENT_MASK = 0x03;
 
 /**
  * The packet id at the front of an encoded packet, without decoding the rest of it.
@@ -38,104 +34,4 @@ export const readPacketId = (buffer: Uint8Array): number => {
  * @class
  * @public
  */
-export default class DataPacket extends BinaryStream {
-    /**
-     * The wire id this instance encodes and decodes with. Stamped by the session's codec on
-     * both paths; a packet built directly - tests, mostly - falls back to the 2193 table
-     * under its class name, which is what the lone codec stamps anyway.
-     */
-    private netId?: number;
-
-    /**
-     * The protocol version of the codec that built this packet. A payload whose layout is
-     * version-gated reads this instead of a global constant. Defaults to 2193 for packets
-     * built directly.
-     */
-    public codecProtocol = protocolVersion;
-
-    /** Protected so a subclass encoding by another route - `BatchPacket.encodeAsync` - can say so. */
-    protected encoded = false;
-
-    // Split screen
-    private senderSubId = 0;
-    private receiverSubId = 0;
-
-    constructor(buffer?: Buffer) {
-        super(buffer, 0);
-    }
-
-    public getBuffer(): Buffer {
-        return super.getBuffer();
-    }
-
-    public getId(): number {
-        return (this.netId ??= netIdFor(this.getName()) ?? -1);
-    }
-
-    /**
-     * Stamps the wire id a codec resolved for this packet. The codec's business: everything
-     * else reads the id through {@link getId}.
-     * @param {number} netId - the wire id under the owning codec.
-     */
-    public setNetId(netId: number): void {
-        this.netId = netId;
-    }
-
-    public getEncoded(): boolean {
-        return this.encoded;
-    }
-
-    /**
-     * Get the DataPacket's name.
-     *
-     * @returns The packet's name
-     */
-    public getName(): string {
-        return this.constructor.name;
-    }
-
-    public decode(): void {
-        this.decodeHeader();
-        this.decodePayload();
-
-        // Mark all the packets sent by the client
-        // as encoded, because they have all the properties
-        // and a buffer (like a manually encoded packet).
-        this.encoded = true;
-    }
-
-    public decodeHeader() {
-        const header = this.readUnsignedVarInt();
-
-        const pid = header & PID_MASK;
-        if (pid !== this.getId()) {
-            throw new Error(`Packet ID must be ${this.getId()}, got ${pid}`);
-        }
-
-        this.senderSubId = (header >> SENDER_SHIFT) & SUBCLIENT_MASK;
-        this.receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
-    }
-
-    /**
-     * Decode the packet from a network serialized buffer.
-     */
-    public decodePayload(): void {}
-
-    public encode(): void {
-        this.clear(); // We might not want to actually clear the buffer here.
-        this.encodeHeader();
-        this.encodePayload();
-        this.encoded = true;
-    }
-
-    public encodeHeader(): void {
-        this.writeUnsignedVarInt(
-            this.getId() | (this.senderSubId << SENDER_SHIFT) | (this.receiverSubId << RECEIVER_SHIFT)
-        );
-    }
-
-    /**
-     * Encode the packet to a network serialized buffer.
-     */
-    public encodePayload(): void {}
-}
+export default class DataPacket extends FieldNetworkPacket {}
