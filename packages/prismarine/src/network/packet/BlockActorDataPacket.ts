@@ -1,6 +1,7 @@
-import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import { NBTTagCompound } from '@jsprismarine/nbt';
+import { blockActorDataPacket, layoutAt } from '@jsprismarine/protocol';
+
 import BlockPosition from '../../world/BlockPosition';
-import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
@@ -28,34 +29,26 @@ export default class BlockActorDataPacket extends DataPacket {
 
     /** Reads the position and the network NBT compound that follows it. */
     public decodePayload(): void {
-        this.blockPosition = NetworkUtil.readBlockPosition(this);
-
-        const reader = new NBTReader(this, ByteOrder.LITTLE_ENDIAN);
-        reader.setUseVarint(true);
-        this.actorDataTags = reader.parse();
+        const read = layoutAt(blockActorDataPacket, this.codecProtocol).decode(this);
+        this.blockPosition = new BlockPosition(read.position.x, read.position.y, read.position.z);
+        this.actorDataTags = read.actorDataTags;
     }
 
     /**
      * Writes the position and the network NBT compound that follows it.
      *
-     * The root is written under an empty name whatever the compound calls itself. A vanilla
-     * compound has no name of its own, so the server always sends an empty one, and a block
-     * entity loaded from a world file may carry one.
+     * The root goes out under an empty name whatever the compound calls itself, which the
+     * wire type handles: a vanilla compound has no name of its own, and a block entity loaded
+     * from a world file may carry one.
      */
     public encodePayload(): void {
-        NetworkUtil.writeBlockPosition(this, this.blockPosition);
-
-        const writer = new NBTWriter(this, ByteOrder.LITTLE_ENDIAN);
-        writer.setUseVarint(true);
-        writer.writeCompound(unnamed(this.actorDataTags));
+        layoutAt(blockActorDataPacket, this.codecProtocol).encode(this, {
+            position: {
+                x: this.blockPosition.getX(),
+                y: this.blockPosition.getY(),
+                z: this.blockPosition.getZ()
+            },
+            actorDataTags: this.actorDataTags
+        });
     }
 }
-
-/** The same tags under an empty root name, without touching the caller's compound. */
-const unnamed = (tags: NBTTagCompound): NBTTagCompound => {
-    if (!tags.getName()) return tags;
-
-    const root = new NBTTagCompound('');
-    for (const [name, value] of tags.children) root.children.set(name, value);
-    return root;
-};
