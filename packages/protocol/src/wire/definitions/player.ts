@@ -31,3 +31,35 @@ export const playerActionPacket = definePacket('PlayerActionPacket', {
 
 /** What `PlayerActionPacket` carries. */
 export type PlayerActionPayload = PayloadOf<typeof playerActionPacket>;
+
+/**
+ * The `SetPlayerGameTypePacket` field list.
+ *
+ * Sent both ways: the client when the player picks a game type, the server back so the client
+ * shows the one the server holds.
+ */
+export const setPlayerGameTypePacket = definePacket('SetPlayerGameTypePacket', {
+    /** `Player Game Type`: a `Gametype` value. */
+    gametype: t.varint32
+});
+
+/** What `SetPlayerGameTypePacket` carries. */
+export type SetPlayerGameTypePayload = PayloadOf<typeof setPlayerGameTypePacket>;
+
+/**
+ * The `UpdatePlayerGameTypePacket` field list.
+ *
+ * Every client keeps the game type of every player it knows about, so this goes to all of
+ * them and not only to the player who changed.
+ */
+export const updatePlayerGameTypePacket = definePacket('UpdatePlayerGameTypePacket', {
+    /** `Player Game Type`: the game type the target now has. */
+    playerGameType: t.varint32,
+    /** `Target player`: an `ActorUniqueID`. */
+    targetPlayer: t.varint64,
+    /** `Tick`: the `PlayerInputTick` the change belongs to; zero costs a little smoothness. */
+    tick: t.varuint64
+});
+
+/** What `UpdatePlayerGameTypePacket` carries. */
+export type UpdatePlayerGameTypePayload = PayloadOf<typeof updatePlayerGameTypePacket>;

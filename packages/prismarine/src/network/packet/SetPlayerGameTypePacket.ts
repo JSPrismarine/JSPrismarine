@@ -1,4 +1,5 @@
 import type { Gametype } from '@jsprismarine/minecraft';
+import { layoutAt, setPlayerGameTypePacket } from '@jsprismarine/protocol';
 
 import DataPacket from './DataPacket';
 
@@ -14,11 +15,11 @@ export default class SetPlayerGameTypePacket extends DataPacket {
 
     /** Reads Player Game Type as a varint32. */
     public decodePayload(): void {
-        this.gametype = this.readVarInt();
+        this.gametype = layoutAt(setPlayerGameTypePacket, this.codecProtocol).decode(this).gametype;
     }
 
     /** Writes Player Game Type as a varint32. */
     public encodePayload(): void {
-        this.writeVarInt(this.gametype);
+        layoutAt(setPlayerGameTypePacket, this.codecProtocol).encode(this, { gametype: this.gametype });
     }
 }
