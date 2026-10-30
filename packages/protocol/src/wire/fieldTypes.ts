@@ -155,6 +155,13 @@ export const lu64 = type<bigint>(
     (s) => s.readUnsignedLongLE()
 );
 
+/** `li64`: a little-endian signed 64-bit integer. */
+export const li64 = type<bigint>(
+    'li64',
+    (s, v) => s.writeLongLE(v),
+    (s) => s.readLongLE()
+);
+
 /** `ByteArray`: a varint byte length, then the raw bytes. */
 export const byteArray = type<Buffer>(
     'ByteArray',

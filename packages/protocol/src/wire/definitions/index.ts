@@ -10,6 +10,7 @@ import { animatePacket } from './animate';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
 import { levelChunkPacket } from './levelChunk';
 import { playStatusPacket } from './playStatus';
+import { resourcePacksInfoPacket } from './resourcePacks';
 import {
     networkChunkPublisherUpdatePacket,
     networkSettingsPacket,
@@ -34,6 +35,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         chunkRadiusUpdatedPacket,
         levelChunkPacket,
         playStatusPacket,
+        resourcePacksInfoPacket,
         startGamePacket,
         networkChunkPublisherUpdatePacket,
         networkSettingsPacket,

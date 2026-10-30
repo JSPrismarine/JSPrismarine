@@ -11,7 +11,7 @@ const NO_WORLD_TEMPLATE = [...Array.from({ length: 16 }, () => 0x00), 0x00];
 
 const ENTRY: ResourcePackEntry = {
     id: { uuidMostSignificant: 0x0102030405060708n, uuidLeastSignificant: 0x090a0b0c0d0e0f10n, version: '1.0.0' },
-    size: 1234n,
+    sizeBytes: 1234n,
     contentKey: 'k',
     subPackName: '',
     contentIdentity: 'id',

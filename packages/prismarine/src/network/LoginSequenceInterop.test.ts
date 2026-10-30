@@ -222,7 +222,7 @@ describe('login sequence interop', () => {
             server.hasScripts = true;
             server.forceDisableVibrantVisuals = true;
             server.worldTemplate = worldTemplate;
-            server.resourcePackEntries = [{ ...pack, size: 4096n }];
+            server.resourcePackEntries = [{ ...pack, sizeBytes: 4096n }];
             const bytes = serverBytes(server);
 
             expect(
@@ -239,7 +239,7 @@ describe('login sequence interop', () => {
             ).toEqual(bytes);
 
             const decoded = readAsServer(new ServerResourcePacksInfoPacket(), bytes);
-            expect(decoded.resourcePackEntries).toEqual([{ ...pack, size: 4096n }]);
+            expect(decoded.resourcePackEntries).toEqual([{ ...pack, sizeBytes: 4096n }]);
         });
     });
 
