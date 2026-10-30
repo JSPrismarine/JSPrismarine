@@ -11,8 +11,7 @@ import type { World } from '../world/World';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Item } from '../item/Item';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import { EnchantType } from '@jsprismarine/minecraft';
-import PlayerEnchantOptionsPacket from '../network/packet/PlayerEnchantOptionsPacket';
+import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import { stub } from '../testing/stub.test.helper';
 import { bookshelfPowerAround } from './bookshelves';
 import {
@@ -257,7 +256,7 @@ describe('the enchanting table', () => {
                 (entry): entry is PlayerEnchantOptionsPacket => entry instanceof PlayerEnchantOptionsPacket
             );
             expect(packet).toBeDefined();
-            expect(packet!.options.length).toBeGreaterThan(0);
+            expect(packet?.getPacketData()?.options.length ?? 0).toBeGreaterThan(0);
         });
 
         it('clears the table for an empty slot', async () => {
@@ -267,7 +266,8 @@ describe('the enchanting table', () => {
 
             const packet = sent.at(-1);
             expect(packet).toBeInstanceOf(PlayerEnchantOptionsPacket);
-            expect((packet as PlayerEnchantOptionsPacket).options).toEqual([]);
+            if (!(packet instanceof PlayerEnchantOptionsPacket)) return;
+            expect(packet.getPacketData()?.options).toEqual([]);
         });
     });
 });

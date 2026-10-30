@@ -32,7 +32,7 @@ import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
-import PlayerEnchantOptionsPacket from '../packet/PlayerEnchantOptionsPacket';
+import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
 import { ItemStackRequestActionType } from '../type/ItemStackRequest';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
@@ -221,7 +221,7 @@ describe('a workstation screen', () => {
             // The table's offers are a function of the stack, so putting one in redraws them.
             const options = sent.find((packet) => packet instanceof PlayerEnchantOptionsPacket);
             expect(options).toBeInstanceOf(PlayerEnchantOptionsPacket);
-            expect((options as PlayerEnchantOptionsPacket).options.length).toBeGreaterThan(0);
+            expect(options?.getPacketData()?.options.length ?? 0).toBeGreaterThan(0);
 
             // And the answer names the container the client knows that slot by.
             const named = response.responses[0]?.containers.map((container) => container.container.containerId);

@@ -23,8 +23,8 @@ import type Player from '../Player';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { spendExperienceLevels } from '../entity/Experience';
 import type { Item } from '../item/Item';
-import type { EnchantmentInstance, ItemEnchantOption } from '../network/packet/PlayerEnchantOptionsPacket';
-import PlayerEnchantOptionsPacket from '../network/packet/PlayerEnchantOptionsPacket';
+import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
+import type { EnchantmentInstance, ItemEnchantOption } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
 import type { BlockPosition } from './bookshelves';
@@ -163,8 +163,7 @@ export const enchantOptionsOf = (registry: EnchantmentRegistry, rows: readonly E
  * nothing to offer.
  */
 export const sendEnchantOptions = async (player: Player, options: readonly ItemEnchantOption[]): Promise<void> => {
-    const packet = new PlayerEnchantOptionsPacket();
-    packet.options = [...options];
+    const packet = new PlayerEnchantOptionsPacket({ options: [...options] });
     await player.getNetworkSession().send(packet);
 };
 

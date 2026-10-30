@@ -14,7 +14,7 @@
  * be drawn; see `projectToBedrock` in `@jsprismarine/enchantments` for what
  * the client gets instead. The mechanics still run either way.
  */
-import { EnchantType } from '@jsprismarine/minecraft';
+import { EnchantType } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
 
 /** The two Bedrock names Java does not spell the same way round. */
 const RENAMED: Readonly<Record<string, string>> = {

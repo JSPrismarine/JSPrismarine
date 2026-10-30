@@ -493,6 +493,8 @@ export { default as MoveActorDeltaPacket } from './MoveActorDeltaPacket';
 export * from './MoveActorDeltaPacket';
 export { default as PlayerArmorDamagePacket } from './PlayerArmorDamagePacket';
 export * from './PlayerArmorDamagePacket';
+export { default as PlayerEnchantOptionsPacket } from './PlayerEnchantOptionsPacket';
+export * from './PlayerEnchantOptionsPacket';
 export { default as PlayerListPacket } from './PlayerListPacket';
 export * from './PlayerListPacket';
 export { default as PlayerSkinPacket } from './PlayerSkinPacket';
