@@ -7,12 +7,14 @@ import GameRuleManager from '../../world/GameRuleManager';
 import BlockPosition from '../../world/BlockPosition';
 import { Item } from '../../item/Item';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
-import AddPlayerPacket from '../packet/AddPlayerPacket';
+import { AddPlayerPacket } from '@jsprismarine/protocol';
+import type { AddPlayerPayload } from '@jsprismarine/protocol';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import LevelChunkPacket from '../packet/LevelChunkPacket';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import { BuildPlatform } from '@jsprismarine/minecraft';
 import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
@@ -161,28 +163,46 @@ describe('network/codec', () => {
         });
 
         it('round-trips the Passenger Block Data AddPlayerPacket gained before the device id', () => {
-            const packet = new AddPlayerPacket();
-            packet.codecProtocol = 2225;
-            packet.uuid = UUID.fromString('00000000-0000-4000-8000-000000000001');
-            packet.name = 'Steve';
-            packet.runtimeEntityId = 3n;
-            packet.platformChatId = '';
-            packet.pitch = 0;
-            packet.yaw = 0;
-            packet.headYaw = 0;
-            packet.deviceId = 'device';
-            packet.passengerOfBlock = {
-                blockPosition: new BlockPosition(0, 0, 0),
-                offset: new Vector3(0, 0, 0),
-                rotation: 0,
-                rotationLimit: 0,
-                emoteType: 0
+            const data: AddPlayerPayload = {
+                uuid: UUID.fromString('00000000-0000-4000-8000-000000000001'),
+                name: 'Steve',
+                runtimeEntityId: 3n,
+                platformChatId: '',
+                position: new Vector3(0, 5, 0),
+                motion: new Vector3(0, 0, 0),
+                pitch: 0,
+                yaw: 0,
+                headYaw: 0,
+                carriedItem: {
+                    id: 0,
+                    stackSize: 0,
+                    auxValue: 0,
+                    stackNetId: null,
+                    blockRuntimeId: 0,
+                    userData: Buffer.alloc(0)
+                },
+                gamemode: 0,
+                metadata: new Metadata(false),
+                syncedProperties: new SyncedProperties(),
+                abilities: { targetPlayerRawId: 3n, playerPermission: 0, commandPermission: 0, layers: [] },
+                links: [],
+                passengerOfBlock: {
+                    blockPosition: new Vector3(0, 0, 0),
+                    offset: new Vector3(0, 0, 0),
+                    rotation: 0,
+                    rotationLimit: 0,
+                    emoteType: 0
+                },
+                deviceId: 'device',
+                buildPlatform: -1
             };
+            const packet = new AddPlayerPacket(data);
+            packet.codecProtocol = 2225;
 
             const decoded = roundTrip(packet);
             // The device id still reads correctly from behind the inserted optional.
-            expect(decoded).toMatchObject({ name: 'Steve', deviceId: 'device' });
-            expect(decoded.passengerOfBlock).not.toBeNull();
+            expect(decoded.getPacketData()).toMatchObject({ name: 'Steve', deviceId: 'device' });
+            expect(decoded.getPacketData()).toMatchObject({ passengerOfBlock: data.passengerOfBlock });
         });
 
         it('round-trips the Hand byte both changed transaction bodies gained', () => {

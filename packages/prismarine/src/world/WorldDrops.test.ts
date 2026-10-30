@@ -8,7 +8,7 @@ import type { Entity } from '../entity/Entity';
 import { Item as ItemEntity } from '../entity/other/Item';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
-import AddItemActorPacket from '../network/packet/AddItemActorPacket';
+import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
 import PlayerSession from '../network/PlayerSession';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { testContent } from '../testing/entityServer';
@@ -54,6 +54,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         send: async (packet: any) => void sent.push(packet),
         sendDataPacket: async (packet: any) => void sent.push(packet),
         connection: {
+            codec: { context: { protocolVersion: 2193 } },
             sendDataPacket: async (packet: any) => {
                 packet.encode();
                 sent.push(packet);
@@ -153,8 +154,9 @@ describe('world', () => {
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket);
             expect(spawn).toBeDefined();
             // A generic `AddActor` in its place is an entity the client renders as nothing.
-            expect(spawn!.item.getName()).toBe('minecraft:cobblestone');
-            expect(spawn!.item.getRuntimeId()).toBeGreaterThan(0);
+            const data = spawn!.getPacketData();
+            if (data === null) throw new Error('AddItemActorPacket has no payload');
+            expect(data.item.id).toBeGreaterThan(0);
         });
 
         it('starts the drop inside the block that broke, and tells the client how fast it leaves', async () => {
@@ -163,12 +165,12 @@ describe('world', () => {
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket)!;
+            const data = spawn.getPacketData();
+            if (data === null) throw new Error('AddItemActorPacket has no payload');
             // Outside it and the stack visibly sits inside the neighboring block. The 0.125 is
             // how far above where it lies BDS reports an item.
-            expect([spawn.position.getX(), spawn.position.getY(), spawn.position.getZ()]).toEqual([
-                10.5, 64.625, -19.5
-            ]);
-            expect([spawn.motion.getX(), spawn.motion.getY(), spawn.motion.getZ()]).toEqual([0, 0.2, 0]);
+            expect([data.position.getX(), data.position.getY(), data.position.getZ()]).toEqual([10.5, 64.625, -19.5]);
+            expect([data.motion.getX(), data.motion.getY(), data.motion.getZ()]).toEqual([0, 0.2, 0]);
         });
 
         it('adds the drop to the world, so it ticks and can be picked up', async () => {

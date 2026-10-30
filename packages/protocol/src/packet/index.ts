@@ -1,4 +1,6 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
+import AddItemActorPacket from './AddItemActorPacket';
+import AddPlayerPacket from './AddPlayerPacket';
 import AddPaintingPacket from './AddPaintingPacket';
 import BossEventPacket from './BossEventPacket';
 import CommandBlockUpdatePacket from './CommandBlockUpdatePacket';
@@ -75,6 +77,8 @@ import ServerboundPackSettingChangePacket from './ServerboundPackSettingChangePa
 export {
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
+    AddItemActorPacket,
+    AddPlayerPacket,
     AddPaintingPacket,
     BossEventPacket,
     CommandBlockUpdatePacket,
@@ -216,6 +220,8 @@ export { SoftEnumUpdateType } from './UpdateSoftEnumPacket';
 export type { UpdateSoftEnum } from './UpdateSoftEnumPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
 export type { AddPainting } from './AddPaintingPacket';
+export type { AddItemActorPayload } from '../wire/definitions/addItemActor';
+export type { AddPlayerPayload } from '../wire/definitions/addPlayer';
 export type { GatheringsConfig, Transfer } from './TransferPacket';
 export { BookEditAction } from './BookEditPacket';
 export type { BookEdit, BookEditOperation } from './BookEditPacket';

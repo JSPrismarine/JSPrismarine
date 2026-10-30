@@ -41,6 +41,8 @@ export { actorLinks, ActorLinkType, addActorPacket } from './wire/definitions/ad
 export type { AddActorPayload } from './wire/definitions/addActor';
 export { addPlayerPacket } from './wire/definitions/addPlayer';
 export type { AddPlayerPayload } from './wire/definitions/addPlayer';
+export { addItemActorPacket } from './wire/definitions/addItemActor';
+export type { AddItemActorPayload } from './wire/definitions/addItemActor';
 export * from './wire/definitions/actors';
 export * from './wire/definitions/animate';
 export * from './wire/definitions/availableActorIdentifiers';

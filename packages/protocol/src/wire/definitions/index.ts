@@ -7,6 +7,7 @@
  * the registry with no further registration.
  */
 import { addActorPacket } from './addActor';
+import { addItemActorPacket } from './addItemActor';
 import { addPlayerPacket } from './addPlayer';
 import {
     clientboundMatchmakingStatePacket,
@@ -114,6 +115,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
     [
         actorEventPacket,
         addActorPacket,
+        addItemActorPacket,
         addPlayerPacket,
         animatePacket,
         availableActorIdentifiersPacket,

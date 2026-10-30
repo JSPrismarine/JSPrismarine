@@ -7,7 +7,7 @@ import {
     StringType
 } from '@jsprismarine/brigadier';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import {
@@ -48,8 +48,9 @@ import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './c
 import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
 import { BatchPacket } from './Packets';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
-import AddItemActorPacket from './packet/AddItemActorPacket';
-import AddPlayerPacket from './packet/AddPlayerPacket';
+import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
+import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
@@ -1808,17 +1809,21 @@ export default class PlayerSession {
         const stack = item.getItem();
         if (!stack) return;
 
-        const packet = new AddItemActorPacket();
-        packet.runtimeEntityId = item.getRuntimeId();
-        packet.position = item.getPosition();
         // Sent as BDS sends it, so the client draws the drop leaving its block rather than hanging
         // still until the first movement packet arrives.
-        packet.motion = item.getMotion();
-        packet.item = stack.getItem();
-        // The packet writes this unconditionally, so leaving it unset threw on the first
-        // dropped item rather than at the point the field was forgotten.
-        packet.metadata = item.metadata;
-        await this.connection.sendDataPacket(packet);
+        const context = this.connection.codec.context;
+        const runtimeEntityId = item.getRuntimeId();
+        await this.connection.sendDataPacket(
+            new AddItemActorPacket({
+                targetActorId: runtimeEntityId,
+                runtimeEntityId,
+                item: stack.getItem().toStackDescriptor(context),
+                position: item.getPosition(),
+                motion: item.getMotion(),
+                metadata: item.metadata,
+                isFromFishing: false
+            })
+        );
     }
 
     /**
@@ -1935,56 +1940,54 @@ export default class PlayerSession {
      * @param player - the player to send the AddPlayerPacket to
      */
     public async sendSpawn(player: Player): Promise<void> {
-        const pk = new AddPlayerPacket();
-        pk.uuid = this.player.getUUID();
-        pk.runtimeEntityId = this.player.getRuntimeId();
-        pk.name = this.player.getName();
-
+        const targetSession = player.getNetworkSession();
+        const context = targetSession.getConnection().codec.context;
         const position = this.player.getPosition();
-        pk.positionX = position.getX();
-        pk.positionY = position.getY();
-        pk.positionZ = position.getZ();
-
-        // Players report their own movement every tick, so the server keeps no velocity for
-        // them and Velocity goes out as zero.
-        pk.motionX = 0;
-        pk.motionY = 0;
-        pk.motionZ = 0;
-
-        pk.pitch = this.player.pitch;
-        pk.yaw = this.player.yaw;
-        pk.headYaw = this.player.headYaw;
-
-        pk.gamemode = this.player.gamemode;
-        pk.item = this.player.getInventory().getItemInHand();
-
-        pk.deviceId = this.player.device?.id ?? '';
-        pk.buildPlatform = this.player.device?.os ?? BuildPlatform.UNKNOWN;
-        pk.metadata = this.player.metadata;
-
         // `Player.platformChatId` is still empty because the login handler does not read the
         // client's platform online id yet. This sends what the player list sends.
-        pk.platformChatId = this.player.platformChatId;
-
         // Mirrors `sendAbilities`. Without these every player showed up to everybody else as
         // a visitor on an unknown platform.
         const op = this.player.isOp();
-        pk.playerPermission = op ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER;
-        pk.commandPermission = op ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY;
-
-        await player.getNetworkSession().send(pk);
+        await targetSession.send(
+            new AddPlayerPacket({
+                uuid: this.player.getUUID(),
+                name: this.player.getName(),
+                runtimeEntityId: this.player.getRuntimeId(),
+                platformChatId: this.player.platformChatId,
+                position,
+                // Players report their own movement every tick, so the server has no velocity to send.
+                motion: new Vector3(0, 0, 0),
+                pitch: this.player.pitch,
+                yaw: this.player.yaw,
+                headYaw: this.player.headYaw,
+                carriedItem: this.player.getInventory().getItemInHand().toStackDescriptor(context),
+                gamemode: this.player.gamemode,
+                metadata: this.player.metadata,
+                syncedProperties: new SyncedProperties(),
+                abilities: {
+                    targetPlayerRawId: this.player.getRuntimeId(),
+                    playerPermission: op ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER,
+                    commandPermission: op ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY,
+                    layers: []
+                },
+                links: [],
+                passengerOfBlock: null,
+                deviceId: this.player.device?.id ?? '',
+                buildPlatform: this.player.device?.os ?? BuildPlatform.UNKNOWN
+            })
+        );
 
         // No adventure settings here. This used to call `sendSettings(player)`, which builds
         // the packet from the player passed and sends it to *this* connection - so showing A
         // to B sent B's settings to A. The packet has no target actor and describes only the
         // client receiving it, so it has no place in a spawn at all.
-        await player.getNetworkSession().sendAbilities(this.player);
+        await targetSession.sendAbilities(this.player);
 
         // `AddPlayerPacket` carries the held item and nothing else, so armor has to follow the
         // player into view as a packet of its own - otherwise everybody else sees them in their
         // shirtsleeves however well equipped they are.
-        await player.getNetworkSession().sendArmorFor(this.player);
-        await player.getNetworkSession().sendStatusEffects(this.player);
+        await targetSession.sendArmorFor(this.player);
+        await targetSession.sendStatusEffects(this.player);
     }
 
     /**

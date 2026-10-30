@@ -15,13 +15,13 @@ import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
 import Device from '../utils/Device';
-import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
+import { AddPlayerPacket, MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
+import type { AddPlayerPayload } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import AddPlayerPacket from './packet/AddPlayerPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import PlayerSession from './PlayerSession';
@@ -217,7 +217,7 @@ describe('network', () => {
         });
 
         describe('sendSpawn', () => {
-            const spawn = async (shown: Player) => {
+            const spawn = async (shown: Player): Promise<AddPlayerPayload> => {
                 const other = viewer();
                 const { session } = sessionFor(shown);
 
@@ -225,7 +225,10 @@ describe('network', () => {
 
                 const [packet] = other.sent;
                 expect(packet).toBeInstanceOf(AddPlayerPacket);
-                return packet instanceof AddPlayerPacket ? packet : new AddPlayerPacket();
+                if (!(packet instanceof AddPlayerPacket)) throw new Error('AddPlayerPacket was not sent first');
+                const data = packet.getPacketData();
+                if (data === null) throw new Error('AddPlayerPacket has no payload');
+                return data;
             };
 
             it('names the platform the player logged in from', async () => {
@@ -254,15 +257,15 @@ describe('network', () => {
             it('shows a member with no command permission for an ordinary player', async () => {
                 const packet = await spawn(shownPlayer());
 
-                expect(packet.playerPermission).toBe(PlayerPermissionLevel.MEMBER);
-                expect(packet.commandPermission).toBe(CommandPermissionLevel.ANY);
+                expect(packet.abilities.playerPermission).toBe(PlayerPermissionLevel.MEMBER);
+                expect(packet.abilities.commandPermission).toBe(CommandPermissionLevel.ANY);
             });
 
             it('shows an operator with game director permission for an op', async () => {
                 const packet = await spawn(shownPlayer({ op: true }));
 
-                expect(packet.playerPermission).toBe(PlayerPermissionLevel.OPERATOR);
-                expect(packet.commandPermission).toBe(CommandPermissionLevel.GAME_DIRECTORS);
+                expect(packet.abilities.playerPermission).toBe(PlayerPermissionLevel.OPERATOR);
+                expect(packet.abilities.commandPermission).toBe(CommandPermissionLevel.GAME_DIRECTORS);
             });
         });
     });
