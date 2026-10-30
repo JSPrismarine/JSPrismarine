@@ -15,6 +15,7 @@ import UpdateTradePacket from './UpdateTradePacket';
 import StructureBlockUpdatePacket from './StructureBlockUpdatePacket';
 import StructureTemplateDataRequestPacket from './StructureTemplateDataRequestPacket';
 import StructureTemplateDataResponsePacket from './StructureTemplateDataResponsePacket';
+import ClientboundDebugRendererPacket from './ClientboundDebugRendererPacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
 import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
@@ -84,6 +85,7 @@ export {
     StructureBlockUpdatePacket,
     StructureTemplateDataRequestPacket,
     StructureTemplateDataResponsePacket,
+    ClientboundDebugRendererPacket,
     LoginPacket,
     MovePlayerPacket,
     MotionPredictionHintsPacket,
@@ -182,6 +184,8 @@ export { StructureTemplateRequestOperation } from './StructureTemplateDataReques
 export type { StructureTemplateDataRequest } from './StructureTemplateDataRequestPacket';
 export { StructureTemplateResponseType } from './StructureTemplateDataResponsePacket';
 export type { StructureTemplateDataResponse } from './StructureTemplateDataResponsePacket';
+export { DebugRendererType } from './ClientboundDebugRendererPacket';
+export type { ClientboundDebugRenderer, DebugMarkerData } from './ClientboundDebugRendererPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';
