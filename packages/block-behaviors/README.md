@@ -193,14 +193,14 @@ portal, a frame and a fire are.
 
 ## The families
 
-49 names, 1477 blocks. The count is how many palette blocks the family rule in
+49 names, 48 of them with palette blocks, 1477 blocks. The count is how many palette blocks the family rule in
 `@jsprismarine/blocks` sends to it, which matches `vanilla_overlay/report.json`. `registry.test.ts`
 fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot go stale.
 
 | Family | Blocks | Hooks | What it does |
 | --- | --- | --- | --- |
-| `plain_block` | 218 | onBreak | A full cube that proposes itself as a drop; the content break host applies the correct-tool rule. |
-| `inert` | 203 | none | No hooks. The engine and editor blocks whose behavior is not a block behavior. |
+| `plain_block` | 217 | onBreak | A full cube that proposes itself as a drop; the content break host applies the correct-tool rule. |
+| `inert` | 202 | none | No hooks. The engine and editor blocks whose behavior is not a block behavior. |
 | `slab` | 109 | onPlace, onBreak, onRandomTick, onPlayerInteract | Takes its half from where the click landed, merges with the slab it replaced into the double block, waxes and scrapes, and oxidizes when it is copper. |
 | `stairs` | 97 | onPlace, onBreak, onNeighborChanged, onRandomTick, onPlayerInteract | Turns to the placer, flips upside down for a click in the upper half, recomputes minecraft:corner on placement and on every neighbor change, and oxidizes when it is copper. |
 | `double_slab` | 93 | onBreak, onRandomTick, onPlayerInteract | Drops two of the slab it is made of, waxes and scrapes, and oxidizes when it is copper. |
@@ -230,8 +230,8 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `furnace` | 9 | onPlace, onBreak, onNeighborChanged, onPlayerInteract, onStepOn | Gives the block its slots, faces the placer, drops its contents on break, extinguishes a campfire that water reaches, and relights one with flint and steel. |
 | `dripstone` | 8 | onBreak, onNeighborChanged, onRandomTick | Grows an amethyst bud on a free face of a budding block, advances a bud a stage, and drops shards from a cluster. |
 | `head` | 7 | onPlace, onBreak, onNeighborChanged | Keeps its rotation and profile in a block entity and pops when the block it sits on goes. |
+| `portal` | 6 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, and ages fire out. The end gateway is claimed here for a later teleport and has no hook yet. Travel is the server's. |
 | `chemistry` | 5 | none | No hooks. The chemistry workbenches open Education Edition screens a vanilla server does not implement. |
-| `portal` | 5 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, and ages fire out. Travel is the server's. |
 | `ice` | 4 | onBreak, onRandomTick | Melts to water on a random tick above light 12, frosted ice ages through its four stages first, and a silk touch tool takes the block itself instead of leaving water. |
 | `liquid` | 4 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, burns what stands in lava, and gives a source block up to a bucket or a bottle. |
 | `rail` | 4 | onPlace, onBreak, onNeighborChanged, onRedstoneUpdate | Pops without a block below, and sets rail_data_bit on the powered rails from the signal reaching them. |

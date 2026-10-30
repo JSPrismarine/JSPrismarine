@@ -9,14 +9,22 @@ describe('PORTAL_BLOCK_NAMES', () => {
         expect(rule?.exact).toEqual(Object.values(PORTAL_BLOCK_NAMES).flat());
     });
 
-    it('sends the portal blocks, the frames and both fires to the portal family', () => {
-        for (const name of [
-            ...PORTAL_BLOCK_NAMES.netherPortal,
-            ...PORTAL_BLOCK_NAMES.endPortal,
-            ...PORTAL_BLOCK_NAMES.endPortalFrame,
-            ...PORTAL_BLOCK_NAMES.fire
-        ]) {
+    it('sends the portal blocks, the gateway, the frames and both fires to the portal family', () => {
+        for (const name of Object.values(PORTAL_BLOCK_NAMES).flat()) {
             expect(behaviorFor(`minecraft:${name}`)).toBe('jsprismarine:portal');
+        }
+    });
+
+    it('names only Bedrock palette blocks, so no earlier rule can shadow one', () => {
+        const earlierRules = BLOCK_FAMILIES.slice(
+            0,
+            BLOCK_FAMILIES.findIndex((candidate) => candidate.behavior === 'jsprismarine:portal')
+        );
+        const claimedEarlier = new Set(earlierRules.flatMap((rule) => rule.exact ?? []));
+
+        expect(PORTAL_BLOCK_NAMES.netherPortal).toEqual(['portal']);
+        for (const name of Object.values(PORTAL_BLOCK_NAMES).flat()) {
+            expect(claimedEarlier.has(name), name).toBe(false);
         }
     });
 });

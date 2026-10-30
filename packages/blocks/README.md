@@ -239,8 +239,9 @@ its components are fractions of a block rather than world coordinates.
 definition declares one, because Mojang already decided the family there; otherwise the identifier
 picks a rule from `BLOCK_FAMILIES`. The two agree by construction: `slab_block` lands in
 `jsprismarine:slab` and `stair_block` in `jsprismarine:stairs`. Over the palette the rules produce
-48 families, the largest being `plain_block` 218, `inert` 203, `slab` 109, `stairs` 97,
-`double_slab` 93 and `copper` 84. `vanilla_overlay/report.json` has the full tally.
+48 families, the largest being `plain_block` 217, `inert` 202, `slab` 109, `stairs` 97,
+`double_slab` 93 and `copper` 84. `BLOCK_BEHAVIOR_NAMES` has 49 entries because `pane` matches
+no vanilla block. `vanilla_overlay/report.json` has the full tally.
 
 ## Flattening
 

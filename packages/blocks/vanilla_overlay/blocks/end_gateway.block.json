@@ -17,7 +17,7 @@
             },
             "minecraft:display_name": "tile.end_gateway.name",
             "minecraft:collision_box": false,
-            "jsprismarine:behavior": "jsprismarine:inert",
+            "jsprismarine:behavior": "jsprismarine:portal",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": false,

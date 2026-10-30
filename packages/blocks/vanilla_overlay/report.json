@@ -257,7 +257,7 @@
     ],
     "behaviorCounts": {
         "jsprismarine:plain_block": 217,
-        "jsprismarine:inert": 203,
+        "jsprismarine:inert": 202,
         "jsprismarine:slab": 109,
         "jsprismarine:stairs": 97,
         "jsprismarine:double_slab": 93,
@@ -287,8 +287,8 @@
         "jsprismarine:furnace": 9,
         "jsprismarine:dripstone": 8,
         "jsprismarine:head": 7,
+        "jsprismarine:portal": 6,
         "jsprismarine:chemistry": 5,
-        "jsprismarine:portal": 5,
         "jsprismarine:ice": 4,
         "jsprismarine:liquid": 4,
         "jsprismarine:rail": 4,

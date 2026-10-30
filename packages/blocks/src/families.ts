@@ -34,12 +34,13 @@ export interface BlockFamilyRule {
  *
  * `@jsprismarine/block-behaviors` reads the groups to know which block is a
  * nether portal, which is an end portal frame and which fire lights a frame,
- * so the family rule and the geometry rules name the blocks once. `nether_portal`
- * is Java's name for `portal`, kept for a pack that uses it.
+ * so the family rule and the geometry rules name the blocks once. The end
+ * gateway is here rather than in the inert bucket because it teleports, which
+ * is portal work, even though no hook handles it yet.
  */
 export const PORTAL_BLOCK_NAMES = {
     /** The lit nether portal block, `minecraft:portal` on Bedrock. */
-    netherPortal: ['portal', 'nether_portal'],
+    netherPortal: ['portal'],
     /** The block the end portal frame ring fills with. */
     endPortal: ['end_portal'],
     /** The ring block an eye of ender goes into. */
@@ -89,7 +90,6 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
             'camera',
             'chalkboard',
             'stonecutter',
-            'end_gateway',
             'unknown'
         ],
         prefix: ['light_block_', 'element_'],
