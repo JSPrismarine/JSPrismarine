@@ -30,6 +30,7 @@ export {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries,
     loadJavaWorldgenRegistriesFrom,
+    requireJavaWorldgenRegistries,
     type JavaRegistry,
     type JavaWorldgenRegistries,
     type JavaWorldgenSources

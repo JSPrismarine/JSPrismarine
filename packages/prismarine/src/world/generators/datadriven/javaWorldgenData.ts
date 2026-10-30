@@ -25,8 +25,8 @@ import { join } from 'node:path';
 
 import type { Definitions, WorldgenRegistryKind } from '@jsprismarine/packs';
 import { load } from '@jsprismarine/packs';
-
 import type { JavaWorldgenSources } from './javaWorldgenSources';
+import { JAVA_WORLDGEN_ENV, findJavaWorldgenSources, } from './javaWorldgenSources';
 
 export {
     JAVA_WORLDGEN_ENV,
@@ -186,3 +186,22 @@ export const loadJavaWorldgenRegistriesFrom = (definitions: Definitions, reports
  */
 export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWorldgenRegistries =>
     loadJavaWorldgenRegistriesFrom(load([{ kind: 'datapack', path: sources.datapack }]).definitions, sources.reports);
+
+/**
+ * Reads every registry the generator needs, or explains what to fetch.
+ *
+ * @throws {Error} When the datapack or the reports are not on disk, naming the commands and
+ *   the environment variables that put them there.
+ */
+export const requireJavaWorldgenRegistries = (): JavaWorldgenRegistries => {
+    const sources = findJavaWorldgenSources();
+    if (sources === undefined) {
+        throw new Error(
+            'The noise generator needs Java Edition 26.3 world generation data. Run ' +
+                '`pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
+                '`pnpm --filter @jsprismarine/bedrock-data run datagen:java`, or set ' +
+                `${JAVA_WORLDGEN_ENV.datapack} and ${JAVA_WORLDGEN_ENV.reports}.`
+        );
+    }
+    return loadJavaWorldgenRegistries(sources);
+};
