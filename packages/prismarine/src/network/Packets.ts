@@ -72,7 +72,7 @@ import MobEffectPacket from '@jsprismarine/protocol/packet/MobEffectPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
 import ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
-import MotionPredictionHintsPacket from './packet/MotionPredictionHintsPacket';
+import MotionPredictionHintsPacket from '@jsprismarine/protocol/packet/MotionPredictionHintsPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import MoveActorDeltaPacket from '@jsprismarine/protocol/packet/MoveActorDeltaPacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
@@ -91,7 +91,7 @@ import PlayerArmorDamagePacket from '@jsprismarine/protocol/packet/PlayerArmorDa
 import PlayerAuthInputPacket from './packet/PlayerAuthInputPacket';
 import PlayerEnchantOptionsPacket from './packet/PlayerEnchantOptionsPacket';
 import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
-import PlayerLocationPacket from './packet/PlayerLocationPacket';
+import PlayerLocationPacket from '@jsprismarine/protocol/packet/PlayerLocationPacket';
 import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
 import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';

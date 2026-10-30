@@ -9,10 +9,12 @@ import ItemRegistryPacket from './ItemRegistryPacket';
 import LevelChunkPacket from './LevelChunkPacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
+import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
 import NetworkChunkPublisherUpdatePacket from './NetworkChunkPublisherUpdatePacket';
 import NetworkSettingsPacket from './NetworkSettingsPacket';
 import PlayStatusPacket from './PlayStatusPacket';
 import PlayerActionPacket from './PlayerActionPacket';
+import PlayerLocationPacket from './PlayerLocationPacket';
 import PlayerHotbarPacket from './PlayerHotbarPacket';
 import PlayerFogPacket from './PlayerFogPacket';
 import RequestChunkRadiusPacket from './RequestChunkRadiusPacket';
@@ -66,10 +68,12 @@ export {
     LevelChunkPacket,
     LoginPacket,
     MovePlayerPacket,
+    MotionPredictionHintsPacket,
     NetworkChunkPublisherUpdatePacket,
     NetworkSettingsPacket,
     PlayStatusPacket,
     PlayerActionPacket,
+    PlayerLocationPacket,
     PlayerHotbarPacket,
     PlayerFogPacket,
     RequestChunkRadiusPacket,
@@ -148,6 +152,9 @@ export type {
 export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';
+export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
+export { PlayerLocationPacketType } from './PlayerLocationPacket';
+export type { PlayerLocation } from './PlayerLocationPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
 export type { GatheringsConfig, Transfer } from './TransferPacket';
 export { BookEditAction } from './BookEditPacket';

@@ -1,4 +1,3 @@
-import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -6,7 +5,8 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PlayerLocationPacket, { PlayerLocationPacketType } from '../packet/PlayerLocationPacket';
+import Vec3 from '@jsprismarine/protocol/structure/Vec3';
+import PlayerLocationPacket, { PlayerLocationPacketType } from '@jsprismarine/protocol/packet/PlayerLocationPacket';
 import PlayerLocationHandler from './PlayerLocationHandler';
 
 const fakeSession = () => {
@@ -22,10 +22,10 @@ const fakeSession = () => {
 describe('PlayerLocationHandler', () => {
     it('logs a position', () => {
         const { logged, server, session } = fakeSession();
-        const packet = Object.assign(new PlayerLocationPacket(), {
+        const packet = new PlayerLocationPacket({
             targetActorId: 9n,
             packetType: PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES,
-            position: new Vector3(1, 2, 3)
+            position: new Vec3(1, 2, 3)
         });
 
         new PlayerLocationHandler().handle(packet, server, session);
@@ -37,7 +37,11 @@ describe('PlayerLocationHandler', () => {
 
     it('logs a hide', () => {
         const { logged, server, session } = fakeSession();
-        const packet = Object.assign(new PlayerLocationPacket(), { targetActorId: 9n });
+        const packet = new PlayerLocationPacket({
+            targetActorId: 9n,
+            packetType: PlayerLocationPacketType.PLAYER_LOCATION_HIDE,
+            position: null
+        });
 
         new PlayerLocationHandler().handle(packet, server, session);
 
