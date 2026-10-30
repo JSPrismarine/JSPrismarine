@@ -45,6 +45,7 @@ export * from './wire/definitions/blocks';
 export * from './wire/definitions/cameraAimAssistPresets';
 export * from './wire/definitions/cameraPresets';
 export * from './wire/definitions/chunkRadiusUpdated';
+export * from './wire/definitions/containers';
 export * from './wire/definitions/gameRulesChanged';
 export * from './wire/definitions/index';
 export * from './wire/definitions/inventoryTransaction';

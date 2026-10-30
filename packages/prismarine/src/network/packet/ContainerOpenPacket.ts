@@ -1,4 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
+import { containerOpenPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -29,27 +31,27 @@ export default class ContainerOpenPacket extends DataPacket {
 
     /** Writes the four fields in docs order. */
     public encodePayload(): void {
-        this.writeByte(this.windowId);
-        this.writeByte(this.containerType);
-
-        // All three signed. The unsigned height here was the layout up to protocol 924; it
-        // moved to a signed `BlockPos` long before 2193, and every other block position in this
-        // server already writes it that way. A y of 64 reached the client as 32, so the window
-        // named a position that held no container.
-        this.writeVarInt(Math.floor(this.containerPos.getX()));
-        this.writeVarInt(Math.floor(this.containerPos.getY()));
-        this.writeVarInt(Math.floor(this.containerPos.getZ()));
-
-        this.writeVarLong(this.containerEntityId);
+        // All three coordinates are signed. The unsigned height here was the layout up to
+        // protocol 924; it moved to a signed `BlockPos` long before 2193. A y of 64 reached
+        // the client as 32, so the window named a position that held no container.
+        layoutAt(containerOpenPacket, this.codecProtocol).encode(this, {
+            windowId: this.windowId,
+            containerType: this.containerType,
+            position: {
+                x: Math.floor(this.containerPos.getX()),
+                y: Math.floor(this.containerPos.getY()),
+                z: Math.floor(this.containerPos.getZ())
+            },
+            containerEntityId: this.containerEntityId
+        });
     }
 
     /** Reads the four fields in docs order. */
     public decodePayload(): void {
-        this.windowId = this.readByte();
-        this.containerType = this.readByte();
-
-        this.containerPos = new Vector3(this.readVarInt(), this.readVarInt(), this.readVarInt());
-
-        this.containerEntityId = this.readVarLong();
+        const read = layoutAt(containerOpenPacket, this.codecProtocol).decode(this);
+        this.windowId = read.windowId;
+        this.containerType = read.containerType;
+        this.containerPos = new Vector3(read.position.x, read.position.y, read.position.z);
+        this.containerEntityId = read.containerEntityId;
     }
 }
