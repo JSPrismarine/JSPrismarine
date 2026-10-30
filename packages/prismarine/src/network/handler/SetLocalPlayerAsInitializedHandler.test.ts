@@ -7,7 +7,7 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
+import { SetLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
 import SetLocalPlayerAsInitializedHandler from './SetLocalPlayerAsInitializedHandler';
 
 /**

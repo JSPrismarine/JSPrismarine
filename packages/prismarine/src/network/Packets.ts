@@ -124,7 +124,7 @@ import SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
 import SetLastHurtByPacket from '@jsprismarine/protocol/packet/SetLastHurtByPacket';
-import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
+import SetLocalPlayerAsInitializedPacket from '@jsprismarine/protocol/packet/SetLocalPlayerAsInitializedPacket';
 import SetPassengerOfBlockPacket from '@jsprismarine/protocol/packet/SetPassengerOfBlockPacket';
 import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';

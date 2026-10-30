@@ -1,6 +1,6 @@
 import type { PlayerSession } from '../../';
+import type { SetLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
 import type Server from '../../Server';
-import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
