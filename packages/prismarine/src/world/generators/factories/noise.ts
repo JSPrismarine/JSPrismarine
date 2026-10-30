@@ -1,9 +1,9 @@
 import type { LevelStem, NoiseGeneratorDefinition } from '@jsprismarine/worldgen';
 
 import type { GeneratorLogger } from '../../BaseGenerator';
-import type { GeneratorFactory } from '../../GeneratorFactories';
+import type { GeneratorBuildContext, GeneratorFactory } from '../../GeneratorFactories';
 import { chunkWorkerCount } from '../chunkConcurrency';
-import type { StagePoolOptions } from '../datadriven/DataDrivenGenerator';
+import type { PipelineKey, StagePoolOptions } from '../datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../datadriven/javaStructureTemplates';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
@@ -29,61 +29,73 @@ export const OVERWORLD_NOISE_STEM: LevelStem = {
 const inlineSettingsId = (dimensionType: string): string => `jsprismarine:inline/${dimensionType.replace(':', '/')}`;
 
 /**
- * The `minecraft:noise` kind over {@link DataDrivenGenerator}.
+ * A `minecraft:noise` factory whose stems share one {@link DataDrivenGenerator}.
  *
- * The stem's `settings` names a `worldgen/noise_settings` document or carries one inline; the
- * inline form is registered under a private id so the workers, which only get ids, find it
- * too. The `biome_source` goes to the generator as a definition and is resolved there.
+ * The first stem built opens the generator from the context's registries, with a pool of
+ * worker threads sized by the context's `workers` or the core count. Every stem after that,
+ * the Nether's and the End's included, gets a view of the same generator keyed by its settings,
+ * its biome source and its dimension, so a server runs one pool of `min(6, cores - 2)` workers
+ * rather than one per dimension. The stem's `settings` names a `worldgen/noise_settings`
+ * document or carries one inline; the inline form travels under a private id. A host that
+ * cannot run workers generates on the server thread and says so once.
  *
- * Terrain and feature status bodies run in a pool of worker threads sized from the core count
- * unless the context says how many. A host that cannot run workers generates on this thread and
- * says so once.
+ * One factory per {@link GeneratorFactories} registry, which is one per server: the registry's
+ * `stopGenerating` reaches the shared generator through any of the views it built.
  *
  * @throws When the Java data is not on disk, or the settings id is not a registered
- *   `worldgen/noise_settings` document.
+ *   `worldgen/noise_settings` document, or the biome source cannot be built.
  */
-export const noiseGeneratorFactory: GeneratorFactory = {
-    kind: NOISE_GENERATOR_KIND,
-    build(context) {
-        const generator = context.stem.generator;
-        if (generator.type !== NOISE_GENERATOR_KIND || !('biomeSource' in generator)) {
-            throw new TypeError(`The ${context.dimension.id} stem carries no noise generator settings`);
-        }
+export const createNoiseGeneratorFactory = (): GeneratorFactory => {
+    let shared: DataDrivenGenerator | undefined;
 
-        const { registries, noiseSettings } = resolveSettings(context.worldgen(), context.dimension.id, generator);
-        const stages = stagePool(context.workers ?? chunkWorkerCount(), context.logger);
-        const built = new DataDrivenGenerator({
-            registries,
-            dimension: context.dimension,
-            noiseSettings,
-            biomeSource: generator.biomeSource,
-            templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
-            ...(stages === undefined ? {} : { stages })
-        });
-        if (stages !== undefined && stages.workers > 0) {
-            context.logger.info(
-                `Generating ${context.dimension.id} terrain and features in §b${stages.workers}§r worker thread(s)`
-            );
+    return {
+        kind: NOISE_GENERATOR_KIND,
+        build(context) {
+            const generator = context.stem.generator;
+            if (generator.type !== NOISE_GENERATOR_KIND || !('biomeSource' in generator)) {
+                throw new TypeError(`The ${context.dimension.id} stem carries no noise generator settings`);
+            }
+
+            const registries = context.worldgen();
+            const settings = resolveSettings(registries, context.dimension.id, generator);
+            shared ??= openShared(registries, context);
+
+            return shared.forStem({
+                ...settings,
+                biomeSource: generator.biomeSource,
+                dimension: context.dimension
+            } satisfies PipelineKey);
         }
-        return built;
-    }
+    };
 };
 
-/** The registries to generate from, with an inline settings document added under its own id. */
+/** The server's one generator, over the first stem's registries and worker count. */
+const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildContext): DataDrivenGenerator => {
+    const stages = stagePool(context.workers ?? chunkWorkerCount(), context.logger);
+    const built = new DataDrivenGenerator({
+        registries,
+        templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
+        ...(stages === undefined ? {} : { stages })
+    });
+    if (stages !== undefined && stages.workers > 0) {
+        context.logger.info(`Generating terrain and features in §b${stages.workers}§r worker thread(s)`);
+    }
+    return built;
+};
+
+/**
+ * The settings half of a stem's key: a registered id, or a private id with the inline document
+ * beside it.
+ *
+ * @throws When a named id has no `worldgen/noise_settings` document.
+ */
 const resolveSettings = (
     registries: JavaWorldgenRegistries,
     dimensionType: string,
     generator: NoiseGeneratorDefinition
-): { readonly registries: JavaWorldgenRegistries; readonly noiseSettings: string } => {
+): Pick<PipelineKey, 'noiseSettings' | 'inlineNoiseSettings'> => {
     if (typeof generator.settings !== 'string') {
-        const noiseSettings = inlineSettingsId(dimensionType);
-        return {
-            registries: {
-                ...registries,
-                noiseSettings: new Map([...registries.noiseSettings, [noiseSettings, generator.settings]])
-            },
-            noiseSettings
-        };
+        return { noiseSettings: inlineSettingsId(dimensionType), inlineNoiseSettings: generator.settings };
     }
 
     if (!registries.noiseSettings.has(generator.settings)) {
@@ -91,7 +103,7 @@ const resolveSettings = (
             `The ${dimensionType} stem names the noise settings ${generator.settings}, which no worldgen/noise_settings document defines`
         );
     }
-    return { registries, noiseSettings: generator.settings };
+    return { noiseSettings: generator.settings };
 };
 
 /**

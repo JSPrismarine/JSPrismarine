@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { parseWorldPreset } from '@jsprismarine/worldgen';
 import type { LevelStem, WorldPreset } from '@jsprismarine/worldgen';
@@ -25,7 +25,7 @@ import { findJavaTemplateSource } from '../datadriven/javaStructureTemplates';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
 import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
-import { noiseGeneratorFactory } from './noise';
+import { createNoiseGeneratorFactory } from './noise';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
@@ -79,6 +79,7 @@ describe.skipIf(!enabled)('the minecraft:noise factory', { tags: ['real-data'] }
     }, CHUNK_TIMEOUT);
 
     afterAll(() => factories.stopGenerating());
+    afterEach(() => vi.restoreAllMocks());
 
     it(
         'builds the End from its stem and puts the main island at the origin',
@@ -91,6 +92,36 @@ describe.skipIf(!enabled)('the minecraft:noise factory', { tags: ['real-data'] }
             expect(chunk.getBiome(8, 64, 8)).toBe(bedrockBiomeIdOf('minecraft:the_end'));
             expect(census(chunk, 'minecraft:end_stone')).toBeGreaterThan(0);
             expect(chunk.getBlock(8, 0, 8).name).toBe('minecraft:air');
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'serves the End and the Overworld from one generator',
+        async () => {
+            const forStem = vi.spyOn(DataDrivenGenerator.prototype, 'forStem');
+            const own = new GeneratorFactories();
+            const end = own.build(contextFor(stemOf(Dimensions.TheEnd), Dimensions.TheEnd));
+            const overworld = own.build(contextFor(stemOf(Dimensions.Overworld), Dimensions.Overworld));
+
+            // One instance behind both views, which is the one pool the server runs.
+            expect(forStem).toHaveBeenCalledTimes(2);
+            expect(forStem.mock.instances[0]).toBe(forStem.mock.instances[1]);
+            expect(end).not.toBe(overworld);
+
+            const [endChunk, overworldChunk] = await Promise.all([
+                end.generateChunk(0, 0, SEED),
+                overworld.generateChunk(0, 0, SEED)
+            ]);
+
+            expect(endChunk.getDimension()).toBe(Dimensions.TheEnd);
+            expect(endChunk.getMinY()).toBe(0);
+            expect(census(endChunk, 'minecraft:end_stone')).toBeGreaterThan(0);
+            expect(overworldChunk.getDimension()).toBe(Dimensions.Overworld);
+            expect(overworldChunk.getMinY()).toBe(-64);
+            expect(overworldChunk.getBlock(0, -64, 0).name).toBe('minecraft:bedrock');
+            expect(census(overworldChunk, 'minecraft:end_stone')).toBe(0);
+            own.stopGenerating();
         },
         CHUNK_TIMEOUT
     );
@@ -123,7 +154,7 @@ describe.skipIf(!enabled)('the minecraft:noise factory', { tags: ['real-data'] }
             }
         };
 
-        expect(() => noiseGeneratorFactory.build(contextFor(stem, Dimensions.Overworld))).toThrowError(
+        expect(() => createNoiseGeneratorFactory().build(contextFor(stem, Dimensions.Overworld))).toThrowError(
             'minecraft:no_such_settings, which no worldgen/noise_settings document defines'
         );
     });
@@ -138,7 +169,7 @@ describe.skipIf(!enabled)('the minecraft:noise factory', { tags: ['real-data'] }
             }
         };
 
-        expect(() => noiseGeneratorFactory.build(contextFor(stem, Dimensions.Overworld))).toThrowError(
+        expect(() => createNoiseGeneratorFactory().build(contextFor(stem, Dimensions.Overworld))).toThrowError(
             'no multi_noise_biome_source_parameter_list named "minecraft:no_such_preset"'
         );
     });

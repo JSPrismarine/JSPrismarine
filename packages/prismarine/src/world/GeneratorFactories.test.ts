@@ -7,7 +7,7 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import { GeneratorFactories } from './GeneratorFactories';
 import type { GeneratorBuildContext, GeneratorFactory } from './GeneratorFactories';
-import { BUILT_IN_GENERATOR_FACTORIES } from './generators/factories';
+import { builtInGeneratorFactories } from './generators/factories';
 
 const quiet = { info: () => {}, warn: () => {} };
 
@@ -41,7 +41,7 @@ class Stoppable implements Generator {
 
 describe('GeneratorFactories', () => {
     it('starts with the built-in kinds in registration order', () => {
-        expect(new GeneratorFactories().kinds()).toEqual(BUILT_IN_GENERATOR_FACTORIES.map((factory) => factory.kind));
+        expect(new GeneratorFactories().kinds()).toEqual(builtInGeneratorFactories().map((factory) => factory.kind));
         expect(new GeneratorFactories().kinds()).toEqual([
             'minecraft:noise',
             'minecraft:flat',

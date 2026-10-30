@@ -12,7 +12,7 @@ import type { ServerContent } from '../content/ServerContent';
 import type { GeneratorLogger } from './BaseGenerator';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
-import { BUILT_IN_GENERATOR_FACTORIES } from './generators/factories';
+import { builtInGeneratorFactories } from './generators/factories';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 
 /** Everything a factory may read while building one dimension's generator. */
@@ -39,6 +39,8 @@ export interface GeneratorBuildContext {
      *
      * Defaults to the host's share, `min(6, cores - 2)`. Zero keeps generation on the calling
      * thread, which is what a test wants and what a host too small for a worker gets anyway.
+     * The noise factory shares one pool between every stem it builds, so the first stem's value
+     * sizes it and later ones are not read.
      */
     readonly workers?: number;
 }
@@ -72,7 +74,7 @@ export class GeneratorFactories {
      * @param factories - The factories to start with. Defaults to the built-in kinds; pass an
      *   empty list for a registry that knows nothing.
      */
-    public constructor(factories: Iterable<GeneratorFactory> = BUILT_IN_GENERATOR_FACTORIES) {
+    public constructor(factories: Iterable<GeneratorFactory> = builtInGeneratorFactories()) {
         for (const factory of factories) this.register(factory);
     }
 
