@@ -12,9 +12,9 @@
  * - **References against objects.** A command sees an `EntityRef`, seven
  *   fields and a stable id. {@link entityRefOf} makes one and
  *   {@link resolveEntity} finds the entity back.
- * - **Java dimension ids against this server's.** Java spells the Nether
- *   `minecraft:the_nether` and this server's `DimensionDefinition` spells it
- *   `minecraft:nether`, so both spellings resolve onto the same world.
+ * - **Java dimension ids against Bedrock's.** Java spells the Nether
+ *   `minecraft:the_nether` and the client `minecraft:nether`. A world's
+ *   `DimensionType` carries both, and {@link worldOf} accepts either.
  */
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
@@ -26,6 +26,7 @@ import { Vector3 } from '@jsprismarine/math';
 import Player from '../../Player';
 import type Server from '../../Server';
 import type { Entity } from '../../entity/Entity';
+import { dimensionByName } from '../../world/Dimension';
 import type { World } from '../../world/World';
 import { deferCommandWork } from '../Command';
 
@@ -70,28 +71,18 @@ export const carryOut = <T>(work: Promise<unknown>, answer: T): T => {
     return answer;
 };
 
-/** Java's spelling of a dimension, which is the one the command layer speaks. */
-const JAVA_DIMENSION_IDS: Readonly<Record<string, string>> = {
-    'minecraft:overworld': 'minecraft:overworld',
-    'minecraft:nether': 'minecraft:the_nether',
-    'minecraft:the_nether': 'minecraft:the_nether',
-    'minecraft:the_end': 'minecraft:the_end'
-};
-
-/** The command layer's id for the dimension a world is. */
-export const dimensionIdOf = (world: World): string => {
-    const name = world.getDimension().name;
-    return JAVA_DIMENSION_IDS[name] ?? name;
-};
+/** The command layer's id for the dimension a world is: the Java `dimension_type` id. */
+export const dimensionIdOf = (world: World): string => world.getDimension().id;
 
 /**
  * The world a dimension id names.
  *
+ * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
  * @returns The first loaded world in that dimension, or the default world when
  *   none matches, which is what a single-world server wants.
  */
 export const worldOf = (server: Server, dimension: string): World => {
-    const wanted = JAVA_DIMENSION_IDS[dimension] ?? dimension;
+    const wanted = dimensionByName(dimension)?.id ?? dimension;
     const worlds = server.getWorldManager().getWorlds();
     return worlds.find((world) => dimensionIdOf(world) === wanted) ?? server.getWorldManager().getDefaultWorld();
 };

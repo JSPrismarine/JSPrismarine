@@ -8,7 +8,7 @@ import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
-import { entityRefOf, worldOf } from './support';
+import { dimensionIdOf, entityRefOf, worldOf } from './support';
 
 describe('command entity references', () => {
     it('uses a player’s feet as the command position', () => {
@@ -37,5 +37,12 @@ describe('command entity references', () => {
         const server = stub<Server>({ getWorldManager: () => worldManager });
 
         expect(worldOf(server, 'minecraft:the_nether')).toBe(nether);
+        expect(worldOf(server, 'minecraft:nether')).toBe(nether);
+        expect(worldOf(server, 'mypack:sky')).toBe(overworld);
+    });
+
+    it('reports the Java id of a world as its dimension', () => {
+        const nether = stub<World>({ getDimension: () => Dimensions.Nether });
+        expect(dimensionIdOf(nether)).toBe('minecraft:the_nether');
     });
 });
