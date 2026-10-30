@@ -51,6 +51,7 @@ import ServerSettingsResponsePacket from './ServerSettingsResponsePacket';
 import ShowStoreOfferPacket from './ShowStoreOfferPacket';
 import SpawnExperienceOrbPacket from './SpawnExperienceOrbPacket';
 import ServerboundLoadingScreenPacket from './ServerboundLoadingScreenPacket';
+import ServerboundPackSettingChangePacket from './ServerboundPackSettingChangePacket';
 
 export {
     ChangeDimensionPacket,
@@ -105,7 +106,8 @@ export {
     ServerSettingsResponsePacket,
     ShowStoreOfferPacket,
     SpawnExperienceOrbPacket,
-    ServerboundLoadingScreenPacket
+    ServerboundLoadingScreenPacket,
+    ServerboundPackSettingChangePacket
 };
 
 export { GameRuleType } from './StartGamePacket';
@@ -148,6 +150,8 @@ export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
 export type { GatheringsConfig, Transfer } from './TransferPacket';
 export { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
 export type { ServerboundLoadingScreen } from './ServerboundLoadingScreenPacket';
+export { PackSettingValueType } from './ServerboundPackSettingChangePacket';
+export type { PackSettingValue, ServerboundPackSettingChange } from './ServerboundPackSettingChangePacket';
 export type { ChunkCoord, NetworkChunkPublisherUpdatePayload } from './NetworkChunkPublisherUpdatePacket';
 export type { BlockCoordinates, PlayerActionData } from './PlayerActionPacket';
 export type { PlayerHotbarPayload } from './PlayerHotbarPacket';

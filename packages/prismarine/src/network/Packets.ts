@@ -116,7 +116,7 @@ import ServerboundCursorItemDragPacket from '@jsprismarine/protocol/packet/Serve
 import ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
 import ServerboundMatchmakingCancelPacket from '@jsprismarine/protocol/packet/ServerboundMatchmakingCancelPacket';
-import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
+import ServerboundPackSettingChangePacket from '@jsprismarine/protocol/packet/ServerboundPackSettingChangePacket';
 import ServerboundRegisterAudioContentPacket from '@jsprismarine/protocol/packet/ServerboundRegisterAudioContentPacket';
 import ServerboundStonecutterSetRecipePacket from '@jsprismarine/protocol/packet/ServerboundStonecutterSetRecipePacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';

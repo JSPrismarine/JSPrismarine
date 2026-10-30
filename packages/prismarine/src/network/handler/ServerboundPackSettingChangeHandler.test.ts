@@ -6,7 +6,7 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
-import ServerboundPackSettingChangePacket from '../packet/ServerboundPackSettingChangePacket';
+import ServerboundPackSettingChangePacket from '@jsprismarine/protocol/packet/ServerboundPackSettingChangePacket';
 import ServerboundPackSettingChangeHandler from './ServerboundPackSettingChangeHandler';
 
 describe('ServerboundPackSettingChangeHandler', () => {
@@ -17,7 +17,7 @@ describe('ServerboundPackSettingChangeHandler', () => {
         });
         const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
         const packId = UUID.fromString('12345678-1234-1234-1234-123456789abc');
-        const packet = Object.assign(new ServerboundPackSettingChangePacket(), {
+        const packet = new ServerboundPackSettingChangePacket({
             packId,
             packSettingName: 'fog',
             packSettingValue: ['near', 'far']
