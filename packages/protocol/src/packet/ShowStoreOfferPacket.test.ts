@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
-import * as Packets from '../Packets';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { netIdFor } from '../wire/versions/v2193';
+import UUID from '../wire/structures/UUID';
 import ShowStoreOfferPacket, { ShowStoreOfferRedirectType } from './ShowStoreOfferPacket';
 
 describe('ShowStoreOfferPacket', () => {
@@ -32,7 +31,7 @@ describe('ShowStoreOfferPacket', () => {
     });
 
     it('is registered for packet 0x5b', () => {
-        expect(Packets.ShowStoreOfferPacket).toBe(ShowStoreOfferPacket);
         expect(netIdFor('ShowStoreOfferPacket')).toBe(0x5b);
+        expect(new ShowStoreOfferPacket().getId()).toBe(0x5b);
     });
 });

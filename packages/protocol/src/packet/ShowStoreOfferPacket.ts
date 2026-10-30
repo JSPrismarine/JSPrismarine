@@ -1,5 +1,5 @@
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import UUID from '../wire/structures/UUID';
 
 /** Which page the client opens for the offer, as the `Redirect Type` byte numbers it. */
 export enum ShowStoreOfferRedirectType {

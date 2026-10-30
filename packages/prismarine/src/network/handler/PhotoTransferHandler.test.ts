@@ -4,7 +4,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PhotoTransferPacket from '../packet/PhotoTransferPacket';
+import PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
 import PhotoTransferHandler from './PhotoTransferHandler';
 
 describe('PhotoTransferHandler', () => {

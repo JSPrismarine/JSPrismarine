@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type PhotoTransferPacket from '../packet/PhotoTransferPacket';
+import type PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

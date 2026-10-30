@@ -10,7 +10,7 @@ import type PlayerSession from '../PlayerSession';
 import PacketViolationWarningPacket, {
     PacketViolationSeverity,
     PacketViolationType
-} from '../packet/PacketViolationWarningPacket';
+} from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
 import PacketViolationWarningHandler from './PacketViolationWarningHandler';
 
 describe('PacketViolationWarningHandler', () => {

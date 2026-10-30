@@ -1,5 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { NetworkUtil } from '../wire/networkUtil';
 
 /** A link the Education Edition client offers alongside the world. */
 export interface ExternalLinkSettings {

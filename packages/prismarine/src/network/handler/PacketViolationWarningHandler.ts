@@ -1,8 +1,11 @@
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
-import { PacketViolationSeverity, PacketViolationType } from '../packet/PacketViolationWarningPacket';
-import type PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
+import {
+    PacketViolationSeverity,
+    PacketViolationType
+} from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
+import type PacketViolationWarningPacket from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

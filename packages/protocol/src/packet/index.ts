@@ -43,6 +43,11 @@ import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
 import AvailableActorIdentifiersPacket from './AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
 import JigsawStructureDataPacket from './JigsawStructureDataPacket';
+import EducationSettingsPacket from './EducationSettingsPacket';
+import PacketViolationWarningPacket from './PacketViolationWarningPacket';
+import PhotoTransferPacket from './PhotoTransferPacket';
+import ServerSettingsResponsePacket from './ServerSettingsResponsePacket';
+import ShowStoreOfferPacket from './ShowStoreOfferPacket';
 
 export {
     ChangeDimensionPacket,
@@ -89,7 +94,12 @@ export {
     UpdatePlayerGameTypePacket,
     AvailableActorIdentifiersPacket,
     BiomeDefinitionListPacket,
-    JigsawStructureDataPacket
+    JigsawStructureDataPacket,
+    EducationSettingsPacket,
+    PacketViolationWarningPacket,
+    PhotoTransferPacket,
+    ServerSettingsResponsePacket,
+    ShowStoreOfferPacket
 };
 
 export { GameRuleType } from './StartGamePacket';
@@ -108,6 +118,11 @@ export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 export { TextPacketType } from './TextPacket';
 export { BossBarColor, BossBarOverlay, BossEventUpdateType } from './BossEventPacket';
 export { CreditsState } from './ShowCreditsPacket';
+export { PacketViolationSeverity, PacketViolationType } from './PacketViolationWarningPacket';
+export { PhotoType } from './PhotoTransferPacket';
+export { ShowStoreOfferRedirectType } from './ShowStoreOfferPacket';
+
+export type { ExternalLinkSettings } from './EducationSettingsPacket';
 
 export type { ChunkRadiusUpdated } from './ChunkRadiusUpdatedPacket';
 export type { ChangeDimensionPayload } from './ChangeDimensionPacket';
