@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { Vector3 } from '@jsprismarine/math';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { describe, expect, it } from 'vitest';
 
-import BlockPosition from '../../world/BlockPosition';
 import PlaySoundPacket from './PlaySoundPacket';
 
 /** A varuint length and the UTF-8 bytes, which is how the docs encode a string. */
@@ -25,7 +25,7 @@ describe('network', () => {
         it('writes the position in eighths of a block and both new optionals as absent', () => {
             const packet = Object.assign(new PlaySoundPacket(), {
                 name: 'random.pop',
-                position: new BlockPosition(1, 2, -1),
+                position: new Vector3(1, 2, -1),
                 volume: 1,
                 pitch: 1
             });
@@ -49,7 +49,7 @@ describe('network', () => {
         it('writes the two optionals as a presence byte and a value when it has them', () => {
             const packet = Object.assign(new PlaySoundPacket(), {
                 name: 'x',
-                position: new BlockPosition(0, 0, 0),
+                position: new Vector3(0, 0, 0),
                 loopCount: 3,
                 bypassListenerRangeCheck: true,
                 soundHandle: 42n,

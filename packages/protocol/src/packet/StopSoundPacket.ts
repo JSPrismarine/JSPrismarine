@@ -1,6 +1,6 @@
-import { layoutAt, stopSoundPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { stopSoundPacket } from '../wire/definitions/levelSoundEvent';
 
 /**
  * Stops a sound that is still playing, such as a music disc.

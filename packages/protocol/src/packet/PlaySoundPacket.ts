@@ -1,8 +1,8 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 
-import { NetworkUtil } from '../../network/NetworkUtil';
-import BlockPosition from '../../world/BlockPosition';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { playSoundPacket } from '../wire/definitions/levelSoundEvent';
 
 /** Sound names this packet and the `/playsound` command accept, a subset of the client's sound definitions. */
 export enum SoundName {
@@ -82,10 +82,9 @@ export default class PlaySoundPacket extends FieldNetworkPacket {
     /**
      * Where the sound plays.
      *
-     * A `Vector3` rather than a `BlockPosition` because the wire carries
-     * eighths of a block, so a sound can be placed in the middle of a block
-     * instead of on its corner. A reader still gets a {@link BlockPosition},
-     * since the eighths are gone by then.
+     * A `Vector3` because the wire carries eighths of a block, then the reader
+     * rounds down to whole block coordinates. The fractions do not survive a
+     * decode.
      */
     public position: Vector3 | null = null;
     public volume = 1;
@@ -99,37 +98,32 @@ export default class PlaySoundPacket extends FieldNetworkPacket {
     /** Where in the sound to start, in seconds. */
     public playbackPositionSeconds: number | null = null;
 
+    /** Reads the sound name, quantized position, playback settings, and optional fields. */
     public decodePayload(): void {
-        this.name = NetworkUtil.readString(this);
-        // Eighths of a block on the wire, floored to the block here: the packet asks for a
-        // block position and that is what a reader gets back, not a fraction of one.
-        this.position = new BlockPosition(
-            Math.floor(this.readVarInt() / 8),
-            Math.floor(this.readVarInt() / 8),
-            Math.floor(this.readVarInt() / 8)
-        );
-        this.volume = this.readFloatLE();
-        this.pitch = this.readFloatLE();
-        this.loopCount = this.readVarInt();
-        this.bypassListenerRangeCheck = this.readBoolean();
-        this.soundHandle = this.readBoolean() ? this.readUnsignedLongLE() : null;
-        this.playbackPositionSeconds = this.readBoolean() ? this.readFloatLE() : null;
+        const payload = layoutAt(playSoundPacket, this.codecProtocol).decode(this);
+        this.name = payload.name;
+        this.position = new Vector3(payload.position.x, payload.position.y, payload.position.z);
+        this.volume = payload.volume;
+        this.pitch = payload.pitch;
+        this.loopCount = payload.loopCount;
+        this.bypassListenerRangeCheck = payload.bypassListenerRangeCheck;
+        this.soundHandle = payload.soundHandle;
+        this.playbackPositionSeconds = payload.playbackPositionSeconds;
     }
 
+    /** Writes the fields in wire order, using the origin when no position was set. */
     public encodePayload(): void {
-        const position = this.position ?? new BlockPosition(0, 0, 0);
+        const position = this.position ?? new Vector3(0, 0, 0);
 
-        NetworkUtil.writeString(this, this.name);
-        this.writeVarInt(Math.floor(position.getX() * 8));
-        this.writeVarInt(Math.floor(position.getY() * 8));
-        this.writeVarInt(Math.floor(position.getZ() * 8));
-        this.writeFloatLE(this.volume);
-        this.writeFloatLE(this.pitch);
-        this.writeVarInt(this.loopCount);
-        this.writeBoolean(this.bypassListenerRangeCheck);
-        this.writeBoolean(this.soundHandle !== null);
-        if (this.soundHandle !== null) this.writeUnsignedLongLE(this.soundHandle);
-        this.writeBoolean(this.playbackPositionSeconds !== null);
-        if (this.playbackPositionSeconds !== null) this.writeFloatLE(this.playbackPositionSeconds);
+        layoutAt(playSoundPacket, this.codecProtocol).encode(this, {
+            name: this.name,
+            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+            volume: this.volume,
+            pitch: this.pitch,
+            loopCount: this.loopCount,
+            bypassListenerRangeCheck: this.bypassListenerRangeCheck,
+            soundHandle: this.soundHandle,
+            playbackPositionSeconds: this.playbackPositionSeconds
+        });
     }
 }

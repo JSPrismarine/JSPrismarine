@@ -1,6 +1,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { layoutAt, stopSoundPacket } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
+
+import { layoutAt } from '../wire/WireLayout';
+import { stopSoundPacket } from '../wire/definitions/levelSoundEvent';
 
 /**
  * The bytes the hand-written encoder produced, recorded before the class moved to the

@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import { createContentEffectsGroup, replicatorEffectAudience } from './contentAdapter';
-import PlaySoundPacket from './packet/PlaySoundPacket';
+import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 
 import type { ContentEffectAudience, ContentGameEvent } from './contentAdapter';

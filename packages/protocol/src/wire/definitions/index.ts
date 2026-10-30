@@ -54,7 +54,7 @@ import { inventoryTransactionPacket } from './inventoryTransaction';
 import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
-import { levelSoundEventPacket, stopSoundPacket } from './levelSoundEvent';
+import { levelSoundEventPacket, playSoundPacket, stopSoundPacket } from './levelSoundEvent';
 import { moveActorAbsolutePacket, movePlayerPacket, setActorMotionPacket } from './movement';
 import { requestNetworkSettingsPacket } from './networkSettings';
 import {
@@ -140,6 +140,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         levelChunkPacket,
         levelEventGenericPacket,
         levelSoundEventPacket,
+        playSoundPacket,
         mobEffectPacket,
         mobEquipmentPacket,
         modalFormRequestPacket,

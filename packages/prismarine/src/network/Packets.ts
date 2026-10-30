@@ -84,7 +84,7 @@ import OnScreenTextureAnimationPacket from '@jsprismarine/protocol/packet/OnScre
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
 import PartyChangedPacket from './packet/PartyChangedPacket';
 import PhotoTransferPacket from './packet/PhotoTransferPacket';
-import PlaySoundPacket from './packet/PlaySoundPacket';
+import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerArmorDamagePacket from '@jsprismarine/protocol/packet/PlayerArmorDamagePacket';
@@ -137,7 +137,7 @@ import SimpleEventPacket from '@jsprismarine/protocol/packet/SimpleEventPacket';
 import SpawnExperienceOrbPacket from './packet/SpawnExperienceOrbPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import StartGamePacket from './packet/StartGamePacket';
-import StopSoundPacket from './packet/StopSoundPacket';
+import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
 import StructureBlockUpdatePacket from './packet/StructureBlockUpdatePacket';
 import StructureTemplateDataRequestPacket from './packet/StructureTemplateDataRequestPacket';
 import StructureTemplateDataResponsePacket from './packet/StructureTemplateDataResponsePacket';

@@ -435,3 +435,7 @@ export { default as ClientboundPlayAudioContentPacket } from './ClientboundPlayA
 export * from './ClientboundPlayAudioContentPacket';
 export { default as ServerboundRegisterAudioContentPacket } from './ServerboundRegisterAudioContentPacket';
 export * from './ServerboundRegisterAudioContentPacket';
+export { default as PlaySoundPacket } from './PlaySoundPacket';
+export * from './PlaySoundPacket';
+export { default as StopSoundPacket } from './StopSoundPacket';
+export * from './StopSoundPacket';

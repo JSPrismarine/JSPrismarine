@@ -1,12 +1,58 @@
 /**
  * The sound packets described as declarative field lists; layouts unchanged between
  * protocols 2193 and 2225. Field names and order follow each packet's docs page.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-sound-event-packet/}
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/play-sound-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-sound-event-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { PayloadOf } from '../define';
+import type { Vec3Like } from '../fieldTypes';
+
+/** `PlaySoundPacket` position: signed coordinates measured in eighths of a block on the wire. */
+const soundPosition = t.custom<Vec3Like>(
+    'BlockPos in eighths',
+    (stream, position) => {
+        stream.writeVarInt(Math.floor(position.x * 8));
+        stream.writeVarInt(Math.floor(position.y * 8));
+        stream.writeVarInt(Math.floor(position.z * 8));
+    },
+    (stream) => ({
+        x: Math.floor(stream.readVarInt() / 8),
+        y: Math.floor(stream.readVarInt() / 8),
+        z: Math.floor(stream.readVarInt() / 8)
+    })
+);
+
+/**
+ * The `PlaySoundPacket` field list.
+ *
+ * The position is a block coordinate triple multiplied by eight before writing. This lets the
+ * packet place sound at eighth-block precision, but decoding floors the values back to blocks.
+ */
+export const playSoundPacket = definePacket('PlaySoundPacket', {
+    /** `Name`: the sound definition the client plays. */
+    name: t.string,
+    /** `Position`: block coordinates encoded in eighths. */
+    position: soundPosition,
+    /** `Volume`: playback volume as a little-endian float. */
+    volume: t.lf32,
+    /** `Pitch`: playback pitch as a little-endian float. */
+    pitch: t.lf32,
+    /** `Loop Count`: -1 plays once; other values control looping. */
+    loopCount: t.varint32,
+    /** `Bypass Listener Range Check`: whether listeners outside normal range hear the sound. */
+    bypassListenerRangeCheck: t.bool,
+    /** `Server Sound Handle`: optional little-endian uint64 for a later stop request. */
+    soundHandle: t.optional(t.lu64),
+    /** `Playback Position Seconds`: optional starting point inside the sound. */
+    playbackPositionSeconds: t.optional(t.lf32)
+});
+
+/** What `PlaySoundPacket` carries; derived from its field list. */
+export type PlaySoundPacketPayload = PayloadOf<typeof playSoundPacket>;
 
 /**
  * The `LevelSoundEventPacket` field list.
