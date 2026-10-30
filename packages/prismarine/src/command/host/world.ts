@@ -16,6 +16,7 @@ import type {
 } from '@jsprismarine/commands';
 import { gameRule } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
+import { PositionMode } from '@jsprismarine/protocol';
 
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 
@@ -26,7 +27,6 @@ import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPack
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
-import PositionMode from '../../network/type/PositionMode';
 import type { World } from '../../world/World';
 import { blockPositionOf, carryOut, loadedDimensions, playersOf, unsupported, worldOf } from './support';
 import assert from 'node:assert';

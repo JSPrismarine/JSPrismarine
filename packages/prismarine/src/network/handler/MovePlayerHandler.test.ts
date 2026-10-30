@@ -1,5 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
+import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
@@ -8,8 +9,9 @@ import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import MovePlayerPacket from '../packet/MovePlayerPacket';
-import PositionMode from '../type/PositionMode';
+import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
+
+import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import MovePlayerHandler from './MovePlayerHandler';
 
 /**
@@ -41,19 +43,20 @@ const fake = () => {
     return { dropped, player, session, server };
 };
 
-const move = (configure: (packet: MovePlayerPacket) => void = () => {}): MovePlayerPacket => {
-    const packet = new MovePlayerPacket();
-    packet.runtimeEntityId = 7n;
-    packet.position = new Vector3(3, 70, -4);
-    packet.pitch = 5;
-    packet.yaw = 90;
-    packet.headYaw = 85;
-    packet.mode = PositionMode.Normal;
-    packet.onGround = true;
-    packet.ridingEntityRuntimeId = 0n;
-    packet.tick = 300n;
-    configure(packet);
-    return packet;
+const move = (configure: (data: MovePlayer) => void = () => {}): MovePlayerPacket => {
+    const data: MovePlayer = {
+        runtimeEntityId: 7n,
+        position: { x: 3, y: 70, z: -4 },
+        pitch: 5,
+        yaw: 90,
+        headYaw: 85,
+        mode: PositionMode.Normal,
+        onGround: true,
+        ridingEntityRuntimeId: 0n,
+        tick: 300n
+    };
+    configure(data);
+    return new MovePlayerPacket(data);
 };
 
 describe('MovePlayerHandler', () => {

@@ -3,6 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
+import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ConsoleSender } from './command/ConsoleSender';
@@ -26,7 +27,6 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { createConnectedPlayer } from './network/createConnectedPlayer';
-import PositionMode from './network/type/PositionMode';
 import { stub } from './testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { ChunkScheduler } from './world/ChunkScheduler';

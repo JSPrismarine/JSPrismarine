@@ -1,14 +1,16 @@
 import { Vector3 } from '@jsprismarine/math';
+import { PositionMode } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import type MovePlayerPacket from './packet/MovePlayerPacket';
-import type SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
-import PositionMode from './type/PositionMode';
+
+import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
 
 /**
  * The `Tick` of a `MovePlayerPacket` or `SetActorMotionPacket` is a `PlayerInputTick`. For the
@@ -45,6 +47,11 @@ const movementSession = () => {
     return { session, sent, player };
 };
 
+const moveData = (packets: readonly (MovePlayerPacket | SetActorMotionPacket)[], index = 0): MovePlayer | undefined => {
+    const packet = packets[index];
+    return packet instanceof MovePlayerPacket ? (packet.getPacketData() ?? undefined) : undefined;
+};
+
 describe('network', () => {
     describe('PlayerSession movement', () => {
         it('sends a zero tick before the client has sent any input', async () => {
@@ -52,7 +59,7 @@ describe('network', () => {
 
             await session.sendMove(player, PositionMode.Teleport);
 
-            expect(sent[0]?.tick).toBe(0n);
+            expect(moveData(sent)?.tick).toBe(0n);
         });
 
         it("carries the client's last input tick on a move of their own player", async () => {
@@ -61,8 +68,8 @@ describe('network', () => {
             session.recordInputTick(42n);
             await session.sendMove(player, PositionMode.Respawn);
 
-            expect(sent[0]?.runtimeEntityId).toBe(1n);
-            expect(sent[0]?.tick).toBe(42n);
+            expect(moveData(sent)?.runtimeEntityId).toBe(1n);
+            expect(moveData(sent)?.tick).toBe(42n);
         });
 
         it('sends a zero tick for a move of another player', async () => {
@@ -71,8 +78,8 @@ describe('network', () => {
             session.recordInputTick(42n);
             await session.sendMove(playerAt(2n), PositionMode.Normal);
 
-            expect(sent[0]?.runtimeEntityId).toBe(2n);
-            expect(sent[0]?.tick).toBe(0n);
+            expect(moveData(sent)?.runtimeEntityId).toBe(2n);
+            expect(moveData(sent)?.tick).toBe(0n);
         });
 
         it('fills a teleport with an unknown cause and leaves the riding id at zero', async () => {
@@ -80,11 +87,12 @@ describe('network', () => {
 
             await session.sendMove(player, PositionMode.Teleport);
 
-            const [packet] = sent;
-            expect(packet).toHaveProperty('mode', PositionMode.Teleport);
-            expect(packet).toHaveProperty('teleportCause', 0);
-            expect(packet).toHaveProperty('teleportItemId', 0);
-            expect(packet).toHaveProperty('ridingEntityRuntimeId', 0n);
+            expect(moveData(sent)).toMatchObject({
+                mode: PositionMode.Teleport,
+                teleportCause: 0,
+                teleportItemId: 0,
+                ridingEntityRuntimeId: 0n
+            });
         });
 
         it("carries the client's last input tick on a motion", async () => {
@@ -93,9 +101,12 @@ describe('network', () => {
             session.recordInputTick(7n);
             await session.sendMotion(new Vector3(0.5, 0.4, 0));
 
-            expect(sent[0]?.runtimeEntityId).toBe(1n);
-            expect(sent[0]?.tick).toBe(7n);
-            expect(sent[0]).toHaveProperty('motion', new Vector3(0.5, 0.4, 0));
+            const packet = sent[0];
+            if (!(packet instanceof SetActorMotionPacket)) throw new Error('Expected SetActorMotionPacket');
+
+            expect(packet.runtimeEntityId).toBe(1n);
+            expect(packet.tick).toBe(7n);
+            expect(packet.motion).toEqual(new Vector3(0.5, 0.4, 0));
         });
     });
 });

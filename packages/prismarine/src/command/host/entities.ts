@@ -11,6 +11,7 @@ import type { EntityCommandHost, EntityRef, Rotation, SelectorFacts, Vector3 } f
 import { matchSelector } from '@jsprismarine/commands';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
+import { PositionMode } from '@jsprismarine/protocol';
 
 import Player from '../../Player';
 import type Server from '../../Server';
@@ -24,7 +25,6 @@ import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import type { World } from '../../world/World';
-import PositionMode from '../../network/type/PositionMode';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
 import { carryOut, entityRefOf, refuse, resolveEntity, resolvePlayer, unsupported, vectorOf, worldOf } from './support';

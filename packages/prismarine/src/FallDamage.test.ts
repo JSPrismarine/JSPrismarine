@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { PositionMode } from '@jsprismarine/protocol';
 import Player from './Player';
 import { DamageCause } from './entity/Entity';
-import PositionMode from './network/type/PositionMode';
 import { Position } from './world/Position';
 
 /**

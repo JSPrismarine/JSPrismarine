@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type Player from '../../Player';
-import PositionMode from '../../network/type/PositionMode';
+import { PositionMode } from '@jsprismarine/protocol';
 import { Event } from '../Event';
 
 /**

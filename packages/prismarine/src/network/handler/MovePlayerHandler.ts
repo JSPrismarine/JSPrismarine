@@ -1,9 +1,9 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
+import { PositionMode } from '@jsprismarine/protocol';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import type MovePlayerPacket from '../packet/MovePlayerPacket';
-import PositionMode from '../type/PositionMode';
+import type MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import type PacketHandler from './PacketHandler';
 
 /** Where a client says its player is, and which way it is facing. */
@@ -94,30 +94,33 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
 
     public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const data = packet.getPacketData();
 
-        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+        if (data === null) return;
+
+        if (data.runtimeEntityId !== player.getRuntimeId()) {
             server
                 .getLogger()
-                .debug(`${player.getName()} sent a MovePlayer for runtime id ${packet.runtimeEntityId}, dropped`);
+                .debug(`${player.getName()} sent a MovePlayer for runtime id ${data.runtimeEntityId}, dropped`);
             return;
         }
 
-        if (!CLIENT_MODES.has(packet.mode)) {
-            server.getLogger().debug(`${player.getName()} sent a MovePlayer in mode ${packet.mode}, dropped`);
+        if (!CLIENT_MODES.has(data.mode)) {
+            server.getLogger().debug(`${player.getName()} sent a MovePlayer in mode ${data.mode}, dropped`);
             return;
         }
 
         // `Tick` is the docs' `PlayerInputTick`, the same one a `PlayerAuthInputPacket` carries.
         // Recorded before the move is applied, so a reset for this very move echoes it.
-        session.recordInputTick(packet.tick);
+        session.recordInputTick(data.tick);
 
         await applyClientMovement(server, session, {
-            position: packet.position,
-            pitch: packet.pitch,
-            yaw: packet.yaw,
-            headYaw: packet.headYaw,
-            onGround: packet.onGround,
-            mode: packet.mode
+            position: new Vector3(data.position.x, data.position.y, data.position.z),
+            pitch: data.pitch,
+            yaw: data.yaw,
+            headYaw: data.headYaw,
+            onGround: data.onGround,
+            mode: data.mode
         });
     }
 }

@@ -75,7 +75,7 @@ import ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResp
 import MotionPredictionHintsPacket from '@jsprismarine/protocol/packet/MotionPredictionHintsPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import MoveActorDeltaPacket from '@jsprismarine/protocol/packet/MoveActorDeltaPacket';
-import MovePlayerPacket from './packet/MovePlayerPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import MultiplayerSettingsPacket from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
 import NetworkSettingsPacket from '@jsprismarine/protocol/packet/NetworkSettingsPacket';
 import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';

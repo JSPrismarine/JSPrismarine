@@ -8,7 +8,7 @@ import {
 } from '@jsprismarine/brigadier';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
-import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
+import { CraftingDataPacket, CreativeContentPacket, PositionMode } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import {
     BuildPlatform,
@@ -61,7 +61,7 @@ import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquip
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
-import MovePlayerPacket from './packet/MovePlayerPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
@@ -89,7 +89,6 @@ import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttribut
 import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
 import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
 import CommandParameter, { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
-import PositionMode from './type/PositionMode';
 import ChunkSender from './ChunkSender';
 import { TextPacketType } from '@jsprismarine/protocol';
 
@@ -1571,28 +1570,22 @@ export default class PlayerSession {
      * @param {PositionMode} [mode=PositionMode.Normal] - What produced the movement.
      */
     public async sendMove(player: Player, mode = PositionMode.Normal): Promise<void> {
-        const packet = new MovePlayerPacket();
-        packet.runtimeEntityId = player.getRuntimeId();
-
-        packet.position = player.getPosition();
-        packet.pitch = player.pitch;
-        packet.yaw = player.yaw;
-        packet.headYaw = player.headYaw;
-
-        packet.mode = mode;
-
-        packet.onGround = player.isOnGround();
-
-        // The server does not model why a teleport happened, so Teleportation Cause is
-        // Unknown (0) and Source Actor Type is 0.
-        if (mode === PositionMode.Teleport) {
-            packet.teleportCause = 0;
-            packet.teleportItemId = 0;
-        }
-
-        // "If client bound this has no meaning", so it is always zero here.
-        packet.ridingEntityRuntimeId = 0n;
-        packet.tick = player === this.player ? this.lastInputTick : 0n;
+        const position = player.getPosition();
+        const packet = new MovePlayerPacket({
+            runtimeEntityId: player.getRuntimeId(),
+            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+            pitch: player.pitch,
+            yaw: player.yaw,
+            headYaw: player.headYaw,
+            mode,
+            onGround: player.isOnGround(),
+            // "If client bound this has no meaning", so it is always zero here.
+            ridingEntityRuntimeId: 0n,
+            // The server does not model why a teleport happened, so the cause is Unknown (0)
+            // and the source actor type is 0.
+            ...(mode === PositionMode.Teleport ? { teleportCause: 0, teleportItemId: 0 } : {}),
+            tick: player === this.player ? this.lastInputTick : 0n
+        });
         await this.send(packet);
     }
 
