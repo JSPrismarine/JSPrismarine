@@ -16,6 +16,8 @@ import ServerToClientHandshakePacket from './ServerToClientHandshakePacket';
 import ResourcePackClientResponsePacket from './ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './ResourcePacksInfoPacket';
+import SetCommandsEnabledPacket from './SetCommandsEnabledPacket';
+import SetDifficultyPacket from './SetDifficultyPacket';
 import SetHealthPacket from './SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
 import SetTimePacket from './SetTimePacket';
@@ -42,6 +44,8 @@ export {
     ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
+    SetCommandsEnabledPacket,
+    SetDifficultyPacket,
     SetHealthPacket,
     SetLocalPlayerAsInitializedPacket,
     SetTimePacket,
@@ -88,6 +92,8 @@ export type { Experiment, ResourcePackStack, ResourcePackStackEntry } from './Re
 export type { PackIdVersion, ResourcePackEntry, ResourcePacksInfo } from './ResourcePacksInfoPacket';
 export type { SetLocalPlayerAsInitialized } from './SetLocalPlayerAsInitializedPacket';
 export type { SetHealthPayload } from './SetHealthPacket';
+export type { SetCommandsEnabledPayload } from './SetCommandsEnabledPacket';
+export type { SetDifficultyPayload } from './SetDifficultyPacket';
 export type { SetTimePayload } from './SetTimePacket';
 export type { ClientToServerHandshake } from './ClientToServerHandshakePacket';
 export type { ItemRegistry, ItemRegistryEntry } from './ItemRegistryPacket';

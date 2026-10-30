@@ -22,7 +22,7 @@ import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 import type Server from '../../Server';
 import { DIFFICULTIES, difficultyName } from '../../config/Config';
 import PlaySoundPacket from '../../network/packet/PlaySoundPacket';
-import SetDifficultyPacket from '../../network/packet/SetDifficultyPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '../../network/packet/SetSpawnPositionPacket';
 import SpawnParticleEffectPacket from '../../network/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '../../network/packet/StopSoundPacket';
@@ -312,8 +312,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             if (wanted === undefined) return false;
 
             server.getConfig().setDifficulty(wanted);
-            const packet = new SetDifficultyPacket();
-            packet.difficulty = wanted;
+            const packet = new SetDifficultyPacket({ difficulty: wanted });
             return carryOut(server.broadcastPacket(packet), true);
         },
 

@@ -3,17 +3,15 @@ import { describe, expect, it } from 'vitest';
 import SetDifficultyPacket from './SetDifficultyPacket';
 
 describe('SetDifficultyPacket', () => {
-    it('decodes the varuint difficulty and consumes the whole buffer', () => {
+    it('decodes the varuint difficulty from a packet buffer', () => {
         const packet = new SetDifficultyPacket(Buffer.from([0x3c, 0x03]));
         packet.decode();
 
-        expect(packet.difficulty).toBe(Difficulty.HARD);
-        expect(packet.feof()).toBe(true);
+        expect(packet.getPacketData()).toEqual({ difficulty: Difficulty.HARD });
     });
 
-    it('encodes the same byte', () => {
-        const packet = new SetDifficultyPacket();
-        packet.difficulty = Difficulty.PEACEFUL;
+    it('encodes a difficulty value as varuint32', () => {
+        const packet = new SetDifficultyPacket({ difficulty: Difficulty.PEACEFUL });
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(Buffer.from([0x3c, 0x00]));

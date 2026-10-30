@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { CommandRequestPacket, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
+import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import Identifiers from '../Identifiers';
 import * as Packets from '../Packets';
 import Codec2193 from './Codec2193';
@@ -21,6 +23,8 @@ describe('network/codec', () => {
             const implemented = new Set([
                 ...Object.keys(Packets),
                 CommandRequestPacket.name,
+                SetCommandsEnabledPacket.name,
+                SetDifficultyPacket.name,
                 SetHealthPacket.name,
                 SetTimePacket.name
             ]);

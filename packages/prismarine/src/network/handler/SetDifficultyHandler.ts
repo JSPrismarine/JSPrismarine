@@ -1,7 +1,7 @@
 import { Difficulty } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import SetDifficultyPacket from '../packet/SetDifficultyPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -19,18 +19,20 @@ export default class SetDifficultyHandler implements PacketHandler<SetDifficulty
 
     /** Logs the request and sends the configured difficulty back when the two differ. */
     public async handle(packet: SetDifficultyPacket, server: Server, session: PlayerSession): Promise<void> {
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle SetDifficultyPacket without decoded data');
+
         const configured = server.getConfig().getDifficulty();
-        if (packet.difficulty === configured) return;
+        if (data.difficulty === configured) return;
 
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for difficulty ${Difficulty[packet.difficulty] ?? packet.difficulty}, which the server does not change`,
+                `${session.getPlayer().getName()} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`,
                 'SetDifficultyHandler/handle'
             );
 
-        const reply = new SetDifficultyPacket();
-        reply.difficulty = configured;
+        const reply = new SetDifficultyPacket({ difficulty: configured });
         await session.getConnection().sendDataPacket(reply);
     }
 }

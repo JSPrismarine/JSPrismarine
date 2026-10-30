@@ -1,5 +1,9 @@
 import * as Packets from '../Packets';
-import { CommandRequestPacket, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
+import CommandRequestPacket from '@jsprismarine/protocol/packet/CommandRequestPacket';
+import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
+import SetHealthPacket from '@jsprismarine/protocol/packet/SetHealthPacket';
+import SetTimePacket from '@jsprismarine/protocol/packet/SetTimePacket';
 import {
     biome_definitions_network,
     block_definitions,
@@ -17,10 +21,18 @@ import { minecraftVersions, netIdFor, packetIds, protocolVersion } from '@jspris
 export type PacketClass =
     | (typeof Packets)[keyof typeof Packets]
     | typeof CommandRequestPacket
+    | typeof SetCommandsEnabledPacket
+    | typeof SetDifficultyPacket
     | typeof SetHealthPacket
     | typeof SetTimePacket;
 
-const protocolPackets = { CommandRequestPacket, SetHealthPacket, SetTimePacket } satisfies Record<string, PacketClass>;
+const protocolPackets = {
+    CommandRequestPacket,
+    SetCommandsEnabledPacket,
+    SetDifficultyPacket,
+    SetHealthPacket,
+    SetTimePacket
+} satisfies Record<string, PacketClass>;
 
 /**
  * The codec for protocol 2193, built from the packet barrel and the 2193 id table. The first

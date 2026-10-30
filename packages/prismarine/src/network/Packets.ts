@@ -127,9 +127,7 @@ import ServerboundStonecutterSetRecipePacket from './packet/ServerboundStonecutt
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorLinkPacket from './packet/SetActorLinkPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
-import SetCommandsEnabledPacket from './packet/SetCommandsEnabledPacket';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
-import SetDifficultyPacket from './packet/SetDifficultyPacket';
 import SetLastHurtByPacket from './packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPassengerOfBlockPacket from './packet/SetPassengerOfBlockPacket';
@@ -302,9 +300,7 @@ export {
     SetActorDataPacket,
     SetActorLinkPacket,
     SetActorMotionPacket,
-    SetCommandsEnabledPacket,
     SetDefaultGameTypePacket,
-    SetDifficultyPacket,
     SetLastHurtByPacket,
     SetLocalPlayerAsInitializedPacket,
     SetPassengerOfBlockPacket,
