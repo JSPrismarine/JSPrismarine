@@ -70,11 +70,10 @@ import RemoveActorPacket from './packet/RemoveActorPacket';
 import type { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from './packet/RespawnPacket';
 import ActorEventPacket, { ActorEvent } from './packet/ActorEventPacket';
-import SetHealthPacket from './packet/SetHealthPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
-import SetTimePacket from './packet/SetTimePacket';
+import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
 import UpdatePlayerGameTypePacket from './packet/UpdatePlayerGameTypePacket';
@@ -1049,8 +1048,7 @@ export default class PlayerSession {
      * @param {number} tick - The tick
      */
     public async sendTime(tick: number): Promise<void> {
-        const pk = new SetTimePacket();
-        pk.time = tick;
+        const pk = new SetTimePacket({ time: tick });
         await this.connection.sendDataPacket(pk);
     }
 
@@ -1453,8 +1451,7 @@ export default class PlayerSession {
         event.event = ActorEvent.SPAWN_ALIVE;
         await this.connection.sendDataPacket(event);
 
-        const health = new SetHealthPacket();
-        health.health = Math.ceil(this.player.getHealth());
+        const health = new SetHealthPacket({ health: Math.ceil(this.player.getHealth()) });
         await this.connection.sendDataPacket(health);
 
         await this.sendAttributes();

@@ -130,7 +130,6 @@ import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetCommandsEnabledPacket from './packet/SetCommandsEnabledPacket';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetDifficultyPacket from './packet/SetDifficultyPacket';
-import SetHealthPacket from './packet/SetHealthPacket';
 import SetLastHurtByPacket from './packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPassengerOfBlockPacket from './packet/SetPassengerOfBlockPacket';
@@ -138,7 +137,6 @@ import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacke
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
 import SetSpawnPositionPacket from './packet/SetSpawnPositionPacket';
-import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import SettingsCommandPacket from './packet/SettingsCommandPacket';
 import ShowCreditsPacket from './packet/ShowCreditsPacket';
@@ -307,7 +305,6 @@ export {
     SetCommandsEnabledPacket,
     SetDefaultGameTypePacket,
     SetDifficultyPacket,
-    SetHealthPacket,
     SetLastHurtByPacket,
     SetLocalPlayerAsInitializedPacket,
     SetPassengerOfBlockPacket,
@@ -315,7 +312,6 @@ export {
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
     SetSpawnPositionPacket,
-    SetTimePacket,
     SetTitlePacket,
     SettingsCommandPacket,
     ShowCreditsPacket,

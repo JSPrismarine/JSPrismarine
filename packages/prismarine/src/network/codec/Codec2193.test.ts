@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { CommandRequestPacket } from '@jsprismarine/protocol';
+import { CommandRequestPacket, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import Identifiers from '../Identifiers';
-import SetTimePacket from '../packet/SetTimePacket';
 import * as Packets from '../Packets';
 import Codec2193 from './Codec2193';
 import { codecForProtocol, latestCodec } from './CodecRegistry';
@@ -19,7 +18,12 @@ describe('network/codec', () => {
 
         it('lists every packet id under its class name, each id once', () => {
             const entries = Object.entries(Codec2193.ids);
-            const implemented = new Set([...Object.keys(Packets), CommandRequestPacket.name]);
+            const implemented = new Set([
+                ...Object.keys(Packets),
+                CommandRequestPacket.name,
+                SetHealthPacket.name,
+                SetTimePacket.name
+            ]);
             expect(entries.length).toBeGreaterThan(0);
             for (const [name, id] of entries) {
                 expect(Codec2193.netIdOf(name), name).toBe(id);
@@ -32,14 +36,13 @@ describe('network/codec', () => {
         });
 
         it('builds a packet that decodes the bytes it was given', () => {
-            const outbound = new SetTimePacket();
-            outbound.time = 4321;
+            const outbound = new SetTimePacket({ time: 4321 });
             outbound.encode();
 
             const inbound = Codec2193.createPacket(Codec2193.netIdOf('SetTimePacket')!, outbound.getBuffer());
             expect(inbound).toBeInstanceOf(SetTimePacket);
             inbound!.decode();
-            expect(inbound).toMatchObject({ time: 4321 });
+            expect(inbound?.getPacketData()).toEqual({ time: 4321 });
         });
 
         it('returns null for an id it does not list', () => {

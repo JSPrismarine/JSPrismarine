@@ -16,7 +16,9 @@ import ServerToClientHandshakePacket from './ServerToClientHandshakePacket';
 import ResourcePackClientResponsePacket from './ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './ResourcePacksInfoPacket';
+import SetHealthPacket from './SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
+import SetTimePacket from './SetTimePacket';
 import StartGamePacket from './StartGamePacket';
 import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
@@ -40,7 +42,9 @@ export {
     ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
+    SetHealthPacket,
     SetLocalPlayerAsInitializedPacket,
+    SetTimePacket,
     StartGamePacket,
     StartGamePacket2225,
     TextPacket
@@ -83,6 +87,8 @@ export type { ResourcePackResponse } from './ResourcePackClientResponsePacket';
 export type { Experiment, ResourcePackStack, ResourcePackStackEntry } from './ResourcePackStackPacket';
 export type { PackIdVersion, ResourcePackEntry, ResourcePacksInfo } from './ResourcePacksInfoPacket';
 export type { SetLocalPlayerAsInitialized } from './SetLocalPlayerAsInitializedPacket';
+export type { SetHealthPayload } from './SetHealthPacket';
+export type { SetTimePayload } from './SetTimePacket';
 export type { ClientToServerHandshake } from './ClientToServerHandshakePacket';
 export type { ItemRegistry, ItemRegistryEntry } from './ItemRegistryPacket';
 export type { ServerToClientHandshake } from './ServerToClientHandshakePacket';

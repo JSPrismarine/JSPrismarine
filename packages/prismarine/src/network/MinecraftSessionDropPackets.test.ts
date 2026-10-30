@@ -8,7 +8,7 @@ import { stub } from '../testing/stub.test.helper';
 import MinecraftSession, { debugPacketNames } from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
 import BatchPacket from './packet/BatchPacket';
-import SetTimePacket from './packet/SetTimePacket';
+import { SetTimePacket } from '@jsprismarine/protocol';
 import TextPacket from './packet/TextPacket';
 import TextPacketType from './type/TextPacketType';
 
@@ -28,9 +28,7 @@ const message = (text: string) => {
 };
 
 const time = () => {
-    const packet = new SetTimePacket();
-    packet.time = 0;
-    return packet;
+    return new SetTimePacket({ time: 0 });
 };
 
 const fakeSession = (dropped: Iterable<string>, dumped: Iterable<string> = [], dumpDir?: string) => {
