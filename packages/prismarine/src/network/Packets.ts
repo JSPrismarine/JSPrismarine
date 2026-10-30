@@ -148,7 +148,7 @@ import TakeItemActorPacket from '@jsprismarine/protocol/packet/TakeItemActorPack
 import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from '@jsprismarine/protocol/packet/TickingAreasLoadStatusPacket';
 import TransferPacket from './packet/TransferPacket';
-import UnlockedRecipesPacket from './packet/UnlockedRecipesPacket';
+import UnlockedRecipesPacket from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
 import UpdateAbilitiesPacket from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import UpdateBlockPacket from '@jsprismarine/protocol/packet/UpdateBlockPacket';

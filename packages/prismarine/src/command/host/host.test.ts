@@ -26,7 +26,7 @@ import { vanillaItemTypes } from '../../item/vanillaItemTypes';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
-import UnlockedRecipesPacket, { UnlockedRecipesType } from '../../network/packet/UnlockedRecipesPacket';
+import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
@@ -1076,8 +1076,8 @@ describe('the server command host', () => {
             await expect(fixture.run('recipe give @a mypack:cake')).resolves.toBe(1);
 
             const packet = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(packet?.type).toBe(UnlockedRecipesType.NewlyUnlocked);
-            expect(packet?.recipes).toEqual(['mypack:cake']);
+            expect(packet?.getPacketData()?.type).toBe(UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES);
+            expect(packet?.getPacketData()?.recipes).toEqual(['mypack:cake']);
         });
 
         it('changes nothing when the player already had it', async () => {
@@ -1094,11 +1094,11 @@ describe('the server command host', () => {
 
             await expect(fixture.run('recipe give @a *')).resolves.toBe(1);
             const unlocked = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(unlocked?.recipes).toEqual(['mypack:cake', 'mypack:torch']);
+            expect(unlocked?.getPacketData()?.recipes).toEqual(['mypack:cake', 'mypack:torch']);
 
             await expect(fixture.run('recipe take @a *')).resolves.toBe(1);
             const locked = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(locked?.type).toBe(UnlockedRecipesType.RemoveAll);
+            expect(locked?.getPacketData()?.type).toBe(UnlockedRecipesType.REMOVE_ALL_UNLOCKED_RECIPES);
         });
 
         it('locks one recipe without touching the rest', async () => {
@@ -1109,8 +1109,8 @@ describe('the server command host', () => {
             await expect(fixture.run('recipe take @a mypack:cake')).resolves.toBe(1);
 
             const packet = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
-            expect(packet?.type).toBe(UnlockedRecipesType.RemoveUnlocked);
-            expect(packet?.recipes).toEqual(['mypack:cake']);
+            expect(packet?.getPacketData()?.type).toBe(UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES);
+            expect(packet?.getPacketData()?.recipes).toEqual(['mypack:cake']);
         });
     });
 });

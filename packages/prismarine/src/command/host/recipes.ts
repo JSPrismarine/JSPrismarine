@@ -16,7 +16,7 @@ import type { EntityRef } from '@jsprismarine/commands';
 import type { RecipeBook } from '@jsprismarine/recipes';
 
 import type Server from '../../Server';
-import UnlockedRecipesPacket, { UnlockedRecipesType } from '../../network/packet/UnlockedRecipesPacket';
+import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
 import { carryOut, refuse, resolvePlayer } from './support';
 
 /** The recipe name `/recipe` means "every one of them" by. */
@@ -94,7 +94,7 @@ export const changeRecipes = (
             if (held === 0) continue;
 
             changed += 1;
-            carryOut(send(player, UnlockedRecipesType.RemoveAll, []), undefined);
+            carryOut(send(player, UnlockedRecipesType.REMOVE_ALL_UNLOCKED_RECIPES, []), undefined);
             continue;
         }
 
@@ -103,7 +103,11 @@ export const changeRecipes = (
 
         changed += 1;
         carryOut(
-            send(player, give ? UnlockedRecipesType.NewlyUnlocked : UnlockedRecipesType.RemoveUnlocked, applied),
+            send(
+                player,
+                give ? UnlockedRecipesType.NEWLY_UNLOCKED_RECIPES : UnlockedRecipesType.REMOVE_UNLOCKED_RECIPES,
+                applied
+            ),
             undefined
         );
     }
@@ -117,8 +121,6 @@ const send = (
     type: UnlockedRecipesType,
     recipes: readonly string[]
 ): Promise<void> => {
-    const packet = new UnlockedRecipesPacket();
-    packet.type = type;
-    packet.recipes = [...recipes];
+    const packet = new UnlockedRecipesPacket({ type, recipes: [...recipes] });
     return player.getNetworkSession().send(packet);
 };
