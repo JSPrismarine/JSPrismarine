@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
-import * as Packets from '../Packets';
 import { TitleType } from '@jsprismarine/minecraft';
 import SetTitlePacket from './SetTitlePacket';
 
@@ -49,7 +48,6 @@ describe('SetTitlePacket', () => {
     });
 
     it('is registered for packet 0x58', () => {
-        expect(Packets.SetTitlePacket).toBe(SetTitlePacket);
         expect(netIdFor('SetTitlePacket')).toBe(0x58);
     });
 });

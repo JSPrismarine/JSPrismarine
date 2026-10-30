@@ -14,7 +14,7 @@ import type Server from '../../Server';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
-import SetTitlePacket from '../../network/packet/SetTitlePacket';
+import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import TransferPacket from '../../network/packet/TransferPacket';
 import TextPacketType from '../../network/type/TextPacketType';
 import { UnlockedRecipes, changeRecipes } from './recipes';

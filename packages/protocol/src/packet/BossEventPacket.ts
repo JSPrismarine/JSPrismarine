@@ -1,6 +1,7 @@
-import { bossEventPacket, layoutAt } from '@jsprismarine/protocol';
+import { bossEventPacket } from '../wire/definitions/bossEvent';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * What the event does to the boss bar, as the `Event Type` byte numbers it.

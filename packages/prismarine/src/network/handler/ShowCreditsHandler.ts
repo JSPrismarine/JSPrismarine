@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ShowCreditsPacket from '../packet/ShowCreditsPacket';
-import { CreditsState } from '../packet/ShowCreditsPacket';
+import type ShowCreditsPacket from '@jsprismarine/protocol/packet/ShowCreditsPacket';
+import { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

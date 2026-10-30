@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type TickingAreasLoadStatusPacket from '../packet/TickingAreasLoadStatusPacket';
+import type TickingAreasLoadStatusPacket from '@jsprismarine/protocol/packet/TickingAreasLoadStatusPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

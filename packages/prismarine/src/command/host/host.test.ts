@@ -27,7 +27,7 @@ import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import UnlockedRecipesPacket, { UnlockedRecipesType } from '../../network/packet/UnlockedRecipesPacket';
-import SetTitlePacket from '../../network/packet/SetTitlePacket';
+import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';

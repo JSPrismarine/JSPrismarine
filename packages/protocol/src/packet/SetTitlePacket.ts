@@ -1,7 +1,8 @@
-import { layoutAt, setTitlePacket } from '@jsprismarine/protocol';
+import { setTitlePacket } from '../wire/definitions/chat';
+import { layoutAt } from '../wire/WireLayout';
 
 import { TitleType } from '@jsprismarine/minecraft';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Shows a title, a subtitle or an action bar message, or sets how long they stay.

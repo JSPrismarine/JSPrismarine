@@ -1,6 +1,7 @@
-import { layoutAt, showCreditsPacket } from '@jsprismarine/protocol';
+import { showCreditsPacket } from '../wire/definitions/showCredits';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** The docs' `CreditsState`: whether the credits are starting or have finished. */
 export enum CreditsState {

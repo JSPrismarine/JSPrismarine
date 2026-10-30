@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ShowCreditsPacket, { CreditsState } from '../packet/ShowCreditsPacket';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import ShowCreditsHandler from './ShowCreditsHandler';
 
 describe('ShowCreditsHandler', () => {

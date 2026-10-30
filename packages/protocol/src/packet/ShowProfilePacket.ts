@@ -1,5 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import { NetworkUtil } from '../wire/networkUtil';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Opens the Xbox profile card of one player on the client.

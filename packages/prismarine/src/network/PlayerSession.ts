@@ -75,7 +75,7 @@ import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
 import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
-import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
+import GameRulesChangedPacket from '@jsprismarine/protocol/packet/GameRulesChangedPacket';
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {

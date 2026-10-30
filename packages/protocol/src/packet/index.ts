@@ -1,4 +1,5 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
+import BossEventPacket from './BossEventPacket';
 import ChangeDimensionPacket from './ChangeDimensionPacket';
 import ClientToServerHandshakePacket from './ClientToServerHandshakePacket';
 import CraftingDataPacket from './CraftingDataPacket';
@@ -25,8 +26,14 @@ import SetCommandsEnabledPacket from './SetCommandsEnabledPacket';
 import SetDifficultyPacket from './SetDifficultyPacket';
 import SetHealthPacket from './SetHealthPacket';
 import SetPlayerGameTypePacket from './SetPlayerGameTypePacket';
+import SetTitlePacket from './SetTitlePacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
 import SetTimePacket from './SetTimePacket';
+import ShowCreditsPacket from './ShowCreditsPacket';
+import ShowProfilePacket from './ShowProfilePacket';
+import TickingAreasLoadStatusPacket from './TickingAreasLoadStatusPacket';
+import GameRulesChangedPacket from './GameRulesChangedPacket';
+import HurtArmorPacket from './HurtArmorPacket';
 import SetSpawnPositionPacket from './SetSpawnPositionPacket';
 import StartGamePacket from './StartGamePacket';
 import StartGamePacket2225 from './StartGamePacket2225';
@@ -37,6 +44,7 @@ import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
 export {
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
+    BossEventPacket,
     ClientToServerHandshakePacket,
     CraftingDataPacket,
     CreativeContentPacket,
@@ -62,8 +70,14 @@ export {
     SetDifficultyPacket,
     SetHealthPacket,
     SetPlayerGameTypePacket,
+    SetTitlePacket,
     SetLocalPlayerAsInitializedPacket,
     SetTimePacket,
+    ShowCreditsPacket,
+    ShowProfilePacket,
+    TickingAreasLoadStatusPacket,
+    GameRulesChangedPacket,
+    HurtArmorPacket,
     SetSpawnPositionPacket,
     StartGamePacket,
     StartGamePacket2225,
@@ -86,6 +100,8 @@ export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
 export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 export { TextPacketType } from './TextPacket';
+export { BossBarColor, BossBarOverlay, BossEventUpdateType } from './BossEventPacket';
+export { CreditsState } from './ShowCreditsPacket';
 
 export type { ChunkRadiusUpdated } from './ChunkRadiusUpdatedPacket';
 export type { ChangeDimensionPayload } from './ChangeDimensionPacket';

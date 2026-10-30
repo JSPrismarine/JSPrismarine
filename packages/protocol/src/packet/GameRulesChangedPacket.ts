@@ -1,9 +1,9 @@
-import { layoutAt } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
-import { gameRulesChangedPacket } from '@jsprismarine/protocol/wire/definitions/gameRulesChanged';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { gameRulesChangedPacket } from '../wire/definitions/gameRulesChanged';
 
-import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
+import type { GameRule } from '../wire/structures/GameRule';
 
 /**
  * Tells a client that game rules changed.
