@@ -1,6 +1,6 @@
 ---
 '@jsprismarine/prismarine': patch
-'@jsprismarine/wire': patch
+'@jsprismarine/protocol': patch
 ---
 
 Send the four join payloads from the content registries. `StartGamePacket`'s block properties,
@@ -22,4 +22,4 @@ pre-flattening names (`minecraft:fish`, `minecraft:muttonRaw` and five more) tha
 server renames before writing its table, so those seven travel with ids of this server's own; all
 seven modern names are in the registry as well. And the item component compounds come from Java's
 components rather than Mojang's tables, so none of the 78 captured compounds is reproduced byte for
-byte; `@jsprismarine/wire` measures that gap field by field.
+byte; `@jsprismarine/protocol` measures that gap field by field.

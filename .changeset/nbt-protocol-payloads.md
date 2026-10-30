@@ -4,7 +4,7 @@
 '@jsprismarine/prismarine': patch
 ---
 
-Four fixes the `@jsprismarine/wire` payload builders found by comparing generated payloads against
+Four fixes the `@jsprismarine/protocol` payload builders found by comparing generated payloads against
 a captured Bedrock Dedicated Server 1.26.51.1 session.
 
 `@jsprismarine/nbt` now types an empty list `TAG_End`, which is what a Bedrock Dedicated Server
@@ -23,7 +23,7 @@ and `Recipe` classes, so any package that builds those payloads can now be check
 `CraftingDataPacket` carries a `potionMixes` list, where the old one wrote a literal zero and the
 brewing recipes could not be sent at all. `BlockRuntimeId` holds the FNV-1a 32 hash and the little
 endian state serialization that decide a block's runtime id, which `@jsprismarine/prismarine` had
-one copy of and `@jsprismarine/wire` another; it reproduces all 1065 `network_id` values the
+one copy of and the protocol package another; it reproduces all 1065 `network_id` values the
 captured creative catalog carries. The packet index exports every member type a `StartGame` payload
 is built from, so a consumer no longer deep imports `@jsprismarine/protocol/packet/StartGamePacket`
 to name a `BlockProperty` or a `GameRule`. Moving public API in is a feature, which the versioning

@@ -1,6 +1,6 @@
 ---
 "@jsprismarine/items": patch
-"@jsprismarine/wire": patch
+"@jsprismarine/protocol": patch
 ---
 
 Project Bedrock block placer components
