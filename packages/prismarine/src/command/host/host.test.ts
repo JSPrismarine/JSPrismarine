@@ -25,7 +25,7 @@ import { Item as ItemStack } from '../../item/Item';
 import { vanillaItemTypes } from '../../item/vanillaItemTypes';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
-import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
+import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import UnlockedRecipesPacket, { UnlockedRecipesType } from '../../network/packet/UnlockedRecipesPacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
@@ -685,11 +685,11 @@ describe('the server command host', () => {
             await fixture.run('fog @a push minecraft:fog_ocean first');
             await fixture.run('fog @a push minecraft:fog_hell second');
             const pushed = fixture.sent.filter((packet) => packet instanceof PlayerFogPacket);
-            expect(pushed.at(-1)?.fogStack).toEqual(['minecraft:fog_ocean', 'minecraft:fog_hell']);
+            expect(pushed.at(-1)?.getPacketData()?.fogStack).toEqual(['minecraft:fog_ocean', 'minecraft:fog_hell']);
 
             await expect(fixture.run('fog @a pop first')).resolves.toBe(1);
             const popped = fixture.sent.filter((packet) => packet instanceof PlayerFogPacket);
-            expect(popped.at(-1)?.fogStack).toEqual(['minecraft:fog_hell']);
+            expect(popped.at(-1)?.getPacketData()?.fogStack).toEqual(['minecraft:fog_hell']);
         });
 
         it('changes nothing when /fog pops a layer nobody pushed', async () => {

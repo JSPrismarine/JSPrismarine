@@ -13,7 +13,7 @@ import { TitleType } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
-import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
+import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import TransferPacket from '../../network/packet/TransferPacket';
 import TextPacketType from '../../network/type/TextPacketType';
@@ -201,8 +201,7 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
                 if (next.length === stack.length && change.mode !== 'push') continue;
 
                 fogStacks.set(player.getRuntimeId(), next);
-                const packet = new PlayerFogPacket();
-                packet.fogStack = next.map((layer) => layer.fogId);
+                const packet = new PlayerFogPacket({ fogStack: next.map((layer) => layer.fogId) });
                 carryOut(player.getNetworkSession().send(packet), undefined);
                 changed += 1;
             }
