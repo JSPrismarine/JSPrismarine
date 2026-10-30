@@ -69,6 +69,7 @@ export * from './wire/definitions/playerList';
 export * from './wire/definitions/playerSkin';
 export * from './wire/definitions/playStatus';
 export * from './wire/definitions/resourcePacks';
+export * from './wire/definitions/serverSettings';
 export * from './wire/definitions/serverToClientHandshake';
 export * from './wire/definitions/scoreboard';
 export * from './wire/definitions/setActorData';

@@ -74,6 +74,7 @@ import {
     resourcePacksInfoPacket,
     resourcePackStackPacket
 } from './resourcePacks';
+import { serverSettingsRequestPacket } from './serverSettings';
 import { serverToClientHandshakePacket } from './serverToClientHandshake';
 import {
     changeDimensionPacket,
@@ -163,6 +164,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         resourcePackDataInfoPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
+        serverSettingsRequestPacket,
         serverToClientHandshakePacket,
         setActorDataPacket,
         setDisplayObjectivePacket,
