@@ -8,6 +8,7 @@ import {
 } from '@jsprismarine/brigadier';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import type { Vector3 } from '@jsprismarine/math';
+import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import {
     BuildPlatform,
@@ -44,14 +45,13 @@ import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
+import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
 import { BatchPacket } from './Packets';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
-import CraftingDataPacket from './packet/CraftingDataPacket';
-import CreativeContentPacket from './packet/CreativeContentPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
@@ -980,12 +980,11 @@ export default class PlayerSession {
         });
         if (payloads !== undefined) {
             const all = craftingRecipeCount(payloads.crafting);
-            const packet = new CraftingDataPacket();
-            packet.payload = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
+            const crafting = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
 
-            await this.connection.sendDataPacket(packet);
+            await this.connection.sendDataPacket(new CraftingDataPacket(crafting));
 
-            const sent = craftingRecipeCount(packet.payload);
+            const sent = craftingRecipeCount(crafting);
             this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
 
             return;
@@ -994,23 +993,23 @@ export default class PlayerSession {
         const manager = this.server.getRecipeManager();
         const all = manager.getRecipes();
 
-        const packet = new CraftingDataPacket();
-        packet.recipes = limit < 0 ? all : all.slice(0, limit);
+        const recipes = limit < 0 ? all : all.slice(0, limit);
         // The net id is the recipe's position in the manager's list, not in what was sent -
         // otherwise trimming the list would renumber what the client refers to.
-        packet.netIdOf = (recipe) => manager.getNetId(recipe) ?? 0;
+        const crafting = craftingDataFromRecipes(recipes, (recipe) => manager.getNetId(recipe) ?? 0);
 
-        await this.connection.sendDataPacket(packet);
+        await this.connection.sendDataPacket(new CraftingDataPacket(crafting));
 
         this.server
             .getLogger()
-            .debug(`Sent §b${packet.recipes.length}§r of §b${all.length}§r recipe(s) to ${this.player.getName()}`);
+            .debug(
+                `Sent §b${craftingRecipeCount(crafting)}§r of §b${all.length}§r recipe(s) to ${this.player.getName()}`
+            );
     }
 
     public async sendCreativeContents(empty = false): Promise<void> {
-        const pk = new CreativeContentPacket();
         if (empty) {
-            await this.connection.sendDataPacket(pk);
+            await this.connection.sendDataPacket(new CreativeContentPacket({ groups: [], entries: [] }));
             return;
         }
 
@@ -1023,13 +1022,13 @@ export default class PlayerSession {
         });
         if (payloads === undefined) {
             const creative = server.getCreativeInventory();
-            pk.groups = [...creative.getGroups()];
-            pk.entries = [...creative.getEntries()];
-        } else {
-            pk.payload = payloads.creative;
+            await this.connection.sendDataPacket(
+                new CreativeContentPacket(creativeContentFrom(creative.getGroups(), creative.getEntries()))
+            );
+            return;
         }
 
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(new CreativeContentPacket(payloads.creative));
     }
 
     /**

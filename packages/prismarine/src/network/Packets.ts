@@ -37,8 +37,8 @@ import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePa
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDataPacket';
 import CorrectPlayerMovePredictionPacket from './packet/CorrectPlayerMovePredictionPacket';
-import CraftingDataPacket from './packet/CraftingDataPacket';
-import CreativeContentPacket from './packet/CreativeContentPacket';
+import CraftingDataPacket from '@jsprismarine/protocol/packet/CraftingDataPacket';
+import CreativeContentPacket from '@jsprismarine/protocol/packet/CreativeContentPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import DebugInfoPacket from '@jsprismarine/protocol/packet/DebugInfoPacket';
 import DisconnectPacket from './packet/DisconnectPacket';

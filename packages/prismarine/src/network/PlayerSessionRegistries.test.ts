@@ -8,6 +8,7 @@
  * These tests pin which source each path takes.
  */
 import type { Logger } from '@jsprismarine/logger';
+import { CraftingDataPacket, CreativeContentPacket } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import type Player from '../Player';
@@ -25,11 +26,9 @@ import { joinContentPayloads, limitCraftingData } from './contentPayloads';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
-import CraftingDataPacket from './packet/CraftingDataPacket';
-import CreativeContentPacket from './packet/CreativeContentPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
-import type { CraftingData } from '@jsprismarine/protocol';
+import type { CraftingData, CreativeContent } from '@jsprismarine/protocol';
 import { testContent } from '../testing/entityServer';
 
 /** A session whose connection records what goes out, speaking for a server. */
@@ -86,11 +85,25 @@ const creativePacket = (sent: readonly NetworkPacket[]): CreativeContentPacket =
     return packet;
 };
 
+const creativeContent = (sent: readonly NetworkPacket[]): CreativeContent => {
+    const content = creativePacket(sent).getPacketData();
+    if (content === null) throw new Error('CreativeContentPacket has no payload');
+
+    return content;
+};
+
 const craftingPacket = (sent: readonly NetworkPacket[]): CraftingDataPacket => {
     const packet = sent.find((candidate) => candidate instanceof CraftingDataPacket);
     if (packet === undefined) throw new Error('no CraftingDataPacket was sent');
 
     return packet;
+};
+
+const craftingData = (sent: readonly NetworkPacket[]): CraftingData => {
+    const data = craftingPacket(sent).getPacketData();
+    if (data === null) throw new Error('CraftingDataPacket has no payload');
+
+    return data;
 };
 
 describe('PlayerSession', () => {
@@ -100,9 +113,7 @@ describe('PlayerSession', () => {
 
             await session.sendCreativeContents();
 
-            const packet = creativePacket(sent);
-            expect(packet.payload).toBeNull();
-            expect(packet.entries.length).toBeGreaterThan(0);
+            expect(creativeContent(sent).entries.length).toBeGreaterThan(0);
         });
 
         it('sends the content build menu when there is one', async () => {
@@ -111,9 +122,7 @@ describe('PlayerSession', () => {
 
             await session.sendCreativeContents();
 
-            // The payload replaces both lists, so nothing reads the server's
-            // no manager on this path.
-            expect(creativePacket(sent).payload).toBe(payloads.creative);
+            expect(creativeContent(sent)).toBe(payloads.creative);
         });
 
         /**
@@ -133,7 +142,7 @@ describe('PlayerSession', () => {
             const { session, sent } = sessionFor(server, Codec2225);
             await session.sendCreativeContents();
 
-            expect(creativePacket(sent).payload).toBe(at2225?.creative);
+            expect(creativeContent(sent)).toBe(at2225?.creative);
         });
 
         it('sends an empty menu on request, whatever the content says', async () => {
@@ -141,9 +150,7 @@ describe('PlayerSession', () => {
 
             await session.sendCreativeContents(true);
 
-            const packet = creativePacket(sent);
-            expect(packet.payload).toBeNull();
-            expect(packet.entries).toEqual([]);
+            expect(creativeContent(sent)).toEqual({ groups: [], entries: [] });
         });
     });
 
@@ -154,7 +161,13 @@ describe('PlayerSession', () => {
 
             await session.sendCraftingData();
 
-            expect(craftingPacket(sent).payload).toBeNull();
+            expect(craftingData(sent)).toEqual({
+                shaped: [],
+                shapeless: [],
+                smithingTransform: [],
+                potionMixes: [],
+                cleanRecipes: true
+            });
         });
 
         it('sends the compiled recipes when there is a content build', async () => {
@@ -163,7 +176,7 @@ describe('PlayerSession', () => {
 
             await session.sendCraftingData();
 
-            expect(craftingPacket(sent).payload).toBe(payloads.crafting);
+            expect(craftingData(sent)).toBe(payloads.crafting);
         });
 
         it('sends nothing at all when the limit is zero', async () => {

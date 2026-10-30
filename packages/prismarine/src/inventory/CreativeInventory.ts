@@ -5,10 +5,25 @@ import {
 } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
+import type { CreativeItemCategory } from '@jsprismarine/protocol';
 import { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
-import type { CreativeEntry, CreativeGroup } from '../network/packet/CreativeContentPacket';
-import { creativeCategoryOf } from '../network/packet/CreativeContentPacket';
+import { creativeCategoryOf } from '@jsprismarine/protocol';
+
+/** A server creative heading, with an item instance shown beside it. */
+export interface CreativeGroup {
+    category: CreativeItemCategory;
+    /** A translation key such as `itemGroup.name.planks`, or empty for an anonymous group. */
+    name: string;
+    icon: Item;
+}
+
+/** A server creative item and the heading that contains it. */
+export interface CreativeEntry {
+    item: Item;
+    /** An index into the server creative menu's groups. */
+    group: number;
+}
 
 /**
  * The hashed block runtime id a creative record's block state carries, or zero when it has none.

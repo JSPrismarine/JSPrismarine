@@ -22,7 +22,7 @@ import {
     joinContentPayloads,
     networkContentPayloads
 } from './contentPayloads';
-import { itemAsStack } from './packet/CreativeContentPacket';
+import { itemAsStack } from './payloadAdapters';
 import StartGamePacket from './packet/StartGamePacket';
 
 import { itemData2193, itemData2225 } from './codec/itemData';

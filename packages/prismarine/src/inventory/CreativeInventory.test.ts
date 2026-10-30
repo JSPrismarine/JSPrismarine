@@ -6,7 +6,7 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import { CreativeItemCategory } from '../network/packet/CreativeContentPacket';
+import { CreativeItemCategory } from '@jsprismarine/protocol';
 import CreativeInventory from './CreativeInventory';
 
 /**
