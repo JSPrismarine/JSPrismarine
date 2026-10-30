@@ -1,16 +1,22 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Offset of one requested sub chunk from the center, in sub chunks, each an int8. */
 export interface SubChunkOffset {
+    /** Signed X offset from the center, in sub chunks. */
     x: number;
+    /** Signed Y offset from the center, in sub chunks. */
     y: number;
+    /** Signed Z offset from the center, in sub chunks. */
     z: number;
 }
 
 /** A sub chunk position in sub chunk units, each an int32 LE. */
 export interface SubChunkPosition {
+    /** X coordinate of the request center. */
     x: number;
+    /** Y coordinate of the request center. */
     y: number;
+    /** Z coordinate of the request center. */
     z: number;
 }
 
@@ -26,7 +32,10 @@ export default class SubChunkRequestPacket extends FieldNetworkPacket {
     /** 0 for the overworld, 1 for the nether, 2 for the end. */
     public dimensionType = 0;
 
+    /** Requested offsets from the center, in packet order. */
     public offsets: SubChunkOffset[] = [];
+
+    /** Center coordinate for the request, encoded as three little-endian int32 values. */
     public centerPos: SubChunkPosition = { x: 0, y: 0, z: 0 };
 
     /** Reads the dimension, the offsets, and the center. */

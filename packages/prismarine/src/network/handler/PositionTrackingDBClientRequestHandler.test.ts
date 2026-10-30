@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PositionTrackingDBClientRequestPacket from '../packet/PositionTrackingDBClientRequestPacket';
+import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
 import PositionTrackingDBClientRequestHandler from './PositionTrackingDBClientRequestHandler';
 
 describe('PositionTrackingDBClientRequestHandler', () => {

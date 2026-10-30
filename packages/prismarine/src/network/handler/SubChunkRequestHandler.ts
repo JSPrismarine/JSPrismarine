@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type SubChunkRequestPacket from '../packet/SubChunkRequestPacket';
+import type SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

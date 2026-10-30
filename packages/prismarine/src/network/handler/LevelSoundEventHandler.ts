@@ -4,7 +4,7 @@ import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import { CREATIVE_REACH } from '../../entity/Combat';
 import { SOUND_RADIUS } from '../../world/Proximity';
-import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
+import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

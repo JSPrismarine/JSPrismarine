@@ -4,7 +4,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import MapCreateLockedCopyPacket from '../packet/MapCreateLockedCopyPacket';
+import MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
 import MapCreateLockedCopyHandler from './MapCreateLockedCopyHandler';
 
 describe('MapCreateLockedCopyHandler', () => {

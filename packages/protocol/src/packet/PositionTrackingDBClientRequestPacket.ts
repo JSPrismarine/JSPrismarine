@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** What a `PositionTrackingDBClientRequestPacket` asks for, as the Action uint8 numbers it. */
 export enum PositionTrackingDBClientRequestAction {

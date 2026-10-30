@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import MapInfoRequestPacket from '../packet/MapInfoRequestPacket';
+import MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPacket';
 import MapInfoRequestHandler from './MapInfoRequestHandler';
 
 describe('MapInfoRequestHandler', () => {

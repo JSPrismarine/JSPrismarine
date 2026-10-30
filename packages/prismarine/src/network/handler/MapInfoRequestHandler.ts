@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type MapInfoRequestPacket from '../packet/MapInfoRequestPacket';
+import type MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

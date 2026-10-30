@@ -1,6 +1,6 @@
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** The result of a position tracking lookup, as the Action uint8 numbers it. */
 export enum PositionTrackingDBServerBroadcastAction {

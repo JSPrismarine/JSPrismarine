@@ -1,7 +1,9 @@
 import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
-import { layoutAt, levelSoundEventPacket } from '@jsprismarine/protocol';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { levelSoundEventPacket } from '../wire/definitions/levelSoundEvent';
 
 /** The `LevelSoundEvent` number behind each name the wire carries, built once. */
 const soundByName = new Map(Object.entries(LevelSoundEventName).map(([value, name]) => [name, Number(value)]));

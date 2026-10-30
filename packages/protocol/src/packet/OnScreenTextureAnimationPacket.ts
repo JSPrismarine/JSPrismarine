@@ -1,6 +1,6 @@
-import { layoutAt, onScreenTextureAnimationPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { onScreenTextureAnimationPacket } from '../wire/definitions/effects';
 
 /**
  * Plays a full-screen texture animation, such as the flash when a totem of undying fires.

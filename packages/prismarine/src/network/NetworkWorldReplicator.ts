@@ -20,7 +20,7 @@ import { broadcastSharedBatches } from './MinecraftSession';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
-import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
+import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import LevelEventPacket from './packet/LevelEventPacket';
 import PlaySoundPacket from './packet/PlaySoundPacket';

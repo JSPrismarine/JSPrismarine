@@ -1,6 +1,6 @@
-import { layoutAt, levelEventGenericPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { levelEventGenericPacket } from '../wire/definitions/levelEventGeneric';
 
 /**
  * A level event whose payload is too large for `LevelEventPacket`'s single position and data

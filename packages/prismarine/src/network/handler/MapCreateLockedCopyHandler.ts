@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type MapCreateLockedCopyPacket from '../packet/MapCreateLockedCopyPacket';
+import type MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

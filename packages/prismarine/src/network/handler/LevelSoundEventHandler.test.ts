@@ -12,7 +12,7 @@ import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
+import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import LevelSoundEventHandler from './LevelSoundEventHandler';
 
 const SENDER_ID = 7n;

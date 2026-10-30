@@ -9,7 +9,7 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type PlayerSession from './PlayerSession';
-import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
+import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Position } from '../world/Position';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';

@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type PositionTrackingDBClientRequestPacket from '../packet/PositionTrackingDBClientRequestPacket';
-import { PositionTrackingDBClientRequestAction } from '../packet/PositionTrackingDBClientRequestPacket';
+import type PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
+import { PositionTrackingDBClientRequestAction } from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

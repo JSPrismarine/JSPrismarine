@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SubChunkRequestPacket from '../packet/SubChunkRequestPacket';
+import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import SubChunkRequestHandler from './SubChunkRequestHandler';
 
 describe('SubChunkRequestHandler', () => {
