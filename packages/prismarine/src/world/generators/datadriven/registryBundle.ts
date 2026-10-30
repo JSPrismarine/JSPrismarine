@@ -58,6 +58,11 @@ const BUNDLED_REGISTRIES = [
     'structures',
     'structureSets',
     'templatePools',
+    'dimensionTypes',
+    'dimensions',
+    'worldPresets',
+    'flatLevelGeneratorPresets',
+    'multiNoiseParameterLists',
     'blockTags',
     'biomeTags',
     'biomeParameters'
@@ -199,6 +204,11 @@ export const readRegistryBundle = (bundle: ArrayBufferLike): JavaWorldgenRegistr
         structures: registryOf('structures'),
         structureSets: registryOf('structureSets'),
         templatePools: registryOf('templatePools'),
+        dimensionTypes: registryOf('dimensionTypes'),
+        dimensions: registryOf('dimensions'),
+        worldPresets: registryOf('worldPresets'),
+        flatLevelGeneratorPresets: registryOf('flatLevelGeneratorPresets'),
+        multiNoiseParameterLists: registryOf('multiNoiseParameterLists'),
         blockTags: registryOf('blockTags'),
         biomeTags: registryOf('biomeTags'),
         biomeParameters: registryOf('biomeParameters')

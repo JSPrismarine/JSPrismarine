@@ -50,6 +50,11 @@ const registriesOf = (biomes: readonly string[]): JavaWorldgenRegistries => ({
         ]
     ]),
     templatePools: EMPTY,
+    dimensionTypes: EMPTY,
+    dimensions: EMPTY,
+    worldPresets: EMPTY,
+    flatLevelGeneratorPresets: EMPTY,
+    multiNoiseParameterLists: EMPTY,
     blockTags: EMPTY,
     biomeTags: EMPTY,
     biomeParameters: EMPTY

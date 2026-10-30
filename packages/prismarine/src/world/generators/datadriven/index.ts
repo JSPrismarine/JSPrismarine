@@ -1,8 +1,8 @@
 /**
  * The world generator built from Java Edition's published data.
  *
- * `@jsprismarine/packs` routes no `worldgen/*` registry, so the pieces here read Mojang's data
- * themselves; see [`javaWorldgenData.ts`](javaWorldgenData.ts) for which directories and why.
+ * The registries come out of the pack stack `@jsprismarine/packs` composes, plus the biome
+ * parameter reports; see [`javaWorldgenData.ts`](javaWorldgenData.ts) for which and why.
  */
 export { DataDrivenGenerator, type DataDrivenGeneratorOptions } from './DataDrivenGenerator';
 export {
@@ -29,6 +29,7 @@ export {
     cacheRoot,
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries,
+    loadJavaWorldgenRegistriesFrom,
     type JavaRegistry,
     type JavaWorldgenRegistries,
     type JavaWorldgenSources

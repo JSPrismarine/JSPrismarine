@@ -243,6 +243,10 @@ the block.
   `string | undefined` for an unloaded chunk, and the interface declares it optional precisely so a
   world that cannot always answer leaves it out. A spawn rule's `is_biome` then refuses rather than
   matching a biome the server guessed.
-- Worldgen's `WorldgenData` is not built here. Java's `density_function`, `noise` and
-  `noise_settings` registries are not among the ones `@jsprismarine/packs` loads, so the world
-  subsystem reads them itself for now.
+- Worldgen's registries are not projected here. `@jsprismarine/packs` loads Java's
+  `dimension_type`, `dimension` and `worldgen/*` registries into `definitions`, and
+  `loadJavaWorldgenRegistriesFrom(definitions, reports)` in
+  `world/generators/datadriven/javaWorldgenData.ts` turns them into what the data-driven
+  generator reads, but no field of `ServerContent` holds the result and the Overworld generator
+  still loads a one-member stack of the vanilla datapack for itself, so a world's own datapacks
+  reach every registry except the terrain's.

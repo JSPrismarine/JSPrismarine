@@ -27,6 +27,11 @@ const tiny = (): JavaWorldgenRegistries => ({
     structures: new Map(),
     structureSets: new Map(),
     templatePools: new Map(),
+    dimensionTypes: new Map([['minecraft:overworld', { min_y: -64, height: 384 }]]),
+    dimensions: new Map(),
+    worldPresets: new Map([['minecraft:normal', { dimensions: {} }]]),
+    flatLevelGeneratorPresets: new Map(),
+    multiNoiseParameterLists: new Map([['minecraft:overworld', { preset: 'minecraft:overworld' }]]),
     blockTags: new Map([['minecraft:leaves', { values: ['minecraft:oak_leaves', '#minecraft:wart_blocks'] }]]),
     biomeTags: new Map(),
     biomeParameters: new Map([

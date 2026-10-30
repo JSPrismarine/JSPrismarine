@@ -7,7 +7,7 @@
  * state, so the whole chunk is built in a {@link GenerationRegion} and translated to Bedrock
  * runtime ids once, at the end.
  *
- * The registries come from two fetched directories; see
+ * The registries come from the loaded pack stack and the data generator reports; see
  * [`javaWorldgenData.ts`](javaWorldgenData.ts). A server with neither cannot run this
  * generator, and says so rather than producing a world that is quietly not Java's.
  */
