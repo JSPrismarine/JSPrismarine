@@ -1,6 +1,6 @@
 import { Chat, ChatType } from '../../chat/Chat';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from '../packet/RespawnPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
@@ -293,10 +293,11 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         // A packet object encodes once and keeps its bytes, so each of these is its own.
         for (const [position, state, runtimeEntityId] of ResourcePackClientResponseHandler.joinRespawns(player)) {
-            const respawn = new RespawnPacket();
-            respawn.position = position;
-            respawn.state = state;
-            respawn.runtimeEntityId = runtimeEntityId;
+            const respawn = new RespawnPacket({
+                position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+                state,
+                runtimeEntityId
+            });
             await connection.sendDataPacket(respawn);
         }
 

@@ -3,6 +3,7 @@ import CommandRequestPacket from '@jsprismarine/protocol/packet/CommandRequestPa
 import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import SetHealthPacket from '@jsprismarine/protocol/packet/SetHealthPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SetTimePacket from '@jsprismarine/protocol/packet/SetTimePacket';
 import {
@@ -25,6 +26,7 @@ export type PacketClass =
     | typeof SetCommandsEnabledPacket
     | typeof SetDifficultyPacket
     | typeof SetHealthPacket
+    | typeof RespawnPacket
     | typeof SetSpawnPositionPacket
     | typeof SetTimePacket;
 
@@ -33,6 +35,7 @@ const protocolPackets = {
     SetCommandsEnabledPacket,
     SetDifficultyPacket,
     SetHealthPacket,
+    RespawnPacket,
     SetSpawnPositionPacket,
     SetTimePacket
 } satisfies Record<string, PacketClass>;

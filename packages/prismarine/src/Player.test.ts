@@ -22,7 +22,7 @@ import ChangeDimensionPacket from './network/packet/ChangeDimensionPacket';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import RemoveActorPacket from './network/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from './network/packet/RespawnPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetActorDataPacket from './network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from './network/packet/UpdateAttributesPacket';
 import { createConnectedPlayer } from './network/createConnectedPlayer';
@@ -554,9 +554,9 @@ describe('Player', () => {
             expect(respawns).toHaveLength(1);
             // As a Bedrock Dedicated Server sends it: the eyes over the spawn block's center, at
             // the spawn's own height, and runtime id 0.
-            expect(respawns[0]).toMatchObject({
+            expect(respawns[0]?.getPacketData()).toMatchObject({
                 state: PlayerRespawnState.SEARCHING_FOR_SPAWN,
-                position: new Vector3(0.5, 64 + EYE_HEIGHT, 0.5),
+                position: { x: 0.5, y: 64 + EYE_HEIGHT, z: 0.5 },
                 runtimeEntityId: 0n
             });
         });

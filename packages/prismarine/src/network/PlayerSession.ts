@@ -68,7 +68,7 @@ import PlayStatus from './type/PlayStatus';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import type { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from './packet/RespawnPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ActorEventPacket, { ActorEvent } from './packet/ActorEventPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
@@ -1476,10 +1476,11 @@ export default class PlayerSession {
      * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
      */
     public async sendRespawn(position: Vector3, state: PlayerRespawnState): Promise<void> {
-        const packet = new RespawnPacket();
-        packet.runtimeEntityId = 0n;
-        packet.position = position;
-        packet.state = state;
+        const packet = new RespawnPacket({
+            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+            state,
+            runtimeEntityId: 0n
+        });
         await this.connection.sendDataPacket(packet);
     }
 

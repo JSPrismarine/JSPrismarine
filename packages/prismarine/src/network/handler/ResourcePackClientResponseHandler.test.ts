@@ -29,7 +29,7 @@ import type PlayerSession from '../PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from '../packet/RespawnPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
@@ -279,14 +279,15 @@ describe('ResourcePackClientResponseHandler', () => {
         ]);
 
         const respawns = packets.filter((packet) => packet instanceof RespawnPacket);
-        expect(respawns.map(({ state }) => state)).toEqual([
+        const payloads = respawns.map((packet) => packet.getPacketData());
+        expect(payloads.map((payload) => payload?.state)).toEqual([
             PlayerRespawnState.SEARCHING_FOR_SPAWN,
             PlayerRespawnState.SEARCHING_FOR_SPAWN,
             PlayerRespawnState.READY_TO_SPAWN
         ]);
-        expect(respawns.map(({ runtimeEntityId }) => runtimeEntityId)).toEqual([0n, 0n, 0n]);
-        expect(respawns.map(({ position }) => position?.getY())).toEqual([69 + 1.62, 69, 70 + 1.62]);
-        expect(respawns[2]?.position?.getX()).toBe(7.5);
+        expect(payloads.map((payload) => payload?.runtimeEntityId)).toEqual([0n, 0n, 0n]);
+        expect(payloads.map((payload) => payload?.position.y)).toEqual([69 + 1.62, 69, 70 + 1.62]);
+        expect(payloads[2]?.position.x).toBe(7.5);
 
         // StartGame reports the requested spot, not the final one.
         const startGame = packets.find((packet) => packet instanceof StartGamePacket);

@@ -113,7 +113,6 @@ import ResourcePackDataInfoPacket from './packet/ResourcePackDataInfoPacket';
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import ResourcePacksReadyForValidationPacket from './packet/ResourcePacksReadyForValidationPacket';
-import RespawnPacket from './packet/RespawnPacket';
 import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
 import ServerSettingsResponsePacket from './packet/ServerSettingsResponsePacket';
@@ -285,7 +284,6 @@ export {
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
     ResourcePacksReadyForValidationPacket,
-    RespawnPacket,
     ServerPlayerPostMovePositionPacket,
     ServerSettingsRequestPacket,
     ServerSettingsResponsePacket,

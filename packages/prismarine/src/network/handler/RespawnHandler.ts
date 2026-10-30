@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type RespawnPacket from '../packet/RespawnPacket';
+import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import type PacketHandler from './PacketHandler';
 
@@ -30,18 +30,20 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
 
     public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle RespawnPacket without decoded data');
 
         // `Player Runtime Id` names the player respawning, and a client only respawns itself.
-        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+        if (data.runtimeEntityId !== player.getRuntimeId()) {
             server
                 .getLogger()
-                .debug(`${player.getName()} sent a Respawn for runtime id ${packet.runtimeEntityId}, dropped`);
+                .debug(`${player.getName()} sent a Respawn for runtime id ${data.runtimeEntityId}, dropped`);
             return;
         }
 
         // The other two states are the server's own; a client echoing one back is not asking
         // for anything.
-        if (packet.state !== PlayerRespawnState.CLIENT_READY_TO_SPAWN) return;
+        if (data.state !== PlayerRespawnState.CLIENT_READY_TO_SPAWN) return;
 
         if (!player.isAlive()) {
             const point = await player.getRespawnPoint();

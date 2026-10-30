@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CommandRequestPacket, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import Identifiers from '../Identifiers';
 import * as Packets from '../Packets';
@@ -27,6 +28,7 @@ describe('network/codec', () => {
                 SetCommandsEnabledPacket.name,
                 SetDifficultyPacket.name,
                 SetHealthPacket.name,
+                RespawnPacket.name,
                 SetSpawnPositionPacket.name,
                 SetTimePacket.name
             ]);

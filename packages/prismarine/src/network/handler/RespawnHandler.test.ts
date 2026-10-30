@@ -9,7 +9,7 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from '../packet/RespawnPacket';
+import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import RespawnHandler from './RespawnHandler';
 
 /**
@@ -57,7 +57,7 @@ const fakeSession = ({ alive = true } = {}) => {
 };
 
 const respawn = (state: PlayerRespawnState, runtimeEntityId = 7n): RespawnPacket =>
-    Object.assign(new RespawnPacket(), { state, runtimeEntityId });
+    new RespawnPacket({ position: { x: 0, y: 0, z: 0 }, state, runtimeEntityId });
 
 describe('RespawnHandler', () => {
     it('answers the client with the state that ends the exchange', async () => {

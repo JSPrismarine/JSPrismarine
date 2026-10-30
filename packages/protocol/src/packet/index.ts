@@ -16,6 +16,7 @@ import ServerToClientHandshakePacket from './ServerToClientHandshakePacket';
 import ResourcePackClientResponsePacket from './ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './ResourcePacksInfoPacket';
+import RespawnPacket from './RespawnPacket';
 import SetCommandsEnabledPacket from './SetCommandsEnabledPacket';
 import SetDifficultyPacket from './SetDifficultyPacket';
 import SetHealthPacket from './SetHealthPacket';
@@ -45,6 +46,7 @@ export {
     ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
+    RespawnPacket,
     SetCommandsEnabledPacket,
     SetDifficultyPacket,
     SetHealthPacket,
@@ -97,6 +99,7 @@ export type { SetHealthPayload } from './SetHealthPacket';
 export type { SetCommandsEnabledPayload } from './SetCommandsEnabledPacket';
 export type { SetDifficultyPayload } from './SetDifficultyPacket';
 export type { SetTimePayload } from './SetTimePacket';
+export type { RespawnPayload } from './RespawnPacket';
 export { SpawnPositionType } from './SetSpawnPositionPacket';
 export type { SetSpawnPositionPayload } from './SetSpawnPositionPacket';
 export type { ClientToServerHandshake } from './ClientToServerHandshakePacket';
