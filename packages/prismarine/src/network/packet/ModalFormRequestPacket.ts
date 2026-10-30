@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, modalFormRequestPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -21,13 +22,16 @@ export default class ModalFormRequestPacket extends DataPacket {
 
     /** Reads the form id and its JSON. */
     public decodePayload(): void {
-        this.formId = this.readUnsignedVarInt();
-        this.formUiJson = NetworkUtil.readString(this);
+        const read = layoutAt(modalFormRequestPacket, this.codecProtocol).decode(this);
+        this.formId = read.formId;
+        this.formUiJson = read.formUiJson;
     }
 
     /** Writes the form id and its JSON. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.formId);
-        NetworkUtil.writeString(this, this.formUiJson);
+        layoutAt(modalFormRequestPacket, this.codecProtocol).encode(this, {
+            formId: this.formId,
+            formUiJson: this.formUiJson
+        });
     }
 }

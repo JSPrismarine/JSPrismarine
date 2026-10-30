@@ -28,6 +28,7 @@ import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
 import { containerClosePacket, containerOpenPacket, mobEquipmentPacket } from './containers';
+import { modalFormRequestPacket } from './forms';
 import { gameRulesChangedPacket } from './gameRulesChanged';
 import { interactPacket } from './interaction';
 import { inventoryTransactionPacket } from './inventoryTransaction';
@@ -88,6 +89,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         levelEventGenericPacket,
         levelSoundEventPacket,
         mobEquipmentPacket,
+        modalFormRequestPacket,
         moveActorAbsolutePacket,
         movePlayerPacket,
         setActorMotionPacket,
