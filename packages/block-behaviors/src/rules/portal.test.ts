@@ -12,8 +12,11 @@ import {
     findEmptyPortalShape,
     findEndPortalRing,
     NETHER_PORTAL,
+    portalCreationSite,
     portalInterior,
-    THE_END
+    THE_END,
+    writeEndPlatform,
+    writeNetherPortal
 } from './portal';
 
 const OBSIDIAN = 'minecraft:obsidian';
@@ -388,5 +391,159 @@ describe('end portal ring', () => {
 
         expect(harness.dimension.identifierAt(CENTER)).toBe(AIR);
         expect(harness.dimension.stateAt(first, 'end_portal_eye_bit')).toBe(true);
+    });
+});
+
+describe('portalCreationSite', () => {
+    const NETHER_BOUNDS = { minY: 0, maxY: 128 };
+    const TARGET: BlockPosition = { x: 40, y: 64, z: 40 };
+
+    /** A solid shelf of `depth` rows across the axis, four blocks along it, with its top at `y - 1`. */
+    const shelf = (world: VoxelDimension, at: BlockPosition, axis: 'x' | 'z', depth: 1 | 3): void => {
+        for (let a = -1; a <= 2; a += 1) {
+            for (let across = depth === 3 ? -1 : 0; across <= (depth === 3 ? 1 : 0); across += 1) {
+                const alongAxis = along(at, axis, a);
+                const position =
+                    axis === 'x'
+                        ? { ...alongAxis, z: alongAxis.z + across }
+                        : { ...alongAxis, x: alongAxis.x + across };
+                world.set({ ...position, y: at.y - 1 }, 'minecraft:netherrack');
+            }
+        }
+    };
+
+    it('takes a shelf three deep with air above it, which is the first pass', () => {
+        const world = createVoxelWorld().overworld;
+        const ledge = { x: 45, y: 70, z: 38 };
+        shelf(world, ledge, 'x', 3);
+
+        expect(portalCreationSite(world, TARGET, 'x', NETHER_BOUNDS)).toEqual({ at: ledge, forced: false });
+    });
+
+    it('prefers the closer of two valid shelves', () => {
+        const world = createVoxelWorld().overworld;
+        const near = { x: 44, y: 66, z: 40 };
+        const far = { x: 30, y: 60, z: 50 };
+        shelf(world, near, 'z', 3);
+        shelf(world, far, 'z', 3);
+
+        expect(portalCreationSite(world, TARGET, 'z', NETHER_BOUNDS)).toEqual({ at: near, forced: false });
+    });
+
+    it('falls back to a shelf one deep when nothing three deep exists, which is the second pass', () => {
+        const world = createVoxelWorld().overworld;
+        const ledge = { x: 36, y: 60, z: 44 };
+        shelf(world, ledge, 'x', 1);
+
+        expect(portalCreationSite(world, TARGET, 'x', NETHER_BOUNDS)).toEqual({ at: ledge, forced: false });
+    });
+
+    it('ignores a shelf outside the 16 block search radius', () => {
+        const world = createVoxelWorld().overworld;
+        shelf(world, { x: 40 + 18, y: 64, z: 40 }, 'x', 3);
+
+        expect(portalCreationSite(world, TARGET, 'x', NETHER_BOUNDS).forced).toBe(true);
+    });
+
+    it('forces a portal one block back along the axis when nothing fits, clamping y to 70 and maxY - 10', () => {
+        const world = createVoxelWorld().overworld;
+
+        expect(portalCreationSite(world, { x: 40, y: 20, z: 40 }, 'x', NETHER_BOUNDS)).toEqual({
+            at: { x: 39, y: 70, z: 40 },
+            forced: true
+        });
+        expect(portalCreationSite(world, { x: 40, y: 125, z: 40 }, 'z', NETHER_BOUNDS)).toEqual({
+            at: { x: 40, y: 118, z: 39 },
+            forced: true
+        });
+        expect(portalCreationSite(world, { x: 40, y: 300, z: 40 }, 'x', { minY: -64, maxY: 320 })).toEqual({
+            at: { x: 39, y: 300, z: 40 },
+            forced: true
+        });
+    });
+});
+
+describe('writeNetherPortal', () => {
+    const SITE: BlockPosition = { x: 0, y: 80, z: 0 };
+
+    const count = (
+        world: VoxelDimension,
+        identifier: string,
+        box: { from: BlockPosition; to: BlockPosition }
+    ): number => {
+        let total = 0;
+        for (let x = box.from.x; x <= box.to.x; x += 1) {
+            for (let y = box.from.y; y <= box.to.y; y += 1) {
+                for (let z = box.from.z; z <= box.to.z; z += 1) {
+                    if (world.identifierAt({ x, y, z }) === identifier) total += 1;
+                }
+            }
+        }
+        return total;
+    };
+
+    it('writes a 4 by 5 obsidian frame with corners and six portal blocks on the axis', () => {
+        const world = createVoxelWorld().overworld;
+
+        writeNetherPortal(world, SITE, 'x', false);
+
+        const box = { from: { x: -1, y: 79, z: 0 }, to: { x: 2, y: 83, z: 0 } };
+        expect(count(world, OBSIDIAN, box)).toBe(14);
+        expect(count(world, NETHER_PORTAL, box)).toBe(6);
+        for (const position of portalInterior({ bottomLeft: SITE, axis: 'x', width: 2, height: 3 })) {
+            expect(world.stateAt(position, 'portal_axis')).toBe('x');
+        }
+        expect(findEmptyPortalShape(world, SITE)).toBeUndefined();
+        expect(connectedPortalBlocks(world, SITE)).toHaveLength(6);
+    });
+
+    it('adds the floating platform with netherrack flanks when the site was forced', () => {
+        const world = createVoxelWorld().overworld;
+        world.fill({ x: -3, y: 79, z: -3 }, { x: 4, y: 83, z: 3 }, 'minecraft:stone');
+
+        writeNetherPortal(world, SITE, 'z', true);
+
+        // Obsidian under the two interior columns and one block to each side of the plane.
+        for (let dz = 0; dz <= 1; dz += 1) {
+            for (let dx = -1; dx <= 1; dx += 1) {
+                expect(world.identifierAt({ x: dx, y: 79, z: dz })).toBe(OBSIDIAN);
+            }
+        }
+        // Four netherrack on each side of the obsidian, along the whole frame.
+        for (let dz = -1; dz <= 2; dz += 1) {
+            expect(world.identifierAt({ x: -2, y: 79, z: dz })).toBe('minecraft:netherrack');
+            expect(world.identifierAt({ x: 2, y: 79, z: dz })).toBe('minecraft:netherrack');
+        }
+        // Room to stand on both sides of the portal.
+        for (let dz = 0; dz <= 1; dz += 1) {
+            for (let dy = 0; dy <= 2; dy += 1) {
+                expect(world.identifierAt({ x: -1, y: 80 + dy, z: dz })).toBe(AIR);
+                expect(world.identifierAt({ x: 1, y: 80 + dy, z: dz })).toBe(AIR);
+            }
+        }
+        expect(world.identifierAt({ x: 0, y: 81, z: 0 })).toBe(NETHER_PORTAL);
+        expect(world.stateAt({ x: 0, y: 81, z: 0 }, 'portal_axis')).toBe('z');
+    });
+});
+
+describe('writeEndPlatform', () => {
+    it('writes 5 by 5 obsidian under the center and clears three blocks of air above it', () => {
+        const world = createVoxelWorld().overworld;
+        const center = { x: 100, y: 49, z: 0 };
+        world.fill({ x: 97, y: 47, z: -3 }, { x: 103, y: 52, z: 3 }, 'minecraft:end_stone');
+
+        writeEndPlatform(world, center);
+
+        for (let dx = -2; dx <= 2; dx += 1) {
+            for (let dz = -2; dz <= 2; dz += 1) {
+                expect(world.identifierAt({ x: 100 + dx, y: 48, z: dz })).toBe(OBSIDIAN);
+                for (let dy = 0; dy <= 2; dy += 1) {
+                    expect(world.identifierAt({ x: 100 + dx, y: 49 + dy, z: dz })).toBe(AIR);
+                }
+            }
+        }
+        expect(world.identifierAt({ x: 97, y: 48, z: 0 })).toBe('minecraft:end_stone');
+        expect(world.identifierAt({ x: 100, y: 47, z: 0 })).toBe('minecraft:end_stone');
+        expect(world.identifierAt({ x: 100, y: 52, z: 0 })).toBe('minecraft:end_stone');
     });
 });

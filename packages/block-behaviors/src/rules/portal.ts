@@ -14,8 +14,9 @@ import { PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
 
 import type { HorizontalFace } from '../geometry';
 import { FACE_STEPS, HORIZONTAL_FACES, isVertical, offset, opposite } from '../geometry';
-import { AIR, isAir, OBSIDIAN } from '../identifiers';
+import { AIR, isAir, isLiquid, isReplaceable, OBSIDIAN } from '../identifiers';
 import { bareName, stateBoolean } from '../state';
+import { isSolidSupport } from './support';
 import type { WorldActions } from '../world';
 
 const namespaced = (name: string): string => `minecraft:${name}`;
@@ -369,4 +370,187 @@ export const activateEndPortal = (world: WorldActions, frameAt: BlockPosition): 
     }
     world.playSound(center, END_PORTAL_SPAWN_SOUND);
     return center;
+};
+
+/** Java's `PortalForcer` search radius around the scaled target, in blocks. */
+export const PORTAL_CREATION_RADIUS = 16;
+
+/** The lowest y a forced portal is written at, Java's `bipush 70`. */
+export const PORTAL_FORCED_MIN_Y = 70;
+
+/** How far below the dimension's height limit a forced portal stays. */
+export const PORTAL_FORCED_TOP_MARGIN = 10;
+
+/** The block Bedrock flanks a forced portal's platform with. */
+export const NETHERRACK = 'minecraft:netherrack';
+
+/** The vertical range portal creation may use in one dimension. */
+export interface PortalCreationBounds {
+    /** The lowest y a block can occupy. */
+    readonly minY: number;
+    /** The first y above the build limit, 128 in the Nether and 320 in the Overworld. */
+    readonly maxY: number;
+}
+
+/** Where a new portal goes, as {@link portalCreationSite} decided it. */
+export interface PortalCreationSite {
+    /** The bottom-left interior block of the portal to write. */
+    readonly at: BlockPosition;
+    /** True when no footing was found and the portal floats on its own platform. */
+    readonly forced: boolean;
+}
+
+/** The position `distance` blocks across the axis, which is the other horizontal axis. */
+const across = (position: BlockPosition, axis: PortalAxis, distance: number): BlockPosition =>
+    axis === 'x' ? { ...position, z: position.z + distance } : { ...position, x: position.x + distance };
+
+/** Java's `canPortalReplaceBlock`: replaceable and not a liquid. An unloaded position is not. */
+const canPortalReplace = (world: WorldActions, position: BlockPosition): boolean => {
+    const block = world.getBlock(position);
+    return block !== undefined && isReplaceable(block.identifier) && !isLiquid(block.identifier);
+};
+
+/**
+ * Java's `canHostFrame`: the 4 by 5 frame footprint at an offset across the
+ * axis is replaceable, and the row under it is solid.
+ */
+const canHostFrame = (world: WorldActions, at: BlockPosition, axis: PortalAxis, sideOffset: number): boolean => {
+    for (let a = -1; a <= 2; a += 1) {
+        for (let dy = -1; dy <= 3; dy += 1) {
+            const position = up(across(along(at, axis, a), axis, sideOffset), dy);
+            if (dy < 0 ? !isSolidSupport(world, position) : !canPortalReplace(world, position)) return false;
+        }
+    }
+    return true;
+};
+
+const squaredDistance = (a: BlockPosition, b: BlockPosition): number =>
+    (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
+
+/**
+ * Java's `PortalForcer.createPortal` search: where a portal for `target` goes.
+ *
+ * Every column within {@link PORTAL_CREATION_RADIUS} is walked from the top
+ * down for a replaceable run standing on a solid floor with room for the 4 by
+ * 5 frame. The first pass wants the footprint and one block on each side of
+ * it; the second pass, used only when the first finds nothing, wants the
+ * footprint alone. The closest candidate by 3D distance wins. When neither
+ * pass finds anything the portal is forced one block back along the axis from
+ * the target, with y clamped to `[70, maxY - 10]`, and the caller writes a
+ * platform under it.
+ *
+ * @param target - The scaled arrival position in the destination dimension.
+ * @param axis - The source portal's axis, which the new portal keeps.
+ */
+export const portalCreationSite = (
+    world: WorldActions,
+    target: BlockPosition,
+    axis: PortalAxis,
+    bounds: PortalCreationBounds
+): PortalCreationSite => {
+    const top = bounds.maxY - 1;
+    let best: BlockPosition | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    let fallback: BlockPosition | undefined;
+    let fallbackDistance = Number.POSITIVE_INFINITY;
+
+    for (let dx = -PORTAL_CREATION_RADIUS; dx <= PORTAL_CREATION_RADIUS; dx += 1) {
+        for (let dz = -PORTAL_CREATION_RADIUS; dz <= PORTAL_CREATION_RADIUS; dz += 1) {
+            const column = { x: target.x + dx, y: 0, z: target.z + dz };
+            for (let y = top; y >= bounds.minY; y -= 1) {
+                if (!canPortalReplace(world, { ...column, y })) continue;
+                const first = y;
+                while (y > bounds.minY && canPortalReplace(world, { ...column, y: y - 1 })) y -= 1;
+                if (y + 4 > top) continue;
+                const run = first - y;
+                if (run > 0 && run < 3) continue;
+                const candidate = { ...column, y };
+                if (!canHostFrame(world, candidate, axis, 0)) continue;
+                const distance = squaredDistance(target, candidate);
+                if (canHostFrame(world, candidate, axis, -1) && canHostFrame(world, candidate, axis, 1)) {
+                    if (distance < bestDistance) {
+                        best = candidate;
+                        bestDistance = distance;
+                    }
+                } else if (distance < fallbackDistance) {
+                    fallback = candidate;
+                    fallbackDistance = distance;
+                }
+            }
+        }
+    }
+
+    const found = best ?? fallback;
+    if (found !== undefined) return { at: found, forced: false };
+
+    const lowest = Math.max(bounds.minY + 1, PORTAL_FORCED_MIN_Y);
+    const highest = Math.max(lowest, bounds.maxY - PORTAL_FORCED_TOP_MARGIN);
+    return {
+        at: { ...along(target, axis, -1), y: Math.min(highest, Math.max(lowest, target.y)) },
+        forced: true
+    };
+};
+
+/**
+ * Writes a new 4 by 5 nether portal, corners included, with its six interior
+ * blocks lit on `axis`.
+ *
+ * When the site was forced, a platform goes under it first: obsidian under the
+ * interior and one block to each side, netherrack beyond that along the whole
+ * frame as Bedrock does, and three blocks of air above the platform so there
+ * is room to stand on both sides. Nothing is notified; the server that
+ * created the portal sends the chunk.
+ *
+ * @param site - The bottom-left interior block, from {@link portalCreationSite}.
+ */
+export const writeNetherPortal = (
+    world: WorldActions,
+    site: BlockPosition,
+    axis: PortalAxis,
+    forced: boolean
+): void => {
+    if (forced) {
+        for (let a = -1; a <= 2; a += 1) {
+            for (let side = -2; side <= 2; side += 1) {
+                const floor = up(across(along(site, axis, a), axis, side), -1);
+                if (Math.abs(side) === 2) {
+                    world.setBlock(floor, NETHERRACK, undefined, false);
+                } else if (a >= 0 && a <= 1) {
+                    world.setBlock(floor, OBSIDIAN, undefined, false);
+                    for (let dy = 0; dy <= 2; dy += 1) world.setBlock(up(floor, dy + 1), AIR, undefined, false);
+                }
+            }
+        }
+    }
+    for (let a = -1; a <= 2; a += 1) {
+        for (let dy = -1; dy <= 3; dy += 1) {
+            const edge = a === -1 || a === 2 || dy === -1 || dy === 3;
+            const position = up(along(site, axis, a), dy);
+            if (edge) world.setBlock(position, OBSIDIAN, undefined, false);
+            else world.setBlock(position, NETHER_PORTAL, { [PORTAL_AXIS_STATE]: axis }, false);
+        }
+    }
+};
+
+/**
+ * Java's `EndPlatformFeature.createEndPlatform`: 5 by 5 obsidian one block
+ * under `center` and air in the three rows above it. A block that is not
+ * already what the platform wants is destroyed with its drops first, so the
+ * platform can be regenerated on every arrival.
+ *
+ * @param center - The arrival block, (100, 49, 0) for a player in the End.
+ */
+export const writeEndPlatform = (world: WorldActions, center: BlockPosition): void => {
+    for (let dx = -2; dx <= 2; dx += 1) {
+        for (let dz = -2; dz <= 2; dz += 1) {
+            for (let dy = -1; dy <= 2; dy += 1) {
+                const position = { x: center.x + dx, y: center.y + dy, z: center.z + dz };
+                const wanted = dy === -1 ? OBSIDIAN : AIR;
+                const current = world.getBlock(position);
+                if (current !== undefined && current.identifier === wanted) continue;
+                if (current !== undefined && !isAir(current.identifier)) world.destroyBlock?.(position);
+                world.setBlock(position, wanted, undefined, false);
+            }
+        }
+    }
 };
