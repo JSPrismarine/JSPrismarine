@@ -17,6 +17,7 @@ import StructureTemplateDataRequestPacket from './StructureTemplateDataRequestPa
 import StructureTemplateDataResponsePacket from './StructureTemplateDataResponsePacket';
 import ClientboundDebugRendererPacket from './ClientboundDebugRendererPacket';
 import ClientboundMapItemDataPacket from './ClientboundMapItemDataPacket';
+import CorrectPlayerMovePredictionPacket from './CorrectPlayerMovePredictionPacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
 import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
@@ -88,6 +89,7 @@ export {
     StructureTemplateDataResponsePacket,
     ClientboundDebugRendererPacket,
     ClientboundMapItemDataPacket,
+    CorrectPlayerMovePredictionPacket,
     LoginPacket,
     MovePlayerPacket,
     MotionPredictionHintsPacket,
@@ -194,6 +196,8 @@ export type {
     MapDecoration,
     MapItemTrackedActorUniqueId
 } from './ClientboundMapItemDataPacket';
+export { RewindType } from './CorrectPlayerMovePredictionPacket';
+export type { CorrectPlayerMovePrediction } from './CorrectPlayerMovePredictionPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';
