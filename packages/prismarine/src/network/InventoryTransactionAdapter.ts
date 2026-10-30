@@ -84,6 +84,18 @@ export type UseItemOnEntityData = WireUseItemOnEntityData<Item>;
 /** The server's `releaseItem` body with its held descriptor resolved to an `Item`. */
 export type ReleaseItemData = WireReleaseItemData<Item>;
 
+/** Resolves the held stack in a Protocol use-item body into a server `Item`. */
+export const useItemDataFromProtocol = (data: WireUseItemData, context: ProtocolContext): UseItemData => ({
+    ...data,
+    itemInHand: Item.fromStackDescriptor(context, data.itemInHand)
+});
+
+/** Converts the held server `Item` into the network descriptor Protocol writes. */
+export const useItemDataToProtocol = (data: UseItemData, context: ProtocolContext): WireUseItemData => ({
+    ...data,
+    itemInHand: data.itemInHand.toStackDescriptor(context)
+});
+
 /** A transaction body and its actions after the server resolves their stack descriptors. */
 export interface ServerInventoryTransaction extends Omit<WireTransactionPayload<Item>, 'inventoryActions'> {
     /** The legacy request id and slots, if the client sent a valid request id. */

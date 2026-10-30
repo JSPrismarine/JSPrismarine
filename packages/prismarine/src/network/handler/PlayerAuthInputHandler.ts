@@ -1,15 +1,22 @@
 import type { Vector3 } from '@jsprismarine/math';
-import { PlayerAuthInputData } from '@jsprismarine/minecraft';
-import { HandSlot, PlayerActionType, TransactionType } from '@jsprismarine/protocol';
+import {
+    ClientPlayMode,
+    HandSlot,
+    InputMode,
+    NewInteractionModel,
+    PlayerActionType,
+    PlayerAuthInputData,
+    TransactionType
+} from '@jsprismarine/protocol';
 import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import type PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
 import { inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
+import { playerAuthInputFromProtocol } from '../PlayerAuthInputAdapter';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
-import type PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
-import { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { applyClientMovement } from './MovePlayerHandler';
@@ -63,28 +70,28 @@ const isFiniteVector = (vector: Vector3): boolean =>
  * rather than thrown because a thrown error reaches the log at error level for each packet,
  * and a client sends twenty of these a second.
  */
-export const rejectionReason = (packet: PlayerAuthInputPacket): string | null => {
-    for (const flag of packet.inputData) {
+export const rejectionReason = (input: ReturnType<typeof playerAuthInputFromProtocol>): string | null => {
+    for (const flag of input.inputData) {
         if (!(flag in PlayerAuthInputData)) return `input flag ${flag} does not exist`;
     }
 
-    if (packet.inputMode >= InputMode.Count) return `input mode ${packet.inputMode} is out of range`;
-    if (packet.playMode >= ClientPlayMode.NumModes) return `play mode ${packet.playMode} is out of range`;
-    if (packet.interactionModel < 0 || packet.interactionModel >= NewInteractionModel.Count) {
-        return `interaction model ${packet.interactionModel} is out of range`;
+    if (input.inputMode >= InputMode.Count) return `input mode ${input.inputMode} is out of range`;
+    if (input.playMode >= ClientPlayMode.NumModes) return `play mode ${input.playMode} is out of range`;
+    if (input.interactionModel < 0 || input.interactionModel >= NewInteractionModel.Count) {
+        return `interaction model ${input.interactionModel} is out of range`;
     }
 
-    if (!isFiniteVector(packet.position)) return 'the position is not finite';
-    if (![packet.pitch, packet.yaw, packet.headYaw].every(Number.isFinite)) return 'the rotation is not finite';
+    if (!isFiniteVector(input.position)) return 'the position is not finite';
+    if (![input.pitch, input.yaw, input.headYaw].every(Number.isFinite)) return 'the rotation is not finite';
     if (
-        packet.itemUseTransaction !== null &&
-        packet.inputData.has(PlayerAuthInputData.PERFORM_ITEM_INTERACTION) &&
-        ![packet.interactRotation.x, packet.interactRotation.y].every(Number.isFinite)
+        input.itemUseTransaction !== null &&
+        input.inputData.has(PlayerAuthInputData.PERFORM_ITEM_INTERACTION) &&
+        ![input.interactRotation.x, input.interactRotation.y].every(Number.isFinite)
     ) {
         return 'the interaction rotation is not finite';
     }
 
-    for (const { action } of packet.blockActions ?? []) {
+    for (const { action } of input.blockActions ?? []) {
         if (!BLOCK_ACTIONS.has(action)) return `block action ${action} is not one the input may carry`;
     }
 
@@ -122,8 +129,11 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
 
     public async handle(packet: PlayerAuthInputPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const packetData = packet.getPacketData();
+        if (packetData === null) return;
+        const input = playerAuthInputFromProtocol(packetData, session.getConnection().codec.context);
 
-        const reason = rejectionReason(packet);
+        const reason = rejectionReason(input);
         if (reason !== null) {
             server
                 .getLogger()
@@ -133,64 +143,64 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
 
         // Before anything else, so every packet sent about this player from here on carries
         // the tick as its `PlayerInputTick`, whatever else this input turns out to do.
-        session.recordInputTick(packet.tick);
+        session.recordInputTick(input.tick);
 
         if (!player.isOnline()) return;
 
         await applyClientMovement(server, session, {
-            position: packet.position,
-            pitch: packet.pitch,
-            yaw: packet.yaw,
-            headYaw: packet.headYaw,
+            position: input.position,
+            pitch: input.pitch,
+            yaw: input.yaw,
+            headYaw: input.headYaw,
             // The input has no "on ground" bit. A vertical collision is the nearest thing it
             // says: the ground pushing back, every tick the player stands on it.
-            onGround: packet.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION)
+            onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION)
         });
 
         for (const [flag, action] of FLAG_ACTIONS) {
-            if (packet.inputData.has(flag)) await this.actions.handleAction(action, NOWHERE, 0, server, session);
+            if (input.inputData.has(flag)) await this.actions.handleAction(action, NOWHERE, 0, server, session);
         }
 
         if (
-            packet.blockActions !== null &&
-            this.flagged(packet, PlayerAuthInputData.PERFORM_BLOCK_ACTIONS, 'Player Block Actions', server, session)
+            input.blockActions !== null &&
+            this.flagged(input, PlayerAuthInputData.PERFORM_BLOCK_ACTIONS, 'Player Block Actions', server, session)
         ) {
-            for (const { action, position, face } of packet.blockActions) {
+            for (const { action, position, face } of input.blockActions) {
                 await this.actions.handleAction(action, position, face, server, session);
             }
         }
 
         if (
-            packet.itemUseTransaction !== null &&
-            this.flagged(packet, PlayerAuthInputData.PERFORM_ITEM_INTERACTION, 'Item Use Transaction', server, session)
+            input.itemUseTransaction !== null &&
+            this.flagged(input, PlayerAuthInputData.PERFORM_ITEM_INTERACTION, 'Item Use Transaction', server, session)
         ) {
             const transaction = new InventoryTransactionPacket(
                 inventoryTransactionToProtocol(
                     {
                         legacyRequest: {
-                            legacyRequestId: packet.itemUseTransaction.legacyRequestId,
-                            legacySlotChanges: packet.itemUseTransaction.legacySlotChanges
+                            legacyRequestId: input.itemUseTransaction.legacyRequestId,
+                            legacySlotChanges: input.itemUseTransaction.legacySlotChanges
                         },
                         transactionType: TransactionType.USE_ITEM,
-                        inventoryActions: packet.itemUseTransaction.actions,
-                        transactionData: packet.itemUseTransaction.data,
+                        inventoryActions: input.itemUseTransaction.actions,
+                        transactionData: input.itemUseTransaction.data,
                         hand: HandSlot.MAINHAND
                     },
                     session.getConnection().codec.context
                 )
             );
             await this.transactions.handle(transaction, server, session, {
-                pitch: packet.interactRotation.x,
-                yaw: packet.interactRotation.y
+                pitch: input.interactRotation.x,
+                yaw: input.interactRotation.y
             });
         }
 
         if (
-            packet.itemStackRequest !== null &&
-            this.flagged(packet, PlayerAuthInputData.PERFORM_ITEM_STACK_REQUEST, 'Item Stack Request', server, session)
+            input.itemStackRequest !== null &&
+            this.flagged(input, PlayerAuthInputData.PERFORM_ITEM_STACK_REQUEST, 'Item Stack Request', server, session)
         ) {
             const request = new ItemStackRequestPacket();
-            request.requests = [packet.itemStackRequest];
+            request.requests = [input.itemStackRequest];
             await this.requests.handle(request, server, session);
         }
     }
@@ -200,13 +210,13 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
      * debug level when it does not.
      */
     private flagged(
-        packet: PlayerAuthInputPacket,
+        input: ReturnType<typeof playerAuthInputFromProtocol>,
         flag: PlayerAuthInputData,
         section: string,
         server: Server,
         session: PlayerSession
     ): boolean {
-        if (packet.inputData.has(flag)) return true;
+        if (input.inputData.has(flag)) return true;
 
         server
             .getLogger()

@@ -1,7 +1,16 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype, PlayerAuthInputData } from '@jsprismarine/minecraft';
-import { PlayerActionType } from '@jsprismarine/protocol';
+import { Gametype } from '@jsprismarine/minecraft';
+import {
+    ClientPlayMode,
+    HandSlot,
+    InputMode,
+    ItemUseActionType,
+    NewInteractionModel,
+    PlayerActionType,
+    PlayerAuthInputData
+} from '@jsprismarine/protocol';
+import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
@@ -16,8 +25,8 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import Codec2193 from '../codec/Codec2193';
-import { HandSlot, ItemUseActionType } from '@jsprismarine/protocol';
-import PlayerAuthInputPacket, { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
+import type { ServerAuthInputItemUse, ServerPlayerAuthInput } from '../PlayerAuthInputAdapter';
+import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
 
@@ -82,19 +91,35 @@ const fake = ({ serverAuthoritativeBreaking = false } = {}) => {
     return { calls, logged, player, session, server };
 };
 
-const input = (configure: (packet: PlayerAuthInputPacket) => void = () => {}): PlayerAuthInputPacket => {
-    const packet = new PlayerAuthInputPacket();
-    packet.position = new Vector3(3, 70, -4);
-    packet.pitch = 5;
-    packet.yaw = 90;
-    packet.headYaw = 85;
-    packet.interactRotation = { x: packet.pitch, y: packet.yaw };
-    configure(packet);
-    return packet;
+const input = (configure: (input: ServerPlayerAuthInput) => void = () => {}): PlayerAuthInputPacket => {
+    const input: ServerPlayerAuthInput = {
+        pitch: 5,
+        yaw: 90,
+        position: new Vector3(3, 70, -4),
+        moveVector: { x: 0, y: 0 },
+        headYaw: 85,
+        inputData: new Set(),
+        inputMode: InputMode.Undefined,
+        playMode: ClientPlayMode.Normal,
+        interactionModel: NewInteractionModel.Touch,
+        interactRotation: { x: 5, y: 90 },
+        tick: 0n,
+        delta: Vector3.ZERO,
+        itemUseTransaction: null,
+        itemStackRequest: null,
+        blockActions: null,
+        vehicleRotation: null,
+        predictedVehicle: null,
+        analogMoveVector: { x: 0, y: 0 },
+        cameraOrientation: Vector3.ZERO,
+        rawMoveVector: { x: 0, y: 0 }
+    };
+    configure(input);
+    return new PlayerAuthInputPacket(playerAuthInputToProtocol(input, Codec2193.context));
 };
 
 /** Two block actions on one block, with the flag the docs gate them on. */
-const breaking = (packet: PlayerAuthInputPacket): void => {
+const breaking = (packet: ServerPlayerAuthInput): void => {
     packet.inputData.add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
     packet.blockActions = [
         { action: PlayerActionType.StartDestroyBlock, position: new BlockPosition(1, 63, 2), face: 1 },
@@ -103,7 +128,7 @@ const breaking = (packet: PlayerAuthInputPacket): void => {
 };
 
 /** A block placement carried inside a PlayerAuthInput item-use section. */
-const blockPlacement = (): NonNullable<PlayerAuthInputPacket['itemUseTransaction']> => ({
+const blockPlacement = (): ServerAuthInputItemUse => ({
     legacyRequestId: 0,
     legacySlotChanges: [],
     actions: [],
@@ -115,7 +140,7 @@ const blockPlacement = (): NonNullable<PlayerAuthInputPacket['itemUseTransaction
         blockFace: 1,
         hotbarSlot: 0,
         hand: HandSlot.MAINHAND,
-        itemInHand: stub(),
+        itemInHand: Item.air(),
         playerPosition: Vector3.ZERO,
         clickPosition: Vector3.ZERO,
         blockRuntimeId: 0,
@@ -338,7 +363,7 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     describe('drops, without throwing, an input that', () => {
-        const dropped = async (configure: (packet: PlayerAuthInputPacket) => void, reason: string) => {
+        const dropped = async (configure: (input: ServerPlayerAuthInput) => void, reason: string) => {
             const { calls, logged, session, server } = fake();
 
             await new PlayerAuthInputHandler().handle(input(configure), server, session);
@@ -351,7 +376,6 @@ describe('PlayerAuthInputHandler', () => {
         it('sets a flag that does not exist', async () => {
             // 2 is the gap the 1.26.51 docs page papers over: a reader that numbers the
             // members consecutively would take it for JumpDown.
-            // @ts-expect-error - 2 is not a member, which is exactly what the guard rejects.
             await dropped((packet) => packet.inputData.add(2), 'input flag 2 does not exist');
         });
 
@@ -416,7 +440,9 @@ describe('PlayerAuthInputHandler', () => {
                 packet.blockActions = [{ action, position: new BlockPosition(0, 0, 0), face: 0 }];
             });
 
-            expect(rejectionReason(packet)).toBeNull();
+            const packetData = packet.getPacketData();
+            if (packetData === null) throw new Error('PlayerAuthInput test packet has no data');
+            expect(rejectionReason(playerAuthInputFromProtocol(packetData, Codec2193.context))).toBeNull();
         }
     });
 });

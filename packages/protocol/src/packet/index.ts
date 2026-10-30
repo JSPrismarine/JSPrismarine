@@ -3,6 +3,7 @@ import AvailableCommandsPacket from './AvailableCommandsPacket';
 import InventoryContentPacket from './InventoryContentPacket';
 import InventoryTransactionPacket from './InventoryTransactionPacket';
 import InventorySlotPacket from './InventorySlotPacket';
+import PlayerAuthInputPacket from './PlayerAuthInputPacket';
 import AddItemActorPacket from './AddItemActorPacket';
 import AddPlayerPacket from './AddPlayerPacket';
 import AddPaintingPacket from './AddPaintingPacket';
@@ -84,6 +85,7 @@ export {
     InventoryContentPacket,
     InventoryTransactionPacket,
     InventorySlotPacket,
+    PlayerAuthInputPacket,
     AddItemActorPacket,
     AddPlayerPacket,
     AddPaintingPacket,
@@ -159,6 +161,7 @@ export {
 };
 
 export type { InventoryTransaction } from './InventoryTransactionPacket';
+export type { PlayerAuthInput } from '../wire/structures/PlayerAuthInput';
 
 export { GameRuleType } from './StartGamePacket';
 export { EditorLevelMigrationVersion } from './StartGamePacket';

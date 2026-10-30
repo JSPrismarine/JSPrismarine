@@ -1,19 +1,25 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
-import { PlayerAuthInputData } from '@jsprismarine/minecraft';
-import { PlayerActionType } from '@jsprismarine/protocol';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
+import {
+    ClientPlayMode,
+    HandSlot,
+    InputMode,
+    INPUT_FLAG_COUNT,
+    ItemUseActionType,
+    MAX_BLOCK_ACTIONS,
+    NewInteractionModel,
+    PlayerActionType,
+    PlayerAuthInputData
+} from '@jsprismarine/protocol';
+import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
-import { HandSlot, ItemUseActionType } from '@jsprismarine/protocol';
-import PlayerAuthInputPacket, {
-    ClientPlayMode,
-    INPUT_FLAG_COUNT,
-    InputMode,
-    MAX_BLOCK_ACTIONS,
-    NewInteractionModel
-} from './PlayerAuthInputPacket';
+import type { ServerPlayerAuthInput } from '../PlayerAuthInputAdapter';
+import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
+import Codec2193 from '../codec/Codec2193';
 
 /**
  * The packet as a client writes it, built from the docs' layout rather than from the reader.
@@ -63,10 +69,39 @@ const noOptionals = (out: BinaryStream): void => {
     for (let i = 0; i < 5; i++) out.writeBoolean(false);
 };
 
-const decode = (buffer: Buffer): PlayerAuthInputPacket => {
-    const packet = new PlayerAuthInputPacket(buffer);
-    packet.decode();
-    return packet;
+const decode = (buffer: Buffer): ServerPlayerAuthInput & { feof: () => boolean } => {
+    const stream = new NetworkBinaryStream(buffer);
+    const packet = new PlayerAuthInputPacket();
+    const data = packet.deserialize(stream, Codec2193.context);
+    return { ...playerAuthInputFromProtocol(data, Codec2193.context), feof: () => stream.feof() };
+};
+
+const emptyInput = (): ServerPlayerAuthInput => ({
+    pitch: 0,
+    yaw: 0,
+    position: new Vector3(0, 0, 0),
+    moveVector: { x: 0, y: 0 },
+    headYaw: 0,
+    inputData: new Set(),
+    inputMode: InputMode.Undefined,
+    playMode: ClientPlayMode.Normal,
+    interactionModel: NewInteractionModel.Touch,
+    interactRotation: { x: 0, y: 0 },
+    tick: 0n,
+    delta: new Vector3(0, 0, 0),
+    itemUseTransaction: null,
+    itemStackRequest: null,
+    blockActions: null,
+    vehicleRotation: null,
+    predictedVehicle: null,
+    analogMoveVector: { x: 0, y: 0 },
+    cameraOrientation: new Vector3(0, 0, 0),
+    rawMoveVector: { x: 0, y: 0 }
+});
+
+const encode = (input: ServerPlayerAuthInput): Buffer => {
+    const packet = new PlayerAuthInputPacket(playerAuthInputToProtocol(input, Codec2193.context));
+    return packet.serialize(new NetworkBinaryStream(), Codec2193.context);
 };
 
 describe('PlayerAuthInputPacket', () => {
@@ -296,7 +331,7 @@ describe('PlayerAuthInputPacket', () => {
     });
 
     it('writes what it reads', () => {
-        const packet = new PlayerAuthInputPacket();
+        const packet = emptyInput();
         packet.pitch = 5;
         packet.yaw = 45;
         packet.headYaw = 40;
@@ -308,9 +343,9 @@ describe('PlayerAuthInputPacket', () => {
         packet.blockActions = [{ action: PlayerActionType.CrackBlock, position: new BlockPosition(1, -5, 2), face: 4 }];
         packet.vehicleRotation = { x: 1, y: 2 };
         packet.predictedVehicle = -77n;
-        packet.encode();
+        const encoded = encode(packet);
 
-        const read = decode(packet.getBuffer());
+        const read = decode(encoded);
 
         expect(read.inputData).toEqual(packet.inputData);
         expect(read.blockActions![0]!.position.getY()).toBe(-5);
@@ -323,7 +358,7 @@ describe('PlayerAuthInputPacket', () => {
     it('writes the head byte for byte as the layout says', () => {
         // The same packet by hand and by the writer, so the writer is pinned to the layout
         // and not merely to the reader.
-        const packet = new PlayerAuthInputPacket();
+        const packet = emptyInput();
         packet.pitch = 10;
         packet.yaw = -90;
         packet.headYaw = -88;
@@ -338,8 +373,8 @@ describe('PlayerAuthInputPacket', () => {
         packet.analogMoveVector = { x: 0, y: 1 };
         packet.cameraOrientation = new Vector3(0.2, -0.1, 0.97);
         packet.rawMoveVector = { x: 0, y: 1 };
-        packet.encode();
+        const encoded = encode(packet);
 
-        expect(packet.getBuffer()).toEqual(minimalInput(noOptionals));
+        expect(encoded).toEqual(minimalInput(noOptionals));
     });
 });

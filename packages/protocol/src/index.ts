@@ -130,3 +130,4 @@ export type {
     UseItemData,
     UseItemOnEntityData
 } from './wire/structures/InventoryTransaction';
+export * from './wire/structures/PlayerAuthInput';
