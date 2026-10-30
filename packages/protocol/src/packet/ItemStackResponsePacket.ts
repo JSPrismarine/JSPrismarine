@@ -1,7 +1,7 @@
 import { ItemStackResponseResult } from '@jsprismarine/minecraft';
-import type { FullContainerName } from '../type/ItemStackRequest';
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import type { FullContainerName } from '../wire/structures/ItemStackRequest';
+import { NetworkUtil } from '../wire/networkUtil';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 // `ItemStackResponseResult` is generated from Mojang's documentation, where it is
 // `ItemStackNetResult`. It carries sixty-eight reasons a request can fail; this server sends
@@ -71,7 +71,7 @@ export interface ItemStackResponse {
  * Net Id` carries a value exactly when `Amount` is above zero. The presence byte is written
  * either way. 2168 wrote each of those presence bytes twice; 2193 took the redundant one out.
  *
- * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/item-stack-response-packet/
  */
 export default class ItemStackResponsePacket extends FieldNetworkPacket {
     public responses: ItemStackResponse[] = [];

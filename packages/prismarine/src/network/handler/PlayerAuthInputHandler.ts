@@ -5,7 +5,7 @@ import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
 import InventoryTransactionPacket, { TransactionType } from '../packet/InventoryTransactionPacket';
-import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import type PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
 import { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
 import { PlayerActionType } from '../packet/PlayerActionPacket';

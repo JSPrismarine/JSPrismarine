@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { NetworkUtil } from '../NetworkUtil';
+import { NetworkUtil } from '../networkUtil';
 import type { ItemStackRequestSlotInfo } from './ItemStackRequest';
 import { ContainerUiId, ItemStackRequestActionType, readItemStackRequest } from './ItemStackRequest';
 

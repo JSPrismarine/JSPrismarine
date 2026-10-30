@@ -19,15 +19,17 @@ import { Item } from '../../item/Item';
 import { itemDataForProtocol } from '../codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
-import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
+import type ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import type {
     ItemStackResponse,
     ItemStackResponseContainerInfo,
     ItemStackResponseSlotInfo
-} from '../packet/ItemStackResponsePacket';
-import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
-import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
-import { ContainerUiId, ItemStackRequestActionType } from '../type/ItemStackRequest';
+} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+import ItemStackResponsePacket, {
+    ItemStackResponseResult
+} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
+import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PacketHandler from './PacketHandler';
 import {

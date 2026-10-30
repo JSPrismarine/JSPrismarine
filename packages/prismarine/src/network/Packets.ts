@@ -54,8 +54,8 @@ import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryConte
 import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
 import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
-import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
-import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
 import LabTablePacket from '@jsprismarine/protocol/packet/LabTablePacket';
 import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';

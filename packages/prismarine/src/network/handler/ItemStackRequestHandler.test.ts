@@ -26,10 +26,12 @@ import type { World } from '../../world/World';
 import { Position } from '../../world/Position';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
-import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
-import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
-import { ContainerUiId, ItemStackRequestActionType } from '../type/ItemStackRequest';
+import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackResponsePacket, {
+    ItemStackResponseResult
+} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
+import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { testContent } from '../../testing/entityServer';
 

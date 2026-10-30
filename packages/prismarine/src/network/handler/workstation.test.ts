@@ -30,11 +30,13 @@ import type { Logger } from '@jsprismarine/logger';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
-import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackResponsePacket, {
+    ItemStackResponseResult
+} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
-import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
-import { ItemStackRequestActionType } from '../type/ItemStackRequest';
+import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
+import { ItemStackRequestActionType } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 
 /** Both enchantments are mainhand mining ones, which is what a pickaxe can take. */

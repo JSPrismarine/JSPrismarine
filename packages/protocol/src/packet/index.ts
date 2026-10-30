@@ -278,6 +278,9 @@ export type { Text } from './TextPacket';
 // Packets added for protocol 2193 coverage; each file exports its data interface and enums.
 export { default as AddBehaviorTreePacket } from './AddBehaviorTreePacket';
 export * from './AddBehaviorTreePacket';
+export { default as ItemStackRequestPacket } from './ItemStackRequestPacket';
+export { default as ItemStackResponsePacket } from './ItemStackResponsePacket';
+export * from './ItemStackResponsePacket';
 export { default as AddVolumeEntityPacket } from './AddVolumeEntityPacket';
 export * from './AddVolumeEntityPacket';
 export { default as AgentActionEventPacket } from './AgentActionEventPacket';

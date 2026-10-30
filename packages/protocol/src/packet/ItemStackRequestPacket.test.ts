@@ -1,8 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
-import { ContainerUiId, ItemStackRequestActionType } from '../type/ItemStackRequest';
+import { ContainerUiId, ItemStackRequestActionType } from '../wire/structures/ItemStackRequest';
 import ItemStackRequestPacket from './ItemStackRequestPacket';
 
 /**
@@ -15,7 +14,7 @@ import ItemStackRequestPacket from './ItemStackRequestPacket';
  */
 const oneTake = (): Buffer => {
     const out = new BinaryStream();
-    out.writeUnsignedVarInt(Identifiers.ItemStackRequestPacket); // Header.
+    out.writeUnsignedVarInt(0x93); // Header: 147.
     out.writeUnsignedVarInt(1); // Requests.
     out.writeVarInt(-3); // Client Request Id, negative like the client sends.
     out.writeUnsignedVarInt(1); // Actions.
@@ -137,7 +136,7 @@ describe('ItemStackRequestPacket', () => {
 
     it('refuses a request count no client sends, rather than allocating for it', () => {
         const out = new BinaryStream();
-        out.writeUnsignedVarInt(Identifiers.ItemStackRequestPacket);
+        out.writeUnsignedVarInt(0x93); // Header: 147.
         out.writeUnsignedVarInt(5000);
 
         expect(() => decode(out.getBuffer())).toThrow(/5000/);

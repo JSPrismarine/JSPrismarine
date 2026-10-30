@@ -1,6 +1,6 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { ContainerUiId, ItemDescriptorType, ItemStackRequestActionType } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../NetworkUtil';
+import { NetworkUtil } from '../networkUtil';
 
 // Both enums are generated from Mojang's protocol documentation and live in
 // `@jsprismarine/minecraft`. They are re-exported here so the handler and the tests can
@@ -70,6 +70,7 @@ export interface ItemStackRequestAction {
  *
  * Wire order: Client Request Id (varint32), Actions (varuint count, then each action),
  * Strings To Filter (varuint count, then strings), StringsToFilterOrigin (int32 LE).
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/item-stack-request/
  */
 export interface ItemStackRequest {
     /** Client Request Id. A client makes these up negative and odd; the response names the same id. */

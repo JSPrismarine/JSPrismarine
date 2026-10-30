@@ -19,9 +19,9 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
-import ItemStackResponsePacket from '../packet/ItemStackResponsePacket';
-import type { ItemStackResponse } from '../packet/ItemStackResponsePacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+import type { ItemStackResponse } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 
 /**

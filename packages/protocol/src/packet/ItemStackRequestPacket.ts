@@ -1,6 +1,6 @@
-import type { ItemStackRequest } from '../type/ItemStackRequest';
-import { readItemStackRequest, writeItemStackRequest } from '../type/ItemStackRequest';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import type { ItemStackRequest } from '../wire/structures/ItemStackRequest';
+import { readItemStackRequest, writeItemStackRequest } from '../wire/structures/ItemStackRequest';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** The most requests one packet carries. The docs cap `Requests` at 100 entries. */
 const MAX_REQUESTS = 100;
@@ -16,7 +16,7 @@ const MAX_REQUESTS = 100;
  * Wire order (protocol 2193): `Requests`, a varuint count followed by one `ItemStackRequest`
  * each. See `readItemStackRequest` for the layout of a request.
  *
- * **Bound To:** Server
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/item-stack-request-packet/
  */
 export default class ItemStackRequestPacket extends FieldNetworkPacket {
     /** Requests, in the order the client sent them. */

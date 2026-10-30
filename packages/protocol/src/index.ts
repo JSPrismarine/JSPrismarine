@@ -98,3 +98,11 @@ export {
     writeItemStackDescriptor
 } from './wire/structures/ItemStackDescriptor';
 export type { ItemStackDescriptorData } from './wire/structures/ItemStackDescriptor';
+export { readItemStackRequest, writeItemStackRequest } from './wire/structures/ItemStackRequest';
+export { ContainerUiId, ItemStackRequestActionType } from './wire/structures/ItemStackRequest';
+export type {
+    FullContainerName,
+    ItemStackRequest,
+    ItemStackRequestAction,
+    ItemStackRequestSlotInfo
+} from './wire/structures/ItemStackRequest';
