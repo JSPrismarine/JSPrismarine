@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { emotePacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /** Bits of the Flags byte in an `EmotePacket`. */
@@ -33,21 +34,24 @@ export default class EmotePacket extends DataPacket {
 
     /** Reads the six fields. */
     public decodePayload(): void {
-        this.actorRuntimeId = this.readUnsignedVarLong();
-        this.emoteId = NetworkUtil.readString(this);
-        this.emoteLengthTicks = this.readUnsignedVarInt();
-        this.xuid = NetworkUtil.readString(this);
-        this.platformId = NetworkUtil.readString(this);
-        this.flags = this.readByte();
+        const read = layoutAt(emotePacket, this.codecProtocol).decode(this);
+        this.actorRuntimeId = read.actorRuntimeId;
+        this.emoteId = read.emoteId;
+        this.emoteLengthTicks = read.emoteLengthTicks;
+        this.xuid = read.xuid;
+        this.platformId = read.platformId;
+        this.flags = read.flags;
     }
 
     /** Writes the six fields. */
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.actorRuntimeId);
-        NetworkUtil.writeString(this, this.emoteId);
-        this.writeUnsignedVarInt(this.emoteLengthTicks);
-        NetworkUtil.writeString(this, this.xuid);
-        NetworkUtil.writeString(this, this.platformId);
-        this.writeByte(this.flags);
+        layoutAt(emotePacket, this.codecProtocol).encode(this, {
+            actorRuntimeId: this.actorRuntimeId,
+            emoteId: this.emoteId,
+            emoteLengthTicks: this.emoteLengthTicks,
+            xuid: this.xuid,
+            platformId: this.platformId,
+            flags: this.flags
+        });
     }
 }

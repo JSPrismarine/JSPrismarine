@@ -63,3 +63,27 @@ export const updatePlayerGameTypePacket = definePacket('UpdatePlayerGameTypePack
 
 /** What `UpdatePlayerGameTypePacket` carries. */
 export type UpdatePlayerGameTypePayload = PayloadOf<typeof updatePlayerGameTypePacket>;
+
+/**
+ * The `EmotePacket` field list.
+ *
+ * Sent by a client to play an emote and by the server to show one on another player. The
+ * `Flags` byte carries the server-side and mute-chat bits.
+ */
+export const emotePacket = definePacket('EmotePacket', {
+    /** `Actor Runtime Id`: who is emoting. */
+    actorRuntimeId: t.varuint64,
+    /** `Emote Id`: the emote piece UUID, as text. */
+    emoteId: t.string,
+    /** `Emote Length Ticks`: how long it plays. */
+    emoteLengthTicks: t.varuint32,
+    /** `Xuid`: empty when the player is not signed in. */
+    xuid: t.string,
+    /** `PlatformId`. */
+    platformId: t.string,
+    /** `Flags`. */
+    flags: t.uint8
+});
+
+/** What `EmotePacket` carries. */
+export type EmotePayload = PayloadOf<typeof emotePacket>;

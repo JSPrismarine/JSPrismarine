@@ -37,7 +37,7 @@ import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
 import { levelSoundEventPacket } from './levelSoundEvent';
 import { moveActorAbsolutePacket, movePlayerPacket, setActorMotionPacket } from './movement';
-import { playerActionPacket, setPlayerGameTypePacket, updatePlayerGameTypePacket } from './player';
+import { emotePacket, playerActionPacket, setPlayerGameTypePacket, updatePlayerGameTypePacket } from './player';
 import { playerListPacket } from './playerList';
 import { playerSkinPacket } from './playerSkin';
 import { playStatusPacket } from './playStatus';
@@ -96,6 +96,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         moveActorAbsolutePacket,
         movePlayerPacket,
         setActorMotionPacket,
+        emotePacket,
         playerActionPacket,
         setPlayerGameTypePacket,
         updatePlayerGameTypePacket,
