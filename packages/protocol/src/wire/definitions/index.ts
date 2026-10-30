@@ -7,6 +7,7 @@
  * the registry with no further registration.
  */
 import { animatePacket } from './animate';
+import { biomeDefinitionListPacket } from './biomeDefinitionList';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
 import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
@@ -39,6 +40,7 @@ import type { PacketDefinition } from '../define';
 export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
     [
         animatePacket,
+        biomeDefinitionListPacket,
         chunkRadiusUpdatedPacket,
         jigsawStructureDataPacket,
         levelChunkPacket,

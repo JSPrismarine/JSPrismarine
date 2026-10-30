@@ -1,4 +1,6 @@
 import { biome_definitions_network } from '@jsprismarine/bedrock-data';
+import { biomeDefinitionListPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -20,6 +22,8 @@ import DataPacket from './DataPacket';
  * Modeling the map field by field would only create ways to disagree with the client about a
  * blob that is identical for every server of this version.
  *
+ * The wire layout is the `biomeDefinitionListPacket` definition in the protocol package.
+ *
  * **Bound To:** Client
  */
 export default class BiomeDefinitionListPacket extends DataPacket {
@@ -28,11 +32,11 @@ export default class BiomeDefinitionListPacket extends DataPacket {
 
     /** Writes the definitions, which are the whole payload. */
     public encodePayload(): void {
-        this.write(this.definitions);
+        layoutAt(biomeDefinitionListPacket, this.codecProtocol).encode(this, this);
     }
 
     /** Reads the definitions, which run to the end of the packet. */
     public decodePayload(): void {
-        this.definitions = this.readRemaining();
+        Object.assign(this, layoutAt(biomeDefinitionListPacket, this.codecProtocol).decode(this));
     }
 }
