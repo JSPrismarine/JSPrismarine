@@ -1,5 +1,9 @@
-import { Attribute } from '../../entity/Attribute';
+import { layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
+import { updateAttributesPacket } from './updateAttributes.wire';
+
+import type { Attribute } from '../../entity/Attribute';
 
 /**
  * Replaces some or all of one entity's attributes on the client, for instance after it takes
@@ -33,22 +37,10 @@ export default class UpdateAttributesPacket extends DataPacket {
     public tick = 0n;
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-
-        this.writeUnsignedVarInt(this.attributes.length);
-        for (const attribute of this.attributes) {
-            attribute.networkSerialize(this);
-        }
-
-        this.writeUnsignedVarLong(this.tick);
+        layoutAt(updateAttributesPacket, this.codecProtocol).encode(this, this);
     }
 
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-
-        const length = this.readUnsignedVarInt();
-        this.attributes = Array.from({ length }, () => Attribute.networkDeserialize(this));
-
-        this.tick = this.readUnsignedVarLong();
+        Object.assign(this, layoutAt(updateAttributesPacket, this.codecProtocol).decode(this));
     }
 }

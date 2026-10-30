@@ -13,12 +13,18 @@ import { addPlayerPacket } from '../packet/addPlayer.wire';
 import { inventoryTransactionPacket } from '../packet/inventoryTransaction.wire';
 import { playerListPacket } from '../packet/playerList.wire';
 import { playerSkinPacket } from '../packet/playerSkin.wire';
+import { updateAttributesPacket } from '../packet/updateAttributes.wire';
 
 import type { PacketDefinition } from '@jsprismarine/protocol';
 
 /** The prismarine-side declaratively defined packets, keyed by packet name. */
 export const prismarineWireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
-    [addActorPacket, addPlayerPacket, inventoryTransactionPacket, playerListPacket, playerSkinPacket].map(
-        (definition) => [definition.name, definition]
-    )
+    [
+        addActorPacket,
+        addPlayerPacket,
+        inventoryTransactionPacket,
+        playerListPacket,
+        playerSkinPacket,
+        updateAttributesPacket
+    ].map((definition) => [definition.name, definition])
 );
