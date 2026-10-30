@@ -3,7 +3,7 @@ import ActorPickRequestPacket from '@jsprismarine/protocol/packet/ActorPickReque
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddBehaviorTreePacket from '@jsprismarine/protocol/packet/AddBehaviorTreePacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
-import AddPaintingPacket from './packet/AddPaintingPacket';
+import AddPaintingPacket from '@jsprismarine/protocol/packet/AddPaintingPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AnimateEntityPacket from './packet/AnimateEntityPacket';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';

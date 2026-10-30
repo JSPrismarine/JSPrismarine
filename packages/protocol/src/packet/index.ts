@@ -1,4 +1,5 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
+import AddPaintingPacket from './AddPaintingPacket';
 import BossEventPacket from './BossEventPacket';
 import ChangeDimensionPacket from './ChangeDimensionPacket';
 import ClientToServerHandshakePacket from './ClientToServerHandshakePacket';
@@ -61,6 +62,7 @@ import ServerboundPackSettingChangePacket from './ServerboundPackSettingChangePa
 export {
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
+    AddPaintingPacket,
     BossEventPacket,
     ClientToServerHandshakePacket,
     CraftingDataPacket,
@@ -162,6 +164,7 @@ export type { PlayerLocation } from './PlayerLocationPacket';
 export { SoftEnumUpdateType } from './UpdateSoftEnumPacket';
 export type { UpdateSoftEnum } from './UpdateSoftEnumPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
+export type { AddPainting } from './AddPaintingPacket';
 export type { GatheringsConfig, Transfer } from './TransferPacket';
 export { BookEditAction } from './BookEditPacket';
 export type { BookEdit, BookEditOperation } from './BookEditPacket';
