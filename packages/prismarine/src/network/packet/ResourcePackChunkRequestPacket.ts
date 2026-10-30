@@ -1,10 +1,12 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, resourcePackChunkRequestPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
  * The client asking for one chunk of a resource pack it is downloading.
  *
- * Wire layout at protocol 2193: Resource Name as a string (the pack's `uuid_version` as
+ * The wire layout lives in `@jsprismarine/protocol`'s `resourcePackChunkRequestPacket`
+ * definition: Resource Name as a string (the pack's `uuid_version` as
  * `ResourcePackDataInfoPacket` named it), then Chunk as an int32 LE index.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-request-packet/
  */
@@ -17,13 +19,16 @@ export default class ResourcePackChunkRequestPacket extends DataPacket {
 
     /** Reads the pack name and chunk index. */
     public decodePayload(): void {
-        this.resourceName = NetworkUtil.readString(this);
-        this.chunk = this.readIntLE();
+        const read = layoutAt(resourcePackChunkRequestPacket, this.codecProtocol).decode(this);
+        this.resourceName = read.resourceName;
+        this.chunk = read.chunk;
     }
 
     /** Writes the pack name and chunk index. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.resourceName);
-        this.writeIntLE(this.chunk);
+        layoutAt(resourcePackChunkRequestPacket, this.codecProtocol).encode(this, {
+            resourceName: this.resourceName,
+            chunk: this.chunk
+        });
     }
 }

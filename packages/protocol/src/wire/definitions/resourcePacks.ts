@@ -113,3 +113,15 @@ export const resourcePackStackPacket = definePacket('ResourcePackStackPacket', {
     /** `Include Editor Packs`: whether an Editor world adds the vanilla editor packs. */
     includeEditorPacks: t.bool
 });
+
+/**
+ * The `ResourcePackChunkRequestPacket` field list.
+ *
+ * `Chunk` is a signed int32, not a varint: a chunk index travels as four fixed bytes.
+ */
+export const resourcePackChunkRequestPacket = definePacket('ResourcePackChunkRequestPacket', {
+    /** `Resource Name`: the pack id and version joined by an underscore. */
+    resourceName: t.string,
+    /** `Chunk`: the zero-based index of the chunk wanted. */
+    chunk: t.li32
+});
