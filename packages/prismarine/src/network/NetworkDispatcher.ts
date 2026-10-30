@@ -189,7 +189,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
 
         try {
-            packet.decode();
+            packet.decode(connection.codec.context);
         } catch (error: unknown) {
             this.logger.error(error);
             this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);

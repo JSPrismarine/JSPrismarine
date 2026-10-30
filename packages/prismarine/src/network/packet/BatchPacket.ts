@@ -58,7 +58,7 @@ export default class BatchPacket extends FieldNetworkPacket {
                 packet = this.codec.prepareOutbound(packet);
                 const netId = this.codec.netIdOf(packet.getName());
                 if (netId !== undefined) packet.setNetId(netId);
-                packet.encode();
+                packet.encode(this.codec.context);
             } else if (!packet.getEncoded()) {
                 packet.encode();
             }

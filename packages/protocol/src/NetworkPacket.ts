@@ -94,7 +94,10 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
         return this.encoded;
     }
 
-    /** Encodes the packet into this instance's write buffer for callers that queue packet objects. */
+    /**
+     * Encodes the packet into this instance's write buffer for callers that queue packet objects.
+     * @param context - Versioned registries and captured data for this connection.
+     */
     public encode(context?: ProtocolContext): void {
         const stream = new NetworkBinaryStream();
         this.serialize(stream, context);
@@ -102,7 +105,10 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
         this.encoded = true;
     }
 
-    /** Decodes a packet from this instance's read buffer. */
+    /**
+     * Decodes a packet from this instance's read buffer.
+     * @param context - Versioned registries and captured data for this connection.
+     */
     public decode(context?: ProtocolContext): void {
         const buffer = this.getReadBuffer();
         if (buffer === null) throw new Error(`Cannot decode ${this.getName()} without a read buffer`);
@@ -130,8 +136,11 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
      */
     protected abstract serializePayload(stream: NetworkBinaryStream, packetData: T, context?: ProtocolContext): void;
 
-    /** Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}. */
-    public encodePayload(): void {}
+    /**
+     * Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}.
+     * @param _context - Versioned registries and captured data for this connection.
+     */
+    public encodePayload(_context?: ProtocolContext): void {}
 
     /**
      * Serializes the network packet into a binary stream.
@@ -156,8 +165,11 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
      */
     protected abstract deserializePayload(stream: NetworkBinaryStream, context?: ProtocolContext): T;
 
-    /** Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}. */
-    public decodePayload(): void {}
+    /**
+     * Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}.
+     * @param _context - Versioned registries and captured data for this connection.
+     */
+    public decodePayload(_context?: ProtocolContext): void {}
 
     /**
      * Deserializes the network packet from a binary stream.

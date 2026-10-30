@@ -188,6 +188,7 @@ export default class MinecraftSession {
 
         const batch = new BatchPacket();
         try {
+            batch.codec = this.codec;
             batch.addPacket(packet);
             batch.compressed = comp;
             batch.encode();

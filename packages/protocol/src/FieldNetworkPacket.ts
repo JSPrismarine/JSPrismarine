@@ -17,36 +17,42 @@ export default class FieldNetworkPacket extends NetworkPacket<unknown> {
     }
 
     /** Legacy packet bodies write their fields through this stream. */
-    protected serializePayload(stream: NetworkBinaryStream, _packetData: unknown, _context?: ProtocolContext): void {
+    protected serializePayload(stream: NetworkBinaryStream, _packetData: unknown, context?: ProtocolContext): void {
         this.clear();
-        this.encodePayload();
+        this.encodePayload(context);
         if (this.getWriteIndex() > 0) stream.write(this.getWriteBuffer());
     }
 
-    protected deserializePayload(stream: NetworkBinaryStream, _context?: ProtocolContext): undefined {
+    protected deserializePayload(stream: NetworkBinaryStream, context?: ProtocolContext): undefined {
         this.reuse(stream.readRemaining());
-        this.decodePayload();
+        this.decodePayload(context);
         this.encoded = true;
         return undefined;
     }
 
-    /** Encodes the legacy field body using the negotiated version already stamped on the packet. */
+    /**
+     * Encodes the legacy field body using this connection's version and supplied protocol data.
+     * @param context - Versioned registries and captured data for this connection.
+     */
     public override encode(context?: ProtocolContext): void {
         if (context !== undefined) this.codecProtocol = context.protocolVersion;
         this.clear();
         this.encodeHeader();
-        this.encodePayload();
+        this.encodePayload(context);
         this.encoded = true;
     }
 
-    /** Decodes a legacy field body and leaves the original packet bytes available via `getBuffer`. */
+    /**
+     * Decodes a legacy field body and leaves the original packet bytes available via `getBuffer`.
+     * @param context - Versioned registries and captured data for this connection.
+     */
     public override decode(context?: ProtocolContext): void {
         if (context !== undefined) this.codecProtocol = context.protocolVersion;
         const buffer = this.getReadBuffer();
         if (buffer === null) throw new Error(`Cannot decode ${this.getName()} without a read buffer`);
         this.setReadBuffer(buffer);
         this.decodeHeader();
-        this.decodePayload();
+        this.decodePayload(context);
         this.encoded = true;
     }
 }
