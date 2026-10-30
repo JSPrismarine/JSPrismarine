@@ -2147,7 +2147,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 ]
             });
 
-            expect([...provider.listChunks()]).toContainEqual({ x: 0, z: 0 });
+            expect([...provider.listChunks(Dimensions.Overworld)]).toContainEqual({ x: 0, z: 0 });
             await setup.world.loadChunk(0, 0);
 
             const zombie = setup.runtimes.at(DIMENSION)?.runtime.all()[0];

@@ -9,9 +9,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type { Entity } from '../../../entity/Entity';
-import { ChunkTag, encodeChunkKey, encodePlayerServerKey } from './LevelDBKeys';
+import { ChunkTag, decodeChunkKey, encodeChunkKey, encodePlayerServerKey } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
+import type { DimensionType } from '../../Dimension';
 import { Dimensions } from '../../Dimension';
 import type { StoredItemStack } from '../../../inventory/persistence';
 import { stub } from '../../../testing/stub.test.helper';
@@ -329,7 +330,7 @@ describe('world', () => {
             await provider.enable();
 
             const gen = generator();
-            const chunk = await provider.readChunk(0, 0, 1234n, gen);
+            const chunk = await provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, gen);
 
             expect(gen.calls).toEqual([[0, 0]]);
             expect(chunk.getHasChanged()).toBe(false);
@@ -361,7 +362,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
 
                 expect(restored.takeStoredEntities()).toEqual([]);
                 await reopened.provider.disable();
@@ -377,7 +378,7 @@ describe('world', () => {
                 const second = harness(worldPath);
                 await second.provider.enable();
                 const gen = generator();
-                const restored = await second.provider.readChunk(0, 0, 1234n, gen);
+                const restored = await second.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, gen);
 
                 // Not regenerated: the chunk was found on disk.
                 expect(gen.calls).toEqual([]);
@@ -399,7 +400,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
 
                 expect(restored.getMinY()).toBe(-64);
                 expect(restored.getMaxY()).toBe(319);
@@ -424,7 +425,7 @@ describe('world', () => {
 
                 for (let cx = -2; cx <= 2; cx++) {
                     for (let cz = -2; cz <= 2; cz++) {
-                        const restored = await reopened.provider.readChunk(cx, cz, 1234n, generator());
+                        const restored = await reopened.provider.readChunk(Dimensions.Overworld, cx, cz, 1234n, generator());
                         expect(restored.getBlockRuntimeId(3, -64, 4)).toBe(id('minecraft:bedrock'));
                     }
                 }
@@ -457,7 +458,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
 
                 const chest = restored.getBlockEntity(1, 64, 1);
                 const beacon = restored.getBlockEntity(2, 64, 2);
@@ -486,7 +487,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
+                const restored = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, generator());
 
                 expect(restored.getBiome(0, 64, 0)).toBe(DESERT);
                 expect(restored.getBiome(15, -64, 15)).toBe(JUNGLE);
@@ -500,12 +501,142 @@ describe('world', () => {
                 await provider.enable();
                 await provider.writeChunk(buildChunk());
 
-                const biomes = provider.readBiomes(0, 0);
+                const biomes = provider.readBiomes(Dimensions.Overworld, 0, 0);
                 // One past the highest block, measured from the floor: the dirt at y=310 of the
                 // column at x=1, z=1 makes 310 + 1 + 64.
                 expect(biomes?.heightmap[1 * 16 + 1]).toBe(375);
                 // A column holding only the stone floor, whose top is y=-60.
                 expect(biomes?.heightmap[0]).toBe(5);
+                await provider.disable();
+            });
+        });
+
+        describe('several dimensions in one save', () => {
+            /** A chunk of one dimension with a stone floor at its own minimum y and a marker block. */
+            const chunkIn = (dimension: DimensionType, cx = 0, cz = 0, marker = 'minecraft:oak_log'): Chunk => {
+                const chunk = new Chunk(cx, cz, new Map(), dimension);
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) {
+                        chunk.fillColumn(x, z, dimension.minY, dimension.minY + 3, id('minecraft:stone'));
+                    }
+                }
+                chunk.setBlockRuntimeId(1, dimension.minY + 40, 1, id(marker));
+                return chunk;
+            };
+
+            it('keeps Overworld, Nether and End chunks at the same x,z apart', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                await provider.writeChunk(chunkIn(Dimensions.Overworld, 0, 0, 'minecraft:oak_log'));
+                await provider.writeChunk(chunkIn(Dimensions.Nether, 0, 0, 'minecraft:netherrack'));
+                await provider.writeChunk(chunkIn(Dimensions.TheEnd, 0, 0, 'minecraft:end_stone'));
+                await provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const gen = generator();
+                const overworld = await reopened.provider.readChunk(Dimensions.Overworld, 0, 0, 1234n, gen);
+                const nether = await reopened.provider.readChunk(Dimensions.Nether, 0, 0, 1234n, gen);
+                const end = await reopened.provider.readChunk(Dimensions.TheEnd, 0, 0, 1234n, gen);
+
+                // All three were on disk; none was regenerated.
+                expect(gen.calls).toEqual([]);
+
+                expect(overworld.getMinY()).toBe(-64);
+                expect(nether.getMinY()).toBe(0);
+                expect(nether.getMaxY()).toBe(127);
+                expect(end.getMaxY()).toBe(255);
+
+                expect(overworld.getBlockRuntimeId(1, -24, 1)).toBe(id('minecraft:oak_log'));
+                expect(nether.getBlockRuntimeId(1, 40, 1)).toBe(id('minecraft:netherrack'));
+                expect(end.getBlockRuntimeId(1, 40, 1)).toBe(id('minecraft:end_stone'));
+
+                // The Nether's floor is at y 0; the Overworld has air there, and the End's marker
+                // sits where the Nether has air.
+                expect(overworld.getBlockRuntimeId(0, 0, 0)).toBe(id('minecraft:air'));
+                expect(nether.getBlockRuntimeId(0, 0, 0)).toBe(id('minecraft:stone'));
+                expect(nether.getBlockRuntimeId(1, 40, 1)).not.toBe(id('minecraft:end_stone'));
+                await reopened.provider.disable();
+            }, 15_000);
+
+            it('writes 8, 16 and 24 biome sections into Data3D for the Nether, the End and the Overworld', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                for (const dimension of [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd]) {
+                    await provider.writeChunk(chunkIn(dimension));
+                }
+
+                const sections = (dimension: DimensionType) => provider.readBiomes(dimension, 0, 0)?.palettes.length;
+                expect(sections(Dimensions.Nether)).toBe(8);
+                expect(sections(Dimensions.TheEnd)).toBe(16);
+                expect(sections(Dimensions.Overworld)).toBe(24);
+                await provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const data3d = (dimension: number) =>
+                    database.get(encodeChunkKey({ x: 0, z: 0, dimension, tag: ChunkTag.Data3D }));
+                // The three records are three keys: 9 bytes for the Overworld, 13 with a dimension.
+                expect(data3d(0)).not.toBeNull();
+                expect(data3d(1)).not.toBeNull();
+                expect(data3d(2)).not.toBeNull();
+                expect(data3d(1)?.equals(data3d(2) ?? Buffer.alloc(0))).toBe(false);
+                await database.close();
+            });
+
+            it('stores a Nether sub chunk under a 14 byte key and never above index 7', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                await provider.writeChunk(chunkIn(Dimensions.Nether));
+                await provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const subChunks = [...database.keys()]
+                    .map((key) => decodeChunkKey(key))
+                    .filter((key) => key?.tag === ChunkTag.SubChunkPrefix);
+
+                expect(subChunks.every((key) => key?.dimension === 1)).toBe(true);
+                expect(subChunks.map((key) => key?.subChunk).sort()).toEqual([0, 2]);
+                // Nothing leaked into the Overworld's key space.
+                expect([...database.keys()].filter((key) => key.byteLength === 9 || key.byteLength === 10)).toEqual([]);
+                await database.close();
+            });
+
+            it('lists the chunks of one dimension only', async () => {
+                const { provider } = harness(scratch());
+                await provider.enable();
+                await provider.writeChunk(chunkIn(Dimensions.Overworld, 0, 0));
+                await provider.writeChunk(chunkIn(Dimensions.Overworld, 1, 1));
+                await provider.writeChunk(chunkIn(Dimensions.Nether, 0, 0));
+                await provider.writeChunk(chunkIn(Dimensions.Nether, -3, 2));
+                await provider.writeChunk(chunkIn(Dimensions.TheEnd, 9, 9));
+
+                const sorted = (chunks: Iterable<{ x: number; z: number }>) =>
+                    [...chunks].sort((a, b) => a.x - b.x || a.z - b.z);
+
+                expect(sorted(provider.listChunks(Dimensions.Overworld))).toEqual([
+                    { x: 0, z: 0 },
+                    { x: 1, z: 1 }
+                ]);
+                expect(sorted(provider.listChunks(Dimensions.Nether))).toEqual([
+                    { x: -3, z: 2 },
+                    { x: 0, z: 0 }
+                ]);
+                expect(sorted(provider.listChunks(Dimensions.TheEnd))).toEqual([{ x: 9, z: 9 }]);
+                await provider.disable();
+            });
+
+            it('generates a Nether chunk the save lacks even when the Overworld has one there', async () => {
+                const { provider } = harness(scratch());
+                await provider.enable();
+                await provider.writeChunk(chunkIn(Dimensions.Overworld));
+
+                const gen = generator();
+                await provider.readChunk(Dimensions.Nether, 0, 0, 1234n, gen);
+
+                expect(gen.calls).toEqual([[0, 0]]);
                 await provider.disable();
             });
         });

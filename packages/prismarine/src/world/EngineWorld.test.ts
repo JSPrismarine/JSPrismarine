@@ -142,7 +142,7 @@ const flatWorld = async (
         name: 'engine-systems-test',
         path: path.join(os.tmpdir(), 'engine-systems-test'),
         server: testServer(content),
-        provider: stub<BaseProvider & Provider>({ readChunk: async (x, z) => flatChunk(x, z) }),
+        provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) }),
         seed: 0n,
         generator: stub<Generator>({}),
         randomTickHandlers,

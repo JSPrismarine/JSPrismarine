@@ -3,6 +3,8 @@ import type { Generator, World } from '../';
 import type { ChunkRequestOptions } from '../Generator';
 import type { Server } from '../../';
 import type Chunk from '../chunk/Chunk';
+import type { DimensionType } from '../Dimension';
+import type { Entity } from '../../entity/Entity';
 import type Provider from './Provider';
 
 import BinaryStream from '@jsprismarine/binaryutils';
@@ -14,10 +16,23 @@ import { parseWorldPersistenceData } from '../WorldPersistence';
 
 const WORLD_DATA_FILE_NAME = 'jsprismarine-world.dat';
 
+/**
+ * Answers the live entities of one dimension when a provider writes a chunk there.
+ *
+ * The provider serves every dimension of a save, so it cannot read one world's entity list;
+ * whoever owns the worlds hands it this instead.
+ */
+export type EntitySource = (dimension: DimensionType) => readonly Entity[];
+
+/**
+ * What the provider formats share: the folder, the server, the fallback world data file and
+ * the hooks the owning world or level attaches.
+ */
 export default abstract class BaseProvider implements Provider {
     protected path: string;
     protected server: Server;
     protected world!: World;
+    private entitySource: EntitySource | null = null;
 
     public constructor(path: string, server: Server) {
         this.server = server;
@@ -27,11 +42,30 @@ export default abstract class BaseProvider implements Provider {
         }
     }
 
+    /**
+     * Attaches the world this provider logs and names the save after. Until an entity source is
+     * attached, that world's entities are also the ones a chunk write persists.
+     */
     public setWorld(world: World) {
         this.world = world;
     }
     public getWorld() {
         return this.world;
+    }
+
+    /** Attaches where a chunk write finds the entities of the chunk's dimension. */
+    public setEntitySource(source: EntitySource): void {
+        this.entitySource = source;
+    }
+
+    /**
+     * The live entities of one dimension, from the attached source, or from the attached world
+     * when it is the only one.
+     */
+    protected entitiesIn(dimension: DimensionType): readonly Entity[] {
+        if (this.entitySource !== null) return this.entitySource(dimension);
+        if (this.world === undefined || this.world.getDimension().bedrockId !== dimension.bedrockId) return [];
+        return this.world.getEntities();
     }
 
     /**
@@ -57,12 +91,14 @@ export default abstract class BaseProvider implements Provider {
     }
 
     /**
-     * Returns a chunk decoded from the provider.
+     * Returns a chunk decoded from the provider, generating it when the save has none.
      *
+     * @param dimension - the dimension the chunk belongs to.
      * @param cx - the chunk x coordinate.
-     * @param cz - the chunk y coordinate.
+     * @param cz - the chunk z coordinate.
      */
     public abstract readChunk(
+        dimension: DimensionType,
         cx: number,
         cz: number,
         seed: bigint,
@@ -72,7 +108,7 @@ export default abstract class BaseProvider implements Provider {
     ): Promise<Chunk>;
 
     /**
-     * Writes a chunk.
+     * Writes a chunk into the dimension `chunk.getDimension()` names.
      *
      * @param chunk - the chunk data.
      */

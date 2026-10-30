@@ -15,17 +15,19 @@ import {
     ChunkTag,
     decodeChunkKey,
     decodeDigest,
+    decodePendingEntityKey,
     encodeActorKey,
     encodeChunkKey,
     encodeDigest,
     encodeDigestKey,
+    encodePendingEntityKey,
     encodePlayerServerKey
 } from './LevelDBKeys';
 import { LEVEL_DAT_STORAGE_VERSION, readLevelDat, readLevelName, writeLevelDat, writeLevelName } from './LevelDat';
 import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
-import { maxSubChunk, minSubChunk } from '../../Dimension';
+import { Dimensions, maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
 import Chunk from '../../chunk/Chunk';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
@@ -43,9 +45,14 @@ export const CHUNK_VERSION = 42;
 /** `FinalizedState`: 0 needs instaticking, 1 needs population, 2 is done. */
 const FINALIZED_DONE = 2;
 
+/**
+ * The `SpawnY` a fresh `level.dat` carries before the world has found its spawn. The world spawn
+ * is always in the Overworld, so the Overworld's floor is the one it stands on.
+ */
+const DEFAULT_SPAWN_Y = Dimensions.Overworld.minY + 100;
+
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
-const PENDING_ENTITY_PREFIX = Buffer.from('jsprismarine:pending_entities:', 'ascii');
 
 interface PendingLegacyEntity extends LegacyWorldEntity {
     uniqueId: string;
@@ -55,6 +62,9 @@ interface PendingLegacyEntity extends LegacyWorldEntity {
  * Stores a world the way Minecraft: Bedrock Edition does - a `db` directory of LevelDB files, a
  * `level.dat` and a `levelname.txt` beside it - so a world written here opens in the game and a
  * world made in the game opens here.
+ *
+ * One instance serves one save folder and every dimension in it: a chunk's keys carry the
+ * dimension the caller names, while the player records and `level.dat` are shared by the save.
  */
 export default class LevelDB extends BaseProvider {
     public readonly supportsChunkUnload = true;
@@ -112,10 +122,6 @@ export default class LevelDB extends BaseProvider {
         return this.database;
     }
 
-    private dimension(): DimensionType {
-        return this.getWorld().getDimension();
-    }
-
     /** Reads world state from the provider record, or from `level.dat` on an imported world. */
     public override async readWorldData(): Promise<WorldPersistenceData | null> {
         const value = this.requireDatabase().get(WORLD_DATA_KEY);
@@ -133,12 +139,11 @@ export default class LevelDB extends BaseProvider {
             y: root.getNumber('SpawnY', 0),
             z: root.getNumber('SpawnZ', 0)
         };
-        const dimension = this.dimension();
         if (
             root.getByte('JSPrismarineSpawnKnown', -1) === -1 &&
             spawn.x === 0 &&
             spawn.z === 0 &&
-            spawn.y === dimension.minY + 100
+            spawn.y === DEFAULT_SPAWN_Y
         )
             return {};
 
@@ -193,6 +198,7 @@ export default class LevelDB extends BaseProvider {
     // ------------------------------------------------------------------ chunks
 
     public async readChunk(
+        dimension: DimensionType,
         cx: number,
         cz: number,
         seed: bigint,
@@ -201,10 +207,9 @@ export default class LevelDB extends BaseProvider {
         options?: ChunkRequestOptions
     ): Promise<Chunk> {
         const database = this.requireDatabase();
-        const dimension = this.dimension();
         const key = (tag: ChunkTag, subChunk?: number) =>
             encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag, subChunk });
-        const pendingEntitiesKey = pendingEntityKey(cx, cz, dimension.bedrockId);
+        const pendingEntitiesKey = encodePendingEntityKey(cx, cz, dimension.bedrockId);
 
         // No version record means the chunk was never generated. Anything else - a version we do
         // not recognize included - is a chunk that exists and must not be overwritten by a fresh
@@ -280,7 +285,7 @@ export default class LevelDB extends BaseProvider {
         const finalized = Buffer.allocUnsafe(4);
         finalized.writeInt32LE(FINALIZED_DONE);
         batch.put(key(ChunkTag.FinalizedState), finalized);
-        batch.del(pendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId));
+        batch.del(encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId));
 
         const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
         if (blockEntities === null) {
@@ -386,11 +391,17 @@ export default class LevelDB extends BaseProvider {
         return repairNeeded;
     }
 
+    /**
+     * Queues the actor snapshots of a `level.json` for the chunks they stood in.
+     *
+     * The file belonged to a server that loaded one world, the Overworld, so that is where its
+     * actors go.
+     */
     private async migrateLegacyEntities(entities: readonly LegacyWorldEntity[]): Promise<void> {
         if (entities.length === 0) return;
 
         const database = this.requireDatabase();
-        const dimension = this.dimension();
+        const dimension = Dimensions.Overworld;
         const chunks = new Map<
             string,
             { x: number; z: number; pending: PendingLegacyEntity[]; identities: Set<string> }
@@ -410,7 +421,9 @@ export default class LevelDB extends BaseProvider {
             let chunk = chunks.get(chunkId);
             if (chunk === undefined) {
                 const identities = this.actorIdentitiesInChunk(database, cx, cz, dimension.bedrockId);
-                const pending = this.readPendingEntityRecords(database.get(pendingEntityKey(cx, cz, dimension.bedrockId)));
+                const pending = this.readPendingEntityRecords(
+                    database.get(encodePendingEntityKey(cx, cz, dimension.bedrockId))
+                );
                 for (const entity of pending) {
                     identities.add(legacyEntityIdentity(entity));
                     usedActorIds.add(actorIdBytes(BigInt(entity.uniqueId)).toString('hex'));
@@ -432,7 +445,7 @@ export default class LevelDB extends BaseProvider {
         let hasUpdates = false;
         for (const { x, z, pending } of chunks.values()) {
             if (pending.length === 0) continue;
-            batch.put(pendingEntityKey(x, z, dimension.bedrockId), this.writePendingEntityRecords(pending));
+            batch.put(encodePendingEntityKey(x, z, dimension.bedrockId), this.writePendingEntityRecords(pending));
             hasUpdates = true;
         }
 
@@ -577,9 +590,9 @@ export default class LevelDB extends BaseProvider {
             }
         }
 
-        const worldEntities = this.getWorld()
-            .getEntities()
-            .filter((entity) => !(entity instanceof Player) && entity.shouldPersist());
+        const worldEntities = this.entitiesIn(dimension).filter(
+            (entity) => !(entity instanceof Player) && entity.shouldPersist()
+        );
         const entities = worldEntities.filter((entity) => this.belongsToChunk(entity, chunk));
         const firstEntityByActorId = new Map<string, Entity>();
         for (const entity of worldEntities) {
@@ -590,7 +603,7 @@ export default class LevelDB extends BaseProvider {
             if (!firstEntityByActorId.has(actorIdHex)) firstEntityByActorId.set(actorIdHex, entity);
         }
 
-        const usedActorIds = this.actorIdsInWorld();
+        const usedActorIds = this.actorIdsInWorld(dimension);
         const actorIds: Buffer[] = [];
         const actorIdsInChunk = new Set<string>();
 
@@ -626,7 +639,7 @@ export default class LevelDB extends BaseProvider {
             batch.put(encodeActorKey(actorId), this.writeActorNbt(nbt));
         }
 
-        const actorIdsStillInWorld = this.actorIdsInWorld();
+        const actorIdsStillInWorld = this.actorIdsInWorld(dimension);
         for (const actorId of previousActorIds) {
             const actorIdHex = actorId.toString('hex');
             if (actorIdsInChunk.has(actorIdHex) || actorIdsStillInWorld.has(actorIdHex)) continue;
@@ -651,9 +664,15 @@ export default class LevelDB extends BaseProvider {
         return Math.floor(position.getX() / 16) === chunk.getX() && Math.floor(position.getZ() / 16) === chunk.getZ();
     }
 
-    private actorIdsInWorld(): Set<string> {
+    /**
+     * The ids of every persistent actor alive in one dimension.
+     *
+     * An actor that left for another dimension is not in this set, so its old chunk's save drops
+     * its record; the chunk it arrived in writes a fresh one on its own save.
+     */
+    private actorIdsInWorld(dimension: DimensionType): Set<string> {
         const actorIds = new Set<string>();
-        for (const entity of this.getWorld().getEntities()) {
+        for (const entity of this.entitiesIn(dimension)) {
             if (entity instanceof Player || !entity.shouldPersist() || !entity.persistentNbt?.has('UniqueID')) continue;
 
             actorIds.add(actorIdBytes(entity.persistentNbt.getLong('UniqueID', 0n)).toString('hex'));
@@ -709,9 +728,8 @@ export default class LevelDB extends BaseProvider {
         root.addValue('StorageVersion', new Types.NumberVal(LEVEL_DAT_STORAGE_VERSION));
         root.addValue('lastOpenedWithVersion', versionList());
 
-        const dimension = this.dimension();
         root.addValue('SpawnX', new Types.NumberVal(0));
-        root.addValue('SpawnY', new Types.NumberVal(dimension.minY + 100));
+        root.addValue('SpawnY', new Types.NumberVal(DEFAULT_SPAWN_Y));
         root.addValue('SpawnZ', new Types.NumberVal(0));
         root.addValue('JSPrismarineSpawnKnown', new Types.ByteVal(0));
 
@@ -735,14 +753,13 @@ export default class LevelDB extends BaseProvider {
         writeLevelDat(this.getPath(), { storageVersion: LEVEL_DAT_STORAGE_VERSION, root });
     }
 
-    /** Every chunk coordinate the database holds, for tools that want to walk a whole world. */
-    public *listChunks(): IterableIterator<{ x: number; z: number }> {
+    /** Every chunk coordinate the database holds for one dimension, for tools that walk a world. */
+    public *listChunks(dimension: DimensionType): IterableIterator<{ x: number; z: number }> {
         const seen = new Set<string>();
 
         for (const key of this.requireDatabase().keys()) {
-            const pending = decodePendingEntityKey(key, this.dimension().bedrockId);
-            const decoded = pending ?? decodeChunkKey(key);
-            if (decoded === null || decoded.dimension !== this.dimension().bedrockId) continue;
+            const decoded = decodePendingEntityKey(key) ?? decodeChunkKey(key);
+            if (decoded === null || decoded.dimension !== dimension.bedrockId) continue;
 
             const id = `${decoded.x},${decoded.z}`;
             if (seen.has(id)) continue;
@@ -753,8 +770,7 @@ export default class LevelDB extends BaseProvider {
     }
 
     /** The biomes stored for a chunk, or null when it has none yet. */
-    public readBiomes(cx: number, cz: number): ReturnType<typeof decodeData3D> | null {
-        const dimension = this.dimension();
+    public readBiomes(dimension: DimensionType, cx: number, cz: number): ReturnType<typeof decodeData3D> | null {
         const value = this.requireDatabase().get(
             encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag: ChunkTag.Data3D })
         );
@@ -770,29 +786,6 @@ const actorIdBytes = (uniqueId: bigint): Buffer => {
     const actorId = Buffer.allocUnsafe(8);
     actorId.writeBigInt64LE(uniqueId);
     return actorId;
-};
-
-const pendingEntityKey = (x: number, z: number, dimension: number): Buffer => {
-    const coordinates = Buffer.allocUnsafe(12);
-    coordinates.writeInt32LE(x, 0);
-    coordinates.writeInt32LE(z, 4);
-    coordinates.writeInt32LE(dimension, 8);
-    return Buffer.concat([PENDING_ENTITY_PREFIX, coordinates]);
-};
-
-const decodePendingEntityKey = (key: Buffer, dimension: number): { x: number; z: number; dimension: number } | null => {
-    if (key.byteLength !== PENDING_ENTITY_PREFIX.byteLength + 12) return null;
-    if (!key.subarray(0, PENDING_ENTITY_PREFIX.byteLength).equals(PENDING_ENTITY_PREFIX)) return null;
-
-    const offset = PENDING_ENTITY_PREFIX.byteLength;
-    const storedDimension = key.readInt32LE(offset + 8);
-    if (storedDimension !== dimension) return null;
-
-    return {
-        x: key.readInt32LE(offset),
-        z: key.readInt32LE(offset + 4),
-        dimension: storedDimension
-    };
 };
 
 const legacyEntityIdentity = (entity: LegacyWorldEntity): string => {

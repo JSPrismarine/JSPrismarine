@@ -11,6 +11,7 @@ import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
+import type { DimensionType } from './Dimension';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import { GenerationStopped } from './Generator';
@@ -134,15 +135,16 @@ class CountingLevelDB extends LevelDB {
     public lateReads = 0;
 
     public override async readChunk(
+        dimension: DimensionType,
         cx: number,
         cz: number,
         seed: bigint,
         generator: Generator,
-        config?: Parameters<LevelDB['readChunk']>[4]
+        config?: Parameters<LevelDB['readChunk']>[5]
     ): Promise<Chunk> {
         if (this.shuttingDown) this.lateReads++;
 
-        return super.readChunk(cx, cz, seed, generator, config);
+        return super.readChunk(dimension, cx, cz, seed, generator, config);
     }
 }
 
@@ -377,7 +379,7 @@ const persistedChunks = async (name: string): Promise<Chunk[]> => {
     const chunks: Chunk[] = [];
     for (let cx = -PRELOAD_RADIUS; cx <= PRELOAD_RADIUS; cx++) {
         for (let cz = -PRELOAD_RADIUS; cz <= PRELOAD_RADIUS; cz++) {
-            const chunk = await provider.readChunk(cx, cz, 1234n, refuse).catch(() => null);
+            const chunk = await provider.readChunk(Dimensions.Overworld, cx, cz, 1234n, refuse).catch(() => null);
             if (chunk !== null) chunks.push(chunk);
         }
     }

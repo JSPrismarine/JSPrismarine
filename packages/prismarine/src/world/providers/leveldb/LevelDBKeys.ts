@@ -152,3 +152,32 @@ export const decodeDigest = (value: Buffer): Buffer[] => {
 };
 
 export const encodeDigest = (uniqueIds: readonly Buffer[]): Buffer => Buffer.concat(uniqueIds);
+
+/**
+ * Prefix of this project's own record for actors migrated from `level.json` and not yet written
+ * into a chunk's digest. The key carries the chunk's x, z and dimension as three little endian
+ * int32s, the dimension always present, unlike a chunk key.
+ */
+export const PENDING_ENTITY_PREFIX = Buffer.from('jsprismarine:pending_entities:', 'ascii');
+
+/** The pending-actor key for a chunk. */
+export const encodePendingEntityKey = (x: number, z: number, dimension: number): Buffer => {
+    const coordinates = Buffer.allocUnsafe(12);
+    coordinates.writeInt32LE(x, 0);
+    coordinates.writeInt32LE(z, 4);
+    coordinates.writeInt32LE(dimension, 8);
+    return Buffer.concat([PENDING_ENTITY_PREFIX, coordinates]);
+};
+
+/** Reads a pending-actor key, or null when the key is not one. */
+export const decodePendingEntityKey = (key: Buffer): { x: number; z: number; dimension: number } | null => {
+    if (key.byteLength !== PENDING_ENTITY_PREFIX.byteLength + 12) return null;
+    if (!key.subarray(0, PENDING_ENTITY_PREFIX.byteLength).equals(PENDING_ENTITY_PREFIX)) return null;
+
+    const offset = PENDING_ENTITY_PREFIX.byteLength;
+    return {
+        x: key.readInt32LE(offset),
+        z: key.readInt32LE(offset + 4),
+        dimension: key.readInt32LE(offset + 8)
+    };
+};

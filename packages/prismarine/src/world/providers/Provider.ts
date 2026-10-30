@@ -2,8 +2,15 @@ import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Service } from '../../utils';
 import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
+import type { DimensionType } from '../Dimension';
 import type { WorldPersistenceData } from '../WorldPersistence';
 
+/**
+ * Where a save keeps its chunks, players and metadata.
+ *
+ * One provider serves one save folder, and a Bedrock save holds every dimension in one database,
+ * so the chunk calls name the dimension they address while the player and level calls do not.
+ */
 export default interface Provider extends Service {
     /** True only when `writeChunk` persists terrain, block entities, and actors for later reload. */
     readonly supportsChunkUnload?: boolean;
@@ -14,7 +21,8 @@ export default interface Provider extends Service {
     getPath(): string;
 
     /**
-     * Returns the chunk decoded from the provider.
+     * Returns the chunk decoded from the provider, generating it when the save has none.
+     * @param dimension - the dimension the chunk belongs to.
      * @param cx - chunk x.
      * @param cz - chunk z.
      * @param seed - world seed.
@@ -23,6 +31,7 @@ export default interface Provider extends Service {
      * @param options - how the request is scheduled, for a generator that queues.
      */
     readChunk(
+        dimension: DimensionType,
         cx: number,
         cz: number,
         seed: bigint,
@@ -32,10 +41,13 @@ export default interface Provider extends Service {
     ): Promise<Chunk>;
 
     /**
-     * Writes a chunk
-     * @param chunk - chunk x
+     * Writes a chunk into the dimension `chunk.getDimension()` names.
+     * @param chunk - the chunk to write.
      */
     writeChunk(chunk: Chunk): Promise<void>;
+
+    /** Every chunk coordinate the save holds for one dimension, when the format can list them. */
+    listChunks?(dimension: DimensionType): IterableIterator<{ x: number; z: number }>;
 
     /** Reads world state outside the chunk records, or null when the provider has none. */
     readWorldData(): Promise<WorldPersistenceData | null>;

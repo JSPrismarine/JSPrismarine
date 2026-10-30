@@ -2,6 +2,7 @@ import type { WorldConfig } from '../../World';
 import type Server from '../../../Server';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Chunk from '../../chunk/Chunk';
+import type { DimensionType } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
 
 import fs from 'node:fs';
@@ -40,6 +41,7 @@ export default class Anvil extends BaseProvider {
     public async disable(): Promise<void> {}
 
     public async readChunk(
+        _dimension: DimensionType,
         cx: number,
         cz: number,
         seed: bigint,

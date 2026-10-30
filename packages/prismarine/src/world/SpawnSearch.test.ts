@@ -84,7 +84,7 @@ const testWorld = (generator: Generator) =>
             getEntityRuntime: () => inertEntityRuntime()
         }),
         provider: stub<BaseProvider & Provider>({
-            readChunk: async (x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
+            readChunk: async (_dimension, x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
         }),
         seed: 1234n,
         generator

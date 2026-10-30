@@ -12,11 +12,14 @@ import {
     ChunkTag,
     decodeChunkKey,
     decodeDigest,
+    decodePendingEntityKey,
     encodeActorKey,
     encodeChunkKey,
     encodeDigest,
     encodeDigestKey,
-    encodePlayerServerKey
+    encodePendingEntityKey,
+    encodePlayerServerKey,
+    PENDING_ENTITY_PREFIX
 } from './LevelDBKeys';
 import { HEIGHTMAP_BYTES, decodeData3D, encodeData3D, uniformBiomes, uniformData3D } from './BiomeCodec';
 import { decodeLevelDat, encodeLevelDat, LEVEL_DAT_STORAGE_VERSION } from './LevelDat';
@@ -107,6 +110,26 @@ describe('world', () => {
             it('builds the digest key a chunk lists its actors under', () => {
                 expect(encodeDigestKey(0, 0, 0)).toEqual(Buffer.from([...Buffer.from('digp'), 0, 0, 0, 0, 0, 0, 0, 0]));
                 expect(encodeDigestKey(0, 0, 1).byteLength).toBe(16);
+            });
+
+            it('appends the dimension to a Nether digest key the way the chunk key carries it', () => {
+                // `digp` plus the same 12 byte key a Nether chunk record uses: x, z, then dimension 1.
+                const key = encodeDigestKey(5, -6, 1);
+
+                expect(key.byteLength).toBe(16);
+                expect(key.subarray(0, 4)).toEqual(Buffer.from('digp'));
+                expect(key.subarray(4)).toEqual(encodeChunkKey({ x: 5, z: -6, dimension: 1, tag: ChunkTag.Version }).subarray(0, 12));
+            });
+
+            it('always carries the dimension in a pending-actor key, the Overworld included', () => {
+                for (const dimension of [0, 1, 2]) {
+                    const key = encodePendingEntityKey(7, -8, dimension);
+
+                    expect(key.byteLength).toBe(PENDING_ENTITY_PREFIX.byteLength + 12);
+                    expect(decodePendingEntityKey(key)).toEqual({ x: 7, z: -8, dimension });
+                }
+                expect(decodePendingEntityKey(encodeDigestKey(7, -8, 1))).toBeNull();
+                expect(decodePendingEntityKey(encodeChunkKey({ x: 7, z: -8, dimension: 1, tag: ChunkTag.Version }))).toBeNull();
             });
 
             it('round-trips a list of actor ids', () => {

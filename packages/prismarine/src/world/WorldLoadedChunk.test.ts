@@ -35,7 +35,7 @@ const testWorld = () => {
             getEntityRuntime: () => inertEntityRuntime()
         }),
         provider: stub<BaseProvider & Provider>({
-            readChunk: async (x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
+            readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
         }),
         seed: 0n,
         generator: stub<Generator>({})

@@ -293,7 +293,7 @@ describe('what a backgrounded autosave writes', () => {
 
         try {
             for (let i = 0; i < CHUNK_COUNT; i++) {
-                const read = await reader.readChunk(i, 0, 1234n, generator);
+                const read = await reader.readChunk(Dimensions.Overworld, i, 0, 1234n, generator);
                 expect(snapshot(read), `chunk ${i},0`).toEqual(before[i]);
             }
         } finally {

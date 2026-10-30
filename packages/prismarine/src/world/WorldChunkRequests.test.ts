@@ -14,6 +14,7 @@ import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
+import type { DimensionType } from './Dimension';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
@@ -58,7 +59,7 @@ const deferred = <T>(): { promise: Promise<T>; resolve: (value: T) => void } => 
 describe('world chunk requests', () => {
     it('generates a chunk once when several callers ask for it in the same turn', async () => {
         const gate = deferred<void>();
-        const readChunk = vi.fn(async (x: number, z: number) => {
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
             await gate.promise;
             return new Chunk(x, z, new Map(), Dimensions.Overworld);
         });
@@ -77,7 +78,7 @@ describe('world chunk requests', () => {
 
     it('keeps different chunks apart while both are in flight', async () => {
         const gate = deferred<void>();
-        const readChunk = vi.fn(async (x: number, z: number) => {
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
             await gate.promise;
             return new Chunk(x, z, new Map(), Dimensions.Overworld);
         });
@@ -92,7 +93,7 @@ describe('world chunk requests', () => {
     });
 
     it('answers from memory once the chunk has arrived, without asking again', async () => {
-        const readChunk = vi.fn(async (x: number, z: number) => new Chunk(x, z, new Map(), Dimensions.Overworld));
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => new Chunk(x, z, new Map(), Dimensions.Overworld));
         const world = testWorld(readChunk);
 
         const first = await world.getChunk(7, 7);
@@ -104,7 +105,7 @@ describe('world chunk requests', () => {
 
     it('passes the urgency a caller asked with down to the provider', async () => {
         const seen: Array<GenerationPriority | undefined> = [];
-        const readChunk: BaseProvider['readChunk'] = async (x, z, _seed, _generator, _config, options) => {
+        const readChunk: BaseProvider['readChunk'] = async (_dimension, x, z, _seed, _generator, _config, options) => {
             seen.push(options?.urgency);
             return new Chunk(x, z, new Map(), Dimensions.Overworld);
         };
@@ -123,7 +124,7 @@ describe('world chunk requests', () => {
         const generator = stub<Generator>({
             raiseUrgency: (cx, cz, urgency) => void raised.push([cx, cz, urgency])
         });
-        const world = testWorld(async (x: number, z: number) => {
+        const world = testWorld(async (_dimension, x, z) => {
             await gate.promise;
             return new Chunk(x, z, new Map(), Dimensions.Overworld);
         }, generator);
@@ -140,7 +141,7 @@ describe('world chunk requests', () => {
 
     it('lets a later caller try again after a request failed', async () => {
         let attempt = 0;
-        const readChunk = vi.fn(async (x: number, z: number) => {
+        const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
             attempt++;
             if (attempt === 1) throw new Error('the disk said no');
             return new Chunk(x, z, new Map(), Dimensions.Overworld);
