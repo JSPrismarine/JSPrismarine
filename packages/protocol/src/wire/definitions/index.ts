@@ -8,6 +8,16 @@
  */
 import { addActorPacket } from './addActor';
 import { addPlayerPacket } from './addPlayer';
+import {
+    clientboundMatchmakingStatePacket,
+    clientboundPlayAudioContentPacket,
+    clientboundStonecutterSetRecipePacket,
+    serverboundCursorItemDragPacket,
+    serverboundMatchmakingCancelPacket,
+    serverboundRegisterAudioContentPacket,
+    serverboundStonecutterSetRecipePacket,
+    setPassengerOfBlockPacket
+} from './added2225';
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
@@ -90,6 +100,14 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         setHealthPacket,
         setSpawnPositionPacket,
         setTimePacket,
-        updateAdventureSettingsPacket
+        updateAdventureSettingsPacket,
+        clientboundMatchmakingStatePacket,
+        clientboundPlayAudioContentPacket,
+        clientboundStonecutterSetRecipePacket,
+        serverboundCursorItemDragPacket,
+        serverboundMatchmakingCancelPacket,
+        serverboundRegisterAudioContentPacket,
+        serverboundStonecutterSetRecipePacket,
+        setPassengerOfBlockPacket
     ].map((definition) => [definition.name, definition])
 );

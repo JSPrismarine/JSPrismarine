@@ -28,6 +28,9 @@ import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import ClientMovementPredictionSyncPacket from './packet/ClientMovementPredictionSyncPacket';
 import ClientboundDebugRendererPacket from './packet/ClientboundDebugRendererPacket';
 import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
+import ClientboundMatchmakingStatePacket from './packet/ClientboundMatchmakingStatePacket';
+import ClientboundPlayAudioContentPacket from './packet/ClientboundPlayAudioContentPacket';
+import ClientboundStonecutterSetRecipePacket from './packet/ClientboundStonecutterSetRecipePacket';
 import CodeBuilderPacket from './packet/CodeBuilderPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandOutputPacket from './packet/CommandOutputPacket';
@@ -118,9 +121,13 @@ import RespawnPacket from './packet/RespawnPacket';
 import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
 import ServerSettingsResponsePacket from './packet/ServerSettingsResponsePacket';
+import ServerboundCursorItemDragPacket from './packet/ServerboundCursorItemDragPacket';
 import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
+import ServerboundMatchmakingCancelPacket from './packet/ServerboundMatchmakingCancelPacket';
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
+import ServerboundRegisterAudioContentPacket from './packet/ServerboundRegisterAudioContentPacket';
+import ServerboundStonecutterSetRecipePacket from './packet/ServerboundStonecutterSetRecipePacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorLinkPacket from './packet/SetActorLinkPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
@@ -131,6 +138,7 @@ import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
 import SetHealthPacket from './packet/SetHealthPacket';
 import SetLastHurtByPacket from './packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
+import SetPassengerOfBlockPacket from './packet/SetPassengerOfBlockPacket';
 import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
@@ -204,6 +212,9 @@ export {
     ClientMovementPredictionSyncPacket,
     ClientboundDebugRendererPacket,
     ClientboundMapItemDataPacket,
+    ClientboundMatchmakingStatePacket,
+    ClientboundPlayAudioContentPacket,
+    ClientboundStonecutterSetRecipePacket,
     CodeBuilderPacket,
     CommandBlockUpdatePacket,
     CommandOutputPacket,
@@ -297,9 +308,13 @@ export {
     ServerPlayerPostMovePositionPacket,
     ServerSettingsRequestPacket,
     ServerSettingsResponsePacket,
+    ServerboundCursorItemDragPacket,
     ServerboundDiagnosticsPacket,
     ServerboundLoadingScreenPacket,
+    ServerboundMatchmakingCancelPacket,
     ServerboundPackSettingChangePacket,
+    ServerboundRegisterAudioContentPacket,
+    ServerboundStonecutterSetRecipePacket,
     SetActorDataPacket,
     SetActorLinkPacket,
     SetActorMotionPacket,
@@ -310,6 +325,7 @@ export {
     SetHealthPacket,
     SetLastHurtByPacket,
     SetLocalPlayerAsInitializedPacket,
+    SetPassengerOfBlockPacket,
     SetPlayerFurnaceOptionsPacket,
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,

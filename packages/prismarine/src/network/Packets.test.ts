@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
-import Codec2193 from './codec/Codec2193';
+import { latestCodec } from './codec/CodecRegistry';
 import * as Handlers from './Handlers';
 import Identifiers from './Identifiers';
 import * as Packets from './Packets';
@@ -51,10 +51,12 @@ describe('network/Packets', () => {
         expect(importOrder('Packets.ts', 'packet')).toStrictEqual(files);
     });
 
-    it('gives every registered packet an id in the 2193 codec under its name', () => {
+    it('gives every registered packet an id under its name, at the version that has it', () => {
+        // Resolved against the newest codec: a packet a later protocol added has no id at 2193,
+        // and the barrel carries it so a session on that version can build one.
         const registered = exported.filter(([name]) => !UNREGISTERED_PACKETS.has(name));
-        for (const [name] of registered) expect(Codec2193.netIdOf(name), name).toBe(packetIds.get(name));
-        const ids = registered.map(([name]) => Codec2193.netIdOf(name));
+        for (const [name] of registered) expect(latestCodec.netIdOf(name), name).toBe(latestCodec.ids[name]);
+        const ids = registered.map(([name]) => latestCodec.netIdOf(name));
         expect(new Set(ids).size).toBe(registered.length);
     });
 });

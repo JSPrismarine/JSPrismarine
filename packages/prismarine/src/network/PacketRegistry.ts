@@ -5,6 +5,7 @@ import type { PlayerSession } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
 import Codec2193 from './codec/Codec2193';
+import { latestCodec } from './codec/CodecRegistry';
 import type PacketHandler from './handler/PacketHandler';
 import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
 
@@ -39,7 +40,7 @@ export default class PacketRegistry {
     }
 
     /**
-     * Register a packet under the wire id its name has at protocol 2193.
+     * Register a packet under the wire id its name has at the newest registered protocol.
      *
      * @param packet - the packet.
      * @param name - the packet's name in the barrel, which a bundler cannot rename the way it
@@ -47,8 +48,11 @@ export default class PacketRegistry {
      *   packet directly.
      */
     public registerPacket(packet: typeof Packets.DataPacket, name: string = packet.name): void {
-        const netId = Codec2193.netIdOf(name);
-        if (netId === undefined) throw new Error(`Packet ${name} has no id in the 2193 codec!`);
+        // Resolved against the newest codec rather than 2193's: a packet a later protocol added
+        // has no id at 2193, and the barrel carries it all the same so that a session which
+        // negotiated the newer version can build one.
+        const netId = latestCodec.netIdOf(name);
+        if (netId === undefined) throw new Error(`Packet ${name} has no id in any registered codec!`);
         if (this.packets.has(netId))
             throw new Error(`Packet ${name} is trying to use id ${netId.toString(16)} which already exists!`);
 

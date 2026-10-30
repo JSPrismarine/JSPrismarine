@@ -54,8 +54,12 @@ describe('network/codec', () => {
             for (const [name, id] of Object.entries(addedPacketIds)) {
                 expect(Codec2225.netIdOf(name), name).toBe(id);
                 expect(Codec2193.netIdOf(name), name).toBeUndefined();
-                // Protocol surface without a class yet: known id, no packet to build.
-                expect(Codec2225.createPacket(id), name).toBeNull();
+                // A 2225 session builds one; a 2193 codec has no id for it at all, so an
+                // older session can neither ask for it nor be sent one.
+                const packet = Codec2225.createPacket(id);
+                expect(packet, name).not.toBeNull();
+                expect(packet!.getName(), name).toBe(name);
+                expect(packet!.codecProtocol, name).toBe(2225);
             }
 
             const ids = Object.values(Codec2225.ids);
