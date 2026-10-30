@@ -3,11 +3,75 @@ import type { LogLevel } from '@jsprismarine/logger';
 import type { StoredInventory } from '../inventory/persistence';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 
-/** One layer of a flat world, bottom first. */
+/**
+ * One layer of a flat world, bottom first, as the deprecated `layers` key spells it.
+ *
+ * The replacement is {@link FlatLayerJson}, which calls the same number `height` as Java does.
+ */
 export interface FlatLayer {
     block: string;
     /** @asType integer @minimum 0 */
     size: number;
+}
+
+/** One layer of a `minecraft:flat` generator's `settings.layers`, bottom first, in Java's spelling. */
+export interface FlatLayerJson {
+    /** The block the layer is made of, as a Java identifier such as `minecraft:stone`. */
+    block: string;
+    /** How many blocks thick the layer is. @asType integer @minimum 0 @maximum 4064 */
+    height: number;
+}
+
+/**
+ * The `settings` of a `minecraft:flat` generator, the same object a Java
+ * `worldgen/flat_level_generator_preset` document carries under `settings`.
+ */
+export interface FlatGeneratorSettingsJson {
+    /** The layers, bottom first. */
+    layers: FlatLayerJson[];
+    /** The one biome the whole dimension has. Defaults to `minecraft:plains`. */
+    biome?: string;
+    /** Whether lava lakes generate. Defaults to false. */
+    lakes?: boolean;
+    /** Whether the biome's placed features generate. Defaults to false. */
+    features?: boolean;
+    /** The structure sets that place structures. Absent means every registered set, `[]` means none. */
+    structure_overrides?: string | string[];
+}
+
+/**
+ * A level stem's `generator` object, written as a Java `dimension` document writes it.
+ *
+ * `type` is the generator kind. The other keys belong to the kind: `minecraft:noise` reads
+ * `settings` and `biome_source`, `minecraft:flat` reads `settings` as its layers and flags,
+ * and `minecraft:debug` has none.
+ */
+export interface GeneratorDefinitionJson {
+    /** The generator kind, for example `minecraft:noise` or `minecraft:flat`. */
+    type: string;
+    /**
+     * The kind's settings: a `worldgen/noise_settings` id or inline document for
+     * `minecraft:noise`, the layers for `minecraft:flat`.
+     */
+    settings?: string | FlatGeneratorSettingsJson | Record<string, unknown>;
+    /** The biome layout of a `minecraft:noise` generator, as Java's `biome_source` object. */
+    biome_source?: Record<string, unknown>;
+}
+
+/**
+ * What a world says about one of its dimensions, keyed under `WorldData.dimensions` by the
+ * Java dimension id such as `minecraft:the_nether`.
+ *
+ * An entry for an id the preset has overrides that stem; an entry for a new id adds a
+ * dimension. A key left out comes from the preset's stem.
+ */
+export interface DimensionConfig {
+    /** The Java `dimension_type` id. Defaults to the preset's. */
+    type?: string;
+    /** The level stem generator. Defaults to the preset's. */
+    generator?: GeneratorDefinitionJson;
+    /** `eager` builds the dimension's world at startup; `lazy`, the default, on first entry. */
+    load?: 'eager' | 'lazy';
 }
 
 /** The configuration saved for one world. */
@@ -23,7 +87,23 @@ export interface WorldData {
      */
     seed: string | number;
     provider?: string;
+    /**
+     * The Java `worldgen/world_preset` id that supplies the dimensions and their generators.
+     * @default 'minecraft:normal'
+     */
+    preset?: string;
+    /** Per-dimension overrides of the preset's stems, and dimensions the preset lacks. */
+    dimensions?: Record<string, DimensionConfig>;
+    /**
+     * The old generator name, `Overworld` or `Flat`.
+     * @deprecated Use `preset`: `Overworld` is `minecraft:normal` and `Flat` is `minecraft:flat`.
+     */
     generator?: string;
+    /**
+     * The old flat world layers, read only with `generator: 'Flat'`.
+     * @deprecated Use `dimensions['minecraft:overworld'].generator` with a `minecraft:flat`
+     * generator whose `settings.layers` spell each layer as `{ block, height }`.
+     */
     layers?: FlatLayer[];
 }
 

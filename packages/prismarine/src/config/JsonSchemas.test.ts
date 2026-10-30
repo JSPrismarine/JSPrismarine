@@ -44,7 +44,23 @@ describe('JSON schemas', () => {
                 port: 19132,
                 'server-ip': '0.0.0.0',
                 'level-name': 'world',
-                worlds: { world: { seed: 0, provider: 'LevelDB', generator: 'Flat' } },
+                worlds: {
+                    world: {
+                        seed: '0',
+                        provider: 'LevelDB',
+                        preset: 'minecraft:flat',
+                        dimensions: {
+                            'minecraft:overworld': {
+                                type: 'minecraft:overworld',
+                                generator: {
+                                    type: 'minecraft:flat',
+                                    settings: { biome: 'minecraft:plains', layers: [{ block: 'minecraft:stone', height: 1 }] }
+                                }
+                            },
+                            'minecraft:the_end': { load: 'lazy' }
+                        }
+                    }
+                },
                 'max-players': 20,
                 gamemode: 'survival',
                 difficulty: 'normal',
@@ -100,5 +116,28 @@ describe('JSON schemas', () => {
 
         expect(validate(valid)).toBe(true);
         expect(validate(invalid)).toBe(false);
+    });
+
+    describe('config.schema.json worlds', () => {
+        const validate = (world: unknown) => ajv.compile(readSchema('config.schema.json'))({ worlds: { world } });
+
+        // The generator writes the `@deprecated` text, not `true`, so editors can show it.
+        it('marks the old generator and layers keys deprecated and still accepts them', () => {
+            const { properties } = readSchema('config.schema.json').definitions.WorldData;
+
+            expect(properties.generator.deprecated).toContain('preset');
+            expect(properties.layers.deprecated).toContain("dimensions['minecraft:overworld']");
+            expect(properties.preset.deprecated).toBeUndefined();
+            expect(properties.preset.default).toBe('minecraft:normal');
+            expect(validate({ seed: 1, generator: 'Flat', layers: [{ block: 'stone', size: 1 }] })).toBe(true);
+        });
+
+        it('limits load to eager or lazy and requires a generator to name its type', () => {
+            expect(validate({ seed: 1, dimensions: { 'minecraft:the_nether': { load: 'eager' } } })).toBe(true);
+            expect(validate({ seed: 1, dimensions: { 'minecraft:the_nether': { load: 'now' } } })).toBe(false);
+            expect(
+                validate({ seed: 1, dimensions: { 'minecraft:overworld': { generator: { settings: 'minecraft:overworld' } } } })
+            ).toBe(false);
+        });
     });
 });
