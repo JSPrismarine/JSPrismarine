@@ -1,3 +1,5 @@
+import { clientCacheStatusPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -8,7 +10,9 @@ import DataPacket from './DataPacket';
  * does, so the flag is read and recorded but changes nothing about what gets sent. The
  * packet is decoded rather than ignored because a packet the registry has never heard of
  * is a warning on every join.
- * Wire layout at protocol 2193: `Is cache supported?` as one boolean byte.
+ *
+ * The wire layout lives in `@jsprismarine/protocol`'s `clientCacheStatusPacket` definition:
+ * `Is cache supported?` as one boolean byte.
  *
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/
@@ -19,11 +23,11 @@ export default class ClientCacheStatusPacket extends DataPacket {
 
     /** Reads the single flag the client sends. */
     public decodePayload(): void {
-        this.enabled = this.readBoolean();
+        this.enabled = layoutAt(clientCacheStatusPacket, this.codecProtocol).decode(this).enabled;
     }
 
     /** Writes the flag, for tests and for a client built on this package. */
     public encodePayload(): void {
-        this.writeBoolean(this.enabled);
+        layoutAt(clientCacheStatusPacket, this.codecProtocol).encode(this, { enabled: this.enabled });
     }
 }

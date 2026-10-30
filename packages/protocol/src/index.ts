@@ -48,6 +48,7 @@ export * from './wire/definitions/cameraAimAssistPresets';
 export * from './wire/definitions/cameraPresets';
 export * from './wire/definitions/chat';
 export * from './wire/definitions/chunkRadiusUpdated';
+export * from './wire/definitions/clientCache';
 export * from './wire/definitions/commands';
 export * from './wire/definitions/containers';
 export * from './wire/definitions/forms';
