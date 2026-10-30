@@ -2,7 +2,7 @@ import { layoutAt } from '@jsprismarine/protocol';
 
 import { SyncedProperties } from '../type/SyncedProperties';
 import DataPacket from './DataPacket';
-import { setActorDataPacket } from './setActorData.wire';
+import { setActorDataPacket } from '@jsprismarine/protocol/wire/definitions/setActorData';
 
 import type { Metadata } from '../../entity/Metadata';
 

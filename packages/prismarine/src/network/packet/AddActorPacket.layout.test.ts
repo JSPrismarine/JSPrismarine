@@ -8,7 +8,7 @@ import { Metadata } from '../../entity/Metadata';
 import BlockPosition from '../../world/BlockPosition';
 import { SyncedProperties } from '../type/SyncedProperties';
 import AddActorPacket, { ActorLinkType } from './AddActorPacket';
-import { addActorPacket } from './addActor.wire';
+import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 
 import type { PassengerOfBlock } from '../type/PassengerOfBlock';
 

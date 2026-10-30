@@ -5,34 +5,17 @@ import type { Metadata } from '../../entity/Metadata';
 import { SyncedProperties } from '../type/SyncedProperties';
 import type { PassengerOfBlock } from '../type/PassengerOfBlock';
 import DataPacket from './DataPacket';
-import { addActorPacket } from './addActor.wire';
+import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
+
+import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
 
 /**
- * The `ActorLinkType` values an {@link ActorLink} is sent with.
+ * Re-export: the link and its type values are wire structures and live with the packet's
+ * declarative layout in `@jsprismarine/protocol`. This path stays so the server's importers
+ * keep working.
  */
-export const ActorLinkType = {
-    None: 0,
-    Riding: 1,
-    Passenger: 2
-} as const;
-
-/**
- * One riding relationship between two entities, in the 2193 `ActorLink` layout.
- */
-export interface ActorLink {
-    /** Target A, the vehicle's unique id. Written as a ZigZag varint64. */
-    targetA: bigint;
-    /** Target B, the rider's unique id. Written as a ZigZag varint64. */
-    targetB: bigint;
-    /** Type, one of {@link ActorLinkType}. Written as a uint8. */
-    type: (typeof ActorLinkType)[keyof typeof ActorLinkType];
-    /** Immediate: whether the client should skip the mounting animation. */
-    immediate: boolean;
-    /** Passenger Initiated: whether the passenger changed the link. */
-    passengerInitiated: boolean;
-    /** Vehicle Angular Velocity, a little-endian float. */
-    vehicleAngularVelocity: number;
-}
+export { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
+export type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
 
 /**
  * Spawns an entity other than a player on the client.

@@ -1,7 +1,7 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
 import DataPacket from './DataPacket';
-import { gameRulesChangedPacket } from './gameRulesChanged.wire';
+import { gameRulesChangedPacket } from '@jsprismarine/protocol/wire/definitions/gameRulesChanged';
 
 import type { GameRule } from '../type/GameRule';
 

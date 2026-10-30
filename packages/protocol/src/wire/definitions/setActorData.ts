@@ -1,13 +1,11 @@
 /**
  * `SetActorDataPacket`: a delta of an entity's metadata, described as a declarative field
  * list; layout unchanged between protocols 2193 and 2225.
- *
- * This definition lives beside the class because `Metadata` and `SyncedProperties` are
- * prismarine-owned; it moves to `@jsprismarine/protocol`'s registry when they do.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-data-packet/}
  */
-import { definePacket, t } from '@jsprismarine/protocol';
-import { metadata, syncedProperties } from '../wire/fieldTypes';
+import { definePacket } from '../define';
+import * as t from '../fieldTypes';
+import { metadata, syncedProperties } from '../structureTypes';
 
 /** The `SetActorDataPacket` field list; the class doc carries the wire provenance. */
 export const setActorDataPacket = definePacket('SetActorDataPacket', {

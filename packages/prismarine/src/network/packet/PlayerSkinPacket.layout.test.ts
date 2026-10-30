@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import UUID from '../../utils/UUID';
 import Skin from '../../utils/skin/Skin';
 import PlayerSkinPacket from './PlayerSkinPacket';
-import { playerSkinPacket } from './playerSkin.wire';
+import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
 
 /**
  * The declarative layout must produce the same bytes as the classes it replaces, at both

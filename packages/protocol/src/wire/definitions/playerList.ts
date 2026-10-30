@@ -23,18 +23,17 @@
  * `PlayerListAddEntry.json` and `SerializedSkin.json` schemas in Mojang's v1.26.51 and
  * v1.26.60 `metadata.zip`, and against gophertunnel v1.63.0, which made the same move its
  * 1.26.60 breaking change.
- *
- * This definition lives beside the class because `PlayerListEntry` and `Skin` are
- * prismarine-owned; it moves to `@jsprismarine/protocol`'s registry when they do.
  */
-import { definePacket, gated, SINCE_2225, t, UNTIL_2225 } from '@jsprismarine/protocol';
-import { NetworkUtil } from '../NetworkUtil';
-import UUID from '../../utils/UUID';
-import Skin, { SKIN_WIRE_2193, SKIN_WIRE_2225 } from '../../utils/skin/Skin';
-import { PlayerListAction, PlayerListEntry } from './PlayerListPacket';
+import { definePacket, gated } from '../define';
+import * as t from '../fieldTypes';
+import { NetworkUtil } from '../networkUtil';
+import { PlayerListAction, PlayerListEntry } from '../structures/PlayerListEntry';
+import Skin, { SKIN_WIRE_2193, SKIN_WIRE_2225 } from '../structures/skin/Skin';
+import UUID from '../structures/UUID';
+import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 
-import type { SkinWireLayout } from '../../utils/skin/Skin';
-import type { PayloadOf } from '@jsprismarine/protocol';
+import type { PayloadOf } from '../define';
+import type { SkinWireLayout } from '../structures/skin/Skin';
 
 /** The Action and the entries it shapes, as one value. */
 export interface PlayerListBody {

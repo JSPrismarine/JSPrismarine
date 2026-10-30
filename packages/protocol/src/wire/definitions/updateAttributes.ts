@@ -1,13 +1,11 @@
 /**
  * `UpdateAttributesPacket`: an entity's changed attributes, described as a declarative field
  * list; layout unchanged between protocols 2193 and 2225.
- *
- * This definition lives beside the class because `Attribute` is prismarine-owned; it moves to
- * `@jsprismarine/protocol`'s registry when the structure does.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/}
  */
-import { definePacket, t } from '@jsprismarine/protocol';
-import { Attribute } from '../../entity/Attribute';
+import { definePacket } from '../define';
+import * as t from '../fieldTypes';
+import { Attribute } from '../structures/Attribute';
 
 /**
  * One `AttributeData` entry: the six bounds and value floats, the name, then the modifiers,

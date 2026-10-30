@@ -3,7 +3,7 @@ import { layoutAt } from '@jsprismarine/protocol';
 import type UUID from '../../utils/UUID';
 import type Skin from '../../utils/skin/Skin';
 import DataPacket from './DataPacket';
-import { playerSkinPacket } from './playerSkin.wire';
+import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
 
 /**
  * A player changing skin mid-session.

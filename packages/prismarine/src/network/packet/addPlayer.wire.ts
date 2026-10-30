@@ -9,12 +9,19 @@
  * `AddPlayer.Marshal` at v1.63.0 (`OptionalMarshaler` of `PassengerOfBlock` before
  * `DeviceID`), which agree. Nothing else changed.
  *
- * This definition lives beside the class because its structures (`Item`, `Metadata`, `UUID`)
- * are prismarine-owned; it moves to `@jsprismarine/protocol`'s registry when they do.
+ * This definition lives beside the class because the carried item is a prismarine-owned
+ * `Item`; it moves to `@jsprismarine/protocol`'s registry when that does.
  */
 import { definePacket, gated, SINCE_2225, t } from '@jsprismarine/protocol';
-import { itemStackDescriptor, metadata, passengerOfBlock, syncedProperties, uuid, vec3 } from '../wire/fieldTypes';
-import { actorLinks } from './addActor.wire';
+import { actorLinks } from '@jsprismarine/protocol/wire/definitions/addActor';
+import {
+    metadata,
+    passengerOfBlock,
+    syncedProperties,
+    uuid,
+    vector3
+} from '@jsprismarine/protocol/wire/structureTypes';
+import { itemStackDescriptor } from '../wire/fieldTypes';
 
 import type { PayloadOf } from '@jsprismarine/protocol';
 
@@ -94,9 +101,9 @@ export const addPlayerPacket = definePacket('AddPlayerPacket', {
     /** `Platform Chat Id`. */
     platformChatId: t.string,
     /** `Position`. */
-    position: vec3,
+    position: vector3,
     /** `Velocity`. */
-    motion: vec3,
+    motion: vector3,
     /** `Rotation` pitch. */
     pitch: t.lf32,
     /** `Rotation` yaw. */

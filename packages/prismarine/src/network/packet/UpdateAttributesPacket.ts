@@ -1,7 +1,7 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
 import DataPacket from './DataPacket';
-import { updateAttributesPacket } from './updateAttributes.wire';
+import { updateAttributesPacket } from '@jsprismarine/protocol/wire/definitions/updateAttributes';
 
 import type { Attribute } from '../../entity/Attribute';
 

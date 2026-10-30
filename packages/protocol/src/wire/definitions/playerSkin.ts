@@ -6,18 +6,17 @@
  * `Localized Old Skin Name`. Protocol 2225 dropped the skin's own `PlayFabID` from
  * `SerializedSkin` ordinal 1; unlike the player list, nothing takes the field's place here -
  * the packet has no entry to move it onto - so a 2225 skin is simply one string shorter. The
- * move is expressed as a gated pair of skin layouts. `playerList.wire.ts` has the schema
+ * move is expressed as a gated pair of skin layouts. `playerList.ts` has the schema
  * citations and the failure the 2225 layout avoids.
- *
- * This definition lives beside the class because `Skin` and `UUID` are prismarine-owned; it
- * moves to `@jsprismarine/protocol`'s registry when they do.
  */
-import { definePacket, gated, SINCE_2225, t, UNTIL_2225 } from '@jsprismarine/protocol';
-import { SKIN_WIRE_2193, SKIN_WIRE_2225 } from '../../utils/skin/Skin';
-import { serializedSkin, uuid } from '../wire/fieldTypes';
+import { definePacket, gated } from '../define';
+import * as t from '../fieldTypes';
+import { SKIN_WIRE_2193, SKIN_WIRE_2225 } from '../structures/skin/Skin';
+import { serializedSkin, uuid } from '../structureTypes';
+import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 
-import type Skin from '../../utils/skin/Skin';
-import type { PayloadOf } from '@jsprismarine/protocol';
+import type { PayloadOf } from '../define';
+import type Skin from '../structures/skin/Skin';
 
 /** The `PlayerSkinPacket` field list; the module doc carries the wire provenance. */
 export const playerSkinPacket = definePacket('PlayerSkinPacket', {

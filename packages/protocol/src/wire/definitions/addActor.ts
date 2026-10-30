@@ -7,18 +7,41 @@
  * against the v1.26.60 `metadata.zip` (`AddActorPacketPayload.json`) and gophertunnel's
  * `AddActor.Marshal` at v1.63.0 (`OptionalMarshaler` of `PassengerOfBlock` last), which
  * agree. Nothing before it changed.
- *
- * This definition lives beside the class because its structures (`Attribute`, `Metadata`,
- * `SyncedProperties`) are prismarine-owned; it moves to `@jsprismarine/protocol`'s registry
- * when they do.
  */
-import { definePacket, gated, SINCE_2225, t } from '@jsprismarine/protocol';
-import { Attribute } from '../../entity/Attribute';
-import { metadata, passengerOfBlock, syncedProperties, vec3 } from '../wire/fieldTypes';
-import { ActorLinkType } from './AddActorPacket';
+import { definePacket, gated } from '../define';
+import * as t from '../fieldTypes';
+import { Attribute } from '../structures/Attribute';
+import { metadata, passengerOfBlock, syncedProperties, vector3 } from '../structureTypes';
+import { SINCE_2225 } from '../wireGates';
 
-import type { ActorLink } from './AddActorPacket';
-import type { PayloadOf } from '@jsprismarine/protocol';
+import type { PayloadOf } from '../define';
+
+/**
+ * The `ActorLinkType` values an {@link ActorLink} is sent with.
+ */
+export const ActorLinkType = {
+    None: 0,
+    Riding: 1,
+    Passenger: 2
+} as const;
+
+/**
+ * One riding relationship between two entities, in the 2193 `ActorLink` layout.
+ */
+export interface ActorLink {
+    /** Target A, the vehicle's unique id. Written as a ZigZag varint64. */
+    targetA: bigint;
+    /** Target B, the rider's unique id. Written as a ZigZag varint64. */
+    targetB: bigint;
+    /** Type, one of {@link ActorLinkType}. Written as a uint8. */
+    type: (typeof ActorLinkType)[keyof typeof ActorLinkType];
+    /** Immediate: whether the client should skip the mounting animation. */
+    immediate: boolean;
+    /** Passenger Initiated: whether the passenger changed the link. */
+    passengerInitiated: boolean;
+    /** Vehicle Angular Velocity, a little-endian float. */
+    vehicleAngularVelocity: number;
+}
 
 /** Whether a link's `Type` byte names one of the {@link ActorLinkType} values. */
 const isActorLinkType = (value: number): value is ActorLink['type'] =>
@@ -92,9 +115,9 @@ export const addActorPacket = definePacket('AddActorPacket', {
     /** `Actor Type`: the namespaced entity id. */
     type: t.string,
     /** `Position`. */
-    position: vec3,
+    position: vector3,
     /** `Velocity`. */
-    motion: vec3,
+    motion: vector3,
     /** `Rotation` pitch. */
     pitch: t.lf32,
     /** `Rotation` yaw. */

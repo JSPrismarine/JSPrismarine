@@ -2,19 +2,18 @@
  * `GameRulesChangedPacket`: the rules whose values changed, described as a declarative field
  * list; layout unchanged between protocols 2193 and 2225.
  *
- * This definition lives beside the class because the `GameRule` structure and its codecs are
- * prismarine-owned (`../type/GameRule`, shared with `StartGamePacket`); it moves to
- * `@jsprismarine/protocol`'s registry when they do.
+ * The `GameRule` structure and its codecs are shared with `StartGamePacket`.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/game-rules-changed-packet/}
  */
-import { definePacket, t } from '@jsprismarine/protocol';
-import { readGameRule, writeGameRule } from '../type/GameRule';
+import { definePacket } from '../define';
+import * as t from '../fieldTypes';
+import { readGameRule, writeGameRule } from '../structures/GameRule';
 
-import type { GameRule } from '../type/GameRule';
+import type { GameRule } from '../structures/GameRule';
 
 /**
  * One `GameRule` entry: name, whether the player may modify it, then the tagged value, bridged
- * from the hand-written codec pair in `../type/GameRule`.
+ * from the hand-written codec pair in `../structures/GameRule`.
  */
 const gameRule = t.custom<GameRule>(
     'GameRule',

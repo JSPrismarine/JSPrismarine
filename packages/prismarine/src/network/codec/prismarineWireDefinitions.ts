@@ -8,14 +8,14 @@
  * round-trip suite consults both registries, so these packets are held to the same captured
  * server bytes either way.
  */
-import { addActorPacket } from '../packet/addActor.wire';
+import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 import { addPlayerPacket } from '../packet/addPlayer.wire';
-import { gameRulesChangedPacket } from '../packet/gameRulesChanged.wire';
+import { gameRulesChangedPacket } from '@jsprismarine/protocol/wire/definitions/gameRulesChanged';
 import { inventoryTransactionPacket } from '../packet/inventoryTransaction.wire';
-import { playerListPacket } from '../packet/playerList.wire';
-import { playerSkinPacket } from '../packet/playerSkin.wire';
-import { setActorDataPacket } from '../packet/setActorData.wire';
-import { updateAttributesPacket } from '../packet/updateAttributes.wire';
+import { playerListPacket } from '@jsprismarine/protocol/wire/definitions/playerList';
+import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
+import { setActorDataPacket } from '@jsprismarine/protocol/wire/definitions/setActorData';
+import { updateAttributesPacket } from '@jsprismarine/protocol/wire/definitions/updateAttributes';
 
 import type { PacketDefinition } from '@jsprismarine/protocol';
 

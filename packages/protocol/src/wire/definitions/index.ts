@@ -6,16 +6,20 @@
  * adding its definition here and making its class walk the layout; the suite picks it up from
  * the registry with no further registration.
  */
+import { addActorPacket } from './addActor';
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
+import { gameRulesChangedPacket } from './gameRulesChanged';
 import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
 import { levelSoundEventPacket } from './levelSoundEvent';
+import { playerListPacket } from './playerList';
+import { playerSkinPacket } from './playerSkin';
 import { playStatusPacket } from './playStatus';
 import { resourcePacksInfoPacket, resourcePackStackPacket } from './resourcePacks';
 import { serverToClientHandshakePacket } from './serverToClientHandshake';
@@ -32,10 +36,12 @@ import {
     setTimePacket,
     updateAdventureSettingsPacket
 } from './worldStatus';
+import { setActorDataPacket } from './setActorData';
 import { startGamePacket } from './startGame';
 import { syncActorPropertyPacket } from './syncActorProperty';
 import { trimDataPacket } from './trimData';
 import { updateAbilitiesPacket } from './updateAbilities';
+import { updateAttributesPacket } from './updateAttributes';
 import { updateSubChunkBlocksPacket } from './updateSubChunkBlocks';
 import { voxelShapesPacket } from './voxelShapes';
 
@@ -44,24 +50,30 @@ import type { PacketDefinition } from '../define';
 /** The declaratively defined packets, keyed by packet name. */
 export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
     [
+        addActorPacket,
         animatePacket,
         availableActorIdentifiersPacket,
         biomeDefinitionListPacket,
         cameraAimAssistPresetsPacket,
         cameraPresetsPacket,
         chunkRadiusUpdatedPacket,
+        gameRulesChangedPacket,
         jigsawStructureDataPacket,
         levelChunkPacket,
         levelEventGenericPacket,
         levelSoundEventPacket,
+        playerListPacket,
+        playerSkinPacket,
         playStatusPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
         serverToClientHandshakePacket,
+        setActorDataPacket,
         startGamePacket,
         syncActorPropertyPacket,
         trimDataPacket,
         updateAbilitiesPacket,
+        updateAttributesPacket,
         updateSubChunkBlocksPacket,
         voxelShapesPacket,
         networkChunkPublisherUpdatePacket,
