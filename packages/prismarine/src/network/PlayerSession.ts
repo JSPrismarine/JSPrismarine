@@ -56,7 +56,7 @@ import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusU
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
-import LevelChunkPacket from './packet/LevelChunkPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
@@ -499,13 +499,15 @@ export default class PlayerSession {
 
         const batch = new BatchPacket();
         for (const chunk of chunksToSend) {
-            const pk = new LevelChunkPacket();
-            pk.chunkX = chunk.getX();
-            pk.dimension = chunk.getDimension().id;
-            pk.chunkZ = chunk.getZ();
-            pk.clientSubChunkRequestsEnabled = false;
-            pk.subChunkCount = chunk.getNetworkSubChunkCount();
-            pk.data = chunk.networkSerialize();
+            const pk = new LevelChunkPacket({
+                chunkX: chunk.getX(),
+                chunkZ: chunk.getZ(),
+                dimension: chunk.getDimension().id,
+                subChunkCount: chunk.getNetworkSubChunkCount(),
+                clientSubChunkRequestsEnabled: false,
+                cached: false,
+                payload: chunk.networkSerialize()
+            });
 
             batch.addPacket(pk);
         }

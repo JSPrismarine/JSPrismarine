@@ -60,7 +60,7 @@ import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStruc
 import LabTablePacket from '@jsprismarine/protocol/packet/LabTablePacket';
 import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
 import LegacyTelemetryEventPacket from '@jsprismarine/protocol/packet/LegacyTelemetryEventPacket';
-import LevelChunkPacket from './packet/LevelChunkPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import LevelEventGenericPacket from '@jsprismarine/protocol/packet/LevelEventGenericPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';

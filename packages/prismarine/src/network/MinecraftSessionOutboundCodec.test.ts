@@ -12,7 +12,7 @@ import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import BatchPacket from './packet/BatchPacket';
-import LevelChunkPacket from './packet/LevelChunkPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import { HandSlot } from './packet/InventoryTransactionPacket';
 
@@ -132,12 +132,15 @@ describe('network', () => {
 
         it('the chunk batch path encodes LevelChunkPacket under the session codec', async () => {
             const chunk = () => {
-                const packet = new LevelChunkPacket();
-                packet.chunkX = 4;
-                packet.chunkZ = -3;
-                packet.subChunkCount = 2;
-                packet.data = Buffer.from([1, 2, 3]);
-                return packet;
+                return new LevelChunkPacket({
+                    chunkX: 4,
+                    chunkZ: -3,
+                    dimension: 0,
+                    subChunkCount: 2,
+                    clientSubChunkRequestsEnabled: false,
+                    cached: false,
+                    payload: Buffer.from([1, 2, 3])
+                });
             };
 
             const old = fakeSession(Codec2193);
@@ -162,7 +165,7 @@ describe('network', () => {
             expect(decoded).toBeInstanceOf(LevelChunkPacket);
             decoded!.decode();
             expect(decoded!.feof()).toBe(true);
-            expect(decoded).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: false });
+            expect(decoded!.getPacketData()).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: false });
         });
     });
 

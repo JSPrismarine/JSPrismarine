@@ -12,7 +12,7 @@ import type { AddPlayerPayload } from '@jsprismarine/protocol';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
-import LevelChunkPacket from '../packet/LevelChunkPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import { BuildPlatform } from '@jsprismarine/minecraft';
@@ -98,17 +98,21 @@ describe('network/codec', () => {
         it('round-trips the trailing Is Client Biome Update boolean LevelChunkPacket gained', () => {
             // One class at every version; the stamped protocol picks the layout, exactly as
             // `prepareOutbound` stamps a session's outbound packets.
-            const packet = new LevelChunkPacket();
+            const packet = new LevelChunkPacket({
+                chunkX: 4,
+                chunkZ: -3,
+                dimension: 0,
+                subChunkCount: 2,
+                clientSubChunkRequestsEnabled: false,
+                cached: false,
+                payload: Buffer.from([1, 2, 3]),
+                isClientBiomeUpdate: true
+            });
             packet.codecProtocol = 2225;
-            packet.chunkX = 4;
-            packet.chunkZ = -3;
-            packet.subChunkCount = 2;
-            packet.data = Buffer.from([1, 2, 3]);
-            packet.isClientBiomeUpdate = true;
 
             const decoded = roundTrip(packet);
-            expect(decoded).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: true });
-            expect(decoded.data).toStrictEqual(Buffer.from([1, 2, 3]));
+            expect(decoded.getPacketData()).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: true });
+            expect(decoded.getPacketData()?.payload).toStrictEqual(Buffer.from([1, 2, 3]));
         });
 
         it('round-trips the Editor Level Migration Version int8 StartGamePacket gained', () => {

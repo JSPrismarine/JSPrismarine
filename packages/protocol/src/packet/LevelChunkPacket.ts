@@ -1,5 +1,8 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import { levelChunkPacket } from '../wire/definitions/levelChunk';
+import { layoutAt } from '../wire/WireLayout';
+import { SINCE_2225 } from '../wire/wireGates';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -30,6 +33,8 @@ export interface LevelChunk {
      * blocks decodes this itself; the length is right here, so nothing is lost by waiting.
      */
     payload: Buffer;
+    /** Whether server biome data overrides the client's, present from protocol 2225. */
+    isClientBiomeUpdate?: boolean;
 }
 
 /**
@@ -50,6 +55,7 @@ export interface LevelChunk {
  * By volume this is almost all of what a server sends, which makes it the packet a load test
  * most needs to be able to skip. Reading the envelope and leaving the payload alone costs
  * nothing and still says which chunk arrived, when, and how big it was.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-chunk-packet/
  */
 export default class LevelChunkPacket extends NetworkPacket<LevelChunk> {
     public get id(): number {
@@ -57,51 +63,33 @@ export default class LevelChunkPacket extends NetworkPacket<LevelChunk> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: LevelChunk): void {
-        stream.writeVarInt(data.chunkX);
-        stream.writeVarInt(data.chunkZ);
-        stream.writeVarInt(data.dimension);
-
-        if (data.clientSubChunkRequestsEnabled) {
-            stream.writeUnsignedVarInt(0);
-            stream.writeBoolean(true);
-            stream.writeVarInt(data.subChunkCount);
-        } else {
-            stream.writeUnsignedVarInt(data.subChunkCount);
-            stream.writeBoolean(false);
-        }
-
-        stream.writeBoolean(data.cached);
-
-        const blobHashes = data.blobHashes ?? [];
-        stream.writeUnsignedVarInt(blobHashes.length);
-        for (const hash of blobHashes) stream.writeUnsignedLongLE(hash);
-
-        stream.writeLengthPrefixed(data.payload);
+        layoutAt(levelChunkPacket, this.codecProtocol).encode(stream, {
+            chunkX: data.chunkX,
+            chunkZ: data.chunkZ,
+            dimension: data.dimension,
+            subChunkRequest: { clientRequestsEnabled: data.clientSubChunkRequestsEnabled, count: data.subChunkCount },
+            cacheEnabled: data.cached,
+            cacheBlobIds: data.blobHashes ?? [],
+            data: data.payload,
+            isClientBiomeUpdate: data.isClientBiomeUpdate ?? false
+        });
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): LevelChunk {
-        const chunkX = stream.readVarInt();
-        const chunkZ = stream.readVarInt();
-        const dimension = stream.readVarInt();
-
-        const count = stream.readUnsignedVarInt();
-        const clientSubChunkRequestsEnabled = stream.readBoolean();
-        const subChunkCount = clientSubChunkRequestsEnabled ? stream.readVarInt() : count;
-        const cached = stream.readBoolean();
-
-        const blobHashes: bigint[] = [];
-        let hashes = stream.readUnsignedVarInt();
-        while (hashes-- > 0) blobHashes.push(stream.readUnsignedLongLE());
-
-        return {
-            chunkX,
-            chunkZ,
-            dimension,
-            subChunkCount,
-            clientSubChunkRequestsEnabled,
-            cached,
-            blobHashes,
-            payload: stream.readLengthPrefixed()
+        const decoded = layoutAt(levelChunkPacket, this.codecProtocol).decode(stream);
+        const data: LevelChunk = {
+            chunkX: decoded.chunkX,
+            chunkZ: decoded.chunkZ,
+            dimension: decoded.dimension,
+            subChunkCount: decoded.subChunkRequest.count,
+            clientSubChunkRequestsEnabled: decoded.subChunkRequest.clientRequestsEnabled,
+            cached: decoded.cacheEnabled,
+            blobHashes: decoded.cacheBlobIds,
+            payload: decoded.data
         };
+
+        if (SINCE_2225.includedAt(this.codecProtocol)) data.isClientBiomeUpdate = decoded.isClientBiomeUpdate;
+
+        return data;
     }
 }
