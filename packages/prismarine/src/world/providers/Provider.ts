@@ -4,6 +4,27 @@ import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../Dimension';
 import type { WorldPersistenceData } from '../WorldPersistence';
+import type { LevelStem } from '@jsprismarine/worldgen';
+
+/**
+ * What a provider writes into the save's level metadata, `level.dat` for the LevelDB format.
+ *
+ * Every field is per save rather than per dimension: Bedrock keeps one spawn, one clock and one
+ * `Generator` for the whole world. A field left out keeps whatever the file already holds.
+ */
+export interface LevelDatInputs {
+    /** The world spawn, which Bedrock always places in the Overworld. */
+    readonly spawn?: { x: number; y: number; z: number };
+    /** The clock in ticks, Bedrock's `Time`. */
+    readonly time?: number;
+    /**
+     * The resolved level stems by Java dimension id. The `minecraft:overworld` stem decides
+     * `Generator` (2 for a flat generator, 1 otherwise) and `FlatWorldLayers`.
+     */
+    readonly stems?: Readonly<Record<string, LevelStem>>;
+    /** The Nether's `coordinate_scale`, written as `NetherScale`. Defaults to Java's 8. */
+    readonly netherScale?: number;
+}
 
 /**
  * Where a save keeps its chunks, players and metadata.
@@ -58,8 +79,8 @@ export default interface Provider extends Service {
     /** Imports the one-time world state written by older versions to `level.json`. */
     migrateLegacyWorldData(data: WorldPersistenceData): Promise<void>;
 
-    /** Persists provider-specific world metadata, such as the spawn position. */
-    saveLevelData?(spawn: { x: number; y: number; z: number }): void;
+    /** Persists provider-specific level metadata: the spawn, the clock, the generator and its layers. */
+    saveLevelData?(level: LevelDatInputs): void;
 
     /** Reads player data from provider-specific storage, if the format supports it. */
     readPlayerData?(key: string): Promise<Partial<WorldPlayerData> | null>;

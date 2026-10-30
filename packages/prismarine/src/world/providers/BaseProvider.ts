@@ -6,6 +6,7 @@ import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../Dimension';
 import type { Entity } from '../../entity/Entity';
 import type Provider from './Provider';
+import type { LevelDatInputs } from './Provider';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
@@ -152,6 +153,6 @@ export default abstract class BaseProvider implements Provider {
         });
     }
 
-    /** Persists provider-specific world metadata when the format supports it. */
-    public saveLevelData(_spawn: { x: number; y: number; z: number }): void {}
+    /** Persists provider-specific level metadata when the format supports it. */
+    public saveLevelData(_level: LevelDatInputs): void {}
 }

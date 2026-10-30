@@ -2862,6 +2862,9 @@ export class World implements Service {
                 ...(this.provider.supportsChunkUnload === true ? {} : { entities })
             };
             await this.provider.writeWorldData(data);
+            // Until a `Level` owns the save, the world passes what it knows: the spawn and its
+            // own clock. The stems and the Nether scale arrive with the level.
+            this.provider.saveLevelData({ ...(spawn ? { spawn: data.spawn } : {}), time: this.getTicks() });
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save world data for ${this.getFormattedName()}`);
             this.server.getLogger().error(error);

@@ -19,6 +19,7 @@ import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
 import type { Position } from '../../Position';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
+import { parseLevelStem } from '@jsprismarine/worldgen';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
 import type { World } from '../../World';
@@ -149,7 +150,7 @@ describe('world', () => {
             // world made by an older server keeps the seed it was generated with.
             const reopened = harness(worldPath, 'MyWorld', 9999n);
             await reopened.provider.enable();
-            reopened.provider.saveLevelData({ x: 1, y: 2, z: 3 });
+            reopened.provider.saveLevelData({ spawn: { x: 1, y: 2, z: 3 } });
             await reopened.provider.disable();
 
             const level = decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat')));
@@ -241,6 +242,7 @@ describe('world', () => {
 
             await provider.enable();
             await provider.writeWorldData(data);
+            provider.saveLevelData({ spawn: data.spawn });
 
             expect(await provider.readWorldData()).toEqual(data);
 
@@ -256,6 +258,109 @@ describe('world', () => {
             await reopened.provider.enable();
             expect(await reopened.provider.readWorldData()).toEqual(data);
             await reopened.provider.disable();
+        });
+
+        describe('level.dat', () => {
+            const levelDat = (worldPath: string) => decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat'))).root;
+
+            /** The vanilla `minecraft:flat` preset's Overworld stem, as a world preset file spells it. */
+            const flatOverworld = parseLevelStem({
+                type: 'minecraft:overworld',
+                generator: {
+                    type: 'minecraft:flat',
+                    settings: {
+                        biome: 'minecraft:plains',
+                        layers: [
+                            { block: 'minecraft:bedrock', height: 1 },
+                            { block: 'minecraft:dirt', height: 2 },
+                            { block: 'minecraft:grass_block', height: 1 }
+                        ]
+                    }
+                }
+            });
+            const noiseOverworld = parseLevelStem({
+                type: 'minecraft:overworld',
+                generator: {
+                    type: 'minecraft:noise',
+                    settings: 'minecraft:overworld',
+                    biome_source: { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' }
+                }
+            });
+
+            it('starts a fresh save as an Infinite world with the default Nether scale and clock', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                await provider.disable();
+
+                const root = levelDat(worldPath);
+                expect(root.getNumber('Generator', -1)).toBe(1);
+                expect(root.getNumber('NetherScale', -1)).toBe(8);
+                expect(root.getLong('Time', -1n)).toBe(0n);
+                expect(root.has('FlatWorldLayers')).toBe(false);
+            });
+
+            it('writes the clock as Time and keeps the spawn when none is given', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                provider.saveLevelData({ spawn: { x: 4, y: 70, z: -2 } });
+                provider.saveLevelData({ time: 24_000 * 3 + 17 });
+                await provider.disable();
+
+                const root = levelDat(worldPath);
+                expect(root.getLong('Time', -1n)).toBe(72_017n);
+                expect(root.getNumber('SpawnX', 0)).toBe(4);
+                expect(root.getByte('JSPrismarineSpawnKnown', 0)).toBe(1);
+            });
+
+            it('writes Generator 2 and the FlatWorldLayers JSON for a flat Overworld stem', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                provider.saveLevelData({ stems: { 'minecraft:overworld': flatOverworld }, netherScale: 8 });
+                await provider.disable();
+
+                const root = levelDat(worldPath);
+                expect(root.getNumber('Generator', -1)).toBe(2);
+                expect(root.getNumber('NetherScale', -1)).toBe(8);
+                // The wiki's default for the field, byte for byte in meaning if not in key order.
+                expect(JSON.parse(root.getString('FlatWorldLayers', ''))).toEqual({
+                    biome_id: 1,
+                    block_layers: [
+                        { block_name: 'minecraft:bedrock', count: 1 },
+                        { block_name: 'minecraft:dirt', count: 2 },
+                        { block_name: 'minecraft:grass_block', count: 1 }
+                    ],
+                    encoding_version: 6,
+                    preset_id: 'ClassicFlat',
+                    structure_options: null,
+                    world_version: 'version.post_1_18'
+                });
+            });
+
+            it('writes Generator 1 and no FlatWorldLayers once the Overworld stem is a noise one', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                provider.saveLevelData({ stems: { 'minecraft:overworld': flatOverworld } });
+                provider.saveLevelData({ stems: { 'minecraft:overworld': noiseOverworld, 'minecraft:the_nether': noiseOverworld } });
+                await provider.disable();
+
+                const root = levelDat(worldPath);
+                expect(root.getNumber('Generator', -1)).toBe(1);
+                expect(root.has('FlatWorldLayers')).toBe(false);
+            });
+
+            it('writes the Nether scale it is given', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                provider.saveLevelData({ netherScale: 3 });
+                await provider.disable();
+
+                expect(levelDat(worldPath).getNumber('NetherScale', -1)).toBe(3);
+            });
         });
 
         it("writes a player's items as the Items NBT a vanilla tool reads", async () => {

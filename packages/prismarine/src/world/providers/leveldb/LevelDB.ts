@@ -23,7 +23,17 @@ import {
     encodePendingEntityKey,
     encodePlayerServerKey
 } from './LevelDBKeys';
-import { LEVEL_DAT_STORAGE_VERSION, readLevelDat, readLevelName, writeLevelDat, writeLevelName } from './LevelDat';
+import {
+    LEVEL_DAT_STORAGE_VERSION,
+    flatWorldLayersOf,
+    isFlatGenerator,
+    levelDatGeneratorOf,
+    readLevelDat,
+    readLevelName,
+    writeLevelDat,
+    writeLevelName
+} from './LevelDat';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
@@ -37,6 +47,7 @@ import type { DimensionType } from '../../Dimension';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
+import type { LevelDatInputs } from '../Provider';
 import { parseWorldPersistenceData, worldPersistenceDataOf } from '../../WorldPersistence';
 
 /** The `Version` byte written since 1.21.120. Older values make the game run upgrade passes. */
@@ -50,6 +61,9 @@ const FINALIZED_DONE = 2;
  * is always in the Overworld, so the Overworld's floor is the one it stands on.
  */
 const DEFAULT_SPAWN_Y = Dimensions.Overworld.minY + 100;
+
+/** Java's Nether `coordinate_scale`, which is also the game's `NetherScale` default. */
+const DEFAULT_NETHER_SCALE = Dimensions.Nether.java.coordinateScale;
 
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
@@ -150,7 +164,12 @@ export default class LevelDB extends BaseProvider {
         return { spawn };
     }
 
-    /** Stores world metadata in LevelDB and the spawn in Bedrock's standard `level.dat` tags. */
+    /**
+     * Stores world metadata in the provider's LevelDB record.
+     *
+     * `level.dat` is {@link saveLevelData}'s: the spawn lands there too, beside the clock and
+     * the generator, when the world saves its level data.
+     */
     public override async writeWorldData(data: WorldPersistenceData): Promise<void> {
         const metadata: WorldPersistenceData = {
             ...(data.spawn === undefined ? {} : { spawn: data.spawn }),
@@ -160,8 +179,6 @@ export default class LevelDB extends BaseProvider {
         const root = new NBTTagCompound('');
         root.addValue('Data', new Types.StringVal(JSON.stringify(metadata)));
         this.requireDatabase().write(new WriteBatch().put(WORLD_DATA_KEY, this.writeActorNbt(root)));
-
-        if (metadata.spawn !== undefined) this.saveSpawnInLevelDat(metadata.spawn);
     }
 
     /** Moves legacy world metadata and actor snapshots into LevelDB before the sidecar is removed. */
@@ -732,23 +749,42 @@ export default class LevelDB extends BaseProvider {
         root.addValue('SpawnY', new Types.NumberVal(DEFAULT_SPAWN_Y));
         root.addValue('SpawnZ', new Types.NumberVal(0));
         root.addValue('JSPrismarineSpawnKnown', new Types.ByteVal(0));
+        root.addValue('Generator', new Types.NumberVal(levelDatGeneratorOf(undefined)));
+        root.addValue('NetherScale', new Types.NumberVal(DEFAULT_NETHER_SCALE));
+        root.addValue('Time', new Types.LongVal(0n));
 
         return root;
     }
 
-    /** Writes the level metadata back, called when the world saves. */
-    public override saveLevelData(spawn: { x: number; y: number; z: number }): void {
-        this.saveSpawnInLevelDat(spawn);
-    }
-
-    private saveSpawnInLevelDat(spawn: { x: number; y: number; z: number }): void {
+    /**
+     * Writes the level metadata back, called when the world saves.
+     *
+     * Each input replaces its own tags and leaves the rest of the file alone, so a save that
+     * knows no spawn yet keeps the spawn the file already holds. `FlatWorldLayers` is written
+     * for a flat Overworld stem and removed for any other, since the game reads it only when
+     * `Generator` says flat.
+     */
+    public override saveLevelData(level: LevelDatInputs): void {
         const existing = readLevelDat(this.getPath());
         const root = existing?.root ?? this.buildLevelDat(this.getWorld().getName());
 
-        root.addValue('SpawnX', new Types.NumberVal(Math.trunc(spawn.x)));
-        root.addValue('SpawnY', new Types.NumberVal(Math.trunc(spawn.y)));
-        root.addValue('SpawnZ', new Types.NumberVal(Math.trunc(spawn.z)));
-        root.addValue('JSPrismarineSpawnKnown', new Types.ByteVal(1));
+        if (level.spawn !== undefined) {
+            root.addValue('SpawnX', new Types.NumberVal(Math.trunc(level.spawn.x)));
+            root.addValue('SpawnY', new Types.NumberVal(Math.trunc(level.spawn.y)));
+            root.addValue('SpawnZ', new Types.NumberVal(Math.trunc(level.spawn.z)));
+            root.addValue('JSPrismarineSpawnKnown', new Types.ByteVal(1));
+        }
+        if (level.time !== undefined) root.addValue('Time', new Types.LongVal(BigInt(Math.trunc(level.time))));
+        if (level.netherScale !== undefined) root.addValue('NetherScale', new Types.NumberVal(level.netherScale));
+        if (level.stems !== undefined) {
+            const overworld = level.stems[OVERWORLD_STEM_ID]?.generator;
+            root.addValue('Generator', new Types.NumberVal(levelDatGeneratorOf(overworld)));
+            if (overworld !== undefined && isFlatGenerator(overworld)) {
+                root.addValue('FlatWorldLayers', new Types.StringVal(flatWorldLayersOf(overworld.settings)));
+            } else {
+                root.remove('FlatWorldLayers');
+            }
+        }
 
         writeLevelDat(this.getPath(), { storageVersion: LEVEL_DAT_STORAGE_VERSION, root });
     }
