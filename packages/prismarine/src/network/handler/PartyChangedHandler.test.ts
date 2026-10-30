@@ -6,7 +6,8 @@ import type Server from '../../Server';
 import type { LoggedLines } from '../../testing/blockTarget.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PartyChangedPacket from '../packet/PartyChangedPacket';
+import PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
+import PlayerPartyInfo from '@jsprismarine/protocol/structure/PlayerPartyInfo';
 import PartyChangedHandler from './PartyChangedHandler';
 
 const fakeSession = () => {
@@ -24,7 +25,7 @@ const fakeSession = () => {
 };
 
 const change = (partyId: string, isPartyLeader = false) =>
-    Object.assign(new PartyChangedPacket(), { partyId, isPartyLeader });
+    new PartyChangedPacket({ partyInfo: new PlayerPartyInfo(partyId, isPartyLeader) });
 
 describe('PartyChangedHandler', () => {
     it('logs the party and the leader role', () => {

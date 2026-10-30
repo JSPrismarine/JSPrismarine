@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type PartyChangedPacket from '../packet/PartyChangedPacket';
-import { MAX_PARTY_ID_LENGTH } from '../packet/PartyChangedPacket';
+import type PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
+import { MAX_PARTY_ID_LENGTH } from '@jsprismarine/protocol/structure/PlayerPartyInfo';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -19,21 +19,23 @@ export default class PartyChangedHandler implements PacketHandler<PartyChangedPa
     /** Checks the id length, then logs whether the player joined, leads or left a party. */
     public handle(packet: PartyChangedPacket, server: Server, session: PlayerSession): void {
         const name = session.getPlayer().getName();
+        const partyInfo = packet.getPacketData()?.partyInfo;
+        if (partyInfo === undefined) throw new Error('Cannot handle a PartyChangedPacket without decoded data');
 
-        if (packet.partyId.length > MAX_PARTY_ID_LENGTH) {
+        if (partyInfo.partyId.length > MAX_PARTY_ID_LENGTH) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a party change from ${name}: the party id is ${packet.partyId.length} characters, more than the ${MAX_PARTY_ID_LENGTH} allowed`,
+                    `Dropped a party change from ${name}: the party id is ${partyInfo.partyId.length} characters, more than the ${MAX_PARTY_ID_LENGTH} allowed`,
                     'PartyChangedHandler/handle'
                 );
             return;
         }
 
         const change =
-            packet.partyId === ''
+            partyInfo.partyId === ''
                 ? 'left its party'
-                : `is in party ${packet.partyId}${packet.isPartyLeader ? ' as its leader' : ''}`;
+                : `is in party ${partyInfo.partyId}${partyInfo.isPartyLeader ? ' as its leader' : ''}`;
 
         server.getLogger().debug(`${name} ${change}. Parties are not tracked`, 'PartyChangedHandler/handle');
     }

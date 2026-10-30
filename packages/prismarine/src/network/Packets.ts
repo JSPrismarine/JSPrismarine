@@ -82,7 +82,7 @@ import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStac
 import NpcRequestPacket from './packet/NpcRequestPacket';
 import OnScreenTextureAnimationPacket from '@jsprismarine/protocol/packet/OnScreenTextureAnimationPacket';
 import PacketViolationWarningPacket from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
-import PartyChangedPacket from './packet/PartyChangedPacket';
+import PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
 import PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';

@@ -1,6 +1,9 @@
 import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 
+/** Maximum character count in `PlayerPartyInfo.partyId`. */
+export const MAX_PARTY_ID_LENGTH = 49;
+
 /**
  * A `PlayerPartyInfo`: the platform party a player is in and whether it leads that party.
  * `PartyChangedPacket` carries one, and the login `ConnectionRequest` reports the same pair.
