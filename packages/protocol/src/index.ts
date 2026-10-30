@@ -34,6 +34,7 @@ export * from './wire/definitions/animate';
 export * from './wire/definitions/chunkRadiusUpdated';
 export * from './wire/definitions/index';
 export * from './wire/definitions/levelChunk';
+export * from './wire/definitions/levelEventGeneric';
 export * from './wire/definitions/levelSoundEvent';
 export * from './wire/definitions/playStatus';
 export * from './wire/definitions/resourcePacks';

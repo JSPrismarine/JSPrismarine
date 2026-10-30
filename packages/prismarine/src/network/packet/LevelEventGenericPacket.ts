@@ -1,3 +1,5 @@
+import { layoutAt, levelEventGenericPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -36,13 +38,11 @@ export default class LevelEventGenericPacket extends DataPacket {
 
     /** Reads the event id and the rest of the packet as the event data. */
     public decodePayload(): void {
-        this.eventId = this.readVarInt();
-        this.serializedEventData = this.readRemaining();
+        Object.assign(this, layoutAt(levelEventGenericPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the event id and the event data. */
     public encodePayload(): void {
-        this.writeVarInt(this.eventId);
-        this.write(this.serializedEventData);
+        layoutAt(levelEventGenericPacket, this.codecProtocol).encode(this, this);
     }
 }
