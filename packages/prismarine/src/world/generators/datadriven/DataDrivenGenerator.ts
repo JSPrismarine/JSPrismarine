@@ -39,6 +39,8 @@ import type { BoundingBox } from '@jsprismarine/structures';
 import type {
     BiomeClimate,
     BiomeResolver,
+    BiomeSource,
+    BiomeSourceDefinition,
     CarverConfig,
     MaterialRuleNode,
     NoiseGeneratorSettings,
@@ -49,7 +51,6 @@ import {
     CarvingMask,
     ChunkSampler,
     MaterialRuleData,
-    MultiNoiseBiomeSource,
     RandomState,
     SurfaceSystem,
     WorldgenData,
@@ -58,6 +59,7 @@ import {
     createClimateSampler,
     memoizeBiomeResolver,
     parseBiomeClimate,
+    parseBiomeSource,
     parseCarver
 } from '@jsprismarine/worldgen';
 
@@ -107,8 +109,15 @@ export interface DataDrivenGeneratorOptions {
     readonly dimension?: DimensionType;
     /** The `worldgen/noise_settings` identifier. Defaults to `minecraft:overworld`. */
     readonly noiseSettings?: string;
-    /** The `reports/biome_parameters` identifier. Defaults to `minecraft:overworld`. */
-    readonly biomeParameters?: string;
+    /**
+     * The biome layout, as the `biome_source` of a level stem describes it.
+     *
+     * A definition rather than a built `BiomeSource`, because the worker threads build their
+     * own generator from the same options and an object with closures cannot cross a thread.
+     * A `multi_noise` preset resolves through the `reports/biome_parameters` registry. Defaults
+     * to the `minecraft:overworld` preset.
+     */
+    readonly biomeSource?: BiomeSourceDefinition;
     /** Whether to run the decoration pass. On by default; a terrain test turns it off. */
     readonly decorate?: boolean;
     /** Whether to run the carvers. On by default. */
@@ -487,6 +496,9 @@ const FEATURE_VIEW_TILES = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => [dx
 /** How long the terrain fill may hold the event loop before handing it back, in milliseconds. */
 const TERRAIN_YIELD_BUDGET_MS = 4;
 
+/** The biome layout a generator is given none of: the Overworld climate preset. */
+const DEFAULT_BIOME_SOURCE: BiomeSourceDefinition = { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' };
+
 /** The source a generator with no templates uses, which places the structures that need none. */
 const EMPTY_TEMPLATES: TemplateSource = { template: () => undefined, processorList: () => undefined };
 
@@ -534,7 +546,7 @@ export class DataDrivenGenerator implements Generator {
     private readonly dimension: DimensionType;
     private readonly worldgen: WorldgenData;
     private readonly materialRules: MaterialRuleData;
-    private readonly biomeSource: MultiNoiseBiomeSource;
+    private readonly biomeSource: BiomeSource;
     private readonly structureSpawnOverrides: ReadonlyMap<string, readonly StructureSpawnOverride[]>;
     private readonly pipelines = new Map<string, SeededPipeline>();
 
@@ -601,15 +613,11 @@ export class DataDrivenGenerator implements Generator {
             }
         );
 
-        const parameters = registries.biomeParameters.get(options.biomeParameters ?? 'minecraft:overworld');
-        if (parameters === undefined) {
-            throw new RangeError(
-                `No biome parameter list is registered as ${options.biomeParameters ?? 'minecraft:overworld'}. ` +
-                    'Run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` to write the data generator reports.'
-            );
-        }
-
-        this.biomeSource = MultiNoiseBiomeSource.fromJson(parameters);
+        this.biomeSource = parseBiomeSource(
+            options.biomeSource ?? DEFAULT_BIOME_SOURCE,
+            registries.biomeParameters,
+            `${this.dimension.id}.biome_source`
+        );
         this.stagePool = this.openStagePool(registries);
         this.chunkPool = this.stagePool === undefined ? this.openChunkPool(registries) : undefined;
         // Only when the whole ladder is not already pooled: a worker that builds a chunk runs
@@ -647,9 +655,7 @@ export class DataDrivenGenerator implements Generator {
                 registryBundle: shareRegistryBundle(registries),
                 dimension: this.dimension,
                 ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
-                ...(this.options.biomeParameters === undefined
-                    ? {}
-                    : { biomeParameters: this.options.biomeParameters }),
+                ...(this.options.biomeSource === undefined ? {} : { biomeSource: this.options.biomeSource }),
                 carve: this.options.carve !== false,
                 structures: this.options.structures !== false,
                 javaTemplates: stages.javaTemplates === true
@@ -687,9 +693,7 @@ export class DataDrivenGenerator implements Generator {
                 registryBundle: shareRegistryBundle(registries),
                 dimension: this.dimension,
                 ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
-                ...(this.options.biomeParameters === undefined
-                    ? {}
-                    : { biomeParameters: this.options.biomeParameters }),
+                ...(this.options.biomeSource === undefined ? {} : { biomeSource: this.options.biomeSource }),
                 carve: this.options.carve !== false
             } satisfies ChunkPipelineSetup
         });
@@ -723,9 +727,7 @@ export class DataDrivenGenerator implements Generator {
                 registryBundle: shareRegistryBundle(registries),
                 dimension: this.dimension,
                 ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
-                ...(this.options.biomeParameters === undefined
-                    ? {}
-                    : { biomeParameters: this.options.biomeParameters }),
+                ...(this.options.biomeSource === undefined ? {} : { biomeSource: this.options.biomeSource }),
                 carve: this.options.carve !== false
             } satisfies TerrainPipelineSetup
         });

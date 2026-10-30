@@ -24,6 +24,7 @@
  * parsed registries in 75 ms against 540 reading the 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
+import type { BiomeSourceDefinition } from '@jsprismarine/worldgen';
 
 import type { DimensionType } from '../../Dimension';
 import { Dimensions } from '../../Dimension';
@@ -40,7 +41,8 @@ export interface ChunkPipelineSetup {
     readonly registryBundle: SharedArrayBuffer;
     readonly dimension?: DimensionType;
     readonly noiseSettings?: string;
-    readonly biomeParameters?: string;
+    /** The biome layout; see `DataDrivenGeneratorOptions.biomeSource`. */
+    readonly biomeSource?: BiomeSourceDefinition;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve?: boolean;
     /** Whether the decoration pass includes structure placement. Defaults to true. */
@@ -149,7 +151,7 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         registries,
         dimension: setup.dimension ?? Dimensions.Overworld,
         ...(setup.noiseSettings === undefined ? {} : { noiseSettings: setup.noiseSettings }),
-        ...(setup.biomeParameters === undefined ? {} : { biomeParameters: setup.biomeParameters }),
+        ...(setup.biomeSource === undefined ? {} : { biomeSource: setup.biomeSource }),
         ...(setup.carve === undefined ? {} : { carve: setup.carve }),
         ...(setup.structures === undefined ? {} : { structures: setup.structures }),
         // Read off disk here rather than carried, because the templates are tens of megabytes

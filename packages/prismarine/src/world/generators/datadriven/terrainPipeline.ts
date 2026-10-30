@@ -18,6 +18,7 @@
  * 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
+import type { BiomeSourceDefinition } from '@jsprismarine/worldgen';
 
 import type { DimensionType } from '../../Dimension';
 import { Dimensions } from '../../Dimension';
@@ -31,7 +32,8 @@ export interface TerrainPipelineSetup {
     readonly registryBundle: SharedArrayBuffer;
     readonly dimension: DimensionType;
     readonly noiseSettings?: string;
-    readonly biomeParameters?: string;
+    /** The biome layout; see `DataDrivenGeneratorOptions.biomeSource`. */
+    readonly biomeSource?: BiomeSourceDefinition;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve: boolean;
 }
@@ -77,7 +79,7 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         registries: readRegistryBundle(setup.registryBundle),
         dimension: setup.dimension ?? Dimensions.Overworld,
         ...(setup.noiseSettings === undefined ? {} : { noiseSettings: setup.noiseSettings }),
-        ...(setup.biomeParameters === undefined ? {} : { biomeParameters: setup.biomeParameters }),
+        ...(setup.biomeSource === undefined ? {} : { biomeSource: setup.biomeSource }),
         carve: setup.carve,
         // Nothing above `terrain` runs here, and a worker that laid structures out would repeat
         // work the main thread has already done and cached.
