@@ -7,6 +7,7 @@ import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
 import type { Experiment } from '@jsprismarine/minecraft';
+import type { WireType } from '../fieldTypes';
 import type { PackIdVersion, ResourcePackEntry } from '../../packet/ResourcePacksInfoPacket';
 import type { ResourcePackStackEntry } from '../../packet/ResourcePackStackPacket';
 
@@ -163,4 +164,91 @@ export const resourcePackDataInfoPacket = definePacket('ResourcePackDataInfoPack
     isPremiumPack: t.bool,
     /** `Pack Type`: a `PackType`, 6 for a resource pack. */
     packType: t.uint8
+});
+
+/**
+ * The `Response Type` string of each alternative, indexed by the alternative index.
+ *
+ * Real clients and gophertunnel send these in lower case. Mojang's docs list them as `Cancel`,
+ * `Downloading`, `DownloadingFinished` and `ResourcePackStackFinished`. The lower case form is
+ * the one proven on the wire, so it stays. Decoding discards the string, so either casing reads.
+ */
+const RESPONSE_TYPE_NAMES = ['cancel', 'downloading', 'downloadingfinished', 'resourcepackstackfinished'];
+
+/**
+ * What separates a status from its alternative index: `Refused` is 1 and `Cancel` is alternative 0.
+ *
+ * Protocol 2207 renumbers the docs enum to 1..4, which matches the status values. A bump past 2193
+ * has to drop this offset.
+ */
+const ALTERNATIVE_OFFSET = 1;
+
+/** The status whose alternative is the only one followed by `Downloading Packs`. */
+const SEND_PACKS = 2;
+
+/** The decoded `Response`: a status and, for `SendPacks` only, the packs being downloaded. */
+export interface ResourcePackResponseData {
+    /** The alternative index plus one, as `ResourcePackStatus` numbers it. */
+    status: number;
+    /** `Downloading Packs`. Empty for every status other than `SendPacks`. */
+    packIds: string[];
+}
+
+/**
+ * `Response`: a `oneOf` of four alternatives, as the alternative index then its name.
+ *
+ * Which fields travel is decided by the answer itself, not by the protocol version, so the
+ * branch lives in this wire type's reader and writer rather than in a gate.
+ */
+export const resourcePackResponse: WireType<ResourcePackResponseData> = t.custom(
+    'Response',
+    (stream, response) => {
+        const selector = response.status - ALTERNATIVE_OFFSET;
+        const name = RESPONSE_TYPE_NAMES[selector];
+        if (name === undefined) throw new Error(`No resource pack response alternative for status ${response.status}`);
+
+        t.varuint32.write(stream, selector);
+        t.string.write(stream, name);
+
+        if (response.status !== SEND_PACKS) return;
+
+        t.varuint32.write(stream, response.packIds.length);
+        for (const id of response.packIds) {
+            t.string.write(stream, id);
+        }
+    },
+    (stream) => {
+        const selector = t.varuint32.read(stream);
+        if (selector >= RESPONSE_TYPE_NAMES.length) {
+            throw new Error(`Unknown resource pack response alternative ${selector}`);
+        }
+
+        const status = selector + ALTERNATIVE_OFFSET;
+        t.string.read(stream);
+
+        if (status !== SEND_PACKS) return { status, packIds: [] };
+
+        const packIds: string[] = [];
+        let count = t.varuint32.read(stream);
+        while (count-- > 0) {
+            packIds.push(t.string.read(stream));
+        }
+
+        return { status, packIds };
+    }
+);
+
+/**
+ * The `ResourcePackClientResponsePacket` field list: one field, `Response`.
+ *
+ * The schema types `Response Type` as an int8 and caps `Downloading Packs` at 65535 entries,
+ * which reads like a one byte status and a uint16 count. That is the layout before protocol
+ * 2193. Since the Cereal conversion the bytes are the ones above: a 1.26.51 client's
+ * `DownloadingFinished` is `02 13` followed by the 19 bytes of `downloadingfinished`, and
+ * gophertunnel at protocol 2193 writes the same. Until protocol 748 the list was written after
+ * every alternative; a real server reads the two stray bytes as the next packet.
+ */
+export const resourcePackClientResponsePacket = definePacket('ResourcePackClientResponsePacket', {
+    /** `Response`: which answer this is, and the packs it names. */
+    response: resourcePackResponse
 });
