@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ServerboundDiagnosticsPacket from '../packet/ServerboundDiagnosticsPacket';
+import type ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

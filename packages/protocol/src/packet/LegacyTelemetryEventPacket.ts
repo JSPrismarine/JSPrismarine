@@ -1,5 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * What a {@link LegacyTelemetryEventPacket} reports, as the Event Type varint32 numbers it.

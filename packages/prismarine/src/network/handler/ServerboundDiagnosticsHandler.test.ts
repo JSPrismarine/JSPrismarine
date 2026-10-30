@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ServerboundDiagnosticsPacket from '../packet/ServerboundDiagnosticsPacket';
+import ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
 import ServerboundDiagnosticsHandler from './ServerboundDiagnosticsHandler';
 
 describe('ServerboundDiagnosticsHandler', () => {

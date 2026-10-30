@@ -460,3 +460,9 @@ export { default as ServerboundStonecutterSetRecipePacket } from './ServerboundS
 export * from './ServerboundStonecutterSetRecipePacket';
 export { default as ServerboundCursorItemDragPacket } from './ServerboundCursorItemDragPacket';
 export * from './ServerboundCursorItemDragPacket';
+export { default as DebugInfoPacket } from './DebugInfoPacket';
+export * from './DebugInfoPacket';
+export { default as LegacyTelemetryEventPacket } from './LegacyTelemetryEventPacket';
+export * from './LegacyTelemetryEventPacket';
+export { default as ServerboundDiagnosticsPacket } from './ServerboundDiagnosticsPacket';
+export * from './ServerboundDiagnosticsPacket';

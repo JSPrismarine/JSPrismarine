@@ -1,5 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { NetworkUtil } from '../wire/networkUtil';
 
 /**
  * A blob of server debug text tied to an actor.

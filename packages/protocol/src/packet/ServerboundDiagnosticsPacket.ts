@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { NetworkUtil } from '../wire/networkUtil';
 
 /** Live byte count of one `Memory::MemoryCategory`, which the client writes as a uint8. */
 export interface MemoryCategoryCounter {

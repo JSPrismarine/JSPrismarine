@@ -40,7 +40,7 @@ import CorrectPlayerMovePredictionPacket from './packet/CorrectPlayerMovePredict
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
-import DebugInfoPacket from './packet/DebugInfoPacket';
+import DebugInfoPacket from '@jsprismarine/protocol/packet/DebugInfoPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
 import EducationSettingsPacket from '@jsprismarine/protocol/packet/EducationSettingsPacket';
 import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
@@ -59,7 +59,7 @@ import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
 import LabTablePacket from './packet/LabTablePacket';
 import LecternUpdatePacket from './packet/LecternUpdatePacket';
-import LegacyTelemetryEventPacket from './packet/LegacyTelemetryEventPacket';
+import LegacyTelemetryEventPacket from '@jsprismarine/protocol/packet/LegacyTelemetryEventPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelEventGenericPacket from '@jsprismarine/protocol/packet/LevelEventGenericPacket';
 import LevelEventPacket from './packet/LevelEventPacket';
@@ -113,7 +113,7 @@ import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePos
 import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import ServerSettingsResponsePacket from '@jsprismarine/protocol/packet/ServerSettingsResponsePacket';
 import ServerboundCursorItemDragPacket from '@jsprismarine/protocol/packet/ServerboundCursorItemDragPacket';
-import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
+import ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
 import ServerboundMatchmakingCancelPacket from '@jsprismarine/protocol/packet/ServerboundMatchmakingCancelPacket';
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
