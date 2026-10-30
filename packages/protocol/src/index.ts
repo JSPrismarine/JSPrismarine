@@ -26,3 +26,8 @@ export * from './CompressionCodec';
 export * from './EncryptionCodec';
 export * from './packet';
 export * from './structure';
+export * from './wire/define';
+export * as t from './wire/fieldTypes';
+export * from './wire/WireLayout';
+export * from './wire/wireGates';
+export * from './wire/definitions/animate';

@@ -8,7 +8,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { Item } from '../../item/Item';
 import AddActorPacket2225 from '../packet/AddActorPacket2225';
 import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
-import AnimatePacket2225 from '../packet/AnimatePacket2225';
+import AnimatePacket from '../packet/AnimatePacket';
 import InventoryTransactionPacket2225 from '../packet/InventoryTransactionPacket2225';
 import { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
@@ -70,7 +70,6 @@ describe('network/codec', () => {
             const changed = {
                 AddActorPacket: AddActorPacket2225,
                 AddPlayerPacket: AddPlayerPacket2225,
-                AnimatePacket: AnimatePacket2225,
                 InventoryTransactionPacket: InventoryTransactionPacket2225,
                 LevelChunkPacket: LevelChunkPacket2225,
                 PlayerListPacket: PlayerListPacket2225,
@@ -96,7 +95,10 @@ describe('network/codec', () => {
         });
 
         it('round-trips the trailing Hand byte AnimatePacket gained', () => {
-            const packet = new AnimatePacket2225();
+            // Animate has one class at every version; the stamped protocol picks the layout,
+            // exactly as `prepareOutbound` stamps a session's outbound packets.
+            const packet = new AnimatePacket();
+            packet.codecProtocol = 2225;
             packet.action = 1;
             packet.runtimeEntityId = 300n;
             packet.swingSource = 'attack';

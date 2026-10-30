@@ -11,7 +11,6 @@ import type { ProtocolCodec } from './codec/ProtocolCodec';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import AnimatePacket from './packet/AnimatePacket';
-import AnimatePacket2225 from './packet/AnimatePacket2225';
 import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelChunkPacket2225 from './packet/LevelChunkPacket2225';
@@ -95,12 +94,13 @@ describe('network', () => {
 
             // And each session's bytes decode cleanly - to the end - under its own codec.
             const decoded2225 = Codec2225.createPacket(Codec2225.netIdOf('AnimatePacket')!, bytes2225);
-            expect(decoded2225).toBeInstanceOf(AnimatePacket2225);
+            expect(decoded2225).toBeInstanceOf(AnimatePacket);
             decoded2225!.decode();
             expect(decoded2225!.feof()).toBe(true);
+            expect(decoded2225).toMatchObject({ hand: HandSlot.MAINHAND });
 
             const decoded2193 = Codec2193.createPacket(Codec2193.netIdOf('AnimatePacket')!, bytes2193);
-            expect(decoded2193).not.toBeInstanceOf(AnimatePacket2225);
+            expect(decoded2193).toBeInstanceOf(AnimatePacket);
             decoded2193!.decode();
             expect(decoded2193!.feof()).toBe(true);
             expect(decoded2193).toMatchObject({ action: 1, runtimeEntityId: 300n, swingSource: 'attack' });
@@ -190,7 +190,7 @@ describe('network', () => {
             expect(bytes2225!.at(-1)).toBe(HandSlot.MAINHAND);
 
             const decoded = Codec2225.createPacket(Codec2225.netIdOf('AnimatePacket')!, bytes2225);
-            expect(decoded).toBeInstanceOf(AnimatePacket2225);
+            expect(decoded).toBeInstanceOf(AnimatePacket);
             decoded!.decode();
             expect(decoded!.feof()).toBe(true);
         });
