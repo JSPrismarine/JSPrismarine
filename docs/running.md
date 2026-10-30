@@ -219,10 +219,9 @@ are. When a new version adds a setting, the server adds that key and its
 comment to the end of your file and leaves the rest alone, so there is no
 need to regenerate the file after an upgrade.
 
-Older servers kept their settings in `config.yml` or `config.yaml`. That
-format is no longer read: a server that finds one refuses to start and says
-so, rather than silently running on defaults. Move the settings into
-`config.json` (where `//` comments are allowed) and delete the YAML file.
+Older servers kept their settings in `config.yml` or `config.yaml`. The server
+does not read those files and ignores them if they exist. Move any settings you
+still need into `config.json` (where `//` comments are allowed).
 
 ### World seeds
 
