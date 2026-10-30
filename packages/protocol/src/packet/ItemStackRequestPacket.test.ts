@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
+import { NetworkUtil } from '../wire/networkUtil';
 import { ContainerUiId, ItemStackRequestActionType } from '../wire/structures/ItemStackRequest';
 import ItemStackRequestPacket from './ItemStackRequestPacket';
 
@@ -35,10 +36,46 @@ const oneTake = (): Buffer => {
     return out.getBuffer();
 };
 
-const decode = (buffer: Buffer): ItemStackRequestPacket => {
+const decode = (buffer: Buffer, protocolVersion = 2193): ItemStackRequestPacket => {
     const packet = new ItemStackRequestPacket(buffer);
-    packet.decode();
+    packet.decode({ protocolVersion });
     return packet;
+};
+
+/** Protocol 2225 inserted CraftReservedAction before the two deprecated craft actions. */
+const craftActions2225 = (): Buffer => {
+    const out = new BinaryStream();
+    out.writeUnsignedVarInt(0x93); // Header: 147.
+    out.writeUnsignedVarInt(1); // Requests.
+    out.writeVarInt(-7); // Client Request Id.
+    out.writeUnsignedVarInt(3); // Actions.
+    out.writeUnsignedVarInt(18); // Variant index: CraftResults.
+    out.writeByte(20); // Action type.
+    out.write(
+        Buffer.from([
+            0x01, // Craft Results: one.
+            0x01, // Item Descriptor: variant index, ItemName.
+            0x01, // Descriptor Type, the same value again.
+            0x0f, // Full Name: fifteen bytes.
+            ...Buffer.from('minecraft:stick'),
+            0x00, // Aux Value: 0.
+            0x04, // Stack size: 4 as a uint16 LE.
+            0x00,
+            0x00, // Block Runtime Id: 0.
+            0x00, // User Data Buffer: empty.
+            0x01 // Num Crafts.
+        ])
+    );
+    out.writeUnsignedVarInt(16); // Variant index: CraftReservedAction.
+    out.writeByte(18); // Action type.
+    NetworkUtil.writeString(out, 'crafting_table'); // Reserved Id.
+    out.writeByte(2); // Num Crafts.
+    out.writeUnsignedVarInt(17); // Variant index: CraftingNonImplemented.
+    out.writeByte(19); // Action type.
+    out.writeUnsignedVarInt(0); // Strings To Filter.
+    out.writeIntLE(0); // StringsToFilterOrigin.
+
+    return out.getBuffer();
 };
 
 describe('ItemStackRequestPacket', () => {
@@ -132,6 +169,26 @@ describe('ItemStackRequestPacket', () => {
             }
         ]);
         expect(packet.feof()).toBe(true);
+    });
+
+    it('reads the shifted craft actions in protocol 2225 and round-trips them', () => {
+        const packet = decode(craftActions2225(), 2225);
+
+        expect(packet.requests[0]!.actions).toEqual([
+            { type: ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED },
+            {
+                type: ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED,
+                reservedId: 'crafting_table',
+                repetitions: 2
+            },
+            { type: ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED }
+        ]);
+        expect(packet.feof()).toBe(true);
+
+        packet.encode({ protocolVersion: 2225 });
+        const roundTrip = decode(packet.getBuffer()!, 2225);
+        expect(roundTrip.requests).toEqual(packet.requests);
+        expect(roundTrip.feof()).toBe(true);
     });
 
     it('refuses a request count no client sends, rather than allocating for it', () => {

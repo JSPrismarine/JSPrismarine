@@ -1,5 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { ContainerUiId, ItemDescriptorType, ItemStackRequestActionType } from '@jsprismarine/minecraft';
+import { protocolVersion as protocolVersion2193 } from '../versions/v2193';
+import { protocolVersion as protocolVersion2225 } from '../versions/v2225';
 import { NetworkUtil } from '../networkUtil';
 
 // Both enums are generated from Mojang's protocol documentation and live in
@@ -59,6 +61,8 @@ export interface ItemStackRequestAction {
     creativeItemNetId?: number;
     /** Number of requested crafts, for the crafting actions that carry one. */
     repetitions?: number;
+    /** Reserved Id, carried by protocol 2225's `CraftReservedAction`. */
+    reservedId?: string;
     /** `MINE_BLOCK`: Slot, the hotbar slot the block was being mined with. */
     hotbarSlot?: number;
     /** `CRAFTING_RECIPE` and `CRAFTING_RECIPE_AUTO`: Recipe Net Id, as numbered by `CraftingDataPacket`. */
@@ -179,9 +183,18 @@ const skipRequestItem = (stream: BinaryStream): void => {
 const FIRST_SELECTOR_PAST_THE_GAP = 7;
 const SELECTOR_GAP = 2;
 
-/** The action type an action's position in the variant list stands for. */
-const actionTypeOf = (variant: number): ItemStackRequestActionType =>
-    variant >= FIRST_SELECTOR_PAST_THE_GAP ? variant + SELECTOR_GAP : variant;
+/** The action type an action's position in the variant list stands for in this protocol. */
+const actionTypeOf = (variant: number, protocolVersion: number): ItemStackRequestActionType => {
+    const wireType = variant >= FIRST_SELECTOR_PAST_THE_GAP ? variant + SELECTOR_GAP : variant;
+
+    // Protocol 2225 inserted CraftReservedAction at 18, moving the two deprecated actions.
+    if (protocolVersion >= protocolVersion2225) {
+        if (wireType === 19) return ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED;
+        if (wireType === 20) return ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED;
+    }
+
+    return wireType;
+};
 
 /** Amount, Source, Destination. Shared by take and place. */
 const readTakeOrPlace = (stream: BinaryStream, type: ItemStackRequestActionType): ItemStackRequestAction => ({
@@ -203,7 +216,19 @@ const readDisappear = (stream: BinaryStream, type: ItemStackRequestActionType): 
  * taken off the stream.
  * @throws when the type is unknown, because from there the stream cannot be trusted.
  */
-const readAction = (stream: BinaryStream, type: ItemStackRequestActionType): ItemStackRequestAction => {
+const readAction = (
+    stream: BinaryStream,
+    type: ItemStackRequestActionType,
+    reservedAction: boolean
+): ItemStackRequestAction => {
+    if (reservedAction) {
+        return {
+            type: ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED,
+            reservedId: NetworkUtil.readString(stream),
+            repetitions: stream.readByte() // Num Crafts.
+        };
+    }
+
     switch (type) {
         case ItemStackRequestActionType.TAKE:
         case ItemStackRequestActionType.PLACE:
@@ -297,12 +322,15 @@ const readAction = (stream: BinaryStream, type: ItemStackRequestActionType): Ite
  *
  * Each action opens with two numbers that mean the same thing: a varuint variant index,
  * which is the action's position in the oneOf list, and then the Action type as a byte. The
- * variant index is what is dispatched on, see {@link actionTypeOf} for why the two differ
- * from the lab table on, and the byte is read and dropped.
+ * variant index is what is dispatched on. Protocol 2225 inserts `CraftReservedAction` at
+ * type 18, shifting the two deprecated craft actions; the selected layout follows the supplied
+ * protocol version. The echoed Action type byte is read and dropped.
+ * @param stream - The stream positioned at Client Request Id.
+ * @param protocolVersion - The negotiated protocol version; defaults to 2193.
  * @throws when the action count is above {@link MAX_REQUEST_ACTIONS}, or an action or
  * descriptor type is unknown.
  */
-export const readItemStackRequest = (stream: BinaryStream): ItemStackRequest => {
+export const readItemStackRequest = (stream: BinaryStream, protocolVersion = protocolVersion2193): ItemStackRequest => {
     const requestId = stream.readVarInt(); // Client Request Id.
 
     const actionCount = stream.readUnsignedVarInt();
@@ -314,9 +342,12 @@ export const readItemStackRequest = (stream: BinaryStream): ItemStackRequest => 
 
     const actions: ItemStackRequestAction[] = [];
     for (let i = 0; i < actionCount; i++) {
-        const type = actionTypeOf(stream.readUnsignedVarInt()); // Variant index.
+        const variant = stream.readUnsignedVarInt(); // Variant index.
+        const type = actionTypeOf(variant, protocolVersion);
         stream.readByte(); // Action type, the same action as a byte.
-        actions.push(readAction(stream, type));
+        actions.push(
+            readAction(stream, type, protocolVersion >= protocolVersion2225 && variant === 16) // CraftReservedAction.
+        );
     }
 
     const filterStrings: string[] = []; // Strings To Filter.
@@ -349,7 +380,7 @@ const writeSlotInfo = (stream: BinaryStream, slot: ItemStackRequestSlotInfo): vo
  * a wire-valid packet carrying the same retained data, not necessarily the same bytes.
  * @throws when the type is unknown, since its payload layout is unknown with it.
  */
-const writeAction = (stream: BinaryStream, action: ItemStackRequestAction): void => {
+const writeAction = (stream: BinaryStream, action: ItemStackRequestAction, protocolVersion: number): void => {
     switch (action.type) {
         case ItemStackRequestActionType.TAKE:
         case ItemStackRequestActionType.PLACE:
@@ -381,7 +412,11 @@ const writeAction = (stream: BinaryStream, action: ItemStackRequestAction): void
 
         case ItemStackRequestActionType.LAB_TABLE_COMBINE:
         case ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED:
-            break; // Dataless.
+            if (protocolVersion >= protocolVersion2225 && action.reservedId !== undefined) {
+                NetworkUtil.writeString(stream, action.reservedId); // Reserved Id.
+                stream.writeByte(action.repetitions ?? 0); // Num Crafts.
+            }
+            break;
 
         case ItemStackRequestActionType.BEACON_PAYMENT:
             stream.writeVarInt(0); // Primary Effect Id, dropped by the reader.
@@ -439,19 +474,35 @@ const writeAction = (stream: BinaryStream, action: ItemStackRequestAction): void
 /**
  * Writes one ItemStackRequest, the mirror of {@link readItemStackRequest}: Client Request Id,
  * Actions - each as its variant index, the same type as a byte, then its payload - Strings To
- * Filter, and StringsToFilterOrigin.
+ * Filter, and StringsToFilterOrigin. Protocol 2225 writes the inserted `CraftReservedAction`
+ * and shifted deprecated craft actions using that version's action ids.
+ * @param stream - The stream to write into.
+ * @param request - The request fields to encode.
+ * @param protocolVersion - The negotiated protocol version; defaults to 2193.
  */
-export const writeItemStackRequest = (stream: BinaryStream, request: ItemStackRequest): void => {
+export const writeItemStackRequest = (
+    stream: BinaryStream,
+    request: ItemStackRequest,
+    protocolVersion = protocolVersion2193
+): void => {
     stream.writeVarInt(request.requestId); // Client Request Id.
 
     stream.writeUnsignedVarInt(request.actions.length);
     for (const action of request.actions) {
-        // The variant index runs two behind the type from the lab table on; see `actionTypeOf`.
-        const selector =
-            action.type >= FIRST_SELECTOR_PAST_THE_GAP + SELECTOR_GAP ? action.type - SELECTOR_GAP : action.type;
+        let wireType: number = action.type;
+        if (protocolVersion >= protocolVersion2225) {
+            if (action.type === ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED) {
+                wireType = action.reservedId === undefined ? 19 : 18;
+            } else if (action.type === ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED) {
+                wireType = 20;
+            }
+        }
+
+        // The variant index runs two behind the type from the lab table on.
+        const selector = wireType >= FIRST_SELECTOR_PAST_THE_GAP + SELECTOR_GAP ? wireType - SELECTOR_GAP : wireType;
         stream.writeUnsignedVarInt(selector);
-        stream.writeByte(action.type); // The same action as a byte.
-        writeAction(stream, action);
+        stream.writeByte(wireType); // The same action as a byte.
+        writeAction(stream, action, protocolVersion);
     }
 
     stream.writeUnsignedVarInt(request.filterStrings.length); // Strings To Filter.

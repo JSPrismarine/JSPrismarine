@@ -23,6 +23,7 @@ import {
     writeUseItemData
 } from './InventoryTransaction';
 import { readItemStackRequest, writeItemStackRequest } from './ItemStackRequest';
+import { protocolVersion as protocolVersion2193 } from '../versions/v2193';
 
 import type { ItemStackRequest } from './ItemStackRequest';
 import type { InventoryActionData, LegacyTransactionRequest, UseItemData } from './InventoryTransaction';
@@ -237,8 +238,12 @@ const writeItemUse = (stream: BinaryStream, use: AuthInputItemUse): void => {
     writeUseItemData(stream, use.data);
 };
 
-/** Reads `PlayerAuthInputPacket` fields in the order the client sends them. */
-export const readPlayerAuthInput = (stream: BinaryStream): PlayerAuthInput => {
+/**
+ * Reads `PlayerAuthInputPacket` fields in the order the client sends them.
+ * @param stream - The stream positioned at the packet payload.
+ * @param protocolVersion - The negotiated protocol version for nested item stack requests.
+ */
+export const readPlayerAuthInput = (stream: BinaryStream, protocolVersion = protocolVersion2193): PlayerAuthInput => {
     const pitch = stream.readFloatLE();
     const yaw = stream.readFloatLE();
     const position = NetworkUtil.readVector3(stream);
@@ -259,7 +264,7 @@ export const readPlayerAuthInput = (stream: BinaryStream): PlayerAuthInput => {
     const delta = NetworkUtil.readVector3(stream);
 
     const itemUseTransaction = stream.readBoolean() ? readItemUse(stream) : null;
-    const itemStackRequest = stream.readBoolean() ? readItemStackRequest(stream) : null;
+    const itemStackRequest = stream.readBoolean() ? readItemStackRequest(stream, protocolVersion) : null;
 
     let blockActions: PlayerBlockAction[] | null = null;
     if (stream.readBoolean()) {
@@ -303,8 +308,17 @@ export const readPlayerAuthInput = (stream: BinaryStream): PlayerAuthInput => {
     };
 };
 
-/** Writes every `PlayerAuthInputPacket` field in the order the client sends it. */
-export const writePlayerAuthInput = (stream: BinaryStream, input: PlayerAuthInput): void => {
+/**
+ * Writes every `PlayerAuthInputPacket` field in the order the client sends it.
+ * @param stream - The stream to write into.
+ * @param input - The input fields to encode.
+ * @param protocolVersion - The negotiated protocol version for nested item stack requests.
+ */
+export const writePlayerAuthInput = (
+    stream: BinaryStream,
+    input: PlayerAuthInput,
+    protocolVersion = protocolVersion2193
+): void => {
     stream.writeFloatLE(input.pitch);
     stream.writeFloatLE(input.yaw);
     NetworkUtil.writeVector3(stream, input.position);
@@ -325,7 +339,7 @@ export const writePlayerAuthInput = (stream: BinaryStream, input: PlayerAuthInpu
     if (input.itemUseTransaction !== null) writeItemUse(stream, input.itemUseTransaction);
 
     stream.writeBoolean(input.itemStackRequest !== null);
-    if (input.itemStackRequest !== null) writeItemStackRequest(stream, input.itemStackRequest);
+    if (input.itemStackRequest !== null) writeItemStackRequest(stream, input.itemStackRequest, protocolVersion);
 
     stream.writeBoolean(input.blockActions !== null);
     if (input.blockActions !== null) {

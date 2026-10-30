@@ -13,8 +13,9 @@ const MAX_REQUESTS = 100;
  * the server answers with an {@link ItemStackResponsePacket} naming the same Client Request
  * Id. Left unanswered, it puts everything back.
  *
- * Wire order (protocol 2193): `Requests`, a varuint count followed by one `ItemStackRequest`
- * each. See `readItemStackRequest` for the layout of a request.
+ * Wire order (protocols 2193 and 2225): `Requests`, a varuint count followed by one
+ * `ItemStackRequest` each. Its action ids are decoded using the negotiated version. See
+ * `readItemStackRequest` for the layout of a request.
  *
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/item-stack-request-packet/
  */
@@ -26,7 +27,7 @@ export default class ItemStackRequestPacket extends FieldNetworkPacket {
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.requests.length);
         for (const request of this.requests) {
-            writeItemStackRequest(this, request);
+            writeItemStackRequest(this, request, this.codecProtocol);
         }
     }
 
@@ -44,7 +45,7 @@ export default class ItemStackRequestPacket extends FieldNetworkPacket {
         }
 
         for (let i = 0; i < count; i++) {
-            this.requests.push(readItemStackRequest(this));
+            this.requests.push(readItemStackRequest(this, this.codecProtocol));
         }
     }
 }

@@ -20,10 +20,10 @@ export default class PlayerAuthInputPacket extends NetworkPacket<PlayerAuthInput
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: PlayerAuthInput): void {
-        writePlayerAuthInput(stream, data);
+        writePlayerAuthInput(stream, data, this.codecProtocol);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): PlayerAuthInput {
-        return readPlayerAuthInput(stream);
+        return readPlayerAuthInput(stream, this.codecProtocol);
     }
 }
