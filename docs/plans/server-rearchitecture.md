@@ -46,16 +46,30 @@ Progress (2026-10-30):
   executable (`pnpm run package`) provisions the same data but still generates on the server
   thread. `pnpm install && pnpm dev` works from a clean clone; `pnpm run bringup --protocol <n>`
   walks a client to spawn against a real BDS of that version.
+- Declarative layouts cover **95 of the 239 ids** (40%). Each conversion lands behind a
+  byte-compatibility test: the bytes the hand-written encoder produced are recorded as hex
+  literals *before* the class changes, so the test keeps checking the wire after the old encoder
+  is gone rather than comparing the new code against itself. Packets a login exercises are held
+  to captured server bytes on top of that, which is the 34-of-41 fixture figure. Across every
+  wave so far no packet's encoder and decoder were found to disagree.
 - Remaining, in rough order of value:
-  - The rest of the packet bodies. Declarative definitions cover a growing minority of the 239
-    ids; the rest still carry hand-written `encodePayload`/`decodePayload` pairs. Each converts
-    the same way, behind a byte-compatibility assertion against the encoder it replaces, and the
-    ones a login exercises are additionally held to captured server bytes. Four are deliberately
-    left for individual care rather than a batch - `CraftingData`, `AvailableCommands`,
-    `ItemRegistry` and `CreativeContent`, whose hand-written codecs carry byte-level tests
-    pinned against gophertunnel.
+  - The rest of the packet bodies: 144 ids still carry hand-written `encodePayload`/
+    `decodePayload` pairs. Four are deliberately left for individual care rather than a batch -
+    `CraftingData`, `AvailableCommands`, `ItemRegistry` and `CreativeContent`, whose
+    hand-written codecs carry byte-level tests pinned against gophertunnel.
   - Collapsing the duplicate `NetworkPacket` stack in `packages/protocol` onto the definitions,
-    so the server and the client share one wire implementation rather than two.
+    so the server and the client share one wire implementation rather than two. The conversion
+    waves kept an inventory of where that duplication actually is, so this does not need a
+    survey first: `TextPacket` (`variantOf` and `BodyVariant`), `PlayerActionPacket` (five
+    fields, private block-position helpers, a verbatim `PlayerActionType`),
+    `ResourcePackClientResponsePacket` (the whole `oneOf`, `RESPONSE_TYPE_NAMES`,
+    `ALTERNATIVE_OFFSET` and a `ResourcePackStatus` duplicating prismarine's), `DisconnectPacket`
+    (the conditional string pair), `RequestNetworkSettingsPacket`, `NetworkSettingsPacket`,
+    `RequestChunkRadiusPacket`, `SetLocalPlayerAsInitializedPacket`, plus
+    `ChunkRadiusUpdatedPacket`, `MovePlayerPacket`, `PlayStatusPacket`, `ResourcePacksInfoPacket`,
+    `ResourcePackStackPacket`, `StartGamePacket`, `LevelChunkPacket`,
+    `UpdateSubChunkBlocksPacket` and `SetHudPacket`, each hand-written on the protocol side
+    against a definition that already exists.
   - The version-aware `ItemStackRequest` reader (the `CraftReservedAction` renumber at 2225).
   - Commands and worlds modules; widening the `WorldChange` stream beyond block changes; the
     version-independent intent/update vocabulary; NetherNet and Java transports.
