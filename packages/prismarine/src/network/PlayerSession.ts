@@ -54,8 +54,8 @@ import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedP
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
-import InventoryContentPacket from './packet/InventoryContentPacket';
-import InventorySlotPacket from './packet/InventorySlotPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
@@ -765,11 +765,15 @@ export default class PlayerSession {
      */
     public async sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
         const inventory = this.player.getInventory();
+        const context = this.connection.codec.context;
         // Every stack goes out with the id the client will name it by in its requests.
         inventory.assignStackNetworkIds();
 
         const pk = new InventoryContentPacket();
-        pk.items = inventory.getItems(true);
+        pk.items = inventory.getItems(true).map((entry) => {
+            const item = entry.toItemStack();
+            return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+        });
         pk.windowId = windowId;
         await this.connection.sendDataPacket(pk);
 
@@ -783,7 +787,13 @@ export default class PlayerSession {
         // `Full Container Name` has to say armor too: the packet defaults to the player's
         // combined hotbar and inventory, which named the wrong container for window 120.
         const armor = new InventoryContentPacket();
-        armor.items = inventory.getArmor().getItems(true);
+        armor.items = inventory
+            .getArmor()
+            .getItems(true)
+            .map((entry) => {
+                const item = entry.toItemStack();
+                return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+            });
         armor.windowId = WindowIds.ARMOR;
         armor.containerId = ContainerUiId.ARMOR_CONTAINER;
         await this.connection.sendDataPacket(armor);
@@ -812,7 +822,11 @@ export default class PlayerSession {
         packet.windowId = windowId;
         packet.containerId = containerId;
         packet.inventorySlot = slot;
-        packet.item = item;
+        packet.item =
+            item?.toStackDescriptor(
+                this.connection.codec.context,
+                item.stackNetworkId > 0 ? item.stackNetworkId : null
+            ) ?? null;
 
         await this.connection.sendDataPacket(packet);
     }
@@ -906,7 +920,11 @@ export default class PlayerSession {
                 const content = new InventoryContentPacket();
                 content.windowId = packet.windowId;
                 content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
-                content.items = contents;
+                const context = this.connection.codec.context;
+                content.items = contents.map((entry) => {
+                    const item = entry.toItemStack();
+                    return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+                });
                 await this.connection.sendDataPacket(content);
             }
 

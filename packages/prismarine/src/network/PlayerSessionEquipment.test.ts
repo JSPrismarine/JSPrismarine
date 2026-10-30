@@ -22,7 +22,7 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import InventoryContentPacket from './packet/InventoryContentPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import PlayerSession from './PlayerSession';
 
@@ -138,7 +138,7 @@ describe('network', () => {
 
                 expect(armor.windowId).toBe(WindowIds.ARMOR);
                 expect(armor.containerId).toBe(ContainerUiId.ARMOR_CONTAINER);
-                expect(armor.items.map((entry) => entry.getItem().getName())).toContain('minecraft:diamond_chestplate');
+                expect(armor.items.map(itemName)).toContain('minecraft:diamond_chestplate');
             });
 
             it('sends every stack with a stack network id of its own', async () => {
@@ -155,9 +155,8 @@ describe('network', () => {
 
                 const ids = sent
                     .filter((packet) => packet instanceof InventoryContentPacket)
-                    .flatMap((packet) => packet.items.map((entry) => entry.getItem()))
-                    .filter((item) => item.getName() !== 'minecraft:air')
-                    .map((item) => item.stackNetworkId);
+                    .flatMap((packet) => packet.items.map((item) => item.stackNetId))
+                    .filter((id): id is number => id !== null);
                 // The stone, and the chestplate in the armor window.
                 expect(ids).toHaveLength(2);
                 expect(ids.every((id) => id > 0)).toBe(true);

@@ -1,11 +1,17 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
-import BinaryStream from '@jsprismarine/binaryutils';
+import type { ProtocolContext } from '@jsprismarine/protocol';
+import { ContainerUiId } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
-import { ContainerUiId } from '../type/ItemStackRequest';
-import InventorySlotPacket from './InventorySlotPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
+
+const protocolContext: ProtocolContext = { protocolVersion: 2193 };
+
+const descriptorOf = (item: Item | null) =>
+    item?.toStackDescriptor(protocolContext, item.stackNetworkId > 0 ? item.stackNetworkId : null) ?? null;
 
 /**
  * Reads a `NetworkItemStackDescriptor` as the 1.26.51 docs lay it out, without going through
@@ -113,7 +119,7 @@ describe('network', () => {
             const packet = Object.assign(new InventorySlotPacket(), {
                 windowId: 124,
                 inventorySlot: 30,
-                item: new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count: 3 })
+                item: descriptorOf(new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count: 3 }))
             });
             packet.encode();
 
@@ -127,7 +133,11 @@ describe('network', () => {
         it('writes the stack network id the item has', () => {
             const planks = new Item({ name: 'minecraft:oak_planks', count: 3 });
             planks.stackNetworkId = 21;
-            const packet = Object.assign(new InventorySlotPacket(), { windowId: 0, inventorySlot: 4, item: planks });
+            const packet = Object.assign(new InventorySlotPacket(), {
+                windowId: 0,
+                inventorySlot: 4,
+                item: descriptorOf(planks)
+            });
             packet.encode();
 
             expect(readBack(packet.getBuffer()).item.netId).toBe(21);
@@ -143,7 +153,7 @@ describe('network', () => {
                     inventorySlot: 26,
                     containerId: ContainerUiId.LEVEL_ENTITY_CONTAINER,
                     dynamicId: 3,
-                    item
+                    item: descriptorOf(item)
                 });
                 packet.encode();
                 const written = packet.getBuffer();
@@ -155,9 +165,11 @@ describe('network', () => {
                 expect(decoded.inventorySlot).toBe(26);
                 expect(decoded.containerId).toBe(ContainerUiId.LEVEL_ENTITY_CONTAINER);
                 expect(decoded.dynamicId).toBe(3);
-                expect(decoded.item?.getName()).toBe(item?.getName());
-                expect(decoded.item?.getAmount()).toBe(item?.getAmount());
-                expect(decoded.item?.stackNetworkId).toBe(item?.stackNetworkId);
+                const decodedItem =
+                    decoded.item === null ? null : Item.fromStackDescriptor(protocolContext, decoded.item);
+                expect(decodedItem?.getName()).toBe(item?.getName());
+                expect(decodedItem?.getAmount()).toBe(item?.getAmount());
+                expect(decodedItem?.stackNetworkId).toBe(item?.stackNetworkId);
                 expect(decoded.feof()).toBe(true);
 
                 decoded.encode();

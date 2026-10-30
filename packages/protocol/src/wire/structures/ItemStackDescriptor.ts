@@ -31,6 +31,16 @@ export interface ItemStackDescriptorData {
     userData: Buffer;
 }
 
+/** Returns a new descriptor for an empty slot. */
+export const emptyItemStackDescriptor = (): ItemStackDescriptorData => ({
+    id: EMPTY_ITEM_STACK_ID,
+    stackSize: 0,
+    auxValue: 0,
+    stackNetId: null,
+    blockRuntimeId: 0,
+    userData: Buffer.alloc(0)
+});
+
 /**
  * Writes a stack descriptor, field for field.
  *

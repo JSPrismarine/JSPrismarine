@@ -7,10 +7,13 @@ import { Item } from '../item/Item';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
+import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
-import InventoryContentPacket from './packet/InventoryContentPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import PlayerSession from './PlayerSession';
+
+const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } });
 
 /**
  * The windows a session has opened on the client, and which `ContainerClose` it accepts for them.
@@ -24,6 +27,7 @@ const sessionFor = () => {
     const sent: NetworkPacket[] = [];
     const inventories: Array<{ windowId: number; after: number }> = [];
     const connection = stub<ClientConnection>({
+        codec: protocolCodec,
         sendDataPacket: async (packet) => void sent.push(packet)
     });
     const player = stub<Player>({ getRuntimeId: () => 7n });
@@ -78,7 +82,12 @@ describe('network', () => {
                 containerEntityId: -1n
             });
             expect(contents).toBeInstanceOf(InventoryContentPacket);
-            expect(contents).toMatchObject({ windowId: WindowIds.FIRST, items: [stick] });
+            if (!(contents instanceof InventoryContentPacket)) throw new Error('Inventory content was not sent');
+            expect(contents.windowId).toBe(WindowIds.FIRST);
+            expect(
+                contents.items.map((item) => Item.fromStackDescriptor({ protocolVersion: 2193 }, item).getName())
+            ).toEqual(['minecraft:stick']);
+            expect(contents.items[0]?.stackSize).toBe(3);
 
             expect(session.closeWindow(WindowIds.FIRST)).toBe(true);
             expect(session.getOpenBlockContainer()).toBeUndefined();

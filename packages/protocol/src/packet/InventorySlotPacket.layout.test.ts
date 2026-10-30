@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { inventorySlotPacket, layoutAt } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { inventorySlotPacket } from '../wire/definitions/containers';
 import { describe, expect, it } from 'vitest';
 
 /** An empty stack: every field zero, and a blob with no length. */

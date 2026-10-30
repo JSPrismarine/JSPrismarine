@@ -91,3 +91,10 @@ export * as v2193 from './wire/versions/v2193';
 export * as v2225 from './wire/versions/v2225';
 export * from './wire/definitions/worldStatus';
 export * from './wire/definitions/added2225';
+export {
+    EMPTY_ITEM_STACK_ID,
+    emptyItemStackDescriptor,
+    readItemStackDescriptor,
+    writeItemStackDescriptor
+} from './wire/structures/ItemStackDescriptor';
+export type { ItemStackDescriptorData } from './wire/structures/ItemStackDescriptor';

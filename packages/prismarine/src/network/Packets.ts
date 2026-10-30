@@ -50,8 +50,8 @@ import GameRulesChangedPacket from '@jsprismarine/protocol/packet/GameRulesChang
 import GuiDataPickItemPacket from '@jsprismarine/protocol/packet/GuiDataPickItemPacket';
 import HurtArmorPacket from '@jsprismarine/protocol/packet/HurtArmorPacket';
 import InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
-import InventoryContentPacket from './packet/InventoryContentPacket';
-import InventorySlotPacket from './packet/InventorySlotPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
 import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import ItemStackRequestPacket from './packet/ItemStackRequestPacket';

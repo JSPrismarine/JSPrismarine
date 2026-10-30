@@ -1,15 +1,24 @@
-import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import type { ProtocolContext } from '@jsprismarine/protocol';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
+import { ContainerUiId } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import Inventory from '../../inventory/Inventory';
 import { Item } from '../../item/Item';
-import { ContainerUiId } from '../type/ItemStackRequest';
-import InventoryContentPacket from './InventoryContentPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
+
+const protocolContext: ProtocolContext = { protocolVersion: 2193 };
+
+const descriptors = (items: ContainerEntry[]) =>
+    items.map((entry) => {
+        const item = entry.toItemStack();
+        return item.toStackDescriptor(protocolContext, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+    });
 
 /**
  * Reads a `NetworkItemStackDescriptor` as the 1.26.51 docs lay it out, without going through
@@ -72,7 +81,7 @@ const readBack = (buffer: Buffer) => {
 
 const encoded = (items: ContainerEntry[], windowId = 0): Buffer => {
     const packet = new InventoryContentPacket();
-    packet.items = items;
+    packet.items = descriptors(items);
     packet.windowId = windowId;
     packet.encode();
 
@@ -209,7 +218,7 @@ describe('InventoryContentPacket', () => {
         packet.windowId = 120;
         packet.containerId = ContainerUiId.ARMOR_CONTAINER;
         packet.dynamicId = 9;
-        packet.items = inventory.getItems(true);
+        packet.items = descriptors(inventory.getItems(true));
         packet.encode();
         const written = packet.getBuffer();
 
@@ -220,11 +229,14 @@ describe('InventoryContentPacket', () => {
         expect(decoded.containerId).toBe(ContainerUiId.ARMOR_CONTAINER);
         expect(decoded.dynamicId).toBe(9);
         expect(
-            decoded.items.map((entry) => ({
-                name: entry.getItem().getName(),
-                count: entry.getCount(),
-                stackNetworkId: entry.getItem().stackNetworkId
-            }))
+            decoded.items.map((descriptor) => {
+                const item = Item.fromStackDescriptor(protocolContext, descriptor);
+                return {
+                    name: item.getName(),
+                    count: item.getAmount(),
+                    stackNetworkId: item.stackNetworkId
+                };
+            })
         ).toEqual([
             { name: 'minecraft:oak_planks', count: 12, stackNetworkId: 7 },
             { name: 'minecraft:air', count: 0, stackNetworkId: 0 },

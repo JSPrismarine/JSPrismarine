@@ -1,5 +1,7 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
 import AvailableCommandsPacket from './AvailableCommandsPacket';
+import InventoryContentPacket from './InventoryContentPacket';
+import InventorySlotPacket from './InventorySlotPacket';
 import AddItemActorPacket from './AddItemActorPacket';
 import AddPlayerPacket from './AddPlayerPacket';
 import AddPaintingPacket from './AddPaintingPacket';
@@ -79,6 +81,8 @@ export {
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
     AvailableCommandsPacket,
+    InventoryContentPacket,
+    InventorySlotPacket,
     AddItemActorPacket,
     AddPlayerPacket,
     AddPaintingPacket,
