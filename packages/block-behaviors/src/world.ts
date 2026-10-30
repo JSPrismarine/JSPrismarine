@@ -122,8 +122,14 @@ export interface BlockFlammability {
 /** Whether the sky and weather report rain, thunder or clear. */
 export type WorldWeather = 'clear' | 'rain' | 'thunder';
 
-/** The four vanilla difficulty levels, in increasing order. */
-export type WorldDifficulty = 'peaceful' | 'easy' | 'normal' | 'hard';
+/** The four vanilla difficulty levels in increasing order, which is also Java's difficulty id order. */
+export const WORLD_DIFFICULTIES = ['peaceful', 'easy', 'normal', 'hard'] as const;
+
+/** One of {@link WORLD_DIFFICULTIES}. */
+export type WorldDifficulty = (typeof WORLD_DIFFICULTIES)[number];
+
+/** Java's numeric id for a difficulty, 0 for peaceful through 3 for hard. */
+export const difficultyIdOf = (difficulty: WorldDifficulty): number => WORLD_DIFFICULTIES.indexOf(difficulty);
 
 /** Options for removing a block without asking the family to guess its drops. */
 export interface BlockDestroyOptions {

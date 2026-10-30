@@ -12,6 +12,7 @@ import {
     findEmptyPortalShape,
     findEndPortalRing,
     NETHER_PORTAL,
+    piglinSpawnRoll,
     portalCreationSite,
     portalInterior,
     THE_END,
@@ -545,5 +546,72 @@ describe('writeEndPlatform', () => {
         expect(world.identifierAt({ x: 97, y: 48, z: 0 })).toBe('minecraft:end_stone');
         expect(world.identifierAt({ x: 100, y: 47, z: 0 })).toBe('minecraft:end_stone');
         expect(world.identifierAt({ x: 100, y: 52, z: 0 })).toBe('minecraft:end_stone');
+    });
+});
+
+describe('piglinSpawnRoll', () => {
+    it('is one, two and three chances in two thousand for easy, normal and hard', () => {
+        expect(piglinSpawnRoll(() => 0.0004, 1)).toBe(true);
+        expect(piglinSpawnRoll(() => 0.0006, 1)).toBe(false);
+        expect(piglinSpawnRoll(() => 0.0009, 2)).toBe(true);
+        expect(piglinSpawnRoll(() => 0.0012, 2)).toBe(false);
+        expect(piglinSpawnRoll(() => 0.0014, 3)).toBe(true);
+        expect(piglinSpawnRoll(() => 0.0015, 3)).toBe(false);
+    });
+
+    it('never spawns on peaceful', () => {
+        expect(piglinSpawnRoll(() => 0, 0)).toBe(false);
+    });
+});
+
+describe('portalFamily random tick', () => {
+    const litPortal = (dimension?: string) => {
+        const harness = bindFamily(portalFamily, NETHER_PORTAL, { dimension });
+        buildFrame(harness.dimension, BOTTOM_LEFT, 'x', 2, 3);
+        const frame = { bottomLeft: BOTTOM_LEFT, axis: 'x' as const, width: 2, height: 3 };
+        for (const position of portalInterior(frame)) {
+            harness.dimension.set(position, NETHER_PORTAL, { portal_axis: 'x' });
+        }
+        return harness;
+    };
+
+    it('spawns a zombified piglin beside the bottom of the portal when the roll succeeds', () => {
+        const harness = litPortal();
+        harness.dimension.queueRandom(0.0001);
+
+        harness.randomTick({ ...BOTTOM_LEFT, y: BOTTOM_LEFT.y + 2 });
+
+        expect(harness.dimension.entities.map((entity) => [entity.identifier, entity.position])).toEqual([
+            ['minecraft:zombie_pigman', { ...BOTTOM_LEFT, z: BOTTOM_LEFT.z + 1 }]
+        ]);
+    });
+
+    it('spawns east of a portal running north to south', () => {
+        const harness = bindFamily(portalFamily, NETHER_PORTAL);
+        buildFrame(harness.dimension, BOTTOM_LEFT, 'z', 2, 3);
+        harness.dimension.set(BOTTOM_LEFT, NETHER_PORTAL, { portal_axis: 'z' });
+        harness.dimension.queueRandom(0.0001);
+
+        harness.randomTick(BOTTOM_LEFT);
+
+        expect(harness.dimension.entities[0]?.position).toEqual({ ...BOTTOM_LEFT, x: BOTTOM_LEFT.x + 1 });
+    });
+
+    it('spawns nothing when the roll fails', () => {
+        const harness = litPortal();
+        harness.dimension.queueRandom(0.5);
+
+        harness.randomTick(BOTTOM_LEFT);
+
+        expect(harness.dimension.entities).toEqual([]);
+    });
+
+    it('spawns nothing outside the Overworld', () => {
+        const harness = litPortal('minecraft:nether');
+        harness.dimension.queueRandom(0.0001);
+
+        harness.randomTick(BOTTOM_LEFT);
+
+        expect(harness.dimension.entities).toEqual([]);
     });
 });

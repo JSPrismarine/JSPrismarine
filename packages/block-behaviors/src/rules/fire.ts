@@ -11,6 +11,7 @@ import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import { HORIZONTAL_FACES, offset } from '../geometry';
 import { AIR, isAir } from '../identifiers';
 import type { BlockFlammability, WorldActions } from '../world';
+import { difficultyIdOf } from '../world';
 
 /** The fire block. */
 export const FIRE = 'minecraft:fire';
@@ -230,8 +231,7 @@ export const fireTick = (
     checkBurnOut(world, offset(at, 'north'), 300 + burnoutAdjustment, age);
     checkBurnOut(world, offset(at, 'south'), 300 + burnoutAdjustment, age);
 
-    const difficulty = world.difficulty?.() ?? 'normal';
-    const difficultyId = ['peaceful', 'easy', 'normal', 'hard'].indexOf(difficulty);
+    const difficultyId = difficultyIdOf(world.difficulty?.() ?? 'normal');
     for (let dx = -1; dx <= 1; dx++) {
         for (let dz = -1; dz <= 1; dz++) {
             for (let dy = -1; dy <= 4; dy++) {

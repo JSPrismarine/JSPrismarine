@@ -18,6 +18,7 @@ import { AIR, isAir, isLiquid, isReplaceable, OBSIDIAN } from '../identifiers';
 import { bareName, stateBoolean } from '../state';
 import { isSolidSupport } from './support';
 import type { WorldActions } from '../world';
+import { difficultyIdOf } from '../world';
 
 const namespaced = (name: string): string => `minecraft:${name}`;
 
@@ -553,4 +554,57 @@ export const writeEndPlatform = (world: WorldActions, center: BlockPosition): vo
             }
         }
     }
+};
+
+/** The dimension whose portals spawn zombified piglins. */
+export const OVERWORLD_DIMENSION = 'minecraft:overworld';
+
+/** The Bedrock identifier of the zombified piglin. */
+export const ZOMBIFIED_PIGLIN = 'minecraft:zombie_pigman';
+
+/** Java's `NetherPortalBlock.randomTick` denominator: `random.nextInt(2000) < difficulty.getId()`. */
+export const PIGLIN_SPAWN_ROLL_BOUND = 2000;
+
+/** The `PortalCooldown` a spawned piglin starts with, so it does not walk straight back in. */
+export const PIGLIN_PORTAL_COOLDOWN_TICKS = 300;
+
+/**
+ * Java's zombified piglin spawn roll on a portal's random tick: one chance in
+ * 2000 on easy, two on normal, three on hard, none on peaceful.
+ *
+ * @param random - A draw in `[0, 1)`.
+ * @param difficultyId - Java's difficulty id, 0 for peaceful through 3 for hard.
+ */
+export const piglinSpawnRoll = (random: () => number, difficultyId: number): boolean =>
+    random() * PIGLIN_SPAWN_ROLL_BOUND < difficultyId;
+
+/** The lowest portal block in the column under a portal block. */
+const bottomPortalBlock = (world: WorldActions, at: BlockPosition): BlockPosition => {
+    let position = at;
+    for (let step = 0; step < PORTAL_MAX_HEIGHT; step += 1) {
+        const below = world.getBlock(up(position, -1));
+        if (below === undefined || !isNetherPortal(below.identifier)) break;
+        position = up(position, -1);
+    }
+    return position;
+};
+
+/**
+ * Rolls and performs the zombified piglin spawn for a portal block's random
+ * tick. Bedrock places the piglin beside the portal rather than in it: south
+ * of a portal running east to west, east of one running north to south, next
+ * to the bottom block of the column.
+ *
+ * Only an Overworld portal spawns them, and only when the world's difficulty
+ * is above peaceful.
+ *
+ * @returns The spawned entity's id, or undefined when nothing spawned.
+ */
+export const spawnPiglinFromPortal = (world: WorldActions, block: HookBlock): number | undefined => {
+    if (bareName(block.dimension) !== bareName(OVERWORLD_DIMENSION)) return undefined;
+    const difficultyId = difficultyIdOf(world.difficulty?.() ?? 'normal');
+    if (!piglinSpawnRoll(() => world.random(), difficultyId)) return undefined;
+    const bottom = bottomPortalBlock(world, block.position);
+    const beside = offset(bottom, portalAxisOf(block) === 'x' ? 'south' : 'east');
+    return world.spawnEntity(beside, ZOMBIFIED_PIGLIN, { PortalCooldown: PIGLIN_PORTAL_COOLDOWN_TICKS });
 };

@@ -8,7 +8,13 @@ import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
 import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
-import { activateEndPortal, collapseNetherPortal, isNetherPortal, lightNetherPortal } from '../rules/portal';
+import {
+    activateEndPortal,
+    collapseNetherPortal,
+    isNetherPortal,
+    lightNetherPortal,
+    spawnPiglinFromPortal
+} from '../rules/portal';
 import { breakBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateNumber } from '../state';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
@@ -130,6 +136,10 @@ export const portalFamily = defineFamily(
             if (name === 'soul_fire' && below !== undefined && below.identifier !== AIR) return;
             world.setBlock(event.block.position, AIR, {}, false);
             world.notifyNeighbors(event.block.position);
+        },
+        onRandomTick: (event, world) => {
+            if (!isNetherPortal(event.block.identifier)) return;
+            spawnPiglinFromPortal(world, event.block);
         },
         onPlayerInteract: (event, world) => {
             if (bareName(event.block.identifier) !== 'end_portal_frame') return undefined;
