@@ -4,9 +4,10 @@ import { join } from 'node:path';
 // The generator's own loader decides where the datapack and the data generator reports are,
 // including the two environment overrides it documents. Asking it is the only way a row that
 // depends on that data agrees with the generator about whether this checkout has it. The
-// module imports nothing but `node:fs` and `node:path`, so `scripts/dashboard.ts` can load it
-// under plain node.
-import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+// module imports nothing but `node:fs` and `node:path`, so `scripts/capture-corpus.ts` can
+// load it under plain node; the loader itself sits in `javaWorldgenData.ts` and pulls in
+// `@jsprismarine/packs`, which strip-only mode cannot parse.
+import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenSources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 /**
