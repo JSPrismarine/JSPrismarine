@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, modalFormResponsePacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /** Why a form closed without a response. */
@@ -32,17 +33,18 @@ export default class ModalFormResponsePacket extends DataPacket {
 
     /** Reads the id and the two optionals. */
     public decodePayload(): void {
-        this.formId = this.readUnsignedVarInt();
-        this.jsonResponse = this.readBoolean() ? NetworkUtil.readString(this) : null;
-        this.formCancelReason = this.readBoolean() ? this.readByte() : null;
+        const read = layoutAt(modalFormResponsePacket, this.codecProtocol).decode(this);
+        this.formId = read.formId;
+        this.jsonResponse = read.jsonResponse;
+        this.formCancelReason = read.formCancelReason;
     }
 
     /** Writes the id and the two optionals. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.formId);
-        this.writeBoolean(this.jsonResponse !== null);
-        if (this.jsonResponse !== null) NetworkUtil.writeString(this, this.jsonResponse);
-        this.writeBoolean(this.formCancelReason !== null);
-        if (this.formCancelReason !== null) this.writeByte(this.formCancelReason);
+        layoutAt(modalFormResponsePacket, this.codecProtocol).encode(this, {
+            formId: this.formId,
+            jsonResponse: this.jsonResponse,
+            formCancelReason: this.formCancelReason
+        });
     }
 }
