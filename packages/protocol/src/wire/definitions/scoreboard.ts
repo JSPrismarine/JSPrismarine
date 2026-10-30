@@ -166,3 +166,17 @@ export const setDisplayObjectivePacket = definePacket('SetDisplayObjectivePacket
 
 /** What `SetDisplayObjectivePacket` carries. */
 export type SetDisplayObjectivePayload = PayloadOf<typeof setDisplayObjectivePacket>;
+
+/**
+ * The `RemoveObjectivePacket` field list.
+ *
+ * The client drops the objective and every score filed under it, so this undoes a
+ * `SetDisplayObjectivePacket` and the `SetScorePacket` entries that followed it.
+ */
+export const removeObjectivePacket = definePacket('RemoveObjectivePacket', {
+    /** `Objective Name`: what the objective was registered under. */
+    objectiveName: t.string
+});
+
+/** What `RemoveObjectivePacket` carries. */
+export type RemoveObjectivePayload = PayloadOf<typeof removeObjectivePacket>;

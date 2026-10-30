@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, removeObjectivePacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -9,7 +10,8 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: Objective Name as a string.
+ * The wire layout lives in `@jsprismarine/protocol`'s `removeObjectivePacket` definition:
+ * Objective Name as a string.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/remove-objective-packet/
  */
 export default class RemoveObjectivePacket extends DataPacket {
@@ -18,11 +20,11 @@ export default class RemoveObjectivePacket extends DataPacket {
 
     /** Reads the objective name. */
     public decodePayload(): void {
-        this.objectiveName = NetworkUtil.readString(this);
+        this.objectiveName = layoutAt(removeObjectivePacket, this.codecProtocol).decode(this).objectiveName;
     }
 
     /** Writes the objective name. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.objectiveName);
+        layoutAt(removeObjectivePacket, this.codecProtocol).encode(this, { objectiveName: this.objectiveName });
     }
 }

@@ -69,7 +69,7 @@ import {
     setTimePacket,
     updateAdventureSettingsPacket
 } from './worldStatus';
-import { setDisplayObjectivePacket, setScorePacket } from './scoreboard';
+import { removeObjectivePacket, setDisplayObjectivePacket, setScorePacket } from './scoreboard';
 import { setActorDataPacket } from './setActorData';
 import { startGamePacket } from './startGame';
 import { syncActorPropertyPacket } from './syncActorProperty';
@@ -121,6 +121,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         playerSkinPacket,
         playStatusPacket,
         removeActorPacket,
+        removeObjectivePacket,
         setActorLinkPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
