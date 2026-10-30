@@ -25,7 +25,7 @@ import { blockActorDataPacket, updateBlockPacket } from './blocks';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
-import { containerOpenPacket } from './containers';
+import { containerClosePacket, containerOpenPacket } from './containers';
 import { gameRulesChangedPacket } from './gameRulesChanged';
 import { inventoryTransactionPacket } from './inventoryTransaction';
 import { jigsawStructureDataPacket } from './jigsawStructureData';
@@ -74,6 +74,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         cameraAimAssistPresetsPacket,
         cameraPresetsPacket,
         chunkRadiusUpdatedPacket,
+        containerClosePacket,
         containerOpenPacket,
         gameRulesChangedPacket,
         inventoryTransactionPacket,

@@ -23,3 +23,16 @@ export const containerOpenPacket = definePacket('ContainerOpenPacket', {
 
 /** What `ContainerOpenPacket` carries. */
 export type ContainerOpenPayload = PayloadOf<typeof containerOpenPacket>;
+
+/** The `ContainerClosePacket` field list. */
+export const containerClosePacket = definePacket('ContainerClosePacket', {
+    /** `Container Id`: the window being closed. */
+    containerId: t.uint8,
+    /** `Container Type`: which screen it was. */
+    containerType: t.uint8,
+    /** `Server Initiated Close`: true when the server, not the player, closed it. */
+    serverInitiatedClose: t.bool
+});
+
+/** What `ContainerClosePacket` carries. */
+export type ContainerClosePayload = PayloadOf<typeof containerClosePacket>;

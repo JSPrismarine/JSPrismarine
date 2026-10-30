@@ -1,3 +1,5 @@
+import { containerClosePacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -21,15 +23,18 @@ export default class ContainerClosePacket extends DataPacket {
 
     /** Writes the three fields in docs order. */
     public encodePayload(): void {
-        this.writeByte(this.containerId);
-        this.writeByte(this.containerType);
-        this.writeBoolean(this.serverInitiatedClose);
+        layoutAt(containerClosePacket, this.codecProtocol).encode(this, {
+            containerId: this.containerId,
+            containerType: this.containerType,
+            serverInitiatedClose: this.serverInitiatedClose
+        });
     }
 
     /** Reads the three fields in docs order. */
     public decodePayload(): void {
-        this.containerId = this.readByte();
-        this.containerType = this.readByte();
-        this.serverInitiatedClose = this.readBoolean();
+        const read = layoutAt(containerClosePacket, this.codecProtocol).decode(this);
+        this.containerId = read.containerId;
+        this.containerType = read.containerType;
+        this.serverInitiatedClose = read.serverInitiatedClose;
     }
 }
