@@ -8,11 +8,15 @@
  */
 import { animatePacket } from './animate';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
+import { levelChunkPacket } from './levelChunk';
 import { playStatusPacket } from './playStatus';
 
 import type { PacketDefinition } from '../define';
 
 /** The declaratively defined packets, keyed by packet name. */
 export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
-    [animatePacket, chunkRadiusUpdatedPacket, playStatusPacket].map((definition) => [definition.name, definition])
+    [animatePacket, chunkRadiusUpdatedPacket, levelChunkPacket, playStatusPacket].map((definition) => [
+        definition.name,
+        definition
+    ])
 );

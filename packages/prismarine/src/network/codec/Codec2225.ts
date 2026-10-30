@@ -1,7 +1,6 @@
 import AddActorPacket2225 from '../packet/AddActorPacket2225';
 import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
 import InventoryTransactionPacket2225 from '../packet/InventoryTransactionPacket2225';
-import LevelChunkPacket2225 from '../packet/LevelChunkPacket2225';
 import PlayerListPacket2225 from '../packet/PlayerListPacket2225';
 import PlayerSkinPacket2225 from '../packet/PlayerSkinPacket2225';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
@@ -32,7 +31,6 @@ class Codec2225 extends Codec2193 {
             AddActorPacket: AddActorPacket2225,
             AddPlayerPacket: AddPlayerPacket2225,
             InventoryTransactionPacket: InventoryTransactionPacket2225,
-            LevelChunkPacket: LevelChunkPacket2225,
             PlayerListPacket: PlayerListPacket2225,
             PlayerSkinPacket: PlayerSkinPacket2225,
             StartGamePacket: StartGamePacket2225

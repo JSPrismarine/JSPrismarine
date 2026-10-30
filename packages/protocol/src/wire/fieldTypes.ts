@@ -148,6 +148,23 @@ export const list = <T>(of: WireType<T>): WireType<T[]> =>
 export const custom = <T>(wire: string, write: WireType<T>['write'], read: WireType<T>['read']): WireType<T> =>
     type(wire, write, read);
 
+/** `lu64`: a little-endian unsigned 64-bit integer. */
+export const lu64 = type<bigint>(
+    'lu64',
+    (s, v) => s.writeUnsignedLongLE(v),
+    (s) => s.readUnsignedLongLE()
+);
+
+/** `ByteArray`: a varint byte length, then the raw bytes. */
+export const byteArray = type<Buffer>(
+    'ByteArray',
+    (s, v) => {
+        s.writeUnsignedVarInt(v.byteLength);
+        s.write(v);
+    },
+    (s) => s.read(s.readUnsignedVarInt())
+);
+
 /** `i32` (big-endian): a signed 32-bit integer, as `PlayStatus` carries its status. */
 export const i32 = type<number>(
     'i32',

@@ -1,17 +1,16 @@
+import { layoutAt, levelChunkPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
+import type { SubChunkRequestMode } from '@jsprismarine/protocol';
+
 /**
- * Sends one chunk column to the client. Protocol 2193 writes it as:
+ * Sends one chunk column to the client.
  *
- * 1. Chunk Position: X varint32 then Z varint32, both ZigZag.
- * 2. Dimension Id: varint32.
- * 3. Sub-chunks Count: varuint32.
- * 4. Client Request SubChunk Limit: optional varint32. One presence byte, then the value
- *    only when present. Present only in request mode, where the count above is 0.
- * 5. Cache Enabled: boolean.
- * 6. Cache Metadata: varuint32 count, then one Blob Id uint64 per entry. Always written,
- *    empty when the cache is off.
- * 7. Serialized Chunk Data: varuint32 byte length, then the raw bytes.
+ * The wire layout lives in `@jsprismarine/protocol`'s declarative definition, which this class
+ * walks at the protocol version stamped on it: the seven documented 2193 fields, plus the
+ * trailing `Is Client Biome Update` boolean from 2225 on. One class serves every version;
+ * which fields travel is the layout's decision, not this file's.
  */
 export default class LevelChunkPacket extends DataPacket {
     /** Chunk Position X, in chunks. */
@@ -35,62 +34,39 @@ export default class LevelChunkPacket extends DataPacket {
      */
     public clientSubChunkRequestsEnabled = false;
 
+    /** Cache Enabled. The server does not use the client blob cache, so it sends false. */
+    public cacheEnabled = false;
+
+    /**
+     * Cache Metadata Blob Ids. The list is on the wire even when the cache is off - an empty
+     * list is still a count byte, and leaving it out makes the client read the payload length
+     * as a count. The server sends it empty.
+     */
+    public cacheBlobIds: bigint[] = [];
+
     /** Serialized Chunk Data, the bytes `Chunk.networkSerialize` produces. */
     public data: Buffer = Buffer.alloc(0);
 
-    public encodePayload(): void {
-        this.writeVarInt(this.chunkX);
-        this.writeVarInt(this.chunkZ);
+    /** Is Client Biome Update, from 2225 on; earlier versions leave it at the default. */
+    public isClientBiomeUpdate = false;
 
-        this.writeVarInt(this.dimension);
-
-        // A plain count, then a separate optional limit. The count used to double as a signal.
-        // A count of -2 meant the client would ask for sub-chunks itself and was followed by
-        // the highest one it could ask for. Since 2168 a count is only a count and the limit
-        // is an optional field of its own.
-        if (this.clientSubChunkRequestsEnabled) {
-            this.writeUnsignedVarInt(0);
-            this.writeBoolean(true);
-            this.writeVarInt(this.subChunkCount);
-        } else {
-            this.writeUnsignedVarInt(this.subChunkCount);
-            this.writeBoolean(false);
-        }
-
-        // Cache Enabled. The server does not use the client blob cache.
-        this.writeBoolean(false);
-
-        // Cache Metadata. The list goes out even when the cache is off. An empty list is still
-        // a count byte, and leaving it out makes the client read the payload length as a count.
-        this.writeUnsignedVarInt(0);
-
-        this.writeUnsignedVarInt(this.data.byteLength);
-        this.write(this.data);
+    /** The sub-chunk fields under the one key the layout carries them as. */
+    public get subChunkRequest(): SubChunkRequestMode {
+        return { clientRequestsEnabled: this.clientSubChunkRequestsEnabled, count: this.subChunkCount };
     }
 
-    /**
-     * Reads the seven fields back, the mirror of {@link encodePayload}.
-     *
-     * Cache Metadata blob ids are read past rather than kept: the server never enables the
-     * blob cache, so there is nothing to hold them for, but they still have to come off the
-     * stream for the chunk data behind them to be read from the right place.
-     */
+    public set subChunkRequest(mode: SubChunkRequestMode) {
+        this.clientSubChunkRequestsEnabled = mode.clientRequestsEnabled;
+        this.subChunkCount = mode.count;
+    }
+
+    /** Writes the fields the stamped protocol version puts on the wire, in layout order. */
+    public encodePayload(): void {
+        layoutAt(levelChunkPacket, this.codecProtocol).encode(this, this);
+    }
+
+    /** Reads them back in the same order, filling version-absent fields with their fallbacks. */
     public decodePayload(): void {
-        this.chunkX = this.readVarInt();
-        this.chunkZ = this.readVarInt();
-
-        this.dimension = this.readVarInt();
-
-        const subChunkCount = this.readUnsignedVarInt();
-        this.clientSubChunkRequestsEnabled = this.readBoolean();
-        this.subChunkCount = this.clientSubChunkRequestsEnabled ? this.readVarInt() : subChunkCount;
-
-        this.readBoolean(); // Cache Enabled, always written as false.
-
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            this.readLongLE(); // Cache Metadata: Blob Id.
-        }
-
-        this.data = this.read(this.readUnsignedVarInt());
+        Object.assign(this, layoutAt(levelChunkPacket, this.codecProtocol).decode(this));
     }
 }

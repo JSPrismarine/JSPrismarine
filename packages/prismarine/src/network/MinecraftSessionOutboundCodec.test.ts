@@ -13,7 +13,6 @@ import Codec2225 from './codec/Codec2225';
 import AnimatePacket from './packet/AnimatePacket';
 import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
-import LevelChunkPacket2225 from './packet/LevelChunkPacket2225';
 import StartGamePacket from './packet/StartGamePacket';
 import StartGamePacket2225 from './packet/StartGamePacket2225';
 import { HandSlot } from './packet/InventoryTransactionPacket';
@@ -160,9 +159,10 @@ describe('network', () => {
             expect(bytes2225!.subarray(0, bytes2193!.byteLength)).toStrictEqual(bytes2193!);
 
             const decoded = Codec2225.createPacket(Codec2225.netIdOf('LevelChunkPacket')!, bytes2225);
-            expect(decoded).toBeInstanceOf(LevelChunkPacket2225);
+            expect(decoded).toBeInstanceOf(LevelChunkPacket);
             decoded!.decode();
             expect(decoded!.feof()).toBe(true);
+            expect(decoded).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: false });
         });
     });
 

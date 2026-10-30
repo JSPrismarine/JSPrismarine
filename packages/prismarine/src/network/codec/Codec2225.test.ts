@@ -13,7 +13,6 @@ import InventoryTransactionPacket2225 from '../packet/InventoryTransactionPacket
 import { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import LevelChunkPacket from '../packet/LevelChunkPacket';
-import LevelChunkPacket2225 from '../packet/LevelChunkPacket2225';
 import { Metadata } from '../../entity/Metadata';
 import { BuildPlatform } from '@jsprismarine/minecraft';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../packet/PlayerListPacket';
@@ -71,7 +70,6 @@ describe('network/codec', () => {
                 AddActorPacket: AddActorPacket2225,
                 AddPlayerPacket: AddPlayerPacket2225,
                 InventoryTransactionPacket: InventoryTransactionPacket2225,
-                LevelChunkPacket: LevelChunkPacket2225,
                 PlayerListPacket: PlayerListPacket2225,
                 PlayerSkinPacket: PlayerSkinPacket2225,
                 StartGamePacket: StartGamePacket2225
@@ -108,7 +106,10 @@ describe('network/codec', () => {
         });
 
         it('round-trips the trailing Is Client Biome Update boolean LevelChunkPacket gained', () => {
-            const packet = new LevelChunkPacket2225();
+            // One class at every version; the stamped protocol picks the layout, exactly as
+            // `prepareOutbound` stamps a session's outbound packets.
+            const packet = new LevelChunkPacket();
+            packet.codecProtocol = 2225;
             packet.chunkX = 4;
             packet.chunkZ = -3;
             packet.subChunkCount = 2;
@@ -359,9 +360,9 @@ describe('network/codec', () => {
                 expect(registry.codecProtocol).toBe(2193);
             });
 
-            it('stamps a substituted class too', () => {
-                const chunk = Codec2225.prepareOutbound(new LevelChunkPacket());
-                expect(chunk).toBeInstanceOf(LevelChunkPacket2225);
+            it('stamps a layout-walking packet, which needs nothing but the stamp', () => {
+                const chunk = new LevelChunkPacket();
+                expect(Codec2225.prepareOutbound(chunk)).toBe(chunk);
                 expect(chunk.codecProtocol).toBe(2225);
             });
         });
