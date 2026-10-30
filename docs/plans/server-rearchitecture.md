@@ -16,8 +16,24 @@ Progress (2026-10-30):
   ordered field list in `@jsprismarine/protocol`, version differences are gated fields with the
   predicates in one file (`wire/wireGates.ts`), a codec resolves a frozen layout per protocol
   version, and `prepareOutbound` stamps the session's protocol and does nothing else. The
-  `*2225` sibling classes are gone. The protocol version tables (`v2193`, `v2225`) live in the
-  protocol package, so the ids and layouts are usable without this server's logic.
+  `*2225` sibling classes are gone.
+- The wire format lives in the protocol package and nothing else does. The version tables
+  (`v2193`, `v2225`), every packet definition, and the structures they are built from -
+  `NetworkUtil`, `Skin`, `Metadata`, `Attribute`, `SyncedProperties`, `GameRule`,
+  `PassengerOfBlock`, `UUID`, `PlayerListEntry`, `ActorLink`, the inventory-transaction codecs -
+  are all in `@jsprismarine/protocol`, with re-export shims at the old prismarine paths.
+  `packages/protocol` imports nothing from `packages/prismarine`, so a third party can speak the
+  protocol without this server: a consumer compiled against the built protocol package alone
+  resolves `wireDefinitions`, `layoutAt`, the structure vocabulary and the definitions. `Item`
+  deliberately stayed in prismarine, because it is a game object; its wire half delegates to a
+  protocol-side stack-descriptor codec and packet classes convert at the boundary.
+- Every packet id has an implementation: 239 ids across both versions, none without a class.
+  The eight packets 1.26.60 added were the last gap, and their layouts come from the pinned
+  v1.26.60 release schemas (`docs/research/protocol-2225-added-packets.md`), which is also what
+  settles two conventions a careless reading gets wrong - an integer marked `Compression` is a
+  ZigZag varint rather than a fixed-width value, and a property absent from `required` travels
+  behind a presence byte. Registering a packet resolves its id against the newest codec, since a
+  packet a later protocol added has none at the older one.
 - Layouts are held to real server bytes: the capture pipeline records one raw payload per packet
   the Bedrock Dedicated Server sends at login (`src/jsp/v<protocol>/wire/`, 41 per version), and
   the `protocol.wire-roundtrip` parity family requires `encode(decode(bytes)) === bytes` for
@@ -30,14 +46,22 @@ Progress (2026-10-30):
   executable (`pnpm run package`) provisions the same data but still generates on the server
   thread. `pnpm install && pnpm dev` works from a clean clone; `pnpm run bringup --protocol <n>`
   walks a client to spawn against a real BDS of that version.
-- Remaining: converting the rest of the packet bodies to declarative definitions and collapsing
-  the duplicate `NetworkPacket` stack in `packages/protocol` onto them (the server and client
-  then share one wire implementation); classes for the eight packets 1.26.60 added and the
-  version-aware `ItemStackRequest` reader; commands and worlds modules; widening the
-  `WorldChange` stream beyond block changes; the version-independent intent/update vocabulary;
-  NetherNet and Java transports; per-codec data injection for the remaining module-load
-  bedrock-data imports; `bedrock-data`'s versioned captures beyond the wire fixtures (see
-  "bedrock-data versioning" below); worker support for the Node single executable.
+- Remaining, in rough order of value:
+  - The rest of the packet bodies. Declarative definitions cover a growing minority of the 239
+    ids; the rest still carry hand-written `encodePayload`/`decodePayload` pairs. Each converts
+    the same way, behind a byte-compatibility assertion against the encoder it replaces, and the
+    ones a login exercises are additionally held to captured server bytes. Four are deliberately
+    left for individual care rather than a batch - `CraftingData`, `AvailableCommands`,
+    `ItemRegistry` and `CreativeContent`, whose hand-written codecs carry byte-level tests
+    pinned against gophertunnel.
+  - Collapsing the duplicate `NetworkPacket` stack in `packages/protocol` onto the definitions,
+    so the server and the client share one wire implementation rather than two.
+  - The version-aware `ItemStackRequest` reader (the `CraftReservedAction` renumber at 2225).
+  - Commands and worlds modules; widening the `WorldChange` stream beyond block changes; the
+    version-independent intent/update vocabulary; NetherNet and Java transports.
+  - Per-codec data injection for the remaining module-load bedrock-data imports;
+    `bedrock-data`'s versioned captures beyond the wire fixtures (see "bedrock-data versioning"
+    below); worker support for the Node single executable.
 - Accepted deviation: `ServerName` advertises only the newest supported version rather than every
   registered codec version. This matches what a Bedrock Dedicated Server of that version
   advertises; as the constructor comment in `packages/raknet/src/utils/ServerName.ts` records,
