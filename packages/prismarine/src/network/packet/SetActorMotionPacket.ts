@@ -1,5 +1,6 @@
+import { layoutAt, setActorMotionPacket } from '@jsprismarine/protocol';
+
 import type { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
@@ -35,14 +36,17 @@ export default class SetActorMotionPacket extends DataPacket {
     public tick: bigint = 0n;
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-        NetworkUtil.writeVector3(this, this.motion);
-        this.writeUnsignedVarLong(this.tick);
+        layoutAt(setActorMotionPacket, this.codecProtocol).encode(this, {
+            runtimeEntityId: this.runtimeEntityId,
+            motion: this.motion,
+            tick: this.tick
+        });
     }
 
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-        this.motion = NetworkUtil.readVector3(this);
-        this.tick = this.readUnsignedVarLong();
+        const read = layoutAt(setActorMotionPacket, this.codecProtocol).decode(this);
+        this.runtimeEntityId = read.runtimeEntityId;
+        this.motion = read.motion;
+        this.tick = read.tick;
     }
 }

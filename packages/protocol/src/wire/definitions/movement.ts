@@ -86,3 +86,16 @@ export const moveActorAbsolutePacket = definePacket('MoveActorAbsolutePacket', {
 
 /** What `MoveActorAbsolutePacket` carries. */
 export type MoveActorAbsolutePayload = PayloadOf<typeof moveActorAbsolutePacket>;
+
+/** The `SetActorMotionPacket` field list. */
+export const setActorMotionPacket = definePacket('SetActorMotionPacket', {
+    /** `Target Runtime ID`. */
+    runtimeEntityId: t.varuint64,
+    /** `Motion`. */
+    motion: vector3,
+    /** `Tick`, a `PlayerInputTick`. */
+    tick: t.varuint64
+});
+
+/** What `SetActorMotionPacket` carries. */
+export type SetActorMotionPayload = PayloadOf<typeof setActorMotionPacket>;
