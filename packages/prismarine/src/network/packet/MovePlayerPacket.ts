@@ -1,5 +1,6 @@
+import { layoutAt, movePlayerPacket } from '@jsprismarine/protocol';
+
 import type { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
 import PositionMode from '../type/PositionMode';
 import DataPacket from './DataPacket';
 
@@ -42,46 +43,40 @@ export default class MovePlayerPacket extends DataPacket {
     public tick!: bigint;
 
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-
-        this.position = NetworkUtil.readVector3(this);
-        this.pitch = this.readFloatLE();
-        this.yaw = this.readFloatLE();
-        this.headYaw = this.readFloatLE();
-
-        this.mode = this.readByte();
-        this.onGround = this.readBoolean();
-        this.ridingEntityRuntimeId = this.readUnsignedVarLong();
-
-        // Teleport Data is an optional with a presence byte of its own. The byte is always on
-        // the wire, so a reader that skips it takes it for the first byte of the tick.
-        if (this.readBoolean()) {
-            this.teleportCause = this.readIntLE();
-            this.teleportItemId = this.readIntLE();
+        const read = layoutAt(movePlayerPacket, this.codecProtocol).decode(this);
+        this.runtimeEntityId = read.runtimeEntityId;
+        this.position = read.position;
+        this.pitch = read.pitch;
+        this.yaw = read.yaw;
+        this.headYaw = read.headYaw;
+        this.mode = read.mode;
+        this.onGround = read.onGround;
+        this.ridingEntityRuntimeId = read.ridingEntityRuntimeId;
+        if (read.teleportData !== null) {
+            this.teleportCause = read.teleportData.cause;
+            this.teleportItemId = read.teleportData.sourceActorType;
         }
 
-        this.tick = this.readUnsignedVarLong();
+        this.tick = read.tick;
     }
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-
-        NetworkUtil.writeVector3(this, this.position);
-        this.writeFloatLE(this.pitch);
-        this.writeFloatLE(this.yaw);
-        this.writeFloatLE(this.headYaw);
-
-        this.writeByte(this.mode);
-        this.writeBoolean(this.onGround);
-        this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
-
-        const teleporting = this.mode === PositionMode.Teleport;
-        this.writeBoolean(teleporting);
-        if (teleporting) {
-            this.writeIntLE(this.teleportCause);
-            this.writeIntLE(this.teleportItemId);
-        }
-
-        this.writeUnsignedVarLong(this.tick);
+        layoutAt(movePlayerPacket, this.codecProtocol).encode(this, {
+            runtimeEntityId: this.runtimeEntityId,
+            position: this.position,
+            pitch: this.pitch,
+            yaw: this.yaw,
+            headYaw: this.headYaw,
+            mode: this.mode,
+            onGround: this.onGround,
+            ridingEntityRuntimeId: this.ridingEntityRuntimeId,
+            // Only a teleport carries the cause, so the presence byte follows the mode rather
+            // than whether the fields happen to be set.
+            teleportData:
+                this.mode === PositionMode.Teleport
+                    ? { cause: this.teleportCause, sourceActorType: this.teleportItemId }
+                    : null,
+            tick: this.tick
+        });
     }
 }

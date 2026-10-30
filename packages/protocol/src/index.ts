@@ -51,6 +51,7 @@ export * from './wire/definitions/jigsawStructureData';
 export * from './wire/definitions/levelChunk';
 export * from './wire/definitions/levelEventGeneric';
 export * from './wire/definitions/levelSoundEvent';
+export * from './wire/definitions/movement';
 export * from './wire/definitions/playerList';
 export * from './wire/definitions/playerSkin';
 export * from './wire/definitions/playStatus';
