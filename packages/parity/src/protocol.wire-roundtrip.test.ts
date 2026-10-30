@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { codecForProtocol } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
+import { prismarineWireDefinitions } from '@jsprismarine/prismarine/network/codec/prismarineWireDefinitions';
 import { layoutAt, wireDefinitions } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
@@ -22,6 +23,13 @@ import { FAMILIES } from './families.ts';
  * packet is defined.
  */
 const jspRoot = fileURLToPath(new URL('../../bedrock-data/src/jsp', import.meta.url));
+
+/**
+ * Both registries as one map: the protocol package's definitions plus the prismarine-side
+ * ones still built on prismarine-owned structures. A packet is covered the moment either
+ * registry defines it.
+ */
+const definitions = new Map([...wireDefinitions, ...prismarineWireDefinitions]);
 
 /** The captured wire fixtures of one protocol version: packet id to raw payload. */
 const fixturesOf = (protocolVersion: number): Map<number, Buffer> => {
@@ -45,7 +53,7 @@ describe(FAMILIES.protocolWireRoundtrip, () => {
 
             const defined = [...fixtures.keys()].filter((id) => {
                 const name = nameOf(id);
-                return name !== undefined && wireDefinitions.has(name);
+                return name !== undefined && definitions.has(name);
             });
 
             it('knows a packet name for every captured fixture', () => {
@@ -57,7 +65,7 @@ describe(FAMILIES.protocolWireRoundtrip, () => {
                 expect(defined.length).toBeGreaterThan(0);
                 for (const id of defined) {
                     const bytes = fixtures.get(id)!;
-                    const layout = layoutAt(wireDefinitions.get(nameOf(id)!)!, protocolVersion);
+                    const layout = layoutAt(definitions.get(nameOf(id)!)!, protocolVersion);
 
                     const stream = new BinaryStream(bytes);
                     const payload = layout.decode(stream);

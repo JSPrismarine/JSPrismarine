@@ -9,8 +9,7 @@ import { Item } from '../../item/Item';
 import AddActorPacket2225 from '../packet/AddActorPacket2225';
 import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
 import AnimatePacket from '../packet/AnimatePacket';
-import InventoryTransactionPacket2225 from '../packet/InventoryTransactionPacket2225';
-import { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
+import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import LevelChunkPacket from '../packet/LevelChunkPacket';
 import { Metadata } from '../../entity/Metadata';
@@ -69,7 +68,6 @@ describe('network/codec', () => {
             const changed = {
                 AddActorPacket: AddActorPacket2225,
                 AddPlayerPacket: AddPlayerPacket2225,
-                InventoryTransactionPacket: InventoryTransactionPacket2225,
                 PlayerListPacket: PlayerListPacket2225,
                 PlayerSkinPacket: PlayerSkinPacket2225,
                 StartGamePacket: StartGamePacket2225
@@ -195,8 +193,10 @@ describe('network/codec', () => {
         });
 
         it('round-trips the Hand byte both changed transaction bodies gained', () => {
-            const useOnActor = new InventoryTransactionPacket2225();
+            const useOnActor = new InventoryTransactionPacket();
+            useOnActor.codecProtocol = 2225;
             useOnActor.legacyRequestId = 0;
+            useOnActor.legacySlotChanges = [];
             useOnActor.inventoryActions = [];
             useOnActor.transactionType = TransactionType.USE_ITEM_ON_ENTITY;
             useOnActor.hand = HandSlot.OFFHAND;
@@ -213,8 +213,10 @@ describe('network/codec', () => {
             expect(decodedUse.hand).toBe(HandSlot.OFFHAND);
             expect(decodedUse.transactionData).toMatchObject({ entityRuntimeId: 42n, hotbarSlot: 2 });
 
-            const release = new InventoryTransactionPacket2225();
+            const release = new InventoryTransactionPacket();
+            release.codecProtocol = 2225;
             release.legacyRequestId = 0;
+            release.legacySlotChanges = [];
             release.inventoryActions = [];
             release.transactionType = TransactionType.RELEASE_ITEM;
             release.hand = HandSlot.OFFHAND;

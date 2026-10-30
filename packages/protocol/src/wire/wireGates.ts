@@ -40,3 +40,10 @@ export const until = (protocolVersion: number, reason: string): WireGate =>
  * `docs/research/protocol-2225-delta.md` for the per-packet evidence.
  */
 export const SINCE_2225 = since(2225, 'added at protocol 2225 (Minecraft 1.26.60)');
+
+/**
+ * The other half of a layout change at 2225: the field as it travelled up to 2193, which
+ * 2225 replaced rather than merely extended. A moved or reshaped field is a gated pair,
+ * one field under this gate and its successor under {@link SINCE_2225}.
+ */
+export const UNTIL_2225 = until(2225, 'superseded at protocol 2225 (Minecraft 1.26.60)');

@@ -1,9 +1,12 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
+import { layoutAt } from '@jsprismarine/protocol';
 import { Item } from '../../item/Item';
 import type BlockPosition from '../../world/BlockPosition';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
+import { inventoryTransactionPacket } from './inventoryTransaction.wire';
+import type { LegacyTransactionRequest, TransactionPayload } from './inventoryTransaction.wire';
 
 /** The docs' `ItemUseActionType`: what the client did with the item in hand. */
 export enum ItemUseActionType {
@@ -279,7 +282,8 @@ export interface ReleaseItemData extends TransactionData {
  * The docs' validity rule for a Legacy Request ID: negative and even. Zero means no request,
  * and the Legacy Set Item Slots list is only on the wire when the id is valid.
  */
-const hasLegacyRequest = (legacyRequestId: number): boolean => legacyRequestId < -1 && (legacyRequestId & 1) === 0;
+export const hasLegacyRequest = (legacyRequestId: number): boolean =>
+    legacyRequestId < -1 && (legacyRequestId & 1) === 0;
 
 /**
  * Packet 30. The client's item use, attack, release or container move.
@@ -289,7 +293,11 @@ const hasLegacyRequest = (legacyRequestId: number): boolean => legacyRequestId <
  * index (varuint, {@link TransactionType}), Actions (varuint count and one
  * {@link InventoryAction} each), then the body the variant selects: {@link UseItemData},
  * {@link UseItemOnEntityData} or {@link ReleaseItemData}. Normal and Mismatch end after the
- * Actions.
+ * Actions. Protocol 2225 adds a `Hand` uint8 to the use-on-actor and release-item bodies.
+ *
+ * The wire layout lives in `inventoryTransaction.wire.ts`'s declarative definition, which
+ * this class walks at the protocol version stamped on it. One class serves every version;
+ * which body shape travels is the layout's decision, not this file's.
  *
  * A 2193 client sends the three bodied types. Container moves, drops and creative picks go
  * through `ItemStackRequestPacket`, so a Normal transaction is a legacy client's and a
@@ -309,8 +317,57 @@ export default class InventoryTransactionPacket extends DataPacket {
     /** The body the type selects. Null for Normal, Mismatch and a type the reader does not know. */
     public transactionData: UseItemData | UseItemOnEntityData | ReleaseItemData | null = null;
 
+    /** Hand: which hand a use-on-actor or release transaction acted from, a {@link HandSlot} byte. */
+    public hand: number = HandSlot.MAINHAND;
+
+    /** The legacy request fields under the one key the layout carries them as. */
+    public get legacyRequest(): LegacyTransactionRequest {
+        return { legacyRequestId: this.legacyRequestId, legacySlotChanges: this.legacySlotChanges };
+    }
+
+    public set legacyRequest(value: LegacyTransactionRequest) {
+        this.legacyRequestId = value.legacyRequestId;
+        this.legacySlotChanges = value.legacySlotChanges;
+    }
+
+    /** The transaction fields as the 2193 body shape carries them; null never travels out. */
+    public get transaction(): TransactionPayload {
+        return {
+            transactionType: this.transactionType,
+            inventoryActions: this.inventoryActions,
+            transactionData: this.transactionData,
+            hand: this.hand
+        };
+    }
+
+    public set transaction(value: TransactionPayload | null) {
+        if (value === null) return; // The fallback of the shape the stamped version left off.
+        this.transactionType = value.transactionType;
+        this.inventoryActions = value.inventoryActions;
+        this.transactionData = value.transactionData;
+        this.hand = value.hand;
+    }
+
+    /** The same fields as the hand-carrying 2225 body shape; the layout picks one of the two. */
+    public get transactionWithHand(): TransactionPayload {
+        return this.transaction;
+    }
+
+    public set transactionWithHand(value: TransactionPayload | null) {
+        this.transaction = value;
+    }
+
     /**
-     * Reads the packet in the order the class comment gives.
+     * Writes the packet in the order the class comment gives, through the layout the stamped
+     * protocol version resolves.
+     * @throws {TypeError} When the type is not a {@link TransactionType} or the body does not match it.
+     */
+    public encodePayload(): void {
+        layoutAt(inventoryTransactionPacket, this.codecProtocol).encode(this, this);
+    }
+
+    /**
+     * Reads the packet back in the same order.
      *
      * Two things about the layout differ from protocol 748. The Legacy Set Item Slots have a
      * presence byte of their own, which the reader trusts over the request id. The presence
@@ -325,141 +382,8 @@ export default class InventoryTransactionPacket extends DataPacket {
      * @throws {Error} When a use-item body leaves bytes unread, which means the layout drifted.
      */
     public decodePayload(): void {
-        this.legacyRequestId = this.readVarInt();
-        this.legacySlotChanges = this.readBoolean()
-            ? Array.from({ length: this.readUnsignedVarInt() }, () => LegacySlotChange.fromNetwork(this))
-            : [];
-
-        this.transactionType = this.readUnsignedVarInt();
-
-        const actionsCount = this.readUnsignedVarInt();
-        if (actionsCount > MAX_INVENTORY_ACTIONS) {
-            throw new RangeError(
-                `An inventory transaction carried ${actionsCount} actions; the docs allow ${MAX_INVENTORY_ACTIONS}`
-            );
-        }
-        this.inventoryActions = Array.from({ length: actionsCount }, () => InventoryAction.fromNetwork(this));
-
-        switch (this.transactionType) {
-            case TransactionType.NORMAL:
-            case TransactionType.MISMATCH:
-                break;
-            case TransactionType.USE_ITEM:
-                this.transactionData = readUseItemData(this);
-
-                // A layout that has drifted from the client's does not fail. It hands back
-                // plausible looking values, and acting on those means destroying a block at a
-                // position nobody touched. Leftover bytes mean the layout is wrong, and saying
-                // so is worth more than the guess.
-                if (!this.feof()) {
-                    throw new Error(
-                        `UseItem transaction left ${this.readRemaining().byteLength} bytes unread: the packet layout does not match the client's`
-                    );
-                }
-                break;
-            case TransactionType.USE_ITEM_ON_ENTITY: {
-                const entityRuntimeId = this.readUnsignedVarLong();
-                const actionType = this.readVarInt();
-                const hotbarSlot = this.readVarInt();
-                this.decodeItemUseOnActorHand();
-                this.transactionData = {
-                    kind: 'useItemOnEntity',
-                    entityRuntimeId,
-                    actionType,
-                    hotbarSlot,
-                    itemInHand: Item.networkDeserialize(this),
-                    playerPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE()),
-                    clickPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
-                };
-                break;
-            }
-            case TransactionType.RELEASE_ITEM:
-                this.transactionData = {
-                    kind: 'releaseItem',
-                    actionType: this.readVarInt(),
-                    hotbarSlot: this.readVarInt(),
-                    itemInHand: Item.networkDeserialize(this),
-                    playerPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
-                };
-                break;
-            default:
-                // Nothing more can be read: the body's length depends on the type. See the
-                // method comment for why this is not a throw.
-                this.transactionData = null;
-        }
+        Object.assign(this, layoutAt(inventoryTransactionPacket, this.codecProtocol).decode(this));
     }
-
-    /**
-     * The mirror of {@link decodePayload}, so that a client such as the bot harness can send
-     * what a real one sends, and so that a test can pin the two against each other.
-     *
-     * The Legacy Set Item Slots presence byte follows the request id, as the docs and the
-     * client have it: a valid id always carries the list, even an empty one, and an invalid id
-     * never does.
-     * @throws {TypeError} When the type is not a {@link TransactionType} or the body does not match it.
-     */
-    public encodePayload(): void {
-        this.writeVarInt(this.legacyRequestId);
-        const hasLegacySlots = hasLegacyRequest(this.legacyRequestId);
-        this.writeBoolean(hasLegacySlots);
-        if (hasLegacySlots) {
-            this.writeUnsignedVarInt(this.legacySlotChanges.length);
-            for (const change of this.legacySlotChanges) change.toNetwork(this);
-        }
-
-        this.writeUnsignedVarInt(this.transactionType);
-
-        this.writeUnsignedVarInt(this.inventoryActions.length);
-        for (const action of this.inventoryActions) action.toNetwork(this);
-
-        switch (this.transactionType) {
-            case TransactionType.NORMAL:
-            case TransactionType.MISMATCH:
-                break;
-            case TransactionType.USE_ITEM: {
-                const data = this.transactionData;
-                if (data?.kind !== 'useItem') throw new TypeError('A use-item transaction needs use-item data');
-                writeUseItemData(this, data);
-                break;
-            }
-            case TransactionType.USE_ITEM_ON_ENTITY: {
-                const data = this.transactionData;
-                if (data?.kind !== 'useItemOnEntity') {
-                    throw new TypeError('A use-item-on-entity transaction needs use-item-on-entity data');
-                }
-                this.writeUnsignedVarLong(data.entityRuntimeId);
-                this.writeVarInt(data.actionType);
-                this.writeVarInt(data.hotbarSlot);
-                this.encodeItemUseOnActorHand();
-                data.itemInHand.networkSerialize(this);
-                NetworkUtil.writeVector3(this, data.playerPosition);
-                NetworkUtil.writeVector3(this, data.clickPosition);
-                break;
-            }
-            case TransactionType.RELEASE_ITEM: {
-                const data = this.transactionData;
-                if (data?.kind !== 'releaseItem')
-                    throw new TypeError('A release-item transaction needs release-item data');
-                this.writeVarInt(data.actionType);
-                this.writeVarInt(data.hotbarSlot);
-                data.itemInHand.networkSerialize(this);
-                NetworkUtil.writeVector3(this, data.playerPosition);
-                break;
-            }
-            default:
-                throw new TypeError(`Unknown transaction type ${this.transactionType}`);
-        }
-    }
-
-    /**
-     * The seam for the `Hand` uint8 protocol 2225 inserts into the use-item-on-actor body
-     * between the hotbar slot and the item. 2193 has no such field, so this writes nothing;
-     * the 2225 subclass overrides it.
-     */
-    protected encodeItemUseOnActorHand(): void {}
-
-    /** The read half of the {@link encodeItemUseOnActorHand} seam; nothing to read at 2193. */
-    protected decodeItemUseOnActorHand(): void {}
 }
 
 /** The mirror of {@link readUseItemData}. */
