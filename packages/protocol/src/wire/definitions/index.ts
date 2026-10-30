@@ -35,6 +35,7 @@ import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket, requestChunkRadiusPacket } from './chunkRadiusUpdated';
 import { clientCacheStatusPacket } from './clientCache';
+import { clientToServerHandshakePacket } from './clientToServerHandshake';
 import { commandOutputPacket, commandRequestPacket } from './commands';
 import { disconnectPacket } from './disconnect';
 import { onScreenTextureAnimationPacket, spawnParticleEffectPacket } from './effects';
@@ -123,6 +124,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         cameraPresetsPacket,
         chunkRadiusUpdatedPacket,
         clientCacheStatusPacket,
+        clientToServerHandshakePacket,
         commandOutputPacket,
         commandRequestPacket,
         containerClosePacket,
