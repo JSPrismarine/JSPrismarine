@@ -156,7 +156,7 @@ import UpdateBlockSyncedPacket from './packet/UpdateBlockSyncedPacket';
 import UpdateClientOptionsPacket from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
 import UpdateEquipPacket from '@jsprismarine/protocol/packet/UpdateEquipPacket';
 import UpdateSoftEnumPacket from '@jsprismarine/protocol/packet/UpdateSoftEnumPacket';
-import UpdateTradePacket from './packet/UpdateTradePacket';
+import UpdateTradePacket from '@jsprismarine/protocol/packet/UpdateTradePacket';
 
 export {
     ActorEventPacket,
