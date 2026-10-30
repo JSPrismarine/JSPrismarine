@@ -1,5 +1,6 @@
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * One "SerializedAbilitiesDataSerializedLayer" entry of a `SerializedAbilitiesData`.
@@ -23,7 +24,7 @@ export default class SerializedAbilityLayer extends NetworkStructure {
         super();
     }
 
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeUnsignedShortLE(this.layer);
         stream.writeUnsignedIntLE(this.abilitiesSet);
         stream.writeUnsignedIntLE(this.abilityValues);
@@ -32,7 +33,7 @@ export default class SerializedAbilityLayer extends NetworkStructure {
         stream.writeFloatLE(this.walkSpeed);
     }
 
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.layer = stream.readUnsignedShortLE();
         this.abilitiesSet = stream.readUnsignedIntLE();
         this.abilityValues = stream.readUnsignedIntLE();

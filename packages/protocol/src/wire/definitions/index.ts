@@ -27,6 +27,7 @@ import {
     updateAdventureSettingsPacket
 } from './worldStatus';
 import { startGamePacket } from './startGame';
+import { updateAbilitiesPacket } from './updateAbilities';
 import { updateSubChunkBlocksPacket } from './updateSubChunkBlocks';
 
 import type { PacketDefinition } from '../define';
@@ -43,6 +44,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         resourcePacksInfoPacket,
         resourcePackStackPacket,
         startGamePacket,
+        updateAbilitiesPacket,
         updateSubChunkBlocksPacket,
         networkChunkPublisherUpdatePacket,
         networkSettingsPacket,

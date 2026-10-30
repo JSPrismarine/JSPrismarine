@@ -1,4 +1,5 @@
 import { AbilityLayerFlag, CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import { layoutAt, SerializedAbilityLayer, updateAbilitiesPacket } from '@jsprismarine/protocol';
 import DataPacket from './DataPacket';
 
 /**
@@ -113,39 +114,37 @@ export default class UpdateAbilitiesPacket extends DataPacket {
     public abilityLayers: AbilityLayer[] = [];
 
     public encodePayload(): void {
-        this.writeLongLE(this.targetActorUniqueId);
-        this.writeSignedByte(this.playerPermission);
-        this.writeByte(this.commandPermission);
-
-        this.writeUnsignedVarInt(this.abilityLayers.length);
-        for (const abilityLayer of this.abilityLayers) {
-            this.writeUnsignedShortLE(abilityLayer.layerType);
-            const encodedFlags = abilityLayer.getEncodedFlags();
-            this.writeUnsignedIntLE(encodedFlags.flagsHash);
-            this.writeUnsignedIntLE(encodedFlags.valuesHash);
-            this.writeFloatLE(abilityLayer.flySpeed);
-            this.writeFloatLE(abilityLayer.verticalFlySpeed);
-            this.writeFloatLE(abilityLayer.walkSpeed);
-        }
+        layoutAt(updateAbilitiesPacket, this.codecProtocol).encode(this, {
+            targetActorUniqueId: this.targetActorUniqueId,
+            playerPermission: this.playerPermission,
+            commandPermission: this.commandPermission,
+            abilityLayers: this.abilityLayers.map((layer) => {
+                const { flagsHash, valuesHash } = layer.getEncodedFlags();
+                return new SerializedAbilityLayer(
+                    layer.layerType,
+                    flagsHash,
+                    valuesHash,
+                    layer.flySpeed,
+                    layer.verticalFlySpeed,
+                    layer.walkSpeed
+                );
+            })
+        });
     }
 
     public decodePayload(): void {
-        this.targetActorUniqueId = this.readLongLE();
-        this.playerPermission = this.readSignedByte();
-        this.commandPermission = this.readByte();
-
-        const count = this.readUnsignedVarInt();
-        this.abilityLayers = [];
-        for (let i = 0; i < count; i++) {
+        const read = layoutAt(updateAbilitiesPacket, this.codecProtocol).decode(this);
+        this.targetActorUniqueId = read.targetActorUniqueId;
+        this.playerPermission = read.playerPermission;
+        this.commandPermission = read.commandPermission;
+        this.abilityLayers = read.abilityLayers.map((serialized) => {
             const layer = new AbilityLayer();
-            layer.layerType = this.readUnsignedShortLE();
-            const flagsHash = this.readUnsignedIntLE();
-            const valuesHash = this.readUnsignedIntLE();
-            layer.setEncodedFlags(flagsHash, valuesHash);
-            layer.flySpeed = this.readFloatLE();
-            layer.verticalFlySpeed = this.readFloatLE();
-            layer.walkSpeed = this.readFloatLE();
-            this.abilityLayers.push(layer);
-        }
+            layer.layerType = serialized.layer;
+            layer.setEncodedFlags(serialized.abilitiesSet, serialized.abilityValues);
+            layer.flySpeed = serialized.flySpeed;
+            layer.verticalFlySpeed = serialized.verticalFlySpeed;
+            layer.walkSpeed = serialized.walkSpeed;
+            return layer;
+        });
     }
 }
