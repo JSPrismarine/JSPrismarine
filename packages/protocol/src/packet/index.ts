@@ -146,6 +146,10 @@ export { default as ClientboundUpdateSoundDataPacket } from './ClientboundUpdate
 export * from './ClientboundUpdateSoundDataPacket';
 export { default as CodeBuilderSourcePacket } from './CodeBuilderSourcePacket';
 export * from './CodeBuilderSourcePacket';
+export { default as CommandOutputPacket } from './CommandOutputPacket';
+export * from './CommandOutputPacket';
+export { default as CommandRequestPacket } from './CommandRequestPacket';
+export * from './CommandRequestPacket';
 export { default as ContainerRegistryCleanupPacket } from './ContainerRegistryCleanupPacket';
 export * from './ContainerRegistryCleanupPacket';
 export { default as CreatePhotoPacket } from './CreatePhotoPacket';

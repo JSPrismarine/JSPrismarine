@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import CommandOutputPacket, { CommandOutputType } from '../packet/CommandOutputPacket';
-import type CommandRequestPacket from '../packet/CommandRequestPacket';
+import { CommandOutputPacket, CommandOutputType } from '@jsprismarine/protocol';
+import type { CommandRequestPacket } from '@jsprismarine/protocol';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import type PacketHandler from './PacketHandler';
 
@@ -23,7 +23,9 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
     /** Dispatches the command as the player who sent it and answers with its outcome. */
     public async handle(packet: CommandRequestPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
-        const origin = packet.commandOriginData;
+        const request = packet.getPacketData();
+        if (request === null) throw new Error('CommandRequestPacket has no decoded payload');
+        const origin = request.commandOriginData;
 
         if (origin.type !== CommandOriginType.Player) {
             server
@@ -35,12 +37,15 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
             return;
         }
 
-        const ran = await server.getCommandManager().dispatchCommand(player, player, packet.commandName);
+        const ran = await server.getCommandManager().dispatchCommand(player, player, request.commandName);
 
-        const output = new CommandOutputPacket();
-        output.originData = origin;
-        output.outputType = CommandOutputType.AllOutput;
-        output.successCount = ran ? 1 : 0;
+        const output = new CommandOutputPacket({
+            originData: origin,
+            outputType: CommandOutputType.AllOutput,
+            successCount: ran ? 1 : 0,
+            outputMessages: [],
+            dataSet: null
+        });
         await session.send(output);
     }
 }

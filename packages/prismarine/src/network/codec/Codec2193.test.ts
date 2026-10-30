@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { CommandRequestPacket } from '@jsprismarine/protocol';
 import Identifiers from '../Identifiers';
 import SetTimePacket from '../packet/SetTimePacket';
 import * as Packets from '../Packets';
@@ -18,7 +19,7 @@ describe('network/codec', () => {
 
         it('lists every packet id under its class name, each id once', () => {
             const entries = Object.entries(Codec2193.ids);
-            const implemented = new Set(Object.keys(Packets));
+            const implemented = new Set([...Object.keys(Packets), CommandRequestPacket.name]);
             expect(entries.length).toBeGreaterThan(0);
             for (const [name, id] of entries) {
                 expect(Codec2193.netIdOf(name), name).toBe(id);

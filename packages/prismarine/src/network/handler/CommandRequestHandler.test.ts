@@ -7,15 +7,22 @@ import type { CommandManager } from '../../command/CommandManager';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
-import CommandOutputPacket, { CommandOutputType } from '../packet/CommandOutputPacket';
-import CommandRequestPacket from '../packet/CommandRequestPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
+import { CommandOutputPacket, CommandOutputType, CommandRequestPacket } from '@jsprismarine/protocol';
 import CommandRequestHandler from './CommandRequestHandler';
 
 const origin = (type: CommandOriginType): CommandOriginData =>
     new CommandOriginData(type, UUID.fromString('00112233-4455-6677-8899-aabbccddeeff'), 'request-7', 42n);
+
+const request = (commandName: string, commandOriginData: CommandOriginData): CommandRequestPacket =>
+    new CommandRequestPacket({
+        commandName,
+        commandOriginData,
+        internal: false,
+        version: 'Latest'
+    });
 
 /** Runs the handler against one request, with a command manager whose dispatch answers `ran`. */
 const run = async (packet: CommandRequestPacket, ran: boolean) => {
@@ -46,10 +53,7 @@ const run = async (packet: CommandRequestPacket, ran: boolean) => {
 describe('CommandRequestHandler', () => {
     it('dispatches the command as the player and answers with the request origin', async () => {
         const requestOrigin = origin(CommandOriginType.Player);
-        const packet = Object.assign(new CommandRequestPacket(), {
-            commandName: '/say hi',
-            commandOriginData: requestOrigin
-        });
+        const packet = request('/say hi', requestOrigin);
 
         const { dispatched, sent, player } = await run(packet, true);
 
@@ -57,7 +61,8 @@ describe('CommandRequestHandler', () => {
         expect(sent).toHaveLength(1);
         const [reply] = sent;
         expect(reply).toBeInstanceOf(CommandOutputPacket);
-        expect(reply).toMatchObject({
+        if (!(reply instanceof CommandOutputPacket)) return;
+        expect(reply.getPacketData()).toMatchObject({
             originData: requestOrigin,
             outputType: CommandOutputType.AllOutput,
             successCount: 1,
@@ -67,10 +72,7 @@ describe('CommandRequestHandler', () => {
     });
 
     it('reports a command that did not run with a success count of zero', async () => {
-        const packet = Object.assign(new CommandRequestPacket(), {
-            commandName: '/nope',
-            commandOriginData: origin(CommandOriginType.Player)
-        });
+        const packet = request('/nope', origin(CommandOriginType.Player));
 
         const { sent } = await run(packet, false);
 
@@ -79,10 +81,7 @@ describe('CommandRequestHandler', () => {
     });
 
     it('drops a request whose origin is not the player', async () => {
-        const packet = Object.assign(new CommandRequestPacket(), {
-            commandName: '/op Steve',
-            commandOriginData: origin(CommandOriginType.DevConsole)
-        });
+        const packet = request('/op Steve', origin(CommandOriginType.DevConsole));
 
         const { dispatched, sent, logged } = await run(packet, true);
 

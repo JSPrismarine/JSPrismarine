@@ -1,4 +1,5 @@
 import * as Packets from '../Packets';
+import CommandRequestPacket from '@jsprismarine/protocol/packet/CommandRequestPacket';
 import {
     biome_definitions_network,
     block_definitions,
@@ -13,7 +14,7 @@ import type { ProtocolCodec } from './ProtocolCodec';
 import { minecraftVersions, netIdFor, packetIds, protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
 
 /** Exported packet classes no codec lists: the base class and the batch envelope. */
-export type PacketClass = (typeof Packets)[keyof typeof Packets];
+export type PacketClass = (typeof Packets)[keyof typeof Packets] | typeof CommandRequestPacket;
 
 /**
  * The codec for protocol 2193, built from the packet barrel and the 2193 id table. The first
@@ -49,6 +50,9 @@ export class Codec2193 implements ProtocolCodec {
                 const id = this.netIdOf(name);
                 if (id !== undefined) this.byId.set(id, packet);
             }
+
+            const commandRequestId = this.netIdOf('CommandRequestPacket');
+            if (commandRequestId !== undefined) this.byId.set(commandRequestId, CommandRequestPacket);
         }
 
         return this.byId;

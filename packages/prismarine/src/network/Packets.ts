@@ -33,8 +33,6 @@ import ClientboundPlayAudioContentPacket from './packet/ClientboundPlayAudioCont
 import ClientboundStonecutterSetRecipePacket from './packet/ClientboundStonecutterSetRecipePacket';
 import CodeBuilderPacket from './packet/CodeBuilderPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
-import CommandOutputPacket from './packet/CommandOutputPacket';
-import CommandRequestPacket from './packet/CommandRequestPacket';
 import CompletedUsingItemPacket from './packet/CompletedUsingItemPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
@@ -212,8 +210,6 @@ export {
     ClientboundStonecutterSetRecipePacket,
     CodeBuilderPacket,
     CommandBlockUpdatePacket,
-    CommandOutputPacket,
-    CommandRequestPacket,
     CompletedUsingItemPacket,
     ContainerClosePacket,
     ContainerOpenPacket,

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
-import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
-import CommandOutputPacket, { CommandOutputType } from './CommandOutputPacket';
+import UUID from '../wire/structures/UUID';
+import CommandOriginData from '../wire/structures/CommandOriginData';
+import CommandOriginType from '../wire/structures/CommandOriginType';
+import { CommandOutputType } from '../wire/definitions/commands';
+import CommandOutputPacket from './CommandOutputPacket';
 
 describe('CommandOutputPacket', () => {
     // A varuint length prefix followed by UTF-8, for strings shorter than 128 bytes.
@@ -44,43 +45,53 @@ describe('CommandOutputPacket', () => {
         const packet = new CommandOutputPacket(encoded);
         packet.decode();
 
-        expect(packet.originData.type).toBe(CommandOriginType.Player);
-        expect(packet.originData.uuid.toString()).toBe('00112233-4455-6677-8899-aabbccddeeff');
-        expect(packet.originData.requestId).toBe('request-7');
-        expect(packet.originData.uniqueEntityId).toBe(42n);
-        expect(packet.outputType).toBe(CommandOutputType.AllOutput);
-        expect(packet.successCount).toBe(1);
-        expect(packet.outputMessages).toEqual([
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('CommandOutputPacket decoded without payload data');
+
+        expect(data.originData.type).toBe(CommandOriginType.Player);
+        expect(data.originData.uuid.toString()).toBe('00112233-4455-6677-8899-aabbccddeeff');
+        expect(data.originData.requestId).toBe('request-7');
+        expect(data.originData.uniqueEntityId).toBe(42n);
+        expect(data.outputType).toBe(CommandOutputType.AllOutput);
+        expect(data.successCount).toBe(1);
+        expect(data.outputMessages).toEqual([
             { messageId: 'commands.tp.success', successful: true, parameters: ['Steve', 'Alex'] }
         ]);
-        expect(packet.dataSet).toBeNull();
+        expect(data.dataSet).toBeNull();
         expect(packet.feof()).toBe(true);
     });
 
     it('encodes the same bytes back', () => {
-        const packet = new CommandOutputPacket();
-        packet.originData = origin();
-        packet.outputType = CommandOutputType.AllOutput;
-        packet.successCount = 1;
-        packet.outputMessages = [{ messageId: 'commands.tp.success', successful: true, parameters: ['Steve', 'Alex'] }];
+        const packet = new CommandOutputPacket({
+            originData: origin(),
+            outputType: CommandOutputType.AllOutput,
+            successCount: 1,
+            outputMessages: [{ messageId: 'commands.tp.success', successful: true, parameters: ['Steve', 'Alex'] }],
+            dataSet: null
+        });
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(encoded);
     });
 
     it('writes a present Data Set after its presence byte', () => {
-        const packet = new CommandOutputPacket();
-        packet.originData = origin();
-        packet.outputType = CommandOutputType.DataSet;
-        packet.dataSet = 'set';
+        const packet = new CommandOutputPacket({
+            originData: origin(),
+            outputType: CommandOutputType.DataSet,
+            successCount: 0,
+            outputMessages: [],
+            dataSet: 'set'
+        });
         packet.encode();
 
         expect(packet.getBuffer().subarray(-5)).toEqual(Buffer.concat([Buffer.from([0x01]), string('set')]));
 
         const decoded = new CommandOutputPacket(packet.getBuffer());
         decoded.decode();
-        expect(decoded.dataSet).toBe('set');
-        expect(decoded.outputType).toBe(CommandOutputType.DataSet);
+        const data = decoded.getPacketData();
+        if (data === null) throw new Error('CommandOutputPacket decoded without payload data');
+        expect(data.dataSet).toBe('set');
+        expect(data.outputType).toBe(CommandOutputType.DataSet);
         expect(decoded.feof()).toBe(true);
     });
 
@@ -100,7 +111,7 @@ describe('CommandOutputPacket', () => {
         );
         packet.decode();
 
-        expect(packet.outputType).toBe(CommandOutputType.LastOutput);
+        expect(packet.getPacketData()?.outputType).toBe(CommandOutputType.LastOutput);
         expect(packet.feof()).toBe(true);
     });
 });

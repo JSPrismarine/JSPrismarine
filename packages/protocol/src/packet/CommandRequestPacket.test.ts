@@ -29,26 +29,31 @@ describe('CommandRequestPacket', () => {
         const packet = new CommandRequestPacket(encoded);
         packet.decode();
 
-        expect(packet.commandName).toBe('/say hi');
-        expect(packet.commandOriginData.type).toBe(CommandOriginType.Player);
-        expect(packet.commandOriginData.uuid.toString()).toBe('00112233-4455-6677-8899-aabbccddeeff');
-        expect(packet.commandOriginData.requestId).toBe('request-7');
-        expect(packet.commandOriginData.uniqueEntityId).toBe(42n);
-        expect(packet.internal).toBe(false);
-        expect(packet.version).toBe('Latest');
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('CommandRequestPacket decoded without payload data');
+
+        expect(data.commandName).toBe('/say hi');
+        expect(data.commandOriginData.type).toBe(CommandOriginType.Player);
+        expect(data.commandOriginData.uuid.toString()).toBe('00112233-4455-6677-8899-aabbccddeeff');
+        expect(data.commandOriginData.requestId).toBe('request-7');
+        expect(data.commandOriginData.uniqueEntityId).toBe(42n);
+        expect(data.internal).toBe(false);
+        expect(data.version).toBe('Latest');
         expect(packet.feof()).toBe(true);
     });
 
     it('encodes the same bytes back', () => {
-        const packet = new CommandRequestPacket();
-        packet.commandName = '/say hi';
-        packet.commandOriginData = new CommandOriginData(
-            CommandOriginType.Player,
-            UUID.fromString('00112233-4455-6677-8899-aabbccddeeff'),
-            'request-7',
-            42n
-        );
-        packet.version = 'Latest';
+        const packet = new CommandRequestPacket({
+            commandName: '/say hi',
+            commandOriginData: new CommandOriginData(
+                CommandOriginType.Player,
+                UUID.fromString('00112233-4455-6677-8899-aabbccddeeff'),
+                'request-7',
+                42n
+            ),
+            internal: false,
+            version: 'Latest'
+        });
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(encoded);
@@ -61,7 +66,10 @@ describe('CommandRequestPacket', () => {
         const packet = new CommandRequestPacket(internal);
         packet.decode();
 
-        expect(packet.internal).toBe(true);
-        expect(packet.version).toBe('Latest');
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('CommandRequestPacket decoded without payload data');
+
+        expect(data.internal).toBe(true);
+        expect(data.version).toBe('Latest');
     });
 });

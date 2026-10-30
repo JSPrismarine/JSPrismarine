@@ -9,6 +9,7 @@ import Codec2193 from './codec/Codec2193';
 import { latestCodec } from './codec/CodecRegistry';
 import type PacketHandler from './handler/PacketHandler';
 import type ConnectionPacketHandler from './handler/ConnectionPacketHandler';
+import CommandRequestPacket from '@jsprismarine/protocol/packet/CommandRequestPacket';
 
 /** Either handler kind the registry holds. Which one applies depends on the phases the handler declares. */
 export type RegisteredHandler = PacketHandler<any> | ConnectionPacketHandler<any>;
@@ -138,6 +139,7 @@ export default class PacketRegistry {
         Object.entries(Packets)
             .filter(([exported]) => exported !== 'BatchPacket')
             .map(([exported, value]) => this.registerPacket(value, exported));
+        this.registerPacket(CommandRequestPacket);
 
         this.server
             .getLogger()

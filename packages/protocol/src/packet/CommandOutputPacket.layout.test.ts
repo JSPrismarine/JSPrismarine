@@ -1,8 +1,9 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { commandOutputPacket, CommandOutputType, layoutAt } from '@jsprismarine/protocol';
-import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
-import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { layoutAt } from '../wire/WireLayout';
+import { commandOutputPacket, CommandOutputType } from '../wire/definitions/commands';
+import CommandOriginData from '../wire/structures/CommandOriginData';
+import CommandOriginType from '../wire/structures/CommandOriginType';
+import UUID from '../wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
 const originData = new CommandOriginData(
