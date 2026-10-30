@@ -1,9 +1,12 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
 import BlockPos from '../structure/BlockPos';
-import UpdateSubChunkNetworkBlockInfo from '../structure/UpdateSubChunkNetworkBlockInfo';
+import { updateSubChunkBlocksPacket } from '../wire/definitions/updateSubChunkBlocks';
+import { layoutAt } from '../wire/WireLayout';
+import { protocolVersion } from '../wire/versions/v2193';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type UpdateSubChunkNetworkBlockInfo from '../structure/UpdateSubChunkNetworkBlockInfo';
 
 /** The `Blocks Changed` field, an `UpdateSubChunkBlocksChangedInfo`, in wire order. */
 export interface UpdateSubChunkBlocksChangedInfo {
@@ -22,47 +25,40 @@ export interface UpdateSubChunkBlocks {
 }
 
 /**
+ * The definition carries no version gate, so it resolves to the same frozen layout at every
+ * protocol; the oldest supported version stands in for the packet class, which does not know
+ * its session's protocol.
+ */
+const layout = () => layoutAt(updateSubChunkBlocksPacket, protocolVersion);
+
+/**
  * Every block that changed in one sub chunk during a tick. The server sends one per sub
  * chunk with changes, instead of one `UpdateBlockPacket` per block.
  *
- * Protocol 2193 layout, in wire order: `Sub Chunk Block Position` as a `BlockPos` (three
- * ZigZag varint32), then `Blocks Changed - Standards` and `Blocks Changed - Extras`, each a
- * varuint32 count followed by that many {@link UpdateSubChunkNetworkBlockInfo} entries.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-sub-chunk-blocks-packet/}
+ * The wire layout is the `updateSubChunkBlocksPacket` definition in `wire/definitions`.
  */
 export default class UpdateSubChunkBlocksPacket extends NetworkPacket<UpdateSubChunkBlocks> {
     public get id(): number {
         return PacketIdentifier.UPDATE_SUB_CHUNK_BLOCKS;
     }
 
-    private static writeEntries(stream: NetworkBinaryStream, entries: UpdateSubChunkNetworkBlockInfo[]): void {
-        stream.writeUnsignedVarInt(entries.length);
-        for (const entry of entries) {
-            entry.serialize(stream);
-        }
-    }
-
-    private static readEntries(stream: NetworkBinaryStream): UpdateSubChunkNetworkBlockInfo[] {
-        const entries: UpdateSubChunkNetworkBlockInfo[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            entries.push(UpdateSubChunkNetworkBlockInfo.deserialize(stream));
-        }
-        return entries;
-    }
-
     protected serializePayload(stream: NetworkBinaryStream, data: UpdateSubChunkBlocks): void {
-        data.subChunkBlockPosition.serialize(stream);
-        UpdateSubChunkBlocksPacket.writeEntries(stream, data.blocksChanged.standards);
-        UpdateSubChunkBlocksPacket.writeEntries(stream, data.blocksChanged.extras);
+        layout().encode(stream, {
+            subChunkBlockPosition: data.subChunkBlockPosition,
+            standards: data.blocksChanged.standards,
+            extras: data.blocksChanged.extras
+        });
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): UpdateSubChunkBlocks {
-        const subChunkBlockPosition = new BlockPos(0, 0, 0);
-        subChunkBlockPosition.deserialize(stream);
-        const standards = UpdateSubChunkBlocksPacket.readEntries(stream);
-        const extras = UpdateSubChunkBlocksPacket.readEntries(stream);
-
-        return { subChunkBlockPosition, blocksChanged: { standards, extras } };
+        const read = layout().decode(stream);
+        return {
+            subChunkBlockPosition: new BlockPos(
+                read.subChunkBlockPosition.x,
+                read.subChunkBlockPosition.y,
+                read.subChunkBlockPosition.z
+            ),
+            blocksChanged: { standards: read.standards, extras: read.extras }
+        };
     }
 }

@@ -1,6 +1,7 @@
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 import BlockPos from './BlockPos';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * One block change inside an `UpdateSubChunkBlocksPacket`.
@@ -33,7 +34,7 @@ export default class UpdateSubChunkNetworkBlockInfo extends NetworkStructure {
     }
 
     /** Writes the five fields in docs order. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         this.position.serialize(stream);
         stream.writeUnsignedVarInt(this.runtimeId);
         stream.writeUnsignedVarInt(this.updateFlags);
@@ -42,7 +43,7 @@ export default class UpdateSubChunkNetworkBlockInfo extends NetworkStructure {
     }
 
     /** Reads the five fields in docs order. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         const position = new BlockPos(0, 0, 0);
         position.deserialize(stream);
         this.position = position;
