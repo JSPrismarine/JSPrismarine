@@ -1,6 +1,9 @@
-import type { GameRule } from '../type/GameRule';
-import { readGameRule, writeGameRule } from '../type/GameRule';
+import { layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
+import { gameRulesChangedPacket } from './gameRulesChanged.wire';
+
+import type { GameRule } from '../type/GameRule';
 
 /**
  * The `GameRule` wire structure and its codecs live in `../type/GameRule`, shared with
@@ -32,19 +35,11 @@ export default class GameRulesChangedPacket extends DataPacket {
 
     /** Reads the rules list. */
     public decodePayload(): void {
-        const count = this.readUnsignedVarInt();
-
-        this.rulesList = [];
-        for (let i = 0; i < count; i++) {
-            this.rulesList.push(readGameRule(this));
-        }
+        Object.assign(this, layoutAt(gameRulesChangedPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the rules list. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.rulesList.length);
-        for (const rule of this.rulesList) {
-            writeGameRule(this, rule);
-        }
+        layoutAt(gameRulesChangedPacket, this.codecProtocol).encode(this, this);
     }
 }

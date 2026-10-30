@@ -10,6 +10,7 @@
  */
 import { addActorPacket } from '../packet/addActor.wire';
 import { addPlayerPacket } from '../packet/addPlayer.wire';
+import { gameRulesChangedPacket } from '../packet/gameRulesChanged.wire';
 import { inventoryTransactionPacket } from '../packet/inventoryTransaction.wire';
 import { playerListPacket } from '../packet/playerList.wire';
 import { playerSkinPacket } from '../packet/playerSkin.wire';
@@ -23,6 +24,7 @@ export const prismarineWireDefinitions: ReadonlyMap<string, PacketDefinition> = 
     [
         addActorPacket,
         addPlayerPacket,
+        gameRulesChangedPacket,
         inventoryTransactionPacket,
         playerListPacket,
         playerSkinPacket,
