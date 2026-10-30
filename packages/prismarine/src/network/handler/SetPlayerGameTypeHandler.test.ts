@@ -6,9 +6,9 @@ import type Server from '../../Server';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { canExecute } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
-import SetPlayerGameTypePacket from '../packet/SetPlayerGameTypePacket';
+import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import { PacketIdentifier } from '@jsprismarine/protocol';
 import SetPlayerGameTypeHandler from './SetPlayerGameTypeHandler';
 
 /**
@@ -35,8 +35,7 @@ const fakeSession = (permissions: string[]) => {
     };
 };
 
-const request = (gametype: Gametype): SetPlayerGameTypePacket =>
-    Object.assign(new SetPlayerGameTypePacket(), { gametype });
+const request = (gametype: Gametype): SetPlayerGameTypePacket => new SetPlayerGameTypePacket({ gametype });
 
 describe('SetPlayerGameTypeHandler', () => {
     it('applies the requested game type for a player who may run the gamemode command', async () => {
@@ -61,7 +60,7 @@ describe('SetPlayerGameTypeHandler', () => {
         const { applied, resent, server, session } = fakeSession(['minecraft.command.gamemode']);
 
         // 42 is not a `Gametype`, so it has to come in off the wire: ZigZag of 42 is 0x54.
-        const packet = new SetPlayerGameTypePacket(Buffer.from([Identifiers.SetPlayerGameTypePacket, 0x54]));
+        const packet = new SetPlayerGameTypePacket(Buffer.from([PacketIdentifier.SET_PLAYER_GAME_TYPE, 0x54]));
         packet.decode();
 
         await new SetPlayerGameTypeHandler().handle(packet, server, session);

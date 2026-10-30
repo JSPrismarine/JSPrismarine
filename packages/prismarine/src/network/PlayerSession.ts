@@ -72,7 +72,7 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ActorEventPacket, { ActorEvent } from './packet/ActorEventPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
 import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
@@ -1059,8 +1059,7 @@ export default class PlayerSession {
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGameTypePacket();
-        packet.gametype = gamemode ?? this.player.gamemode;
+        const packet = new SetPlayerGameTypePacket({ gametype: gamemode ?? this.player.gamemode });
         await this.connection.sendDataPacket(packet);
     }
 

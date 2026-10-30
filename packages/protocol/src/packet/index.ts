@@ -24,6 +24,7 @@ import RespawnPacket from './RespawnPacket';
 import SetCommandsEnabledPacket from './SetCommandsEnabledPacket';
 import SetDifficultyPacket from './SetDifficultyPacket';
 import SetHealthPacket from './SetHealthPacket';
+import SetPlayerGameTypePacket from './SetPlayerGameTypePacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
 import SetTimePacket from './SetTimePacket';
 import SetSpawnPositionPacket from './SetSpawnPositionPacket';
@@ -59,6 +60,7 @@ export {
     SetCommandsEnabledPacket,
     SetDifficultyPacket,
     SetHealthPacket,
+    SetPlayerGameTypePacket,
     SetLocalPlayerAsInitializedPacket,
     SetTimePacket,
     SetSpawnPositionPacket,

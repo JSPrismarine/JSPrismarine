@@ -127,7 +127,6 @@ import SetLastHurtByPacket from './packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPassengerOfBlockPacket from './packet/SetPassengerOfBlockPacket';
 import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import SettingsCommandPacket from './packet/SettingsCommandPacket';
@@ -293,7 +292,6 @@ export {
     SetLocalPlayerAsInitializedPacket,
     SetPassengerOfBlockPacket,
     SetPlayerFurnaceOptionsPacket,
-    SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
     SetTitlePacket,
     SettingsCommandPacket,
