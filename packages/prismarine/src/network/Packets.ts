@@ -138,9 +138,9 @@ import SpawnExperienceOrbPacket from '@jsprismarine/protocol/packet/SpawnExperie
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
-import StructureBlockUpdatePacket from './packet/StructureBlockUpdatePacket';
-import StructureTemplateDataRequestPacket from './packet/StructureTemplateDataRequestPacket';
-import StructureTemplateDataResponsePacket from './packet/StructureTemplateDataResponsePacket';
+import StructureBlockUpdatePacket from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
+import StructureTemplateDataRequestPacket from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
+import StructureTemplateDataResponsePacket from '@jsprismarine/protocol/packet/StructureTemplateDataResponsePacket';
 import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
 import SyncActorPropertyPacket from '@jsprismarine/protocol/packet/SyncActorPropertyPacket';

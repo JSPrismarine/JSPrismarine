@@ -1,7 +1,8 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type StructureTemplateDataRequestPacket from '../packet/StructureTemplateDataRequestPacket';
-import { StructureTemplateRequestOperation } from '../packet/StructureTemplateDataRequestPacket';
+import type StructureTemplateDataRequestPacket from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
+import { StructureTemplateRequestOperation } from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
+import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -23,7 +24,14 @@ export default class StructureTemplateDataRequestHandler implements PacketHandle
     /** Checks the position names a structure block in reach, then logs the name and operation. */
     public handle(packet: StructureTemplateDataRequestPacket, server: Server, session: PlayerSession): void {
         const player = session.getPlayer();
-        const { structurePosition } = packet;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a StructureTemplateDataRequestPacket without decoded data');
+
+        const structurePosition = new BlockPosition(
+            data.structurePosition.x,
+            data.structurePosition.y,
+            data.structurePosition.z
+        );
 
         const rejection = blockTargetRejection(player, structurePosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
@@ -36,11 +44,11 @@ export default class StructureTemplateDataRequestHandler implements PacketHandle
             return;
         }
 
-        const operation = StructureTemplateRequestOperation[packet.requestedOperation] ?? packet.requestedOperation;
+        const operation = StructureTemplateRequestOperation[data.requestedOperation] ?? data.requestedOperation;
         server
             .getLogger()
             .debug(
-                `${player.getName()} requested structure ${packet.structureName} with operation ${operation}. The server stores no structure templates`,
+                `${player.getName()} requested structure ${data.structureName} with operation ${operation}. The server stores no structure templates`,
                 'StructureTemplateDataRequestHandler/handle'
             );
     }

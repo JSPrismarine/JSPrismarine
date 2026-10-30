@@ -1,14 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import StructureBlockUpdatePacket from '../packet/StructureBlockUpdatePacket';
+import StructureBlockUpdatePacket, {
+    StructureBlockType,
+    StructureRedstoneSaveMode
+} from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import { defaultStructureSettings } from '@jsprismarine/protocol/structure/StructureSettings';
 import StructureBlockUpdateHandler from './StructureBlockUpdateHandler';
 
 const packetAt = (position: BlockPosition) => {
-    const packet = new StructureBlockUpdatePacket();
-    packet.blockPosition = position;
-    packet.structureData.structureName.unredacted = 'house';
-    return packet;
+    return new StructureBlockUpdatePacket({
+        blockPosition: new BlockPos(position.getX(), position.getY(), position.getZ()),
+        structureData: {
+            structureName: { unredacted: 'house', redacted: null },
+            dataField: '',
+            shouldIncludePlayers: false,
+            shouldShowBoundingBox: false,
+            structureBlockType: StructureBlockType.Data,
+            structureSettings: defaultStructureSettings(),
+            redstoneSaveMode: StructureRedstoneSaveMode.SavesToMemory
+        },
+        trigger: false,
+        isWaterlogged: false
+    });
 };
 
 describe('StructureBlockUpdateHandler', () => {

@@ -3,13 +3,16 @@ import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import StructureTemplateDataRequestPacket, {
     StructureTemplateRequestOperation
-} from '../packet/StructureTemplateDataRequestPacket';
+} from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import { defaultStructureSettings } from '@jsprismarine/protocol/structure/StructureSettings';
 import StructureTemplateDataRequestHandler from './StructureTemplateDataRequestHandler';
 
 const packetAt = (structurePosition: BlockPosition) =>
-    Object.assign(new StructureTemplateDataRequestPacket(), {
+    new StructureTemplateDataRequestPacket({
         structureName: 'house',
-        structurePosition,
+        structurePosition: new BlockPos(structurePosition.getX(), structurePosition.getY(), structurePosition.getZ()),
+        structureSettings: defaultStructureSettings(),
         requestedOperation: StructureTemplateRequestOperation.QuerySavedStructure
     });
 

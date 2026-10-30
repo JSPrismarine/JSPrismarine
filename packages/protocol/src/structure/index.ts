@@ -67,6 +67,15 @@ import SerializedAbilityLayer from './SerializedAbilityLayer';
 import ServerWaypointPayload from './ServerWaypointPayload';
 import type { WorldPosition } from './ServerWaypointPayload';
 import SpawnSettings from './SpawnSettings';
+import {
+    AnimationMode,
+    defaultStructureSettings,
+    Mirror,
+    readStructureSettings,
+    StructureRotation,
+    writeStructureSettings
+} from './StructureSettings';
+import type { StructureSettings } from './StructureSettings';
 import SubChunkHeightmapData, { HeightMapDataType } from './SubChunkHeightmapData';
 import type { HeightMap } from './SubChunkHeightmapData';
 import SubChunkPos from './SubChunkPos';
@@ -129,6 +138,12 @@ export {
     SerializedAbilityLayer,
     ServerWaypointGroupAction,
     ServerWaypointPayload,
+    AnimationMode,
+    defaultStructureSettings,
+    Mirror,
+    readStructureSettings,
+    StructureRotation,
+    writeStructureSettings,
     SpawnSettings,
     SubChunkHeightmapData,
     HeightMapDataType,
@@ -175,5 +190,6 @@ export type {
     SerializableCells,
     SplineDefinitionProgressKeyFrame,
     SplineDefinitionRotationKeyFrame,
+    StructureSettings,
     WorldPosition
 };

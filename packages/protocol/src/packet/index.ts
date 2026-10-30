@@ -12,6 +12,9 @@ import LevelEventPacket from './LevelEventPacket';
 import LecternUpdatePacket from './LecternUpdatePacket';
 import LabTablePacket from './LabTablePacket';
 import UpdateTradePacket from './UpdateTradePacket';
+import StructureBlockUpdatePacket from './StructureBlockUpdatePacket';
+import StructureTemplateDataRequestPacket from './StructureTemplateDataRequestPacket';
+import StructureTemplateDataResponsePacket from './StructureTemplateDataResponsePacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
 import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
@@ -78,6 +81,9 @@ export {
     LecternUpdatePacket,
     LabTablePacket,
     UpdateTradePacket,
+    StructureBlockUpdatePacket,
+    StructureTemplateDataRequestPacket,
+    StructureTemplateDataResponsePacket,
     LoginPacket,
     MovePlayerPacket,
     MotionPredictionHintsPacket,
@@ -170,6 +176,12 @@ export type { LecternUpdate } from './LecternUpdatePacket';
 export { LabTableReactionType, LabTableType } from './LabTablePacket';
 export type { LabTable } from './LabTablePacket';
 export type { UpdateTrade } from './UpdateTradePacket';
+export { StructureBlockType, StructureRedstoneSaveMode } from './StructureBlockUpdatePacket';
+export type { RedactableString, StructureBlockUpdate, StructureEditorData } from './StructureBlockUpdatePacket';
+export { StructureTemplateRequestOperation } from './StructureTemplateDataRequestPacket';
+export type { StructureTemplateDataRequest } from './StructureTemplateDataRequestPacket';
+export { StructureTemplateResponseType } from './StructureTemplateDataResponsePacket';
+export type { StructureTemplateDataResponse } from './StructureTemplateDataResponsePacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';

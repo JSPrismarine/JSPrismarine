@@ -1,6 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type StructureBlockUpdatePacket from '../packet/StructureBlockUpdatePacket';
+import type StructureBlockUpdatePacket from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
+import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -22,7 +23,10 @@ export default class StructureBlockUpdateHandler implements PacketHandler<Struct
     /** Checks the position names a structure block in reach, then logs the structure name. */
     public handle(packet: StructureBlockUpdatePacket, server: Server, session: PlayerSession): void {
         const player = session.getPlayer();
-        const { blockPosition } = packet;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a StructureBlockUpdatePacket without decoded data');
+
+        const blockPosition = new BlockPosition(data.blockPosition.x, data.blockPosition.y, data.blockPosition.z);
         const where = `${blockPosition.getX()}, ${blockPosition.getY()}, ${blockPosition.getZ()}`;
 
         const rejection = blockTargetRejection(player, blockPosition, STRUCTURE_BLOCKS);
@@ -36,7 +40,7 @@ export default class StructureBlockUpdateHandler implements PacketHandler<Struct
             return;
         }
 
-        const name = packet.structureData.structureName.unredacted;
+        const name = data.structureData.structureName.unredacted;
         server
             .getLogger()
             .debug(
