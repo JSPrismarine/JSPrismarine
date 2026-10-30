@@ -22,16 +22,23 @@ import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
-import InventoryTransactionPacket, {
-    InventorySourceType,
+import type {
+    ReleaseItemData,
+    ServerInventoryTransaction,
+    UseItemData,
+    UseItemOnEntityData
+} from '../InventoryTransactionAdapter';
+import { InventoryAction, inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
+import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import {
     HandSlot,
-    InventoryAction,
+    InventorySourceType,
     ItemReleaseActionType,
     TransactionType,
     ItemUseActionType,
     ItemUseOnActorActionType
-} from '../packet/InventoryTransactionPacket';
+} from '@jsprismarine/protocol';
+import Codec2193 from '../codec/Codec2193';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
 import { useItemOnBlock } from '../../item/interaction';
 import type { InteractionResult } from '../../item/interaction';
@@ -148,6 +155,7 @@ const fake = (
     });
     const session = stub<PlayerSession>({
         getPlayer: () => player,
+        getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendContainerSlot: async (windowId, containerId, slot, item) =>
             void inventorySyncs.push([windowId, containerId, slot, item])
     });
@@ -220,17 +228,22 @@ const transaction = (
     type: TransactionType,
     data: UseItemData | UseItemOnEntityData | ReleaseItemData | null,
     actions: InventoryAction[] = []
-): InventoryTransactionPacket =>
-    Object.assign(new InventoryTransactionPacket(), {
-        legacyRequestId: 0,
-        legacySlotChanges: [],
-        transactionType: type,
-        inventoryActions: actions,
-        transactionData: data
-    });
+): ServerInventoryTransaction => ({
+    legacyRequest: { legacyRequestId: 0, legacySlotChanges: [] },
+    transactionType: type,
+    inventoryActions: actions,
+    transactionData: data,
+    hand: HandSlot.MAINHAND
+});
 
-const handle = async (packet: InventoryTransactionPacket, world: ReturnType<typeof fake>) =>
-    new InventoryTransactionHandler().handle(packet, world.server, world.session);
+const handle = async (transaction: ServerInventoryTransaction, world: ReturnType<typeof fake>) =>
+    new InventoryTransactionHandler().handle(
+        new InventoryTransactionPacket(
+            inventoryTransactionToProtocol(transaction, world.session.getConnection().codec.context)
+        ),
+        world.server,
+        world.session
+    );
 
 describe('InventoryTransactionHandler', () => {
     describe('rejectionReason', () => {
@@ -244,8 +257,6 @@ describe('InventoryTransactionHandler', () => {
 
         it('names a type the packet does not carry, as read off the wire', () => {
             const packet = transaction(TransactionType.NORMAL, null);
-            // @ts-expect-error - 7 names no transaction type, which is the case under test:
-            // the field is read off the wire, so any varint can land in it.
             packet.transactionType = 7;
 
             expect(rejectionReason(packet)).toBe('transaction type 7 is not one the packet may carry');
@@ -301,7 +312,6 @@ describe('InventoryTransactionHandler', () => {
     it('drops a transaction of a type it does not know at debug level, without throwing', async () => {
         const world = fake();
         const packet = transaction(TransactionType.USE_ITEM, null);
-        // @ts-expect-error - 9 names no transaction type, which is what the handler must survive.
         packet.transactionType = 9;
 
         await expect(handle(packet, world)).resolves.toBeUndefined();

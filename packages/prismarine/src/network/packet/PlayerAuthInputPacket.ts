@@ -2,10 +2,10 @@ import { Vector3 } from '@jsprismarine/math';
 import { PlayerAuthInputData } from '@jsprismarine/minecraft';
 import BlockPosition from '../../world/BlockPosition';
 import { NetworkUtil } from '../NetworkUtil';
+import { LegacySlotChange, readItemStackRequest } from '@jsprismarine/protocol';
 import type { ItemStackRequest } from '@jsprismarine/protocol';
-import { readItemStackRequest } from '@jsprismarine/protocol';
-import type { UseItemData } from './InventoryTransactionPacket';
-import { InventoryAction, LegacySlotChange, readUseItemData, writeUseItemData } from './InventoryTransactionPacket';
+import type { UseItemData } from '../InventoryTransactionAdapter';
+import { InventoryAction, readUseItemData, writeUseItemData } from '../InventoryTransactionAdapter';
 import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**

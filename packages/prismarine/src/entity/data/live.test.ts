@@ -49,11 +49,11 @@ import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import { HandSlot, ItemUseOnActorActionType, TransactionType } from '@jsprismarine/protocol';
 import type PlayerSession from '../../network/PlayerSession';
-import InventoryTransactionPacket, {
-    ItemUseOnActorActionType,
-    TransactionType
-} from '../../network/packet/InventoryTransactionPacket';
+import { inventoryTransactionToProtocol } from '../../network/InventoryTransactionAdapter';
+import Codec2193 from '../../network/codec/Codec2193';
 import InventoryTransactionHandler from '../../network/handler/InventoryTransactionHandler';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
@@ -835,26 +835,34 @@ describe('the data-driven entity runtime over a live world', () => {
         const server = player.getServer();
         Object.assign(server, { getContentWorld: () => worldSource });
         const position = player.getPosition();
-        const packet = Object.assign(new InventoryTransactionPacket(), {
-            legacyRequestId: 0,
-            legacySlotChanges: [],
-            transactionType: TransactionType.USE_ITEM_ON_ENTITY,
-            inventoryActions: [],
-            transactionData: {
-                kind: 'useItemOnEntity' as const,
-                entityRuntimeId: targetRuntimeId,
-                actionType: ItemUseOnActorActionType.ITEM_INTERACT,
-                hotbarSlot: player.getInventory().getHandSlotIndex(),
-                itemInHand: Item.air(),
-                playerPosition: new Vector3(position.getX(), position.getY(), position.getZ()),
-                clickPosition: new Vector3(0, 0, 0)
-            }
-        });
+        const packet = new InventoryTransactionPacket(
+            inventoryTransactionToProtocol(
+                {
+                    legacyRequest: { legacyRequestId: 0, legacySlotChanges: [] },
+                    transactionType: TransactionType.USE_ITEM_ON_ENTITY,
+                    inventoryActions: [],
+                    hand: HandSlot.MAINHAND,
+                    transactionData: {
+                        kind: 'useItemOnEntity' as const,
+                        entityRuntimeId: targetRuntimeId,
+                        actionType: ItemUseOnActorActionType.ITEM_INTERACT,
+                        hotbarSlot: player.getInventory().getHandSlotIndex(),
+                        itemInHand: Item.air(),
+                        playerPosition: new Vector3(position.getX(), position.getY(), position.getZ()),
+                        clickPosition: new Vector3(0, 0, 0)
+                    }
+                },
+                Codec2193.context
+            )
+        );
 
         await new InventoryTransactionHandler().handle(
             packet,
             server,
-            stub<PlayerSession>({ getPlayer: () => player })
+            stub<PlayerSession>({
+                getPlayer: () => player,
+                getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 })
+            })
         );
     };
 

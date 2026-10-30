@@ -1,6 +1,7 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
 import AvailableCommandsPacket from './AvailableCommandsPacket';
 import InventoryContentPacket from './InventoryContentPacket';
+import InventoryTransactionPacket from './InventoryTransactionPacket';
 import InventorySlotPacket from './InventorySlotPacket';
 import AddItemActorPacket from './AddItemActorPacket';
 import AddPlayerPacket from './AddPlayerPacket';
@@ -81,6 +82,7 @@ export {
     ChunkRadiusUpdatedPacket,
     AvailableCommandsPacket,
     InventoryContentPacket,
+    InventoryTransactionPacket,
     InventorySlotPacket,
     AddItemActorPacket,
     AddPlayerPacket,
@@ -155,6 +157,8 @@ export {
     ServerboundLoadingScreenPacket,
     ServerboundPackSettingChangePacket
 };
+
+export type { InventoryTransaction } from './InventoryTransactionPacket';
 
 export { GameRuleType } from './StartGamePacket';
 export { EditorLevelMigrationVersion } from './StartGamePacket';

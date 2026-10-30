@@ -13,7 +13,7 @@ import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
-import { HandSlot } from './packet/InventoryTransactionPacket';
+import { HandSlot } from '@jsprismarine/protocol';
 
 const START_GAME_CAPTURE = readFileSync(
     new URL('../../../protocol/src/packet/__fixtures__/start-game-bds-1.26.51.1.bin', import.meta.url)

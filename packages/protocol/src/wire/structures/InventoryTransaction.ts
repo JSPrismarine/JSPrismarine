@@ -37,6 +37,36 @@ export enum HandSlot {
     OFFHAND
 }
 
+/** What the client did with the item in hand in `ItemUseInventoryTransaction`. */
+export enum ItemUseActionType {
+    /** Clicked a block with the item. */
+    PLACE,
+    /** Clicked the air with the item. */
+    USE,
+    /** Broke a block. */
+    DESTROY,
+    /** Swung at nothing in particular. */
+    USE_AS_ATTACK = 3
+}
+
+/** What the client meant by clicking an entity in `ItemUseOnActorInventoryTransaction`. */
+export enum ItemUseOnActorActionType {
+    /** Right-clicked the entity for its regular interaction. */
+    INTERACT,
+    /** Hit the entity. */
+    ATTACK,
+    /** Used the held item directly on the entity, as with spawn eggs. */
+    ITEM_INTERACT
+}
+
+/** Why the client let go of a held item in `ItemReleaseInventoryTransaction`. */
+export enum ItemReleaseActionType {
+    /** A bow fired, or a held item was let go of. */
+    RELEASE,
+    /** A crossbow finished charging. */
+    USE
+}
+
 /**
  * The docs' `InventorySourceType`: which inventory an action's slot belongs to.
  *

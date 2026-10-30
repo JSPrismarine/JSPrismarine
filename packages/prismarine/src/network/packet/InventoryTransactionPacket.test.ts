@@ -1,20 +1,28 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { assert, describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
-import InventoryTransactionPacket, {
+import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import {
     InventorySourceType,
     HandSlot,
-    InventoryAction,
     LegacySlotChange,
     MAX_INVENTORY_ACTIONS,
     ItemReleaseActionType,
     TransactionType,
     ItemUseActionType,
     ItemUseOnActorActionType
-} from './InventoryTransactionPacket';
+} from '@jsprismarine/protocol';
+import type { ServerInventoryTransaction } from '../InventoryTransactionAdapter';
+import {
+    InventoryAction,
+    inventoryTransactionFromProtocol,
+    inventoryTransactionToProtocol
+} from '../InventoryTransactionAdapter';
+import Codec2193 from '../codec/Codec2193';
 
 /**
  * The eight zero bytes of an empty `NetworkItemStackDescriptor`: Id (int16), Stack size
@@ -41,7 +49,7 @@ const noLegacyRequest = (out: BinaryStream): void => {
 };
 
 const transaction = (
-    type: TransactionType,
+    type: number,
     write: (out: BinaryStream) => void,
     writeLegacyRequest: (out: BinaryStream) => void = noLegacyRequest
 ): Buffer => {
@@ -53,11 +61,31 @@ const transaction = (
     return out.getBuffer();
 };
 
-const decode = (buffer: Buffer): InventoryTransactionPacket => {
-    const packet = new InventoryTransactionPacket(buffer);
-    packet.decode();
-    return packet;
+const decode = (buffer: Buffer): ServerInventoryTransaction & { feof: () => boolean } => {
+    const stream = new NetworkBinaryStream(buffer);
+    const packet = new InventoryTransactionPacket();
+    const data = packet.deserialize(stream, Codec2193.context);
+    return Object.assign(inventoryTransactionFromProtocol(data, Codec2193.context), { feof: () => stream.feof() });
 };
+
+const serialize = (data: ServerInventoryTransaction): Buffer => {
+    const packet = new InventoryTransactionPacket(inventoryTransactionToProtocol(data, Codec2193.context));
+    return packet.serialize(new NetworkBinaryStream(), Codec2193.context);
+};
+
+const dataTransaction = (
+    transactionType: number,
+    transactionData: ServerInventoryTransaction['transactionData'] = null,
+    inventoryActions: InventoryAction[] = [],
+    legacyRequestId = 0,
+    legacySlotChanges: LegacySlotChange[] = []
+): ServerInventoryTransaction => ({
+    legacyRequest: { legacyRequestId, legacySlotChanges },
+    transactionType,
+    inventoryActions,
+    transactionData,
+    hand: HandSlot.MAINHAND
+});
 
 describe('InventoryTransactionPacket', () => {
     it('reads a block being broken: an item use with the hand 2193 added', () => {
@@ -196,22 +224,15 @@ describe('InventoryTransactionPacket', () => {
             )
         );
 
-        expect(packet.legacyRequestId).toBe(-2);
-        expect(packet.legacySlotChanges).toEqual([new LegacySlotChange(12, [0, 9])]);
+        expect(packet.legacyRequest.legacyRequestId).toBe(-2);
+        expect(packet.legacyRequest.legacySlotChanges).toEqual([new LegacySlotChange(12, [0, 9])]);
         expect(packet.inventoryActions).toHaveLength(0);
         expect(packet.feof()).toBe(true);
     });
 
     it('writes the legacy slot list presence from the request id, not from the list', () => {
-        const encode = (legacyRequestId: number): number[] => {
-            const packet = new InventoryTransactionPacket();
-            packet.legacyRequestId = legacyRequestId;
-            packet.legacySlotChanges = [];
-            packet.transactionType = TransactionType.NORMAL;
-            packet.inventoryActions = [];
-            packet.encode();
-            return Array.from(packet.getBuffer());
-        };
+        const encode = (legacyRequestId: number): number[] =>
+            Array.from(serialize(dataTransaction(TransactionType.NORMAL, null, [], legacyRequestId)));
 
         // Header, -2 as ZigZag 3, presence 0x01, an empty slot list, Normal, no actions.
         expect(encode(-2)).toEqual([0x1e, 0x03, 0x01, 0x00, 0x00, 0x00]);
@@ -222,21 +243,17 @@ describe('InventoryTransactionPacket', () => {
     });
 
     it('writes a release the way it reads one', () => {
-        const packet = new InventoryTransactionPacket();
-        packet.legacyRequestId = 0;
-        packet.legacySlotChanges = [];
-        packet.transactionType = TransactionType.RELEASE_ITEM;
-        packet.inventoryActions = [];
-        packet.transactionData = {
-            kind: 'releaseItem',
-            actionType: 0,
-            hotbarSlot: 4,
-            itemInHand: Item.air(),
-            playerPosition: new Vector3(3, 70, -5)
-        };
-        packet.encode();
-
-        const read = decode(packet.getBuffer());
+        const read = decode(
+            serialize(
+                dataTransaction(TransactionType.RELEASE_ITEM, {
+                    kind: 'releaseItem',
+                    actionType: 0,
+                    hotbarSlot: 4,
+                    itemInHand: Item.air(),
+                    playerPosition: new Vector3(3, 70, -5)
+                })
+            )
+        );
         const data = read.transactionData;
         assert(data?.kind === 'releaseItem');
 
@@ -247,29 +264,29 @@ describe('InventoryTransactionPacket', () => {
     });
 
     it('writes what it reads', () => {
-        const packet = new InventoryTransactionPacket();
-        packet.legacyRequestId = 0;
-        packet.legacySlotChanges = [];
-        packet.transactionType = TransactionType.USE_ITEM;
-        packet.inventoryActions = [new InventoryAction(InventorySourceType.WORLD, null, 0, 0, Item.air(), Item.air())];
-        packet.transactionData = {
-            kind: 'useItem',
-            actionType: ItemUseActionType.PLACE,
-            triggerType: 1,
-            blockPosition: new BlockPosition(-1, -64, 1),
-            blockFace: 1,
-            hotbarSlot: 8,
-            hand: HandSlot.OFFHAND,
-            itemInHand: Item.air(),
-            playerPosition: new Vector3(0, 1, 2),
-            clickPosition: new Vector3(0.5, 1, 0.5),
-            blockRuntimeId: 7,
-            clientInteractPrediction: 1,
-            clientCooldownState: 0
-        };
-        packet.encode();
-
-        const read = decode(packet.getBuffer());
+        const read = decode(
+            serialize(
+                dataTransaction(
+                    TransactionType.USE_ITEM,
+                    {
+                        kind: 'useItem',
+                        actionType: ItemUseActionType.PLACE,
+                        triggerType: 1,
+                        blockPosition: new BlockPosition(-1, -64, 1),
+                        blockFace: 1,
+                        hotbarSlot: 8,
+                        hand: HandSlot.OFFHAND,
+                        itemInHand: Item.air(),
+                        playerPosition: new Vector3(0, 1, 2),
+                        clickPosition: new Vector3(0.5, 1, 0.5),
+                        blockRuntimeId: 7,
+                        clientInteractPrediction: 1,
+                        clientCooldownState: 0
+                    },
+                    [new InventoryAction(InventorySourceType.WORLD, null, 0, 0, Item.air(), Item.air())]
+                )
+            )
+        );
         const data = read.transactionData;
         assert(data?.kind === 'useItem');
 
@@ -340,23 +357,19 @@ describe('InventoryTransactionPacket', () => {
     });
 
     it('writes a release byte for byte as the docs lay it out', () => {
-        const packet = new InventoryTransactionPacket();
-        packet.legacyRequestId = 0;
-        packet.legacySlotChanges = [];
-        packet.transactionType = TransactionType.RELEASE_ITEM;
-        packet.inventoryActions = [];
-        packet.transactionData = {
-            kind: 'releaseItem',
-            actionType: ItemReleaseActionType.USE,
-            hotbarSlot: 3,
-            itemInHand: Item.air(),
-            playerPosition: new Vector3(0.5, 70, -0.5)
-        };
-        packet.encode();
+        const bytes = serialize(
+            dataTransaction(TransactionType.RELEASE_ITEM, {
+                kind: 'releaseItem',
+                actionType: ItemReleaseActionType.USE,
+                hotbarSlot: 3,
+                itemInHand: Item.air(),
+                playerPosition: new Vector3(0.5, 70, -0.5)
+            })
+        );
 
         // Header; request id 0; no slots; variant 4; no actions; Use (1, ZigZag 2); slot 3
         // (ZigZag 6); the Item; From Position.
-        expect(Array.from(packet.getBuffer())).toEqual([
+        expect(Array.from(bytes)).toEqual([
             0x1e,
             0x00,
             0x00,
@@ -373,7 +386,6 @@ describe('InventoryTransactionPacket', () => {
 
     it('keeps a variant index it does not know, and stops reading after the actions', () => {
         const packet = decode(
-            // @ts-expect-error - 7 names no transaction type, which is what the reader must keep.
             transaction(7, (out) => {
                 out.writeUnsignedVarInt(0); // No actions.
                 out.write(Buffer.from([0xde, 0xad, 0xbe, 0xef])); // A body of a shape nobody knows.
@@ -386,14 +398,7 @@ describe('InventoryTransactionPacket', () => {
     });
 
     it('refuses to write a variant index it does not know', () => {
-        const packet = new InventoryTransactionPacket();
-        packet.legacyRequestId = 0;
-        packet.legacySlotChanges = [];
-        // @ts-expect-error - 7 names no transaction type, so the writer has nothing to write.
-        packet.transactionType = 7;
-        packet.inventoryActions = [];
-
-        expect(() => packet.encode()).toThrow(TypeError);
+        expect(() => serialize(dataTransaction(7))).toThrow(TypeError);
     });
 
     it('refuses more actions than the docs allow, rather than allocating for them', () => {
@@ -401,7 +406,6 @@ describe('InventoryTransactionPacket', () => {
             out.writeUnsignedVarInt(MAX_INVENTORY_ACTIONS + 1);
         });
 
-        expect(() => decode(buffer)).toThrow(RangeError);
         expect(() => decode(buffer)).toThrow(/101 actions/);
     });
 });

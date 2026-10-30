@@ -106,3 +106,27 @@ export type {
     ItemStackRequestAction,
     ItemStackRequestSlotInfo
 } from './wire/structures/ItemStackRequest';
+export {
+    HandSlot,
+    hasLegacyRequest,
+    InventorySourceType,
+    ItemReleaseActionType,
+    ItemUseActionType,
+    ItemUseOnActorActionType,
+    LegacySlotChange,
+    MAX_INVENTORY_ACTIONS,
+    readInventoryAction,
+    readUseItemData,
+    TransactionType,
+    writeInventoryAction,
+    writeUseItemData
+} from './wire/structures/InventoryTransaction';
+export type {
+    InventoryActionData,
+    LegacyTransactionRequest,
+    ReleaseItemData,
+    TransactionData,
+    TransactionPayload,
+    UseItemData,
+    UseItemOnEntityData
+} from './wire/structures/InventoryTransaction';

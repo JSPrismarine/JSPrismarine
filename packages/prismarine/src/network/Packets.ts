@@ -52,7 +52,7 @@ import HurtArmorPacket from '@jsprismarine/protocol/packet/HurtArmorPacket';
 import InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
-import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
+import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';

@@ -15,7 +15,8 @@ import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import { HandSlot, ItemUseActionType } from '../packet/InventoryTransactionPacket';
+import Codec2193 from '../codec/Codec2193';
+import { HandSlot, ItemUseActionType } from '@jsprismarine/protocol';
 import PlayerAuthInputPacket, { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
@@ -65,7 +66,12 @@ const fake = ({ serverAuthoritativeBreaking = false } = {}) => {
         getMining: () => null,
         setMining: () => {}
     });
-    const session = stub<PlayerSession>({ getPlayer: () => player, sendMove: vi.fn(), recordInputTick: vi.fn() });
+    const session = stub<PlayerSession>({
+        getPlayer: () => player,
+        getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
+        sendMove: vi.fn(),
+        recordInputTick: vi.fn()
+    });
     const server = stub<Server>({
         post: () => 0,
         getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking }),

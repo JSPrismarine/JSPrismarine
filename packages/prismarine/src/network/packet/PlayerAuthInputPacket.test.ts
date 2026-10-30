@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
-import { HandSlot, ItemUseActionType } from './InventoryTransactionPacket';
+import { HandSlot, ItemUseActionType } from '@jsprismarine/protocol';
 import PlayerAuthInputPacket, {
     ClientPlayMode,
     INPUT_FLAG_COUNT,

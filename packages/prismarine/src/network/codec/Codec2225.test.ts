@@ -2,12 +2,12 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import BlockPosition from '../../world/BlockPosition';
-import { Item } from '../../item/Item';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
-import { AddPlayerPacket } from '@jsprismarine/protocol';
+import { AddPlayerPacket, emptyItemStackDescriptor } from '@jsprismarine/protocol';
 import type { AddPlayerPayload } from '@jsprismarine/protocol';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
-import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
+import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import { HandSlot, TransactionType } from '@jsprismarine/protocol';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -180,43 +180,47 @@ describe('network/codec', () => {
         });
 
         it('round-trips the Hand byte both changed transaction bodies gained', () => {
-            const useOnActor = new InventoryTransactionPacket();
+            const useOnActor = new InventoryTransactionPacket({
+                legacyRequest: { legacyRequestId: 0, legacySlotChanges: [] },
+                transactionType: TransactionType.USE_ITEM_ON_ENTITY,
+                inventoryActions: [],
+                hand: HandSlot.OFFHAND,
+                transactionData: {
+                    kind: 'useItemOnEntity',
+                    entityRuntimeId: 42n,
+                    actionType: 1,
+                    hotbarSlot: 2,
+                    itemInHand: emptyItemStackDescriptor(),
+                    playerPosition: new Vector3(0, 64, 0),
+                    clickPosition: new Vector3(0.5, 1, 0.5)
+                }
+            });
             useOnActor.codecProtocol = 2225;
-            useOnActor.legacyRequestId = 0;
-            useOnActor.legacySlotChanges = [];
-            useOnActor.inventoryActions = [];
-            useOnActor.transactionType = TransactionType.USE_ITEM_ON_ENTITY;
-            useOnActor.hand = HandSlot.OFFHAND;
-            useOnActor.transactionData = {
-                kind: 'useItemOnEntity',
-                entityRuntimeId: 42n,
-                actionType: 1,
-                hotbarSlot: 2,
-                itemInHand: Item.air(),
-                playerPosition: new Vector3(0, 64, 0),
-                clickPosition: new Vector3(0.5, 1, 0.5)
-            };
             const decodedUse = roundTrip(useOnActor);
-            expect(decodedUse.hand).toBe(HandSlot.OFFHAND);
-            expect(decodedUse.transactionData).toMatchObject({ entityRuntimeId: 42n, hotbarSlot: 2 });
+            expect(decodedUse.getPacketData()).toMatchObject({
+                hand: HandSlot.OFFHAND,
+                transactionData: { entityRuntimeId: 42n, hotbarSlot: 2 }
+            });
 
-            const release = new InventoryTransactionPacket();
+            const release = new InventoryTransactionPacket({
+                legacyRequest: { legacyRequestId: 0, legacySlotChanges: [] },
+                transactionType: TransactionType.RELEASE_ITEM,
+                inventoryActions: [],
+                hand: HandSlot.OFFHAND,
+                transactionData: {
+                    kind: 'releaseItem',
+                    actionType: 0,
+                    hotbarSlot: 3,
+                    itemInHand: emptyItemStackDescriptor(),
+                    playerPosition: new Vector3(1.5, 64, -2.25)
+                }
+            });
             release.codecProtocol = 2225;
-            release.legacyRequestId = 0;
-            release.legacySlotChanges = [];
-            release.inventoryActions = [];
-            release.transactionType = TransactionType.RELEASE_ITEM;
-            release.hand = HandSlot.OFFHAND;
-            release.transactionData = {
-                kind: 'releaseItem',
-                actionType: 0,
-                hotbarSlot: 3,
-                itemInHand: Item.air(),
-                playerPosition: new Vector3(1.5, 64, -2.25)
-            };
             const decodedRelease = roundTrip(release);
-            expect(decodedRelease.hand).toBe(HandSlot.OFFHAND);
-            expect(decodedRelease.transactionData).toMatchObject({ hotbarSlot: 3 });
+            expect(decodedRelease.getPacketData()).toMatchObject({
+                hand: HandSlot.OFFHAND,
+                transactionData: { hotbarSlot: 3 }
+            });
         });
 
         describe('the PlayFab id move', () => {

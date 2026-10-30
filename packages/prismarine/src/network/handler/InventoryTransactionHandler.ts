@@ -12,8 +12,14 @@ import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
 import { useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
-import type { InventoryTransactionPacket } from '../Packets';
-import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
+import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import type {
+    ReleaseItemData,
+    ServerInventoryTransaction,
+    UseItemData,
+    UseItemOnEntityData
+} from '../InventoryTransactionAdapter';
+import { inventoryTransactionFromProtocol } from '../InventoryTransactionAdapter';
 import {
     InventorySourceType,
     HandSlot,
@@ -21,7 +27,7 @@ import {
     TransactionType,
     ItemUseActionType,
     ItemUseOnActorActionType
-} from '../packet/InventoryTransactionPacket';
+} from '@jsprismarine/protocol';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -125,15 +131,15 @@ const isFace = (face: number): boolean => Number.isInteger(face) && face >= 0 &&
  * A reason is returned rather than thrown because a thrown error reaches the log at error
  * level, and a client that disagrees with the server is ordinary traffic.
  */
-export const rejectionReason = (packet: InventoryTransactionPacket): string | null => {
-    const type = packet.transactionType;
+export const rejectionReason = (transaction: ServerInventoryTransaction): string | null => {
+    const type = transaction.transactionType;
     if (!(type in TransactionType)) return `transaction type ${type} is not one the packet may carry`;
 
-    for (const action of packet.inventoryActions) {
+    for (const action of transaction.inventoryActions) {
         if (!(action.sourceType in InventorySourceType)) return `action source ${action.sourceType} does not exist`;
     }
 
-    const data = packet.transactionData;
+    const data = transaction.transactionData;
     if (type === TransactionType.NORMAL || type === TransactionType.MISMATCH) {
         return data === null ? null : `a ${TransactionType[type]} transaction carries a ${data.kind} body`;
     }
@@ -215,7 +221,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         if (!player.isOnline()) return;
         if (player.gamemode === Gametype.SPECTATOR) return; // Spectators pass through the world without touching it.
 
-        const reason = rejectionReason(packet);
+        const packetData = packet.getPacketData();
+        if (packetData === null) return;
+        const transaction = inventoryTransactionFromProtocol(packetData, connection.getConnection().codec.context);
+
+        const reason = rejectionReason(transaction);
         if (reason !== null) {
             server
                 .getLogger()
@@ -226,15 +236,15 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             return;
         }
 
-        const data = packet.transactionData;
+        const data = transaction.transactionData;
         if (data === null) {
             // The client's idea of an inventory did not match what it was sent. Nothing here
             // can be applied, but a client saying so is ordinary traffic, not a fault, and it
             // used to be thrown on.
-            if (packet.transactionType === TransactionType.MISMATCH) {
+            if (transaction.transactionType === TransactionType.MISMATCH) {
                 server.getLogger().verbose(`${player.getName()} reported an inventory mismatch`);
             } else {
-                await this.handleNormal(packet, server, player, connection);
+                await this.handleNormal(transaction, server, player, connection);
             }
             return;
         }
@@ -269,16 +279,18 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * player inventory and creates its matching world item.
      */
     private async handleNormal(
-        packet: InventoryTransactionPacket,
+        transaction: ServerInventoryTransaction,
         server: Server,
         player: Player,
         session: PlayerSession
     ): Promise<void> {
-        if (packet.transactionType === TransactionType.NORMAL && packet.inventoryActions.length === 2) {
-            const container = packet.inventoryActions.find(
+        if (transaction.transactionType === TransactionType.NORMAL && transaction.inventoryActions.length === 2) {
+            const container = transaction.inventoryActions.find(
                 (action) => action.sourceType === InventorySourceType.CONTAINER
             );
-            const world = packet.inventoryActions.find((action) => action.sourceType === InventorySourceType.WORLD);
+            const world = transaction.inventoryActions.find(
+                (action) => action.sourceType === InventorySourceType.WORLD
+            );
 
             if (
                 container !== undefined &&
@@ -334,11 +346,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             }
         }
 
-        const sources = packet.inventoryActions.map((action) => InventorySourceType[action.sourceType]).join(', ');
+        const sources = transaction.inventoryActions.map((action) => InventorySourceType[action.sourceType]).join(', ');
         server
             .getLogger()
             .debug(
-                `Ignored a Normal inventory transaction from ${player.getName()} with ${packet.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
+                `Ignored a Normal inventory transaction from ${player.getName()} with ${transaction.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
                 'InventoryTransactionHandler/handleNormal'
             );
     }

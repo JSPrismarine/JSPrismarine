@@ -1,11 +1,12 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { PlayerAuthInputData } from '@jsprismarine/minecraft';
-import { PlayerActionType } from '@jsprismarine/protocol';
+import { HandSlot, PlayerActionType, TransactionType } from '@jsprismarine/protocol';
+import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
-import InventoryTransactionPacket, { TransactionType } from '../packet/InventoryTransactionPacket';
+import { inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import type PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
 import { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
@@ -163,12 +164,21 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
             packet.itemUseTransaction !== null &&
             this.flagged(packet, PlayerAuthInputData.PERFORM_ITEM_INTERACTION, 'Item Use Transaction', server, session)
         ) {
-            const transaction = new InventoryTransactionPacket();
-            transaction.legacyRequestId = packet.itemUseTransaction.legacyRequestId;
-            transaction.legacySlotChanges = packet.itemUseTransaction.legacySlotChanges;
-            transaction.transactionType = TransactionType.USE_ITEM;
-            transaction.inventoryActions = packet.itemUseTransaction.actions;
-            transaction.transactionData = packet.itemUseTransaction.data;
+            const transaction = new InventoryTransactionPacket(
+                inventoryTransactionToProtocol(
+                    {
+                        legacyRequest: {
+                            legacyRequestId: packet.itemUseTransaction.legacyRequestId,
+                            legacySlotChanges: packet.itemUseTransaction.legacySlotChanges
+                        },
+                        transactionType: TransactionType.USE_ITEM,
+                        inventoryActions: packet.itemUseTransaction.actions,
+                        transactionData: packet.itemUseTransaction.data,
+                        hand: HandSlot.MAINHAND
+                    },
+                    session.getConnection().codec.context
+                )
+            );
             await this.transactions.handle(transaction, server, session, {
                 pitch: packet.interactRotation.x,
                 yaw: packet.interactRotation.y
