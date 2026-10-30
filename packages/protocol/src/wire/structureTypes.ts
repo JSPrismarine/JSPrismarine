@@ -9,6 +9,7 @@
  */
 import { Vector3 } from '@jsprismarine/math';
 
+import CommandOriginData from './structures/CommandOriginData';
 import { custom } from './fieldTypes';
 import { readItemStackDescriptor, writeItemStackDescriptor } from './structures/ItemStackDescriptor';
 import { Metadata } from './structures/Metadata';
@@ -96,3 +97,10 @@ export const serializedSkin = (layout: SkinWireLayout): WireType<Skin | null> =>
         },
         (stream) => Skin.networkDeserialize(stream, layout)
     );
+
+/** `CommandOriginData`: who or what ran a command, as the four fields on the wire. */
+export const commandOriginData: WireType<CommandOriginData> = custom(
+    'CommandOriginData',
+    (stream, value) => value.networkSerialize(stream),
+    (stream) => CommandOriginData.networkDeserialize(stream)
+);

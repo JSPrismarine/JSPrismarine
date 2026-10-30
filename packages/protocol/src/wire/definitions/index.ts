@@ -34,6 +34,7 @@ import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
+import { commandRequestPacket } from './commands';
 import {
     containerClosePacket,
     containerOpenPacket,
@@ -101,6 +102,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         cameraAimAssistPresetsPacket,
         cameraPresetsPacket,
         chunkRadiusUpdatedPacket,
+        commandRequestPacket,
         containerClosePacket,
         containerOpenPacket,
         containerSetDataPacket,
