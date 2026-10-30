@@ -96,7 +96,7 @@ import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
 import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
 import PositionTrackingDBServerBroadcastPacket from '@jsprismarine/protocol/packet/PositionTrackingDBServerBroadcastPacket';
-import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
+import PurchaseReceiptPacket from '@jsprismarine/protocol/packet/PurchaseReceiptPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from '@jsprismarine/protocol/packet/RequestChunkRadiusPacket';

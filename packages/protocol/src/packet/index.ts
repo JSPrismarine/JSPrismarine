@@ -270,6 +270,8 @@ export { default as PlayerVideoCapturePacket } from './PlayerVideoCapturePacket'
 export * from './PlayerVideoCapturePacket';
 export { default as PrimitiveShapesPacket } from './PrimitiveShapesPacket';
 export * from './PrimitiveShapesPacket';
+export { default as PurchaseReceiptPacket } from './PurchaseReceiptPacket';
+export * from './PurchaseReceiptPacket';
 export { default as RecordStartedPacket } from './RecordStartedPacket';
 export * from './RecordStartedPacket';
 export { default as RefreshEntitlementsPacket } from './RefreshEntitlementsPacket';

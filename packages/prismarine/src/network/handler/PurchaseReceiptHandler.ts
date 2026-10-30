@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type PurchaseReceiptPacket from '../packet/PurchaseReceiptPacket';
+import type PurchaseReceiptPacket from '@jsprismarine/protocol/packet/PurchaseReceiptPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -16,10 +16,13 @@ export default class PurchaseReceiptHandler implements PacketHandler<PurchaseRec
 
     /** Logs how many receipts arrived. */
     public handle(packet: PurchaseReceiptPacket, server: Server, session: PlayerSession): void {
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a PurchaseReceiptPacket without decoded data');
+
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} sent ${packet.purchaseReceipts.length} purchase receipts, which the server does not verify`,
+                `${session.getPlayer().getName()} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,
                 'PurchaseReceiptHandler/handle'
             );
     }
