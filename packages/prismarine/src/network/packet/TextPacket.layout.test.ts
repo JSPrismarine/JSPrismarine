@@ -22,7 +22,7 @@ describe('the declarative Text layout', () => {
     const payload = (
         type: TextPacketType,
         body: { sourceName?: string; parameters?: string[] },
-        filtered = 'filt'
+        filtered: string | null = 'filt'
     ) => ({
         needsTranslation: true,
         body: { type, sourceName: body.sourceName ?? '', message: 'msg', parameters: body.parameters ?? [] },
