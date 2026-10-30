@@ -29,7 +29,7 @@ import ClientboundDebugRendererPacket from './packet/ClientboundDebugRendererPac
 import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
 import ClientboundMatchmakingStatePacket from '@jsprismarine/protocol/packet/ClientboundMatchmakingStatePacket';
 import ClientboundPlayAudioContentPacket from '@jsprismarine/protocol/packet/ClientboundPlayAudioContentPacket';
-import ClientboundStonecutterSetRecipePacket from './packet/ClientboundStonecutterSetRecipePacket';
+import ClientboundStonecutterSetRecipePacket from '@jsprismarine/protocol/packet/ClientboundStonecutterSetRecipePacket';
 import CodeBuilderPacket from './packet/CodeBuilderPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CompletedUsingItemPacket from '@jsprismarine/protocol/packet/CompletedUsingItemPacket';
@@ -112,13 +112,13 @@ import ResourcePacksReadyForValidationPacket from './packet/ResourcePacksReadyFo
 import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import ServerSettingsResponsePacket from './packet/ServerSettingsResponsePacket';
-import ServerboundCursorItemDragPacket from './packet/ServerboundCursorItemDragPacket';
+import ServerboundCursorItemDragPacket from '@jsprismarine/protocol/packet/ServerboundCursorItemDragPacket';
 import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
 import ServerboundMatchmakingCancelPacket from '@jsprismarine/protocol/packet/ServerboundMatchmakingCancelPacket';
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
 import ServerboundRegisterAudioContentPacket from '@jsprismarine/protocol/packet/ServerboundRegisterAudioContentPacket';
-import ServerboundStonecutterSetRecipePacket from './packet/ServerboundStonecutterSetRecipePacket';
+import ServerboundStonecutterSetRecipePacket from '@jsprismarine/protocol/packet/ServerboundStonecutterSetRecipePacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';

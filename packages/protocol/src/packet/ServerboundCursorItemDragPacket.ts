@@ -1,6 +1,6 @@
-import { CursorItemDragState, layoutAt, serverboundCursorItemDragPacket } from '@jsprismarine/protocol';
-
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { layoutAt } from '../wire/WireLayout';
+import { CursorItemDragState, serverboundCursorItemDragPacket } from '../wire/definitions/added2225';
 
 /**
  * A client starting or stopping a cursor item split-drag.
