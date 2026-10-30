@@ -15,7 +15,7 @@ import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
-import TransferPacket from '../../network/packet/TransferPacket';
+import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 import TextPacketType from '../../network/type/TextPacketType';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playersOf, resolveEntity, resolvePlayer } from './support';
@@ -148,9 +148,7 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
             const player = resolvePlayer(server, ref);
             if (player === undefined) return false;
 
-            const packet = new TransferPacket();
-            packet.address = host;
-            packet.port = port;
+            const packet = new TransferPacket({ address: host, port, reloadWorld: false, gatheringsConfig: null });
             return carryOut(player.getNetworkSession().send(packet), true);
         },
 

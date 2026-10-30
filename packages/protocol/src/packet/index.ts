@@ -32,6 +32,7 @@ import SetTimePacket from './SetTimePacket';
 import ShowCreditsPacket from './ShowCreditsPacket';
 import ShowProfilePacket from './ShowProfilePacket';
 import TickingAreasLoadStatusPacket from './TickingAreasLoadStatusPacket';
+import TransferPacket from './TransferPacket';
 import GameRulesChangedPacket from './GameRulesChangedPacket';
 import HurtArmorPacket from './HurtArmorPacket';
 import SetSpawnPositionPacket from './SetSpawnPositionPacket';
@@ -86,6 +87,7 @@ export {
     ShowCreditsPacket,
     ShowProfilePacket,
     TickingAreasLoadStatusPacket,
+    TransferPacket,
     GameRulesChangedPacket,
     HurtArmorPacket,
     SetSpawnPositionPacket,
@@ -143,6 +145,7 @@ export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
+export type { GatheringsConfig, Transfer } from './TransferPacket';
 export { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
 export type { ServerboundLoadingScreen } from './ServerboundLoadingScreenPacket';
 export type { ChunkCoord, NetworkChunkPublisherUpdatePayload } from './NetworkChunkPublisherUpdatePacket';

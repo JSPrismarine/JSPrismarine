@@ -147,7 +147,7 @@ import SyncActorPropertyPacket from '@jsprismarine/protocol/packet/SyncActorProp
 import TakeItemActorPacket from '@jsprismarine/protocol/packet/TakeItemActorPacket';
 import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from '@jsprismarine/protocol/packet/TickingAreasLoadStatusPacket';
-import TransferPacket from './packet/TransferPacket';
+import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 import UnlockedRecipesPacket from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
 import UpdateAbilitiesPacket from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
