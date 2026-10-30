@@ -1,3 +1,5 @@
+import { inventoryContentPacket, layoutAt } from '@jsprismarine/protocol';
+
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item } from '../../item/Item';
 import { ContainerUiId } from '../type/ItemStackRequest';
@@ -32,45 +34,40 @@ export default class InventoryContentPacket extends DataPacket {
 
     /** Writes the four fields in docs order. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.windowId);
-
-        // Each stack in the form that carries a net id flag - an inventory's stacks are
-        // tracked, unlike the creative menu's. There is no slot index: position is the slot,
-        // and writing one made every stack land one field into the next.
-        this.writeUnsignedVarInt(this.items.length);
-        for (const entry of this.items) {
-            const item = entry.toItemStack();
-            // The id the client will name the stack by in its requests. Air has none, and
-            // neither does a stack nothing has given one yet.
-            item.networkSerialize(this, item.stackNetworkId > 0 ? item.stackNetworkId : null);
-        }
-
-        this.writeByte(this.containerId);
-        this.writeBoolean(this.dynamicId !== null);
-        if (this.dynamicId !== null) this.writeIntLE(this.dynamicId);
-
-        // The storage item: what a bundle-like container is itself held as. Nothing here has
-        // one - but air is no longer a bare zero, it is a full empty stack, so it is written
-        // as one rather than by hand.
-        Item.air().networkSerialize(this);
+        layoutAt(inventoryContentPacket, this.codecProtocol).encode(this, {
+            windowId: this.windowId,
+            // Each stack in the form that carries a net id flag - an inventory's stacks are
+            // tracked, unlike the creative menu's. There is no slot index: position is the
+            // slot, and writing one made every stack land one field into the next.
+            slots: this.items.map((entry) => {
+                const item = entry.toItemStack();
+                // The id the client will name the stack by in its requests. Air has none, and
+                // neither does a stack nothing has given one yet.
+                return item.toStackDescriptor(this, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+            }),
+            fullContainerName: { containerId: this.containerId, dynamicId: this.dynamicId },
+            // The storage item: what a bundle-like container is itself held as. Nothing here
+            // has one - but air is no longer a bare zero, it is a full empty stack.
+            storageItem: Item.air().toStackDescriptor(this)
+        });
     }
 
     /** Reads the four fields in docs order, as {@link InventoryContentPacket.encodePayload} writes them. */
     public decodePayload(): void {
-        this.windowId = this.readUnsignedVarInt();
+        const read = layoutAt(inventoryContentPacket, this.codecProtocol).decode(this);
+        this.windowId = read.windowId;
 
-        this.items = Array.from({ length: this.readUnsignedVarInt() }, () => {
-            const item = Item.networkDeserialize(this);
+        this.items = read.slots.map((slot) => {
+            const item = Item.fromStackDescriptor(this, slot);
             // An empty slot holds nothing, whatever count the reader gave its air.
             return item.getName() === 'minecraft:air'
                 ? new ContainerEntry({ item })
                 : new ContainerEntry({ item, count: item.getAmount() });
         });
 
-        this.containerId = this.readByte();
-        this.dynamicId = this.readBoolean() ? this.readIntLE() : null;
+        this.containerId = read.fullContainerName.containerId;
+        this.dynamicId = read.fullContainerName.dynamicId;
 
-        // The storage item. Nothing here is held in one, so it is read past and not kept.
-        Item.networkDeserialize(this);
+        // The storage item is read past and not kept: nothing here is held in one.
     }
 }
