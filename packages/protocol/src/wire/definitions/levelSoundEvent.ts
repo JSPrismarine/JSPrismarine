@@ -1,10 +1,12 @@
 /**
- * `LevelSoundEventPacket` described as a declarative field list; layout unchanged between
- * protocols 2193 and 2225. Field names and order follow the docs page.
+ * The sound packets described as declarative field lists; layouts unchanged between
+ * protocols 2193 and 2225. Field names and order follow each packet's docs page.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-sound-event-packet/}
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
+
+import type { PayloadOf } from '../define';
 
 /**
  * The `LevelSoundEventPacket` field list.
@@ -37,3 +39,21 @@ export const levelSoundEventPacket = definePacket('LevelSoundEventPacket', {
     /** `Fire At Position`: where a projectile sound was fired from, behind a presence byte. */
     fireAtPosition: t.optional(t.vec3)
 });
+
+/**
+ * The `StopSoundPacket` field list: stops a sound that is still playing, such as a music disc.
+ *
+ * A client that is not playing the named sound ignores the packet. With `Stop All Sounds?`
+ * set the name may be empty.
+ */
+export const stopSoundPacket = definePacket('StopSoundPacket', {
+    /** `Sound Name`: which sound to stop. */
+    soundName: t.string,
+    /** `Stop All Sounds?`: stops everything the client is playing, whatever the name says. */
+    stopAllSounds: t.bool,
+    /** `Stop Music (Legacy)`: the older music-only stop, kept for clients that still read it. */
+    stopMusicLegacy: t.bool
+});
+
+/** What `StopSoundPacket` carries; derived from the field list. */
+export type StopSoundPayload = PayloadOf<typeof stopSoundPacket>;

@@ -1,12 +1,14 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, stopSoundPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
  * Stops a sound that is still playing, such as a music disc.
  *
- * Wire order at protocol 2193: `Sound Name` as a string, then `Stop All Sounds?` and
- * `Stop Music (Legacy)` as one byte each. A client that is not playing the named sound
- * ignores the packet. With `stopAllSounds` set the name may be empty.
+ * The wire layout lives in `@jsprismarine/protocol`'s `stopSoundPacket` definition:
+ * `Sound Name` as a string, then `Stop All Sounds?` and `Stop Music (Legacy)` as one byte
+ * each. A client that is not playing the named sound ignores the packet. With
+ * `stopAllSounds` set the name may be empty.
  *
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
@@ -22,15 +24,19 @@ export default class StopSoundPacket extends DataPacket {
 
     /** Reads the sound name and the two stop flags. */
     public decodePayload(): void {
-        this.soundName = NetworkUtil.readString(this);
-        this.stopAllSounds = this.readBoolean();
-        this.stopMusicLegacy = this.readBoolean();
+        const payload = layoutAt(stopSoundPacket, this.codecProtocol).decode(this);
+
+        this.soundName = payload.soundName;
+        this.stopAllSounds = payload.stopAllSounds;
+        this.stopMusicLegacy = payload.stopMusicLegacy;
     }
 
     /** Writes the sound name and the two stop flags. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.soundName);
-        this.writeBoolean(this.stopAllSounds);
-        this.writeBoolean(this.stopMusicLegacy);
+        layoutAt(stopSoundPacket, this.codecProtocol).encode(this, {
+            soundName: this.soundName,
+            stopAllSounds: this.stopAllSounds,
+            stopMusicLegacy: this.stopMusicLegacy
+        });
     }
 }
