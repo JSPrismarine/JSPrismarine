@@ -5,6 +5,7 @@
  */
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
+import { vector3 } from '../structureTypes';
 
 /** The `SetTimePacket` field list: the world tick as one ZigZag varint. */
 export const setTimePacket = definePacket('SetTimePacket', {
@@ -50,6 +51,24 @@ export const respawnPacket = definePacket('RespawnPacket', {
     state: t.uint8,
     /** `Runtime Entity ID`: whose respawn this is. */
     runtimeEntityId: t.varuint64
+});
+
+/**
+ * The `ChangeDimensionPacket` field list.
+ *
+ * The 1.26.51 schema lists `Loading Screen Id` as required and draws it as a plain uint32, but
+ * its own description says to leave it empty when no screen is expected, and gophertunnel at
+ * protocol 2193 writes the presence byte this `optional` writes.
+ */
+export const changeDimensionPacket = definePacket('ChangeDimensionPacket', {
+    /** `Dimension ID`: a `DimensionType`, 0 the Overworld, 1 the Nether, 2 the End. */
+    dimension: t.varint32,
+    /** `Position`: where in the new dimension the player arrives. */
+    position: vector3,
+    /** `Respawn`: whether the change followed a death rather than a portal. */
+    respawn: t.bool,
+    /** `Loading Screen Id`: what `ServerboundLoadingScreenPacket` reports progress against. */
+    loadingScreenId: t.optional(t.lu32)
 });
 
 /** The `PlayerHotbarPacket` field list. */

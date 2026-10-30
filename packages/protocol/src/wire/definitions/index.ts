@@ -59,6 +59,7 @@ import { playStatusPacket } from './playStatus';
 import { resourcePacksInfoPacket, resourcePackStackPacket } from './resourcePacks';
 import { serverToClientHandshakePacket } from './serverToClientHandshake';
 import {
+    changeDimensionPacket,
     networkChunkPublisherUpdatePacket,
     networkSettingsPacket,
     playerFogPacket,
@@ -151,6 +152,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         updateBlockPacket,
         updateSubChunkBlocksPacket,
         voxelShapesPacket,
+        changeDimensionPacket,
         networkChunkPublisherUpdatePacket,
         networkSettingsPacket,
         playerFogPacket,

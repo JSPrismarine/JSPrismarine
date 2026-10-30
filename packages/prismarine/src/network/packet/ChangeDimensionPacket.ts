@@ -1,17 +1,16 @@
-import type { Vector3 } from '@jsprismarine/math';
-import type { Dimension } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../NetworkUtil';
+import { Vector3 } from '@jsprismarine/math';
+import { changeDimensionPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
+
+import type { Dimension } from '@jsprismarine/minecraft';
 
 /**
  * Starts a dimension change and the loading screen that goes with it.
  *
- * Protocol 2193 wire order, with the docs' field names: `Dimension ID` (a `DimensionType`, one
- * ZigZag varint32), `Position` (a `Vec3` of three little endian floats), `Respawn` (boolean) and
- * `Loading Screen Id` (a presence byte, then a little endian uint32 when present). The 1.26.51
- * schema lists `Loading Screen Id` as required and draws it as a plain uint32, but its own
- * description says to leave it empty when no screen is expected, and gophertunnel at protocol
- * 2193 writes the same presence byte.
+ * The wire layout lives in `@jsprismarine/protocol`'s `changeDimensionPacket` definition:
+ * `Dimension ID` as a ZigZag varint32, `Position` as a `Vec3`, `Respawn` as a boolean and
+ * `Loading Screen Id` as a presence byte followed by a little endian uint32 when present.
  *
  * `Dimension ID` has to differ from the one the player is already in. Sending the current
  * dimension leaves the client on the change screen for ever.
@@ -34,28 +33,22 @@ export default class ChangeDimensionPacket extends DataPacket {
      */
     public loadingScreenId: number | null = null;
 
-    /** Reads the four fields in the protocol 2193 order described on the class. */
+    /** Reads the dimension, the arrival position, the respawn flag and the screen id. */
     public decodePayload(): void {
-        this.dimension = this.readVarInt();
-        this.position = NetworkUtil.readVector3(this);
-        this.respawn = this.readBoolean();
-        this.loadingScreenId = this.readBoolean() ? this.readUnsignedIntLE() : null;
+        const read = layoutAt(changeDimensionPacket, this.codecProtocol).decode(this);
+        this.dimension = read.dimension;
+        this.position = read.position;
+        this.respawn = read.respawn;
+        this.loadingScreenId = read.loadingScreenId;
     }
 
-    /** Writes the four fields in the protocol 2193 order described on the class. */
+    /** Writes the dimension, the arrival position, the respawn flag and the screen id. */
     public encodePayload(): void {
-        this.writeVarInt(this.dimension);
-        NetworkUtil.writeVector3(this, this.position);
-        this.writeBoolean(this.respawn);
-
-        // An optional: a byte saying whether the id is there, then a little endian uint32 if it
-        // is. Omitting the byte ends the packet early, and a client that reads past the end of a
-        // packet calls it malformed and hangs up.
-        if (this.loadingScreenId === null) {
-            this.writeBoolean(false);
-        } else {
-            this.writeBoolean(true);
-            this.writeUnsignedIntLE(this.loadingScreenId);
-        }
+        layoutAt(changeDimensionPacket, this.codecProtocol).encode(this, {
+            dimension: this.dimension,
+            position: this.position ?? Vector3.ZERO,
+            respawn: this.respawn,
+            loadingScreenId: this.loadingScreenId
+        });
     }
 }
