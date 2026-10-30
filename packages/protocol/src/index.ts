@@ -48,6 +48,7 @@ export * from './wire/definitions/chunkRadiusUpdated';
 export * from './wire/definitions/containers';
 export * from './wire/definitions/gameRulesChanged';
 export * from './wire/definitions/index';
+export * from './wire/definitions/interaction';
 export * from './wire/definitions/inventoryTransaction';
 export * from './wire/definitions/jigsawStructureData';
 export * from './wire/definitions/levelChunk';

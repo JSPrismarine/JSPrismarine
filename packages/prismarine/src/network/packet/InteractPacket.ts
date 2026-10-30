@@ -1,6 +1,8 @@
-import type { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
+import { interactPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
+
+import type { Vector3 } from '@jsprismarine/math';
 
 /**
  * The docs' `InteractPacket::Action`: what the client did to the target actor, written as a
@@ -31,20 +33,17 @@ export default class InteractPacket extends DataPacket {
     public position: Vector3 | null = null;
 
     public encodePayload(): void {
-        this.writeByte(this.action);
-        this.writeUnsignedVarLong(this.target);
-
-        this.writeBoolean(this.position !== null);
-        if (this.position !== null) {
-            NetworkUtil.writeVector3(this, this.position);
-        }
+        layoutAt(interactPacket, this.codecProtocol).encode(this, {
+            action: this.action,
+            target: this.target,
+            position: this.position
+        });
     }
 
     public decodePayload(): void {
-        this.action = this.readByte();
-        this.target = this.readUnsignedVarLong();
-
-        // The position is an optional: a presence byte, then the three floats when it is set.
-        this.position = this.readBoolean() ? NetworkUtil.readVector3(this) : null;
+        const read = layoutAt(interactPacket, this.codecProtocol).decode(this);
+        this.action = read.action;
+        this.target = read.target;
+        this.position = read.position;
     }
 }
