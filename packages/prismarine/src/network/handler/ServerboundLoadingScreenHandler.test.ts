@@ -7,7 +7,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ServerboundLoadingScreenPacket, {
     ServerboundLoadingScreenPacketType
-} from '../packet/ServerboundLoadingScreenPacket';
+} from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
 import ServerboundLoadingScreenHandler from './ServerboundLoadingScreenHandler';
 
 const fakeSession = ({ open = [] as number[] } = {}) => {
@@ -30,8 +30,9 @@ const fakeSession = ({ open = [] as number[] } = {}) => {
 describe('ServerboundLoadingScreenHandler', () => {
     it('logs the join screen when the id is absent', () => {
         const { logged, server, session } = fakeSession();
-        const packet = Object.assign(new ServerboundLoadingScreenPacket(), {
-            loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen
+        const packet = new ServerboundLoadingScreenPacket({
+            loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
+            loadingScreenId: null
         });
 
         new ServerboundLoadingScreenHandler().handle(packet, server, session);
@@ -41,7 +42,7 @@ describe('ServerboundLoadingScreenHandler', () => {
 
     it('closes the screen on the session when the client reports the id it was given', () => {
         const { logged, ended, server, session } = fakeSession({ open: [3] });
-        const packet = Object.assign(new ServerboundLoadingScreenPacket(), {
+        const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen,
             loadingScreenId: 3
         });
@@ -54,7 +55,7 @@ describe('ServerboundLoadingScreenHandler', () => {
 
     it('says so when the closed id matches no screen the session opened', () => {
         const { logged, server, session } = fakeSession();
-        const packet = Object.assign(new ServerboundLoadingScreenPacket(), {
+        const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.EndLoadingScreen,
             loadingScreenId: 9
         });
@@ -66,7 +67,7 @@ describe('ServerboundLoadingScreenHandler', () => {
 
     it('only logs an opening, since the session already knows the id', () => {
         const { logged, ended, server, session } = fakeSession({ open: [3] });
-        const packet = Object.assign(new ServerboundLoadingScreenPacket(), {
+        const packet = new ServerboundLoadingScreenPacket({
             loadingScreenType: ServerboundLoadingScreenPacketType.StartLoadingScreen,
             loadingScreenId: 3
         });

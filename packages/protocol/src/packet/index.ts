@@ -49,6 +49,7 @@ import PhotoTransferPacket from './PhotoTransferPacket';
 import ServerSettingsResponsePacket from './ServerSettingsResponsePacket';
 import ShowStoreOfferPacket from './ShowStoreOfferPacket';
 import SpawnExperienceOrbPacket from './SpawnExperienceOrbPacket';
+import ServerboundLoadingScreenPacket from './ServerboundLoadingScreenPacket';
 
 export {
     ChangeDimensionPacket,
@@ -101,7 +102,8 @@ export {
     PhotoTransferPacket,
     ServerSettingsResponsePacket,
     ShowStoreOfferPacket,
-    SpawnExperienceOrbPacket
+    SpawnExperienceOrbPacket,
+    ServerboundLoadingScreenPacket
 };
 
 export { GameRuleType } from './StartGamePacket';
@@ -141,6 +143,8 @@ export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
+export { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
+export type { ServerboundLoadingScreen } from './ServerboundLoadingScreenPacket';
 export type { ChunkCoord, NetworkChunkPublisherUpdatePayload } from './NetworkChunkPublisherUpdatePacket';
 export type { BlockCoordinates, PlayerActionData } from './PlayerActionPacket';
 export type { PlayerHotbarPayload } from './PlayerHotbarPacket';

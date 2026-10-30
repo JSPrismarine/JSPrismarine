@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ServerboundLoadingScreenPacket from '../packet/ServerboundLoadingScreenPacket';
-import { ServerboundLoadingScreenPacketType } from '../packet/ServerboundLoadingScreenPacket';
+import type ServerboundLoadingScreenPacket from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
+import { ServerboundLoadingScreenPacketType } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -18,17 +18,19 @@ export default class ServerboundLoadingScreenHandler implements PacketHandler<Se
 
     /** Logs which screen opened or closed, and closes a dimension change's screen on the session. */
     public handle(packet: ServerboundLoadingScreenPacket, server: Server, session: PlayerSession): void {
-        const closed = packet.loadingScreenType === ServerboundLoadingScreenPacketType.EndLoadingScreen;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a ServerboundLoadingScreenPacket without a payload');
+        const closed = data.loadingScreenType === ServerboundLoadingScreenPacketType.EndLoadingScreen;
         const edge =
-            packet.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen
+            data.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen
                 ? 'opened'
                 : closed
                   ? 'closed'
-                  : `sent type ${packet.loadingScreenType} for`;
+                  : `sent type ${data.loadingScreenType} for`;
         const screen =
-            packet.loadingScreenId === null ? 'the join loading screen' : `loading screen ${packet.loadingScreenId}`;
+            data.loadingScreenId === null ? 'the join loading screen' : `loading screen ${data.loadingScreenId}`;
         const known =
-            closed && packet.loadingScreenId !== null && !session.endLoadingScreen(packet.loadingScreenId)
+            closed && data.loadingScreenId !== null && !session.endLoadingScreen(data.loadingScreenId)
                 ? ', which this session never opened'
                 : '';
 
