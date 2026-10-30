@@ -1,5 +1,6 @@
+import { layoutAt, moveActorAbsolutePacket } from '@jsprismarine/protocol';
+
 import type { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
@@ -64,40 +65,24 @@ export default class MoveActorAbsolutePacket extends DataPacket {
     public headYaw: number = 0;
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeByte(this.flags || 0);
-        NetworkUtil.writeVector3(this, this.position);
-
-        this.writeByte(MoveActorAbsolutePacket.toByteRotation(this.pitch));
-        this.writeByte(MoveActorAbsolutePacket.toByteRotation(this.yaw));
-        this.writeByte(MoveActorAbsolutePacket.toByteRotation(this.headYaw));
+        layoutAt(moveActorAbsolutePacket, this.codecProtocol).encode(this, {
+            runtimeEntityId: this.runtimeEntityId,
+            flags: this.flags || 0,
+            position: this.position,
+            pitch: this.pitch,
+            yaw: this.yaw,
+            headYaw: this.headYaw
+        });
     }
 
     /** Reads the fields in the order listed on the class; the rotations come back in degrees. */
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-        this.flags = this.readByte();
-        this.position = NetworkUtil.readVector3(this);
-
-        this.pitch = MoveActorAbsolutePacket.fromByteRotation(this.readByte());
-        this.yaw = MoveActorAbsolutePacket.fromByteRotation(this.readByte());
-        this.headYaw = MoveActorAbsolutePacket.fromByteRotation(this.readByte());
-    }
-
-    /**
-     * An angle as the single byte the packet carries it in.
-     *
-     * The rounding and the mask are both load-bearing. Angles here accumulate freely - a mob that
-     * has turned right four times is at 400 degrees, and one that has turned left is negative - and
-     * the raw division would hand `writeByte` a fraction and a number outside 0-255. Wrapping keeps
-     * it in range, which is exactly right for an angle.
-     */
-    private static toByteRotation(degrees: number): number {
-        return Math.round(degrees / (360 / 256)) & 0xff;
-    }
-
-    /** The byte back as degrees in `[0, 360)`. */
-    private static fromByteRotation(byte: number): number {
-        return byte * (360 / 256);
+        const read = layoutAt(moveActorAbsolutePacket, this.codecProtocol).decode(this);
+        this.runtimeEntityId = read.runtimeEntityId;
+        this.flags = read.flags;
+        this.position = read.position;
+        this.pitch = read.pitch;
+        this.yaw = read.yaw;
+        this.headYaw = read.headYaw;
     }
 }

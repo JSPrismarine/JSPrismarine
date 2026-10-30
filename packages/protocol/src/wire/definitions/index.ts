@@ -30,7 +30,7 @@ import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
 import { levelSoundEventPacket } from './levelSoundEvent';
-import { movePlayerPacket } from './movement';
+import { moveActorAbsolutePacket, movePlayerPacket } from './movement';
 import { playerListPacket } from './playerList';
 import { playerSkinPacket } from './playerSkin';
 import { playStatusPacket } from './playStatus';
@@ -77,6 +77,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         levelChunkPacket,
         levelEventGenericPacket,
         levelSoundEventPacket,
+        moveActorAbsolutePacket,
         movePlayerPacket,
         playerListPacket,
         playerSkinPacket,

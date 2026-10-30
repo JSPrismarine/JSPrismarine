@@ -28,6 +28,19 @@ const teleportData: WireType<TeleportData> = t.custom(
     (stream) => ({ cause: t.li32.read(stream), sourceActorType: t.li32.read(stream) })
 );
 
+/**
+ * An angle as the single byte the movement packets carry it in.
+ *
+ * The wire unit is a 256th of a turn, so the conversion is lossy in both directions, and the
+ * rounding and the mask are load-bearing: angles accumulate freely either side of `[0, 360)`
+ * and the raw division would hand `writeByte` a fraction or a number out of range.
+ */
+export const byteRotation: WireType<number> = t.custom(
+    'byte rotation',
+    (stream, value) => t.uint8.write(stream, Math.round(value / (360 / 256)) & 0xff),
+    (stream) => t.uint8.read(stream) * (360 / 256)
+);
+
 /** The `MovePlayerPacket` field list. */
 export const movePlayerPacket = definePacket('MovePlayerPacket', {
     /** `Player Runtime ID`. */
@@ -54,3 +67,22 @@ export const movePlayerPacket = definePacket('MovePlayerPacket', {
 
 /** What `MovePlayerPacket` carries. */
 export type MovePlayerPayload = PayloadOf<typeof movePlayerPacket>;
+
+/** The `MoveActorAbsolutePacket` field list, one `MoveActorAbsoluteData`. */
+export const moveActorAbsolutePacket = definePacket('MoveActorAbsolutePacket', {
+    /** `ActorRuntimeID`. */
+    runtimeEntityId: t.varuint64,
+    /** `Header`: on ground 0x01, teleport 0x02, force move local 0x04, force completion 0x08. */
+    flags: t.uint8,
+    /** `Position`. */
+    position: vector3,
+    /** `Rotation X`, the pitch, in degrees. */
+    pitch: byteRotation,
+    /** `Rotation Y`, the body yaw, in degrees. */
+    yaw: byteRotation,
+    /** `Rotation Y Head`, the head yaw, in degrees. */
+    headYaw: byteRotation
+});
+
+/** What `MoveActorAbsolutePacket` carries. */
+export type MoveActorAbsolutePayload = PayloadOf<typeof moveActorAbsolutePacket>;
