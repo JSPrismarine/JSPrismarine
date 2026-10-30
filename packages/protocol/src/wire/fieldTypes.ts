@@ -200,3 +200,49 @@ export const i32 = type<number>(
     (s, v) => s.writeInt(v),
     (s) => s.readInt()
 );
+
+/** `lu16`: a little-endian unsigned 16-bit integer. */
+export const lu16 = type<number>(
+    'lu16',
+    (s, v) => s.writeUnsignedShortLE(v),
+    (s) => s.readUnsignedShortLE()
+);
+
+/** A list whose count travels as `count` rather than the default `varint`. */
+export const listWith = <T>(count: WireType<number>, of: WireType<T>): WireType<T[]> =>
+    type<T[]>(
+        `list<${of.wire}, ${count.wire}>`,
+        (s, v) => {
+            count.write(s, v.length);
+            for (const item of v) of.write(s, item);
+        },
+        (s) => {
+            const length = count.read(s);
+            const items: T[] = [];
+            for (let i = 0; i < length; i++) items.push(of.read(s));
+            return items;
+        }
+    );
+
+/** `lu32`: a little-endian unsigned 32-bit integer. */
+export const lu32 = type<number>(
+    'lu32',
+    (s, v) => s.writeUnsignedIntLE(v),
+    (s) => s.readUnsignedIntLE()
+);
+
+/** Two named fields as one unit, for list items like a chunk coordinate pair. */
+export const pair = <A, B>(
+    firstKey: string,
+    first: WireType<A>,
+    secondKey: string,
+    second: WireType<B>
+): WireType<Record<string, A | B>> =>
+    type(
+        `pair<${first.wire}, ${second.wire}>`,
+        (s, v) => {
+            first.write(s, v[firstKey] as A);
+            second.write(s, v[secondKey] as B);
+        },
+        (s) => ({ [firstKey]: first.read(s), [secondKey]: second.read(s) })
+    );

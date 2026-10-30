@@ -1,3 +1,5 @@
+import { layoutAt, setHealthPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -23,10 +25,10 @@ export default class SetHealthPacket extends DataPacket {
     public health: number = 20;
 
     public decodePayload(): void {
-        this.health = this.readVarInt();
+        Object.assign(this, layoutAt(setHealthPacket, this.codecProtocol).decode(this));
     }
 
     public encodePayload(): void {
-        this.writeVarInt(this.health);
+        layoutAt(setHealthPacket, this.codecProtocol).encode(this, this);
     }
 }

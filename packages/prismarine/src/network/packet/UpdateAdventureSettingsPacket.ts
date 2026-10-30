@@ -1,3 +1,5 @@
+import { layoutAt, updateAdventureSettingsPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -28,19 +30,11 @@ export default class UpdateAdventureSettingsPacket extends DataPacket {
 
     /** Writes the five settings in docs order. */
     public encodePayload(): void {
-        this.writeBoolean(this.noAttackingMobs);
-        this.writeBoolean(this.noAttackingPlayers);
-        this.writeBoolean(this.worldImmutable);
-        this.writeBoolean(this.showNameTags);
-        this.writeBoolean(this.autoJump);
+        layoutAt(updateAdventureSettingsPacket, this.codecProtocol).encode(this, this);
     }
 
     /** Reads the five settings in docs order. */
     public decodePayload(): void {
-        this.noAttackingMobs = this.readBoolean();
-        this.noAttackingPlayers = this.readBoolean();
-        this.worldImmutable = this.readBoolean();
-        this.showNameTags = this.readBoolean();
-        this.autoJump = this.readBoolean();
+        Object.assign(this, layoutAt(updateAdventureSettingsPacket, this.codecProtocol).decode(this));
     }
 }

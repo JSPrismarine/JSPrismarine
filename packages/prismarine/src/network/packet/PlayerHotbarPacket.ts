@@ -1,3 +1,5 @@
+import { layoutAt, playerHotbarPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -33,15 +35,11 @@ export default class PlayerHotbarPacket extends DataPacket {
 
     /** Reads the slot, the container, and the selection flag. */
     public decodePayload(): void {
-        this.selectedSlot = this.readUnsignedVarInt();
-        this.containerId = this.readByte();
-        this.shouldSelectSlot = this.readBoolean();
+        Object.assign(this, layoutAt(playerHotbarPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the slot, the container, and the selection flag. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.selectedSlot);
-        this.writeByte(this.containerId);
-        this.writeBoolean(this.shouldSelectSlot);
+        layoutAt(playerHotbarPacket, this.codecProtocol).encode(this, this);
     }
 }

@@ -1,4 +1,6 @@
 import { Difficulty } from '@jsprismarine/minecraft';
+import { layoutAt, setDifficultyPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -15,11 +17,11 @@ export default class SetDifficultyPacket extends DataPacket {
 
     /** Reads the difficulty. */
     public decodePayload(): void {
-        this.difficulty = this.readUnsignedVarInt();
+        Object.assign(this, layoutAt(setDifficultyPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the difficulty. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.difficulty);
+        layoutAt(setDifficultyPacket, this.codecProtocol).encode(this, this);
     }
 }

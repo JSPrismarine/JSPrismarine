@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, playerFogPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -17,20 +18,11 @@ export default class PlayerFogPacket extends DataPacket {
 
     /** Reads the fog count and each identifier. */
     public decodePayload(): void {
-        const count = this.readUnsignedVarInt();
-
-        this.fogStack = [];
-        for (let index = 0; index < count; index++) {
-            this.fogStack.push(NetworkUtil.readString(this));
-        }
+        Object.assign(this, layoutAt(playerFogPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the fog count and each identifier. */
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.fogStack.length);
-
-        for (const fog of this.fogStack) {
-            NetworkUtil.writeString(this, fog);
-        }
+        layoutAt(playerFogPacket, this.codecProtocol).encode(this, this);
     }
 }

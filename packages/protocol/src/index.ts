@@ -38,3 +38,4 @@ export * from './wire/definitions/playStatus';
 export * from './wire/definitions/startGame';
 export * as v2193 from './wire/versions/v2193';
 export * as v2225 from './wire/versions/v2225';
+export * from './wire/definitions/worldStatus';

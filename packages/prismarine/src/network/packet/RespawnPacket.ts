@@ -1,6 +1,7 @@
-import type { Vector3 } from '@jsprismarine/math';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, respawnPacket } from '@jsprismarine/protocol';
+
+import { Vector3 } from '@jsprismarine/math';
 import DataPacket from './DataPacket';
 
 /**
@@ -30,15 +31,19 @@ export default class RespawnPacket extends DataPacket {
 
     /** Writes the three fields in the protocol 2193 order described on the class. */
     public encodePayload(): void {
-        NetworkUtil.writeVector3(this, this.position);
-        this.writeByte(this.state);
-        this.writeUnsignedVarLong(this.runtimeEntityId);
+        const position = this.position ?? new Vector3(0, 0, 0);
+        layoutAt(respawnPacket, this.codecProtocol).encode(this, {
+            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+            state: this.state,
+            runtimeEntityId: this.runtimeEntityId
+        });
     }
 
     /** Reads the three fields in the protocol 2193 order described on the class. */
     public decodePayload(): void {
-        this.position = NetworkUtil.readVector3(this);
-        this.state = this.readByte();
-        this.runtimeEntityId = this.readUnsignedVarLong();
+        const read = layoutAt(respawnPacket, this.codecProtocol).decode(this);
+        this.position = new Vector3(read.position.x, read.position.y, read.position.z);
+        this.state = read.state;
+        this.runtimeEntityId = read.runtimeEntityId;
     }
 }

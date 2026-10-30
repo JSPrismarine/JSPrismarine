@@ -1,4 +1,6 @@
 import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { layoutAt, networkSettingsPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -44,19 +46,11 @@ export default class NetworkSettingsPacket extends DataPacket {
 
     /** Reads the five fields in the protocol 2193 order described on the class. */
     public decodePayload(): void {
-        this.compressionThreshold = this.readUnsignedShortLE();
-        this.compressionAlgorithm = this.readUnsignedShortLE();
-        this.clientThrottlingEnabled = this.readBoolean();
-        this.clientThrottleThreshold = this.readByte();
-        this.clientThrottleScalar = this.readFloatLE();
+        Object.assign(this, layoutAt(networkSettingsPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the five fields in the protocol 2193 order described on the class. */
     public encodePayload(): void {
-        this.writeUnsignedShortLE(this.compressionThreshold);
-        this.writeUnsignedShortLE(this.compressionAlgorithm);
-        this.writeBoolean(this.clientThrottlingEnabled);
-        this.writeByte(this.clientThrottleThreshold);
-        this.writeFloatLE(this.clientThrottleScalar);
+        layoutAt(networkSettingsPacket, this.codecProtocol).encode(this, this);
     }
 }

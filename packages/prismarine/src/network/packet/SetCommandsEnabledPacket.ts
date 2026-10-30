@@ -1,3 +1,5 @@
+import { layoutAt, setCommandsEnabledPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -23,11 +25,11 @@ export default class SetCommandsEnabledPacket extends DataPacket {
 
     /** Reads the flag. */
     public decodePayload(): void {
-        this.commandsEnabled = this.readBoolean();
+        Object.assign(this, layoutAt(setCommandsEnabledPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the flag. */
     public encodePayload(): void {
-        this.writeBoolean(this.commandsEnabled);
+        layoutAt(setCommandsEnabledPacket, this.codecProtocol).encode(this, this);
     }
 }

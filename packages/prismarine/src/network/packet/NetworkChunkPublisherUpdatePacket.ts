@@ -1,5 +1,6 @@
-import type BlockPosition from '../../world/BlockPosition';
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, networkChunkPublisherUpdatePacket } from '@jsprismarine/protocol';
+
+import BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
 
 /** One entry of `Server Built Chunks List`: the docs' `ChunkPos`, an X and a Z in chunks. */
@@ -35,25 +36,18 @@ export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
 
     /** Writes the three fields in the protocol 2193 order described on the class. */
     public override encodePayload(): void {
-        NetworkUtil.writeBlockPosition(this, this.position);
-        this.writeUnsignedVarInt(this.radius);
-
-        // "No size compression": a fixed uint32 little endian, not a varint.
-        this.writeUnsignedIntLE(this.savedChunks.length);
-        for (const chunkCoord of this.savedChunks) {
-            this.writeVarInt(chunkCoord.x);
-            this.writeVarInt(chunkCoord.z);
-        }
+        layoutAt(networkChunkPublisherUpdatePacket, this.codecProtocol).encode(this, {
+            position: { x: this.position.getX(), y: this.position.getY(), z: this.position.getZ() },
+            radius: this.radius,
+            savedChunks: this.savedChunks.map(({ x, z }) => ({ x, z }))
+        });
     }
 
     /** Reads the three fields back, the mirror of {@link encodePayload}. */
     public override decodePayload(): void {
-        this.position = NetworkUtil.readBlockPosition(this);
-        this.radius = this.readUnsignedVarInt();
-
-        this.savedChunks = [];
-        for (let i = 0, count = this.readUnsignedIntLE(); i < count; i++) {
-            this.savedChunks.push({ x: this.readVarInt(), z: this.readVarInt() });
-        }
+        const read = layoutAt(networkChunkPublisherUpdatePacket, this.codecProtocol).decode(this);
+        this.position = new BlockPosition(read.position.x, read.position.y, read.position.z);
+        this.radius = read.radius;
+        this.savedChunks = read.savedChunks.map((chunk) => ({ x: Number(chunk.x), z: Number(chunk.z) }));
     }
 }

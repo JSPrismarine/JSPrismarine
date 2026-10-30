@@ -1,5 +1,6 @@
-import type { Vector3 } from '@jsprismarine/math';
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, setSpawnPositionPacket } from '@jsprismarine/protocol';
+
+import { Vector3 } from '@jsprismarine/math';
 import DataPacket from './DataPacket';
 
 /** The docs' `SpawnPositionType`, written as a ZigZag varint32. */
@@ -22,17 +23,23 @@ export default class SetSpawnPositionPacket extends DataPacket {
     public blockPosition!: Vector3;
 
     public decodePayload(): void {
-        this.type = this.readVarInt();
-        this.position = NetworkUtil.readBlockPosition(this);
-        this.dimension = this.readVarInt();
-        this.blockPosition = NetworkUtil.readBlockPosition(this);
+        const read = layoutAt(setSpawnPositionPacket, this.codecProtocol).decode(this);
+        this.type = read.type;
+        this.position = new Vector3(read.position.x, read.position.y, read.position.z);
+        this.dimension = read.dimension;
+        this.blockPosition = new Vector3(read.blockPosition.x, read.blockPosition.y, read.blockPosition.z);
     }
 
     public encodePayload(): void {
-        this.writeVarInt(this.type);
-        // Both positions are BlockPos: x, y and z as signed varints.
-        NetworkUtil.writeBlockPosition(this, this.position);
-        this.writeVarInt(this.dimension);
-        NetworkUtil.writeBlockPosition(this, this.blockPosition);
+        layoutAt(setSpawnPositionPacket, this.codecProtocol).encode(this, {
+            type: this.type,
+            position: { x: this.position.getX(), y: this.position.getY(), z: this.position.getZ() },
+            dimension: this.dimension,
+            blockPosition: {
+                x: this.blockPosition.getX(),
+                y: this.blockPosition.getY(),
+                z: this.blockPosition.getZ()
+            }
+        });
     }
 }

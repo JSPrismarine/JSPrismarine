@@ -1,3 +1,5 @@
+import { layoutAt, setTimePacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -13,10 +15,10 @@ export default class SetTimePacket extends DataPacket {
     public time!: number;
 
     public decodePayload(): void {
-        this.time = this.readVarInt();
+        Object.assign(this, layoutAt(setTimePacket, this.codecProtocol).decode(this));
     }
 
     public encodePayload(): void {
-        this.writeVarInt(this.time);
+        layoutAt(setTimePacket, this.codecProtocol).encode(this, this);
     }
 }
