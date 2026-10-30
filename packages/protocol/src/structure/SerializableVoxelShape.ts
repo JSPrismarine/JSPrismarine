@@ -1,6 +1,6 @@
 import NetworkStructure from '../NetworkStructure';
 
-import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * The `VoxelShapes::SerializableCells` of a shape: a grid of `X Size` by `Y Size` by `Z Size`
@@ -55,14 +55,14 @@ export default class SerializableVoxelShape extends NetworkStructure {
         super();
     }
 
-    private static writeFloats(stream: NetworkBinaryStream, values: number[]): void {
+    private static writeFloats(stream: BinaryStream, values: number[]): void {
         stream.writeUnsignedVarInt(values.length);
         for (const value of values) {
             stream.writeFloatLE(value);
         }
     }
 
-    private static readFloats(stream: NetworkBinaryStream): number[] {
+    private static readFloats(stream: BinaryStream): number[] {
         const values: number[] = [];
         let count = stream.readUnsignedVarInt();
         while (count-- > 0) {
@@ -72,7 +72,7 @@ export default class SerializableVoxelShape extends NetworkStructure {
     }
 
     /** Writes the cells and the three coordinate lists in wire order. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         stream.writeByte(this.cells.xSize);
         stream.writeByte(this.cells.ySize);
         stream.writeByte(this.cells.zSize);
@@ -85,7 +85,7 @@ export default class SerializableVoxelShape extends NetworkStructure {
     }
 
     /** Reads the cells and the three coordinate lists in wire order. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         const xSize = stream.readByte();
         const ySize = stream.readByte();
         const zSize = stream.readByte();

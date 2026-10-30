@@ -46,6 +46,7 @@ export * from './wire/definitions/startGame';
 export * from './wire/definitions/trimData';
 export * from './wire/definitions/updateAbilities';
 export * from './wire/definitions/updateSubChunkBlocks';
+export * from './wire/definitions/voxelShapes';
 export * as v2193 from './wire/versions/v2193';
 export * as v2225 from './wire/versions/v2225';
 export * from './wire/definitions/worldStatus';

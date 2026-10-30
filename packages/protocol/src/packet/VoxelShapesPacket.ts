@@ -1,8 +1,11 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import SerializableVoxelShape from '../structure/SerializableVoxelShape';
+import { voxelShapesPacket } from '../wire/definitions/voxelShapes';
+import { protocolVersion } from '../wire/versions/v2193';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type SerializableVoxelShape from '../structure/SerializableVoxelShape';
 
 /** One entry of the `Name Map`: a shape name and the handle of its shape. */
 export interface VoxelShapeNameEntry {
@@ -23,14 +26,18 @@ export interface VoxelShapes {
 }
 
 /**
+ * The definition carries no version gate, so it resolves to the same frozen layout at every
+ * protocol; the oldest supported version stands in for the packet class, which does not know
+ * its session's protocol.
+ */
+const layout = () => layoutAt(voxelShapesPacket, protocolVersion);
+
+/**
  * Hands the client the server's voxel shape registry: the block collision shapes both sides
  * resolve by handle. Mojang's packet notes say to send it before `StartGamePacket`, and a
  * vanilla server does so during every join.
  *
- * Protocol 2193 layout, in wire order: `Shapes` as a varuint32 count followed by one
- * {@link SerializableVoxelShape} per shape, `Name Map` as a varuint32 count followed by one
- * {@link VoxelShapeNameEntry} per name (the `hashed_string` written as a plain string, then
- * the handle as a little-endian uint16), then `Custom Shape Count` as a little-endian uint16.
+ * The wire layout is the `voxelShapesPacket` definition in `wire/definitions`.
  *
  * `packages/bedrock-data/src/resources/voxel_shapes.json` holds the vanilla registry in this
  * layout: `shapes` is the `Shapes` list in handle order, 287 entries at 1.26.50, and `names`
@@ -44,35 +51,10 @@ export default class VoxelShapesPacket extends NetworkPacket<VoxelShapes> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: VoxelShapes): void {
-        stream.writeUnsignedVarInt(data.shapes.length);
-        for (const shape of data.shapes) {
-            shape.serialize(stream);
-        }
-
-        stream.writeUnsignedVarInt(data.nameMap.length);
-        for (const entry of data.nameMap) {
-            stream.writeString(entry.name);
-            stream.writeUnsignedShortLE(entry.handle);
-        }
-
-        stream.writeUnsignedShortLE(data.customShapeCount);
+        layout().encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): VoxelShapes {
-        const shapes: SerializableVoxelShape[] = [];
-        let count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            shapes.push(SerializableVoxelShape.deserialize(stream));
-        }
-
-        const nameMap: VoxelShapeNameEntry[] = [];
-        count = stream.readUnsignedVarInt();
-        while (count-- > 0) {
-            nameMap.push({ name: stream.readString(), handle: stream.readUnsignedShortLE() });
-        }
-
-        const customShapeCount = stream.readUnsignedShortLE();
-
-        return { shapes, nameMap, customShapeCount };
+        return layout().decode(stream);
     }
 }

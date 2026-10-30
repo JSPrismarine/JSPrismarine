@@ -34,6 +34,7 @@ import { startGamePacket } from './startGame';
 import { trimDataPacket } from './trimData';
 import { updateAbilitiesPacket } from './updateAbilities';
 import { updateSubChunkBlocksPacket } from './updateSubChunkBlocks';
+import { voxelShapesPacket } from './voxelShapes';
 
 import type { PacketDefinition } from '../define';
 
@@ -56,6 +57,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         trimDataPacket,
         updateAbilitiesPacket,
         updateSubChunkBlocksPacket,
+        voxelShapesPacket,
         networkChunkPublisherUpdatePacket,
         networkSettingsPacket,
         playerFogPacket,
