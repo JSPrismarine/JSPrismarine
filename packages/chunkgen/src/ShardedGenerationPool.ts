@@ -62,11 +62,17 @@ export interface ShardedGenerationPoolOptions extends GenerationPoolOptions {
     readonly stealAfter?: number;
 }
 
-/** Mixes a region's coordinates into a worker index, so neighboring regions rarely share one. */
-const shardOf = (regionX: number, regionZ: number, shards: number): number => {
-    // A multiply-xor-shift over the two coordinates. Taking `regionX % shards` directly would
-    // put every region of a column on one worker, and a player walking north would use one.
-    let hash = (Math.imul(regionX, 0x1f1f_1f1f) ^ Math.imul(regionZ, 0x8da6_b343)) | 0;
+/**
+ * Mixes a region's coordinates and its dimension into a worker index, so neighboring regions
+ * rarely share one and the same region of two dimensions rarely does either.
+ */
+const shardOf = (regionX: number, regionZ: number, dimension: number, shards: number): number => {
+    // A multiply-xor-shift over the three inputs. Taking `regionX % shards` directly would put
+    // every region of a column on one worker, and a player walking north would use one. The
+    // dimension term is zero for the Overworld, which keeps every Overworld region on the
+    // worker it had before dimensions entered the hash.
+    let hash =
+        (Math.imul(regionX, 0x1f1f_1f1f) ^ Math.imul(regionZ, 0x8da6_b343) ^ Math.imul(dimension, 0x9e37_79b9)) | 0;
     hash ^= hash >>> 15;
     hash = Math.imul(hash, 0x2545_f491) | 0;
     hash ^= hash >>> 13;
@@ -162,9 +168,20 @@ export class ShardedGenerationPool {
         await Promise.all(this.shards.map(async (shard) => shard.destroy()));
     }
 
-    /** The worker a task should go to: its region's owner, unless that one is swamped. */
+    /**
+     * The worker a task should go to: its region's owner, unless that one is swamped.
+     *
+     * A region is owned per dimension. Two dimensions sharing one pool would otherwise send
+     * both their chunks at (0, 0) to one worker, and a player at each spawn would queue behind
+     * the other.
+     */
     private shardFor(task: GenerationTask): GenerationPool {
-        const owner = shardOf(task.chunkX >> this.regionShift, task.chunkZ >> this.regionShift, this.shards.length);
+        const owner = shardOf(
+            task.chunkX >> this.regionShift,
+            task.chunkZ >> this.regionShift,
+            task.dimension,
+            this.shards.length
+        );
         const home = this.shards[owner]!;
         if (this.shards.length === 1) return home;
 

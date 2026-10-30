@@ -89,6 +89,16 @@ export interface GenerationTask {
     readonly chunkX: number;
     readonly chunkZ: number;
     /**
+     * The Bedrock id of the dimension the chunk is in: 0 for the Overworld, 1 for the Nether, 2
+     * for the End, 1000 and up for a custom dimension.
+     *
+     * Part of the task so a pool shared between dimensions can tell their chunks apart.
+     * `ShardedGenerationPool` mixes it into the shard hash, so chunk (0, 0) of two
+     * dimensions does not always land on the same worker. The body is free to ignore it: a
+     * worker pinned to one world builds what it was set up for, whatever the task names.
+     */
+    readonly dimension: number;
+    /**
      * Anything else the body needs, structured-cloned to the worker.
      *
      * The inputs a status reads that the worker cannot derive from the seed and the position. A

@@ -47,7 +47,7 @@ describe('GenerationPool', () => {
     it('runs a status body in a worker and moves the result back', async () => {
         pool = open(1, { seed: 1234 });
 
-        const result = await pool.run({ status: 'terrain', chunkX: 3, chunkZ: -14, input: 7 });
+        const result = await pool.run({ status: 'terrain', chunkX: 3, chunkZ: -14, dimension: 0, input: 7 });
         const { payload, blocks } = readBack(result.payload);
 
         expect(payload.status).toBe('terrain');
@@ -61,7 +61,7 @@ describe('GenerationPool', () => {
 
         const runs = await Promise.all(
             Array.from({ length: 6 }, async (_entry, index) =>
-                pool!.run({ status: 'terrain', chunkX: index, chunkZ: 0 })
+                pool!.run({ status: 'terrain', chunkX: index, chunkZ: 0, dimension: 0 })
             )
         );
 
@@ -81,7 +81,7 @@ describe('GenerationPool', () => {
                 const order = workers % 2 === 0 ? [...positions].reverse() : positions;
                 const answers = await Promise.all(
                     order.map(async ([chunkX, chunkZ]) => {
-                        const result = await run.run({ status: 'terrain', chunkX, chunkZ });
+                        const result = await run.run({ status: 'terrain', chunkX, chunkZ, dimension: 0 });
                         return readBack(result.payload).blocks.join(',');
                     })
                 );
@@ -99,7 +99,7 @@ describe('GenerationPool', () => {
 
         const runs = await Promise.all(
             Array.from({ length: 48 }, async (_entry, index) =>
-                pool!.run({ status: 'terrain', chunkX: index, chunkZ: 0 })
+                pool!.run({ status: 'terrain', chunkX: index, chunkZ: 0, dimension: 0 })
             )
         );
 
@@ -110,13 +110,17 @@ describe('GenerationPool', () => {
     it('rejects the task when a body throws, rather than leaving it outstanding', async () => {
         pool = open(1, { fail: 'task' });
 
-        await expect(pool.run({ status: 'terrain', chunkX: 2, chunkZ: 5 })).rejects.toThrow(/no terrain at 2, 5/);
+        await expect(pool.run({ status: 'terrain', chunkX: 2, chunkZ: 5, dimension: 0 })).rejects.toThrow(
+            /no terrain at 2, 5/
+        );
     }, 60_000);
 
     it('rejects the task when the pipeline module cannot be built', async () => {
         pool = open(1, { fail: 'setup' });
 
-        await expect(pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0 })).rejects.toThrow(/refuses to be built/);
+        await expect(pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 })).rejects.toThrow(
+            /refuses to be built/
+        );
     }, 60_000);
 
     it('rejects the task when the module named is not a pipeline module', async () => {
@@ -125,17 +129,17 @@ describe('GenerationPool', () => {
             workers: 1
         });
 
-        await expect(pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0 })).rejects.toThrow(
+        await expect(pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 })).rejects.toThrow(
             /does not export createGenerationPipeline/
         );
     }, 60_000);
 
     it('refuses work once it has been shut down, and says which chunk', async () => {
         const closing = open(1);
-        await closing.run({ status: 'terrain', chunkX: 0, chunkZ: 0 });
+        await closing.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
         await closing.destroy();
 
-        await expect(closing.run({ status: 'terrain', chunkX: 9, chunkZ: -1 })).rejects.toBeInstanceOf(
+        await expect(closing.run({ status: 'terrain', chunkX: 9, chunkZ: -1, dimension: 0 })).rejects.toBeInstanceOf(
             GenerationPoolClosedError
         );
         expect(closing.workers).toBe(0);
@@ -181,6 +185,8 @@ describe('GenerationPool', () => {
             workers: 1
         });
 
-        await expect(pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0 })).rejects.toThrow(/seeded per V8 isolate/);
+        await expect(pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 })).rejects.toThrow(
+            /seeded per V8 isolate/
+        );
     }, 60_000);
 });

@@ -49,7 +49,7 @@ const open = (workers: number, inFlight?: number): { pool: GenerationPool; runne
 
 /** Asks for one chunk, naming the band it waits in. `chunkX` identifies it. */
 const ask = (pool: GenerationPool, chunkX: number, priority: Parameters<GenerationPool['run']>[1]) =>
-    pool.run({ status: 'terrain', chunkX, chunkZ: 0 }, priority);
+    pool.run({ status: 'terrain', chunkX, chunkZ: 0, dimension: 0 }, priority);
 
 /** Lets every pending microtask run, so a released task reaches the runner. */
 const settle = async (): Promise<void> => {

@@ -49,16 +49,18 @@ const open = (shards: number, extra: Partial<{ regionChunks: number; stealAfter:
     return { pool, runners };
 };
 
-const ask = (pool: ShardedGenerationPool, chunkX: number, chunkZ: number) =>
-    pool.run({ status: 'terrain', chunkX, chunkZ });
+const ask = (pool: ShardedGenerationPool, chunkX: number, chunkZ: number, dimension = 0) =>
+    pool.run({ status: 'terrain', chunkX, chunkZ, dimension });
 
 const settle = async (): Promise<void> => {
     for (let turn = 0; turn < 4; turn++) await Promise.resolve();
 };
 
 /** Which shard, if any, was given a chunk. */
-const shardHolding = (runners: readonly ShardRunner[], chunkX: number, chunkZ: number): number =>
-    runners.findIndex((runner) => runner.started.some((task) => task.chunkX === chunkX && task.chunkZ === chunkZ));
+const shardHolding = (runners: readonly ShardRunner[], chunkX: number, chunkZ: number, dimension = 0): number =>
+    runners.findIndex((runner) =>
+        runner.started.some((task) => task.chunkX === chunkX && task.chunkZ === chunkZ && task.dimension === dimension)
+    );
 
 describe('the sharded generation pool', () => {
     it('sends every chunk of one region to the same worker', async () => {
@@ -124,6 +126,60 @@ describe('the sharded generation pool', () => {
         expect(runners.filter((runner) => runner.started.length > 0).length).toBeGreaterThan(1);
     });
 
+    it('keeps every Overworld region on the worker it had before dimensions entered the hash', async () => {
+        const { pool, runners } = open(4, { regionChunks: 8, stealAfter: 1000 });
+
+        // Region coordinates and the shard each one landed on when the hash took only the two
+        // coordinates. Dimension 0 contributes nothing to the hash, so Overworld work must not
+        // move; a change here redistributes every running server's generation load.
+        const pinned: ReadonlyArray<readonly [regionX: number, regionZ: number, shard: number]> = [
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 2],
+            [-1, -1, 0],
+            [3, -2, 0],
+            [-7, 5, 1],
+            [12, 12, 2],
+            [100, -100, 1]
+        ];
+        for (const [regionX, regionZ] of pinned) void ask(pool, regionX * 8, regionZ * 8, 0);
+        await settle();
+
+        for (const [regionX, regionZ, shard] of pinned) {
+            expect(shardHolding(runners, regionX * 8, regionZ * 8), `region ${regionX}, ${regionZ}`).toBe(shard);
+        }
+    });
+
+    it('sends the same region of two dimensions to different workers for some positions', async () => {
+        const { pool, runners } = open(4, { regionChunks: 8, stealAfter: 1000 });
+
+        // Several regions, each asked for in the Overworld and the Nether. A hash that ignored
+        // the dimension would put every pair on one worker.
+        const positions = [
+            [0, 0],
+            [8, 0],
+            [0, 8],
+            [-8, -8],
+            [24, -16]
+        ] as const;
+        for (const [x, z] of positions) {
+            void ask(pool, x, z, 0);
+            void ask(pool, x, z, 1);
+        }
+        await settle();
+
+        let split = 0;
+        for (const [x, z] of positions) {
+            const overworld = shardHolding(runners, x, z, 0);
+            const nether = shardHolding(runners, x, z, 1);
+            expect(overworld, `overworld ${x}, ${z}`).toBeGreaterThanOrEqual(0);
+            expect(nether, `nether ${x}, ${z}`).toBeGreaterThanOrEqual(0);
+            if (overworld !== nether) split++;
+        }
+
+        expect(split).toBeGreaterThan(0);
+    });
+
     it('gives work away once a region owner falls far enough behind', async () => {
         const { pool, runners } = open(2, { regionChunks: 8, stealAfter: 1, inFlight: 1 });
 
@@ -169,10 +225,10 @@ describe('the sharded generation pool', () => {
         const { pool, runners } = open(2, { regionChunks: 8, stealAfter: 1000, inFlight: 1 });
 
         // One running and three waiting as `idle`, which is what there is to move and drop.
-        void pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0 }).catch(() => {});
+        void pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 }).catch(() => {});
         await settle();
         for (const chunkX of [1, 2, 3]) {
-            void pool.run({ status: 'terrain', chunkX, chunkZ: 0 }, 'idle').catch(() => {});
+            void pool.run({ status: 'terrain', chunkX, chunkZ: 0, dimension: 0 }, 'idle').catch(() => {});
         }
         await settle();
 

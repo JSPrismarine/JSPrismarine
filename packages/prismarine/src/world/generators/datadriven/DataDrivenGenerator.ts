@@ -755,6 +755,7 @@ export class DataDrivenGenerator implements Generator {
                     status: 'full',
                     chunkX: cx,
                     chunkZ: cz,
+                    dimension: this.dimension.id,
                     input: { seed: pipeline.randomState.seed.toString() } satisfies ChunkTaskInput
                 },
                 this.urgencyOf(cx, cz)
@@ -1128,6 +1129,7 @@ export class DataDrivenGenerator implements Generator {
                     status: 'terrain',
                     chunkX: cx,
                     chunkZ: cz,
+                    dimension: this.dimension.id,
                     input: {
                         seed: pipeline.randomState.seed.toString(),
                         beard: beard.pieces,
@@ -1183,6 +1185,7 @@ export class DataDrivenGenerator implements Generator {
                         status: 'features',
                         chunkX: chunk.chunkX,
                         chunkZ: chunk.chunkZ,
+                        dimension: this.dimension.id,
                         input
                     },
                     this.urgencyOf(chunk.chunkX, chunk.chunkZ)
