@@ -1,5 +1,5 @@
 import { ArmorSlot } from '@jsprismarine/minecraft';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * A piece of armor, as the Armor Slot varint32 of an `ArmorSlotAndDamagePair` numbers it.

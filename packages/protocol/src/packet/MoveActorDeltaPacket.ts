@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Degrees per step of the single byte a rotation is packed into. */
 const DEGREES_PER_STEP = 360 / 256;

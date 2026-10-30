@@ -1,6 +1,6 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Packet 105 on protocol 2193. Carries one field, `Default Game Type`, as a varint32.

@@ -1,6 +1,7 @@
-import { interactPacket, layoutAt } from '@jsprismarine/protocol';
+import { interactPacket } from '../wire/definitions/interaction';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
 
@@ -32,6 +33,7 @@ export default class InteractPacket extends FieldNetworkPacket {
     /** The Position field. Null when the client sent the optional as absent. */
     public position: Vector3 | null = null;
 
+    /** Writes the action, target runtime ID, and optional interaction position. */
     public encodePayload(): void {
         layoutAt(interactPacket, this.codecProtocol).encode(this, {
             action: this.action,
@@ -40,6 +42,7 @@ export default class InteractPacket extends FieldNetworkPacket {
         });
     }
 
+    /** Reads the action, target runtime ID, and whether an interaction position was supplied. */
     public decodePayload(): void {
         const read = layoutAt(interactPacket, this.codecProtocol).decode(this);
         this.action = read.action;

@@ -1,6 +1,7 @@
-import { emotePacket, layoutAt } from '@jsprismarine/protocol';
+import { emotePacket } from '../wire/definitions/player';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Bits of the Flags byte in an `EmotePacket`. */
 export enum EmoteFlags {

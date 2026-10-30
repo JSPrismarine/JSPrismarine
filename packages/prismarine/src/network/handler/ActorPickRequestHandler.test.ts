@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ActorPickRequestPacket from '../packet/ActorPickRequestPacket';
+import ActorPickRequestPacket from '@jsprismarine/protocol/packet/ActorPickRequestPacket';
 import ActorPickRequestHandler from './ActorPickRequestHandler';
 
 describe('ActorPickRequestHandler', () => {

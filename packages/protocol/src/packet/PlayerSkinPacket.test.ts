@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import PlayerSkinPacket from './PlayerSkinPacket';
 
 const PLAYER_UUID = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
@@ -63,7 +63,7 @@ describe('network', () => {
                 // Localized Old Skin Name. The skin's own bytes are pinned by `Skin.test.ts`.
                 const skin = personaSkin();
                 const buffer = Buffer.concat([
-                    Buffer.from([Identifiers.PlayerSkinPacket]), // Header.
+                    Buffer.from([PacketIdentifier.PLAYER_SKIN]), // Header.
                     PLAYER_UUID_WIRE,
                     serialize(skin),
                     Buffer.from([0x03, 0x4e, 0x65, 0x77]), // "New"
@@ -96,7 +96,7 @@ describe('network', () => {
                 // the protocol and not to the writer.
                 const trustedFlag = [0x04, 0x54, 0x72, 0x75, 0x65]; // TrustedSkinFlag "True".
                 const bytes = Buffer.from([
-                    Identifiers.PlayerSkinPacket, // Header.
+                    PacketIdentifier.PLAYER_SKIN, // Header.
                     ...PLAYER_UUID_WIRE, // UUID.
                     0x01,
                     0x73, // ID "s".
@@ -221,7 +221,7 @@ describe('network', () => {
                 packet.encode();
 
                 expect(packet.getBuffer().subarray(0, 1 + PLAYER_UUID_WIRE.byteLength)).toEqual(
-                    Buffer.concat([Buffer.from([Identifiers.PlayerSkinPacket]), PLAYER_UUID_WIRE])
+                    Buffer.concat([Buffer.from([PacketIdentifier.PLAYER_SKIN]), PLAYER_UUID_WIRE])
                 );
 
                 const decoded = new PlayerSkinPacket(packet.getBuffer());

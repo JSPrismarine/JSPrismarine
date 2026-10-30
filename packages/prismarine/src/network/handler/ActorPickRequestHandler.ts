@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ActorPickRequestPacket from '../packet/ActorPickRequestPacket';
+import type ActorPickRequestPacket from '@jsprismarine/protocol/packet/ActorPickRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

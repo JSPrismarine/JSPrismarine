@@ -7,7 +7,7 @@ import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import EmotePacket, { EmoteFlags } from '../packet/EmotePacket';
+import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteHandler from './EmoteHandler';
 

@@ -1,5 +1,5 @@
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import UUID from '../wire/structures/UUID';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * The emotes a client has equipped, sent to the server so other clients can download them.

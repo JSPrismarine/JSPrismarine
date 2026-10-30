@@ -2,7 +2,7 @@ import type Server from '../../Server';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type SkinImage from '@jsprismarine/protocol/wire/structures/skin/SkinImage';
 import type PlayerSession from '../PlayerSession';
-import PlayerSkinPacket from '../packet/PlayerSkinPacket';
+import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import type PacketHandler from './PacketHandler';
 
 /** The largest `Width` or `Height` the `SkinImage` schema allows. */

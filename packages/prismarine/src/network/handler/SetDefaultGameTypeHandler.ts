@@ -3,7 +3,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
+import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
 import type PacketHandler from './PacketHandler';
 
 /**

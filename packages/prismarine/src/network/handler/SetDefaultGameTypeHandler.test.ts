@@ -11,7 +11,7 @@ import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
+import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
 import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
 
 /**

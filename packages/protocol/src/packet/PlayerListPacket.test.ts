@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import Identifiers from '../Identifiers';
-import { NetworkUtil } from '../NetworkUtil';
+import { PacketIdentifier } from '../PacketIdentifier';
+import { NetworkUtil } from '../wire/networkUtil';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './PlayerListPacket';
 
 const PLAYER_UUID = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
@@ -76,7 +76,7 @@ const serialize = (skin: Skin): Buffer => {
 const encode = (packet: PlayerListPacket): BinaryStream => {
     packet.encode();
     const stream = new BinaryStream(packet.getBuffer());
-    expect(stream.readUnsignedVarInt()).toBe(Identifiers.PlayerListPacket); // Header.
+    expect(stream.readUnsignedVarInt()).toBe(PacketIdentifier.PLAYER_LIST); // Header.
     return stream;
 };
 

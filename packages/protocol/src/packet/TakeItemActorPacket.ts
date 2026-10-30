@@ -1,6 +1,7 @@
-import { layoutAt, takeItemActorPacket } from '@jsprismarine/protocol';
+import { takeItemActorPacket } from '../wire/definitions/actors';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Tells the client an item entity has been picked up.
@@ -25,12 +26,14 @@ export default class TakeItemActorPacket extends FieldNetworkPacket {
     /** Actor Runtime ID, the entity taking it. */
     public takerRuntimeEntityId!: bigint;
 
+    /** Reads the item entity and the actor that collected it. */
     public decodePayload(): void {
         const read = layoutAt(takeItemActorPacket, this.codecProtocol).decode(this);
         this.itemRuntimeEntityId = read.itemRuntimeEntityId;
         this.takerRuntimeEntityId = read.takerRuntimeEntityId;
     }
 
+    /** Writes the item entity and the actor that collected it. */
     public encodePayload(): void {
         layoutAt(takeItemActorPacket, this.codecProtocol).encode(this, {
             itemRuntimeEntityId: this.itemRuntimeEntityId,

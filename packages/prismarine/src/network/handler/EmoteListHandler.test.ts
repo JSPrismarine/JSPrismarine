@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { stub } from '../../testing/stub.test.helper';
-import EmoteListPacket from '../packet/EmoteListPacket';
+import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteListHandler from './EmoteListHandler';
 

@@ -1,7 +1,8 @@
-import { layoutAt, moveActorAbsolutePacket } from '@jsprismarine/protocol';
+import { moveActorAbsolutePacket } from '../wire/definitions/movement';
+import { layoutAt } from '../wire/WireLayout';
 
 import type { Vector3 } from '@jsprismarine/math';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Where an entity now is, as the server tells a client.
@@ -64,6 +65,7 @@ export default class MoveActorAbsolutePacket extends FieldNetworkPacket {
     public yaw: number = 0;
     public headYaw: number = 0;
 
+    /** Writes the runtime ID, flags, position, and three packed rotation bytes. */
     public encodePayload(): void {
         layoutAt(moveActorAbsolutePacket, this.codecProtocol).encode(this, {
             runtimeEntityId: this.runtimeEntityId,

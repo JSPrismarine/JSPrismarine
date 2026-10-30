@@ -1,7 +1,8 @@
 import { NBTTagCompound } from '@jsprismarine/nbt';
-import { layoutAt, syncActorPropertyPacket } from '@jsprismarine/protocol';
+import { syncActorPropertyPacket } from '../wire/definitions/syncActorProperty';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * The actor properties a client is allowed to see, for one actor type.

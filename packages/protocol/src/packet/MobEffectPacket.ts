@@ -1,6 +1,7 @@
-import { layoutAt, mobEffectPacket } from '@jsprismarine/protocol';
+import { mobEffectPacket } from '../wire/definitions/actors';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * What a {@link MobEffectPacket} does to the effect it names, as the Event ID byte numbers it.

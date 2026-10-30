@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item as ItemStack } from '../../item/Item';
-import TakeItemActorPacket from '../../network/packet/TakeItemActorPacket';
-import MoveActorAbsolutePacket from '../../network/packet/MoveActorAbsolutePacket';
+import TakeItemActorPacket from '@jsprismarine/protocol/packet/TakeItemActorPacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import { testEntityServer } from '../../testing/entityServer';
 import EntityGrid from '../../world/EntityGrid';
 import { Position } from '../../world/Position';

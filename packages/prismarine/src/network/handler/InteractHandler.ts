@@ -3,8 +3,8 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
-import type InteractPacket from '../packet/InteractPacket';
-import { InteractAction } from '../packet/InteractPacket';
+import type InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
+import { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

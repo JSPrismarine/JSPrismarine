@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type EmoteListPacket from '../packet/EmoteListPacket';
+import type EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

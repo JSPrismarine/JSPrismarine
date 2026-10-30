@@ -1,7 +1,7 @@
 import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import SetDefaultGameTypePacket from './SetDefaultGameTypePacket';
 
 /**
@@ -14,18 +14,18 @@ describe('SetDefaultGameTypePacket', () => {
         packet.gamemode = Gametype.SPECTATOR;
         packet.encode();
 
-        expect(packet.getBuffer()).toEqual(Buffer.from([Identifiers.SetDefaultGameTypePacket, 0x0c]));
+        expect(packet.getBuffer()).toEqual(Buffer.from([PacketIdentifier.SET_DEFAULT_GAME_TYPE, 0x0c]));
     });
 
     it('defaults to survival, which is a single zero byte', () => {
         const packet = new SetDefaultGameTypePacket();
         packet.encode();
 
-        expect(packet.getBuffer()).toEqual(Buffer.from([Identifiers.SetDefaultGameTypePacket, 0x00]));
+        expect(packet.getBuffer()).toEqual(Buffer.from([PacketIdentifier.SET_DEFAULT_GAME_TYPE, 0x00]));
     });
 
     it('reads the default game type and consumes the whole buffer', () => {
-        const packet = new SetDefaultGameTypePacket(Buffer.from([Identifiers.SetDefaultGameTypePacket, 0x04]));
+        const packet = new SetDefaultGameTypePacket(Buffer.from([PacketIdentifier.SET_DEFAULT_GAME_TYPE, 0x04]));
         packet.decode();
 
         expect(packet.gamemode).toBe(Gametype.ADVENTURE);

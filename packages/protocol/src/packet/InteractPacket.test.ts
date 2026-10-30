@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import InteractPacket, { InteractAction } from './InteractPacket';
 
 /**
@@ -12,7 +12,7 @@ import InteractPacket, { InteractAction } from './InteractPacket';
  */
 const clientBytes = (action: number, target: bigint, position: Vector3 | null): Buffer => {
     const out = new BinaryStream();
-    out.writeUnsignedVarInt(Identifiers.InteractPacket);
+    out.writeUnsignedVarInt(PacketIdentifier.INTERACT);
     out.writeByte(action);
     out.writeUnsignedVarLong(target);
     out.writeBoolean(position !== null);

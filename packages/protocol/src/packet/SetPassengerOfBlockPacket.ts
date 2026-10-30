@@ -1,7 +1,8 @@
-import { layoutAt, setPassengerOfBlockPacket } from '@jsprismarine/protocol';
-import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
+import { setPassengerOfBlockPacket } from '../wire/definitions/added2225';
+import { layoutAt } from '../wire/WireLayout';
+import type { PassengerOfBlock } from '../wire/structures/PassengerOfBlock';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Seats an actor on a block, or takes it off one when the data is absent.

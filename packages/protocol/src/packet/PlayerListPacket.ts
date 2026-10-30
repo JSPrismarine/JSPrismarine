@@ -1,17 +1,17 @@
-import { layoutAt } from '@jsprismarine/protocol';
-import { playerListPacket } from '@jsprismarine/protocol/wire/definitions/playerList';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import { playerListPacket } from '../wire/definitions/playerList';
+import { layoutAt } from '../wire/WireLayout';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
-import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
+import type { PlayerListEntry } from '../wire/structures/PlayerListEntry';
 
-import type { PlayerListBody } from '@jsprismarine/protocol/wire/definitions/playerList';
+import type { PlayerListBody } from '../wire/definitions/playerList';
 
 /**
  * Re-export: the entry and its Action byte are wire structures and live in
  * `@jsprismarine/protocol`. This path stays so the server's importers keep working.
  */
-export { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
-export type { PlayerListData } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
+export { PlayerListAction, PlayerListEntry } from '../wire/structures/PlayerListEntry';
+export type { PlayerListData } from '../wire/structures/PlayerListEntry';
 
 /**
  * Player List (packet 63). Adds players to or removes them from the client's player list.

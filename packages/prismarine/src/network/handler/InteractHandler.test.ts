@@ -9,7 +9,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import InteractPacket, { InteractAction } from '../packet/InteractPacket';
+import InteractPacket, { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
 import InteractHandler from './InteractHandler';
 
 const SELF = 7n;

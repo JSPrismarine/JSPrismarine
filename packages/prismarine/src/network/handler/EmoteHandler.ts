@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import EmotePacket, { EmoteFlags } from '../packet/EmotePacket';
+import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import type PacketHandler from './PacketHandler';
 
 /** The `8-4-4-4-12` hex form a client writes an emote piece id in. */

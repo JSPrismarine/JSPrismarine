@@ -1,9 +1,9 @@
-import { layoutAt } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
 
-import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
-import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
+import type UUID from '../wire/structures/UUID';
+import type Skin from '../wire/structures/skin/Skin';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { playerSkinPacket } from '../wire/definitions/playerSkin';
 
 /**
  * A player changing skin mid-session.
