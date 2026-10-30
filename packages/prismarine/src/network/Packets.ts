@@ -14,7 +14,7 @@ import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import BatchPacket from './packet/BatchPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
-import BlockEventPacket from './packet/BlockEventPacket';
+import BlockEventPacket from '@jsprismarine/protocol/packet/BlockEventPacket';
 import BlockPickRequestPacket from '@jsprismarine/protocol/packet/BlockPickRequestPacket';
 import BookEditPacket from './packet/BookEditPacket';
 import BossEventPacket from '@jsprismarine/protocol/packet/BossEventPacket';
