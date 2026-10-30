@@ -1,9 +1,11 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Attribute } from '../../entity/Attribute';
-import { Metadata } from '../../entity/Metadata';
+import { layoutAt } from '@jsprismarine/protocol';
+import type { Attribute } from '../../entity/Attribute';
+import type { Metadata } from '../../entity/Metadata';
 import { SyncedProperties } from '../type/SyncedProperties';
-import { NetworkUtil } from '../NetworkUtil';
+import type { PassengerOfBlock } from '../type/PassengerOfBlock';
 import DataPacket from './DataPacket';
+import { addActorPacket } from './addActor.wire';
 
 /**
  * The `ActorLinkType` values an {@link ActorLink} is sent with.
@@ -32,12 +34,12 @@ export interface ActorLink {
     vehicleAngularVelocity: number;
 }
 
-/** Whether a link's `Type` byte names one of the {@link ActorLinkType} values. */
-const isActorLinkType = (value: number): value is ActorLink['type'] =>
-    value === ActorLinkType.None || value === ActorLinkType.Riding || value === ActorLinkType.Passenger;
-
 /**
  * Spawns an entity other than a player on the client.
+ *
+ * The wire layout lives in `addActor.wire.ts`'s declarative definition, which this class
+ * walks at the protocol version stamped on it: the 2193 fields below, plus the trailing
+ * optional `Passenger Block Data` from 2225 on.
  *
  * Protocol 2193 layout (docs id 13):
  *
@@ -80,89 +82,40 @@ export default class AddActorPacket extends DataPacket {
     /** Riding relationships to announce with the entity. The server tracks none yet, so this stays empty. */
     public links: ActorLink[] = [];
 
+    /** Passenger Block Data, from 2225 on: the ridden block, or `null` for not riding. */
+    public passengerOfBlock: PassengerOfBlock | null = null;
+
+    /**
+     * The `Target Actor ID` the layout writes. The server numbers entities once, so the
+     * runtime id doubles as the unique id when no unique id was set.
+     */
+    public get targetActorId(): bigint {
+        return this.uniqueEntityId || this.runtimeEntityId;
+    }
+
+    public set targetActorId(value: bigint) {
+        this.uniqueEntityId = value;
+    }
+
+    /** The `Y Body Rotation` the layout writes; the server tracks no body yaw of its own. */
+    public get bodyYaw(): number {
+        return this.yaw;
+    }
+
+    public set bodyYaw(_value: number) {
+        // Read past rather than kept: the encoder writes `yaw` here.
+    }
+
+    /** Writes the fields the stamped protocol version puts on the wire, in layout order. */
     public encodePayload(): void {
-        // The server numbers entities once, so the runtime id doubles as the unique id.
-        this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-
-        NetworkUtil.writeString(this, this.type);
-
-        NetworkUtil.writeVector3(this, this.position);
-        NetworkUtil.writeVector3(this, this.motion);
-
-        // Rotation, then Y Head Rotation, then Y Body Rotation.
-        this.writeFloatLE(this.pitch);
-        this.writeFloatLE(this.yaw);
-        this.writeFloatLE(this.headYaw);
-        this.writeFloatLE(this.yaw);
-
-        this.writeUnsignedVarInt(this.attributes.length);
-        for (const attribute of this.attributes) attribute.networkSerializeInitial(this);
-
-        this.metadata.networkSerialize(this);
-
-        this.syncedProperties.networkSerialize(this);
-
-        this.writeUnsignedVarInt(this.links.length);
-        for (const link of this.links) {
-            this.writeVarLong(link.targetA);
-            this.writeVarLong(link.targetB);
-            this.writeByte(link.type);
-            this.writeBoolean(link.immediate);
-            this.writeBoolean(link.passengerInitiated);
-            this.writeFloatLE(link.vehicleAngularVelocity);
-        }
+        layoutAt(addActorPacket, this.codecProtocol).encode(this, this);
     }
 
     /**
-     * Reads the 2193 layout back, the mirror of {@link encodePayload}.
-     *
-     * The Y Body Rotation is read past rather than kept: the server tracks no body yaw of
-     * its own, and the encoder writes `yaw` there.
+     * Reads them back in the same order, filling version-absent fields with their fallbacks.
      * @throws {Error} when a link's `Type` byte is not an {@link ActorLinkType}.
      */
     public decodePayload(): void {
-        this.uniqueEntityId = this.readVarLong();
-        this.runtimeEntityId = this.readUnsignedVarLong();
-
-        this.type = NetworkUtil.readString(this);
-
-        this.position = NetworkUtil.readVector3(this);
-        this.motion = NetworkUtil.readVector3(this);
-
-        this.pitch = this.readFloatLE();
-        this.yaw = this.readFloatLE();
-        this.headYaw = this.readFloatLE();
-        this.readFloatLE(); // Y Body Rotation, written from yaw.
-
-        this.attributes = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            this.attributes.push(Attribute.networkDeserializeInitial(this));
-        }
-
-        this.metadata = new Metadata(false);
-        this.metadata.networkDeserialize(this);
-
-        this.syncedProperties = SyncedProperties.networkDeserialize(this);
-
-        this.links = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const targetA = this.readVarLong();
-            const targetB = this.readVarLong();
-
-            const type = this.readByte();
-            if (!isActorLinkType(type)) {
-                throw new Error(`Actor link ${targetA} -> ${targetB} carries unknown link type ${type}`);
-            }
-
-            this.links.push({
-                targetA,
-                targetB,
-                type,
-                immediate: this.readBoolean(),
-                passengerInitiated: this.readBoolean(),
-                vehicleAngularVelocity: this.readFloatLE()
-            });
-        }
+        Object.assign(this, layoutAt(addActorPacket, this.codecProtocol).decode(this));
     }
 }

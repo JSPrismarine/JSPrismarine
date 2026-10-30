@@ -10,9 +10,14 @@
  */
 import { t } from '@jsprismarine/protocol';
 import { Vector3 } from '@jsprismarine/math';
+import { Metadata } from '../../entity/Metadata';
+import { Item } from '../../item/Item';
 import UUID from '../../utils/UUID';
 import Skin from '../../utils/skin/Skin';
+import { readPassengerOfBlock, writePassengerOfBlock } from '../type/PassengerOfBlock';
+import { SyncedProperties } from '../type/SyncedProperties';
 
+import type { PassengerOfBlock } from '../type/PassengerOfBlock';
 import type { SkinWireLayout } from '../../utils/skin/Skin';
 
 /** One value's wire representation, as the protocol package's vocabulary defines it. */
@@ -34,6 +39,41 @@ export const vec3: WireType<Vector3> = t.custom(
         stream.writeFloatLE(value.getZ());
     },
     (stream) => new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE())
+);
+
+/** `SynchedActorDataList`: the entity metadata, as `Metadata` reads and writes it. */
+export const metadata: WireType<Metadata> = t.custom(
+    'SynchedActorDataList',
+    (stream, value) => value.networkSerialize(stream),
+    (stream) => {
+        const read = new Metadata(false);
+        read.networkDeserialize(stream);
+        return read;
+    }
+);
+
+/** `PropertySyncData`: the client-synced entity property values, two counted lists. */
+export const syncedProperties: WireType<SyncedProperties> = t.custom(
+    'PropertySyncData',
+    (stream, value) => value.networkSerialize(stream),
+    (stream) => SyncedProperties.networkDeserialize(stream)
+);
+
+/** `NetworkItemStackDescriptor`: one item stack in the tracked form, without a stack net id. */
+export const itemStackDescriptor: WireType<Item> = t.custom(
+    'NetworkItemStackDescriptor',
+    (stream, value) => value.networkSerialize(stream),
+    (stream) => Item.networkDeserialize(stream)
+);
+
+/**
+ * An optional `PassengerOfBlockArguments`, new at protocol 2225: one presence byte, then the
+ * ridden block's five fields. `null` is not riding.
+ */
+export const passengerOfBlock: WireType<PassengerOfBlock | null> = t.custom(
+    'optional<PassengerOfBlockArguments>',
+    (stream, value) => writePassengerOfBlock(stream, value),
+    (stream) => readPassengerOfBlock(stream)
 );
 
 /**

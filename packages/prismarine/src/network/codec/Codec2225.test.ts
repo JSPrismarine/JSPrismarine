@@ -6,7 +6,7 @@ import { stub } from '../../testing/stub.test.helper';
 import GameRuleManager from '../../world/GameRuleManager';
 import BlockPosition from '../../world/BlockPosition';
 import { Item } from '../../item/Item';
-import AddActorPacket2225 from '../packet/AddActorPacket2225';
+import AddActorPacket from '../packet/AddActorPacket';
 import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
 import AnimatePacket from '../packet/AnimatePacket';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
@@ -64,7 +64,6 @@ describe('network/codec', () => {
 
         it('builds its own class for every changed packet, under the 2193 class for the rest', () => {
             const changed = {
-                AddActorPacket: AddActorPacket2225,
                 AddPlayerPacket: AddPlayerPacket2225,
                 StartGamePacket: StartGamePacket2225
             };
@@ -141,7 +140,8 @@ describe('network/codec', () => {
         });
 
         it('round-trips the trailing Passenger Block Data AddActorPacket gained', () => {
-            const packet = new AddActorPacket2225();
+            const packet = new AddActorPacket();
+            packet.codecProtocol = 2225;
             packet.runtimeEntityId = 12n;
             packet.type = 'minecraft:cow';
             packet.pitch = 0;
