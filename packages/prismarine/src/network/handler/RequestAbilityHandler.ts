@@ -1,8 +1,8 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type RequestAbilityPacket from '../packet/RequestAbilityPacket';
-import { RequestAbilityValueType } from '../packet/RequestAbilityPacket';
+import type RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
+import { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

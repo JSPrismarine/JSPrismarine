@@ -1,7 +1,7 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type RequestPermissionsPacket from '../packet/RequestPermissionsPacket';
+import type RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

@@ -1,5 +1,6 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * An operator asking the server to change another player's permission level.

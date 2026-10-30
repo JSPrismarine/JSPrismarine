@@ -6,7 +6,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import RequestAbilityPacket, { RequestAbilityValueType } from '../packet/RequestAbilityPacket';
+import RequestAbilityPacket, { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestAbilityHandler from './RequestAbilityHandler';
 
 /**

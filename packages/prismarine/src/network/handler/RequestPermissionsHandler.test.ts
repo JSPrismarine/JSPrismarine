@@ -8,7 +8,7 @@ import type SessionManager from '../../SessionManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import RequestPermissionsPacket from '../packet/RequestPermissionsPacket';
+import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import RequestPermissionsHandler from './RequestPermissionsHandler';
 
 /**

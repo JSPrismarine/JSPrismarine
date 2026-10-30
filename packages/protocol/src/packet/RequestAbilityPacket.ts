@@ -1,5 +1,6 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Which of the two value slots in a `RequestAbilityPacket` carries the request. */
 export enum RequestAbilityValueType {

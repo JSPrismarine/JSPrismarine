@@ -98,10 +98,10 @@ import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet
 import PositionTrackingDBServerBroadcastPacket from '@jsprismarine/protocol/packet/PositionTrackingDBServerBroadcastPacket';
 import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
-import RequestAbilityPacket from './packet/RequestAbilityPacket';
+import RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
-import RequestPermissionsPacket from './packet/RequestPermissionsPacket';
+import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
 import ResourcePackChunkDataPacket from '@jsprismarine/protocol/packet/ResourcePackChunkDataPacket';
 import ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
 import ResourcePackClientResponsePacket from './packet/ResourcePackClientResponsePacket';
@@ -127,7 +127,7 @@ import SetLastHurtByPacket from '@jsprismarine/protocol/packet/SetLastHurtByPack
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPassengerOfBlockPacket from '@jsprismarine/protocol/packet/SetPassengerOfBlockPacket';
 import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
-import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
+import SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import SettingsCommandPacket from './packet/SettingsCommandPacket';
 import ShowCreditsPacket from '@jsprismarine/protocol/packet/ShowCreditsPacket';

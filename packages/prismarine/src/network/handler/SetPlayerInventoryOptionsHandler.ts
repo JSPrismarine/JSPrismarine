@@ -1,6 +1,6 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import type SetPlayerInventoryOptionsPacket from '../packet/SetPlayerInventoryOptionsPacket';
+import type SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

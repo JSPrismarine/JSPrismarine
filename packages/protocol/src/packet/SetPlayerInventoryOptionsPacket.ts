@@ -1,5 +1,6 @@
 import { InventoryLayout, InventoryLeftTab, InventoryRightTab } from '@jsprismarine/minecraft';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 // All three are generated from Mojang's documentation, where they are `InventoryLeftTabIndex`,
 // `InventoryRightTabIndex` and `InventoryLayout`.
