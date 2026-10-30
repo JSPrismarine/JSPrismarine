@@ -14,7 +14,7 @@ import type { ProtocolContext } from '@jsprismarine/protocol';
 import { MobEquipmentPacket } from '@jsprismarine/protocol';
 import type { MobEquipmentPayload } from '@jsprismarine/protocol';
 import type ClientConnection from '../ClientConnection';
-import type { ProtocolCodec } from '../codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type PlayerSession from '../PlayerSession';
 import MobEquipmentHandler from './MobEquipmentHandler';
 

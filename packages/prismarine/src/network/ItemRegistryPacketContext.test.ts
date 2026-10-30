@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { item_table as ItemTable2225 } from '@jsprismarine/bedrock-data/v2225';
-import { NetworkBinaryStream } from '@jsprismarine/protocol';
+import { NetworkBinaryStream, ProtocolVersions } from '@jsprismarine/protocol';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
@@ -10,7 +10,6 @@ import { reportProgress } from '../../../../.test/reportProgress';
 
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import type { ItemRegistryEntry, ProtocolContext } from '@jsprismarine/protocol';
-import Identifiers from './Identifiers';
 import { itemDataForProtocol } from './codec/itemData';
 
 /** Packet id 162 as a varuint. */
@@ -88,7 +87,7 @@ describe('network', () => {
             const byName = new Map(decoded.map((entry) => [entry.name, entry]));
 
             it('uses the network id the docs give ItemRegistryPacket', () => {
-                expect(netIdFor('ItemRegistryPacket')).toBe(Identifiers.ItemRegistryPacket);
+                expect(netIdFor('ItemRegistryPacket')).toBe(ProtocolVersions.v2193.ids.ItemRegistryPacket);
                 expect([...buffer.subarray(0, 2)]).toEqual(HEADER);
             });
 

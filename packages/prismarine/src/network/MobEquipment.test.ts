@@ -18,7 +18,7 @@ import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import PlayerSession from './PlayerSession';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };

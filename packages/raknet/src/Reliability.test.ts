@@ -206,10 +206,12 @@ describe('C3 / C5 / C8 - offline path', () => {
         const server: any = new ServerSocket(
             10,
             false,
-            new ServerName({
-                getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 }),
-                getIdentifiers: () => ({ Protocol: 0, MinecraftVersions: ['0.0.0'] })
-            }),
+            new ServerName(
+                {
+                    getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 })
+                },
+                { protocolVersion: 0, minecraftVersions: ['0.0.0'] }
+            ),
             logger
         );
         // Register a session so the datagram reaches the decoder rather than being ignored.

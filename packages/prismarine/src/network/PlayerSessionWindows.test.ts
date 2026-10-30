@@ -7,7 +7,7 @@ import { Item } from '../item/Item';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import { stub } from '../../testing/stub.test.helper';
 import ClientCacheStatusHandler from './ClientCacheStatusHandler';
-import PacketRegistry from '../PacketRegistry';
+import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
 
 /**
@@ -47,11 +47,11 @@ describe('ClientCacheStatusPacket', () => {
     });
 
     it('resolves 0x81 to a packet and a handler in the registry', async () => {
-        const registry = new PacketRegistry({ getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }) });
-        await registry['registerPackets']();
-        await registry['registerHandlers']();
+        const registry = new PacketHandlerRegistry({
+            getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
+        });
+        await registry.enable();
 
-        expect(registry.getPackets().get(0x81)).toBe(ClientCacheStatusPacket);
         expect(registry.getHandler('ClientCacheStatusPacket')).toBeInstanceOf(ClientCacheStatusHandler);
     });
 });

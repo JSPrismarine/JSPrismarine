@@ -4,10 +4,12 @@ import ServerSocket from './ServerSocket';
 import { ServerName } from './utils/ServerName';
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(), debug: vi.fn(), silly: vi.fn() };
-const serverName = new ServerName({
-    getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 }),
-    getIdentifiers: () => ({ Protocol: 0, MinecraftVersions: ['0.0.0'] })
-});
+const serverName = new ServerName(
+    {
+        getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 })
+    },
+    { protocolVersion: 0, minecraftVersions: ['0.0.0'] }
+);
 
 describe('ServerSocket', () => {
     afterEach(() => {

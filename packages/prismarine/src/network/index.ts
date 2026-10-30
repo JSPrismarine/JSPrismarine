@@ -1,22 +1,8 @@
 import * as Handlers from './Handlers';
-import * as Packets from './Packets';
-import * as Types from './Types';
 
-import Identifiers from './Identifiers';
+export { Handlers };
 
-export { Handlers, Identifiers, Packets, Types };
-
-export { default as Codec2193 } from './codec/Codec2193';
-export { default as Codec2225 } from './codec/Codec2225';
-export {
-    buildCodecRegistry,
-    codecForProtocol,
-    latestCodec,
-    registeredCodecs,
-    supportedMinecraftVersions
-} from './codec/CodecRegistry';
 export { describeSupportedProtocols } from './codec/describeCodecs';
-export type { ProtocolCodec } from './codec/ProtocolCodec';
 
 // The join payloads, so a plugin can read what its own content put on the
 // wire and what the server had to invent to get it there.

@@ -8,7 +8,7 @@ import type SessionManager from '../../SessionManager';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
-import Identifiers from '../Identifiers';
+import { latestCodec } from '../codec/CodecRegistry';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
@@ -104,7 +104,7 @@ describe('SetDefaultGameTypeHandler', () => {
         const { applied, committed, logged, sent, server, session } = fakeServer({ op: true });
 
         // 42 is not a `Gametype`, so it has to come in off the wire: ZigZag of 42 is 0x54.
-        const packet = new SetDefaultGameTypePacket(Buffer.from([Identifiers.SetDefaultGameTypePacket, 0x54]));
+        const packet = new SetDefaultGameTypePacket(Buffer.from([latestCodec.ids.SetDefaultGameTypePacket!, 0x54]));
         packet.decode();
 
         await new SetDefaultGameTypeHandler().handle(packet, server, session);

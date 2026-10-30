@@ -25,7 +25,7 @@ import type ClientConnection from './ClientConnection';
 import { joinContentPayloads, limitCraftingData } from './contentPayloads';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 import type { CraftingData, CreativeContent } from '@jsprismarine/protocol';

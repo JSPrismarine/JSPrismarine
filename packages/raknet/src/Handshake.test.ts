@@ -145,10 +145,16 @@ describe('offline handshake over a real socket', () => {
     });
 
     it('answers every offline packet with the same server guid, and advertises it in the MOTD', async () => {
-        const name = new ServerName({
-            getConfig: () => ({ getMotd: () => 'guid test', getGamemode: () => 'Survival', getMaxPlayers: () => 20 }),
-            getIdentifiers: () => ({ Protocol: 2193, MinecraftVersions: ['1.26.51'] })
-        });
+        const name = new ServerName(
+            {
+                getConfig: () => ({
+                    getMotd: () => 'guid test',
+                    getGamemode: () => 'Survival',
+                    getMaxPlayers: () => 20
+                })
+            },
+            { protocolVersion: 2193, minecraftVersions: ['1.26.51'] }
+        );
         const { server, send, next } = await start(name);
         const guid = server.getServerGuid();
 

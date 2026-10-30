@@ -8,7 +8,7 @@ import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession, { broadcastSharedBatches } from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';

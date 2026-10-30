@@ -1,14 +1,15 @@
-/**
- * The server state a `ServerName` reads when it is created.
- *
- * `getIdentifiers().MinecraftVersions` must hold at least one version, in ascending order;
- * the last entry is advertised.
- */
+/** The protocol version and Minecraft releases a server supports. */
+export interface ServerProtocolInfo {
+    /** The newest protocol version the server accepts. */
+    readonly protocolVersion: number;
+    /** Supported Minecraft releases in ascending order; the last is advertised. */
+    readonly minecraftVersions: readonly string[];
+}
+
+/** The server state a `ServerName` reads when it is created. */
 export interface ServerNameSource {
     /** Returns the configuration the advertised MOTD, gamemode, and player cap come from. */
     getConfig(): { getMotd(): string; getGamemode(): string; getMaxPlayers(): number };
-    /** Returns the protocol number and supported game versions. */
-    getIdentifiers(): { Protocol: number; MinecraftVersions: readonly string[] };
 }
 
 /** The default Bedrock port, advertised until {@link ServerName.setPort} says otherwise. */
@@ -38,17 +39,20 @@ export class ServerName {
     /**
      * Create a new server name for a RakNet server.
      * @param server - The server instance.
+     * @param protocol - The newest protocol and supported Minecraft releases to advertise.
      */
-    public constructor(server: ServerNameSource) {
+    public constructor(server: ServerNameSource, protocol: ServerProtocolInfo) {
         this.server = server;
         this.motd = server.getConfig().getMotd();
         this.gamemode = server.getConfig().getGamemode();
         this.maxPlayers = server.getConfig().getMaxPlayers();
-        this.protocol = server.getIdentifiers().Protocol;
+        this.protocol = protocol.protocolVersion;
         // The newest supported version, which is what a Bedrock Dedicated Server of that
         // version advertises. Advertising the oldest told a current client it had found an
         // older server.
-        this.version = server.getIdentifiers().MinecraftVersions.at(-1)!;
+        const newestVersion = protocol.minecraftVersions.at(-1);
+        if (newestVersion === undefined) throw new Error('A server name requires a supported Minecraft version!');
+        this.version = newestVersion;
     }
 
     /**

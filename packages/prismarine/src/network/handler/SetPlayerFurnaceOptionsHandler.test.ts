@@ -6,7 +6,7 @@ import type Server from '../../Server';
 import type { LoggedLines } from '../../testing/blockTarget.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PacketRegistry from '../PacketRegistry';
+import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import SetPlayerFurnaceOptionsPacket, {
     FurnaceLayout,
     FurnaceLeftTabIndex,
@@ -93,15 +93,14 @@ describe('SetPlayerFurnaceOptionsHandler', () => {
         expect(logged.verbose).toEqual(['Dropped furnace options from Steve: -1 is not a furnace layout']);
     });
 
-    it('registers the protocol packet with its handler', async () => {
+    it('registers the handler for SetPlayerFurnaceOptionsPacket', async () => {
         const server = stub<Server>({
             getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
         });
-        const registry = new PacketRegistry(server);
+        const registry = new PacketHandlerRegistry(server);
 
         await registry.enable();
 
-        expect(registry.getPackets().get(0x15f)).toBe(SetPlayerFurnaceOptionsPacket);
         expect(registry.getHandler('SetPlayerFurnaceOptionsPacket')).toBeInstanceOf(SetPlayerFurnaceOptionsHandler);
     });
 });

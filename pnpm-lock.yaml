@@ -1329,6 +1329,9 @@ importers:
       '@jsprismarine/blocks':
         specifier: workspace:*
         version: link:../blocks
+      '@jsprismarine/brigadier':
+        specifier: workspace:*
+        version: link:../brigadier
       '@jsprismarine/chunkgen':
         specifier: workspace:*
         version: link:../chunkgen

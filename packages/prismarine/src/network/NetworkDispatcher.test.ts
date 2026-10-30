@@ -8,12 +8,12 @@ import type Server from '../Server';
 import SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
 import Codec2193 from './codec/Codec2193';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type ClientConnection from './ClientConnection';
 import NetworkDispatcher from './NetworkDispatcher';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
-import type PacketRegistry from './PacketRegistry';
+import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type PlayerSession from './PlayerSession';
 import type { SessionPhase } from './SessionPhase';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
@@ -113,7 +113,7 @@ const makeDispatcher = (options?: {
     const sessionManager = new SessionManager();
     const { logger, lines } = fakeLogger();
     const server = stub<Server>();
-    const packetRegistry = stub<PacketRegistry>({
+    const packetHandlerRegistry = stub<PacketHandlerRegistry>({
         getHandler: () => {
             if (!options?.handler) throw new Error('no handler registered');
             return options.handler;
@@ -124,7 +124,7 @@ const makeDispatcher = (options?: {
     new NetworkDispatcher({
         transport,
         sessionManager,
-        packetRegistry,
+        packetHandlerRegistry,
         events: stub<EventEmitter>({ emit: async () => {} }),
         server,
         logger,

@@ -2,7 +2,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 
 /** Options the server supplies when framing already-encoded Minecraft packets. */
 export interface PacketBatchOptions {

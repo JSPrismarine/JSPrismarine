@@ -1,5 +1,6 @@
 import { Logger } from '@jsprismarine/logger';
-import { Config, Protocol, Server } from '@jsprismarine/prismarine';
+import { Config, Server } from '@jsprismarine/prismarine';
+import { ProtocolVersions } from '@jsprismarine/protocol';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -116,11 +117,13 @@ describe('against a real server', () => {
         // The ping reports what the server advertises, which is the newest protocol it
         // registers a codec for, not the one this client speaks. Reading it off the server's
         // own constant keeps the assertion honest across protocol bumps.
-        expect(out.join('\n')).toMatch(new RegExp(`version .* \\(protocol ${Protocol.Identifiers.Protocol}\\)`));
+        expect(out.join('\n')).toMatch(
+            new RegExp(`version .* \\(protocol ${ProtocolVersions.v2225.protocolVersion}\\)`)
+        );
         expect(out.join('\n')).toContain('players');
         // A server may advertise newer than this client speaks; it negotiates down per session,
         // which the fleet runs below exercise. It must never advertise older than the client.
-        expect(Protocol.Identifiers.Protocol).toBeGreaterThanOrEqual(PROTOCOL_VERSION);
+        expect(ProtocolVersions.v2225.protocolVersion).toBeGreaterThanOrEqual(PROTOCOL_VERSION);
     }, 30_000);
 
     it('runs a fleet, prints a report and exits 0', async () => {

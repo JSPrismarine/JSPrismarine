@@ -4,7 +4,7 @@ import { ActorEvent } from '@jsprismarine/minecraft';
 import { advancementPickedUpItem } from '../../advancement/triggers';
 import type ContainerEntry from '../../inventory/ContainerEntry';
 import type PlayerSession from '../../network/PlayerSession';
-import { TakeItemActorPacket } from '../../network/Packets';
+import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import { Entity } from '../Entity';
 
 /**

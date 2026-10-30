@@ -4,6 +4,7 @@ import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 import ClientConnection from '../network/ClientConnection';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import RakNetTransport from '../network/transport/RakNetTransport';
+import { latestCodec } from '../network/codec/CodecRegistry';
 import type Server from '../Server';
 import { networkToken } from './tokens';
 
@@ -53,7 +54,7 @@ export class ServerNetworking implements Networking {
         this.raknet = new RakNetListener(
             server.getConfig().getMaxPlayers(),
             server.getConfig().getOnlineMode(),
-            new ServerName(server),
+            new ServerName(server, latestCodec),
             server.getLogger()
         );
         this.raknet.start(address, port);
@@ -63,7 +64,7 @@ export class ServerNetworking implements Networking {
         new NetworkDispatcher({
             transport: new RakNetTransport(this.raknet, server),
             sessionManager: server.getSessionManager(),
-            packetRegistry: server.getPacketRegistry(),
+            packetHandlerRegistry: server.getPacketHandlerRegistry(),
             events: server,
             server,
             logger: server.getLogger(),

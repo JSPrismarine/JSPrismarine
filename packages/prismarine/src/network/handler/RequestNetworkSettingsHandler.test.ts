@@ -15,7 +15,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
-import Identifiers from '../Identifiers';
+import { latestCodec } from '../codec/CodecRegistry';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
 
@@ -92,7 +92,7 @@ describe('RequestNetworkSettingsHandler', () => {
         // A bare disconnect here showed "Disconnected from Server" and nothing else (#1586).
         const { sent, order, disconnect, connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(Identifiers.Protocol - 10), server, connection);
+        await new RequestNetworkSettingsHandler().handle(request(latestCodec.protocolVersion - 10), server, connection);
 
         expect(sent).toHaveLength(1);
         const { packet, comp } = sent[0]!;
@@ -103,7 +103,7 @@ describe('RequestNetworkSettingsHandler', () => {
         // The status first, so the client has a screen to put the reason on.
         expect(order).toEqual(['PlayStatusPacket', 'disconnect']);
         expect(disconnect).toHaveBeenCalledWith(
-            `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`,
+            `Outdated client! Please use ${latestCodec.minecraftVersions.at(-1)}`,
             false,
             DisconnectReason.OUTDATED_CLIENT
         );
@@ -113,7 +113,7 @@ describe('RequestNetworkSettingsHandler', () => {
     it('tells a newer client that the server is out of date', async () => {
         const { sent, disconnect, connection } = fakeConnection();
 
-        await new RequestNetworkSettingsHandler().handle(request(Identifiers.Protocol + 10), server, connection);
+        await new RequestNetworkSettingsHandler().handle(request(latestCodec.protocolVersion + 10), server, connection);
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
@@ -129,6 +129,6 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(info).toHaveBeenCalledOnce();
         const [message] = info.mock.calls[0]!;
         expect(message).toContain('712');
-        expect(message).toContain(String(Identifiers.Protocol));
+        expect(message).toContain(String(latestCodec.protocolVersion));
     });
 });

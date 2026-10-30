@@ -14,7 +14,6 @@ export * from './world/';
 
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
-import * as Protocol from './network';
 
 import Console from './Console';
 import Player from './Player';
@@ -24,4 +23,4 @@ import { ConfigBuilder } from './config/ConfigBuilder';
 import PlayerSession from './network/PlayerSession';
 import BaseProvider from './world/providers/BaseProvider';
 
-export { BaseProvider, Chat, ConfigBuilder, Console, Entities, Events, Player, PlayerSession, Protocol, Server };
+export { BaseProvider, Chat, ConfigBuilder, Console, Entities, Events, Player, PlayerSession, Server };

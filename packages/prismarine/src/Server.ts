@@ -23,10 +23,9 @@ import { EventEmitter } from './events/EventEmitter';
 import { CreativeInventory } from './inventory/CreativeInventory';
 import { describeSupportedProtocols } from './network/codec/describeCodecs';
 import { joinContentPayloads } from './network/contentPayloads';
-import Identifiers from './network/Identifiers';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
 import { PacketLogFilter } from './network/PacketLogFilter';
-import PacketRegistry from './network/PacketRegistry';
+import PacketHandlerRegistry from './network/PacketHandlerRegistry';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
@@ -70,7 +69,7 @@ export default class Server extends EventEmitter {
     private readonly console: Console | undefined;
     private remoteConsole: RemoteConsole | undefined;
     private readonly consoleSender: ConsoleSender;
-    private readonly packetRegistry: PacketRegistry;
+    private readonly packetHandlerRegistry: PacketHandlerRegistry;
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
@@ -203,7 +202,7 @@ export default class Server extends EventEmitter {
         this.config = config;
         this.profiler = profile ? new ServerProfiler() : undefined;
         if (this.profiler) attachProfiler(this, this.profiler);
-        this.packetRegistry = new PacketRegistry(this);
+        this.packetHandlerRegistry = new PacketHandlerRegistry(this);
         this.worldManager = new WorldManager(this);
         this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
@@ -258,7 +257,7 @@ export default class Server extends EventEmitter {
         // build invented reads as a startup line and a build that cannot
         // produce payloads says so here rather than on the first join.
         joinContentPayloads(this.content, this.logger);
-        await this.packetRegistry.enable();
+        await this.packetHandlerRegistry.enable();
         await this.kernel.start();
         await this.commandManager.enable();
         await this.worldManager.enable();
@@ -363,7 +362,7 @@ export default class Server extends EventEmitter {
         this.entityRuntimes.closeAll();
         await this.commandManager.disable();
         await this.kernel.stop();
-        await this.packetRegistry.disable();
+        await this.packetHandlerRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
     }
@@ -533,14 +532,6 @@ export default class Server extends EventEmitter {
     }
 
     /**
-     * Returns the identifiers.
-     * @returns {Identifiers} The identifiers.
-     */
-    public getIdentifiers(): typeof Identifiers {
-        return Identifiers;
-    }
-
-    /**
      * The module kernel the server runs on: the supported way to resolve the
      * services the manager modules provide. Resolve a service with a token from
      * `modules/tokens`, e.g. `server.getKernel().get(bansToken)`.
@@ -704,10 +695,10 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the packet registry.
-     * @returns {PacketRegistry} The packet registry.
+     * @returns {PacketHandlerRegistry} The packet registry.
      */
-    public getPacketRegistry(): PacketRegistry {
-        return this.packetRegistry;
+    public getPacketHandlerRegistry(): PacketHandlerRegistry {
+        return this.packetHandlerRegistry;
     }
 
     /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CommandRequestPacket, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
+import { CommandRequestPacket, Packets, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
@@ -12,18 +12,16 @@ import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGame
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
-import Identifiers from '../Identifiers';
-import * as Packets from '../Packets';
 import Codec2193 from './Codec2193';
-import { codecForProtocol, latestCodec } from './CodecRegistry';
+import { codecForProtocol, latestCodec, supportedMinecraftVersions } from './CodecRegistry';
 
 describe('network/codec', () => {
     describe('Codec2193', () => {
-        it('speaks protocol 2193, which Identifiers lists among the supported versions', () => {
+        it('speaks protocol 2193 and advertises its Minecraft releases', () => {
             expect(Codec2193.protocolVersion).toBe(2193);
-            expect(Identifiers.Protocol).toBe(latestCodec.protocolVersion);
+            expect(latestCodec.protocolVersion).toBeGreaterThanOrEqual(Codec2193.protocolVersion);
             for (const version of Codec2193.minecraftVersions) {
-                expect(Identifiers.MinecraftVersions).toContain(version);
+                expect(supportedMinecraftVersions).toContain(version);
             }
         });
 

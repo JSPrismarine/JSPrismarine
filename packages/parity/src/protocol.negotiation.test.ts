@@ -4,20 +4,21 @@ import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
 import { latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
 import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
-import type { ProtocolCodec } from '@jsprismarine/prismarine/network/codec/ProtocolCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
-import type DataPacket from '@jsprismarine/prismarine/network/packet/DataPacket';
-import LevelChunkPacket from '@jsprismarine/prismarine/network/packet/LevelChunkPacket';
-import NetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/NetworkSettingsPacket';
-import PlayStatusPacket from '@jsprismarine/prismarine/network/packet/PlayStatusPacket';
-import PlayerListPacket, {
+import type { NetworkPacket } from '@jsprismarine/protocol';
+import {
+    LevelChunkPacket,
+    NetworkSettingsPacket,
+    PlayStatus,
+    PlayStatusPacket,
     PlayerListAction,
-    PlayerListEntry
-} from '@jsprismarine/prismarine/network/packet/PlayerListPacket';
+    PlayerListEntry,
+    PlayerListPacket,
+    RequestNetworkSettingsPacket
+} from '@jsprismarine/protocol';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import RequestNetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/RequestNetworkSettingsPacket';
-import PlayStatus from '@jsprismarine/prismarine/network/type/PlayStatus';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import { describe, expect, it } from 'vitest';
 
@@ -36,8 +37,7 @@ import { FAMILIES } from './families.ts';
 
 /** The announced version, as a connection would first see it: encoded, then decoded. */
 const requestOnTheWire = (protocolVersion: number): RequestNetworkSettingsPacket => {
-    const outbound = new RequestNetworkSettingsPacket();
-    outbound.protocolVersion = protocolVersion;
+    const outbound = new RequestNetworkSettingsPacket({ protocolVersion });
     outbound.encode();
 
     const netId = HandshakeCodec.netIdOf('RequestNetworkSettingsPacket');
@@ -51,7 +51,7 @@ const requestOnTheWire = (protocolVersion: number): RequestNetworkSettingsPacket
 
 /** A connection double that records what was sent and how the handler hung up. */
 const connectionRecorder = () => {
-    const sent: DataPacket[] = [];
+    const sent: NetworkPacket<unknown>[] = [];
     const hangups: Array<{ message: string; reason: number }> = [];
 
     const connection = stub<ClientConnection>({
@@ -139,18 +139,23 @@ describe(FAMILIES.protocolNegotiation, () => {
         // protocol on the instance and the layout walker does the rest - so a 1.26.60
         // client is never handed 2193 bytes.
         const chunk = () => {
-            const outbound = new LevelChunkPacket();
-            outbound.chunkX = 4;
-            outbound.chunkZ = -3;
-            outbound.subChunkCount = 2;
-            outbound.data = Buffer.from([1, 2, 3]);
-            return outbound;
+            return new LevelChunkPacket({
+                chunkX: 4,
+                chunkZ: -3,
+                dimension: 0,
+                subChunkCount: 2,
+                clientSubChunkRequestsEnabled: false,
+                cached: false,
+                blobHashes: [],
+                payload: Buffer.from([1, 2, 3])
+            });
         };
 
         const encodeFor = (codec: ProtocolCodec): Buffer => {
             const prepared = codec.prepareOutbound(chunk());
             expect(prepared.codecProtocol).toBe(codec.protocolVersion);
-            prepared.encodePayload();
+            prepared.setNetId(codec.netIdOf('LevelChunkPacket')!);
+            prepared.encode();
             return prepared.getBuffer();
         };
 

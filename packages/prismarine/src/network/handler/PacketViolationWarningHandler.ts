@@ -1,6 +1,6 @@
 import type Server from '../../Server';
-import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
+import { latestCodec } from '../codec/CodecRegistry';
 import {
     PacketViolationSeverity,
     PacketViolationType
@@ -8,14 +8,9 @@ import {
 import type PacketViolationWarningPacket from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
 import type PacketHandler from './PacketHandler';
 
-/**
- * The name `Identifiers` gives a packet id, or null when no packet has that id.
- *
- * `Identifiers` also carries the protocol number and the version list, so only the keys that
- * name a packet take part.
- */
+/** The packet name assigned to an id by the newest codec, or `null` when it is unknown. */
 const packetNameOf = (id: number): string | null =>
-    Object.entries(Identifiers).find(([name, value]) => name.endsWith('Packet') && value === id)?.[0] ?? null;
+    Object.entries(latestCodec.ids).find(([, packetId]) => packetId === id)?.[0] ?? null;
 
 /**
  * The client reporting that a packet the server sent did not parse.

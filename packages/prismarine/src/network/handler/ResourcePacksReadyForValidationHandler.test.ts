@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
-import PacketRegistry from '../PacketRegistry';
+import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import type PlayerSession from '../PlayerSession';
 import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
 import ResourcePacksReadyForValidationHandler from './ResourcePacksReadyForValidationHandler';
@@ -38,14 +38,12 @@ describe('ResourcePacksReadyForValidationHandler', () => {
         expect(sent).toEqual([]);
     });
 
-    it('registers the protocol packet with its handler', async () => {
-        const registry = new PacketRegistry({
+    it('registers the handler for ResourcePacksReadyForValidationPacket', async () => {
+        const registry = new PacketHandlerRegistry({
             getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
         });
-        await registry['registerPackets']();
-        await registry['registerHandlers']();
+        await registry.enable();
 
-        expect(registry.getPackets().get(0x154)).toBe(ResourcePacksReadyForValidationPacket);
         expect(registry.getHandler('ResourcePacksReadyForValidationPacket')).toBeInstanceOf(
             ResourcePacksReadyForValidationHandler
         );

@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import Identifiers from '../Identifiers';
+import { latestCodec } from '../codec/CodecRegistry';
 import type PlayerSession from '../PlayerSession';
 import PacketViolationWarningPacket, {
     PacketViolationSeverity,
@@ -31,7 +31,7 @@ describe('PacketViolationWarningHandler', () => {
             handleWith({
                 type: PacketViolationType.PacketMalformed,
                 severity: PacketViolationSeverity.TerminatingConnection,
-                packetId: Identifiers.StartGamePacket,
+                packetId: latestCodec.ids.StartGamePacket!,
                 message: 'Unexpected end of stream'
             })
         ).toEqual([
@@ -58,7 +58,7 @@ describe('PacketViolationWarningHandler', () => {
             handleWith({
                 type: PacketViolationType.Unknown,
                 severity: PacketViolationSeverity.Unknown,
-                packetId: Identifiers.TextPacket,
+                packetId: latestCodec.ids.TextPacket!,
                 message: 'x'
             })
         ).toEqual(['Steve rejected TextPacket (0x9) as Unknown, Unknown: "x"']);

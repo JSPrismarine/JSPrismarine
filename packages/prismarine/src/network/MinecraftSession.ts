@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import HandshakeCodec from './codec/HandshakeCodec';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { TransportConnection } from './transport/Transport';
 import { encodePacketBatch, encodePacketBatchAsync } from './encodePacketBatch';
 import type { PacketBatchOptions } from './encodePacketBatch';
@@ -106,6 +106,7 @@ export default class MinecraftSession {
         return next;
     }
 
+    /** Encodes packets into one batch and queues it on the session's ordered outbound chain. */
     public sendPackets(
         packets: readonly NetworkPacket<unknown>[],
         { direct = true, ...batchOptions }: PacketBatchSendOptions = {}

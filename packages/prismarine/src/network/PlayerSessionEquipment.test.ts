@@ -23,7 +23,7 @@ import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
-import type { ProtocolCodec } from './codec/ProtocolCodec';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import PlayerSession from './PlayerSession';
 
 /**

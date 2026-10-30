@@ -10,14 +10,16 @@ import { ServerName } from './ServerName';
  */
 
 const build = () =>
-    new ServerName({
-        getConfig: () => ({
-            getMotd: () => 'A JSPrismarine server',
-            getGamemode: () => 'Survival',
-            getMaxPlayers: () => 20
-        }),
-        getIdentifiers: () => ({ Protocol: 2193, MinecraftVersions: ['1.26.51'] })
-    });
+    new ServerName(
+        {
+            getConfig: () => ({
+                getMotd: () => 'A JSPrismarine server',
+                getGamemode: () => 'Survival',
+                getMaxPlayers: () => 20
+            })
+        },
+        { protocolVersion: 2193, minecraftVersions: ['1.26.51'] }
+    );
 
 describe('ServerName', () => {
     it('writes the fields in the order a Bedrock Dedicated Server does', () => {
@@ -48,10 +50,12 @@ describe('ServerName', () => {
     });
 
     it('advertises the newest supported game version', () => {
-        const name = new ServerName({
-            getConfig: () => ({ getMotd: () => 'motd', getGamemode: () => 'Survival', getMaxPlayers: () => 20 }),
-            getIdentifiers: () => ({ Protocol: 2193, MinecraftVersions: ['1.26.50', '1.26.51'] })
-        });
+        const name = new ServerName(
+            {
+                getConfig: () => ({ getMotd: () => 'motd', getGamemode: () => 'Survival', getMaxPlayers: () => 20 })
+            },
+            { protocolVersion: 2193, minecraftVersions: ['1.26.50', '1.26.51'] }
+        );
 
         // The first entry used to be advertised, so a 1.26.51 client was shown a 1.26.50
         // server even though the protocol it would speak is the same.
@@ -64,10 +68,12 @@ describe('ServerName', () => {
     });
 
     it('falls back to a placeholder motd rather than an empty field', () => {
-        const name = new ServerName({
-            getConfig: () => ({ getMotd: () => '', getGamemode: () => 'Survival', getMaxPlayers: () => 20 }),
-            getIdentifiers: () => ({ Protocol: 2193, MinecraftVersions: ['1.26.51'] })
-        });
+        const name = new ServerName(
+            {
+                getConfig: () => ({ getMotd: () => '', getGamemode: () => 'Survival', getMaxPlayers: () => 20 })
+            },
+            { protocolVersion: 2193, minecraftVersions: ['1.26.51'] }
+        );
 
         expect(name.toString().split(';')[1]).toBe('Example motd');
     });

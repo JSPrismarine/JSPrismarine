@@ -12,8 +12,8 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import { takesConnection } from './handler/ConnectionPacketHandler';
 import type { PacketLogFilter } from './PacketLogFilter';
-import type PacketRegistry from './PacketRegistry';
-import type { RegisteredHandler } from './PacketRegistry';
+import type PacketHandlerRegistry from './PacketHandlerRegistry';
+import type { RegisteredHandler } from './PacketHandlerRegistry';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { Transport, TransportConnection } from './transport/Transport';
 
@@ -30,7 +30,7 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     /** The registry of live connections, keyed by transport token. */
     sessionManager: Pick<SessionManager, 'has' | 'add' | 'get' | 'remove'>;
     /** Resolves a packet class name to its handler; packets resolve through each connection's codec. */
-    packetRegistry: Pick<PacketRegistry, 'getHandler'>;
+    packetHandlerRegistry: Pick<PacketHandlerRegistry, 'getHandler'>;
     /** Where the legacy `raknetDisconnect` event still goes. */
     events: Pick<EventEmitter, 'emit'>;
     /** Handed to every packet handler; their contract takes the whole server. */
@@ -62,7 +62,7 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
  */
 export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly sessionManager: NetworkDispatcherOptions<C>['sessionManager'];
-    private readonly packetRegistry: NetworkDispatcherOptions<C>['packetRegistry'];
+    private readonly packetHandlerRegistry: NetworkDispatcherOptions<C>['packetHandlerRegistry'];
     private readonly events: NetworkDispatcherOptions<C>['events'];
     private readonly server: Server;
     private readonly logger: Logger;
@@ -72,7 +72,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     public constructor(options: NetworkDispatcherOptions<C>) {
         this.sessionManager = options.sessionManager;
-        this.packetRegistry = options.packetRegistry;
+        this.packetHandlerRegistry = options.packetHandlerRegistry;
         this.events = options.events;
         this.server = options.server;
         this.logger = options.logger;
@@ -217,7 +217,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private gatePhase(packet: NetworkPacket<unknown>, connection: ClientConnection): readonly GatedPacket[] {
         let handler: RegisteredHandler;
         try {
-            handler = this.packetRegistry.getHandler(packet.getName());
+            handler = this.packetHandlerRegistry.getHandler(packet.getName());
         } catch (error: unknown) {
             this.handlerError(packet, error);
             return [];
