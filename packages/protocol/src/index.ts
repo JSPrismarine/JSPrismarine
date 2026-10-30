@@ -51,6 +51,7 @@ export * from './wire/definitions/chunkRadiusUpdated';
 export * from './wire/definitions/clientCache';
 export * from './wire/definitions/commands';
 export * from './wire/definitions/containers';
+export * from './wire/definitions/disconnect';
 export * from './wire/definitions/forms';
 export * from './wire/definitions/gameRulesChanged';
 export * from './wire/definitions/index';

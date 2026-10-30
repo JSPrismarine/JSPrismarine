@@ -1,19 +1,13 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../../network/NetworkUtil';
+import { disconnectPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
  * Tells the client why the server is closing the connection.
  *
- * Protocol 2193 layout, in wire order:
- * - `Reason`: a ZigZag varint32 holding a `DisconnectFailReason`, which is `DisconnectReason`
- *   in `@jsprismarine/minecraft`. Members run from `Unknown` (0) to `UnsupportedTransport` (149).
- *   The client maps it to the error code on its disconnect screen.
- * - `Skip Message`: one bool byte. The docs type what follows as
- *   `oneOf<DisconnectPacketMessages, null>` and this byte picks the alternative: false means
- *   the two strings follow, true means null and the packet ends here. The client reads it as
- *   a bool, so any non-zero byte skips.
- * - `Message` and `Filtered Message`: strings, both always present when `Skip Message` is false.
+ * The wire layout lives in `@jsprismarine/protocol`'s `disconnectPacket` definition: `Reason`,
+ * then `Skip Message` and the `oneOf<DisconnectPacketMessages, null>` tail it selects.
  *
  * A client that cannot parse this packet shows `initialconnection-90`, the "bad packet" code,
  * instead of the reason the server meant to send.
@@ -29,22 +23,25 @@ export default class DisconnectPacket extends DataPacket {
     public filteredMessage = '';
 
     public encodePayload(): void {
-        this.writeVarInt(this.reason);
-        this.writeBoolean(this.skipMessage);
-
-        if (this.skipMessage) return;
-
-        NetworkUtil.writeString(this, this.message);
-        NetworkUtil.writeString(this, this.filteredMessage);
+        layoutAt(disconnectPacket, this.codecProtocol).encode(this, {
+            reason: this.reason,
+            messages: {
+                skipMessage: this.skipMessage,
+                message: this.message,
+                filteredMessage: this.filteredMessage
+            }
+        });
     }
 
     public decodePayload(): void {
-        this.reason = this.readVarInt();
-        this.skipMessage = this.readBoolean();
+        const { reason, messages } = layoutAt(disconnectPacket, this.codecProtocol).decode(this);
 
-        if (this.skipMessage) return;
+        this.reason = reason;
+        this.skipMessage = messages.skipMessage;
 
-        this.message = NetworkUtil.readString(this);
-        this.filteredMessage = NetworkUtil.readString(this);
+        if (messages.skipMessage) return;
+
+        this.message = messages.message;
+        this.filteredMessage = messages.filteredMessage;
     }
 }

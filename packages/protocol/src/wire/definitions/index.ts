@@ -36,6 +36,7 @@ import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket, requestChunkRadiusPacket } from './chunkRadiusUpdated';
 import { clientCacheStatusPacket } from './clientCache';
 import { commandOutputPacket, commandRequestPacket } from './commands';
+import { disconnectPacket } from './disconnect';
 import {
     containerClosePacket,
     containerOpenPacket,
@@ -123,6 +124,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         containerClosePacket,
         containerOpenPacket,
         containerSetDataPacket,
+        disconnectPacket,
         inventoryContentPacket,
         inventorySlotPacket,
         gameRulesChangedPacket,
