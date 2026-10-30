@@ -48,46 +48,41 @@ const isActorLinkType = (value: number): value is ActorLink['type'] =>
     value === ActorLinkType.None || value === ActorLinkType.Riding || value === ActorLinkType.Passenger;
 
 /**
- * `ActorLink[]`: a varuint count, then each riding relationship's six 2193 fields.
- * @throws {Error} when a link's `Type` byte is not an {@link ActorLinkType}.
+ * One `ActorLink`: the six fields of a riding relationship in the 2193 layout.
+ * @throws {Error} when the `Type` byte is not an {@link ActorLinkType}.
  */
-export const actorLinks = t.custom<ActorLink[]>(
-    'ActorLink[]',
+export const actorLink = t.custom<ActorLink>(
+    'ActorLink',
     (stream, value) => {
-        stream.writeUnsignedVarInt(value.length);
-        for (const link of value) {
-            stream.writeVarLong(link.targetA);
-            stream.writeVarLong(link.targetB);
-            stream.writeByte(link.type);
-            stream.writeBoolean(link.immediate);
-            stream.writeBoolean(link.passengerInitiated);
-            stream.writeFloatLE(link.vehicleAngularVelocity);
-        }
+        stream.writeVarLong(value.targetA);
+        stream.writeVarLong(value.targetB);
+        stream.writeByte(value.type);
+        stream.writeBoolean(value.immediate);
+        stream.writeBoolean(value.passengerInitiated);
+        stream.writeFloatLE(value.vehicleAngularVelocity);
     },
     (stream) => {
-        const links: ActorLink[] = [];
-        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
-            const targetA = stream.readVarLong();
-            const targetB = stream.readVarLong();
+        const targetA = stream.readVarLong();
+        const targetB = stream.readVarLong();
 
-            const type = stream.readByte();
-            if (!isActorLinkType(type)) {
-                throw new Error(`Actor link ${targetA} -> ${targetB} carries unknown link type ${type}`);
-            }
-
-            links.push({
-                targetA,
-                targetB,
-                type,
-                immediate: stream.readBoolean(),
-                passengerInitiated: stream.readBoolean(),
-                vehicleAngularVelocity: stream.readFloatLE()
-            });
+        const type = stream.readByte();
+        if (!isActorLinkType(type)) {
+            throw new Error(`Actor link ${targetA} -> ${targetB} carries unknown link type ${type}`);
         }
 
-        return links;
+        return {
+            targetA,
+            targetB,
+            type,
+            immediate: stream.readBoolean(),
+            passengerInitiated: stream.readBoolean(),
+            vehicleAngularVelocity: stream.readFloatLE()
+        };
     }
 );
+
+/** `ActorLink[]`: a varuint count, then that many links. */
+export const actorLinks = t.list(actorLink);
 
 /** `SyncedAttribute[]`: a varuint count, then each attribute's short `AddActor` layout. */
 const syncedAttributes = t.custom<Attribute[]>(

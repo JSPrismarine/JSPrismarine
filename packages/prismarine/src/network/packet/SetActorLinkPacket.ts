@@ -1,23 +1,9 @@
-import type { ActorLink } from './AddActorPacket';
-import { ActorLinkType } from './AddActorPacket';
+import { layoutAt, setActorLinkPacket } from '@jsprismarine/protocol';
+import { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor';
+
+import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
+
 import DataPacket from './DataPacket';
-
-/**
- * The {@link ActorLinkType} values a link may carry, as a narrowed union.
- */
-type ActorLinkTypeValue = (typeof ActorLinkType)[keyof typeof ActorLinkType];
-
-/**
- * Narrows a byte read off the wire to a known {@link ActorLinkType}.
- * @param value - The Type byte.
- * @returns The matching link type.
- * @throws When the byte is not a link type the protocol defines.
- */
-const toActorLinkType = (value: number): ActorLinkTypeValue => {
-    const known = Object.values(ActorLinkType).find((type) => type === value);
-    if (known === undefined) throw new Error(`Unknown ActorLinkType ${value}`);
-    return known;
-};
 
 /**
  * Starts or ends one riding relationship between two actors.
@@ -49,24 +35,11 @@ export default class SetActorLinkPacket extends DataPacket {
 
     /** Reads the six `ActorLink` fields. */
     public decodePayload(): void {
-        this.link = {
-            targetA: this.readVarLong(),
-            targetB: this.readVarLong(),
-            type: toActorLinkType(this.readByte()),
-            immediate: this.readBoolean(),
-            passengerInitiated: this.readBoolean(),
-            vehicleAngularVelocity: this.readFloatLE()
-        };
+        this.link = layoutAt(setActorLinkPacket, this.codecProtocol).decode(this).link;
     }
 
     /** Writes the six `ActorLink` fields. */
     public encodePayload(): void {
-        const { link } = this;
-        this.writeVarLong(link.targetA);
-        this.writeVarLong(link.targetB);
-        this.writeByte(link.type);
-        this.writeBoolean(link.immediate);
-        this.writeBoolean(link.passengerInitiated);
-        this.writeFloatLE(link.vehicleAngularVelocity);
+        layoutAt(setActorLinkPacket, this.codecProtocol).encode(this, { link: this.link });
     }
 }

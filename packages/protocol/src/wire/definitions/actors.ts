@@ -5,6 +5,7 @@
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 import { definePacket } from '../define';
+import { actorLink } from './addActor';
 import * as t from '../fieldTypes';
 import { vector3 } from '../structureTypes';
 
@@ -49,3 +50,18 @@ export const takeItemActorPacket = definePacket('TakeItemActorPacket', {
 
 /** What `TakeItemActorPacket` carries. */
 export type TakeItemActorPayload = PayloadOf<typeof takeItemActorPacket>;
+
+/**
+ * The `SetActorLinkPacket` field list.
+ *
+ * Both sides send it: a client sends two at a time when a player mounts something. A link
+ * sent this way reaches only the clients that receive it; a player who sees the pair later
+ * needs the link in the `AddActorPacket` or `AddPlayerPacket` that spawns them.
+ */
+export const setActorLinkPacket = definePacket('SetActorLinkPacket', {
+    /** `Link`: the riding relationship to set or clear. */
+    link: actorLink
+});
+
+/** What `SetActorLinkPacket` carries. */
+export type SetActorLinkPayload = PayloadOf<typeof setActorLinkPacket>;

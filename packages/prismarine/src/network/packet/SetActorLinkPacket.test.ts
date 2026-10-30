@@ -27,7 +27,7 @@ describe('SetActorLinkPacket', () => {
             Buffer.from([0x29, 0x02, 0x03, 0x07, 0x01, 0x00, 0x00, 0x00, 0x00, 0x3f])
         );
 
-        expect(() => packet.decode()).toThrow(/ActorLinkType 7/);
+        expect(() => packet.decode()).toThrow(/unknown link type 7/);
     });
 
     it('encodes the link back to the same bytes', () => {

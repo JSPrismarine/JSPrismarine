@@ -18,7 +18,7 @@ import {
     serverboundStonecutterSetRecipePacket,
     setPassengerOfBlockPacket
 } from './added2225';
-import { actorEventPacket, removeActorPacket, takeItemActorPacket } from './actors';
+import { actorEventPacket, removeActorPacket, setActorLinkPacket, takeItemActorPacket } from './actors';
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
@@ -27,7 +27,14 @@ import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
-import { containerClosePacket, containerOpenPacket, containerSetDataPacket, mobEquipmentPacket } from './containers';
+import {
+    containerClosePacket,
+    containerOpenPacket,
+    containerSetDataPacket,
+    inventoryContentPacket,
+    inventorySlotPacket,
+    mobEquipmentPacket
+} from './containers';
 import { modalFormRequestPacket, modalFormResponsePacket } from './forms';
 import { gameRulesChangedPacket } from './gameRulesChanged';
 import { interactPacket } from './interaction';
@@ -83,6 +90,8 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         containerClosePacket,
         containerOpenPacket,
         containerSetDataPacket,
+        inventoryContentPacket,
+        inventorySlotPacket,
         gameRulesChangedPacket,
         interactPacket,
         inventoryTransactionPacket,
@@ -104,6 +113,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         playerSkinPacket,
         playStatusPacket,
         removeActorPacket,
+        setActorLinkPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
         serverToClientHandshakePacket,
