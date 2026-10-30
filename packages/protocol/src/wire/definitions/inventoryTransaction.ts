@@ -3,7 +3,7 @@
  * described as a declarative field list.
  *
  * The transaction body depends on the variant index that precedes it, so the body travels as
- * one named custom wire type built from the hand-written readers the packet module keeps
+ * one named custom wire type built from the hand-written readers `structures/InventoryTransaction.ts` keeps
  * (`PlayerAuthInputPacket` shares the use-item half). Protocol 2225 added a `Hand` uint8 to
  * two of the typed bodies - into the use-item-on-actor body between the hotbar slot and the
  * item, and at the end of the release-item body after the player position - verified against
@@ -12,32 +12,31 @@
  * `UseItemOnEntityTransactionData.Marshal` / `ReleaseItemTransactionData.Marshal` at v1.63.0,
  * which agree. The gates cannot reach inside a variant body, so the move is expressed as a
  * gated pair of body types: the 2193 body up to 2225, the hand-carrying body from 2225 on.
- *
- * This definition lives beside the class because its body types are prismarine-owned
- * (`Item`, `InventoryAction`); it moves to `@jsprismarine/protocol`'s registry when they do.
  */
-import { definePacket, gated, SINCE_2225, t, UNTIL_2225 } from '@jsprismarine/protocol';
 import { Vector3 } from '@jsprismarine/math';
-import { Item } from '../../item/Item';
-import { NetworkUtil } from '../NetworkUtil';
+
+import { definePacket, gated } from '../define';
+import * as t from '../fieldTypes';
+import { NetworkUtil } from '../networkUtil';
 import {
     hasLegacyRequest,
-    InventoryAction,
     LegacySlotChange,
     MAX_INVENTORY_ACTIONS,
+    readInventoryAction,
     readUseItemData,
     TransactionType,
+    writeInventoryAction,
     writeUseItemData
-} from './InventoryTransactionPacket';
+} from '../structures/InventoryTransaction';
+import { readItemStackDescriptor, writeItemStackDescriptor } from '../structures/ItemStackDescriptor';
+import { SINCE_2225, UNTIL_2225 } from '../wireGates';
 
-import type { PayloadOf } from '@jsprismarine/protocol';
-import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from './InventoryTransactionPacket';
-
-/** The `Legacy Request ID` and the slot list whose presence its validity decides. */
-export interface LegacyTransactionRequest {
-    legacyRequestId: number;
-    legacySlotChanges: LegacySlotChange[];
-}
+import type { PayloadOf } from '../define';
+import type {
+    InventoryActionData,
+    LegacyTransactionRequest,
+    TransactionPayload
+} from '../structures/InventoryTransaction';
 
 /**
  * `Legacy Request ID` plus `Legacy Set Item Slots`, as one value: a valid id always carries
@@ -63,17 +62,6 @@ const legacyTransactionRequest = t.custom<LegacyTransactionRequest>(
     })
 );
 
-/** The variant index, the actions, and the body the variant selects, as one value. */
-export interface TransactionPayload {
-    /** The variant index as read, a {@link TransactionType} when the client sent a known one. */
-    transactionType: number;
-    inventoryActions: InventoryAction[];
-    /** The body the type selects. Null for Normal, Mismatch and an unknown type. */
-    transactionData: UseItemData | UseItemOnEntityData | ReleaseItemData | null;
-    /** The packet-level `Hand` the 2225 bodies carry; `HandSlot.MAINHAND` before that. */
-    hand: number;
-}
-
 /**
  * The transaction after the legacy request: variant index, Actions, then the selected body.
  *
@@ -89,7 +77,7 @@ const transactionBody = (carriesHand: boolean) =>
 
             stream.writeUnsignedVarInt(value.transactionType);
             stream.writeUnsignedVarInt(value.inventoryActions.length);
-            for (const action of value.inventoryActions) action.toNetwork(stream);
+            for (const action of value.inventoryActions) writeInventoryAction(stream, action);
 
             const data = value.transactionData;
             switch (value.transactionType) {
@@ -109,7 +97,7 @@ const transactionBody = (carriesHand: boolean) =>
                     stream.writeVarInt(data.actionType);
                     stream.writeVarInt(data.hotbarSlot);
                     if (carriesHand) stream.writeByte(value.hand);
-                    data.itemInHand.networkSerialize(stream);
+                    writeItemStackDescriptor(stream, data.itemInHand);
                     NetworkUtil.writeVector3(stream, data.playerPosition);
                     NetworkUtil.writeVector3(stream, data.clickPosition);
                     break;
@@ -120,7 +108,7 @@ const transactionBody = (carriesHand: boolean) =>
                     }
                     stream.writeVarInt(data.actionType);
                     stream.writeVarInt(data.hotbarSlot);
-                    data.itemInHand.networkSerialize(stream);
+                    writeItemStackDescriptor(stream, data.itemInHand);
                     NetworkUtil.writeVector3(stream, data.playerPosition);
                     // The release-item body gained a trailing Hand; it is the packet's last field.
                     if (carriesHand) stream.writeByte(value.hand);
@@ -139,7 +127,9 @@ const transactionBody = (carriesHand: boolean) =>
                     `An inventory transaction carried ${actionsCount} actions; the docs allow ${MAX_INVENTORY_ACTIONS}`
                 );
             }
-            const inventoryActions = Array.from({ length: actionsCount }, () => InventoryAction.fromNetwork(stream));
+            const inventoryActions: InventoryActionData[] = Array.from({ length: actionsCount }, () =>
+                readInventoryAction(stream)
+            );
 
             let transactionData: TransactionPayload['transactionData'] = null;
             let hand = 0;
@@ -170,7 +160,7 @@ const transactionBody = (carriesHand: boolean) =>
                         entityRuntimeId,
                         actionType,
                         hotbarSlot,
-                        itemInHand: Item.networkDeserialize(stream),
+                        itemInHand: readItemStackDescriptor(stream),
                         playerPosition: new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE()),
                         clickPosition: new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE())
                     };
@@ -181,7 +171,7 @@ const transactionBody = (carriesHand: boolean) =>
                         kind: 'releaseItem',
                         actionType: stream.readVarInt(),
                         hotbarSlot: stream.readVarInt(),
-                        itemInHand: Item.networkDeserialize(stream),
+                        itemInHand: readItemStackDescriptor(stream),
                         playerPosition: new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE())
                     };
                     if (carriesHand) hand = stream.readByte();

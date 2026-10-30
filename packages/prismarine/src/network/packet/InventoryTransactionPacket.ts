@@ -1,12 +1,41 @@
-import type BinaryStream from '@jsprismarine/binaryutils';
-import { Vector3 } from '@jsprismarine/math';
 import { layoutAt } from '@jsprismarine/protocol';
+import { inventoryTransactionPacket } from '@jsprismarine/protocol/wire/definitions/inventoryTransaction';
+import {
+    readInventoryAction,
+    readUseItemData as readWireUseItemData,
+    writeInventoryAction,
+    writeUseItemData as writeWireUseItemData
+} from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
+import type { LegacySlotChange, TransactionType } from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
+import { HandSlot } from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
 import { Item } from '../../item/Item';
-import type BlockPosition from '../../world/BlockPosition';
-import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
-import { inventoryTransactionPacket } from './inventoryTransaction.wire';
-import type { LegacyTransactionRequest, TransactionPayload } from './inventoryTransaction.wire';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
+import type {
+    InventoryActionData,
+    LegacyTransactionRequest,
+    ReleaseItemData as WireReleaseItemData,
+    TransactionData as WireTransactionData,
+    TransactionPayload as WireTransactionPayload,
+    UseItemData as WireUseItemData,
+    UseItemOnEntityData as WireUseItemOnEntityData
+} from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
+
+/**
+ * Re-export: the transaction's enums, its legacy slot entry and its request rule are wire
+ * code and live in `@jsprismarine/protocol`. These names stay so the server's importers and
+ * its handlers keep working.
+ */
+export {
+    hasLegacyRequest,
+    HandSlot,
+    InventorySourceType,
+    LegacySlotChange,
+    MAX_INVENTORY_ACTIONS,
+    TransactionType
+} from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
+export type { LegacyTransactionRequest } from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
 
 /** The docs' `ItemUseActionType`: what the client did with the item in hand. */
 export enum ItemUseActionType {
@@ -47,100 +76,23 @@ export enum ItemReleaseActionType {
 }
 
 /**
- * The Transaction variant index, the docs' `ComplexInventoryTransaction::Type`.
- *
- * It selects which body follows the Actions list. Normal and Mismatch have no body of
- * their own. A 2193 client moves items between slots through `ItemStackRequestPacket`, so
- * what it still sends here is `USE_ITEM`, `USE_ITEM_ON_ENTITY` and `RELEASE_ITEM`.
- */
-export enum TransactionType {
-    NORMAL,
-    MISMATCH,
-    USE_ITEM,
-    USE_ITEM_ON_ENTITY,
-    RELEASE_ITEM
-}
-
-/** Which hand an item was used from. The docs' `HandSlot`. */
-export enum HandSlot {
-    MAINHAND,
-    OFFHAND
-}
-
-/**
- * The docs' runtime constraint on the Actions list: "Verify that the number of
- * InventoryActions does not exceed 100". The reader refuses a longer list before
- * allocating it.
- */
-export const MAX_INVENTORY_ACTIONS = 100;
-
-/**
- * One of the docs' Legacy Set Item Slots: a Container Enum (uint8) and its Slots
- * (varuint count, then one uint8 per slot).
- *
- * The client sends these alongside a valid Legacy Request ID to say which open containers and
- * slots the request touches.
- */
-export class LegacySlotChange {
-    public constructor(
-        public containerId: number,
-        public slots: number[]
-    ) {}
-
-    /** Reads one entry in the docs' order: Container Enum, then the Slots list. */
-    public static fromNetwork(stream: BinaryStream): LegacySlotChange {
-        const containerId = stream.readByte();
-        const slotCount = stream.readUnsignedVarInt();
-        const slots = Array.from(stream.read(slotCount));
-        return new LegacySlotChange(containerId, slots);
-    }
-
-    /** The mirror of {@link LegacySlotChange.fromNetwork}. */
-    public toNetwork(stream: BinaryStream): void {
-        stream.writeByte(this.containerId);
-        stream.writeUnsignedVarInt(this.slots.length);
-        stream.write(Buffer.from(this.slots));
-    }
-}
-
-/**
- * The docs' `InventorySourceType`: which inventory an action's slot belongs to.
- *
- * The docs name five: Container Inventory, Global Inventory, World Interaction, Creative
- * Inventory and Non Implemented Feature TODO. Every member is a wire value; a source the
- * client sends that is not one of these stays on the action as the number it was, and the
- * handler drops the transaction.
- */
-export enum InventorySourceType {
-    /** Container Inventory. */
-    CONTAINER,
-    /** Global Inventory. */
-    GLOBAL,
-    /** World Interaction. */
-    WORLD,
-    /** Creative Inventory. */
-    CREATIVE,
-    /**
-     * Non Implemented Feature TODO.
-     *
-     * The 2193 docs page lists this as 4 because the schema carries no values and the page
-     * numbers such members in order. The 2207 page's changelog "changes" it to 99999, the
-     * value gophertunnel and PocketMine have read and written at every protocol, and the one
-     * the client sends.
-     */
-    NON_IMPLEMENTED_TODO = 99999
-}
-
-/**
  * One of the docs' Actions: a slot that changes, with the item it held before and after.
  *
- * Wire order is Source Type (varuint), Container ID (optional int8), Bit Flags (optional
- * varuint), Slot (varuint), From Item, To Item. The two optionals each carry their own
- * presence byte.
+ * The wire form, which carries each stack as a `NetworkItemStackDescriptor`, is
+ * `InventoryActionData` in `@jsprismarine/protocol`. This is the server's form: the same six
+ * fields with the stacks resolved to `Item`s, converted at the stream boundary.
  */
 export class InventoryAction {
+    /**
+     * Creates an action.
+     * @param sourceType - The docs' Source Type, as read. An `InventorySourceType` when the client sent a known one.
+     * @param windowId - Container ID, or `null` when the action carries none.
+     * @param sourceFlags - Bit Flags, or `null` when the action carries none.
+     * @param targetSlot - Slot.
+     * @param oldItem - From Item.
+     * @param newItem - To Item.
+     */
     public constructor(
-        /** The docs' Source Type, as read. An {@link InventorySourceType} when the client sent a known one. */
         public sourceType: number,
         public windowId: number | null,
         public sourceFlags: number | null,
@@ -150,140 +102,98 @@ export class InventoryAction {
     ) {}
 
     /**
-     * Reads one action.
-     *
-     * The Container ID and the Bit Flags are each an optional with its own presence byte. Up
-     * to protocol 748 the reader inferred their presence from the Source Type. The client still
-     * sets each byte by that rule (a container has a Container ID, the world has Bit Flags),
-     * but the byte is what is on the wire, and a reader that infers instead of reading is one
-     * field off as soon as the two disagree. The Container ID is a single signed byte, where it
-     * used to be a varint.
+     * Reads one action off the stream and resolves its two stacks.
+     * @param stream - The stream positioned at the Source Type.
+     * @returns The action.
      */
     public static fromNetwork(stream: BinaryStream): InventoryAction {
-        const sourceType = stream.readUnsignedVarInt();
-        const windowId = stream.readBoolean() ? stream.readSignedByte() : null;
-        const sourceFlags = stream.readBoolean() ? stream.readUnsignedVarInt() : null;
+        return InventoryAction.fromWire(stream, readInventoryAction(stream));
+    }
+
+    /**
+     * The action a wire record describes.
+     * @param stream - The stream the record came off, which names the item numbering.
+     * @param action - The six wire fields.
+     * @returns The action, with its stacks resolved.
+     */
+    public static fromWire(stream: BinaryStream, action: InventoryActionData): InventoryAction {
         return new InventoryAction(
-            sourceType,
-            windowId,
-            sourceFlags,
-            stream.readUnsignedVarInt(),
-            Item.networkDeserialize(stream),
-            Item.networkDeserialize(stream)
+            action.sourceType,
+            action.windowId,
+            action.sourceFlags,
+            action.targetSlot,
+            Item.fromStackDescriptor(stream, action.oldItem),
+            Item.fromStackDescriptor(stream, action.newItem)
         );
     }
 
-    /** The mirror of {@link InventoryAction.fromNetwork}. */
+    /**
+     * The mirror of {@link InventoryAction.fromNetwork}.
+     * @param stream - The stream to append to.
+     */
     public toNetwork(stream: BinaryStream): void {
-        stream.writeUnsignedVarInt(this.sourceType);
-        stream.writeBoolean(this.windowId !== null);
-        if (this.windowId !== null) stream.writeSignedByte(this.windowId);
-        stream.writeBoolean(this.sourceFlags !== null);
-        if (this.sourceFlags !== null) stream.writeUnsignedVarInt(this.sourceFlags);
-        stream.writeUnsignedVarInt(this.targetSlot);
-        this.oldItem.networkSerialize(stream);
-        this.newItem.networkSerialize(stream);
+        writeInventoryAction(stream, this.toWire(stream));
+    }
+
+    /**
+     * This action as the wire record, with both stacks as descriptors.
+     * @param stream - The stream the action is bound for, which names the item numbering.
+     * @returns The six wire fields.
+     */
+    public toWire(stream: BinaryStream): InventoryActionData {
+        return {
+            sourceType: this.sourceType,
+            windowId: this.windowId,
+            sourceFlags: this.sourceFlags,
+            targetSlot: this.targetSlot,
+            oldItem: this.oldItem.toStackDescriptor(stream),
+            newItem: this.newItem.toStackDescriptor(stream)
+        };
     }
 }
 
 /** Which transaction body a packet carries; the field every reader narrows on. */
-export type TransactionKind = 'useItem' | 'useItemOnEntity' | 'releaseItem';
+export type TransactionKind = WireTransactionData['kind'];
 
-/**
- * The fields every transaction body shares. The docs call them Action Type, Slot and Item.
- */
-export interface TransactionData {
-    kind: TransactionKind;
-    actionType: number;
-    hotbarSlot: number;
-    itemInHand: Item;
-}
+/** The fields every transaction body shares, with the stack as an `Item`. */
+export type TransactionData = WireTransactionData<Item>;
 
-/**
- * The docs' `ItemUseInventoryTransaction`: the item in hand used on a block or on nothing.
- *
- * Wire order is Action Type (varint), Trigger Type (uint8), Position (BlockPos), Face (uint8),
- * Slot (varint), Hand (uint8), Item, From Position (Vec3), Click Position (Vec3), Target Block
- * Id (varuint), Client Interact Prediction (uint8), Client Cooldown State (uint8).
- */
-export interface UseItemData extends TransactionData {
-    kind: 'useItem';
-    /** The docs' Trigger Type: 1 for the player's own input, 2 for a held input replayed each tick. */
-    triggerType: number;
-    /** The docs' Position: the block that was clicked. */
-    blockPosition: BlockPosition;
-    /** The docs' Face. */
-    blockFace: number;
-    /** Which hand the item was in. Added at 2193. */
-    hand: HandSlot;
-    /** The docs' From Position: where the player stood when sending this. */
-    playerPosition: Vector3;
-    /** The docs' Click Position: where on the block face the click landed. */
-    clickPosition: Vector3;
-    /** The docs' Target Block Id: the runtime id of the clicked block's state. */
-    blockRuntimeId: number;
-    /** What the client has already drawn on its own screen, expecting the server to agree. */
-    clientInteractPrediction: number;
-    /** Whether the client thinks the item is on cooldown. */
-    clientCooldownState: number;
+/** The docs' `ItemUseInventoryTransaction`, with the stack as an `Item`. */
+export type UseItemData = WireUseItemData<Item>;
+
+/** The docs' `ItemUseOnActorInventoryTransaction`, with the stack as an `Item`. */
+export type UseItemOnEntityData = WireUseItemOnEntityData<Item>;
+
+/** The docs' `ItemReleaseInventoryTransaction`, with the stack as an `Item`. */
+export type ReleaseItemData = WireReleaseItemData<Item>;
+
+/** The variant index, the actions and the selected body, with the stacks as `Item`s. */
+export interface TransactionPayload extends Omit<WireTransactionPayload<Item>, 'inventoryActions'> {
+    inventoryActions: InventoryAction[];
 }
 
 /**
  * Reads the body of a use-item transaction: everything after the Actions.
  *
  * Shared with `PlayerAuthInputPacket`, which carries the same transaction inside itself when
- * the client used an item in the same tick it moved. The two packets differ only in what
- * surrounds this. Property order is read order, so these lines are the wire layout.
+ * the client used an item in the same tick it moved. The layout is the protocol package's;
+ * this resolves the stack it read into an `Item`.
+ * @param stream - The stream positioned at the Action Type.
+ * @returns The body, with its stack resolved.
  */
-export const readUseItemData = (stream: BinaryStream): UseItemData => ({
-    kind: 'useItem',
-    actionType: stream.readVarInt(),
-    triggerType: stream.readByte(),
-    blockPosition: NetworkUtil.readBlockPosition(stream),
-    blockFace: stream.readByte(),
-    hotbarSlot: stream.readVarInt(),
-    hand: stream.readByte(),
-    itemInHand: Item.networkDeserialize(stream),
-    playerPosition: new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE()),
-    clickPosition: new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE()),
-    blockRuntimeId: stream.readUnsignedVarInt(),
-    clientInteractPrediction: stream.readByte(),
-    clientCooldownState: stream.readByte()
-});
+export const readUseItemData = (stream: BinaryStream): UseItemData => {
+    const data = readWireUseItemData(stream);
+    return { ...data, itemInHand: Item.fromStackDescriptor(stream, data.itemInHand) };
+};
 
 /**
- * The docs' `ItemUseOnActorInventoryTransaction`: the item in hand used on an entity.
- *
- * Wire order is Runtime Id (varuint64), Action Type (varint), Slot (varint), Item, From
- * Position (Vec3), Hit Position (Vec3).
+ * The mirror of {@link readUseItemData}.
+ * @param stream - The stream to append to.
+ * @param data - The body to write.
  */
-export interface UseItemOnEntityData extends TransactionData {
-    kind: 'useItemOnEntity';
-    /** The docs' Runtime Id: the entity that was clicked. */
-    entityRuntimeId: bigint;
-    /** The docs' From Position: where the player stood when sending this. */
-    playerPosition: Vector3;
-    /** The docs' Hit Position: where on the entity the click landed. */
-    clickPosition: Vector3;
-}
-
-/**
- * The docs' `ItemReleaseInventoryTransaction`: a held item let go of, such as a bow firing.
- *
- * Wire order is Action Type (varint), Slot (varint), Item, From Position (Vec3).
- */
-export interface ReleaseItemData extends TransactionData {
-    kind: 'releaseItem';
-    /** The docs' From Position: where the player stood when sending this. */
-    playerPosition: Vector3;
-}
-
-/**
- * The docs' validity rule for a Legacy Request ID: negative and even. Zero means no request,
- * and the Legacy Set Item Slots list is only on the wire when the id is valid.
- */
-export const hasLegacyRequest = (legacyRequestId: number): boolean =>
-    legacyRequestId < -1 && (legacyRequestId & 1) === 0;
+export const writeUseItemData = (stream: BinaryStream, data: UseItemData): void => {
+    writeWireUseItemData(stream, { ...data, itemInHand: data.itemInHand.toStackDescriptor(stream) });
+};
 
 /**
  * Packet 30. The client's item use, attack, release or container move.
@@ -330,30 +240,40 @@ export default class InventoryTransactionPacket extends DataPacket {
         this.legacySlotChanges = value.legacySlotChanges;
     }
 
-    /** The transaction fields as the 2193 body shape carries them; null never travels out. */
-    public get transaction(): TransactionPayload {
+    /**
+     * The transaction as the layout carries it: the stacks as descriptors, which is the form
+     * the protocol package writes. Null never travels out.
+     */
+    public get transaction(): WireTransactionPayload {
+        const data = this.transactionData;
         return {
             transactionType: this.transactionType,
-            inventoryActions: this.inventoryActions,
-            transactionData: this.transactionData,
+            inventoryActions: this.inventoryActions.map((action) => action.toWire(this)),
+            transactionData: data === null ? null : { ...data, itemInHand: data.itemInHand.toStackDescriptor(this) },
             hand: this.hand
         };
     }
 
-    public set transaction(value: TransactionPayload | null) {
+    public set transaction(value: WireTransactionPayload | null) {
         if (value === null) return; // The fallback of the shape the stamped version left off.
         this.transactionType = value.transactionType;
-        this.inventoryActions = value.inventoryActions;
-        this.transactionData = value.transactionData;
+        this.inventoryActions = value.inventoryActions.map((action) => InventoryAction.fromWire(this, action));
+        this.transactionData =
+            value.transactionData === null
+                ? null
+                : {
+                      ...value.transactionData,
+                      itemInHand: Item.fromStackDescriptor(this, value.transactionData.itemInHand)
+                  };
         this.hand = value.hand;
     }
 
     /** The same fields as the hand-carrying 2225 body shape; the layout picks one of the two. */
-    public get transactionWithHand(): TransactionPayload {
+    public get transactionWithHand(): WireTransactionPayload {
         return this.transaction;
     }
 
-    public set transactionWithHand(value: TransactionPayload | null) {
+    public set transactionWithHand(value: WireTransactionPayload | null) {
         this.transaction = value;
     }
 
@@ -385,19 +305,3 @@ export default class InventoryTransactionPacket extends DataPacket {
         Object.assign(this, layoutAt(inventoryTransactionPacket, this.codecProtocol).decode(this));
     }
 }
-
-/** The mirror of {@link readUseItemData}. */
-export const writeUseItemData = (stream: BinaryStream, data: UseItemData): void => {
-    stream.writeVarInt(data.actionType);
-    stream.writeByte(data.triggerType);
-    NetworkUtil.writeBlockPosition(stream, data.blockPosition);
-    stream.writeByte(data.blockFace);
-    stream.writeVarInt(data.hotbarSlot);
-    stream.writeByte(data.hand);
-    data.itemInHand.networkSerialize(stream);
-    NetworkUtil.writeVector3(stream, data.playerPosition);
-    NetworkUtil.writeVector3(stream, data.clickPosition);
-    stream.writeUnsignedVarInt(data.blockRuntimeId);
-    stream.writeByte(data.clientInteractPrediction);
-    stream.writeByte(data.clientCooldownState);
-};

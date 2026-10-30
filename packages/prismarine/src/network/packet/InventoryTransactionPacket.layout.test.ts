@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from './InventoryTransactionPacket';
-import { inventoryTransactionPacket } from './inventoryTransaction.wire';
+import { inventoryTransactionPacket } from '@jsprismarine/protocol/wire/definitions/inventoryTransaction';
 
 import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from './InventoryTransactionPacket';
 
@@ -51,6 +51,15 @@ describe('the declarative InventoryTransaction layout against the packet classes
         playerPosition: new Vector3(1.5, 64, -2.25)
     });
 
+    /**
+     * The same body as the layout carries it: the stack as a `NetworkItemStackDescriptor`,
+     * which is the only difference between the server's form and the wire's.
+     */
+    const wire = (data: UseItemData | UseItemOnEntityData | ReleaseItemData) => ({
+        ...data,
+        itemInHand: data.itemInHand.toStackDescriptor(new BinaryStream())
+    });
+
     const fill = <T extends InventoryTransactionPacket>(
         packet: T,
         type: TransactionType,
@@ -65,7 +74,7 @@ describe('the declarative InventoryTransaction layout against the packet classes
     };
 
     const payload = (type: TransactionType, data: UseItemData | UseItemOnEntityData | ReleaseItemData) => {
-        const transaction = { transactionType: type, inventoryActions: [], transactionData: data, hand: 0 };
+        const transaction = { transactionType: type, inventoryActions: [], transactionData: wire(data), hand: 0 };
         return {
             legacyRequest: { legacyRequestId: 0, legacySlotChanges: [] },
             transaction,
@@ -99,7 +108,12 @@ describe('the declarative InventoryTransaction layout against the packet classes
             const stream = new BinaryStream();
             layoutAt(inventoryTransactionPacket, 2225).encode(stream, {
                 ...payload(type, data()),
-                transactionWithHand: { transactionType: type, inventoryActions: [], transactionData: data(), hand: 1 }
+                transactionWithHand: {
+                    transactionType: type,
+                    inventoryActions: [],
+                    transactionData: wire(data()),
+                    hand: 1
+                }
             });
 
             expect(stream.getBuffer()).toEqual(classPacket.getBuffer());
@@ -132,7 +146,7 @@ describe('the declarative InventoryTransaction layout against the packet classes
             transactionWithHand: {
                 transactionType: TransactionType.USE_ITEM_ON_ENTITY,
                 inventoryActions: [],
-                transactionData: useOnEntityData(),
+                transactionData: wire(useOnEntityData()),
                 hand: HandSlot.OFFHAND
             }
         });

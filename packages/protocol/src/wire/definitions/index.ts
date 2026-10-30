@@ -15,6 +15,7 @@ import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
 import { gameRulesChangedPacket } from './gameRulesChanged';
+import { inventoryTransactionPacket } from './inventoryTransaction';
 import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
@@ -60,6 +61,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         cameraPresetsPacket,
         chunkRadiusUpdatedPacket,
         gameRulesChangedPacket,
+        inventoryTransactionPacket,
         jigsawStructureDataPacket,
         levelChunkPacket,
         levelEventGenericPacket,
