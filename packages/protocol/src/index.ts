@@ -64,6 +64,7 @@ export * from './wire/definitions/playerSkin';
 export * from './wire/definitions/playStatus';
 export * from './wire/definitions/resourcePacks';
 export * from './wire/definitions/serverToClientHandshake';
+export * from './wire/definitions/scoreboard';
 export * from './wire/definitions/setActorData';
 export * from './wire/definitions/startGame';
 export * from './wire/definitions/syncActorProperty';

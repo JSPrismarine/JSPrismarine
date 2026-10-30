@@ -1,0 +1,146 @@
+/**
+ * The scoreboard packets: registering an objective, filling it with lines, and taking it away.
+ *
+ * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
+ */
+import { definePacket } from '../define';
+import * as t from '../fieldTypes';
+
+import type { PayloadOf } from '../define';
+import type { WireType } from '../fieldTypes';
+
+/** Which alternative of the `Score Info` `oneOf` an entry is, as the varuint32 selector numbers it. */
+export enum ScorePacketEntryAction {
+    Remove = 0,
+    ChangePlayer = 1,
+    ChangeEntity = 2,
+    ChangeFakePlayer = 3
+}
+
+/**
+ * The `Action` string each alternative writes after the selector.
+ *
+ * Lower case, matching gophertunnel and the casing `ResourcePackClientResponsePacket` already
+ * proved on the wire. Mojang's docs list them as `Remove`, `ChangePlayer`, `ChangeEntity` and
+ * `ChangeFakePlayer`. Decoding discards the string, so either casing reads.
+ */
+const ACTION_NAMES: Record<ScorePacketEntryAction, string> = {
+    [ScorePacketEntryAction.Remove]: 'remove',
+    [ScorePacketEntryAction.ChangePlayer]: 'changeplayer',
+    [ScorePacketEntryAction.ChangeEntity]: 'changeentity',
+    [ScorePacketEntryAction.ChangeFakePlayer]: 'changefakeplayer'
+};
+
+const isScorePacketEntryAction = (value: number): value is ScorePacketEntryAction => value in ACTION_NAMES;
+
+/** One line of a scoreboard, or the instruction to drop one. */
+export type ScorePacketEntry =
+    | {
+          action: ScorePacketEntryAction.Remove;
+          scoreboardId: bigint;
+          /** When set, only this objective's score is reset. When absent, every objective's is. */
+          objectiveName?: string;
+      }
+    | {
+          action: ScorePacketEntryAction.ChangePlayer;
+          scoreboardId: bigint;
+          objectiveName: string;
+          scoreValue: number;
+          playerUniqueId: bigint;
+      }
+    | {
+          action: ScorePacketEntryAction.ChangeEntity;
+          scoreboardId: bigint;
+          objectiveName: string;
+          scoreValue: number;
+          actorId: bigint;
+      }
+    | {
+          action: ScorePacketEntryAction.ChangeFakePlayer;
+          scoreboardId: bigint;
+          objectiveName: string;
+          scoreValue: number;
+          fakePlayerName: string;
+      };
+
+/**
+ * `Score Info`: one entry, under whichever of the four alternatives its selector names.
+ *
+ * Which fields travel is decided by the entry's own action, not by the protocol version, so
+ * the branch lives in this wire type's reader and writer rather than in a gate.
+ */
+export const scorePacketEntry: WireType<ScorePacketEntry> = t.custom(
+    'ScoreInfo',
+    (stream, entry) => {
+        t.varuint32.write(stream, entry.action);
+        t.string.write(stream, ACTION_NAMES[entry.action]);
+        t.varint64.write(stream, entry.scoreboardId);
+
+        if (entry.action === ScorePacketEntryAction.Remove) {
+            if (entry.objectiveName === undefined) {
+                t.bool.write(stream, false);
+            } else {
+                t.bool.write(stream, true);
+                t.string.write(stream, entry.objectiveName);
+            }
+
+            return;
+        }
+
+        t.string.write(stream, entry.objectiveName);
+        t.li32.write(stream, entry.scoreValue);
+
+        switch (entry.action) {
+            case ScorePacketEntryAction.ChangePlayer:
+                t.varint64.write(stream, entry.playerUniqueId);
+                break;
+            case ScorePacketEntryAction.ChangeEntity:
+                t.varint64.write(stream, entry.actorId);
+                break;
+            case ScorePacketEntryAction.ChangeFakePlayer:
+                t.string.write(stream, entry.fakePlayerName);
+                break;
+        }
+    },
+    (stream) => {
+        const action = t.varuint32.read(stream);
+        if (!isScorePacketEntryAction(action)) throw new Error(`Unknown set score alternative ${action}`);
+
+        t.string.read(stream);
+        const scoreboardId = t.varint64.read(stream);
+
+        if (action === ScorePacketEntryAction.Remove) {
+            const entry: ScorePacketEntry = { action, scoreboardId };
+            if (t.bool.read(stream)) entry.objectiveName = t.string.read(stream);
+            return entry;
+        }
+
+        const objectiveName = t.string.read(stream);
+        const scoreValue = t.li32.read(stream);
+
+        switch (action) {
+            case ScorePacketEntryAction.ChangePlayer:
+                return { action, scoreboardId, objectiveName, scoreValue, playerUniqueId: t.varint64.read(stream) };
+            case ScorePacketEntryAction.ChangeEntity:
+                return { action, scoreboardId, objectiveName, scoreValue, actorId: t.varint64.read(stream) };
+            case ScorePacketEntryAction.ChangeFakePlayer:
+                return { action, scoreboardId, objectiveName, scoreValue, fakePlayerName: t.string.read(stream) };
+        }
+    }
+);
+
+/**
+ * The `SetScorePacket` field list.
+ *
+ * The docs mark `Score Info` itself optional at 2193 and record it losing that marking at 2207.
+ * No presence byte travels here: gophertunnel at 2193 writes the bare count, and a presence
+ * byte would push every entry one byte out.
+ */
+export const setScorePacket = definePacket('SetScorePacket', {
+    /** `Score Info`: the lines to add, change or remove. */
+    entries: t.list(scorePacketEntry)
+});
+
+/** What `SetScorePacket` carries. */
+export type SetScorePayload = PayloadOf<typeof setScorePacket>;
