@@ -4,9 +4,9 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import BlockPosition from '../../world/BlockPosition';
 import type PlayerSession from '../PlayerSession';
-import CommandBlockUpdatePacket, { CommandBlockMode } from '../packet/CommandBlockUpdatePacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import CommandBlockUpdatePacket, { CommandBlockMode } from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
 import CommandBlockUpdateHandler from './CommandBlockUpdateHandler';
 
 const fakeSession = () => {
@@ -22,15 +22,21 @@ const fakeSession = () => {
 describe('CommandBlockUpdateHandler', () => {
     it('logs a block target with its mode and position', () => {
         const { logged, server, session } = fakeSession();
-        const packet = Object.assign(new CommandBlockUpdatePacket(), {
+        const packet = new CommandBlockUpdatePacket({
             target: {
                 isBlock: true,
-                blockPosition: new BlockPosition(1, 2, 3),
+                blockPosition: new BlockPos(1, 2, 3),
                 commandBlockMode: CommandBlockMode.Chain,
                 redstoneMode: true,
                 isConditional: false
             },
-            command: 'say hi'
+            command: 'say hi',
+            lastOutput: '',
+            name: '',
+            filteredName: '',
+            trackOutput: false,
+            tickDelay: 0,
+            executeOnFirstTick: false
         });
 
         new CommandBlockUpdateHandler().handle(packet, server, session);
@@ -42,9 +48,15 @@ describe('CommandBlockUpdateHandler', () => {
 
     it('logs a minecart target by runtime id', () => {
         const { logged, server, session } = fakeSession();
-        const packet = Object.assign(new CommandBlockUpdatePacket(), {
+        const packet = new CommandBlockUpdatePacket({
             target: { isBlock: false, targetRuntimeId: 9n },
-            command: 'tp @p 0 64 0'
+            command: 'tp @p 0 64 0',
+            lastOutput: '',
+            name: '',
+            filteredName: '',
+            trackOutput: false,
+            tickDelay: 0,
+            executeOnFirstTick: false
         });
 
         new CommandBlockUpdateHandler().handle(packet, server, session);

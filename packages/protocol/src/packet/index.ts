@@ -1,6 +1,7 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
 import AddPaintingPacket from './AddPaintingPacket';
 import BossEventPacket from './BossEventPacket';
+import CommandBlockUpdatePacket from './CommandBlockUpdatePacket';
 import ChangeDimensionPacket from './ChangeDimensionPacket';
 import ClientToServerHandshakePacket from './ClientToServerHandshakePacket';
 import CraftingDataPacket from './CraftingDataPacket';
@@ -74,6 +75,7 @@ export {
     ChunkRadiusUpdatedPacket,
     AddPaintingPacket,
     BossEventPacket,
+    CommandBlockUpdatePacket,
     ClientToServerHandshakePacket,
     CraftingDataPacket,
     CreativeContentPacket,
@@ -158,6 +160,7 @@ export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 export { CompressionThreshold } from './NetworkSettingsPacket';
 export { TextPacketType } from './TextPacket';
 export { BossBarColor, BossBarOverlay, BossEventUpdateType } from './BossEventPacket';
+export { CommandBlockMode } from './CommandBlockUpdatePacket';
 export { CreditsState } from './ShowCreditsPacket';
 export { PacketViolationSeverity, PacketViolationType } from './PacketViolationWarningPacket';
 export { PhotoType } from './PhotoTransferPacket';
@@ -176,6 +179,7 @@ export type {
     SmithingTransformRecipe
 } from './CraftingDataPacket';
 export type { Disconnect } from './DisconnectPacket';
+export type { CommandBlockTarget, CommandBlockUpdate } from './CommandBlockUpdatePacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { LevelEvent } from './LevelEventPacket';
 export type { LecternUpdate } from './LecternUpdatePacket';

@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type CommandBlockUpdatePacket from '../packet/CommandBlockUpdatePacket';
-import { CommandBlockMode } from '../packet/CommandBlockUpdatePacket';
+import type CommandBlockUpdatePacket from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
+import { CommandBlockMode } from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -16,15 +16,18 @@ export default class CommandBlockUpdateHandler implements PacketHandler<CommandB
 
     /** Logs the target and the command. */
     public handle(packet: CommandBlockUpdatePacket, server: Server, session: PlayerSession): void {
-        const { target } = packet;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a CommandBlockUpdatePacket without decoded data');
+
+        const { target } = data;
         const where = target.isBlock
-            ? `the ${CommandBlockMode[target.commandBlockMode] ?? target.commandBlockMode} command block at ${target.blockPosition.getX()}, ${target.blockPosition.getY()}, ${target.blockPosition.getZ()}`
+            ? `the ${CommandBlockMode[target.commandBlockMode] ?? target.commandBlockMode} command block at ${target.blockPosition.x}, ${target.blockPosition.y}, ${target.blockPosition.z}`
             : `command block minecart ${target.targetRuntimeId}`;
 
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} set ${where} to "${packet.command}". Command blocks are not stored, so nothing changed`,
+                `${session.getPlayer().getName()} set ${where} to "${data.command}". Command blocks are not stored, so nothing changed`,
                 'CommandBlockUpdateHandler/handle'
             );
     }

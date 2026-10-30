@@ -31,7 +31,7 @@ import ClientboundMatchmakingStatePacket from '@jsprismarine/protocol/packet/Cli
 import ClientboundPlayAudioContentPacket from '@jsprismarine/protocol/packet/ClientboundPlayAudioContentPacket';
 import ClientboundStonecutterSetRecipePacket from '@jsprismarine/protocol/packet/ClientboundStonecutterSetRecipePacket';
 import CodeBuilderPacket from '@jsprismarine/protocol/packet/CodeBuilderPacket';
-import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
+import CommandBlockUpdatePacket from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
 import CompletedUsingItemPacket from '@jsprismarine/protocol/packet/CompletedUsingItemPacket';
 import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
