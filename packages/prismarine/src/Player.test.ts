@@ -19,7 +19,7 @@ import { MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structu
 import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
-import DeathInfoPacket from './network/packet/DeathInfoPacket';
+import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
@@ -572,8 +572,8 @@ describe('Player', () => {
 
             const deaths = sent.filter((packet) => packet instanceof DeathInfoPacket);
             expect(deaths).toHaveLength(1);
-            expect(deaths[0]?.cause).toBe('death.attack.drown');
-            expect(deaths[0]?.messages).toEqual(['Tester']);
+            expect(deaths[0]?.getPacketData()?.cause).toBe('death.attack.drown');
+            expect(deaths[0]?.getPacketData()?.messages).toEqual(['Tester']);
             expect(sent.indexOf(deaths[0])).toBeGreaterThan(
                 sent.findIndex((packet) => packet instanceof RespawnPacket)
             );

@@ -15,7 +15,7 @@ import BlockPosition from '../../world/BlockPosition';
 import Flat from '../../world/generators/Flat';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
-import FeatureRegistryPacket from '../packet/FeatureRegistryPacket';
+import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
 import type ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
@@ -261,7 +261,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         await connection.sendDataPacket(new AvailableActorIdentifiersPacket());
         await connection.sendDataPacket(new BiomeDefinitionListPacket());
-        await connection.sendDataPacket(new FeatureRegistryPacket());
+        await connection.sendDataPacket(new FeatureRegistryPacket({ features: [] }));
         await session.sendCreativeContents();
         await session.sendCraftingData();
         await session.sendAvailableCommands();

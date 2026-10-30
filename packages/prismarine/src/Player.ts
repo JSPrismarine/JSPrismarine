@@ -23,7 +23,7 @@ import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import DeathInfoPacket from './network/packet/DeathInfoPacket';
+import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import PositionMode from './network/type/PositionMode';
@@ -976,9 +976,7 @@ export default class Player extends Human {
         // The death screen's own copy of the cause, sent after the Respawn as PocketMine's
         // `DeathPacketHandler` does. `DeathInfo` takes the key without the `%` the chat packet
         // wants; see `DeathInfoPacket`.
-        const deathInfo = new DeathInfoPacket();
-        deathInfo.cause = key.replace(/^%/, '');
-        deathInfo.messages = parameters;
+        const deathInfo = new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters });
         await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
 
         const event = new ChatEvent(

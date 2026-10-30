@@ -39,13 +39,13 @@ import ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDa
 import CorrectPlayerMovePredictionPacket from './packet/CorrectPlayerMovePredictionPacket';
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
-import DeathInfoPacket from './packet/DeathInfoPacket';
+import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import DebugInfoPacket from './packet/DebugInfoPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
 import EducationSettingsPacket from '@jsprismarine/protocol/packet/EducationSettingsPacket';
 import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import EmotePacket from '@jsprismarine/protocol/packet/EmotePacket';
-import FeatureRegistryPacket from './packet/FeatureRegistryPacket';
+import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
 import GameRulesChangedPacket from '@jsprismarine/protocol/packet/GameRulesChangedPacket';
 import GuiDataPickItemPacket from './packet/GuiDataPickItemPacket';
 import HurtArmorPacket from '@jsprismarine/protocol/packet/HurtArmorPacket';
