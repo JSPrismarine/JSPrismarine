@@ -113,8 +113,9 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
         const buffer = this.getReadBuffer();
         if (buffer === null) throw new Error(`Cannot decode ${this.getName()} without a read buffer`);
 
-        this.deserialize(new NetworkBinaryStream(buffer), context);
-        this.reuse(buffer);
+        const stream = new NetworkBinaryStream(buffer);
+        this.deserialize(stream, context);
+        this.setReadIndex(stream.getReadIndex());
         this.encoded = true;
     }
 
