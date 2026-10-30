@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import LecternUpdatePacket from '../packet/LecternUpdatePacket';
+import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import LecternUpdateHandler from './LecternUpdateHandler';
 
 const packetAt = (position: BlockPosition) =>
-    Object.assign(new LecternUpdatePacket(), { newPage: 1, totalPages: 3, position });
+    new LecternUpdatePacket({
+        newPage: 1,
+        totalPages: 3,
+        position: new BlockPos(position.getX(), position.getY(), position.getZ())
+    });
 
 describe('LecternUpdateHandler', () => {
     it('logs the page and position of a lectern in reach', () => {

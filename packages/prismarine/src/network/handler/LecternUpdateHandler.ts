@@ -1,6 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type LecternUpdatePacket from '../packet/LecternUpdatePacket';
+import type LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
+import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
@@ -22,7 +23,10 @@ export default class LecternUpdateHandler implements PacketHandler<LecternUpdate
     /** Checks the position names a lectern in reach, then logs the page and position. */
     public handle(packet: LecternUpdatePacket, server: Server, session: PlayerSession): void {
         const player = session.getPlayer();
-        const { position } = packet;
+        const data = packet.getPacketData();
+        if (data === null) throw new Error('Cannot handle a LecternUpdatePacket without decoded data');
+
+        const position = new BlockPosition(data.position.x, data.position.y, data.position.z);
         const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
 
         const rejection = blockTargetRejection(player, position, LECTERNS);
@@ -39,7 +43,7 @@ export default class LecternUpdateHandler implements PacketHandler<LecternUpdate
         server
             .getLogger()
             .debug(
-                `${player.getName()} turned the lectern at ${where} to page ${packet.newPage} of ${packet.totalPages}. Lectern pages are not stored`,
+                `${player.getName()} turned the lectern at ${where} to page ${data.newPage} of ${data.totalPages}. Lectern pages are not stored`,
                 'LecternUpdateHandler/handle'
             );
     }

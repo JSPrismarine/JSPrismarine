@@ -58,7 +58,7 @@ import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
 import LabTablePacket from './packet/LabTablePacket';
-import LecternUpdatePacket from './packet/LecternUpdatePacket';
+import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
 import LegacyTelemetryEventPacket from '@jsprismarine/protocol/packet/LegacyTelemetryEventPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelEventGenericPacket from '@jsprismarine/protocol/packet/LevelEventGenericPacket';
