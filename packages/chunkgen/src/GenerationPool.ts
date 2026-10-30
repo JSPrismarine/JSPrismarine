@@ -27,6 +27,21 @@ import Piscina from 'piscina';
 import type { ChunkStatus } from './ChunkStatus';
 
 /**
+ * Where a compiled Bun executable embedded this package's worker entry, defined at build time
+ * by `.github/scripts/build-aot.mjs`, which passes the worker as an extra compile entrypoint.
+ * Undefined everywhere else.
+ */
+declare const JSP_EMBEDDED_GENERATION_WORKER: string | undefined;
+
+/** The embedded worker entry of a compiled Bun executable, or undefined outside one. */
+const embeddedGenerationWorker = (): string | undefined =>
+    typeof JSP_EMBEDDED_GENERATION_WORKER === 'undefined' ? undefined : JSP_EMBEDDED_GENERATION_WORKER;
+
+/** Whether a specifier names a module inside a compiled Bun executable's virtual filesystem. */
+const insideCompiledBundle = (specifier: string): boolean =>
+    specifier.includes('/$bunfs/') || specifier.includes('~BUN');
+
+/**
  * Whether this process is a compiled executable, which keeps its modules inside the binary.
  *
  * Both packagers this project ships produce one, and both leave a worker thread with no file to
@@ -206,6 +221,9 @@ interface Waiting {
  * have to know which of the two it is running against.
  */
 export const defaultGenerationWorker = (): string => {
+    const embedded = embeddedGenerationWorker();
+    if (embedded !== undefined) return embedded;
+
     const beside = import.meta.url.endsWith('.ts') ? './generationWorker.ts' : './generationWorker.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
@@ -283,8 +301,12 @@ export class GenerationPool {
      * @returns A sentence naming what is missing, or undefined when nothing is.
      */
     public static unavailable(options: GenerationPoolOptions): string | undefined {
-        if (inCompiledBinary()) {
-            return 'a compiled executable keeps its modules in the binary, where a worker thread cannot import them';
+        // A compiled Bun executable embeds the worker entry and the pipeline modules as extra
+        // compile entrypoints, named by build-time constants, so its workers import them from
+        // inside the binary. Only a compiled binary built without them - Node's single
+        // executable has no equivalent - has nothing a worker thread could import.
+        if (inCompiledBinary() && embeddedGenerationWorker() === undefined) {
+            return 'this executable was compiled without its worker entrypoints, which keeps its modules where a worker thread cannot import them';
         }
 
         const entries = [
@@ -292,6 +314,7 @@ export class GenerationPool {
             ['pipeline module', options.pipeline]
         ] as const;
         for (const [what, specifier] of entries) {
+            if (insideCompiledBundle(specifier)) continue; // Embedded; there is no file to check.
             const file = fileBehind(specifier);
             if (file !== undefined && !existsSync(file)) return `the ${what} ${file} is not on disk`;
         }

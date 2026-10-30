@@ -42,9 +42,22 @@ if (
 }
 
 const buildMetadata = ['BUILD_TIME', 'BUILD_GIT_HASH', 'BUILD_VERSION', 'BUILD_FLAVOR', 'BUILD_TYPE'];
+/**
+ * Worker-thread entrypoints the executable embeds beside the server, so the chunk generation
+ * pool runs in a compiled binary: the pool's worker entry and the pipeline modules it imports
+ * dynamically. Bun embeds each extra entrypoint under its repository-relative path in the
+ * binary's virtual filesystem, and the matching `JSP_EMBEDDED_*` defines tell the pool where.
+ */
+const workerEntrypoints = {
+    JSP_EMBEDDED_GENERATION_WORKER: './packages/chunkgen/src/generationWorker.ts',
+    JSP_EMBEDDED_CHUNK_PIPELINE: './packages/prismarine/src/world/generators/datadriven/chunkPipeline.ts',
+    JSP_EMBEDDED_TERRAIN_PIPELINE: './packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts'
+};
+
 const args = [
     'build',
     './packages/server/src/Server.ts',
+    ...Object.values(workerEntrypoints),
     '--compile',
     '--sourcemap',
     `--target=${target}`,
@@ -58,6 +71,19 @@ for (const name of buildMetadata) {
     const value = process.env[name];
     if (!value) throw new Error(`${name} must be set before building an executable`);
     args.push('--define', `${name}=${JSON.stringify(value)}`);
+}
+
+/**
+ * Where an extra entrypoint lands inside the binary. Observed, not documented: Bun names each
+ * chunk by its path relative to the entrypoints' common directory - `packages/`, since every
+ * entry including the server lives under it - and emits `.js`. The build fails below if a
+ * compiled binary stops carrying these names, so a Bun that changes the scheme breaks loudly
+ * here rather than silently costing the pool its workers.
+ */
+const embeddedNameOf = (entry) => `/$bunfs/root/${entry.replace('./packages/', '').replace(/\.ts$/, '.js')}`;
+
+for (const [name, entry] of Object.entries(workerEntrypoints)) {
+    args.push('--define', `${name}=${JSON.stringify(`file://${embeddedNameOf(entry)}`)}`);
 }
 
 if (target.startsWith('bun-windows-')) {
@@ -89,4 +115,14 @@ try {
     execFileSync(bunExecutable, args, { cwd: repositoryRoot, stdio: 'inherit' });
 } finally {
     writeFileSync(embeddedDataPath, checkedInSource);
+}
+
+const binary = readFileSync(path.resolve(repositoryRoot, outputPath));
+for (const entry of Object.values(workerEntrypoints)) {
+    if (!binary.includes(Buffer.from(embeddedNameOf(entry)))) {
+        throw new Error(
+            `${outputPath} does not carry ${embeddedNameOf(entry)}; Bun changed how it names ` +
+                'embedded entrypoints, and the generation pool would silently lose its workers'
+        );
+    }
 }

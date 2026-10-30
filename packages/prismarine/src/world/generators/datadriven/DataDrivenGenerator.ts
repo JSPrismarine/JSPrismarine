@@ -254,9 +254,18 @@ export interface TerrainPoolOptions {
  * is what {@link TerrainPoolOptions.onUnavailable} reports.
  */
 export const defaultTerrainPipeline = (): string => {
+    if (typeof JSP_EMBEDDED_TERRAIN_PIPELINE !== 'undefined') return JSP_EMBEDDED_TERRAIN_PIPELINE;
     const beside = import.meta.url.endsWith('.ts') ? './terrainPipeline.ts' : './terrainPipeline.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
+
+/**
+ * Where a compiled Bun executable embedded the pipeline modules, defined at build time by
+ * `.github/scripts/build-aot.mjs`, which passes them as extra compile entrypoints. Undefined
+ * everywhere else.
+ */
+declare const JSP_EMBEDDED_CHUNK_PIPELINE: string | undefined;
+declare const JSP_EMBEDDED_TERRAIN_PIPELINE: string | undefined;
 
 /**
  * This package's shared-status and legacy whole-chunk pipeline module, beside this file.
@@ -266,6 +275,7 @@ export const defaultTerrainPipeline = (): string => {
  * @returns The path to the module.
  */
 export const defaultChunkPipeline = (): string => {
+    if (typeof JSP_EMBEDDED_CHUNK_PIPELINE !== 'undefined') return JSP_EMBEDDED_CHUNK_PIPELINE;
     const beside = import.meta.url.endsWith('.ts') ? './chunkPipeline.ts' : './chunkPipeline.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
