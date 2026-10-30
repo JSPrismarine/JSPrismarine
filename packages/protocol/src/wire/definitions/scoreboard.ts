@@ -144,3 +144,25 @@ export const setScorePacket = definePacket('SetScorePacket', {
 
 /** What `SetScorePacket` carries. */
 export type SetScorePayload = PayloadOf<typeof setScorePacket>;
+
+/**
+ * The `SetDisplayObjectivePacket` field list.
+ *
+ * The slot names vanilla uses are `list`, `sidebar` and `belowname`, and the criteria name is
+ * always `dummy`: the client tracks no criteria itself.
+ */
+export const setDisplayObjectivePacket = definePacket('SetDisplayObjectivePacket', {
+    /** `DisplaySlotName`: where the objective is shown. */
+    displaySlotName: t.string,
+    /** `ObjectiveName`: what `SetScorePacket` entries refer to the objective by. */
+    objectiveName: t.string,
+    /** `ObjectiveDisplayName`: the title shown above the objective. */
+    objectiveDisplayName: t.string,
+    /** `CriteriaName`. */
+    criteriaName: t.string,
+    /** `SortOrder`: an `ObjectiveSortOrder`. */
+    sortOrder: t.varint32
+});
+
+/** What `SetDisplayObjectivePacket` carries. */
+export type SetDisplayObjectivePayload = PayloadOf<typeof setDisplayObjectivePacket>;

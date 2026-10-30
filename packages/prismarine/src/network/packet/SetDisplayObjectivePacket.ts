@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, setDisplayObjectivePacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /** Which way the client orders an objective's lines, as the `SortOrder` ZigZag varint32 numbers it. */
@@ -15,8 +16,9 @@ export enum ObjectiveSortOrder {
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: DisplaySlotName, ObjectiveName, ObjectiveDisplayName and
- * CriteriaName as strings, then SortOrder as a ZigZag varint32.
+ * The wire layout lives in `@jsprismarine/protocol`'s `setDisplayObjectivePacket` definition:
+ * DisplaySlotName, ObjectiveName, ObjectiveDisplayName and CriteriaName as strings, then
+ * SortOrder as a ZigZag varint32.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-display-objective-packet/
  */
 export default class SetDisplayObjectivePacket extends DataPacket {
@@ -36,19 +38,22 @@ export default class SetDisplayObjectivePacket extends DataPacket {
 
     /** Reads the slot, the two names, the criteria and the sort order. */
     public decodePayload(): void {
-        this.displaySlotName = NetworkUtil.readString(this);
-        this.objectiveName = NetworkUtil.readString(this);
-        this.objectiveDisplayName = NetworkUtil.readString(this);
-        this.criteriaName = NetworkUtil.readString(this);
-        this.sortOrder = this.readVarInt();
+        const read = layoutAt(setDisplayObjectivePacket, this.codecProtocol).decode(this);
+        this.displaySlotName = read.displaySlotName;
+        this.objectiveName = read.objectiveName;
+        this.objectiveDisplayName = read.objectiveDisplayName;
+        this.criteriaName = read.criteriaName;
+        this.sortOrder = read.sortOrder;
     }
 
     /** Writes the slot, the two names, the criteria and the sort order. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.displaySlotName);
-        NetworkUtil.writeString(this, this.objectiveName);
-        NetworkUtil.writeString(this, this.objectiveDisplayName);
-        NetworkUtil.writeString(this, this.criteriaName);
-        this.writeVarInt(this.sortOrder);
+        layoutAt(setDisplayObjectivePacket, this.codecProtocol).encode(this, {
+            displaySlotName: this.displaySlotName,
+            objectiveName: this.objectiveName,
+            objectiveDisplayName: this.objectiveDisplayName,
+            criteriaName: this.criteriaName,
+            sortOrder: this.sortOrder
+        });
     }
 }
