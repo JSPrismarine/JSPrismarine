@@ -43,6 +43,7 @@ export * from './wire/definitions/playStatus';
 export * from './wire/definitions/resourcePacks';
 export * from './wire/definitions/serverToClientHandshake';
 export * from './wire/definitions/startGame';
+export * from './wire/definitions/syncActorProperty';
 export * from './wire/definitions/trimData';
 export * from './wire/definitions/updateAbilities';
 export * from './wire/definitions/updateSubChunkBlocks';

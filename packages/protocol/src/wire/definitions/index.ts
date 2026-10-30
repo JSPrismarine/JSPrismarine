@@ -31,6 +31,7 @@ import {
     updateAdventureSettingsPacket
 } from './worldStatus';
 import { startGamePacket } from './startGame';
+import { syncActorPropertyPacket } from './syncActorProperty';
 import { trimDataPacket } from './trimData';
 import { updateAbilitiesPacket } from './updateAbilities';
 import { updateSubChunkBlocksPacket } from './updateSubChunkBlocks';
@@ -54,6 +55,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         resourcePackStackPacket,
         serverToClientHandshakePacket,
         startGamePacket,
+        syncActorPropertyPacket,
         trimDataPacket,
         updateAbilitiesPacket,
         updateSubChunkBlocksPacket,

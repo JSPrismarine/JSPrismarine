@@ -1,4 +1,5 @@
-import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
+import { NBTTagCompound } from '@jsprismarine/nbt';
+import { layoutAt, syncActorPropertyPacket } from '@jsprismarine/protocol';
 
 import DataPacket from './DataPacket';
 
@@ -20,11 +21,11 @@ export default class SyncActorPropertyPacket extends DataPacket {
 
     /** Reads the property compound. */
     public decodePayload(): void {
-        this.propertyData = NBTTagCompound.readFromStream(this, ByteOrder.LITTLE_ENDIAN, true);
+        Object.assign(this, layoutAt(syncActorPropertyPacket, this.codecProtocol).decode(this));
     }
 
     /** Writes the property compound. */
     public encodePayload(): void {
-        this.propertyData.writeToStream(this, ByteOrder.LITTLE_ENDIAN, true);
+        layoutAt(syncActorPropertyPacket, this.codecProtocol).encode(this, this);
     }
 }
