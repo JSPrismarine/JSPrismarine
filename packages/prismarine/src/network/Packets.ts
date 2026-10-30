@@ -142,7 +142,7 @@ import StructureBlockUpdatePacket from './packet/StructureBlockUpdatePacket';
 import StructureTemplateDataRequestPacket from './packet/StructureTemplateDataRequestPacket';
 import StructureTemplateDataResponsePacket from './packet/StructureTemplateDataResponsePacket';
 import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
-import SubClientLoginPacket from './packet/SubClientLoginPacket';
+import SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
 import SyncActorPropertyPacket from '@jsprismarine/protocol/packet/SyncActorPropertyPacket';
 import TakeItemActorPacket from '@jsprismarine/protocol/packet/TakeItemActorPacket';
 import TextPacket from './packet/TextPacket';

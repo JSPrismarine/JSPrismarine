@@ -4,7 +4,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SubClientLoginPacket from '../packet/SubClientLoginPacket';
+import SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
 import SubClientLoginHandler from './SubClientLoginHandler';
 
 describe('SubClientLoginHandler', () => {
@@ -14,7 +14,7 @@ describe('SubClientLoginHandler', () => {
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
         const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
-        const packet = Object.assign(new SubClientLoginPacket(), { chainData: '{}', clientData: 'x' });
+        const packet = new SubClientLoginPacket({ chainData: '{}', clientData: 'x' });
 
         new SubClientLoginHandler().handle(packet, server, session);
 

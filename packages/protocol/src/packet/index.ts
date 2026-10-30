@@ -40,6 +40,7 @@ import HurtArmorPacket from './HurtArmorPacket';
 import SetSpawnPositionPacket from './SetSpawnPositionPacket';
 import StartGamePacket from './StartGamePacket';
 import StartGamePacket2225 from './StartGamePacket2225';
+import SubClientLoginPacket from './SubClientLoginPacket';
 import TextPacket from './TextPacket';
 import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
 import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
@@ -99,6 +100,7 @@ export {
     SetSpawnPositionPacket,
     StartGamePacket,
     StartGamePacket2225,
+    SubClientLoginPacket,
     TextPacket,
     UpdateAdventureSettingsPacket,
     UpdatePlayerGameTypePacket,
@@ -161,6 +163,7 @@ export { BookEditAction } from './BookEditPacket';
 export type { BookEdit, BookEditOperation } from './BookEditPacket';
 export { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
 export type { ServerboundLoadingScreen } from './ServerboundLoadingScreenPacket';
+export type { SubClientLogin } from './SubClientLoginPacket';
 export { PackSettingValueType } from './ServerboundPackSettingChangePacket';
 export type { PackSettingValue, ServerboundPackSettingChange } from './ServerboundPackSettingChangePacket';
 export type { ChunkCoord, NetworkChunkPublisherUpdatePayload } from './NetworkChunkPublisherUpdatePacket';

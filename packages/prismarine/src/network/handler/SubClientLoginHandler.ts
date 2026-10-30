@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type SubClientLoginPacket from '../packet/SubClientLoginPacket';
+import type SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
