@@ -1,18 +1,15 @@
+import { layoutAt, setScoreboardIdentityPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
+
+import type { ScoreboardIdentityPacketInfo } from '@jsprismarine/protocol';
+
+export type { ScoreboardIdentityPacketInfo } from '@jsprismarine/protocol';
 
 /** Whether the entries attach an identity or drop one, as the leading byte numbers it. */
 export enum ScoreboardIdentityPacketType {
     Update = 0,
     Remove = 1
-}
-
-/** One scoreboard entry and the player it stands for. */
-export interface ScoreboardIdentityPacketInfo {
-    /** The scoreboard entry, the same id `SetScorePacket` files scores under. */
-    scoreboardId: bigint;
-
-    /** Unique id of the player the entry points at. Present on `Update`, absent on `Remove`. */
-    playerUniqueId?: bigint;
 }
 
 /**
@@ -24,13 +21,9 @@ export interface ScoreboardIdentityPacketInfo {
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: Scoreboard Identity Packet Type as a byte, then Scoreboard
- * Identity Info as a varuint32 count of entries, each a Scoreboard Id as a ZigZag varint64 and
- * an optional Player Unique Id as a ZigZag varint64.
- *
- * Mojang's Cereal conversion note for this packet says the Player Unique Id is gated per entry by
- * a presence byte. Before protocol 2193 it was written only when the packet type was `Update`, so
- * a reader keyed on the type is one byte off on every entry.
+ * The wire layout lives in `@jsprismarine/protocol`'s `setScoreboardIdentityPacket` definition:
+ * the packet type as a byte, then the entries as a counted list, each a Scoreboard Id and a
+ * Player Unique Id behind its own presence byte.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-scoreboard-identity-packet/
  */
 export default class SetScoreboardIdentityPacket extends DataPacket {
@@ -46,31 +39,16 @@ export default class SetScoreboardIdentityPacket extends DataPacket {
      * what the wire says. A `Remove` carrying one anyway still decodes.
      */
     public decodePayload(): void {
-        this.type = this.readByte();
-        this.entries = [];
-
-        let count = this.readUnsignedVarInt();
-        while (count-- > 0) {
-            const entry: ScoreboardIdentityPacketInfo = { scoreboardId: this.readVarLong() };
-            if (this.readBoolean()) entry.playerUniqueId = this.readVarLong();
-            this.entries.push(entry);
-        }
+        const read = layoutAt(setScoreboardIdentityPacket, this.codecProtocol).decode(this);
+        this.type = read.type;
+        this.entries = read.entries;
     }
 
     /** Writes the action and the entries. */
     public encodePayload(): void {
-        this.writeByte(this.type);
-        this.writeUnsignedVarInt(this.entries.length);
-
-        for (const entry of this.entries) {
-            this.writeVarLong(entry.scoreboardId);
-
-            if (entry.playerUniqueId === undefined) {
-                this.writeBoolean(false);
-            } else {
-                this.writeBoolean(true);
-                this.writeVarLong(entry.playerUniqueId);
-            }
-        }
+        layoutAt(setScoreboardIdentityPacket, this.codecProtocol).encode(this, {
+            type: this.type,
+            entries: this.entries
+        });
     }
 }

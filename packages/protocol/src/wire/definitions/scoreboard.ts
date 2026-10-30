@@ -180,3 +180,57 @@ export const removeObjectivePacket = definePacket('RemoveObjectivePacket', {
 
 /** What `RemoveObjectivePacket` carries. */
 export type RemoveObjectivePayload = PayloadOf<typeof removeObjectivePacket>;
+
+/** One scoreboard entry and the player it stands for. */
+export interface ScoreboardIdentityPacketInfo {
+    /** `Scoreboard Id`: the same id `SetScorePacket` files scores under. */
+    scoreboardId: bigint;
+
+    /** `Player Unique Id`: present on `Update`, absent on `Remove`. */
+    playerUniqueId?: bigint;
+}
+
+/**
+ * `Scoreboard Identity Info`: one entry, with its player id behind a presence byte.
+ *
+ * Whether the player id travels is decided per entry by that byte, not by the packet type and
+ * not by the protocol version, so the branch lives in this wire type rather than in a gate.
+ * Mojang's Cereal conversion note for the packet says the same. Before protocol 2193 the id
+ * was written only when the packet type was `Update`, so a reader keyed on the type is one
+ * byte off on every entry.
+ */
+export const scoreboardIdentityInfo: WireType<ScoreboardIdentityPacketInfo> = t.custom(
+    'ScoreboardIdentityInfo',
+    (stream, entry) => {
+        t.varint64.write(stream, entry.scoreboardId);
+
+        if (entry.playerUniqueId === undefined) {
+            t.bool.write(stream, false);
+        } else {
+            t.bool.write(stream, true);
+            t.varint64.write(stream, entry.playerUniqueId);
+        }
+    },
+    (stream) => {
+        const entry: ScoreboardIdentityPacketInfo = { scoreboardId: t.varint64.read(stream) };
+        if (t.bool.read(stream)) entry.playerUniqueId = t.varint64.read(stream);
+        return entry;
+    }
+);
+
+/**
+ * The `SetScoreboardIdentityPacket` field list.
+ *
+ * An entry with an identity takes its display name from the player it points at, so the name
+ * follows a rename. A player leaving is handled by clearing the identity, which leaves the
+ * line showing whatever text it was last given.
+ */
+export const setScoreboardIdentityPacket = definePacket('SetScoreboardIdentityPacket', {
+    /** `Scoreboard Identity Packet Type`: a `ScoreboardIdentityPacketType`. */
+    type: t.uint8,
+    /** `Scoreboard Identity Info`: the entries whose identity is being set or cleared. */
+    entries: t.list(scoreboardIdentityInfo)
+});
+
+/** What `SetScoreboardIdentityPacket` carries. */
+export type SetScoreboardIdentityPayload = PayloadOf<typeof setScoreboardIdentityPacket>;
