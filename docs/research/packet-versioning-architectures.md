@@ -24,8 +24,8 @@ reasons given plainly in the last section.
 One fact worth stating before comparing anything, because the user's question assumes otherwise:
 **nothing in this codebase ever transforms a packet more than once.** The seam is
 `ProtocolCodec` (`packages/prismarine/src/network/codec/ProtocolCodec.ts`). A session negotiates
-one codec; `MinecraftSession.ts:185` and `BatchPacket` call `prepareOutbound` exactly once per
-outbound packet; `Codec2193.prepareOutbound` is a name lookup in a per-codec override map and,
+one codec; `encodePacketBatch` calls `prepareOutbound` exactly once per outbound packet;
+`Codec2193.prepareOutbound` is a name lookup in a per-codec override map and,
 when the class is substituted, a single `Object.assign` copy into the versioned class. Inbound,
 `createPacket` is a wire-id lookup in a map built once per codec. There is no adapter chain, no
 re-encoding, no pass through intermediate versions. `Codec2225 extends Codec2193` is *class
@@ -310,7 +310,7 @@ measured size is 270 lines per protocol version.
 
 - This repository: `packages/prismarine/src/network/codec/` (`ProtocolCodec.ts`, `Codec2193.ts`,
   `Codec2225.ts`, `itemData.ts`, `v2193.ts`, `v2225.ts`), the eight `*2225.ts` packet classes,
-  `MinecraftSession.ts`, [protocol-2225-delta.md](protocol-2225-delta.md),
+  `MinecraftSession.ts`, `encodePacketBatch.ts`, [protocol-2225-delta.md](protocol-2225-delta.md),
   [server-rearchitecture.md](../plans/server-rearchitecture.md).
 - [CloudburstMC/Protocol](https://github.com/CloudburstMC/Protocol): per-version codecs built as
   deltas, `*_v291` serializer classes, 3.0's `BedrockCodec` builders; the

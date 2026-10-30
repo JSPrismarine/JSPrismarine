@@ -1,6 +1,8 @@
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
 import type { EventEmitter } from '../events/EventEmitter';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import RaknetDisconnectEvent from '../events/raknet/RaknetDisconnectEvent';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
@@ -9,7 +11,6 @@ import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import { takesConnection } from './handler/ConnectionPacketHandler';
-import BatchPacket from './packet/BatchPacket';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketRegistry from './PacketRegistry';
 import type { RegisteredHandler } from './PacketRegistry';
@@ -168,9 +169,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     /** Inflates one frame into the encoded packets batched inside it. */
     private async splitBatch(payload: Buffer, connection: ClientConnection): Promise<readonly Buffer[]> {
-        const batched = new BatchPacket(payload);
-        batched.compressed = connection.hasCompression;
-        return batched.asyncDecode();
+        const batchCodec = connection.hasCompression
+            ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB })
+            : BatchCodec.uncompressed();
+        return batchCodec.decodeAsync(payload);
     }
 
     /**

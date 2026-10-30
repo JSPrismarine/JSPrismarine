@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
-import BatchPacket from './packet/BatchPacket';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 
@@ -27,10 +28,12 @@ const message = (text: string) => {
     });
 };
 
-const batchOf = (text: string) => {
-    const batch = new BatchPacket();
-    batch.addPacket(message(text));
-    return batch;
+const packetsOf = (text: string) => [message(text)];
+
+const encodedBatchOf = (text: string): Buffer => {
+    const packet = message(text);
+    packet.encode();
+    return BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode([packet.getBuffer()]);
 };
 
 /** Records what was framed, in the order RakNet was handed it. */
@@ -63,8 +66,9 @@ describe('network', () => {
             // laid the older chunk snapshot back over the top of it.
             const { framed, session } = fakeSession();
 
-            const chunks = batchOf('terrain '.repeat(500));
-            const chunkSend = session.sendBatchAsync(chunks, false);
+            const chunks = packetsOf('terrain '.repeat(500));
+            const chunkFrame = encodedBatchOf('terrain '.repeat(500));
+            const chunkSend = session.sendPacketsAsync(chunks, { direct: false });
 
             // Synchronous, exactly as a block update broadcast is.
             const updateSend = session.sendDataPacket(message('block update'));
@@ -72,7 +76,7 @@ describe('network', () => {
             await Promise.all([chunkSend, updateSend]);
 
             expect(framed.length).toBe(2);
-            expect(framed[0]).toBe(chunks.getBuffer().toString('base64'));
+            expect(framed[0]).toBe(chunkFrame.toString('base64'));
         });
 
         it('frames two batches in the order they were queued, not the order they compressed', async () => {
@@ -80,18 +84,24 @@ describe('network', () => {
 
             // The big one is queued first and takes longer, so completion order and queue
             // order disagree.
-            const first = batchOf('a'.repeat(200_000));
-            const second = batchOf('b');
+            const first = packetsOf('a'.repeat(200_000));
+            const second = packetsOf('b');
 
-            await Promise.all([session.sendBatchAsync(first, false), session.sendBatchAsync(second, false)]);
+            await Promise.all([
+                session.sendPacketsAsync(first, { direct: false }),
+                session.sendPacketsAsync(second, { direct: false })
+            ]);
 
-            expect(framed).toEqual([first.getBuffer().toString('base64'), second.getBuffer().toString('base64')]);
+            expect(framed).toEqual([
+                encodedBatchOf('a'.repeat(200_000)).toString('base64'),
+                encodedBatchOf('b').toString('base64')
+            ]);
         });
 
         it('goes back to framing immediately once the queue has drained', async () => {
             const { framed, session } = fakeSession();
 
-            await session.sendBatchAsync(batchOf('terrain'), false);
+            await session.sendPacketsAsync(packetsOf('terrain'), { direct: false });
             void session.sendDataPacket(message('after'));
 
             expect(framed.length).toBe(2);
@@ -100,10 +110,9 @@ describe('network', () => {
         it('does not let one failed send strand every packet behind it', async () => {
             const { framed, session } = fakeSession();
 
-            const broken = batchOf('doomed');
-            broken.compressionLevel = 42; // zlib refuses this outright
+            const broken = packetsOf('doomed');
 
-            const failed = session.sendBatchAsync(broken, false);
+            const failed = session.sendPacketsAsync(broken, { direct: false, compressionLevel: 42 });
             const after = session.sendDataPacket(message('still gets through'));
 
             await expect(failed).rejects.toThrow();

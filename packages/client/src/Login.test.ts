@@ -20,7 +20,7 @@ import Client from './Client';
  * process, and the real client logging into it over a real socket.
  *
  * Nothing is mocked. The point is not that each piece works - the unit tests cover that -
- * but that the pieces agree: the batch codec with the server's `BatchPacket`, the migrated
+ * but that the pieces agree: the Protocol batch codec on both ends, the migrated
  * packets with the ones they mirror, and the chain this client signs with the one the
  * server's `LoginPacket` and `Skin.fromJWT` expect to parse.
  */

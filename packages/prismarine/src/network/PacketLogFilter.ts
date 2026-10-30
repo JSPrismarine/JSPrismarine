@@ -24,8 +24,8 @@ export class PacketLogFilter {
     }
 
     /**
-     * The same check by class name, for a batch that kept only the names of what it holds.
-     * @param {string} name - the packet class name, as `BatchPacket.getPacketNames` reports it.
+     * The same check by class name, for a batch that keeps its packet objects until it is encoded.
+     * @param {string} name - the packet class name.
      * @returns {boolean} `false` if the name is excluded.
      */
     public shouldLogName(name: string): boolean {

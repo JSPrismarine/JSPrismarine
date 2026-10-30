@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession, { broadcastSharedBatches } from './MinecraftSession';
@@ -10,7 +12,6 @@ import type { ProtocolCodec } from './codec/ProtocolCodec';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
-import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import { HandSlot } from '@jsprismarine/protocol';
@@ -43,11 +44,9 @@ const fakeSession = (codec: ProtocolCodec) => {
 
 /** The packets inside an uncompressed batch frame, as raw encoded buffers. */
 const unbatch = (frame: Buffer, compressed: boolean): Buffer[] => {
-    const batch = new BatchPacket(frame);
-    batch.compressed = compressed;
-    batch.decodeHeader();
-    batch.decodePayload();
-    return batch.getPackets();
+    return compressed
+        ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(frame)
+        : BatchCodec.uncompressed().decode(frame);
 };
 
 const animate = () => {
@@ -137,13 +136,8 @@ describe('network', () => {
             const old = fakeSession(Codec2193);
             const next = fakeSession(Codec2225);
 
-            const oldBatch = new BatchPacket();
-            oldBatch.addPacket(chunk());
-            await old.session.sendBatchAsync(oldBatch, false);
-
-            const nextBatch = new BatchPacket();
-            nextBatch.addPacket(chunk());
-            await next.session.sendBatchAsync(nextBatch, false);
+            await old.session.sendPacketsAsync([chunk()], { direct: false });
+            await next.session.sendPacketsAsync([chunk()], { direct: false });
 
             const [bytes2193] = unbatch(old.framed[0]!, true);
             const [bytes2225] = unbatch(next.framed[0]!, true);

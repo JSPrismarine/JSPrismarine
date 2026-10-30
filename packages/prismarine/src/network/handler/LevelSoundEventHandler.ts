@@ -35,10 +35,9 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
      * Broadcasts the sound from its own position when it is the sender's to make: attributed
      * to the sender or to no actor, and within reach of where the sender stands.
      *
-     * The sound goes out as the instance the client sent. Decoding marks a packet encoded, so
-     * `BatchPacket` forwards the client's bytes rather than writing new ones, and the relay
-     * carries the same layout the client used, `Fire At Position` and any sound name outside
-     * the enum included.
+     * The sound goes out as the instance the client sent. The packet codec preserves its
+     * decoded fields, and the relay carries the same layout the client used, `Fire At Position`
+     * and any sound name outside the enum included.
      */
     public async handle(packet: LevelSoundEventPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();

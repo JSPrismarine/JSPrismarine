@@ -11,7 +11,6 @@ import AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
 import AutomationClientConnectPacket from '@jsprismarine/protocol/packet/AutomationClientConnectPacket';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
-import BatchPacket from './packet/BatchPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
 import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
 import BlockEventPacket from '@jsprismarine/protocol/packet/BlockEventPacket';
@@ -175,7 +174,6 @@ export {
     /**
      * @group Special Packets
      */
-    BatchPacket,
     BiomeDefinitionListPacket,
     BlockActorDataPacket,
     BlockEventPacket,

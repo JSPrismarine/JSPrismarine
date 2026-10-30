@@ -46,7 +46,6 @@ import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
-import { BatchPacket } from './Packets';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
 import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
@@ -497,27 +496,26 @@ export default class PlayerSession {
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
         await this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
 
-        const batch = new BatchPacket();
-        for (const chunk of chunksToSend) {
-            const pk = new LevelChunkPacket({
-                chunkX: chunk.getX(),
-                chunkZ: chunk.getZ(),
-                dimension: chunk.getDimension().id,
-                subChunkCount: chunk.getNetworkSubChunkCount(),
-                clientSubChunkRequestsEnabled: false,
-                cached: false,
-                payload: chunk.networkSerialize()
-            });
-
-            batch.addPacket(pk);
-        }
+        const packets = chunksToSend.map(
+            (chunk) =>
+                new LevelChunkPacket({
+                    chunkX: chunk.getX(),
+                    chunkZ: chunk.getZ(),
+                    dimension: chunk.getDimension().id,
+                    subChunkCount: chunk.getNetworkSubChunkCount(),
+                    clientSubChunkRequestsEnabled: false,
+                    cached: false,
+                    payload: chunk.networkSerialize()
+                })
+        );
 
         // Asynchronous: compressing a batch of chunks is the biggest single piece of work on
         // this path, and this is what moves it off the main thread.
-        batch.compressionLevel = this.server.getConfig().getPacketCompressionLevel();
-
         try {
-            await this.connection.sendBatchAsync(batch, false);
+            await this.connection.sendPacketsAsync(packets, {
+                direct: false,
+                compressionLevel: this.server.getConfig().getPacketCompressionLevel()
+            });
         } catch (error: unknown) {
             // Nothing reached the client, so nothing may be recorded as loaded. Marking
             // before the send meant a batch that failed to compress left every chunk in it
@@ -1939,13 +1937,12 @@ export default class PlayerSession {
     public async flushQueuedMoves(): Promise<void> {
         if (this.queuedMoves.size === 0) return;
 
-        const batch = new BatchPacket();
-        for (const packet of this.queuedMoves.values()) batch.addPacket(packet);
+        const packets = [...this.queuedMoves.values()];
         this.queuedMoves.clear();
 
         // Not `direct`: movement is not urgent enough to force a datagram of its own, and letting
         // RakNet coalesce it with whatever else is going out is the point of batching it at all.
-        this.connection.sendBatch(batch, false);
+        this.connection.sendPackets(packets, { direct: false });
     }
 
     /**

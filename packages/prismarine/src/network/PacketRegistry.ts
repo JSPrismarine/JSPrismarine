@@ -144,14 +144,11 @@ export default class PacketRegistry {
     private async registerPackets(): Promise<void> {
         const timer = new Timer();
 
-        // Dynamically register packets
-        // BatchPacket is a framing envelope rather than a registered Bedrock packet.
+        // Dynamically register packets.
         // Keyed by the export name rather than `value.name`: a bundler renames a class whose name
         // collides with another in the same chunk (the Bun executable gets a `DeathInfoPacket2`),
         // and the wire id is looked up by name. The export key survives bundling.
-        Object.entries(Packets)
-            .filter(([exported]) => exported !== 'BatchPacket')
-            .map(([exported, value]) => this.registerPacket(value, exported));
+        Object.entries(Packets).map(([exported, value]) => this.registerPacket(value, exported));
         this.registerPacket(CommandRequestPacket);
         this.registerPacket(SetCommandsEnabledPacket);
         this.registerPacket(SetDifficultyPacket);

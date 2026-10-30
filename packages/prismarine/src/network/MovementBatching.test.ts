@@ -20,12 +20,12 @@ import PlayerSession from './PlayerSession';
 
 /** A session with the connection replaced, so what actually goes on the wire can be counted. */
 const sessionWithCountedSends = () => {
-    const batches: any[] = [];
-    const singles: any[] = [];
+    const batches: MoveActorAbsolutePacket[][] = [];
+    const singles: MoveActorAbsolutePacket[] = [];
 
     const connection: any = {
-        sendBatch: (batch: any) => batches.push(batch),
-        sendDataPacket: async (packet: any) => void singles.push(packet)
+        sendPackets: (packets: readonly MoveActorAbsolutePacket[]) => void batches.push([...packets]),
+        sendDataPacket: async (packet: MoveActorAbsolutePacket) => void singles.push(packet)
     };
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
@@ -62,7 +62,7 @@ describe('entity movement on the wire', () => {
         expect(singles).toHaveLength(0);
 
         // All thirty are in it, not just the last.
-        expect(batches[0].getPackets()).toHaveLength(30);
+        expect(batches[0]).toHaveLength(30);
     });
 
     it('sends nothing at all when nothing moved', async () => {
@@ -93,7 +93,7 @@ describe('entity movement on the wire', () => {
         session.queueMoveActor(entityAt(1n, 3));
         await session.flushQueuedMoves();
 
-        expect(batches[0].getPackets()).toHaveLength(1);
+        expect(batches[0]).toHaveLength(1);
     });
 
     it('keeps the order entities first moved in', async () => {
@@ -104,7 +104,7 @@ describe('entity movement on the wire', () => {
         session.queueMoveActor(entityAt(7n, 2));
         await session.flushQueuedMoves();
 
-        const ids = batches[0].getPackets().map((encoded: Buffer) => encoded.readUInt8(1));
+        const ids = batches[0]!.map((packet) => packet.runtimeEntityId);
         expect(ids).toEqual([7, 3]);
     });
 
@@ -127,7 +127,9 @@ describe('entity movement on the wire', () => {
         session.queueMoveActor(entity);
         await session.flushQueuedMoves();
 
-        const [encoded] = batches[0].getPackets();
+        const packet = batches[0]![0]!;
+        packet.encode();
+        const encoded = packet.getBuffer();
 
         // Rotation is three bytes at the tail: pitch, head yaw, body yaw, each an angle scaled onto
         // a byte. Non-zero is the whole claim - the exact encoding is the packet's own test.
@@ -142,7 +144,9 @@ describe('entity movement on the wire', () => {
             session.queueMoveActor(entity);
             await session.flushQueuedMoves();
 
-            const [encoded] = batches[0].getPackets();
+            const packet = batches[0]![0]!;
+            packet.encode();
+            const encoded = packet.getBuffer();
             // Packet id, then the runtime id as an unsigned varlong, then the header byte. Both
             // ids here are small enough to be one byte each.
             return encoded[2]!;

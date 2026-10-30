@@ -14,7 +14,6 @@ import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
 import type { WorldChange } from '../world/WorldChange';
 import type { WorldChangeSink } from '../world/WorldChangeSink';
-import { BatchPacket } from './Packets';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
@@ -49,14 +48,6 @@ interface BlockEntityChange {
     position: Vector3;
     tags: NBTTagCompound;
 }
-
-/**
- * What a batch of block changes is called in the traffic log.
- *
- * `sendSharedBatch` takes already-encoded bytes and a packet purely to name them; the batch holds
- * many, so one stands for all of them. Never encoded, never sent - only its type name is read.
- */
-const BLOCK_BATCH_LABEL = new UpdateBlockPacket();
 
 /** The pending-map key for a position, which is what makes the last write to it win. */
 const positionKey = (position: Vector3): string => `${position.getX()},${position.getY()},${position.getZ()}`;
@@ -179,9 +170,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     /**
      * @inheritdoc
      *
-     * One deflate per recipient rather than one per block. An ocean draining into a cavern changes
-     * a few thousand blocks in a tick, and each of those used to be its own `BatchPacket` and its
-     * own synchronous zlib pass on the tick thread - which is most of what the tick was doing.
+     * One deflate per protocol version rather than one per block. An ocean draining into a cavern changes
+     * a few thousand blocks in a tick, and each of those used to be its own batch and its own
+     * synchronous zlib pass on the tick thread - which is most of what the tick was doing.
      * Twenty bytes of block update also compress far better in company than alone.
      */
     public async flushBlockChanges(): Promise<void> {
@@ -194,15 +185,14 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         if (players.length === 0) return;
 
         // With proximity off every client is told about everything, so the bytes are identical and
-        // one compression serves them all.
+        // one compression per protocol version serves every client who speaks it.
         if (!this.server.getConfig().getProximityBroadcast()) {
-            const content = this.compressBlockChanges(changes);
-            if (!content) return;
-
-            for (const player of players) {
-                player.getNetworkSession().getConnection().sendSharedBatch(content, BLOCK_BATCH_LABEL);
-            }
-
+            broadcastSharedBatches(
+                players.map((player) => player.getNetworkSession().getConnection()),
+                this.blockPackets(changes),
+                this.server.getConfig().getPacketCompressionLevel(),
+                (error) => this.server.getLogger().error(error)
+            );
             return;
         }
 
@@ -211,46 +201,34 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             const visible = changes.filter((change) =>
                 isInView({ event: change.position, viewer, viewDistance: player.viewDistance })
             );
+            if (visible.length === 0) continue;
 
-            const content = this.compressBlockChanges(visible);
-            if (!content) continue;
-
-            player.getNetworkSession().getConnection().sendSharedBatch(content, BLOCK_BATCH_LABEL);
+            broadcastSharedBatches(
+                [player.getNetworkSession().getConnection()],
+                this.blockPackets(visible),
+                this.server.getConfig().getPacketCompressionLevel(),
+                (error) => this.server.getLogger().error(error)
+            );
         }
     }
 
     /**
-     * The finished bytes for a set of block changes, or null if there are none to send.
+     * The Protocol packets for a set of block changes.
      * @param {BlockChange[]} changes - What to put in the batch.
-     * @returns {Buffer | null} The encoded, compressed batch.
+     * @returns {UpdateBlockPacket[]} One packet per visible block change.
      */
-    private compressBlockChanges(changes: readonly BlockChange[]): Buffer | null {
-        if (changes.length === 0) return null;
-
-        const batch = new BatchPacket();
-        batch.compressionLevel = this.server.getConfig().getPacketCompressionLevel();
-
-        try {
-            for (const { position, blockRuntimeId } of changes) {
-                const packet = new UpdateBlockPacket();
-                packet.x = position.getX();
-                packet.y = position.getY();
-                packet.z = position.getZ();
-                packet.blockRuntimeId = blockRuntimeId;
-                // Match Bedrock Dedicated Server's block updates: clients must treat the change
-                // as network-authored and recalculate neighboring block visuals.
-                packet.flags = UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network;
-
-                batch.addPacket(packet);
-            }
-
-            batch.encode();
-        } catch (error: unknown) {
-            this.server.getLogger().error(error);
-            return null;
-        }
-
-        return batch.getBuffer();
+    private blockPackets(changes: readonly BlockChange[]): UpdateBlockPacket[] {
+        return changes.map(({ position, blockRuntimeId }) => {
+            const packet = new UpdateBlockPacket();
+            packet.x = position.getX();
+            packet.y = position.getY();
+            packet.z = position.getZ();
+            packet.blockRuntimeId = blockRuntimeId;
+            // Match Bedrock Dedicated Server's block updates: clients must treat the change
+            // as network-authored and recalculate neighboring block visuals.
+            packet.flags = UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network;
+            return packet;
+        });
     }
 
     /**
@@ -501,9 +479,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     /**
      * Puts one packet on several connections, compressing it once.
      *
-     * Every recipient gets the same bytes, so they are produced once and framed as many times
-     * as there are recipients - a block update to twenty players used to be twenty separate
-     * `BatchPacket`s and twenty runs of zlib over identical input.
+     * Recipients on the same protocol version get the same bytes, so each version's packet
+     * layouts are encoded and compressed once, then framed for everyone on that version.
      *
      * The buffer is safe to share: `getBuffer()` returns a fresh copy on the write path,
      * RakNet only reads it, and fragmentation takes read-only slices of it.
@@ -522,7 +499,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
         broadcastSharedBatches(
             audience.map((player) => player.getNetworkSession().getConnection()),
-            packet,
+            [packet],
             this.server.getConfig().getPacketCompressionLevel(),
             (error) => this.server.getLogger().error(error)
         );

@@ -10,9 +10,6 @@ import * as Packets from './Packets';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 
-/** Exported packet classes the registry skips: the batch envelope. */
-const UNREGISTERED_PACKETS = new Set(['BatchPacket']);
-
 /** Handler interfaces that live beside the handlers but are not handlers themselves. */
 const HANDLER_INTERFACES = new Set(['PacketHandler', 'ConnectionPacketHandler']);
 
@@ -54,10 +51,9 @@ describe('network/Packets', () => {
     it('gives every registered packet an id under its name, at the version that has it', () => {
         // Resolved against the newest codec: a packet a later protocol added has no id at 2193,
         // and the barrel carries it so a session on that version can build one.
-        const registered = exported.filter(([name]) => !UNREGISTERED_PACKETS.has(name));
-        for (const [name] of registered) expect(latestCodec.netIdOf(name), name).toBe(latestCodec.ids[name]);
-        const ids = registered.map(([name]) => latestCodec.netIdOf(name));
-        expect(new Set(ids).size).toBe(registered.length);
+        for (const [name] of exported) expect(latestCodec.netIdOf(name), name).toBe(latestCodec.ids[name]);
+        const ids = exported.map(([name]) => latestCodec.netIdOf(name));
+        expect(new Set(ids).size).toBe(exported.length);
     });
 });
 

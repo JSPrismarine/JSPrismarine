@@ -7,7 +7,6 @@ import path from 'node:path';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession, { debugPacketNames } from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
-import BatchPacket from './packet/BatchPacket';
 import { SetTimePacket } from '@jsprismarine/protocol';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
@@ -117,11 +116,9 @@ describe('network', () => {
         it('drops a batch whole when any packet in it is named', async () => {
             const { framed, warnings, session } = fakeSession(['TextPacket']);
 
-            const batch = new BatchPacket();
-            batch.addPacket(time());
-            batch.addPacket(message('dropped'));
-            await session.sendBatchAsync(batch, false);
-            session.sendBatch(batch);
+            const packets = [time(), message('dropped')];
+            await session.sendPacketsAsync(packets, { direct: false });
+            session.sendPackets(packets);
 
             expect(framed.length).toBe(0);
             expect(warnings.length).toBe(2);
@@ -130,8 +127,8 @@ describe('network', () => {
         it('drops a shared batch by the packet that labels it', () => {
             const { framed, session } = fakeSession(['SetTimePacket']);
 
-            session.sendSharedBatch(Buffer.from([1, 2, 3]), time());
-            session.sendSharedBatch(Buffer.from([4, 5, 6]), message('kept'));
+            session.sendSharedBatch(Buffer.from([1, 2, 3]), [time()]);
+            session.sendSharedBatch(Buffer.from([4, 5, 6]), [message('kept')]);
 
             expect(framed).toEqual([Buffer.from([4, 5, 6])]);
         });

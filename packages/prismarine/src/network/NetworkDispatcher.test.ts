@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
+import { BatchCodec } from '@jsprismarine/protocol';
 import type { EventEmitter } from '../events/EventEmitter';
 import type Server from '../Server';
 import SessionManager from '../SessionManager';
@@ -10,7 +11,6 @@ import Codec2193 from './codec/Codec2193';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type ClientConnection from './ClientConnection';
 import NetworkDispatcher from './NetworkDispatcher';
-import BatchPacket from './packet/BatchPacket';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketRegistry from './PacketRegistry';
@@ -97,11 +97,8 @@ const message = (text: string) => {
 
 /** One uncompressed batch holding the packet, as bytes off the wire. */
 const frameOf = (packet: TextPacket) => {
-    const batch = new BatchPacket();
-    batch.addPacket(packet);
-    batch.compressed = false;
-    batch.encode();
-    return batch.getBuffer();
+    packet.encode();
+    return BatchCodec.uncompressed().encode([packet.getBuffer()]);
 };
 
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */

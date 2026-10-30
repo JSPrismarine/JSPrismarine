@@ -11,14 +11,17 @@ import type { World } from '../world/World';
 import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
+import Codec2193 from './codec/Codec2193';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
-import BatchPacket from './packet/BatchPacket';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 
 /** A player and the block updates the replicator batches for it. */
 const replicatorFor = () => {
     const batches: Buffer[] = [];
     const connection = stub<ClientConnection>({
+        codec: Codec2193,
         sendSharedBatch: (content) => void batches.push(content)
     });
     const session = stub<PlayerSession>({ getConnection: () => connection });
@@ -50,10 +53,8 @@ describe('NetworkWorldReplicator block changes', () => {
         replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: fireRuntimeId });
         await replicator.flushBlockChanges();
 
-        const batch = new BatchPacket(batches[0]!);
-        batch.decodeHeader();
-        batch.decodePayload();
-        const update = new UpdateBlockPacket(batch.getPackets()[0]!);
+        const [packetBytes] = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(batches[0]!);
+        const update = new UpdateBlockPacket(packetBytes);
         update.decode();
 
         expect(update.blockRuntimeId).toBe(fireRuntimeId >>> 0);

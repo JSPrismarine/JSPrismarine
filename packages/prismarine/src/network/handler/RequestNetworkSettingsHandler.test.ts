@@ -60,8 +60,8 @@ describe('RequestNetworkSettingsHandler', () => {
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet).toBeInstanceOf(NetworkSettingsPacket);
-        // What every later batch is framed under: `BatchPacket` deflates everything with
-        // zlib, so the threshold is 1 and the algorithm ZLib. Throttling is off.
+        // What every later batch is framed under: Protocol compresses every packet with
+        // zlib. Throttling is off.
         expect(sent[0]!.packet.getPacketData()).toMatchObject({
             compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
             compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,

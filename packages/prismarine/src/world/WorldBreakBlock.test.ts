@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
-import BatchPacket from '../network/packet/BatchPacket';
+import Codec2193 from '../network/codec/Codec2193';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
@@ -46,7 +48,10 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
 
     const session = {
         send: async (packet: any) => void sent.push(packet),
-        getConnection: () => ({ sendSharedBatch: (content: Buffer) => void batches.push(content) })
+        getConnection: () => ({
+            codec: Codec2193,
+            sendSharedBatch: (content: Buffer) => void batches.push(content)
+        })
     };
 
     /**
@@ -131,15 +136,13 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
             await replicator.flushBlockChanges();
 
             return batches.flatMap((content) => {
-                const batch = new BatchPacket(content);
-                batch.decodeHeader();
-                batch.decodePayload();
-
-                return batch.getPackets().map((bytes) => {
-                    const packet = new UpdateBlockPacket(bytes);
-                    packet.decode();
-                    return packet;
-                });
+                return BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB })
+                    .decode(content)
+                    .map((bytes) => {
+                        const packet = new UpdateBlockPacket(bytes);
+                        packet.decode();
+                        return packet;
+                    });
             });
         },
 

@@ -214,7 +214,7 @@ class BenchWorld {
         return body;
     }
 
-    /** What `BatchPacket.encode` costs: one synchronous deflate at the configured level. */
+    /** What Protocol's `BatchCodec.encode` costs: one synchronous deflate at the configured level. */
     private deflate(bodies: Buffer[]): void {
         const started = performance.now();
 

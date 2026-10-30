@@ -3,7 +3,8 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import HandshakeCodec from './codec/HandshakeCodec';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type { TransportConnection } from './transport/Transport';
-import { BatchPacket } from './Packets';
+import { encodePacketBatch, encodePacketBatchAsync } from './encodePacketBatch';
+import type { PacketBatchOptions } from './encodePacketBatch';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -105,12 +106,14 @@ export default class MinecraftSession {
         return next;
     }
 
-    public sendBatch(batch: BatchPacket, direct = true): void {
-        if (this.dropsBatch(batch)) return;
+    public sendPackets(
+        packets: readonly NetworkPacket<unknown>[],
+        { direct = true, ...batchOptions }: PacketBatchSendOptions = {}
+    ): void {
+        if (this.dropsPackets(packets)) return;
 
-        batch.codec = this.codec;
-        batch.encode();
-        void this.ordered(() => this.frameBatch(batch, direct));
+        const batch = encodePacketBatch(packets, this.codec, batchOptions);
+        void this.ordered(() => this.frame(batch.content, direct));
     }
 
     /**
@@ -118,22 +121,25 @@ export default class MinecraftSession {
      *
      * Node runs that on the libuv thread pool, so the work leaves the main thread instead of
      * merely being deferred on it. Worth the extra await for chunk batches, which are the
-     * large and frequent ones; everything else stays on {@link sendBatch}, where a trip
+     * large and frequent ones; everything else stays on {@link sendPackets}, where a trip
      * through the pool would cost more than compressing a small packet does.
      */
-    public async sendBatchAsync(batch: BatchPacket, direct = true): Promise<void> {
-        if (this.dropsBatch(batch)) return;
+    public async sendPacketsAsync(
+        packets: readonly NetworkPacket<unknown>[],
+        { direct = true, ...batchOptions }: PacketBatchSendOptions = {}
+    ): Promise<void> {
+        if (this.dropsPackets(packets)) return;
 
         this.pendingAsyncSends++;
         try {
             await this.chain(async () => {
-                batch.codec = this.codec;
-                await batch.encodeAsync();
-                this.frameBatch(batch, direct);
+                const batch = await encodePacketBatchAsync(packets, this.codec, batchOptions);
+                this.frame(batch.content, direct);
 
                 // One line per packet, as `sendDataPacket` writes, so a join trace shows the
                 // chunks between the publisher updates instead of a gap where they went out.
-                for (const name of batch.getPacketNames()) {
+                for (const packet of batch.packets) {
+                    const name = packet.getName();
                     if (this.logFilter.shouldLogName(name)) this.logger.silly(`Sent §b${name}§r packet`);
                 }
             });
@@ -145,33 +151,32 @@ export default class MinecraftSession {
     /**
      * Frames a batch somebody else has already encoded.
      *
-     * The counterpart to {@link sendBatch}, which encodes what it is handed. This takes the
+     * The counterpart to {@link sendPackets}, which encodes what it is handed. This takes the
      * finished bytes, so one compression can serve every recipient of a broadcast - the same
      * `UpdateBlockPacket` going to twenty players was twenty deflates of identical bytes.
      *
      * It must never be given a batch that has not been encoded; there is nothing here that
-     * would notice. A separate entry point rather than a flag on `sendBatch` precisely because
-     * `sendBatch` calls `encode()` unconditionally and packet encoding begins by clearing
+     * would notice. A separate entry point rather than a flag on `sendPackets` precisely because
+     * `sendPackets` encodes its own packets and packet encoding begins by clearing
      * the buffer - reusing it for a fan-out would recompress per recipient *and* invalidate
      * the bytes already handed out.
      * @param {Buffer} content - The encoded, compressed batch.
-     * @param packet - What is inside it, for the traffic log only.
+     * @param packets - The version-specific packets inside it, for drops and traffic logs.
      * @param {boolean} [direct=false] - Force a datagram of its own.
      */
-    public sendSharedBatch(content: Buffer, packet: NetworkPacket<unknown>, direct = false): void {
-        this.dump(packet);
-        if (this.drops(packet.getName())) return;
+    public sendSharedBatch(content: Buffer, packets: readonly NetworkPacket<unknown>[], direct = false): void {
+        const representative = packets[0];
+        if (representative !== undefined) this.dump(representative);
+        if (this.dropsPackets(packets)) return;
 
         // Through the same ordering chain as everything else, so a shared batch cannot
         // overtake a chunk batch that is still compressing.
         void this.ordered(() => {
             this.frame(content, direct);
-            if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
+            if (representative !== undefined && this.logFilter.shouldLog(representative)) {
+                this.logger.silly(`Sent §b${representative.getName()}§r packet`);
+            }
         });
-    }
-
-    private frameBatch(batch: BatchPacket, direct: boolean): void {
-        this.frame(batch.getBuffer(), direct);
     }
 
     private frame(content: Buffer, direct: boolean): void {
@@ -179,19 +184,9 @@ export default class MinecraftSession {
     }
 
     public async sendDataPacket(packet: NetworkPacket<unknown>, comp = true, direct = false): Promise<void> {
-        // The session's codec owns the wire: a packet built directly would otherwise encode
-        // the 2193 layout under the 2193 id whatever this session negotiated. The codec swaps
-        // in its own class when the layout changed, and stamps the id either way.
-        packet = this.codec.prepareOutbound(packet);
-        const netId = this.codec.netIdOf(packet.getName());
-        if (netId !== undefined) packet.setNetId(netId);
-
-        const batch = new BatchPacket();
+        let batch: ReturnType<typeof encodePacketBatch>;
         try {
-            batch.codec = this.codec;
-            batch.addPacket(packet);
-            batch.compressed = comp;
-            batch.encode();
+            batch = encodePacketBatch([packet], this.codec, { compressed: comp });
         } catch (error: unknown) {
             this.logger.error(error);
             this.logger.warn(
@@ -200,16 +195,20 @@ export default class MinecraftSession {
             return;
         }
 
+        const encodedPacket = batch.packets[0]!;
+
         // After encoding, so a dumped packet is the bytes the client would have been given,
         // whether or not it is also dropped.
-        this.dump(packet);
-        if (this.drops(packet.getName())) return;
+        this.dump(encodedPacket);
+        if (this.drops(encodedPacket.getName())) return;
 
         // Behind any chunk batch still compressing, so this packet does not overtake terrain
         // it was meant to follow.
         await this.ordered(() => {
-            this.frameBatch(batch, direct);
-            if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
+            this.frame(batch.content, direct);
+            if (this.logFilter.shouldLog(encodedPacket)) {
+                this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
+            }
         });
     }
 
@@ -250,15 +249,14 @@ export default class MinecraftSession {
     }
 
     /**
-     * A batch is dropped whole when any packet in it is named. Chunk batches hold only
-     * `LevelChunkPacket`s, so for the join stream this costs nothing extra.
-     * @param {BatchPacket} batch - The batch about to be encoded.
+     * A batch is dropped whole when any packet in it is named.
+     * @param packets - The packets about to be encoded.
      * @returns {boolean} `true` when the batch must not be sent.
      */
-    private dropsBatch(batch: BatchPacket): boolean {
+    private dropsPackets(packets: readonly NetworkPacket<unknown>[]): boolean {
         let drop = false;
-        for (const name of batch.getPacketNames()) {
-            if (this.drops(name)) drop = true;
+        for (const packet of packets) {
+            if (this.drops(packet.getName())) drop = true;
         }
 
         return drop;
@@ -278,16 +276,17 @@ export default class MinecraftSession {
  * single compression survives within a group, and a mixed-version audience each receives its
  * negotiated layout. A group whose encode fails is logged and skipped; the others still send.
  * @param {readonly MinecraftSession[]} sessions - Who receives it.
- * @param packet - The packet, as the caller built it.
+ * @param packets - The packets, as the caller built them.
  * @param {number} compressionLevel - The batch compression level.
  * @param {(error: unknown) => void} onError - Where an encode failure goes.
  */
 export const broadcastSharedBatches = (
     sessions: readonly MinecraftSession[],
-    packet: NetworkPacket<unknown>,
+    packets: NetworkPacket<unknown> | readonly NetworkPacket<unknown>[],
     compressionLevel: number,
     onError: (error: unknown) => void
 ): void => {
+    const packetList = packets instanceof Array ? packets : [packets];
     const byCodec = new Map<ProtocolCodec, MinecraftSession[]>();
     for (const session of sessions) {
         const group = byCodec.get(session.codec);
@@ -296,18 +295,17 @@ export const broadcastSharedBatches = (
     }
 
     for (const [codec, group] of byCodec) {
-        const batch = new BatchPacket();
-        batch.codec = codec;
-        batch.compressionLevel = compressionLevel;
         try {
-            batch.addPacket(packet);
-            batch.encode();
+            const batch = encodePacketBatch(packetList, codec, { compressionLevel });
+            for (const session of group) session.sendSharedBatch(batch.content, batch.packets);
         } catch (error: unknown) {
             onError(error);
-            continue;
         }
-
-        const content = batch.getBuffer();
-        for (const session of group) session.sendSharedBatch(content, packet);
     }
 };
+
+/** Options for a session to frame packets as one batch. */
+interface PacketBatchSendOptions extends PacketBatchOptions {
+    /** Whether RakNet should send the framed bytes in their own datagram. */
+    direct?: boolean;
+}

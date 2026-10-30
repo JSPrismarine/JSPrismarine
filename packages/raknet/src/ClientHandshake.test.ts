@@ -180,8 +180,8 @@ describe('outgoing handshake over a real socket', () => {
         //
         // The leading 0xfe is not decoration: `handlePacket` dispatches on the first byte
         // of the reassembled message, so a payload beginning 0x00 is a CONNECTED_PING and
-        // is answered rather than delivered. Every real Minecraft payload is a BatchPacket
-        // and starts with 0xfe, which is why nothing else in the reserved range can occur.
+        // is answered rather than delivered. Every real Minecraft payload starts with its
+        // batch envelope id, 0xfe, which is why nothing else in the reserved range can occur.
         const payload = Buffer.alloc(24_000);
         payload[0] = 0xfe;
         for (let i = 1; i < payload.byteLength; i++) payload[i] = i & 0xff;
