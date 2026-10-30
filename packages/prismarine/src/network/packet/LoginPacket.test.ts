@@ -4,7 +4,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
-import { protocolVersion } from '../codec/v2193';
+import { protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
 import { NetworkUtil } from '../NetworkUtil';
 import LoginPacket from './LoginPacket';
 

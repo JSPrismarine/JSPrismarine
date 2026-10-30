@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import EmoteListPacket from './EmoteListPacket';
 
 // Packet id 152 as a varuint.

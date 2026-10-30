@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { BlockState } from './BlockState';
-import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID, fnv1a32 } from './BlockRuntimeIds';
+import { UNKNOWN_RUNTIME_ID, fnv1a32 } from '@jsprismarine/protocol';
+import { BlockRuntimeIds } from './BlockRuntimeIds';
 import { BlockStateSchema, BlockStateSchemas } from './BlockStateSchema';
 
 describe('block', () => {

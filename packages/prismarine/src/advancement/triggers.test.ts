@@ -7,7 +7,7 @@ import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing'
 import Player from '../Player';
 import type Server from '../Server';
 import type { World } from '../world/World';
-import { Attributes } from '../entity/Attribute';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import type { Entity } from '../entity/Entity';

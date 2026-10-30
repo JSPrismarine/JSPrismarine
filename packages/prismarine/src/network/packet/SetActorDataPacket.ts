@@ -1,10 +1,10 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
-import { SyncedProperties } from '../type/SyncedProperties';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import DataPacket from './DataPacket';
 import { setActorDataPacket } from '@jsprismarine/protocol/wire/definitions/setActorData';
 
-import type { Metadata } from '../../entity/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 
 /**
  * Sends a delta of an entity's metadata to clients that can see it.

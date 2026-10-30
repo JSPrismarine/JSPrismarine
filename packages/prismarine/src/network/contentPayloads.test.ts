@@ -27,7 +27,7 @@ import StartGamePacket from './packet/StartGamePacket';
 
 import { itemData2193, itemData2225 } from './codec/itemData';
 
-import type { ProtocolItemData } from './codec/itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ContentPayloadOptions, ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
 import type Server from '../Server';
 import type { ContentOptions } from '../content/ContentOptions';

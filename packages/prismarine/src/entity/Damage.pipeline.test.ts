@@ -5,7 +5,7 @@ import type Server from '../Server';
 import type { EventTypes } from '../events/EventEmitter';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import { Position } from '../world/Position';
-import { AttributeIds } from './Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { damageCauseOf, DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import { Entity } from './Entity';

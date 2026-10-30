@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Attributes, AttributeIds } from '../entity/Attribute';
+import { Attributes, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from './Dimension';

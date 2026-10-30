@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Attribute, AttributeIds } from '../entity/Attribute';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import type UpdateAttributesPacket from './packet/UpdateAttributesPacket';

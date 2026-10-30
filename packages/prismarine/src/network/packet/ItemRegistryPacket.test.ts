@@ -1,6 +1,6 @@
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { item_table as ItemTable2225 } from '@jsprismarine/bedrock-data/v2225';
-import { netIdFor } from '../codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';

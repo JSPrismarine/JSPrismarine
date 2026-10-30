@@ -2,7 +2,7 @@ import { CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jspris
 import { describe, expect, it } from 'vitest';
 
 import type Player from '../Player';
-import type { Metadata } from '../entity/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type DataPacket from './packet/DataPacket';

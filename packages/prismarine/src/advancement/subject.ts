@@ -17,7 +17,7 @@ import type { EntityView } from '@jsprismarine/predicates';
 
 import { getGametypeName } from '@jsprismarine/minecraft';
 import type Player from '../Player';
-import { AttributeIds } from '../entity/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { entityPredicateView } from '../entity/predicateView';
 
 const players = new WeakMap<EntityView, Player>();

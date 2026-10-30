@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { netIdFor } from '../codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import * as Packets from '../Packets';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import ShowStoreOfferPacket, { ShowStoreOfferRedirectType } from './ShowStoreOfferPacket';
 
 describe('ShowStoreOfferPacket', () => {

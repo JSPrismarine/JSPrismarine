@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { NetworkBinaryStream, UUID as NetworkUUID } from '@jsprismarine/protocol';
-import UUID from './UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
 /**
  * An `mce::UUID` is the two 64 bit halves of the uuid, most significant first, each written

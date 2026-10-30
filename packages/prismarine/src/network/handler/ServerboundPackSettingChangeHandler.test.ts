@@ -4,7 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
 import ServerboundPackSettingChangePacket from '../packet/ServerboundPackSettingChangePacket';
 import ServerboundPackSettingChangeHandler from './ServerboundPackSettingChangeHandler';

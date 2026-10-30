@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag } from '../../entity/Metadata';
+import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import Identifiers from '../Identifiers';
 import SetActorDataPacket from './SetActorDataPacket';
 

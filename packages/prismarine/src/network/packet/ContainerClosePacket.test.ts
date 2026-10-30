@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { netIdFor } from '../codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { describe, expect, it } from 'vitest';
 
 import ContainerClosePacket from './ContainerClosePacket';

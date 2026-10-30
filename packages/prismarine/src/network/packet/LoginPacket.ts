@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { createHash } from 'node:crypto';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Device from '../../utils/Device';
-import Skin from '../../utils/skin/Skin';
+import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import DataPacket from './DataPacket';
 
 /** The skin fields `Skin.fromJWT` reads, named from its parameter so the two cannot drift. */

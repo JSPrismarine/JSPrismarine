@@ -1,7 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import Player from '../../Player';
 import type Server from '../../Server';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { Position } from '../../world/Position';
 import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';

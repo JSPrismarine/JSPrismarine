@@ -13,7 +13,7 @@
  */
 import type { RewardHooks } from '@jsprismarine/advancements';
 
-import { AttributeIds } from '../entity/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { addExperiencePoints } from '../entity/Experience';
 import { playerOfSubject } from './subject';
 

@@ -16,7 +16,7 @@ import { javaItemTagsForBedrock } from '../content/javaTags';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
 import { itemData2193, itemDataForProtocol } from '../network/codec/itemData';
-import type { ProtocolItemData } from '../network/codec/itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import DataPacket from '../network/packet/DataPacket';
 import { storedItem } from '../inventory/persistence';
 import { holderSetIncludes } from './holderSets';

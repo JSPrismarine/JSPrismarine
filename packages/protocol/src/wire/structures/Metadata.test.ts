@@ -1,7 +1,13 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
-import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag, MetadataWriter } from './Metadata';
+import {
+    FlagType,
+    MAX_AIR_TICKS,
+    Metadata,
+    MetadataFlag,
+    MetadataWriter
+} from '@jsprismarine/protocol/wire/structures/Metadata';
 
 describe('MetadataWriter', () => {
     it('should set and get property values correctly', () => {

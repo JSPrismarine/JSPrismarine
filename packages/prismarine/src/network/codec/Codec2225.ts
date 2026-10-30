@@ -1,6 +1,6 @@
 import { Codec2193 } from './Codec2193';
 import { itemData2225 } from './itemData';
-import { minecraftVersions, packetIds, protocolVersion } from './v2225';
+import { minecraftVersions, packetIds, protocolVersion } from '@jsprismarine/protocol/wire/versions/v2225';
 import { biome_definitions_network, block_definitions } from '@jsprismarine/bedrock-data/v2225';
 import { entity_identifiers, jigsaw_structure_data } from '@jsprismarine/bedrock-data';
 

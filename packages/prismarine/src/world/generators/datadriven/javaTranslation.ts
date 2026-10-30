@@ -10,7 +10,8 @@
  */
 import { bedrockBiomeToJava, javaBlockStateToBedrock, javaIdentifierToBedrock } from '@jsprismarine/mapping';
 
-import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
+import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 
 /** A Java block state: an identifier and the property values that pick one state of it. */

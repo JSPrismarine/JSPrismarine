@@ -22,13 +22,11 @@
 import { item_components, item_table } from '@jsprismarine/bedrock-data';
 import { item_table as item_table_2225 } from '@jsprismarine/bedrock-data/v2225';
 
-import { protocolVersion as protocol2193 } from './v2193';
-import { protocolVersion as protocol2225 } from './v2225';
+import { protocolVersion as protocol2193 } from '@jsprismarine/protocol/wire/versions/v2193';
+import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/wire/versions/v2225';
 
 import type { ItemTypeEntry } from '@jsprismarine/bedrock-data';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
-
-export type { ProtocolItemData } from '@jsprismarine/protocol';
 
 /** A {@link ProtocolItemData} over one captured table, with the reverse index built on demand. */
 const itemDataOver = (protocolVersion: number, table: Readonly<Record<string, ItemTypeEntry>>): ProtocolItemData => {

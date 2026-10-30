@@ -1,11 +1,11 @@
 import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { layoutAt } from '@jsprismarine/protocol';
-import { Metadata } from '../../entity/Metadata';
+import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { Item } from '../../item/Item';
-import type UUID from '../../utils/UUID';
-import { SyncedProperties } from '../type/SyncedProperties';
-import type { PassengerOfBlock } from '../type/PassengerOfBlock';
+import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
 import DataPacket from './DataPacket';
 import { addPlayerPacket } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 

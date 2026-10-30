@@ -1,4 +1,4 @@
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 

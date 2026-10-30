@@ -3,14 +3,14 @@ import { Vector3 } from '@jsprismarine/math';
 import { layoutAt } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
-import { Attribute } from '../../entity/Attribute';
-import { Metadata } from '../../entity/Metadata';
+import { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import BlockPosition from '../../world/BlockPosition';
-import { SyncedProperties } from '../type/SyncedProperties';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import AddActorPacket, { ActorLinkType } from './AddActorPacket';
 import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 
-import type { PassengerOfBlock } from '../type/PassengerOfBlock';
+import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
 
 /**
  * The declarative layout must produce the same bytes as the classes it replaces, at both

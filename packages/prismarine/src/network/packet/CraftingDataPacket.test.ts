@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { netIdFor } from '../codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
@@ -8,7 +8,7 @@ import type { Recipe } from '../../crafting/Recipe';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from '../../crafting/Recipe';
 import { ANY_META, ItemIngredient, TagIngredient } from '../../crafting/RecipeIngredient';
 import { Item } from '../../item/Item';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { NetworkUtil } from '../NetworkUtil';
 import { readRecipeIngredient } from '../type/RecipeIngredientCodec';
 import CraftingDataPacket from './CraftingDataPacket';

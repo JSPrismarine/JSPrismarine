@@ -9,7 +9,7 @@ import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { Item } from './other/Item';
 import { DEFAULT_FUSE_TICKS } from './fuse';
-import { MetadataFlag } from './Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { StatusEffect } from './StatusEffect';
 import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';
 import { dataEntityRecordIn } from './data/persistence';

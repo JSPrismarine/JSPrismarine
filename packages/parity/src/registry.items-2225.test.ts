@@ -6,7 +6,7 @@ import {
 } from '@jsprismarine/bedrock-data/v2225';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
-import { netIdFor } from '@jsprismarine/prismarine/network/codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import ItemRegistryPacket from '@jsprismarine/prismarine/network/packet/ItemRegistryPacket';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

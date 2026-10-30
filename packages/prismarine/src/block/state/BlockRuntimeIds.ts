@@ -3,10 +3,6 @@ import { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32, writeBlockStateNbt } f
 import type { BlockState, BlockStateValue } from './BlockState';
 import { BlockStateSchemas } from './BlockStateSchema';
 
-// The hash, the bytes it is taken over, and the reserved id belong to the protocol: the client
-// computes the same number from the same bytes, and protocol payload builders use them too.
-export { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32 } from '@jsprismarine/protocol';
-
 /**
  * Turns a block state into the number that travels in chunk palettes.
  *

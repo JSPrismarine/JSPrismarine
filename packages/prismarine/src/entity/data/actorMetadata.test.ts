@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 
 import type { Entity } from '../Entity';
-import { Metadata, MetadataFlag } from '../Metadata';
+import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../../testing/stub.test.helper';
 import { applyActorMetadataProjection, actorMetadataProjection } from './actorMetadata';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';

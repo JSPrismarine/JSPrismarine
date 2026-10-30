@@ -1,7 +1,7 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
-import type UUID from '../../utils/UUID';
-import type Skin from '../../utils/skin/Skin';
+import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import DataPacket from './DataPacket';
 import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
 

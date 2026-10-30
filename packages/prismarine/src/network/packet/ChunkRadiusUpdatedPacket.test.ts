@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { netIdFor } from '../codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 
 import Identifiers from '../Identifiers';
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';

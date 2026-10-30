@@ -17,7 +17,7 @@ import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../
 import type { OpenContainerSlots } from '../../inventory/containerStore';
 import { Item } from '../../item/Item';
 import { itemDataForProtocol } from '../codec/itemData';
-import type { ProtocolItemData } from '../codec/itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
 import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import type {

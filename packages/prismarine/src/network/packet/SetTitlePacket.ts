@@ -1,6 +1,6 @@
 import { layoutAt, setTitlePacket } from '@jsprismarine/protocol';
 
-import { TitleType } from '../type/SetTitleType';
+import { TitleType } from '@jsprismarine/minecraft';
 import DataPacket from './DataPacket';
 
 /**

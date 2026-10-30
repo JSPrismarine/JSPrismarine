@@ -1,9 +1,9 @@
 import { Vector3 } from '@jsprismarine/math';
 import { layoutAt } from '@jsprismarine/protocol';
-import type { Attribute } from '../../entity/Attribute';
-import type { Metadata } from '../../entity/Metadata';
-import { SyncedProperties } from '../type/SyncedProperties';
-import type { PassengerOfBlock } from '../type/PassengerOfBlock';
+import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
 import DataPacket from './DataPacket';
 import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 

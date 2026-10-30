@@ -8,7 +8,7 @@ import type Player from '../Player';
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
 import type { World } from '../world/World';
-import { AttributeIds, Attributes } from '../entity/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Item } from '../item/Item';
 import type DataPacket from '../network/packet/DataPacket';
 import { EnchantType } from '@jsprismarine/minecraft';

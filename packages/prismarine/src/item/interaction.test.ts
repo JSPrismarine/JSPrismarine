@@ -10,7 +10,7 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { advancementsOf } from '../advancement/progress';
-import { Attributes } from '../entity/Attribute';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';

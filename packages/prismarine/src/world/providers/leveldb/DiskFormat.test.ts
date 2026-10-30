@@ -2,7 +2,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
+import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
 import { ChunkBiomes, PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import SubChunk from '../../chunk/SubChunk';

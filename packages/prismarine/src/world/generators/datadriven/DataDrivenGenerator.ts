@@ -61,7 +61,8 @@ import {
     parseCarver
 } from '@jsprismarine/worldgen';
 
-import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
+import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
 import Chunk from '../../chunk/Chunk';
 import SubChunk from '../../chunk/SubChunk';

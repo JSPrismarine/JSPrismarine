@@ -11,6 +11,7 @@
         "incremental": false,
         "inlineSourceMap": false,
         "paths": {
+            "@jsprismarine/protocol/*": ["../protocol/dist/*"],
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }
     },

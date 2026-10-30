@@ -13,7 +13,7 @@ import { buildServerContent } from '../../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
 import type { Event } from '../../events/Event';
 import { stub } from '../../testing/stub.test.helper';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
 import type { Generator } from '../../world/Generator';
 import type { PlayerSpawn } from '../../world/SpawnPlacement';

@@ -6,13 +6,19 @@ import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import { GameRuleType, layoutAt, startGamePacket } from '@jsprismarine/protocol';
 import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import GameRuleManager, { toNetworkGameRule } from '../../world/GameRuleManager';
-import { minecraftVersions as versions2193, protocolVersion as protocol2193 } from '../codec/v2193';
-import { minecraftVersions as versions2225, protocolVersion as protocol2225 } from '../codec/v2225';
+import {
+    minecraftVersions as versions2193,
+    protocolVersion as protocol2193
+} from '@jsprismarine/protocol/wire/versions/v2193';
+import {
+    minecraftVersions as versions2225,
+    protocolVersion as protocol2225
+} from '@jsprismarine/protocol/wire/versions/v2225';
 import DataPacket from './DataPacket';
-import { GameRuleValueType } from '../type/GameRule';
+import { GameRuleValueType } from '@jsprismarine/protocol/wire/structures/GameRule';
 
 import type { BlockProperty, StartGamePayload, GameRule as WireGameRule } from '@jsprismarine/protocol';
-import type { GameRule } from '../type/GameRule';
+import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 
 /**
  * The docs' `EditorLevelMigrationVersion`: which editor level migrations a world has had

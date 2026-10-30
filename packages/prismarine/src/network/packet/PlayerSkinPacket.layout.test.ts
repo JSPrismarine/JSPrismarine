@@ -2,8 +2,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { layoutAt } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
-import UUID from '../../utils/UUID';
-import Skin from '../../utils/skin/Skin';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import PlayerSkinPacket from './PlayerSkinPacket';
 import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
 

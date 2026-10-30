@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { Attribute, AttributeIds, Attributes } from './Attribute';
+import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 describe('entity', () => {
     describe('Attribute', () => {

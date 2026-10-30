@@ -8,7 +8,7 @@ import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprism
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Block, Server, Service } from '../';
 import Timer from '../utils/Timer';
-import UUID from '../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { randomOf } from '../utils/Random';
 import type { Random } from '../utils/Random';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
@@ -19,7 +19,7 @@ import { storedAdvancements } from '../advancement/progress';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
-import { AttributeIds } from '../entity/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { writtenEntities } from '../entity/Entities';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { dataEntityRecordIn } from '../entity/data/persistence';

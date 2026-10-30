@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { stub } from '../../testing/stub.test.helper';
 import EmoteListPacket from '../packet/EmoteListPacket';
 import type PlayerSession from '../PlayerSession';

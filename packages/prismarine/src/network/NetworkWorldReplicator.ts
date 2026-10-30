@@ -4,7 +4,7 @@ import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import Player from '../Player';
 import type Server from '../Server';
-import type { Attribute } from '../entity/Attribute';
+import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Entity } from '../entity/Entity';
 import BlockPosition from '../world/BlockPosition';

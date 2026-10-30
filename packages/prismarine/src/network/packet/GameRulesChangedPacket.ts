@@ -3,16 +3,7 @@ import { layoutAt } from '@jsprismarine/protocol';
 import DataPacket from './DataPacket';
 import { gameRulesChangedPacket } from '@jsprismarine/protocol/wire/definitions/gameRulesChanged';
 
-import type { GameRule } from '../type/GameRule';
-
-/**
- * The `GameRule` wire structure and its codecs live in `../type/GameRule`, shared with
- * `StartGamePacket` and `GameRuleManager`. These aliases keep older imports compiling.
- * @deprecated Import from `network/type/GameRule` instead.
- */
-export { GameRuleValueType, readGameRule, writeGameRule } from '../type/GameRule';
-/** @deprecated Import from `network/type/GameRule` instead. */
-export type { GameRule, GameRuleValue } from '../type/GameRule';
+import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 
 /**
  * Tells a client that game rules changed.

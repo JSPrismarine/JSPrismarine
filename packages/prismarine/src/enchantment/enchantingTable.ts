@@ -20,7 +20,7 @@ import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
 
 import { advancementEnchantedItem } from '../advancement/triggers';
 import type Player from '../Player';
-import { AttributeIds } from '../entity/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { spendExperienceLevels } from '../entity/Experience';
 import type { Item } from '../item/Item';
 import type { EnchantmentInstance, ItemEnchantOption } from '../network/packet/PlayerEnchantOptionsPacket';

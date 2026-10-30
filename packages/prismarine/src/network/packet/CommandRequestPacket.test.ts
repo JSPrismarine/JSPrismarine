@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import UUID from '../../utils/UUID';
-import CommandOriginData from '../type/CommandOriginData';
-import CommandOriginType from '../type/CommandOriginType';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
+import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import CommandRequestPacket from './CommandRequestPacket';
 
 // A varuint length prefix followed by UTF-8, for strings shorter than 128 bytes.

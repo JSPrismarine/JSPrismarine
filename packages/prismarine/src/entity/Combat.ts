@@ -2,7 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { meleeEnchantmentBonus } from '../enchantment/melee';
 import { GameRules } from '../world/GameRuleManager';
-import { AttributeIds } from './Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';

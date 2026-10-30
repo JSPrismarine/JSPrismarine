@@ -1,5 +1,5 @@
 import { latestCodec, supportedMinecraftVersions } from './codec/CodecRegistry';
-import { packetIds } from './codec/v2193';
+import { packetIds } from '@jsprismarine/protocol/wire/versions/v2193';
 
 /**
  * The advertised protocol facts and the protocol 2193 packet ids, flattened into one object.

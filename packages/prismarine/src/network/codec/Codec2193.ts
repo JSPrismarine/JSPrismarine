@@ -8,9 +8,9 @@ import {
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import type DataPacket from '../packet/DataPacket';
 import { itemData2193 } from './itemData';
-import type { ProtocolItemData } from './itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from './ProtocolCodec';
-import { minecraftVersions, netIdFor, packetIds, protocolVersion } from './v2193';
+import { minecraftVersions, netIdFor, packetIds, protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
 
 /** Exported packet classes no codec lists: the base class and the batch envelope. */
 export type PacketClass = (typeof Packets)[keyof typeof Packets];

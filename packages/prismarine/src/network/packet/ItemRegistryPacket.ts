@@ -5,7 +5,7 @@ import { NetworkUtil } from '../../network/NetworkUtil';
 import { itemDataForProtocol } from '../codec/itemData';
 import DataPacket from './DataPacket';
 
-import type { ProtocolItemData } from '../codec/itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 
 /**

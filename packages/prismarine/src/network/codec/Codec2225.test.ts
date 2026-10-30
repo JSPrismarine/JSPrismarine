@@ -12,18 +12,18 @@ import AnimatePacket from '../packet/AnimatePacket';
 import InventoryTransactionPacket, { HandSlot, TransactionType } from '../packet/InventoryTransactionPacket';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import LevelChunkPacket from '../packet/LevelChunkPacket';
-import { Metadata } from '../../entity/Metadata';
+import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { BuildPlatform } from '@jsprismarine/minecraft';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../packet/PlayerListPacket';
 import PlayerSkinPacket from '../packet/PlayerSkinPacket';
-import Skin from '../../utils/skin/Skin';
+import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import StartGamePacket from '../packet/StartGamePacket';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Codec2193 from './Codec2193';
 import Codec2225 from './Codec2225';
 import { codecForProtocol, latestCodec } from './CodecRegistry';
-import { packetIds as packetIds2193 } from './v2193';
-import { addedPacketIds } from './v2225';
+import { packetIds as packetIds2193 } from '@jsprismarine/protocol/wire/versions/v2193';
+import { addedPacketIds } from '@jsprismarine/protocol/wire/versions/v2225';
 import type DataPacket from '../packet/DataPacket';
 
 /** Encodes under the 2225 codec's id, then decodes through the codec, as a session would. */

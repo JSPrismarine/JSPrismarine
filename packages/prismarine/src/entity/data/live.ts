@@ -34,7 +34,7 @@ import AnimatePacket, { AnimateAction } from '../../network/packet/AnimatePacket
 import { actorMotionIn } from './persistence';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
-import { MetadataFlag } from '../Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type { ContentItemDrop } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';

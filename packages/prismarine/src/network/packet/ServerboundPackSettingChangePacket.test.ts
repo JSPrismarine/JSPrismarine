@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import ServerboundPackSettingChangePacket from './ServerboundPackSettingChangePacket';
 
 describe('ServerboundPackSettingChangePacket', () => {

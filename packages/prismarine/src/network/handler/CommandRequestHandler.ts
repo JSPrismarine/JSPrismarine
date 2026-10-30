@@ -2,7 +2,7 @@ import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
 import CommandOutputPacket, { CommandOutputType } from '../packet/CommandOutputPacket';
 import type CommandRequestPacket from '../packet/CommandRequestPacket';
-import CommandOriginType from '../type/CommandOriginType';
+import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import type PacketHandler from './PacketHandler';
 
 /**

@@ -19,8 +19,6 @@ import type { BlockStateValue } from '../../block/state/BlockState';
  * was half a block because its name ends in `_slab`.
  */
 
-export { FULL_BLOCK, PASSABLE } from '@jsprismarine/blocks';
-
 /**
  * The blocks this reads as open against what the client draws, and why.
  *

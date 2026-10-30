@@ -17,7 +17,7 @@ import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../../content/testing';
 import CraftingInput from '../../crafting/CraftingInput';
-import { AttributeIds, Attributes } from '../../entity/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';

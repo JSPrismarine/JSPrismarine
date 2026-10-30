@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type Player from '../Player';
-import type { Attribute } from '../entity/Attribute';
+import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { WorldChange } from './WorldChange';

@@ -1,4 +1,4 @@
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import DataPacket from './DataPacket';
 
 /** Which page the client opens for the offer, as the `Redirect Type` byte numbers it. */

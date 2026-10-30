@@ -14,7 +14,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import Player from '../../Player';
 import type Server from '../../Server';
-import { AttributeIds } from '../../entity/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';

@@ -1,5 +1,5 @@
 import type DataPacket from '../packet/DataPacket';
-import type { ProtocolItemData } from './itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 
 /**

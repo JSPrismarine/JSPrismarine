@@ -17,7 +17,7 @@ import type { Server } from '../../';
 import type { Config } from '../../config/Config';
 import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
-import { AttributeIds, Attributes } from '../../entity/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { Entity } from '../../entity/Entity';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';

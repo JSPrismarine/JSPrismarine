@@ -48,7 +48,7 @@ import { Position } from '../../world/Position';
 import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../../network/PlayerSession';
 import InventoryTransactionPacket, {
     ItemUseOnActorActionType,
@@ -59,7 +59,7 @@ import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { EntitySerializer } from '../EntitySerializer';
-import { MetadataFlag } from '../Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { Item as ItemEntity } from '../other/Item';
 import { loose } from '../Archery';
 import { dataEntityRecordIn } from './persistence';

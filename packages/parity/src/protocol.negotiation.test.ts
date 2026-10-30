@@ -14,8 +14,8 @@ import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
 } from '@jsprismarine/prismarine/network/packet/PlayerListPacket';
-import Skin from '@jsprismarine/prismarine/utils/skin/Skin';
-import UUID from '@jsprismarine/prismarine/utils/UUID';
+import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import RequestNetworkSettingsPacket from '@jsprismarine/prismarine/network/packet/RequestNetworkSettingsPacket';
 import PlayStatus from '@jsprismarine/prismarine/network/type/PlayStatus';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';

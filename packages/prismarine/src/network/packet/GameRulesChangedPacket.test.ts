@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { GameRule } from '../type/GameRule';
+import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from './GameRulesChangedPacket';
-import { GameRuleValueType } from '../type/GameRule';
+import { GameRuleValueType } from '@jsprismarine/protocol/wire/structures/GameRule';
 
 describe('GameRulesChangedPacket', () => {
     // Header 0x48 and a count of three. Then, per rule, the name after its varuint length,

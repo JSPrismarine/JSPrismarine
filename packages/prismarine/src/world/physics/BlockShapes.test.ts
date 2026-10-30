@@ -1,7 +1,8 @@
 import { blockSchemas } from '@jsprismarine/minecraft/generated/block-schemas';
 import { describe, expect, it } from 'vitest';
 
-import { FULL_BLOCK, PASSABLE, collisionTopOf } from './BlockShapes';
+import { FULL_BLOCK, PASSABLE } from '@jsprismarine/blocks';
+import { collisionTopOf } from './BlockShapes';
 
 describe('block shapes', () => {
     it('answers for every block in the palette', () => {

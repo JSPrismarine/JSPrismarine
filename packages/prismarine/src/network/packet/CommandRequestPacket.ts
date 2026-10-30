@@ -1,8 +1,8 @@
 import { commandRequestPacket, layoutAt } from '@jsprismarine/protocol';
 
-import UUID from '../../utils/UUID';
-import CommandOriginData from '../type/CommandOriginData';
-import CommandOriginType from '../type/CommandOriginType';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
+import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import DataPacket from './DataPacket';
 
 /**

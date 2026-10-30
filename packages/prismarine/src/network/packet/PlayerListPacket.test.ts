@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import UUID from '../../utils/UUID';
-import Skin from '../../utils/skin/Skin';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './PlayerListPacket';

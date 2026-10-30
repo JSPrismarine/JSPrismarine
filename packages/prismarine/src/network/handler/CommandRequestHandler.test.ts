@@ -5,13 +5,13 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import type { CommandManager } from '../../command/CommandManager';
 import { stub } from '../../testing/stub.test.helper';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
 import CommandOutputPacket, { CommandOutputType } from '../packet/CommandOutputPacket';
 import CommandRequestPacket from '../packet/CommandRequestPacket';
 import type DataPacket from '../packet/DataPacket';
-import CommandOriginData from '../type/CommandOriginData';
-import CommandOriginType from '../type/CommandOriginType';
+import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
+import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
 import CommandRequestHandler from './CommandRequestHandler';
 
 const origin = (type: CommandOriginType): CommandOriginData =>

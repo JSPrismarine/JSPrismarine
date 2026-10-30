@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
 import { ChunkTag, decodeChunkKey } from './LevelDBKeys';
 import { Database, WriteBatch } from '@jsprismarine/leveldb';
 import { decodeData3D, encodeData3D } from './BiomeCodec';

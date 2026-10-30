@@ -9,7 +9,7 @@ import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
-import UUID from '../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionManagerServer } from './PermissionManager';
 

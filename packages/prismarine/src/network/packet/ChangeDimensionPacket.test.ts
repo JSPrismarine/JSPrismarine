@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { netIdFor } from '../codec/v2193';
+import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { Dimension } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 

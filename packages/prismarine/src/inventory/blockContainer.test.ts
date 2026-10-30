@@ -44,7 +44,7 @@ import type { PermissionManager } from '../permission/PermissionManager';
 import Player from '../Player';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
-import UUID from '../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/Dimension';

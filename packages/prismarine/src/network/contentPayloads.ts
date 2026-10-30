@@ -42,7 +42,7 @@ import {
 import { itemData2193 } from './codec/itemData';
 import { assertContentPaletteAgrees } from './contentPalette';
 
-import type { ProtocolItemData } from './codec/itemData';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ServerContent } from '../content/ServerContent';
 import type { BlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';

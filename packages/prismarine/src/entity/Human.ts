@@ -2,8 +2,8 @@ import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
 import { Vector3 } from '@jsprismarine/math';
 import { Entity } from './Entity';
-import type { Attribute } from './Attribute';
-import { Attributes } from './Attribute';
+import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { ViewableEquipment } from './predicateView';
 
 /**

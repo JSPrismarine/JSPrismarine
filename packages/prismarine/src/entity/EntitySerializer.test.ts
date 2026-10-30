@@ -7,7 +7,7 @@ import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
-import { MetadataFlag } from './Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { Item as ItemEntity } from './other/Item';
 
 /**

@@ -15,7 +15,7 @@ import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
 import Device from '../utils/Device';
-import UUID from '../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type DataPacket from './packet/DataPacket';

@@ -3,7 +3,7 @@ import { ActorEvent, Dimension, DisconnectReason, Gametype, getGametypeId } from
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
-import { Attribute, AttributeIds } from './entity/Attribute';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
@@ -16,7 +16,7 @@ import {
     isUnderwater
 } from './entity/Environment';
 import Human, { EYE_HEIGHT, eyePositionAt } from './entity/Human';
-import { FlagType, MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
+import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
@@ -35,8 +35,8 @@ import { enchantmentSeedOf } from './enchantment/enchantingTable';
 import { restoreInventory } from './inventory/persistence';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
-import type UUID from './utils/UUID';
-import type Skin from './utils/skin/Skin';
+import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type { World, WorldPlayerData } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';

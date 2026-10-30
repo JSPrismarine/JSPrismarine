@@ -30,7 +30,7 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { itemOfDrop } from '../../inventory/persistence';
 import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
-import { Attribute, AttributeIds } from '../Attribute';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
 import type { ViewableEquipment } from '../predicateView';
 import type { Entity } from '../Entity';

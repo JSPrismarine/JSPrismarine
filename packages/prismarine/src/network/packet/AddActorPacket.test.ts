@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
-import { Attribute, AttributeIds } from '../../entity/Attribute';
-import { FlagType, Metadata, MetadataFlag } from '../../entity/Metadata';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { FlagType, Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import AddActorPacket, { ActorLinkType } from './AddActorPacket';
 
 /**

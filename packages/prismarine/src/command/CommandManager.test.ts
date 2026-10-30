@@ -14,7 +14,7 @@ import Player from '../Player';
 import { PermissionManager } from '../permission/PermissionManager';
 import type SessionManager from '../SessionManager';
 import { stub, stubOf } from '../testing/stub.test.helper';
-import UUID from '../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
 import { Dimensions } from '../world/Dimension';

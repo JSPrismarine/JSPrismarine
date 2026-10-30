@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import GameRuleManager from '../../world/GameRuleManager';
-import { GameRuleValueType } from '../type/GameRule';
+import { GameRuleValueType } from '@jsprismarine/protocol/wire/structures/GameRule';
 import StartGamePacket from './StartGamePacket';
 
 // Packet id 11 as a varuint.

@@ -8,7 +8,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { PropertyDefinition, PropertyType, PropertyValues } from '@jsprismarine/entities';
 
 import SyncActorPropertyPacket from './packet/SyncActorPropertyPacket';
-import { SyncedProperties } from './type/SyncedProperties';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 
 /** The numeric property kinds used in Bedrock's actor-property definitions. */
 const propertyTypeIds = {

@@ -15,7 +15,7 @@ import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
 import type { Entity } from './Entity';
 import { explode } from './Explosion';
-import { Attribute, AttributeIds } from './Attribute';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { GenericEntity } from './GenericEntity';
 
 /** @see {@link emptyContent} */

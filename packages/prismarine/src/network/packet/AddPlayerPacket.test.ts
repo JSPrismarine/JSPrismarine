@@ -1,8 +1,8 @@
 import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
-import { Metadata, MetadataFlag } from '../../entity/Metadata';
+import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { Item } from '../../item/Item';
-import UUID from '../../utils/UUID';
+import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import AddPlayerPacket from './AddPlayerPacket';
 
 /**

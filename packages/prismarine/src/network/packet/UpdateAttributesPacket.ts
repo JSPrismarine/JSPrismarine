@@ -3,7 +3,7 @@ import { layoutAt } from '@jsprismarine/protocol';
 import DataPacket from './DataPacket';
 import { updateAttributesPacket } from '@jsprismarine/protocol/wire/definitions/updateAttributes';
 
-import type { Attribute } from '../../entity/Attribute';
+import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 /**
  * Replaces some or all of one entity's attributes on the client, for instance after it takes

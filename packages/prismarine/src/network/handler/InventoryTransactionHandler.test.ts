@@ -12,7 +12,7 @@ import type { Config } from '../../config/Config';
 import { loose } from '../../entity/Archery';
 import { meleeAttack } from '../../entity/Combat';
 import type { Entity } from '../../entity/Entity';
-import type { Metadata } from '../../entity/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';

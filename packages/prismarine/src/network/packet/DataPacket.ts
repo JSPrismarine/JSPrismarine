@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { netIdFor, protocolVersion } from '../codec/v2193';
+import { netIdFor, protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
 
 const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;

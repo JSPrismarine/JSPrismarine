@@ -3,7 +3,8 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter, Types } from '@jsprismarine/nbt';
 import { blockSchemas } from '@jsprismarine/minecraft';
 
-import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
+import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../../../block/state/BlockStateSchema';
 import type { BlockStateValue } from '../../../block/state/BlockState';
 
