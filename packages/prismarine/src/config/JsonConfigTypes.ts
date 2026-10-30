@@ -391,10 +391,9 @@ export interface WorldPlayerData {
     /**
      * When this record was written, in milliseconds since the epoch.
      *
-     * Each world keeps its own player records, so a player who logged out of the nether has a
-     * record there and a stale one in the overworld. The instant is what tells the two apart:
-     * see {@link import('../world/PlayerRecords').lastPlayerRecord}. Absent on a record written
-     * before this field existed, which reads as older than any record that carries one.
+     * Written so a tool or a later migration can tell two copies of a record apart. Absent on a
+     * record written before this field existed. Which world a returning player lands in is
+     * `dimension`'s job: see {@link import('../world/PlayerRecords').lastPlayerRecord}.
      */
     savedAt?: number;
 }

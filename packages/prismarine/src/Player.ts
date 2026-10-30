@@ -301,11 +301,10 @@ export default class Player extends Human {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        // The world that last wrote a record for this player, which is not always the one the
-        // login built them in. Each world keeps its own player records, so a player who logged
-        // out of the nether used to come back in the default world at whatever stale position
-        // that world's own record held. Moved before anything reads the record, and without a
-        // packet: nothing has been told where this player is yet.
+        // The world of the dimension the record was written in, which is not always the one
+        // the login built them in: a player who logged out of the nether used to come back in
+        // the default world. Moved before anything reads the record, and without a packet:
+        // nothing has been told where this player is yet.
         const record = await lastPlayerRecord(this, this.server.getWorldManager().getWorlds());
         if (record.world !== this.getWorld()) this.position = this.position.withWorld(record.world);
 
