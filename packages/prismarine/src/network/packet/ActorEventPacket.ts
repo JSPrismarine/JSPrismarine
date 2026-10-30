@@ -1,7 +1,9 @@
-import type { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../NetworkUtil';
+import { actorEventPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
+
+import type { Vector3 } from '@jsprismarine/math';
 
 /**
  * One-off things that happen to an entity and that the client animates itself: the red
@@ -36,23 +38,24 @@ export default class ActorEventPacket extends DataPacket {
     public fireAtPosition: Vector3 | null = null;
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeByte(this.event);
-        this.writeVarInt(this.data);
-
         // The presence byte of `Fire At Position` goes out whether or not a position follows.
         // Leaving it out ends the packet a byte early, and a client that reads past the end of
         // a packet treats it as malformed and drops the connection with `initialconnection-90`.
         // One of these goes out the moment anything takes damage.
-        this.writeBoolean(this.fireAtPosition !== null);
-        if (this.fireAtPosition !== null) NetworkUtil.writeVector3(this, this.fireAtPosition);
+        layoutAt(actorEventPacket, this.codecProtocol).encode(this, {
+            runtimeEntityId: this.runtimeEntityId,
+            event: this.event,
+            data: this.data,
+            fireAtPosition: this.fireAtPosition
+        });
     }
 
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-        this.event = this.readByte();
-        this.data = this.readVarInt();
-        this.fireAtPosition = this.readBoolean() ? NetworkUtil.readVector3(this) : null;
+        const read = layoutAt(actorEventPacket, this.codecProtocol).decode(this);
+        this.runtimeEntityId = read.runtimeEntityId;
+        this.event = read.event;
+        this.data = read.data;
+        this.fireAtPosition = read.fireAtPosition;
     }
 }
 
