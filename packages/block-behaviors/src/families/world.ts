@@ -8,6 +8,7 @@ import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
 import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
+import { collapseNetherPortal, isNetherPortal, lightNetherPortal } from '../rules/portal';
 import { breakBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateNumber } from '../state';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
@@ -88,6 +89,9 @@ export const portalFamily = defineFamily(
             const name = bareName(event.block.identifier);
             if (name !== 'fire' && name !== 'soul_fire') return;
             world.scheduleTick(event.block.position, fireTickDelay(world));
+            // The fire's source does not matter: flint and steel, a fire
+            // charge, lightning and spread all arrive here.
+            lightNetherPortal(world, event.block.position, event.block.dimension);
         },
         onStepOn: (event, world) => {
             const name = bareName(event.block.identifier);
@@ -116,6 +120,10 @@ export const portalFamily = defineFamily(
         },
         onNeighborChanged: (event, world) => {
             const name = bareName(event.block.identifier);
+            if (isNetherPortal(event.block.identifier)) {
+                collapseNetherPortal(world, event.block, event.face, event.neighbor);
+                return;
+            }
             if (name !== 'fire' && name !== 'soul_fire') return;
             if (name === 'fire' && canFireSurvive(world, event.block.position)) return;
             const below = world.getBlock(offset(event.block.position, 'down'));

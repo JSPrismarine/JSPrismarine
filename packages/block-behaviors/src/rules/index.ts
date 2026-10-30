@@ -8,6 +8,7 @@ export * from './heldItem';
 export * from './light';
 export * from './piston';
 export * from './placement';
+export * from './portal';
 export * from './redstone';
 export * from './stairShape';
 export * from './support';
