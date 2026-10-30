@@ -1,4 +1,5 @@
 import { Gametype } from '@jsprismarine/minecraft';
+import { layoutAt, updatePlayerGameTypePacket } from '@jsprismarine/protocol';
 
 import DataPacket from './DataPacket';
 
@@ -30,15 +31,18 @@ export default class UpdatePlayerGameTypePacket extends DataPacket {
 
     /** Reads the game type, the target player, and the tick. */
     public decodePayload(): void {
-        this.playerGameType = this.readVarInt();
-        this.targetPlayer = this.readVarLong();
-        this.tick = this.readUnsignedVarLong();
+        const read = layoutAt(updatePlayerGameTypePacket, this.codecProtocol).decode(this);
+        this.playerGameType = read.playerGameType;
+        this.targetPlayer = read.targetPlayer;
+        this.tick = read.tick;
     }
 
     /** Writes the game type, the target player, and the tick. */
     public encodePayload(): void {
-        this.writeVarInt(this.playerGameType);
-        this.writeVarLong(this.targetPlayer);
-        this.writeUnsignedVarLong(this.tick);
+        layoutAt(updatePlayerGameTypePacket, this.codecProtocol).encode(this, {
+            playerGameType: this.playerGameType,
+            targetPlayer: this.targetPlayer,
+            tick: this.tick
+        });
     }
 }
