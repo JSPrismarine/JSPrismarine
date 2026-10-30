@@ -6,9 +6,12 @@ import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { Position } from '../../world/Position';
 import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';
-import type LoginPacket from '../packet/LoginPacket';
+import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
+import { parseLoginIdentity } from '../LoginIdentity';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
+
+type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
 
 export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
     public static PacketName = 'LoginPacket';
@@ -23,13 +26,13 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * is signed in. Without this, a refusal says only that all four were empty, and finding
      * out which was supposed to be filled means guessing.
      */
-    private static reportRefusal(packet: LoginPacket, server: Server, why: string): void {
+    private static reportRefusal(protocolVersion: number, identity: LoginIdentity, server: Server, why: string): void {
         const found = [
-            `protocol=${packet.protocol}`,
-            `name=${packet.displayName || 'none'}`,
-            `identity=${packet.identity || 'none'}`,
-            `xuid=${packet.XUID || 'none'}`,
-            `key=${packet.identityPublicKey ? 'yes' : 'no'}`
+            `protocol=${protocolVersion}`,
+            `name=${identity.displayName || 'none'}`,
+            `identity=${identity.identity || 'none'}`,
+            `xuid=${identity.xuid || 'none'}`,
+            `key=${identity.identityPublicKey ? 'yes' : 'no'}`
         ].join(' ');
 
         server.getLogger().warn(`Refused a login: ${why}. The packet carried ${found}`, 'LoginHandler/handle');
@@ -47,6 +50,9 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * plaintext. A client accepts that when no handshake arrives.
      */
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
+        const login = packet.getPacketData();
+        if (login === null) throw new Error('Cannot handle LoginPacket without packet data');
+
         // A failed status is followed by a disconnect, as the docs have it: the status picks
         // the client's "Outdated client" or "Outdated server" screen, and the disconnect
         // carries the matching reason and hangs up. Without it the connection stayed open.
@@ -56,8 +62,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // that negotiation assigned. A client that skips the negotiation never gets here:
         // its login does not decode under the handshake codec, and the login phase it would
         // be gated on is only entered by negotiating.
-        if (packet.protocol !== connection.codec.protocolVersion) {
-            const outdatedClient = packet.protocol < connection.codec.protocolVersion;
+        if (login.protocolVersion !== connection.codec.protocolVersion) {
+            const outdatedClient = login.protocolVersion < connection.codec.protocolVersion;
             const status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
             await connection.sendDataPacket(new PlayStatusPacket({ status }), true);
             await connection.disconnect(
@@ -69,6 +75,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             );
             return;
         }
+
+        const identity = parseLoginIdentity(login);
 
         // The client renders this status as "server full", so the player learns why without
         // the server building a player it would only tear down again. The disconnect that
@@ -83,8 +91,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         }
 
         // Kick the player if their username is invalid
-        if (!packet.displayName) {
-            LoginHandler.reportRefusal(packet, server, 'no username');
+        if (!identity.displayName) {
+            LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'no username');
             await connection.disconnect('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
             return;
         }
@@ -92,8 +100,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // Rejected rather than replaced. A login carrying no identity used to be handed a
         // freshly generated uuid, which the client had never heard of - so the player went
         // into the player list under an id nothing on the other side could match.
-        if (!packet.identity) {
-            LoginHandler.reportRefusal(packet, server, 'no identity');
+        if (!identity.identity) {
+            LoginHandler.reportRefusal(login.protocolVersion, identity, server, 'no identity');
             await connection.disconnect('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             return;
         }
@@ -106,13 +114,13 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
             position: Position.fromVector3(await world.getSpawnPosition(), world),
             address: connection.getRakNetSession().getAddress(),
             identity: {
-                uuid: UUID.fromString(packet.identity),
-                name: packet.displayName,
-                xuid: packet.XUID,
-                randomId: packet.clientRandomId,
-                locale: packet.languageCode,
-                skin: packet.skin,
-                device: packet.device
+                uuid: UUID.fromString(identity.identity),
+                name: identity.displayName,
+                xuid: identity.xuid,
+                randomId: identity.clientRandomId,
+                locale: identity.languageCode,
+                skin: identity.skin,
+                device: identity.device
             }
         });
 
@@ -120,7 +128,7 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // so kick the old player and let the new player connect.
         await server
             .getSessionManager()
-            .findPlayer({ name: packet.displayName, xuid: packet.XUID })
+            .findPlayer({ name: identity.displayName, xuid: identity.xuid })
             ?.kick('Logged in from another location', DisconnectReason.LOGGED_IN_OTHER_LOCATION);
 
         // Rejected through the connection, not through the player: this one has no session

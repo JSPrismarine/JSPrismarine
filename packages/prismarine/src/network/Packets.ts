@@ -64,7 +64,7 @@ import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import LevelEventGenericPacket from '@jsprismarine/protocol/packet/LevelEventGenericPacket';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
-import LoginPacket from './packet/LoginPacket';
+import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
 import MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';

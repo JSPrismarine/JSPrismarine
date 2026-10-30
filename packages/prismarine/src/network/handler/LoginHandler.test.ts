@@ -17,7 +17,7 @@ import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import LoginPacket from '../packet/LoginPacket';
+import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import LoginHandler from './LoginHandler';
@@ -25,6 +25,55 @@ import { testContent } from '../../testing/entityServer';
 
 /** A well-formed client identity; every real login carries one. */
 const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
+
+const jwt = (claims: Record<string, unknown>): string =>
+    `e30.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
+
+const loginPacket = (
+    displayName = 'runner',
+    identity: string | null = IDENTITY,
+    protocolVersion = Codec2193.protocolVersion
+): LoginPacket => {
+    const clientData: Record<string, unknown> = {
+        DeviceId: '00000000-0000-0000-0000-000000000000',
+        DeviceOS: 7,
+        DeviceModel: 'test',
+        CurrentInputMode: 1,
+        GuiScale: 0,
+        ThirdPartyName: displayName,
+        ServerAddress: 'localhost',
+        LanguageCode: 'en_US',
+        ClientRandomId: 1,
+        SkinId: 'test',
+        SkinData: '',
+        SkinImageWidth: 0,
+        SkinImageHeight: 0,
+        SkinResourcePatch: '',
+        SkinGeometryData: '',
+        SkinAnimationData: '',
+        SkinColor: '#0',
+        ArmSize: 'wide',
+        PlayFabId: '',
+        AnimatedImageData: [],
+        CapeId: '',
+        CapeData: '',
+        CapeImageWidth: 0,
+        CapeImageHeight: 0,
+        PremiumSkin: false,
+        PersonaSkin: false,
+        CapeOnClassicSkin: false,
+        PersonaPieces: [],
+        PieceTintColors: []
+    };
+
+    if (identity !== null) clientData.SelfSignedId = identity;
+
+    return new LoginPacket({
+        protocolVersion,
+        chainData: JSON.stringify({ chain: [] }),
+        clientData: jwt(clientData)
+    });
+};
 
 describe('network', () => {
     describe('handler', () => {
@@ -103,10 +152,7 @@ describe('network', () => {
             });
 
             it('handle with non-banned', async () => {
-                const pk = new LoginPacket();
-                pk.displayName = 'runner';
-                pk.identity = IDENTITY;
-                pk.protocol = Codec2193.protocolVersion;
+                const pk = loginPacket();
 
                 const handler = new LoginHandler();
                 await handler.handle(pk, server, connection);
@@ -121,10 +167,7 @@ describe('network', () => {
                 // `Player.enable`, here, before the client had even been told it was in. A
                 // retail client at 2193 drops that with `InitialConnection-90`: it is still
                 // logging in and treats a game packet as malformed.
-                const pk = new LoginPacket();
-                pk.displayName = 'runner';
-                pk.identity = IDENTITY;
-                pk.protocol = Codec2193.protocolVersion;
+                const pk = loginPacket();
 
                 const sent: string[] = [];
                 const quiet = stub<ClientConnection>({
@@ -146,10 +189,7 @@ describe('network', () => {
                 // No packs are configurable yet, so the packet is the fixed one a Bedrock
                 // Dedicated Server sends for a world with no packs and no template: every
                 // flag off, an all-zero template uuid with an empty version, and a zero count.
-                const pk = new LoginPacket();
-                pk.displayName = 'runner';
-                pk.identity = IDENTITY;
-                pk.protocol = Codec2193.protocolVersion;
+                const pk = loginPacket();
 
                 const sent: NetworkPacket[] = [];
                 const quiet = stub<ClientConnection>({
@@ -194,11 +234,7 @@ describe('network', () => {
             };
 
             const login = () => {
-                const pk = new LoginPacket();
-                pk.displayName = 'runner';
-                pk.identity = IDENTITY;
-                pk.protocol = Codec2193.protocolVersion;
-                return pk;
+                return loginPacket();
             };
 
             it('refuses a banned player with NOT_ALLOWED and no reason', async () => {
@@ -234,9 +270,7 @@ describe('network', () => {
             });
 
             it('refuses a login carrying no username', async () => {
-                const pk = new LoginPacket();
-                pk.displayName = '';
-                pk.protocol = Codec2193.protocolVersion;
+                const pk = loginPacket('', IDENTITY);
 
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
@@ -248,9 +282,7 @@ describe('network', () => {
             it('refuses a login carrying no identity', async () => {
                 // It used to be let through on a randomly generated uuid, which meant a
                 // player in the list under an id the client itself did not know.
-                const pk = new LoginPacket();
-                pk.displayName = 'runner';
-                pk.protocol = Codec2193.protocolVersion;
+                const pk = loginPacket('runner', null);
 
                 const disconnect = vi.fn();
                 const rejected = stub<ClientConnection>({ codec: Codec2193, disconnect });
@@ -265,8 +297,7 @@ describe('network', () => {
              * with `OutdatedClient` follows; the status alone left the connection open.
              */
             it('answers an older client with LoginFailed_ClientOld, then hangs up', async () => {
-                const pk = new LoginPacket();
-                pk.protocol = Codec2193.protocolVersion - 10;
+                const pk = loginPacket('runner', IDENTITY, Codec2193.protocolVersion - 10);
 
                 const sent: NetworkPacket[] = [];
                 const disconnect = vi.fn();
@@ -289,10 +320,7 @@ describe('network', () => {
             });
 
             it('refuses a login once the server is full', async () => {
-                const pk = new LoginPacket();
-                pk.displayName = 'late';
-                pk.identity = '11111111-2222-3333-4444-555555555555';
-                pk.protocol = Codec2193.protocolVersion;
+                const pk = loginPacket('late', '11111111-2222-3333-4444-555555555555');
 
                 const sent: NetworkPacket[] = [];
                 const fullServer = stub<Server>({
@@ -324,8 +352,7 @@ describe('network', () => {
 
             /** The status the client renders as "outdated server", then a disconnect with `OutdatedServer`. */
             it('answers a newer client with LoginFailed_ServerOld, then hangs up', async () => {
-                const pk = new LoginPacket();
-                pk.protocol = Codec2193.protocolVersion + 10;
+                const pk = loginPacket('runner', IDENTITY, Codec2193.protocolVersion + 10);
 
                 const sent: NetworkPacket[] = [];
                 const disconnect = vi.fn();

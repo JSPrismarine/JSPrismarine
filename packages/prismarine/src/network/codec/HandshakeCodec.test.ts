@@ -9,7 +9,7 @@ import {
 import Codec2193 from './Codec2193';
 import { latestCodec } from './CodecRegistry';
 import HandshakeCodec from './HandshakeCodec';
-import LoginPacket from '../packet/LoginPacket';
+import LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
 
 describe('network/codec/HandshakeCodec', () => {
     const handshakePackets = [RequestNetworkSettingsPacket, NetworkSettingsPacket, PlayStatusPacket, DisconnectPacket];

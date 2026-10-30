@@ -57,6 +57,19 @@ describe('LoginPacket', () => {
         expect(() => new LoginPacket().deserialize(new NetworkBinaryStream(claimsMore))).toThrow();
     });
 
+    it('rejects bytes left after the two connection request strings', () => {
+        const trailing = Buffer.concat([
+            BYTES.subarray(0, 5),
+            Buffer.from([0x0c]),
+            BYTES.subarray(6),
+            Buffer.from([0xde])
+        ]);
+
+        expect(() => new LoginPacket().deserialize(new NetworkBinaryStream(trailing))).toThrow(
+            'The connection request has 1 unread bytes after the client data'
+        );
+    });
+
     it('round-trips a login', () => {
         const buffer = new LoginPacket(DATA).serialize(new NetworkBinaryStream());
         const data = new LoginPacket().deserialize(new NetworkBinaryStream(buffer));

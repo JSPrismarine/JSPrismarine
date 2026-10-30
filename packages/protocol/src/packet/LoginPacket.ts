@@ -28,6 +28,7 @@ export interface Login {
  * request claiming more than it carries fails here rather than consuming the next packet in
  * the batch. JSPrismarine's server reads it the same way and also refuses a request with
  * bytes left after the second blob.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/login-packet/
  */
 export default class LoginPacket extends NetworkPacket<Login> {
     public get id(): number {
@@ -53,11 +54,17 @@ export default class LoginPacket extends NetworkPacket<Login> {
         // than it carries fails here instead of silently consuming the next packet in the
         // batch.
         const body = new NetworkBinaryStream(stream.readLengthPrefixed());
-
-        return {
+        const login = {
             protocolVersion,
             chainData: body.readLELengthASCIIString(),
             clientData: body.readLELengthASCIIString()
         };
+
+        if (!body.feof()) {
+            const unread = body.readRemaining().byteLength;
+            throw new Error(`The connection request has ${unread} unread bytes after the client data`);
+        }
+
+        return login;
     }
 }
