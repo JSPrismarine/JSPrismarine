@@ -1,6 +1,8 @@
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+import { string as stringType } from '../wire/fieldTypes';
 import CameraAimAssistCategoryPriorities from './CameraAimAssistCategoryPriorities';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * A `CameraAimAssistCategoryDefinition`: a named set of targeting priorities that a
@@ -27,14 +29,15 @@ export default class CameraAimAssistCategoryDefinition extends NetworkStructure 
     }
 
     /** Writes the name, then the priorities. */
-    public serialize(stream: NetworkBinaryStream): void {
-        stream.writeString(this.name);
+    public serialize(stream: BinaryStream): void {
+        stringType.write(stream, this.name);
         this.priorities.serialize(stream);
     }
 
     /** Reads the name, then the priorities. */
-    public deserialize(stream: NetworkBinaryStream): void {
-        this.name = stream.readString();
-        this.priorities = CameraAimAssistCategoryPriorities.deserialize(stream);
+    public deserialize(stream: BinaryStream): void {
+        this.name = stringType.read(stream);
+        this.priorities = new CameraAimAssistCategoryPriorities();
+        this.priorities.deserialize(stream);
     }
 }

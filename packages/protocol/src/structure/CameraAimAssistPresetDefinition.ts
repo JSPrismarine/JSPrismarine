@@ -1,5 +1,7 @@
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+import { string as stringType } from '../wire/fieldTypes';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * The `CameraAimAssistPresetExclusionDefinition` of a preset: the targets aim assist never
@@ -68,36 +70,36 @@ export default class CameraAimAssistPresetDefinition extends NetworkStructure {
         super();
     }
 
-    private static writeStrings(stream: NetworkBinaryStream, values: string[]): void {
+    private static writeStrings(stream: BinaryStream, values: string[]): void {
         stream.writeUnsignedVarInt(values.length);
         for (const value of values) {
-            stream.writeString(value);
+            stringType.write(stream, value);
         }
     }
 
-    private static readStrings(stream: NetworkBinaryStream): string[] {
+    private static readStrings(stream: BinaryStream): string[] {
         const values: string[] = [];
         let count = stream.readUnsignedVarInt();
         while (count-- > 0) {
-            values.push(stream.readString());
+            values.push(stringType.read(stream));
         }
         return values;
     }
 
-    private static writeOptionalString(stream: NetworkBinaryStream, value: string | undefined): void {
+    private static writeOptionalString(stream: BinaryStream, value: string | undefined): void {
         stream.writeBoolean(value !== undefined);
         if (value !== undefined) {
-            stream.writeString(value);
+            stringType.write(stream, value);
         }
     }
 
-    private static readOptionalString(stream: NetworkBinaryStream): string | undefined {
-        return stream.readBoolean() ? stream.readString() : undefined;
+    private static readOptionalString(stream: BinaryStream): string | undefined {
+        return stream.readBoolean() ? stringType.read(stream) : undefined;
     }
 
     /** Writes the six fields in wire order. */
-    public serialize(stream: NetworkBinaryStream): void {
-        stream.writeString(this.identifier);
+    public serialize(stream: BinaryStream): void {
+        stringType.write(stream, this.identifier);
         CameraAimAssistPresetDefinition.writeStrings(stream, this.exclusions.blocks);
         CameraAimAssistPresetDefinition.writeStrings(stream, this.exclusions.entities);
         CameraAimAssistPresetDefinition.writeStrings(stream, this.exclusions.blockTags);
@@ -106,8 +108,8 @@ export default class CameraAimAssistPresetDefinition extends NetworkStructure {
 
         stream.writeUnsignedVarInt(this.itemSettings.length);
         for (const setting of this.itemSettings) {
-            stream.writeString(setting.item);
-            stream.writeString(setting.category);
+            stringType.write(stream, setting.item);
+            stringType.write(stream, setting.category);
         }
 
         CameraAimAssistPresetDefinition.writeOptionalString(stream, this.defaultItemSettings);
@@ -115,8 +117,8 @@ export default class CameraAimAssistPresetDefinition extends NetworkStructure {
     }
 
     /** Reads the six fields in wire order. */
-    public deserialize(stream: NetworkBinaryStream): void {
-        this.identifier = stream.readString();
+    public deserialize(stream: BinaryStream): void {
+        this.identifier = stringType.read(stream);
         this.exclusions = {
             blocks: CameraAimAssistPresetDefinition.readStrings(stream),
             entities: CameraAimAssistPresetDefinition.readStrings(stream),
@@ -128,7 +130,7 @@ export default class CameraAimAssistPresetDefinition extends NetworkStructure {
         const itemSettings: CameraAimAssistItemSetting[] = [];
         let count = stream.readUnsignedVarInt();
         while (count-- > 0) {
-            itemSettings.push({ item: stream.readString(), category: stream.readString() });
+            itemSettings.push({ item: stringType.read(stream), category: stringType.read(stream) });
         }
         this.itemSettings = itemSettings;
 

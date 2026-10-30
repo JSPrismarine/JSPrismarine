@@ -1,9 +1,12 @@
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
-import CameraAimAssistCategoryDefinition from '../structure/CameraAimAssistCategoryDefinition';
-import CameraAimAssistPresetDefinition from '../structure/CameraAimAssistPresetDefinition';
+import { cameraAimAssistPresetsPacket } from '../wire/definitions/cameraAimAssistPresets';
+import { protocolVersion } from '../wire/versions/v2193';
+import { layoutAt } from '../wire/WireLayout';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type CameraAimAssistCategoryDefinition from '../structure/CameraAimAssistCategoryDefinition';
+import type CameraAimAssistPresetDefinition from '../structure/CameraAimAssistPresetDefinition';
 
 /** The docs enum `CameraAimAssistPresetsPacketOperation`: what the client does with the lists. */
 export enum CameraAimAssistPresetsOperation {
@@ -24,6 +27,13 @@ export interface CameraAimAssistPresets {
 }
 
 /**
+ * The definition carries no version gate, so it resolves to the same frozen layout at every
+ * protocol; the oldest supported version stands in for the packet class, which does not know
+ * its session's protocol.
+ */
+const layout = () => layoutAt(cameraAimAssistPresetsPacket, protocolVersion);
+
+/**
  * Fills or extends the client's aim assist registry with categories and presets.
  *
  * Protocol 2193 layout, in wire order: a varuint32 count followed by one
@@ -42,32 +52,10 @@ export default class CameraAimAssistPresetsPacket extends NetworkPacket<CameraAi
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: CameraAimAssistPresets): void {
-        stream.writeUnsignedVarInt(data.categories.length);
-        for (const category of data.categories) {
-            category.serialize(stream);
-        }
-
-        stream.writeUnsignedVarInt(data.presets.length);
-        for (const preset of data.presets) {
-            preset.serialize(stream);
-        }
-
-        stream.writeByte(data.operation);
+        layout().encode(stream, data);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): CameraAimAssistPresets {
-        const categories: CameraAimAssistCategoryDefinition[] = [];
-        let categoryCount = stream.readUnsignedVarInt();
-        while (categoryCount-- > 0) {
-            categories.push(CameraAimAssistCategoryDefinition.deserialize(stream));
-        }
-
-        const presets: CameraAimAssistPresetDefinition[] = [];
-        let presetCount = stream.readUnsignedVarInt();
-        while (presetCount-- > 0) {
-            presets.push(CameraAimAssistPresetDefinition.deserialize(stream));
-        }
-
-        return { categories, presets, operation: stream.readByte() };
+        return layout().decode(stream);
     }
 }

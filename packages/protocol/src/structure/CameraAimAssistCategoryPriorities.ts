@@ -1,5 +1,7 @@
-import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
+import { string as stringType } from '../wire/fieldTypes';
+
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * One entry of a priority map: a block, entity, block tag or entity type family identifier and
@@ -50,36 +52,36 @@ export default class CameraAimAssistCategoryPriorities extends NetworkStructure 
         super();
     }
 
-    private static writePriorities(stream: NetworkBinaryStream, priorities: CameraAimAssistPriority[]): void {
+    private static writePriorities(stream: BinaryStream, priorities: CameraAimAssistPriority[]): void {
         stream.writeUnsignedVarInt(priorities.length);
         for (const entry of priorities) {
-            stream.writeString(entry.identifier);
+            stringType.write(stream, entry.identifier);
             stream.writeIntLE(entry.priority);
         }
     }
 
-    private static readPriorities(stream: NetworkBinaryStream): CameraAimAssistPriority[] {
+    private static readPriorities(stream: BinaryStream): CameraAimAssistPriority[] {
         const priorities: CameraAimAssistPriority[] = [];
         let count = stream.readUnsignedVarInt();
         while (count-- > 0) {
-            priorities.push({ identifier: stream.readString(), priority: stream.readIntLE() });
+            priorities.push({ identifier: stringType.read(stream), priority: stream.readIntLE() });
         }
         return priorities;
     }
 
-    private static writeOptionalPriority(stream: NetworkBinaryStream, priority: number | undefined): void {
+    private static writeOptionalPriority(stream: BinaryStream, priority: number | undefined): void {
         stream.writeBoolean(priority !== undefined);
         if (priority !== undefined) {
             stream.writeIntLE(priority);
         }
     }
 
-    private static readOptionalPriority(stream: NetworkBinaryStream): number | undefined {
+    private static readOptionalPriority(stream: BinaryStream): number | undefined {
         return stream.readBoolean() ? stream.readIntLE() : undefined;
     }
 
     /** Writes the four maps and the two optional defaults in wire order. */
-    public serialize(stream: NetworkBinaryStream): void {
+    public serialize(stream: BinaryStream): void {
         CameraAimAssistCategoryPriorities.writePriorities(stream, this.entities);
         CameraAimAssistCategoryPriorities.writePriorities(stream, this.blocks);
         CameraAimAssistCategoryPriorities.writePriorities(stream, this.blockTags);
@@ -89,7 +91,7 @@ export default class CameraAimAssistCategoryPriorities extends NetworkStructure 
     }
 
     /** Reads the four maps and the two optional defaults in wire order. */
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(stream: BinaryStream): void {
         this.entities = CameraAimAssistCategoryPriorities.readPriorities(stream);
         this.blocks = CameraAimAssistCategoryPriorities.readPriorities(stream);
         this.blockTags = CameraAimAssistCategoryPriorities.readPriorities(stream);
