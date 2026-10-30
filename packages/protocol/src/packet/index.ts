@@ -22,6 +22,8 @@ import CorrectPlayerMovePredictionPacket from './CorrectPlayerMovePredictionPack
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
 import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
+import MobArmorEquipmentPacket from './MobArmorEquipmentPacket';
+import MobEquipmentPacket from './MobEquipmentPacket';
 import NetworkChunkPublisherUpdatePacket from './NetworkChunkPublisherUpdatePacket';
 import NetworkSettingsPacket from './NetworkSettingsPacket';
 import PlayStatusPacket from './PlayStatusPacket';
@@ -95,6 +97,8 @@ export {
     LoginPacket,
     MovePlayerPacket,
     MotionPredictionHintsPacket,
+    MobArmorEquipmentPacket,
+    MobEquipmentPacket,
     NetworkChunkPublisherUpdatePacket,
     NetworkSettingsPacket,
     PlayStatusPacket,
@@ -204,6 +208,8 @@ export { RewindType } from './CorrectPlayerMovePredictionPacket';
 export type { CorrectPlayerMovePrediction } from './CorrectPlayerMovePredictionPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
+export type { MobArmorEquipment } from './MobArmorEquipmentPacket';
+export type { MobEquipmentPayload } from '../wire/definitions/containers';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';
 export type { PlayerLocation } from './PlayerLocationPacket';
 export { SoftEnumUpdateType } from './UpdateSoftEnumPacket';

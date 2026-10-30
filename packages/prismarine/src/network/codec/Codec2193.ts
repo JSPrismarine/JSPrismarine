@@ -26,23 +26,8 @@ import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from './ProtocolCodec';
 import { minecraftVersions, netIdFor, packetIds, protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
 
-/** Exported packet classes no codec lists: the base class and the batch envelope. */
-export type PacketClass =
-    | (typeof Packets)[keyof typeof Packets]
-    | typeof CommandRequestPacket
-    | typeof SetCommandsEnabledPacket
-    | typeof SetDifficultyPacket
-    | typeof SetHealthPacket
-    | typeof ChangeDimensionPacket
-    | typeof PlayerHotbarPacket
-    | typeof NetworkChunkPublisherUpdatePacket
-    | typeof UpdateAdventureSettingsPacket
-    | typeof PlayerFogPacket
-    | typeof SetPlayerGameTypePacket
-    | typeof UpdatePlayerGameTypePacket
-    | typeof RespawnPacket
-    | typeof SetSpawnPositionPacket
-    | typeof SetTimePacket;
+/** Packet constructors registered by this codec. */
+export type PacketClass = new (...args: never[]) => NetworkPacket<unknown>;
 
 const protocolPackets = {
     CommandRequestPacket,

@@ -7,13 +7,19 @@ import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
-import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import MobEquipmentPacket from '../packet/MobEquipmentPacket';
+import type { ProtocolContext } from '@jsprismarine/protocol';
+import { MobEquipmentPacket } from '@jsprismarine/protocol';
+import type { MobEquipmentPayload } from '@jsprismarine/protocol';
+import type ClientConnection from '../ClientConnection';
+import type { ProtocolCodec } from '../codec/ProtocolCodec';
 import type PlayerSession from '../PlayerSession';
 import MobEquipmentHandler from './MobEquipmentHandler';
+
+const protocolContext: ProtocolContext = { protocolVersion: 2193 };
+const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
 
 /**
  * A world with the sender, a watcher that has the sender on screen, and a bystander that does
@@ -32,10 +38,12 @@ const fakeWorld = () => {
         new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }), count: 1 })
     );
 
+    const connection = stub<ClientConnection>({ codec: protocolCodec });
     const senderSession = stub<PlayerSession>({
         tracks: () => true,
         send: async (packet) => void toSender.push(packet),
-        getPlayer: () => sender
+        getPlayer: () => sender,
+        getConnection: () => connection
     });
     const sender: Player = stub<Player>({
         getName: () => 'runner',
@@ -50,7 +58,8 @@ const fakeWorld = () => {
         getNetworkSession: () =>
             stub<PlayerSession>({
                 tracks: () => true,
-                send: async (packet) => void toWatcher.push(packet)
+                send: async (packet) => void toWatcher.push(packet),
+                getConnection: () => connection
             })
     });
     const bystander = stub<Player>({
@@ -59,7 +68,8 @@ const fakeWorld = () => {
         getNetworkSession: () =>
             stub<PlayerSession>({
                 tracks: () => false,
-                send: async (packet) => void toBystander.push(packet)
+                send: async (packet) => void toBystander.push(packet),
+                getConnection: () => connection
             })
     });
     players.push(sender, watcher, bystander);
@@ -71,18 +81,15 @@ const fakeWorld = () => {
 };
 
 /** What a client sends when it selects a hotbar slot: both slot fields name it, container 0. */
-const selected = (slot: number, overrides: StubMembers<MobEquipmentPacket> = {}): MobEquipmentPacket =>
-    Object.assign(
-        new MobEquipmentPacket(),
-        {
-            runtimeEntityId: 0n,
-            item: Item.air(),
-            inventorySlot: slot,
-            hotbarSlot: slot,
-            windowId: WindowIds.INVENTORY
-        },
-        overrides
-    );
+const selected = (slot: number, overrides: Partial<MobEquipmentPayload> = {}): MobEquipmentPacket =>
+    new MobEquipmentPacket({
+        runtimeEntityId: 0n,
+        item: Item.air().toStackDescriptor(protocolContext),
+        inventorySlot: slot,
+        hotbarSlot: slot,
+        windowId: WindowIds.INVENTORY,
+        ...overrides
+    });
 
 /** The one relay a watcher was sent, typed for the assertions that follow. */
 const relayed = (sent: NetworkPacket[]): MobEquipmentPacket => {
@@ -106,17 +113,22 @@ describe('MobEquipmentHandler', () => {
     it('relays the server copy of the held item to the players that have the sender on screen', async () => {
         const { senderSession, server, toSender, toWatcher, toBystander } = fakeWorld();
         // The client claims to hold a block it was never given.
-        const packet = selected(3, { item: new Item({ runtimeId: 0, name: 'minecraft:bedrock' }) });
+        const packet = selected(3, {
+            item: new Item({ runtimeId: 0, name: 'minecraft:bedrock' }).toStackDescriptor(protocolContext)
+        });
 
         await new MobEquipmentHandler().handle(packet, server, senderSession);
 
         const relay = relayed(toWatcher);
         expect(relay).not.toBe(packet);
-        expect(relay.runtimeEntityId).toBe(7n);
-        expect(relay.item.getName()).toBe('minecraft:diamond_sword');
-        expect(relay.inventorySlot).toBe(3);
-        expect(relay.hotbarSlot).toBe(3);
-        expect(relay.windowId).toBe(WindowIds.INVENTORY);
+        const data = relay.getPacketData();
+        expect(data).not.toBeNull();
+        if (data === null) throw new Error('the relay has no payload');
+        expect(data.runtimeEntityId).toBe(7n);
+        expect(Item.fromStackDescriptor(protocolContext, data.item).getName()).toBe('minecraft:diamond_sword');
+        expect(data.inventorySlot).toBe(3);
+        expect(data.hotbarSlot).toBe(3);
+        expect(data.windowId).toBe(WindowIds.INVENTORY);
 
         expect(toSender).toHaveLength(0);
         expect(toBystander).toHaveLength(0);
@@ -127,7 +139,10 @@ describe('MobEquipmentHandler', () => {
 
         await new MobEquipmentHandler().handle(selected(0), server, senderSession);
 
-        expect(relayed(toWatcher).item.getName()).toBe('minecraft:air');
+        const data = relayed(toWatcher).getPacketData();
+        expect(data).not.toBeNull();
+        if (data === null) throw new Error('the relay has no payload');
+        expect(Item.fromStackDescriptor(protocolContext, data.item).getName()).toBe('minecraft:air');
     });
 
     it('accepts an offhand report without moving the hand or relaying it', async () => {

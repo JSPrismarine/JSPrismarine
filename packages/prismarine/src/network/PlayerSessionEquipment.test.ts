@@ -15,14 +15,15 @@ import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
 import Device from '../utils/Device';
+import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
+import type { ProtocolContext } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
-import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
-import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import type { ProtocolCodec } from './codec/ProtocolCodec';
 import PlayerSession from './PlayerSession';
 
 /**
@@ -38,6 +39,18 @@ const nth = <T>(packets: readonly T[], index: number, what: string): T => {
     return packet;
 };
 
+const protocolContext: ProtocolContext = { protocolVersion: 2193 };
+const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
+
+const packetData = <T>(packet: NetworkPacket<T>): T => {
+    const data = packet.getPacketData();
+    if (data === null) throw new Error(`${packet.getName()} has no payload`);
+    return data;
+};
+
+const itemName = (descriptor: Parameters<typeof Item.fromStackDescriptor>[1]): string =>
+    Item.fromStackDescriptor(protocolContext, descriptor).getName();
+
 /**
  * What another client is told about a player: what they wear, what they hold in the off hand,
  * and who they are when they first come into view.
@@ -47,6 +60,7 @@ const nth = <T>(packets: readonly T[], index: number, what: string): T => {
 const sessionFor = (player: Player) => {
     const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
+        codec: protocolCodec,
         sendDataPacket: async (packet) => void sent.push(packet)
     });
 
@@ -164,11 +178,12 @@ describe('network', () => {
                     0,
                     'MobEquipmentPacket'
                 );
-                expect(hand.runtimeEntityId).toBe(7n);
-                expect(hand.item.getName()).toBe('minecraft:diamond_sword');
-                expect(hand.windowId).toBe(WindowIds.INVENTORY);
-                expect(hand.inventorySlot).toBe(inventory.getHandSlotIndex());
-                expect(hand.hotbarSlot).toBe(inventory.getHandSlotIndex());
+                const data = packetData(hand);
+                expect(data.runtimeEntityId).toBe(7n);
+                expect(itemName(data.item)).toBe('minecraft:diamond_sword');
+                expect(data.windowId).toBe(WindowIds.INVENTORY);
+                expect(data.inventorySlot).toBe(inventory.getHandSlotIndex());
+                expect(data.hotbarSlot).toBe(inventory.getHandSlotIndex());
             });
         });
 
@@ -185,17 +200,19 @@ describe('network', () => {
 
                 expect(armor).toBeInstanceOf(MobArmorEquipmentPacket);
                 if (!(armor instanceof MobArmorEquipmentPacket)) return;
-                expect(armor.runtimeEntityId).toBe(7n);
-                expect(armor.chest.getName()).toBe('minecraft:diamond_chestplate');
-                expect(armor.body.getName()).toBe('minecraft:air');
+                const armorData = packetData(armor);
+                expect(armorData.runtimeEntityId).toBe(7n);
+                expect(itemName(armorData.chest)).toBe('minecraft:diamond_chestplate');
+                expect(itemName(armorData.body)).toBe('minecraft:air');
 
                 expect(offhand).toBeInstanceOf(MobEquipmentPacket);
                 if (!(offhand instanceof MobEquipmentPacket)) return;
-                expect(offhand.runtimeEntityId).toBe(7n);
-                expect(offhand.item.getName()).toBe('minecraft:shield');
-                expect(offhand.windowId).toBe(WindowIds.OFFHAND);
-                expect(offhand.inventorySlot).toBe(0);
-                expect(offhand.hotbarSlot).toBe(0);
+                const offhandData = packetData(offhand);
+                expect(offhandData.runtimeEntityId).toBe(7n);
+                expect(itemName(offhandData.item)).toBe('minecraft:shield');
+                expect(offhandData.windowId).toBe(WindowIds.OFFHAND);
+                expect(offhandData.inventorySlot).toBe(0);
+                expect(offhandData.hotbarSlot).toBe(0);
             });
         });
 

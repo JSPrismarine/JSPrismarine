@@ -16,14 +16,25 @@ import { stub } from '../testing/stub.test.helper';
 import type Player from '../Player';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
-import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import { MobArmorEquipmentPacket, MobEquipmentPacket } from '@jsprismarine/protocol';
+import type { ProtocolContext } from '@jsprismarine/protocol';
+import type { ProtocolCodec } from './codec/ProtocolCodec';
 import PlayerSession from './PlayerSession';
+
+const protocolContext: ProtocolContext = { protocolVersion: 2193 };
+const protocolCodec = stub<ProtocolCodec>({ protocolVersion: 2193, context: protocolContext });
+
+const packetData = <T>(packet: NetworkPacket<T>): T => {
+    const data = packet.getPacketData();
+    if (data === null) throw new Error(`${packet.getName()} has no payload`);
+    return data;
+};
 
 /** A session whose connection records what goes out. */
 const recordingSession = () => {
     const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
+        codec: protocolCodec,
         sendDataPacket: async (packet) => void sent.push(packet)
     });
 
@@ -95,13 +106,14 @@ describe('network', () => {
                 'MobArmorEquipmentPacket'
             );
 
-            expect(armor.runtimeEntityId).toBe(42n);
-            expect(armor.head.getName()).toBe('minecraft:air');
-            expect(armor.chest.getName()).toBe('minecraft:iron_chestplate');
-            expect(armor.legs.getName()).toBe('minecraft:air');
-            expect(armor.feet.getName()).toBe('minecraft:air');
+            const data = packetData(armor);
+            expect(data.runtimeEntityId).toBe(42n);
+            expect(Item.fromStackDescriptor(protocolContext, data.head).getName()).toBe('minecraft:air');
+            expect(Item.fromStackDescriptor(protocolContext, data.chest).getName()).toBe('minecraft:iron_chestplate');
+            expect(Item.fromStackDescriptor(protocolContext, data.legs).getName()).toBe('minecraft:air');
+            expect(Item.fromStackDescriptor(protocolContext, data.feet).getName()).toBe('minecraft:air');
             // Horse armor, llama carpet and wolf armor; no equipment table rolls one.
-            expect(armor.body.getName()).toBe('minecraft:air');
+            expect(Item.fromStackDescriptor(protocolContext, data.body).getName()).toBe('minecraft:air');
         });
 
         it('names the mob slot fields the way vanilla does for an entity with no inventory', async () => {
@@ -115,13 +127,14 @@ describe('network', () => {
                 'MobEquipmentPacket'
             );
 
-            expect(hand.runtimeEntityId).toBe(42n);
-            expect(hand.item.getName()).toBe('minecraft:bow');
+            const data = packetData(hand);
+            expect(data.runtimeEntityId).toBe(42n);
+            expect(Item.fromStackDescriptor(protocolContext, data.item).getName()).toBe('minecraft:bow');
             // A mob has no inventory to name a slot in, and the hand is container 0 rather
             // than the player inventory's 0x00 window.
-            expect(hand.inventorySlot).toBe(0);
-            expect(hand.hotbarSlot).toBe(0);
-            expect(hand.windowId).toBe(0);
+            expect(data.inventorySlot).toBe(0);
+            expect(data.hotbarSlot).toBe(0);
+            expect(data.windowId).toBe(0);
         });
 
         it('sends the off hand for the offhand container when something is in it', async () => {
@@ -140,10 +153,11 @@ describe('network', () => {
                 'off-hand MobEquipmentPacket'
             );
 
-            expect(offhand.item.getName()).toBe('minecraft:shield');
-            expect(offhand.windowId).toBe(WindowIds.OFFHAND);
-            expect(offhand.inventorySlot).toBe(0);
-            expect(offhand.hotbarSlot).toBe(0);
+            const data = packetData(offhand);
+            expect(Item.fromStackDescriptor(protocolContext, data.item).getName()).toBe('minecraft:shield');
+            expect(data.windowId).toBe(WindowIds.OFFHAND);
+            expect(data.inventorySlot).toBe(0);
+            expect(data.hotbarSlot).toBe(0);
         });
 
         it('clears the main hand with air rather than by saying nothing', async () => {
@@ -159,7 +173,7 @@ describe('network', () => {
                 'MobEquipmentPacket'
             );
 
-            expect(hand.item.getName()).toBe('minecraft:air');
+            expect(Item.fromStackDescriptor(protocolContext, packetData(hand).item).getName()).toBe('minecraft:air');
         });
     });
 
@@ -168,12 +182,13 @@ describe('network', () => {
         const AIR_BYTES = 8;
 
         it('writes the id, the item and the three slot fields in that order', () => {
-            const packet = new MobEquipmentPacket();
-            packet.runtimeEntityId = 42n;
-            packet.item = Item.air();
-            packet.inventorySlot = 1;
-            packet.hotbarSlot = 2;
-            packet.windowId = WindowIds.OFFHAND;
+            const packet = new MobEquipmentPacket({
+                runtimeEntityId: 42n,
+                item: Item.air().toStackDescriptor(protocolContext),
+                inventorySlot: 1,
+                hotbarSlot: 2,
+                windowId: WindowIds.OFFHAND
+            });
             packet.encode();
 
             // The whole packet: header, then payload. The three slot fields are single bytes at
@@ -189,12 +204,13 @@ describe('network', () => {
         });
 
         it('writes the item a mob is holding where the client reads one', () => {
-            const packet = new MobEquipmentPacket();
-            packet.runtimeEntityId = 42n;
-            packet.item = new Item({ name: 'minecraft:bow', count: 1 });
-            packet.inventorySlot = 0;
-            packet.hotbarSlot = 0;
-            packet.windowId = 0;
+            const packet = new MobEquipmentPacket({
+                runtimeEntityId: 42n,
+                item: new Item({ name: 'minecraft:bow', count: 1 }).toStackDescriptor(protocolContext),
+                inventorySlot: 0,
+                hotbarSlot: 0,
+                windowId: 0
+            });
             packet.encode();
 
             const bytes = packet.getBuffer();
@@ -206,31 +222,35 @@ describe('network', () => {
         });
 
         it('round trips through its own decode', () => {
-            const written = new MobEquipmentPacket();
-            written.runtimeEntityId = 300n;
-            written.item = Item.air();
-            written.inventorySlot = 1;
-            written.hotbarSlot = 2;
-            written.windowId = WindowIds.OFFHAND;
+            const written = new MobEquipmentPacket({
+                runtimeEntityId: 300n,
+                item: Item.air().toStackDescriptor(protocolContext),
+                inventorySlot: 1,
+                hotbarSlot: 2,
+                windowId: WindowIds.OFFHAND
+            });
             written.encode();
 
-            const read = new MobEquipmentPacket(written.getBuffer());
+            const read = new MobEquipmentPacket(null, written.getBuffer());
             read.decode();
 
-            expect(read.runtimeEntityId).toBe(300n);
-            expect(read.inventorySlot).toBe(1);
-            expect(read.hotbarSlot).toBe(2);
-            expect(read.windowId).toBe(WindowIds.OFFHAND);
+            const data = packetData(read);
+            expect(data.runtimeEntityId).toBe(300n);
+            expect(data.inventorySlot).toBe(1);
+            expect(data.hotbarSlot).toBe(2);
+            expect(data.windowId).toBe(WindowIds.OFFHAND);
         });
 
         it('writes all five worn slots, so none of them reads the next field', () => {
-            const packet = new MobArmorEquipmentPacket();
-            packet.runtimeEntityId = 42n;
-            packet.head = Item.air();
-            packet.chest = Item.air();
-            packet.legs = Item.air();
-            packet.feet = Item.air();
-            packet.body = Item.air();
+            const air = Item.air().toStackDescriptor(protocolContext);
+            const packet = new MobArmorEquipmentPacket({
+                runtimeEntityId: 42n,
+                head: air,
+                chest: air,
+                legs: air,
+                feet: air,
+                body: air
+            });
             packet.encode();
 
             // The header, the id, and five air items. A send that left an empty slot out would

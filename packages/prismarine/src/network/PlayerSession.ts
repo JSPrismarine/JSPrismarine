@@ -56,8 +56,8 @@ import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPack
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
-import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
-import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
+import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
@@ -1035,13 +1035,16 @@ export default class PlayerSession {
      * @param {Item} item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
-        const pk = new MobEquipmentPacket();
-        pk.runtimeEntityId = this.player.getRuntimeId();
-        pk.item = item;
-        pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
-        pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
-        pk.windowId = WindowIds.INVENTORY;
-        await this.connection.sendDataPacket(pk);
+        const slot = this.player.getInventory().getHandSlotIndex();
+        await this.connection.sendDataPacket(
+            new MobEquipmentPacket({
+                runtimeEntityId: this.player.getRuntimeId(),
+                item: item.toStackDescriptor(this.connection.codec.context),
+                inventorySlot: slot,
+                hotbarSlot: slot,
+                windowId: WindowIds.INVENTORY
+            })
+        );
     }
 
     /**
@@ -1710,25 +1713,28 @@ export default class PlayerSession {
         const inventory = wearer.getInventory();
         const armor = inventory.getArmor();
 
-        const packet = new MobArmorEquipmentPacket();
-        packet.runtimeEntityId = wearer.getRuntimeId();
-        packet.head = armor.getItem(0);
-        packet.chest = armor.getItem(1);
-        packet.legs = armor.getItem(2);
-        packet.feet = armor.getItem(3);
-        packet.body = Item.air();
+        const context = this.connection.codec.context;
+        await this.send(
+            new MobArmorEquipmentPacket({
+                runtimeEntityId: wearer.getRuntimeId(),
+                head: armor.getItem(0).toStackDescriptor(context),
+                chest: armor.getItem(1).toStackDescriptor(context),
+                legs: armor.getItem(2).toStackDescriptor(context),
+                feet: armor.getItem(3).toStackDescriptor(context),
+                body: Item.air().toStackDescriptor(context)
+            })
+        );
 
-        await this.send(packet);
-
-        const offhand = new MobEquipmentPacket();
-        offhand.runtimeEntityId = wearer.getRuntimeId();
-        offhand.item = inventory.getOffhand().getItem(0);
         // The offhand container has a single slot, so both slot fields are zero.
-        offhand.inventorySlot = 0;
-        offhand.hotbarSlot = 0;
-        offhand.windowId = WindowIds.OFFHAND;
-
-        await this.send(offhand);
+        await this.send(
+            new MobEquipmentPacket({
+                runtimeEntityId: wearer.getRuntimeId(),
+                item: inventory.getOffhand().getItem(0).toStackDescriptor(context),
+                inventorySlot: 0,
+                hotbarSlot: 0,
+                windowId: WindowIds.OFFHAND
+            })
+        );
     }
 
     /**
@@ -1748,27 +1754,32 @@ export default class PlayerSession {
     public async sendEquipmentFor(entity: Entity): Promise<void> {
         const worn = entity.getEquipment();
 
-        const armor = new MobArmorEquipmentPacket();
-        armor.runtimeEntityId = entity.getRuntimeId();
-        armor.head = worn.head ?? Item.air();
-        armor.chest = worn.chest ?? Item.air();
-        armor.legs = worn.legs ?? Item.air();
-        armor.feet = worn.feet ?? Item.air();
-        armor.body = worn.body ?? Item.air();
-        await this.send(armor);
+        const context = this.connection.codec.context;
+        await this.send(
+            new MobArmorEquipmentPacket({
+                runtimeEntityId: entity.getRuntimeId(),
+                head: (worn.head ?? Item.air()).toStackDescriptor(context),
+                chest: (worn.chest ?? Item.air()).toStackDescriptor(context),
+                legs: (worn.legs ?? Item.air()).toStackDescriptor(context),
+                feet: (worn.feet ?? Item.air()).toStackDescriptor(context),
+                body: (worn.body ?? Item.air()).toStackDescriptor(context)
+            })
+        );
 
         await this.sendHeldItemFor(entity, worn.mainhand ?? Item.air());
 
         if (worn.offhand === undefined) return;
 
-        const offhand = new MobEquipmentPacket();
-        offhand.runtimeEntityId = entity.getRuntimeId();
-        offhand.item = worn.offhand;
         // The offhand container has a single slot, so both slot fields are zero.
-        offhand.inventorySlot = 0;
-        offhand.hotbarSlot = 0;
-        offhand.windowId = WindowIds.OFFHAND;
-        await this.send(offhand);
+        await this.send(
+            new MobEquipmentPacket({
+                runtimeEntityId: entity.getRuntimeId(),
+                item: worn.offhand.toStackDescriptor(context),
+                inventorySlot: 0,
+                hotbarSlot: 0,
+                windowId: WindowIds.OFFHAND
+            })
+        );
     }
 
     /**
@@ -1777,16 +1788,16 @@ export default class PlayerSession {
      * @param {Item} item - What they are holding.
      */
     public async sendHeldItemFor(entity: Entity, item: Item): Promise<void> {
-        const packet = new MobEquipmentPacket();
-        packet.runtimeEntityId = entity.getRuntimeId();
-        packet.item = item;
-
         // A mob has no inventory to name a slot in; vanilla sends zero for both.
-        packet.inventorySlot = 0;
-        packet.hotbarSlot = 0;
-        packet.windowId = 0;
-
-        await this.send(packet);
+        await this.send(
+            new MobEquipmentPacket({
+                runtimeEntityId: entity.getRuntimeId(),
+                item: item.toStackDescriptor(this.connection.codec.context),
+                inventorySlot: 0,
+                hotbarSlot: 0,
+                windowId: 0
+            })
+        );
     }
 
     /**

@@ -17,6 +17,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
 import { itemData2193, itemDataForProtocol } from '../network/codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
+import type { ProtocolContext } from '@jsprismarine/protocol';
 import NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { storedItem } from '../inventory/persistence';
 import { holderSetIncludes } from './holderSets';
@@ -104,8 +105,13 @@ const DEFAULT_MAX_STACK_SIZE = 64;
  * pass it down. A bare stream - a stack written to disk, or to a buffer assembled by hand -
  * gets protocol 2193's, the canonical table.
  */
-const wireItemData = (stream: BinaryStream): ProtocolItemData =>
-    stream instanceof NetworkPacket ? itemDataForProtocol(stream.codecProtocol) : itemData2193;
+const wireItemData = (source: BinaryStream | ProtocolContext): ProtocolItemData => {
+    if (source instanceof NetworkPacket) return itemDataForProtocol(source.codecProtocol);
+    if ('protocolVersion' in source) {
+        return source.itemData ?? itemDataForProtocol(source.protocolVersion);
+    }
+    return itemData2193;
+};
 
 /**
  * One item stack, as the rest of the server holds one.
@@ -650,15 +656,18 @@ export class Item {
     /**
      * This stack as the six wire fields of a `NetworkItemStackDescriptor`.
      *
-     * The descriptor is what travels in a declarative field list, which has no `Item` to hand
-     * it; a packet class converts here and the bytes are the protocol package's to write. An
-     * empty stack zeroes every field after the id, as {@link networkSerialize} always has.
-     * @param stream - The stream the stack is bound for, which names the item numbering.
+     * The server converts its game item into this protocol DTO at the package boundary; the
+     * protocol package writes the bytes. An empty stack zeroes every field after the id, as
+     * {@link networkSerialize} always has.
+     * @param source - The packet stream or negotiated protocol context that selects item numbering.
      * @param stackNetId - The stack's net id, when the receiver tracks one.
      * @returns The descriptor the stack goes out as.
      */
-    public toStackDescriptor(stream: BinaryStream, stackNetId: number | null = null): ItemStackDescriptorData {
-        const runtimeId = this.wireId(wireItemData(stream));
+    public toStackDescriptor(
+        source: BinaryStream | ProtocolContext,
+        stackNetId: number | null = null
+    ): ItemStackDescriptorData {
+        const runtimeId = this.wireId(wireItemData(source));
         const empty = runtimeId === 0;
 
         return {
@@ -786,13 +795,15 @@ export class Item {
     /**
      * The stack a `NetworkItemStackDescriptor` describes.
      *
-     * The counterpart of {@link toStackDescriptor}, for the packet classes that take their
-     * stacks from a declarative field list rather than off the stream themselves.
-     * @param stream - The stream the descriptor came off, which names the item numbering.
+     * Resolves the wire descriptor returned by a protocol packet into the server's game item.
+     * @param source - The packet stream or negotiated protocol context that selects item numbering.
      * @param descriptor - The six wire fields.
      * @returns The stack, with an unknown id kept so it goes back out as the client sent it.
      */
-    public static fromStackDescriptor(stream: BinaryStream, descriptor: ItemStackDescriptorData): Item {
+    public static fromStackDescriptor(
+        source: BinaryStream | ProtocolContext,
+        descriptor: ItemStackDescriptorData
+    ): Item {
         const userData = new ItemInstanceUserData();
         if (descriptor.userData.byteLength > 0) {
             userData.deserialize(new NetworkBinaryStream(descriptor.userData));
@@ -810,7 +821,7 @@ export class Item {
         // number the client's item registry assigned it.
         const item = new Item({
             runtimeId: descriptor.id,
-            name: wireItemData(stream).nameOf(descriptor.id) ?? 'minecraft:unknown',
+            name: wireItemData(source).nameOf(descriptor.id) ?? 'minecraft:unknown',
             meta: descriptor.auxValue,
             count: descriptor.stackSize,
             canPlaceOnBlocks: userData.canPlaceOnBlocks,

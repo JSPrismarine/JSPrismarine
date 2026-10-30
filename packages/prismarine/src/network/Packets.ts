@@ -67,9 +67,9 @@ import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEvent
 import LoginPacket from './packet/LoginPacket';
 import MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
 import MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPacket';
-import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
+import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEffectPacket from '@jsprismarine/protocol/packet/MobEffectPacket';
-import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
 import ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
 import MotionPredictionHintsPacket from '@jsprismarine/protocol/packet/MotionPredictionHintsPacket';
