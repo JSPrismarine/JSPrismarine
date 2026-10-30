@@ -95,6 +95,7 @@ import {
     setScorePacket
 } from './scoreboard';
 import { setActorDataPacket } from './setActorData';
+import { showCreditsPacket } from './showCredits';
 import { startGamePacket } from './startGame';
 import { syncActorPropertyPacket } from './syncActorProperty';
 import { trimDataPacket } from './trimData';
@@ -167,6 +168,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         setScoreboardIdentityPacket,
         setScorePacket,
         setTitlePacket,
+        showCreditsPacket,
         startGamePacket,
         takeItemActorPacket,
         textPacket,

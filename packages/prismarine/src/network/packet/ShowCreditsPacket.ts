@@ -1,3 +1,5 @@
+import { layoutAt, showCreditsPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /** The docs' `CreditsState`: whether the credits are starting or have finished. */
@@ -15,8 +17,8 @@ export enum CreditsState {
  * through the exit portal. The client answers with the same packet and `End` once the credits
  * finish, which is the server's cue to put the player back in the world.
  *
- * Wire order at protocol 2193: `Player Runtime ID` as a varuint64, then `Credits State` as a
- * ZigZag varint32.
+ * The wire layout lives in `@jsprismarine/protocol`'s `showCreditsPacket` definition:
+ * `Player Runtime ID` as a varuint64, then `Credits State` as a ZigZag varint32.
  *
  * **Bound To:** Client and Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-credits-packet/
@@ -29,13 +31,17 @@ export default class ShowCreditsPacket extends DataPacket {
 
     /** Reads the player runtime id and the credits state. */
     public decodePayload(): void {
-        this.playerRuntimeId = this.readUnsignedVarLong();
-        this.creditsState = this.readVarInt();
+        const { playerRuntimeId, creditsState } = layoutAt(showCreditsPacket, this.codecProtocol).decode(this);
+
+        this.playerRuntimeId = playerRuntimeId;
+        this.creditsState = creditsState;
     }
 
     /** Writes the player runtime id and the credits state. */
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.playerRuntimeId);
-        this.writeVarInt(this.creditsState);
+        layoutAt(showCreditsPacket, this.codecProtocol).encode(this, {
+            playerRuntimeId: this.playerRuntimeId,
+            creditsState: this.creditsState
+        });
     }
 }
