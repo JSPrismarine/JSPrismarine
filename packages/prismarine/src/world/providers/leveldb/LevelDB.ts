@@ -31,7 +31,7 @@ import Chunk from '../../chunk/Chunk';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import type { Entity } from '../../../entity/Entity';
-import type { DimensionDefinition } from '../../Dimension';
+import type { DimensionType } from '../../Dimension';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
@@ -112,7 +112,7 @@ export default class LevelDB extends BaseProvider {
         return this.database;
     }
 
-    private dimension(): DimensionDefinition {
+    private dimension(): DimensionType {
         return this.getWorld().getDimension();
     }
 
@@ -203,8 +203,8 @@ export default class LevelDB extends BaseProvider {
         const database = this.requireDatabase();
         const dimension = this.dimension();
         const key = (tag: ChunkTag, subChunk?: number) =>
-            encodeChunkKey({ x: cx, z: cz, dimension: dimension.id, tag, subChunk });
-        const pendingEntitiesKey = pendingEntityKey(cx, cz, dimension.id);
+            encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag, subChunk });
+        const pendingEntitiesKey = pendingEntityKey(cx, cz, dimension.bedrockId);
 
         // No version record means the chunk was never generated. Anything else - a version we do
         // not recognize included - is a chunk that exists and must not be overwritten by a fresh
@@ -235,7 +235,7 @@ export default class LevelDB extends BaseProvider {
             chunk.setBlockEntity(blockEntity);
         }
 
-        const digestKey = encodeDigestKey(cx, cz, dimension.id);
+        const digestKey = encodeDigestKey(cx, cz, dimension.bedrockId);
         const digest = database.get(digestKey);
         let repairActorDigest = false;
         if (digest === null) {
@@ -256,7 +256,7 @@ export default class LevelDB extends BaseProvider {
         const dimension = chunk.getDimension();
         const batch = new WriteBatch();
         const key = (tag: ChunkTag, subChunk?: number) =>
-            encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.id, tag, subChunk });
+            encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.bedrockId, tag, subChunk });
 
         for (let index = minSubChunk(dimension); index <= maxSubChunk(dimension); index++) {
             const subChunk = chunk.getSubChunk(index);
@@ -280,7 +280,7 @@ export default class LevelDB extends BaseProvider {
         const finalized = Buffer.allocUnsafe(4);
         finalized.writeInt32LE(FINALIZED_DONE);
         batch.put(key(ChunkTag.FinalizedState), finalized);
-        batch.del(pendingEntityKey(chunk.getX(), chunk.getZ(), dimension.id));
+        batch.del(pendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId));
 
         const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
         if (blockEntities === null) {
@@ -409,8 +409,8 @@ export default class LevelDB extends BaseProvider {
             const chunkId = `${cx},${cz}`;
             let chunk = chunks.get(chunkId);
             if (chunk === undefined) {
-                const identities = this.actorIdentitiesInChunk(database, cx, cz, dimension.id);
-                const pending = this.readPendingEntityRecords(database.get(pendingEntityKey(cx, cz, dimension.id)));
+                const identities = this.actorIdentitiesInChunk(database, cx, cz, dimension.bedrockId);
+                const pending = this.readPendingEntityRecords(database.get(pendingEntityKey(cx, cz, dimension.bedrockId)));
                 for (const entity of pending) {
                     identities.add(legacyEntityIdentity(entity));
                     usedActorIds.add(actorIdBytes(BigInt(entity.uniqueId)).toString('hex'));
@@ -432,7 +432,7 @@ export default class LevelDB extends BaseProvider {
         let hasUpdates = false;
         for (const { x, z, pending } of chunks.values()) {
             if (pending.length === 0) continue;
-            batch.put(pendingEntityKey(x, z, dimension.id), this.writePendingEntityRecords(pending));
+            batch.put(pendingEntityKey(x, z, dimension.bedrockId), this.writePendingEntityRecords(pending));
             hasUpdates = true;
         }
 
@@ -563,7 +563,7 @@ export default class LevelDB extends BaseProvider {
         key: (tag: ChunkTag, subChunk?: number) => Buffer
     ): void {
         const dimension = chunk.getDimension();
-        const digestKey = encodeDigestKey(chunk.getX(), chunk.getZ(), dimension.id);
+        const digestKey = encodeDigestKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
         const existingDigest = database.get(digestKey);
         let previousActorIds: Buffer[] = [];
         if (existingDigest !== null) {
@@ -740,9 +740,9 @@ export default class LevelDB extends BaseProvider {
         const seen = new Set<string>();
 
         for (const key of this.requireDatabase().keys()) {
-            const pending = decodePendingEntityKey(key, this.dimension().id);
+            const pending = decodePendingEntityKey(key, this.dimension().bedrockId);
             const decoded = pending ?? decodeChunkKey(key);
-            if (decoded === null || decoded.dimension !== this.dimension().id) continue;
+            if (decoded === null || decoded.dimension !== this.dimension().bedrockId) continue;
 
             const id = `${decoded.x},${decoded.z}`;
             if (seen.has(id)) continue;
@@ -756,7 +756,7 @@ export default class LevelDB extends BaseProvider {
     public readBiomes(cx: number, cz: number): ReturnType<typeof decodeData3D> | null {
         const dimension = this.dimension();
         const value = this.requireDatabase().get(
-            encodeChunkKey({ x: cx, z: cz, dimension: dimension.id, tag: ChunkTag.Data3D })
+            encodeChunkKey({ x: cx, z: cz, dimension: dimension.bedrockId, tag: ChunkTag.Data3D })
         );
 
         return value === null ? null : decodeData3D(value, dimension);

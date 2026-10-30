@@ -9,7 +9,7 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
-import type { DimensionDefinition } from '../Dimension';
+import type { DimensionType } from '../Dimension';
 import type { EntitySpawn } from '../EntitySpawn';
 import { ChunkBiomes } from './ChunkBiomes';
 import SubChunk from './SubChunk';
@@ -20,8 +20,8 @@ import SubChunk from './SubChunk';
  * shallower than the client's and owes it padding below; the Nether and the End are not padded
  * and carry 8 and 16 biome sections rather than the Overworld's 24.
  */
-const clientRangeOf = (dimension: DimensionDefinition): DimensionDefinition =>
-    [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find((candidate) => candidate.id === dimension.id) ??
+const clientRangeOf = (dimension: DimensionType): DimensionType =>
+    [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find((candidate) => candidate.bedrockId === dimension.bedrockId) ??
     Dimensions.Overworld;
 
 /** How many bits of each chunk axis a packed key carries. See {@link Chunk.packXZ}. */
@@ -36,7 +36,7 @@ export default class Chunk {
     private x: number;
     private z: number;
     private hasChanged: boolean;
-    private readonly dimension: DimensionDefinition;
+    private readonly dimension: DimensionType;
 
     private readonly subChunks: Map<number, SubChunk> = new Map();
 
@@ -86,7 +86,7 @@ export default class Chunk {
         chunkX = 0,
         chunkZ = 0,
         subChunks: Map<number, SubChunk> = new Map(),
-        dimension: DimensionDefinition = Dimensions.Overworld
+        dimension: DimensionType = Dimensions.Overworld
     ) {
         this.x = chunkX;
         this.z = chunkZ;
@@ -175,7 +175,7 @@ export default class Chunk {
         return this.storedEntities.splice(0, this.storedEntities.length);
     }
 
-    public getDimension(): DimensionDefinition {
+    public getDimension(): DimensionType {
         return this.dimension;
     }
 
@@ -559,14 +559,14 @@ export default class Chunk {
      * @param {number} [x] - the chunk x coordinate
      * @param {number} [z] - the chunk z coordinate
      * @param {number} [subChunkCountSent] - how many sub chunks the payload carries
-     * @param {DimensionDefinition} [dimension] - the dimension the chunk belongs to
+     * @param {DimensionType} [dimension] - the dimension the chunk belongs to
      */
     public static networkDeserialize(
         stream: BinaryStream,
         x?: number,
         z?: number,
         subChunkCountSent?: number,
-        dimension: DimensionDefinition = Dimensions.Overworld
+        dimension: DimensionType = Dimensions.Overworld
     ): Chunk {
         const clientFloor = minSubChunk(clientRangeOf(dimension));
         const floor = minSubChunk(dimension);

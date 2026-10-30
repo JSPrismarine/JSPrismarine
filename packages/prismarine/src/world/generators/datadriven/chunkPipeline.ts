@@ -25,7 +25,7 @@
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
 
-import type { DimensionDefinition } from '../../Dimension';
+import type { DimensionType } from '../../Dimension';
 import { Dimensions } from '../../Dimension';
 import type { TerrainTaskInput } from './DataDrivenGenerator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
@@ -38,7 +38,7 @@ import type { GenerationRegionPayload } from './GenerationRegion';
 export interface ChunkPipelineSetup {
     /** The registries as bytes, shared rather than copied to each worker. */
     readonly registryBundle: SharedArrayBuffer;
-    readonly dimension?: DimensionDefinition;
+    readonly dimension?: DimensionType;
     readonly noiseSettings?: string;
     readonly biomeParameters?: string;
     /** Whether the carvers run, which is part of Java's `terrain` status. */

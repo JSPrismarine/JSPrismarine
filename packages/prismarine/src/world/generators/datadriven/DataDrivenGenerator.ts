@@ -67,7 +67,7 @@ import BlockStorage from '../../chunk/BlockStorage';
 import Chunk from '../../chunk/Chunk';
 import SubChunk from '../../chunk/SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
-import type { DimensionDefinition } from '../../Dimension';
+import type { DimensionType } from '../../Dimension';
 import type { WorldConfig } from '../../World';
 import { GenerationStopped } from '../../Generator';
 import type {
@@ -104,7 +104,7 @@ export interface DataDrivenGeneratorOptions {
     /** The Java registries, already read off disk. */
     readonly registries: JavaWorldgenRegistries;
     /** The dimension being generated. Defaults to the Overworld. */
-    readonly dimension?: DimensionDefinition;
+    readonly dimension?: DimensionType;
     /** The `worldgen/noise_settings` identifier. Defaults to `minecraft:overworld`. */
     readonly noiseSettings?: string;
     /** The `reports/biome_parameters` identifier. Defaults to `minecraft:overworld`. */
@@ -531,7 +531,7 @@ const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] =
  * recent terrain tiles shared by neighboring feature regions.
  */
 export class DataDrivenGenerator implements Generator {
-    private readonly dimension: DimensionDefinition;
+    private readonly dimension: DimensionType;
     private readonly worldgen: WorldgenData;
     private readonly materialRules: MaterialRuleData;
     private readonly biomeSource: MultiNoiseBiomeSource;
@@ -755,7 +755,7 @@ export class DataDrivenGenerator implements Generator {
                     status: 'full',
                     chunkX: cx,
                     chunkZ: cz,
-                    dimension: this.dimension.id,
+                    dimension: this.dimension.bedrockId,
                     input: { seed: pipeline.randomState.seed.toString() } satisfies ChunkTaskInput
                 },
                 this.urgencyOf(cx, cz)
@@ -1129,7 +1129,7 @@ export class DataDrivenGenerator implements Generator {
                     status: 'terrain',
                     chunkX: cx,
                     chunkZ: cz,
-                    dimension: this.dimension.id,
+                    dimension: this.dimension.bedrockId,
                     input: {
                         seed: pipeline.randomState.seed.toString(),
                         beard: beard.pieces,
@@ -1185,7 +1185,7 @@ export class DataDrivenGenerator implements Generator {
                         status: 'features',
                         chunkX: chunk.chunkX,
                         chunkZ: chunk.chunkZ,
-                        dimension: this.dimension.id,
+                        dimension: this.dimension.bedrockId,
                         input
                     },
                     this.urgencyOf(chunk.chunkX, chunk.chunkZ)

@@ -269,7 +269,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             new SetSpawnPositionPacket({
                 type: SpawnPositionType.PlayerRespawn,
                 position: blockPosition,
-                dimension: world.getDimension().id,
+                dimension: world.getDimension().bedrockId,
                 blockPosition
             })
         );

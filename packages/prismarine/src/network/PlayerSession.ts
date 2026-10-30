@@ -501,7 +501,7 @@ export default class PlayerSession {
                 new LevelChunkPacket({
                     chunkX: chunk.getX(),
                     chunkZ: chunk.getZ(),
-                    dimension: chunk.getDimension().id,
+                    dimension: chunk.getDimension().bedrockId,
                     subChunkCount: chunk.getNetworkSubChunkCount(),
                     clientSubChunkRequestsEnabled: false,
                     cached: false,

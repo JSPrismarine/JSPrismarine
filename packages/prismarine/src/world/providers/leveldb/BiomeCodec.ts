@@ -3,7 +3,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import type { BiomeSection } from '../../chunk/ChunkBiomes';
 import { subChunkCount } from '../../Dimension';
-import type { DimensionDefinition } from '../../Dimension';
+import type { DimensionType } from '../../Dimension';
 
 /**
  * The `Data3D` record: a heightmap, then one biome palette per sub chunk.
@@ -140,7 +140,7 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
     return biomes;
 };
 
-export const encodeData3D = (biomes: Biomes, dimension: DimensionDefinition): Buffer => {
+export const encodeData3D = (biomes: Biomes, dimension: DimensionType): Buffer => {
     const stream = new BinaryStream();
 
     for (let i = 0; i < COLUMNS; i++) stream.writeUnsignedShortLE(biomes.heightmap[i] ?? 0);
@@ -153,7 +153,7 @@ export const encodeData3D = (biomes: Biomes, dimension: DimensionDefinition): Bu
     return stream.getBuffer();
 };
 
-export const decodeData3D = (value: Buffer, dimension: DimensionDefinition): Biomes => {
+export const decodeData3D = (value: Buffer, dimension: DimensionType): Biomes => {
     const stream = new BinaryStream(value);
 
     const heightmap = new Uint16Array(COLUMNS);
@@ -181,7 +181,7 @@ export const decodeData3D = (value: Buffer, dimension: DimensionDefinition): Bio
 export const uniformBiomes = (biome: number): Int32Array => new Int32Array(BLOCKS_PER_SUBCHUNK).fill(biome);
 
 /** A whole chunk of one biome, for a freshly generated chunk that has no biome data yet. */
-export const uniformData3D = (biome: number, dimension: DimensionDefinition): Biomes => ({
+export const uniformData3D = (biome: number, dimension: DimensionType): Biomes => ({
     heightmap: new Uint16Array(COLUMNS),
     palettes: Array.from({ length: subChunkCount(dimension) }, () => biome)
 });

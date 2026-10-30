@@ -64,7 +64,7 @@ export const createStartGameData = ({
         seed: BigInt.asUintN(64, world.getSeed()),
         spawnBiomeType: 0,
         userDefinedBiomeName: 'minecraft:plains',
-        dimension: world.getDimension().id,
+        dimension: world.getDimension().bedrockId,
         generator: world.getGenerator() instanceof Flat ? Generator.FLAT : Generator.OVERWORLD,
         worldGamemode: getGametypeId(server.getConfig().getGamemode()),
         hardcore: false,

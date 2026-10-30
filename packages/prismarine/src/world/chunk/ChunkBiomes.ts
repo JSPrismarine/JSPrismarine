@@ -1,7 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { minSubChunk, subChunkCount } from '../Dimension';
-import type { DimensionDefinition } from '../Dimension';
+import type { DimensionType } from '../Dimension';
 
 /**
  * The biome of every block in one chunk column.
@@ -64,14 +64,14 @@ const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | 
  * it, and the disk and network forms both pack from whichever representation a section is in.
  */
 export class ChunkBiomes {
-    private readonly dimension: DimensionDefinition;
+    private readonly dimension: DimensionType;
     private readonly sections: PackedSection[];
 
     /**
      * @param dimension - Decides how many sub chunks the column carries: 24, 8 or 16.
      * @param fill - The biome every block starts as.
      */
-    public constructor(dimension: DimensionDefinition, fill: number = PLAINS_BIOME) {
+    public constructor(dimension: DimensionType, fill: number = PLAINS_BIOME) {
         this.dimension = dimension;
         this.sections = Array.from({ length: subChunkCount(dimension) }, () => fill);
     }
@@ -174,7 +174,7 @@ export class ChunkBiomes {
     }
 
     /** Rebuilds the column from the per-section ids the disk codec reads. */
-    public static fromSectionIds(ids: readonly BiomeSection[], dimension: DimensionDefinition): ChunkBiomes {
+    public static fromSectionIds(ids: readonly BiomeSection[], dimension: DimensionType): ChunkBiomes {
         const biomes = new ChunkBiomes(dimension);
 
         for (let index = 0; index < biomes.sections.length; index++) {

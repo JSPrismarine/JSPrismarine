@@ -5,6 +5,7 @@ export type * from './Generator';
 // chunk during a shutdown has to be able to tell this rejection from a real failure.
 export { GenerationStopped } from './Generator';
 export type * from './EntitySpawn';
+export * from './Dimension';
 export * from './GeneratorManager';
 export * from './Position';
 export * from './World';

@@ -23,7 +23,7 @@ import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import { isLiquid } from '@jsprismarine/block-behaviors';
 
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
-import type { DimensionDefinition } from './Dimension';
+import type { DimensionType } from './Dimension';
 import type { ContentRedstoneUpdateHandlers } from './redstoneUpdates';
 
 /** A block as the systems read one: the identifier and its Bedrock state values. */
@@ -69,7 +69,7 @@ export interface RandomTickChunk {
 
 /** What {@link WorldSystems} reads out of the world it serves. */
 export interface WorldSystemsView {
-    readonly dimension: DimensionDefinition;
+    readonly dimension: DimensionType;
     /** The block at a world position, or undefined when its chunk is not loaded. */
     blockAt(x: number, y: number, z: number): SystemBlock | undefined;
     /**
@@ -310,7 +310,7 @@ export class WorldSystems {
             minY: dimension.minY,
             // One past the highest block y, which is how the light engine bounds its columns.
             maxY: maxY(dimension) + 1,
-            hasSkyLight: dimension.id === 0,
+            hasSkyLight: dimension.java.hasSkylight,
             blockAt: (x, y, z) => this.lightPropertiesAt(x, y, z),
             topOfColumn: (x, z) => this.view.topOfColumn?.(x, z) ?? maxY(dimension) + 1
         };

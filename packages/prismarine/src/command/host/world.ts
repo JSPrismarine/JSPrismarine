@@ -325,7 +325,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             const packet = new SetSpawnPositionPacket({
                 type: SpawnPositionType.WorldSpawn,
                 position: blockPosition,
-                dimension: world.getDimension().id,
+                dimension: world.getDimension().bedrockId,
                 blockPosition
             });
 
@@ -354,7 +354,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             const packet = new SetSpawnPositionPacket({
                 type: SpawnPositionType.PlayerRespawn,
                 position: blockPosition,
-                dimension: worldOf(server, dimension).getDimension().id,
+                dimension: worldOf(server, dimension).getDimension().bedrockId,
                 blockPosition
             });
 
@@ -373,7 +373,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         particle: (name, position, dimension, parameters) => {
             const world = worldOf(server, dimension);
             const packet = new SpawnParticleEffectPacket();
-            packet.dimensionId = world.getDimension().id;
+            packet.dimensionId = world.getDimension().bedrockId;
             packet.effectName = name;
             packet.position = new Vector3(position.x, position.y, position.z);
             if (parameters !== undefined) packet.molangVariables = parameters;

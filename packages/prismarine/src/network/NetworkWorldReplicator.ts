@@ -294,7 +294,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     /** @inheritdoc */
     public namedParticle(position: Vector3, name: string): void {
         const packet = new SpawnParticleEffectPacket();
-        packet.dimensionId = this.world.getDimension().id;
+        packet.dimensionId = this.world.getDimension().bedrockId;
         packet.effectName = name;
         packet.position = position;
 

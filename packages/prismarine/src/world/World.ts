@@ -41,7 +41,7 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
 import { placePlayerSpawn } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
-import type { DimensionDefinition } from './Dimension';
+import type { DimensionType } from './Dimension';
 import type { BlockMining } from './BlockMining';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { Position } from './Position';
@@ -317,7 +317,7 @@ export interface WorldData {
     generator: Generator;
     config?: WorldConfig;
     /** Defaults to the Overworld, which is the only one the server generates today. */
-    dimension?: DimensionDefinition;
+    dimension?: DimensionType;
     /**
      * What to run when a random tick lands on a block, keyed by block identifier.
      *
@@ -420,7 +420,7 @@ export class World implements Service {
     private readonly seed: bigint;
     private readonly generator: Generator;
     private readonly config: WorldConfig;
-    private readonly dimension: DimensionDefinition;
+    private readonly dimension: DimensionType;
     private spawn: Vector3 | null = null;
 
     /**
@@ -2799,7 +2799,7 @@ export class World implements Service {
      * generators - but the chunk stack and the disk format both need the answer, and hardcoding it
      * in two places is how they end up disagreeing.
      */
-    public getDimension(): DimensionDefinition {
+    public getDimension(): DimensionType {
         return this.dimension;
     }
 

@@ -100,7 +100,7 @@ export class EntitySerializer {
         // Both are Bedrock's own tags. The dimension is the world's, not a stored value: an
         // entity is in exactly the dimension of the world that holds it.
         nbt.addValue('PortalCooldown', new Types.NumberVal(entity.getPortalCooldown()));
-        nbt.addValue('DimensionId', new Types.NumberVal(entity.getWorld().getDimension().id));
+        nbt.addValue('DimensionId', new Types.NumberVal(entity.getWorld().getDimension().bedrockId));
         const tags = entity.getTags();
         if (tags.length > 0) nbt.addValue('Tags', new Set(tags.map((tag) => new Types.StringVal(tag))));
         else nbt.remove('Tags');
