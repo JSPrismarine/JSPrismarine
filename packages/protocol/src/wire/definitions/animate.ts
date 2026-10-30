@@ -36,6 +36,7 @@ export enum AnimateHand {
     Offhand = 1
 }
 
+/** The `AnimatePacket` field list; the module doc carries the wire provenance. */
 export const animatePacket = definePacket('AnimatePacket', {
     /** `Action`, as the raw byte; see {@link AnimateAction}. */
     action: t.uint8,

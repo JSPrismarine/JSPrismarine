@@ -81,6 +81,8 @@ export const FAMILIES = {
 
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',
+    /** Declarative wire layouts re-encode a real server's bytes exactly, per protocol version. */
+    protocolWireRoundtrip: 'protocol.wire-roundtrip',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',

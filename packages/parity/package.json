@@ -37,6 +37,7 @@
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
+        "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/recipes": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
         "@types/node": "24.19.2",

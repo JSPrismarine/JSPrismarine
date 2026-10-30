@@ -1266,6 +1266,9 @@ importers:
       '@jsprismarine/prismarine':
         specifier: workspace:*
         version: link:../prismarine
+      '@jsprismarine/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@jsprismarine/recipes':
         specifier: workspace:*
         version: link:../recipes

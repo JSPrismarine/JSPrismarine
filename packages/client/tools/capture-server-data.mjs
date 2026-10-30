@@ -73,6 +73,12 @@ const { values } = parseArgs({
         out: { type: 'string', default: JSP },
         /** Where the raw engine table payloads go. Empty means do not record them. */
         extended: { type: 'string', default: '' },
+        /**
+         * Where one raw payload per packet kind goes, named by wire id. Empty means do not
+         * record them. These are the round-trip fixtures: a declarative layout is held to
+         * `encode(decode(bytes)) === bytes` over what a real server sent.
+         */
+        wire: { type: 'string', default: '' },
         /** What the captured files say they came from, e.g. `bedrock-server-1.26.51.1`. */
         server: { type: 'string', default: '' },
         /**
@@ -180,12 +186,16 @@ const payloadOf = (buffer) => {
 /** First payload seen per extended packet, keyed by file name. A server sends each once. */
 const extended = new Map();
 
+/** First payload seen per packet id, for the wire fixtures. */
+const wire = new Map();
+
 client.getSession().on('raw', ({ id, buffer }) => {
     if (id === PacketIdentifier.JIGSAW_STRUCTURE_DATA) jigsaw = payloadOf(buffer);
     if (id === PacketIdentifier.BIOME_DEFINITION_LIST) biomes = payloadOf(buffer);
 
     const name = EXTENDED_PACKETS.get(id);
     if (values.extended !== '' && name !== undefined && !extended.has(name)) extended.set(name, payloadOf(buffer));
+    if (values.wire !== '' && !wire.has(id)) wire.set(id, payloadOf(buffer));
 });
 
 const relative = (file) => path.relative(process.cwd(), file);
@@ -258,6 +268,14 @@ try {
         }
         const missing = [...EXTENDED_PACKETS.values()].filter((name) => !extended.has(name));
         if (missing.length > 0) console.warn(`  The server sent no ${missing.join(', ')}`);
+    }
+
+    if (values.wire !== '') {
+        fs.mkdirSync(values.wire, { recursive: true });
+        for (const [id, payload] of [...wire].sort(([a], [b]) => a - b)) {
+            fs.writeFileSync(path.join(values.wire, `0x${id.toString(16).padStart(2, '0')}.bin`), payload);
+        }
+        console.log(`Wrote ${wire.size} wire fixtures to ${relative(values.wire)}`);
     }
 } catch (error) {
     console.error(`Could not capture: ${error instanceof Error ? error.message : String(error)}`);

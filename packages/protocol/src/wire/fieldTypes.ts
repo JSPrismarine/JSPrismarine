@@ -147,3 +147,10 @@ export const list = <T>(of: WireType<T>): WireType<T[]> =>
  */
 export const custom = <T>(wire: string, write: WireType<T>['write'], read: WireType<T>['read']): WireType<T> =>
     type(wire, write, read);
+
+/** `i32` (big-endian): a signed 32-bit integer, as `PlayStatus` carries its status. */
+export const i32 = type<number>(
+    'i32',
+    (s, v) => s.writeInt(v),
+    (s) => s.readInt()
+);

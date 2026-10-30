@@ -61,3 +61,4 @@ tools/docs/site/.vitepress/.temp/
 # Java bundler extraction from the worldgen and data generator oracles
 /libraries/
 /versions/
+packages/bedrock-data/src/jsp/v*/packets/

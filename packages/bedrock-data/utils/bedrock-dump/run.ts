@@ -493,6 +493,8 @@ const runPacketPass = async (): Promise<void> => {
                 outDirectory,
                 '--extended',
                 join(outDirectory, 'packets'),
+                '--wire',
+                join(outDirectory, 'wire'),
                 '--server',
                 `bedrock-server-${pinnedServer.serverVersion}`,
                 // The server refuses a login at any version but its own, so the client is
