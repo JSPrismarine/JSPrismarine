@@ -77,7 +77,6 @@ import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MoveActorDeltaPacket from './packet/MoveActorDeltaPacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import MultiplayerSettingsPacket from './packet/MultiplayerSettingsPacket';
-import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import NetworkSettingsPacket from './packet/NetworkSettingsPacket';
 import NetworkStackLatencyPacket from './packet/NetworkStackLatencyPacket';
 import NpcRequestPacket from './packet/NpcRequestPacket';
@@ -246,7 +245,6 @@ export {
     MoveActorDeltaPacket,
     MovePlayerPacket,
     MultiplayerSettingsPacket,
-    NetworkChunkPublisherUpdatePacket,
     NetworkSettingsPacket,
     NetworkStackLatencyPacket,
     NpcRequestPacket,

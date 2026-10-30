@@ -8,6 +8,7 @@ import ItemRegistryPacket from './ItemRegistryPacket';
 import LevelChunkPacket from './LevelChunkPacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
+import NetworkChunkPublisherUpdatePacket from './NetworkChunkPublisherUpdatePacket';
 import NetworkSettingsPacket from './NetworkSettingsPacket';
 import PlayStatusPacket from './PlayStatusPacket';
 import PlayerActionPacket from './PlayerActionPacket';
@@ -40,6 +41,7 @@ export {
     LevelChunkPacket,
     LoginPacket,
     MovePlayerPacket,
+    NetworkChunkPublisherUpdatePacket,
     NetworkSettingsPacket,
     PlayStatusPacket,
     PlayerActionPacket,
@@ -90,6 +92,7 @@ export type {
 export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';
+export type { ChunkCoord, NetworkChunkPublisherUpdatePayload } from './NetworkChunkPublisherUpdatePacket';
 export type { BlockCoordinates, PlayerActionData } from './PlayerActionPacket';
 export type { PlayerHotbarPayload } from './PlayerHotbarPacket';
 export type { RequestChunkRadius } from './RequestChunkRadiusPacket';

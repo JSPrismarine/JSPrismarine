@@ -25,7 +25,7 @@ import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimension
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
-import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
+import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import PositionMode from './network/type/PositionMode';
 import PlayStatus from './network/type/PlayStatus';
 import TextPacketType from './network/type/TextPacketType';

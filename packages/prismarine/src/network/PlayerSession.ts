@@ -61,8 +61,8 @@ import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import MobEffectPacket, { MobEffectEvent } from './packet/MobEffectPacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
-import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
-import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
+import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
+import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayStatus from './type/PlayStatus';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
@@ -1091,10 +1091,12 @@ export default class PlayerSession {
     }
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
-        const pk = new NetworkChunkPublisherUpdatePacket();
-        pk.position = BlockPosition.fromVector3(this.player.getPosition());
-        pk.radius = distance << 4;
-        pk.savedChunks = savedChunks;
+        const position = BlockPosition.fromVector3(this.player.getPosition());
+        const pk = new NetworkChunkPublisherUpdatePacket({
+            position: { x: position.getX(), y: position.getY(), z: position.getZ() },
+            radius: distance << 4,
+            savedChunks
+        });
         await this.connection.sendDataPacket(pk);
     }
 

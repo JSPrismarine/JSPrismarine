@@ -5,6 +5,7 @@ import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPack
 import SetHealthPacket from '@jsprismarine/protocol/packet/SetHealthPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
+import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SetTimePacket from '@jsprismarine/protocol/packet/SetTimePacket';
@@ -30,6 +31,7 @@ export type PacketClass =
     | typeof SetHealthPacket
     | typeof ChangeDimensionPacket
     | typeof PlayerHotbarPacket
+    | typeof NetworkChunkPublisherUpdatePacket
     | typeof RespawnPacket
     | typeof SetSpawnPositionPacket
     | typeof SetTimePacket;
@@ -41,6 +43,7 @@ const protocolPackets = {
     SetHealthPacket,
     ChangeDimensionPacket,
     PlayerHotbarPacket,
+    NetworkChunkPublisherUpdatePacket,
     RespawnPacket,
     SetSpawnPositionPacket,
     SetTimePacket
