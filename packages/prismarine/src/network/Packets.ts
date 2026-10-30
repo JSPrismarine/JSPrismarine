@@ -155,7 +155,7 @@ import UpdateBlockPacket from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import UpdateBlockSyncedPacket from './packet/UpdateBlockSyncedPacket';
 import UpdateClientOptionsPacket from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
 import UpdateEquipPacket from '@jsprismarine/protocol/packet/UpdateEquipPacket';
-import UpdateSoftEnumPacket from './packet/UpdateSoftEnumPacket';
+import UpdateSoftEnumPacket from '@jsprismarine/protocol/packet/UpdateSoftEnumPacket';
 import UpdateTradePacket from './packet/UpdateTradePacket';
 
 export {

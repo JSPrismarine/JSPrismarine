@@ -43,6 +43,7 @@ import StartGamePacket2225 from './StartGamePacket2225';
 import SubClientLoginPacket from './SubClientLoginPacket';
 import TextPacket from './TextPacket';
 import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
+import UpdateSoftEnumPacket from './UpdateSoftEnumPacket';
 import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
 import AvailableActorIdentifiersPacket from './AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
@@ -103,6 +104,7 @@ export {
     SubClientLoginPacket,
     TextPacket,
     UpdateAdventureSettingsPacket,
+    UpdateSoftEnumPacket,
     UpdatePlayerGameTypePacket,
     AvailableActorIdentifiersPacket,
     BiomeDefinitionListPacket,
@@ -157,6 +159,8 @@ export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';
 export type { PlayerLocation } from './PlayerLocationPacket';
+export { SoftEnumUpdateType } from './UpdateSoftEnumPacket';
+export type { UpdateSoftEnum } from './UpdateSoftEnumPacket';
 export type { SpawnExperienceOrb } from './SpawnExperienceOrbPacket';
 export type { GatheringsConfig, Transfer } from './TransferPacket';
 export { BookEditAction } from './BookEditPacket';
