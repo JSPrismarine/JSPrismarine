@@ -118,8 +118,9 @@ Diffing every schema in both `metadata.zip` releases by `x-ordinal-index` gives 
 structural delta of 18 types, and no type was removed. After the fix above, the remainder splits
 into types `Codec2225` already carries (`LevelSettings`, `AddActorPacketPayload`,
 `AddPlayerPacketPayload`, `AnimatePacketPayload`, `LevelChunkPacketPayload`,
-`ItemUseOnActorInventoryTransaction`, `ItemReleaseInventoryTransaction`) and types this server
-implements no packet for at all (`DimensionDefinition`, `AttributeLayerData`,
+`ItemUseOnActorInventoryTransaction`, `ItemReleaseInventoryTransaction`), `DimensionDefinition`
+(carried by `DimensionDataPacket`, whose 2225 layout is implemented below but which the server
+never sends), and types this server implements no packet for at all (`AttributeLayerData`,
 `EnvironmentAttributeData`, `ClientboundUpdateSoundDataPacketPayload`, `Fade`, `SeekTo`,
 `SetPitch`, `SetVolume`, `NoiseAlignment`). None of the latter is on a join path.
 
@@ -207,6 +208,7 @@ Each is verified against both the v1.26.60 schema ordinals and gophertunnel v1.6
 - **AddPlayerPacket** — the same optional `Passenger Block Data`, inserted between the actor links and the device id.
 - **PlayerListPacket / PlayerSkinPacket / SerializedSkin** — the PlayFab id moves out of the skin and onto the entry: `PlayerListAddEntry` gains a `PlayFab ID` string at ordinal 5, between `XBL XUID` and `Platform Online ID`, and `SerializedSkin` loses its own `PlayFabID` from ordinal 1. Gophertunnel treats this as 1.26.60's breaking change. `Skin.networkSerialize` takes a `SkinWireLayout` flag rather than a protocol version, because this is the only field the skin has ever moved. Sending the 2193 layout here is what disconnected a 1.26.60 client with "Terracotta"; see the diagnosis above.
 - **InventoryTransactionPacket** — `Hand` uint8 inserted into `ItemUseOnActorInventoryTransaction` between the hotbar slot and the item (ordinal 4), and appended to `ItemReleaseInventoryTransaction` after the from-position (ordinal 5). The use-item body keeps the hand byte it already had at 2193.
+- **DimensionDataPacket / DimensionDefinition** — `Cloud Height` (ZigZag varint32, ordinal 6) and `Render Clouds` (bool, ordinal 7) appended to `DimensionDefinition` after `Default Biome`. Implemented as a declarative field list in `wire/structures/DimensionDefinition.ts` gated by `SINCE_2225`, not a subclass; the packet hands the stamped protocol version to the definition. Round-trip tested at both versions in `DimensionDefinition.test.ts` and `DimensionDataPacket.test.ts`. The schema ordinals are the only source: gophertunnel has no `DimensionDefinition` marshaller to compare against, and the server never sends the packet, so a live client has not confirmed the order.
 
 ## Verified but not implemented
 
@@ -216,7 +218,7 @@ These changed at 2225 and are verifiable from the same sources, but are not carr
 - **LevelEventGenericPacket** — an optional trailing int64 `serverHandle` when the event id is 1900/1901. Changelog only: `LevelEventGenericPacketPayload.json` is byte-identical between the two releases and declares its body as opaque compound tag data, so the schemas neither confirm nor contradict this. Implementing it needs a second source.
 - **The eight new packets' payloads** — ids are known (above); no class is implemented.
 
-Not applicable: `ClientboundUpdateSoundDataPacket` (reworked into a tagged event variant), `ClientboundAttributeLayerSyncPacket` (payload reworked into a oneOf) and `DimensionDataPacket` (`Cloud Height` added) also changed, but this server implements no class for any of them, so there is nothing to version.
+Not applicable: `ClientboundUpdateSoundDataPacket` (reworked into a tagged event variant) and `ClientboundAttributeLayerSyncPacket` (payload reworked into a oneOf) also changed, but this server implements no class for either, so there is nothing to version. `DimensionDataPacket` was listed here while its class did not exist; it now carries the 2225 `DimensionDefinition` layout (see above).
 
 ## Enum and data changes outside the packet layer
 

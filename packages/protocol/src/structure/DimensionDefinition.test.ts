@@ -15,6 +15,18 @@ const OVERWORLD = new DimensionDefinition(
     'minecraft:plains'
 );
 
+/** `OVERWORLD` with the vanilla cloud height, which only a 2225 layout carries. */
+const OVERWORLD_WITH_CLOUDS = new DimensionDefinition(
+    OVERWORLD.minimumY,
+    OVERWORLD.heightRange,
+    OVERWORLD.generatorType,
+    OVERWORLD.dimensionType,
+    OVERWORLD.packId,
+    OVERWORLD.defaultBiome,
+    192,
+    true
+);
+
 /** `OVERWORLD` on the wire, written by hand in the order the docs list the fields. */
 const BYTES = Buffer.from([
     0x7f, // Minimum Y: -64 ZigZag varint32
@@ -26,6 +38,13 @@ const BYTES = Buffer.from([
     ...[0x10, ...Buffer.from('minecraft:plains', 'utf8')] // Default Biome, 16 bytes
 ]);
 
+/** `OVERWORLD_WITH_CLOUDS` at protocol 2225: the 2193 bytes, then the two appended fields. */
+const BYTES_2225 = Buffer.from([
+    ...BYTES,
+    ...[0x80, 0x03], // Cloud Height: 192 ZigZag varint32 (384)
+    0x01 // Render Clouds: true
+]);
+
 describe('DimensionDefinition', () => {
     it('writes the six fields in the order protocol 2193 defines', () => {
         const stream = new NetworkBinaryStream();
@@ -34,12 +53,46 @@ describe('DimensionDefinition', () => {
         expect([...stream.getBuffer()]).toEqual([...BYTES]);
     });
 
-    it('reads a hand-built buffer to its end', () => {
+    it('leaves the cloud fields off the wire at 2193', () => {
+        const stream = new NetworkBinaryStream();
+        OVERWORLD_WITH_CLOUDS.serialize(stream, 2193);
+
+        expect([...stream.getBuffer()]).toEqual([...BYTES]);
+    });
+
+    it('appends Cloud Height and Render Clouds at 2225', () => {
+        const stream = new NetworkBinaryStream();
+        OVERWORLD_WITH_CLOUDS.serialize(stream, 2225);
+
+        expect([...stream.getBuffer()]).toEqual([...BYTES_2225]);
+    });
+
+    it('reads a hand-built 2193 buffer to its end', () => {
         const stream = new NetworkBinaryStream(BYTES);
         const definition = DimensionDefinition.deserialize(stream);
 
         expect(definition).toEqual(OVERWORLD);
+        expect(definition.cloudHeight).toBe(0);
+        expect(definition.renderClouds).toBe(false);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('reads a hand-built 2225 buffer to its end', () => {
+        const stream = new NetworkBinaryStream(BYTES_2225);
+        const definition = DimensionDefinition.read(stream, 2225);
+
+        expect(definition).toEqual(OVERWORLD_WITH_CLOUDS);
+        expect(stream.feof()).toBe(true);
+    });
+
+    it('round-trips through both layouts', () => {
+        for (const protocolVersion of [2193, 2225]) {
+            const stream = new NetworkBinaryStream();
+            OVERWORLD_WITH_CLOUDS.serialize(stream, protocolVersion);
+
+            const read = DimensionDefinition.read(new NetworkBinaryStream(stream.getBuffer()), protocolVersion);
+            expect(read).toEqual(protocolVersion >= 2225 ? OVERWORLD_WITH_CLOUDS : OVERWORLD);
+        }
     });
 
     it('constructs an empty definition without arguments', () => {
@@ -48,5 +101,7 @@ describe('DimensionDefinition', () => {
         expect(definition.generatorType).toBe(Generator.UNDEFINED);
         expect(definition.packId).toEqual(new UUID(0n, 0n));
         expect(definition.defaultBiome).toBe('');
+        expect(definition.cloudHeight).toBe(0);
+        expect(definition.renderClouds).toBe(false);
     });
 });

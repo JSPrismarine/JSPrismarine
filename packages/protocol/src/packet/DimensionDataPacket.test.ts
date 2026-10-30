@@ -49,6 +49,43 @@ const BYTES = Buffer.from([
     ...[0x12, ...Buffer.from('minecraft:the_void', 'utf8')] // Default Biome, 18 bytes
 ]);
 
+/** One custom dimension with clouds drawn at y 192, as a 2225 client would be told. */
+const SKY_2225: DimensionData = {
+    definitions: [
+        {
+            id: 'example:sky',
+            definition: new DimensionDefinition(
+                0,
+                256,
+                Generator.VOID,
+                1000,
+                new UUID(0n, 0n),
+                'minecraft:the_void',
+                192,
+                true
+            )
+        }
+    ]
+};
+
+/** `SKY_2225` at protocol 2225: the 2193 fields, then `Cloud Height` and `Render Clouds`. */
+const SKY_BYTES_2225 = Buffer.from([
+    ...[0xb4, 0x01], // packet id header, 180 as a varuint32
+    0x01, // Definitions count, a varuint32
+    ...[0x0b, ...Buffer.from('example:sky', 'utf8')], // key, 11 bytes
+    0x00, // Minimum Y: 0
+    ...[0x80, 0x04], // Height Range: 256 ZigZag varint32 (512)
+    0x0a, // Generator Type: Void (5) ZigZag varint32
+    ...[0xd0, 0x0f], // Dimension Type: 1000 ZigZag varint32 (2000)
+    ...Array.from({ length: 16 }, () => 0x00), // Pack Id: an all-zero uuid
+    ...[0x12, ...Buffer.from('minecraft:the_void', 'utf8')], // Default Biome, 18 bytes
+    ...[0x80, 0x03], // Cloud Height: 192 ZigZag varint32 (384)
+    0x01 // Render Clouds: true
+]);
+
+/** `SKY_2225` at protocol 2193: the same packet without the two trailing cloud fields. */
+const SKY_BYTES_2193 = SKY_BYTES_2225.subarray(0, SKY_BYTES_2225.byteLength - 3);
+
 /** No data-driven dimensions: the header and a zero count. */
 const EMPTY_BYTES = Buffer.from([0xb4, 0x01, 0x00]);
 
@@ -77,6 +114,40 @@ describe('DimensionDataPacket', () => {
         const data = new DimensionDataPacket().deserialize(stream);
 
         expect(data).toEqual(DATA);
+        expect(stream.feof()).toBe(true);
+    });
+
+    it('appends the cloud fields of each definition when the connection speaks 2225', () => {
+        const buffer = new DimensionDataPacket(SKY_2225).serialize(new NetworkBinaryStream(), {
+            protocolVersion: 2225
+        });
+
+        expect([...buffer]).toEqual([...SKY_BYTES_2225]);
+    });
+
+    it('leaves the cloud fields off when the connection speaks 2193', () => {
+        const buffer = new DimensionDataPacket(SKY_2225).serialize(new NetworkBinaryStream(), {
+            protocolVersion: 2193
+        });
+
+        expect([...buffer]).toEqual([...SKY_BYTES_2193]);
+    });
+
+    it('reads a 2225 buffer to its end with the clouds', () => {
+        const stream = new NetworkBinaryStream(SKY_BYTES_2225);
+        const data = new DimensionDataPacket().deserialize(stream, { protocolVersion: 2225 });
+
+        expect(data).toEqual(SKY_2225);
+        expect(stream.feof()).toBe(true);
+    });
+
+    it('reads a 2193 buffer to its end and defaults the clouds', () => {
+        const stream = new NetworkBinaryStream(SKY_BYTES_2193);
+        const data = new DimensionDataPacket().deserialize(stream, { protocolVersion: 2193 });
+
+        expect(data.definitions[0]!.definition).toEqual(
+            new DimensionDefinition(0, 256, Generator.VOID, 1000, new UUID(0n, 0n), 'minecraft:the_void')
+        );
         expect(stream.feof()).toBe(true);
     });
 });

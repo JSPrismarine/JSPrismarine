@@ -138,3 +138,9 @@ export type {
     UseItemOnEntityData
 } from './wire/structures/InventoryTransaction';
 export * from './wire/structures/PlayerAuthInput';
+export {
+    dimensionDefinition,
+    readDimensionDefinition,
+    writeDimensionDefinition
+} from './wire/structures/DimensionDefinition';
+export type { DimensionDefinitionFields } from './wire/structures/DimensionDefinition';

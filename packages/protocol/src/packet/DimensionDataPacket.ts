@@ -25,6 +25,8 @@ export interface DimensionData {
  * entry the identifier string followed by a {@link DimensionDefinition} (`Minimum Y`,
  * `Height Range`, `Generator Type` and `Dimension Type` as ZigZag varint32, `Pack Id` as an
  * `mce::UUID`, then `Default Biome`). Strings are a varuint32 byte length followed by UTF-8.
+ * From protocol 2225 on each definition also carries `Cloud Height` and `Render Clouds`;
+ * the packet hands the stamped protocol version to the definition, which picks the layout.
  *
  * A vanilla server sends this only when a behavior pack registers a custom dimension. The
  * three vanilla dimensions keep their built-in heights without it.
@@ -38,7 +40,7 @@ export default class DimensionDataPacket extends NetworkPacket<DimensionData> {
         stream.writeUnsignedVarInt(data.definitions.length);
         for (const entry of data.definitions) {
             stream.writeString(entry.id);
-            entry.definition.serialize(stream);
+            entry.definition.serialize(stream, this.codecProtocol);
         }
     }
 
@@ -48,7 +50,7 @@ export default class DimensionDataPacket extends NetworkPacket<DimensionData> {
         while (count-- > 0) {
             definitions.push({
                 id: stream.readString(),
-                definition: DimensionDefinition.deserialize(stream)
+                definition: DimensionDefinition.read(stream, this.codecProtocol)
             });
         }
 
