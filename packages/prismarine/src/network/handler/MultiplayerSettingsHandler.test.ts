@@ -5,7 +5,9 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import MultiplayerSettingsPacket, { MultiplayerSettingsPacketType } from '../packet/MultiplayerSettingsPacket';
+import MultiplayerSettingsPacket, {
+    MultiplayerSettingsPacketType
+} from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
 import MultiplayerSettingsHandler from './MultiplayerSettingsHandler';
 
 describe('MultiplayerSettingsHandler', () => {

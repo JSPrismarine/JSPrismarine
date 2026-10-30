@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { stub } from '../../testing/stub.test.helper';
-import ClientCacheStatusHandler from '../handler/ClientCacheStatusHandler';
+import ClientCacheStatusHandler from './ClientCacheStatusHandler';
 import PacketRegistry from '../PacketRegistry';
-import ClientCacheStatusPacket from './ClientCacheStatusPacket';
+import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
 
 /**
  * The one-bool packet every client sends after login.

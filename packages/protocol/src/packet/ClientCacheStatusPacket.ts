@@ -1,6 +1,7 @@
-import { clientCacheStatusPacket, layoutAt } from '@jsprismarine/protocol';
+import { clientCacheStatusPacket } from '../wire/definitions/clientCache';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * Whether the client can keep a blob cache of chunk and block entity data.

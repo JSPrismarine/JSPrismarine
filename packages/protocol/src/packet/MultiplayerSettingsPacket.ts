@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** What a `MultiplayerSettingsPacket` asks for, as the PacketType varint32 numbers it. */
 export enum MultiplayerSettingsPacketType {

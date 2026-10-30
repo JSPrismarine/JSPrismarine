@@ -1,6 +1,6 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import type ServerSettingsRequestPacket from '../packet/ServerSettingsRequestPacket';
+import type ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

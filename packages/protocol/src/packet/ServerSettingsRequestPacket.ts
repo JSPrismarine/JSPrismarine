@@ -1,6 +1,7 @@
-import { layoutAt, serverSettingsRequestPacket } from '@jsprismarine/protocol';
+import { serverSettingsRequestPacket } from '../wire/definitions/serverSettings';
+import { layoutAt } from '../wire/WireLayout';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * The client asking for the server's settings form, sent while it sets up its settings

@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** One chunk blob and the hash the client files it under. */
 export interface MissingBlobData {

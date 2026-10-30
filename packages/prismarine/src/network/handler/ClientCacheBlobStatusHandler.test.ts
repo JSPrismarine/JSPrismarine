@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ClientCacheBlobStatusPacket from '../packet/ClientCacheBlobStatusPacket';
+import ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import ClientCacheBlobStatusHandler from './ClientCacheBlobStatusHandler';
 
 describe('ClientCacheBlobStatusHandler', () => {

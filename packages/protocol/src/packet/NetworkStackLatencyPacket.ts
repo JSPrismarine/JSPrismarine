@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * A ping the client uses for its debug latency graph.

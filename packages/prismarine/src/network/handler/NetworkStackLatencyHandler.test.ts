@@ -6,7 +6,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import NetworkStackLatencyPacket from '../packet/NetworkStackLatencyPacket';
+import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
 import type PlayerSession from '../PlayerSession';
 import NetworkStackLatencyHandler from './NetworkStackLatencyHandler';
 

@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * The client enabling or disabling one slot of a crafter block.

@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import NetworkStackLatencyPacket from '../packet/NetworkStackLatencyPacket';
+import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

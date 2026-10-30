@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ClientCacheBlobStatusPacket from '../packet/ClientCacheBlobStatusPacket';
+import type ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

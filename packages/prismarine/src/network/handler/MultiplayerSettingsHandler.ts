@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import { MultiplayerSettingsPacketType } from '../packet/MultiplayerSettingsPacket';
-import type MultiplayerSettingsPacket from '../packet/MultiplayerSettingsPacket';
+import { MultiplayerSettingsPacketType } from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
+import type MultiplayerSettingsPacket from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

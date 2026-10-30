@@ -1,4 +1,4 @@
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /**
  * The client's periodic report of which chunk blobs it has and which it is missing.

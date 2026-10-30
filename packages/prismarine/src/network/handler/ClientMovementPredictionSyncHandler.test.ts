@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ClientMovementPredictionSyncPacket from '../packet/ClientMovementPredictionSyncPacket';
+import ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/packet/ClientMovementPredictionSyncPacket';
 import ClientMovementPredictionSyncHandler from './ClientMovementPredictionSyncHandler';
 
 describe('ClientMovementPredictionSyncHandler', () => {

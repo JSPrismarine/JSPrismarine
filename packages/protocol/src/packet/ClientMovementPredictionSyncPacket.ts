@@ -1,5 +1,5 @@
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
 /** Most bytes an actor flag bit set needs: seven flag bits per byte, `ActorFlags.COUNT` flags. */
 const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);

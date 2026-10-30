@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import BlockPosition from '../../world/BlockPosition';
 import type PlayerSession from '../PlayerSession';
-import type PlayerToggleCrafterSlotRequestPacket from '../packet/PlayerToggleCrafterSlotRequestPacket';
+import type PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
 import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 

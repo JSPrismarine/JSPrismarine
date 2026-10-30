@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ClientMovementPredictionSyncPacket from '../packet/ClientMovementPredictionSyncPacket';
+import type ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/packet/ClientMovementPredictionSyncPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

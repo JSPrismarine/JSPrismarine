@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
-import PlayerToggleCrafterSlotRequestPacket from '../packet/PlayerToggleCrafterSlotRequestPacket';
+import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
 import PlayerToggleCrafterSlotRequestHandler from './PlayerToggleCrafterSlotRequestHandler';
 
 const toggle = (slotIndex: number, posZ = 3) =>

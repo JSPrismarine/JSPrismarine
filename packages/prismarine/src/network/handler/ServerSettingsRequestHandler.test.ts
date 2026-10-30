@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ServerSettingsRequestPacket from '../packet/ServerSettingsRequestPacket';
+import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import ServerSettingsRequestHandler from './ServerSettingsRequestHandler';
 
 describe('ServerSettingsRequestHandler', () => {
