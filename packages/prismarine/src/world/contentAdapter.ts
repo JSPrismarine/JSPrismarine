@@ -36,8 +36,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { destroyBlock } from './blockDestroy';
 import { takeBlockEntity } from './blockMove';
 import { timeOfDay } from './DayCycle';
-import { Dimensions, maxY } from './Dimension';
-import type { DimensionDefinition } from './Dimension';
+import { Dimensions, SEA_LEVELS, dimensionByName, maxY } from './Dimension';
 import type { World } from './World';
 
 /** The six members of `ContentBlockAccess` the world subsystem implements. */
@@ -85,25 +84,6 @@ export interface WorldContentGroupOptions {
     readonly content: () => WorldContentBiomes;
 }
 
-/** The dimension definitions by their namespaced identifier. */
-const DIMENSION_DEFINITIONS: Readonly<Record<string, DimensionDefinition>> = {
-    'minecraft:overworld': Dimensions.Overworld,
-    'minecraft:nether': Dimensions.Nether,
-    'minecraft:the_end': Dimensions.TheEnd
-};
-
-/**
- * The sea level of each dimension, from the `sea_level` of Java 26.3's three noise settings.
- *
- * Worldgen's `relative_to_sea_level` anchors resolve against it, and the overworld's 63 is
- * also the water line every surface rule is written around.
- */
-const SEA_LEVELS: Readonly<Record<string, number>> = {
-    'minecraft:overworld': 63,
-    'minecraft:nether': 32,
-    'minecraft:the_end': 0
-};
-
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 export const contentDifficulty = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
 
@@ -116,7 +96,7 @@ export const contentDifficulty = (difficulty: number): Difficulty => DIFFICULTIE
  */
 export const worldContentGroups = (options: WorldContentGroupOptions): WorldContentGroups => {
     const { dimension, seed, random } = options;
-    const definition = DIMENSION_DEFINITIONS[dimension] ?? Dimensions.Overworld;
+    const definition = dimensionByName(dimension) ?? Dimensions.Overworld;
 
     const live = (): World => {
         const world = options.world();
@@ -156,8 +136,8 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         minY: definition.minY,
         // One past the highest block y, which is how every content package bounds a column.
         maxY: maxY(definition) + 1,
-        hasSkyLight: definition.id === Dimensions.Overworld.id,
-        seaLevel: SEA_LEVELS[dimension] ?? SEA_LEVELS['minecraft:overworld']!,
+        hasSkyLight: definition.java.hasSkylight,
+        seaLevel: SEA_LEVELS[definition.id] ?? SEA_LEVELS[Dimensions.Overworld.id]!,
         seed,
         gameTime: () => live().getTicks(),
         dayTime: () => timeOfDay(live().getTicks()),

@@ -199,3 +199,32 @@ describe('the game rules a world carries', () => {
         expect(level.gameRule('minecraft:random_tick_speed')).toBe(7);
     });
 });
+
+describe('the level facts a dimension answers', () => {
+    /** The level group for a dimension name, over a world with no chunks behind it. */
+    const levelOf = (dimension: string) => {
+        const world: World = Object.assign(Object.create(World.prototype), {
+            chunks: new Map(),
+            dimension: Dimensions.Overworld
+        });
+
+        return worldContentGroups({
+            dimension,
+            world: () => world,
+            seed: 0n,
+            difficulty: () => 2,
+            random: constantRandom(0),
+            content: () => contentWith({})
+        }).level;
+    };
+
+    it('reads the bounds, sky light and sea level of the dimension it was named', () => {
+        expect(levelOf('minecraft:overworld')).toMatchObject({ minY: -64, maxY: 320, hasSkyLight: true, seaLevel: 63 });
+        expect(levelOf('minecraft:nether')).toMatchObject({ minY: 0, maxY: 128, hasSkyLight: false, seaLevel: 32 });
+        expect(levelOf('minecraft:the_end')).toMatchObject({ minY: 0, maxY: 256, seaLevel: 0 });
+    });
+
+    it('answers for the Overworld when the name is not a vanilla dimension', () => {
+        expect(levelOf('mypack:sky')).toMatchObject({ minY: -64, maxY: 320, hasSkyLight: true, seaLevel: 63 });
+    });
+});
