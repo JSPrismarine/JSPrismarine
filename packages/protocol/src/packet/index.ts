@@ -468,6 +468,8 @@ export { default as UpdateAttributesPacket } from './UpdateAttributesPacket';
 export * from './UpdateAttributesPacket';
 export { default as UpdateBlockPacket } from './UpdateBlockPacket';
 export * from './UpdateBlockPacket';
+export { default as UpdateBlockSyncedPacket } from './UpdateBlockSyncedPacket';
+export * from './UpdateBlockSyncedPacket';
 export { default as UpdateClientOptionsPacket } from './UpdateClientOptionsPacket';
 export * from './UpdateClientOptionsPacket';
 export { default as UpdateEquipPacket } from './UpdateEquipPacket';

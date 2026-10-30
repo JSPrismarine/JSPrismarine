@@ -152,7 +152,7 @@ import UnlockedRecipesPacket from '@jsprismarine/protocol/packet/UnlockedRecipes
 import UpdateAbilitiesPacket from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import UpdateBlockPacket from '@jsprismarine/protocol/packet/UpdateBlockPacket';
-import UpdateBlockSyncedPacket from './packet/UpdateBlockSyncedPacket';
+import UpdateBlockSyncedPacket from '@jsprismarine/protocol/packet/UpdateBlockSyncedPacket';
 import UpdateClientOptionsPacket from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
 import UpdateEquipPacket from '@jsprismarine/protocol/packet/UpdateEquipPacket';
 import UpdateSoftEnumPacket from '@jsprismarine/protocol/packet/UpdateSoftEnumPacket';
