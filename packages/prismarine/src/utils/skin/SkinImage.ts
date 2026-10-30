@@ -1,32 +1,7 @@
-import type BinaryStream from '@jsprismarine/binaryutils';
-
-export default class SkinImage {
-    public width: number;
-    public height: number;
-    public data: Buffer;
-
-    public constructor({ width, height, data }: { width: number; height: number; data: Buffer }) {
-        this.width = width;
-        this.height = height;
-        this.data = data;
-    }
-
-    public networkSerialize(stream: BinaryStream): void {
-        stream.writeUnsignedIntLE(this.width);
-        stream.writeUnsignedIntLE(this.height);
-        stream.writeUnsignedVarInt(this.data.length);
-        stream.write(this.data);
-    }
-
-    public static networkDeserialize(stream: BinaryStream): SkinImage {
-        const width = stream.readUnsignedIntLE();
-        const height = stream.readUnsignedIntLE();
-        const length = stream.readUnsignedVarInt();
-        const data = stream.read(length);
-        return new SkinImage({
-            width,
-            height,
-            data
-        });
-    }
-}
+/**
+ * Re-export: `SkinImage` is wire code and lives in `@jsprismarine/protocol`.
+ *
+ * This path stays so the server's many importers keep working.
+ */
+export { default } from '@jsprismarine/protocol/wire/structures/skin/SkinImage';
+export * from '@jsprismarine/protocol/wire/structures/skin/SkinImage';

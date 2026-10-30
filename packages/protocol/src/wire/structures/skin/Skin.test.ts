@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { NetworkUtil } from '../../network/NetworkUtil';
+import { NetworkUtil } from '../../networkUtil';
 import Skin from './Skin';
 
 type ClientData = Parameters<typeof Skin.fromJWT>[0];

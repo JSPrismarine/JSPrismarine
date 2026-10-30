@@ -1,15 +1,7 @@
-import type SkinPersonaPiece from './SkinPersonaPiece';
-import type SkinPersonaPieceTintColor from './SkinPersonaPieceTintColor';
-
-export default class SkinPersona {
-    private readonly pieces: Set<SkinPersonaPiece> = new Set();
-    private readonly tintColors: Set<SkinPersonaPieceTintColor> = new Set();
-
-    public getPieces(): Set<SkinPersonaPiece> {
-        return this.pieces;
-    }
-
-    public getTintColors(): Set<SkinPersonaPieceTintColor> {
-        return this.tintColors;
-    }
-}
+/**
+ * Re-export: `SkinPersona` is wire code and lives in `@jsprismarine/protocol`.
+ *
+ * This path stays so the server's many importers keep working.
+ */
+export { default } from '@jsprismarine/protocol/wire/structures/skin/skin-persona/SkinPersona';
+export * from '@jsprismarine/protocol/wire/structures/skin/skin-persona/SkinPersona';

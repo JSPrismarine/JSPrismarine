@@ -59,6 +59,7 @@
     },
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/nbt": "workspace:*"
     }

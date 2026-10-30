@@ -1474,6 +1474,9 @@ importers:
       '@jsprismarine/binaryutils':
         specifier: workspace:*
         version: link:../binaryutils
+      '@jsprismarine/math':
+        specifier: workspace:*
+        version: link:../math
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft
