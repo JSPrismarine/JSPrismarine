@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The edit a `BookEditPacket` carries, numbered as the `oneOf` selector on the wire. */
 export enum BookEditAction {
@@ -36,7 +36,7 @@ export type BookEditOperation =
  * client does not send that.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/book-edit-packet/
  */
-export default class BookEditPacket extends DataPacket {
+export default class BookEditPacket extends FieldNetworkPacket {
     /** Inventory slot holding the book. */
     public bookSlot = 0;
 

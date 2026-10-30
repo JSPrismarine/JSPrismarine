@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The `gatheringsConfig` structure carried by `TransferPacket`.
@@ -39,7 +39,7 @@ export interface GatheringsConfig {
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/transfer-packet/
  */
-export default class TransferPacket extends DataPacket {
+export default class TransferPacket extends FieldNetworkPacket {
     /** The `Server Address` the client connects to. */
     public address!: string;
 

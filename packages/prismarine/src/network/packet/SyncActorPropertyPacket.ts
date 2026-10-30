@@ -1,7 +1,7 @@
 import { NBTTagCompound } from '@jsprismarine/nbt';
 import { layoutAt, syncActorPropertyPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The actor properties a client is allowed to see, for one actor type.
@@ -15,7 +15,7 @@ import DataPacket from './DataPacket';
  * or numeric range when applicable.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sync-actor-property-packet/
  */
-export default class SyncActorPropertyPacket extends DataPacket {
+export default class SyncActorPropertyPacket extends FieldNetworkPacket {
     /** Property Data: the actor type and its synced properties. */
     public propertyData: NBTTagCompound = new NBTTagCompound();
 

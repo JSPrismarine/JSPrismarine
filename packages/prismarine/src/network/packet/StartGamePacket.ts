@@ -14,7 +14,7 @@ import {
     minecraftVersions as versions2225,
     protocolVersion as protocol2225
 } from '@jsprismarine/protocol/wire/versions/v2225';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { GameRuleValueType } from '@jsprismarine/protocol/wire/structures/GameRule';
 
 import type { BlockProperty, StartGamePayload, GameRule as WireGameRule } from '@jsprismarine/protocol';
@@ -77,7 +77,7 @@ const fromWireGameRule = (rule: WireGameRule): GameRule => {
  * fills the rest of the payload with the values a Bedrock Dedicated Server sends; the
  * definition's field docs carry the wire provenance.
  */
-export default class StartGamePacket extends DataPacket {
+export default class StartGamePacket extends FieldNetworkPacket {
     public entityId!: bigint;
     public runtimeEntityId!: bigint;
     public gamemode!: number;

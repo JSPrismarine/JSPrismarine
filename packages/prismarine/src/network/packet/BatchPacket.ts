@@ -3,7 +3,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import Zlib from 'zlib';
 import { CompressionProvider } from '../CompressionProvider.js';
 import type { ProtocolCodec } from '../codec/ProtocolCodec';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 
 /**
@@ -12,7 +12,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 /** What the server compressed at before the level was configurable. */
 export const DEFAULT_COMPRESSION_LEVEL = 7;
 
-export default class BatchPacket extends DataPacket {
+export default class BatchPacket extends FieldNetworkPacket {
     /** The batch envelope's single-byte wire id, the same at every protocol version. */
     public getId(): number {
         return 0xfe;

@@ -1,11 +1,12 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import DataPacket, { readPacketId } from './DataPacket';
+import FieldNetworkPacket from './FieldNetworkPacket';
+import { readPacketId } from './NetworkPacket';
 
 /**
  * The header written the way a packet writes it: the id, plus the two subclient ids above it.
- * @see DataPacket.encodeHeader
+ * @see FieldNetworkPacket.encodeHeader
  */
 const header = (id: number, senderSubId = 0, receiverSubId = 0): Uint8Array => {
     const stream = new BinaryStream();
@@ -55,7 +56,7 @@ describe('readPacketId', () => {
 });
 
 /** `SetPlayerInventoryOptions`, the smallest id this protocol has that needs two bytes. */
-class ThreeDigitPacket extends DataPacket {
+class ThreeDigitPacket extends FieldNetworkPacket {
     public constructor(buffer?: Buffer) {
         super(buffer);
         this.setNetId(0x133);
@@ -63,14 +64,14 @@ class ThreeDigitPacket extends DataPacket {
 }
 
 /** An id a single byte can hold, for the case the header is one byte long. */
-class SingleBytePacket extends DataPacket {
+class SingleBytePacket extends FieldNetworkPacket {
     public constructor(buffer?: Buffer) {
         super(buffer);
         this.setNetId(0x0b);
     }
 }
 
-describe('DataPacket header', () => {
+describe('FieldNetworkPacket header', () => {
     it('encodes an id above 255 as a two byte varuint', () => {
         const packet = new ThreeDigitPacket();
         packet.encode();
@@ -97,7 +98,9 @@ describe('DataPacket header', () => {
 
     it('refuses a buffer whose id is not its own', () => {
         // Dispatch picks the class from `readPacketId`; this is the check that the two agree.
-        expect(() => new ThreeDigitPacket(Buffer.from([0x0b])).decode()).toThrow(/Packet ID must be 307, got 11/);
+        expect(() => new ThreeDigitPacket(Buffer.from([0x0b])).decode()).toThrow(
+            /NetworkPacket ID mismatch: expected 307, got 11/
+        );
     });
 
     it('carries the subclient ids in bits 10 to 13 of the same varuint', () => {

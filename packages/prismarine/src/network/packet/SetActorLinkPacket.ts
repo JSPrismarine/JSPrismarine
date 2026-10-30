@@ -3,7 +3,7 @@ import { ActorLinkType } from '@jsprismarine/protocol/wire/definitions/addActor'
 
 import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Starts or ends one riding relationship between two actors.
@@ -22,7 +22,7 @@ import DataPacket from './DataPacket';
  * | Link | ActorLink | See {@link ActorLink} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-link-packet/
  */
-export default class SetActorLinkPacket extends DataPacket {
+export default class SetActorLinkPacket extends FieldNetworkPacket {
     /** Link, the riding relationship to set or clear. */
     public link: ActorLink = {
         targetA: 0n,

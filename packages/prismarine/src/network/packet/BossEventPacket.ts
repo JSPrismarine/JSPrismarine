@@ -1,6 +1,6 @@
 import { bossEventPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * What the event does to the boss bar, as the `Event Type` byte numbers it.
@@ -55,7 +55,7 @@ export enum BossBarOverlay {
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/boss-event-packet/
  */
-export default class BossEventPacket extends DataPacket {
+export default class BossEventPacket extends FieldNetworkPacket {
     /** The actor the bar belongs to. The client reads its health and name tag from this actor. */
     public targetActorId = 0n;
 

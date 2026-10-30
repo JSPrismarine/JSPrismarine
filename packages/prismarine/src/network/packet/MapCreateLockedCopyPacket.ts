@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A map being locked at a cartography table.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * Wire layout at protocol 2193: Original Map Id then New Map Id, both ZigZag varint64.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/map-create-locked-copy-packet/
  */
-export default class MapCreateLockedCopyPacket extends DataPacket {
+export default class MapCreateLockedCopyPacket extends FieldNetworkPacket {
     /** Id of the map being copied. */
     public originalMapId = 0n;
 

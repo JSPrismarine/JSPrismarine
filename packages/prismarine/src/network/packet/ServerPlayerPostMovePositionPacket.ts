@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells a client where the server put its player once movement processing finished.
@@ -17,7 +17,7 @@ import DataPacket from './DataPacket';
  * | Pos | Vec3 | Three little-endian floats |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-player-post-move-position-packet/
  */
-export default class ServerPlayerPostMovePositionPacket extends DataPacket {
+export default class ServerPlayerPostMovePositionPacket extends FieldNetworkPacket {
     /** Pos, the player's position after the server simulated the tick. */
     public pos: Vector3 = new Vector3(0, 0, 0);
 

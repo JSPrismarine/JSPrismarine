@@ -2,7 +2,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { NetworkUtil } from '../NetworkUtil';
 import type { StructureSettings } from '../type/StructureSettings';
 import { defaultStructureSettings, readStructureSettings, writeStructureSettings } from '../type/StructureSettings';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** What the client wants done with the structure, as the Requested Operation byte numbers it. */
 export enum StructureTemplateRequestOperation {
@@ -23,7 +23,7 @@ export enum StructureTemplateRequestOperation {
  * Operation as a `StructureTemplateRequestOperation` byte.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-template-data-request-packet/
  */
-export default class StructureTemplateDataRequestPacket extends DataPacket {
+export default class StructureTemplateDataRequestPacket extends FieldNetworkPacket {
     /** Name typed into the structure block, which is also the file name on export. */
     public structureName = '';
 

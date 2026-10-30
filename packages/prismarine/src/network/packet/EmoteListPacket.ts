@@ -1,5 +1,5 @@
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The emotes a client has equipped, sent to the server so other clients can download them.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * endian order.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/emote-list-packet/
  */
-export default class EmoteListPacket extends DataPacket {
+export default class EmoteListPacket extends FieldNetworkPacket {
     /** Runtime id of the player whose equipped emotes these are. */
     public runtimeId: bigint = 0n;
 

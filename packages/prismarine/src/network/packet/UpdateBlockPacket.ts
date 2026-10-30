@@ -1,6 +1,6 @@
 import { layoutAt, updateBlockPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Which of a position's two block layers an update targets. */
 export enum UpdateBlockLayerType {
@@ -46,7 +46,7 @@ export enum UpdateBlockFlagsType {
  * every `NetworkBlockPosition` in the protocol became a `BlockPos`.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-block-packet/
  */
-export default class UpdateBlockPacket extends DataPacket {
+export default class UpdateBlockPacket extends FieldNetworkPacket {
     public x = 0;
     public y = 0;
     public z = 0;

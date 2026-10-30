@@ -2,7 +2,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { NetworkUtil } from '../NetworkUtil';
 import type { StructureSettings } from '../type/StructureSettings';
 import { defaultStructureSettings, readStructureSettings, writeStructureSettings } from '../type/StructureSettings';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Which of the six structure block modes the block is in, as `StructureBlockType` numbers them. */
 export enum StructureBlockType {
@@ -77,7 +77,7 @@ export interface StructureEditorData {
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-block-update-packet/
  */
-export default class StructureBlockUpdatePacket extends DataPacket {
+export default class StructureBlockUpdatePacket extends FieldNetworkPacket {
     /** Where the structure block is. */
     public blockPosition: BlockPosition = new BlockPosition(0, 0, 0);
 

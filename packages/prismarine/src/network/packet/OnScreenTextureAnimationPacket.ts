@@ -1,6 +1,6 @@
 import { layoutAt, onScreenTextureAnimationPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Plays a full-screen texture animation, such as the flash when a totem of undying fires.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * nothing else.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/on-screen-texture-animation-packet/
  */
-export default class OnScreenTextureAnimationPacket extends DataPacket {
+export default class OnScreenTextureAnimationPacket extends FieldNetworkPacket {
     /** `Effect Id`: which animation to play. */
     public animationType!: number;
 

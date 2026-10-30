@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * What a {@link LegacyTelemetryEventPacket} reports, as the Event Type varint32 numbers it.
@@ -207,7 +207,7 @@ export type LegacyTelemetryEventData =
  * | Event Data | oneOf | A varuint32 ordinal, then the alternative's own fields |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/legacy-telemetry-event-packet/
  */
-export default class LegacyTelemetryEventPacket extends DataPacket {
+export default class LegacyTelemetryEventPacket extends FieldNetworkPacket {
     /** Target Actor ID, the actor the event happened to. */
     public targetActorId = 0n;
 

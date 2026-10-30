@@ -1,6 +1,6 @@
 import { layoutAt, setCommandsEnabledPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Turns command execution on or off for one client.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * | Commands Enabled | boolean | |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-commands-enabled-packet/
  */
-export default class SetCommandsEnabledPacket extends DataPacket {
+export default class SetCommandsEnabledPacket extends FieldNetworkPacket {
     /** Commands Enabled, whether the client may run commands. */
     public commandsEnabled = false;
 

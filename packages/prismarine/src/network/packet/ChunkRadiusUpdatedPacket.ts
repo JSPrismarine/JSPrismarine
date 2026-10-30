@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The radius the server grants, which is the one that binds.
@@ -9,7 +9,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class ChunkRadiusUpdatedPacket extends DataPacket {
+export default class ChunkRadiusUpdatedPacket extends FieldNetworkPacket {
     /** `Chunk Radius`, the granted view distance in chunks. */
     public radius!: number;
 

@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Which way a moving block actor is crossing between block and actor form.
@@ -36,7 +36,7 @@ export enum ActorSyncMessage {
  * | Actor Sync Message | varuint64 | {@link ActorSyncMessage} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-block-synced-packet/
  */
-export default class UpdateBlockSyncedPacket extends DataPacket {
+export default class UpdateBlockSyncedPacket extends FieldNetworkPacket {
     public blockPosition = new BlockPosition(0, 0, 0);
 
     /** Runtime id of the block that stands at the position after this update. */

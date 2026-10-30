@@ -1,6 +1,6 @@
 import { clientCacheStatusPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Whether the client can keep a blob cache of chunk and block entity data.
@@ -17,7 +17,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/
  */
-export default class ClientCacheStatusPacket extends DataPacket {
+export default class ClientCacheStatusPacket extends FieldNetworkPacket {
     /** `true` when the client offers to keep a blob cache. */
     public enabled = false;
 

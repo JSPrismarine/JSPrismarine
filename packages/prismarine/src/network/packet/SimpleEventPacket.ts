@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The requests a {@link SimpleEventPacket} can carry, as the Type uint16 numbers them.
@@ -27,7 +27,7 @@ export enum SimpleEventSubtype {
  * | Type | uint16 | Little-endian; one of {@link SimpleEventSubtype} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/simple-event-packet/
  */
-export default class SimpleEventPacket extends DataPacket {
+export default class SimpleEventPacket extends FieldNetworkPacket {
     /** Type, the request being made. */
     public type: SimpleEventSubtype = SimpleEventSubtype.UninitializedSubtype;
 

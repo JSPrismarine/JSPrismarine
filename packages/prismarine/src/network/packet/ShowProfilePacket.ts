@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Opens the Xbox profile card of one player on the client.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-profile-packet/
  */
-export default class ShowProfilePacket extends DataPacket {
+export default class ShowProfilePacket extends FieldNetworkPacket {
     /** The Xbox Live id of the player whose profile the client opens. */
     public xuid = '';
 

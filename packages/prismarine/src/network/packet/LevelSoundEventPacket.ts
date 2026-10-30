@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
 import { layoutAt, levelSoundEventPacket } from '@jsprismarine/protocol';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The `LevelSoundEvent` number behind each name the wire carries, built once. */
 const soundByName = new Map(Object.entries(LevelSoundEventName).map(([value, name]) => [name, Number(value)]));
@@ -29,7 +29,7 @@ const soundByName = new Map(Object.entries(LevelSoundEventName).map(([value, nam
  * Clients send this packet for the sounds they start themselves, such as steps and attacks,
  * and `LevelSoundEventHandler` relays those.
  */
-export default class LevelSoundEventPacket extends DataPacket {
+export default class LevelSoundEventPacket extends FieldNetworkPacket {
     /**
      * `Sound Event`, held as a `LevelSoundEvent` number and written as its name.
      *

@@ -1,6 +1,6 @@
 import { layoutAt, setScorePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { ScorePacketEntry } from '@jsprismarine/protocol';
 
@@ -24,7 +24,7 @@ export type { ScorePacketEntry } from '@jsprismarine/protocol';
  * layout; a 1.26.51 client reads the per-entry selector described above.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-score-packet/
  */
-export default class SetScorePacket extends DataPacket {
+export default class SetScorePacket extends FieldNetworkPacket {
     /** The lines to add, change or remove. */
     public entries: ScorePacketEntry[] = [];
 

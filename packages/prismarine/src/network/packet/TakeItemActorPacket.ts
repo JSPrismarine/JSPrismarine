@@ -1,6 +1,6 @@
 import { layoutAt, takeItemActorPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells the client an item entity has been picked up.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * | Actor Runtime ID | varuint64 | Who is taking it |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/take-item-actor-packet/
  */
-export default class TakeItemActorPacket extends DataPacket {
+export default class TakeItemActorPacket extends FieldNetworkPacket {
     /** Item Runtime ID, the item entity being taken. */
     public itemRuntimeEntityId!: bigint;
     /** Actor Runtime ID, the entity taking it. */

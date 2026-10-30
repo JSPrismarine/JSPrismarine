@@ -1,6 +1,6 @@
 import { interactPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
 
@@ -25,7 +25,7 @@ export enum InteractAction {
  * Protocol 2193 layout: Action as a uint8, Target Runtime ID as a varuint64, then Position as
  * an optional Vec3: a presence byte, followed by three little-endian floats when it is 0x01.
  */
-export default class InteractPacket extends DataPacket {
+export default class InteractPacket extends FieldNetworkPacket {
     public action!: number;
     public target!: bigint;
 

@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Offset of one requested sub chunk from the center, in sub chunks, each an int8. */
 export interface SubChunkOffset {
@@ -22,7 +22,7 @@ export interface SubChunkPosition {
  * offsets come before the center, as both Mojang's page and gophertunnel have it.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/sub-chunk-request-packet/
  */
-export default class SubChunkRequestPacket extends DataPacket {
+export default class SubChunkRequestPacket extends FieldNetworkPacket {
     /** 0 for the overworld, 1 for the nether, 2 for the end. */
     public dimensionType = 0;
 

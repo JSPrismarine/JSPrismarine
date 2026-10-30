@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The contents of a horse inventory, sent when a player opens one.
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-equip-packet/
  */
-export default class UpdateEquipPacket extends DataPacket {
+export default class UpdateEquipPacket extends FieldNetworkPacket {
     /** The id of the opened window. */
     public containerId = 0;
 

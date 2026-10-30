@@ -1,6 +1,6 @@
 import { layoutAt, playerFogPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The stack of fog settings the receiving player renders with.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * Wire order at protocol 2193: Fog Stack as a varuint32 count followed by that many strings.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-fog-packet/
  */
-export default class PlayerFogPacket extends DataPacket {
+export default class PlayerFogPacket extends FieldNetworkPacket {
     /** Fog Stack: the fog identifiers, bottom of the stack first. */
     public fogStack: string[] = [];
 

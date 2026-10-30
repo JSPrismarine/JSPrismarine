@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A creative player middle-clicking a block to put it in the hotbar.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * number of empty hotbar slots the client has.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/block-pick-request-packet/
  */
-export default class BlockPickRequestPacket extends DataPacket {
+export default class BlockPickRequestPacket extends FieldNetworkPacket {
     public position = new BlockPosition(0, 0, 0);
 
     /** `true` when the client wants the block entity data on the item. */

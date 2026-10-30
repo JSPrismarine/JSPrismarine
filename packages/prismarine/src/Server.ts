@@ -27,7 +27,7 @@ import Identifiers from './network/Identifiers';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
 import { PacketLogFilter } from './network/PacketLogFilter';
 import PacketRegistry from './network/PacketRegistry';
-import type { DataPacket } from './network/Packets';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
@@ -504,9 +504,9 @@ export default class Server extends EventEmitter {
      * The genuinely global channel: the player list, the command tree, a shutdown notice -
      * things that are about the server rather than about a place in it. Anything that happens
      * somewhere belongs on `World.broadcastAround`, which only reaches the players near it.
-     * @param {DataPacket} dataPacket - The packet to send.
+     * @param dataPacket - The packet to send.
      */
-    public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
+    public async broadcastPacket<T extends NetworkPacket<unknown>>(dataPacket: T): Promise<void> {
         const audience = this.sessionManager.getAllPlayers();
         if (audience.length === 0) return;
 

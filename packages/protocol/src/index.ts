@@ -20,6 +20,8 @@ export {
     Structure
 };
 
+export { readPacketId } from './NetworkPacket';
+
 export * from './BatchCodec';
 export * from './BlockRuntimeId';
 export * from './CompressionCodec';

@@ -1,7 +1,7 @@
 import { layoutAt, serverboundRegisterAudioContentPacket } from '@jsprismarine/protocol';
 import type { AudioContentRegistrationEntry } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A client registering the audio content it may be asked to play.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ServerboundRegisterAudioContentPacket extends DataPacket {
+export default class ServerboundRegisterAudioContentPacket extends FieldNetworkPacket {
     /** `registrations`. */
     public registrations: AudioContentRegistrationEntry[] = [];
     /** Writes the fields in layout order. */

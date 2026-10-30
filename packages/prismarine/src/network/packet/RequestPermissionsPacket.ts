@@ -1,5 +1,5 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * An operator asking the server to change another player's permission level.
@@ -9,7 +9,7 @@ import DataPacket from './DataPacket';
  * Custom Permission Flags as a uint16 LE bit set that only matters at the `Custom` level.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-permissions-packet/
  */
-export default class RequestPermissionsPacket extends DataPacket {
+export default class RequestPermissionsPacket extends FieldNetworkPacket {
     /** Unique id of the player whose level should change. */
     public targetPlayerUniqueId = 0n;
 

@@ -1,7 +1,7 @@
 import { AudioContentPlaybackType, layoutAt, clientboundPlayAudioContentPacket } from '@jsprismarine/protocol';
 import type { PlaySoundPayload, SignedAudioContent } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Plays a piece of registered audio content, carrying a whole `PlaySound` payload with it.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ClientboundPlayAudioContentPacket extends DataPacket {
+export default class ClientboundPlayAudioContentPacket extends FieldNetworkPacket {
     /** `sharedMetadata`. */
     public sharedMetadata: SignedAudioContent = { compactJwt: '' };
 

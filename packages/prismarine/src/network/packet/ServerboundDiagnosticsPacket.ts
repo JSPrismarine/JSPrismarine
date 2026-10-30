@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Live byte count of one `Memory::MemoryCategory`, which the client writes as a uint8. */
 export interface MemoryCategoryCounter {
@@ -50,7 +50,7 @@ export interface WhiskerScopeDataSummary {
  * the entity position is three float LE.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-diagnostics-packet/
  */
-export default class ServerboundDiagnosticsPacket extends DataPacket {
+export default class ServerboundDiagnosticsPacket extends FieldNetworkPacket {
     public avgFps = 0;
     public avgServerSimTickTimeMs = 0;
     public avgClientSimTickTimeMs = 0;

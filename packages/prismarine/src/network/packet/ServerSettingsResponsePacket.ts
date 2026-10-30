@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The server's settings form, sent in reply to `ServerSettingsRequestPacket`.
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  * Wire layout at protocol 2193: Form ID as a varuint32, then Form UI JSON as a string.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-response-packet/
  */
-export default class ServerSettingsResponsePacket extends DataPacket {
+export default class ServerSettingsResponsePacket extends FieldNetworkPacket {
     /** Identifies the form in the client's reply. */
     public formId = 0;
 

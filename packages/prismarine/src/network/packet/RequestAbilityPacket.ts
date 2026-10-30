@@ -1,5 +1,5 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Which of the two value slots in a `RequestAbilityPacket` carries the request. */
 export enum RequestAbilityValueType {
@@ -17,7 +17,7 @@ export enum RequestAbilityValueType {
  * value.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-ability-packet/
  */
-export default class RequestAbilityPacket extends DataPacket {
+export default class RequestAbilityPacket extends FieldNetworkPacket {
     /** The ability being changed, see `AbilityLayerFlag`. */
     public ability = AbilityLayerFlag.INVALID;
 

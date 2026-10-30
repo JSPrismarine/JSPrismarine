@@ -2,7 +2,7 @@ import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import { layoutAt, respawnPacket } from '@jsprismarine/protocol';
 
 import { Vector3 } from '@jsprismarine/math';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The `State` field, the docs' `PlayerRespawnState`, generated from Mojang's 1.26.51 release
@@ -21,7 +21,7 @@ export { PlayerRespawnState };
  *
  * **Bound To:** Client and Server
  */
-export default class RespawnPacket extends DataPacket {
+export default class RespawnPacket extends FieldNetworkPacket {
     /** `Position` the player reappears at. Null writes the origin. */
     public position: Vector3 | null = null;
     /** `State`, which half of the handshake this is. */

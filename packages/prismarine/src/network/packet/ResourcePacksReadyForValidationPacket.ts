@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client saying it has finished loading every resource pack.
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  * Protocol 2193 layout (docs id 340): the header and no payload.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-packs-ready-for-validation-packet/
  */
-export default class ResourcePacksReadyForValidationPacket extends DataPacket {
+export default class ResourcePacksReadyForValidationPacket extends FieldNetworkPacket {
     /** Nothing to read. */
     public decodePayload(): void {
         // The payload is empty by design.

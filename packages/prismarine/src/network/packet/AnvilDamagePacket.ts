@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client asking the server to damage an anvil after a use.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * when the server runs without the item stack net manager, which this server does.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/anvil-damage-packet/
  */
-export default class AnvilDamagePacket extends DataPacket {
+export default class AnvilDamagePacket extends FieldNetworkPacket {
     public blockPosition = new BlockPosition(0, 0, 0);
 
     /** Reads the anvil position. */

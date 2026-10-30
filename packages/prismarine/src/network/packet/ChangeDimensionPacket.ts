@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { changeDimensionPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { Dimension } from '@jsprismarine/minecraft';
 
@@ -18,7 +18,7 @@ import type { Dimension } from '@jsprismarine/minecraft';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/change-dimension-packet/
  */
-export default class ChangeDimensionPacket extends DataPacket {
+export default class ChangeDimensionPacket extends FieldNetworkPacket {
     /** `Dimension ID`, numbered as {@link Dimension}: 0 the Overworld, 1 the Nether, 2 the End, 3 undefined. */
     public dimension!: Dimension;
     /** `Position` in the new dimension. Null writes the origin. */

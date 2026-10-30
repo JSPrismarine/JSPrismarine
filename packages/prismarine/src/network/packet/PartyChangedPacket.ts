@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The longest `party_id` the `PlayerPartyInfo` schema allows. */
 export const MAX_PARTY_ID_LENGTH = 49;
@@ -24,7 +24,7 @@ export const MAX_PARTY_ID_LENGTH = 49;
  * 2207) made it optional.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/party-changed-packet/
  */
-export default class PartyChangedPacket extends DataPacket {
+export default class PartyChangedPacket extends FieldNetworkPacket {
     /** party_id: the platform's id for the party, or an empty string for no party. */
     public partyId = '';
 

@@ -1,6 +1,6 @@
 import { layoutAt, clientboundStonecutterSetRecipePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The stonecutter recipe the server settled on, echoed to the players watching it.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ClientboundStonecutterSetRecipePacket extends DataPacket {
+export default class ClientboundStonecutterSetRecipePacket extends FieldNetworkPacket {
     /** `playerId`. */
     public playerId: bigint = 0n;
 

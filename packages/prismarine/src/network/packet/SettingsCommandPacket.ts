@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A command the client issues from a settings screen rather than from the chat bar.
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  * UTF-8 string, then Suppress Output? as a boolean.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/settings-command-packet/
  */
-export default class SettingsCommandPacket extends DataPacket {
+export default class SettingsCommandPacket extends FieldNetworkPacket {
     /** Command: the full command line, leading slash included. */
     public command = '';
 

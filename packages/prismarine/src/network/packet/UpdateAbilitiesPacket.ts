@@ -1,6 +1,6 @@
 import { AbilityLayerFlag, CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { layoutAt, SerializedAbilityLayer, updateAbilitiesPacket } from '@jsprismarine/protocol';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The "SerializedLayer" value of an ability layer, written as a uint16.
@@ -107,7 +107,7 @@ export class AbilityLayer {
  * for an id the client does not know is dropped.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-abilities-packet/
  */
-export default class UpdateAbilitiesPacket extends DataPacket {
+export default class UpdateAbilitiesPacket extends FieldNetworkPacket {
     public commandPermission: CommandPermissionLevel = CommandPermissionLevel.ANY;
     public playerPermission: PlayerPermissionLevel = PlayerPermissionLevel.VISITOR;
     public targetActorUniqueId = 0n;

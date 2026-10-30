@@ -2,7 +2,7 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 import { blockActorDataPacket, layoutAt } from '@jsprismarine/protocol';
 
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Replaces the user data of one block actor, such as a chest, a sign, or a beehive.
@@ -20,7 +20,7 @@ import DataPacket from './DataPacket';
  * | Actor Data Tags | compound | Network NBT: little endian with varint lengths, empty root name |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-actor-data-packet/
  */
-export default class BlockActorDataPacket extends DataPacket {
+export default class BlockActorDataPacket extends FieldNetworkPacket {
     /** Block Position, the block the actor sits in. */
     public blockPosition: BlockPosition = new BlockPosition(0, 0, 0);
 

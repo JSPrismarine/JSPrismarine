@@ -1,5 +1,5 @@
 import { Item } from '../../item/Item';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * What an entity is wearing, all five pieces at once.
@@ -14,7 +14,7 @@ import DataPacket from './DataPacket';
  * has to follow an entity into view the same way its held item does.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-armor-equipment-packet/
  */
-export default class MobArmorEquipmentPacket extends DataPacket {
+export default class MobArmorEquipmentPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
 
     public head!: Item;

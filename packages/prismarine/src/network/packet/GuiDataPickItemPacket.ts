@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Shows the pick block popup and names the hotbar slot it refers to.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * | Slot | int32 | Little-endian hotbar slot |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/gui-data-pick-item-packet/
  */
-export default class GuiDataPickItemPacket extends DataPacket {
+export default class GuiDataPickItemPacket extends FieldNetworkPacket {
     /** Item Name, the title line of the popup. */
     public itemName = '';
 

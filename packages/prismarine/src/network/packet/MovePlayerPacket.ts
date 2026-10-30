@@ -2,7 +2,7 @@ import { layoutAt, movePlayerPacket } from '@jsprismarine/protocol';
 
 import type { Vector3 } from '@jsprismarine/math';
 import PositionMode from '../type/PositionMode';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Where a player is, as the server tells a client, or as the bot harness tells the server.
@@ -17,7 +17,7 @@ import DataPacket from './DataPacket';
  * Type, both int32 LE. A reader that skips the presence byte takes it for the first byte of
  * the tick.
  */
-export default class MovePlayerPacket extends DataPacket {
+export default class MovePlayerPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
 
     public position!: Vector3;

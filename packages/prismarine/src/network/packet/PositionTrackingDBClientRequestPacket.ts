@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** What a `PositionTrackingDBClientRequestPacket` asks for, as the Action uint8 numbers it. */
 export enum PositionTrackingDBClientRequestAction {
@@ -17,7 +17,7 @@ export enum PositionTrackingDBClientRequestAction {
  * varint32).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/position-tracking-dbclient-request-packet/
  */
-export default class PositionTrackingDBClientRequestPacket extends DataPacket {
+export default class PositionTrackingDBClientRequestPacket extends FieldNetworkPacket {
     /** Action: the only value the client sends is Query. */
     public action: PositionTrackingDBClientRequestAction = PositionTrackingDBClientRequestAction.Query;
 

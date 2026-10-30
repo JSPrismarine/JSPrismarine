@@ -1,6 +1,6 @@
 import { layoutAt, resourcePackStackPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { Experiment } from '@jsprismarine/minecraft';
 
@@ -22,7 +22,7 @@ export interface PackInstanceId {
  * There is a single pack list; the behavior pack list that older protocols sent ahead of it
  * is gone.
  */
-export default class ResourcePackStackPacket extends DataPacket {
+export default class ResourcePackStackPacket extends FieldNetworkPacket {
     /** `Texture Pack Required`. When true the client must download the packs or leave. */
     public texturePackRequired = false;
     /** `Texture Pack List`, applied in order with the first entry on top. */

@@ -1,6 +1,6 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { gameRulesChangedPacket } from '@jsprismarine/protocol/wire/definitions/gameRulesChanged';
 
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
@@ -20,7 +20,7 @@ import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
  * | Rule Data | GameRulesChangedPacketData | A varuint32 count, then one {@link GameRule} each |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/game-rules-changed-packet/
  */
-export default class GameRulesChangedPacket extends DataPacket {
+export default class GameRulesChangedPacket extends FieldNetworkPacket {
     /** Rules List, the rules whose values changed. */
     public rulesList: GameRule[] = [];
 

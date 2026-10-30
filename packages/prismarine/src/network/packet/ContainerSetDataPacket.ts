@@ -1,6 +1,6 @@
 import { containerSetDataPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Sets one numbered property on an open container screen.
@@ -21,7 +21,7 @@ import DataPacket from './DataPacket';
  * | Value | varint32 | The property's new value |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/container-set-data-packet/
  */
-export default class ContainerSetDataPacket extends DataPacket {
+export default class ContainerSetDataPacket extends FieldNetworkPacket {
     /** Container ID, the window the client has open. Nothing happens if it has no such window. */
     public containerId = 0;
 

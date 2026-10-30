@@ -5,7 +5,7 @@ import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from '..
 import type { RecipeIngredient } from '../../crafting/RecipeIngredient';
 import type { Item } from '../../item/Item';
 import { itemAsStack } from './CreativeContentPacket';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { CraftingData, PotionMix, RecipeIngredientData } from '@jsprismarine/protocol';
 
@@ -34,7 +34,7 @@ const asOutputs = (outputs: readonly Item[]) => outputs.map(itemAsStack);
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/crafting-data-packet/
  */
-export default class CraftingDataPacket extends DataPacket {
+export default class CraftingDataPacket extends FieldNetworkPacket {
     public recipes: readonly Recipe[] = [];
 
     /** Whether the client should throw away the recipes it already had. */

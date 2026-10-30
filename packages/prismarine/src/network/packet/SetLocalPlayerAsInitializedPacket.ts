@@ -1,6 +1,6 @@
 import { layoutAt, setLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client saying its local player is built and it is ready to play.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-local-player-as-initialized-packet/
  */
-export default class SetLocalPlayerAsInitializedPacket extends DataPacket {
+export default class SetLocalPlayerAsInitializedPacket extends FieldNetworkPacket {
     /** `Player ID`: the runtime id the server gave the player in `StartGame`. */
     public runtimeEntityId = 0n;
 

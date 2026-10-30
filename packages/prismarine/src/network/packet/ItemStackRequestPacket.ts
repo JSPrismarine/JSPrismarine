@@ -1,6 +1,6 @@
 import type { ItemStackRequest } from '../type/ItemStackRequest';
 import { readItemStackRequest, writeItemStackRequest } from '../type/ItemStackRequest';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The most requests one packet carries. The docs cap `Requests` at 100 entries. */
 const MAX_REQUESTS = 100;
@@ -18,7 +18,7 @@ const MAX_REQUESTS = 100;
  *
  * **Bound To:** Server
  */
-export default class ItemStackRequestPacket extends DataPacket {
+export default class ItemStackRequestPacket extends FieldNetworkPacket {
     /** Requests, in the order the client sent them. */
     public requests: ItemStackRequest[] = [];
 

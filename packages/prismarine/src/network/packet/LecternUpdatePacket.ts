@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client turning the page of a book on a lectern.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * no longer part of this packet.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lectern-update-packet/
  */
-export default class LecternUpdatePacket extends DataPacket {
+export default class LecternUpdatePacket extends FieldNetworkPacket {
     /** Zero-based page the client wants shown. */
     public newPage = 0;
 

@@ -1,6 +1,6 @@
 import { layoutAt, levelChunkPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { SubChunkRequestMode } from '@jsprismarine/protocol';
 
@@ -12,7 +12,7 @@ import type { SubChunkRequestMode } from '@jsprismarine/protocol';
  * trailing `Is Client Biome Update` boolean from 2225 on. One class serves every version;
  * which fields travel is the layout's decision, not this file's.
  */
-export default class LevelChunkPacket extends DataPacket {
+export default class LevelChunkPacket extends FieldNetworkPacket {
     /** Chunk Position X, in chunks. */
     public chunkX = 0;
 

@@ -1,6 +1,6 @@
 import { layoutAt, resourcePackChunkDataPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * One chunk of a resource pack zip, in answer to a `ResourcePackChunkRequestPacket`.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-data-packet/
  */
-export default class ResourcePackChunkDataPacket extends DataPacket {
+export default class ResourcePackChunkDataPacket extends FieldNetworkPacket {
     /** The pack id and version joined by an underscore, as the request named them. */
     public resourceName = '';
 

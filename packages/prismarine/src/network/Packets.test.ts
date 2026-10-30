@@ -10,8 +10,8 @@ import * as Packets from './Packets';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 
-/** Exported packet classes the registry skips: the base class and the batch envelope. */
-const UNREGISTERED_PACKETS = new Set(['DataPacket', 'BatchPacket']);
+/** Exported packet classes the registry skips: the batch envelope. */
+const UNREGISTERED_PACKETS = new Set(['BatchPacket']);
 
 /** Handler interfaces that live beside the handlers but are not handlers themselves. */
 const HANDLER_INTERFACES = new Set(['PacketHandler', 'ConnectionPacketHandler']);

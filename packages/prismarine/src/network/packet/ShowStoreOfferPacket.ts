@@ -1,5 +1,5 @@
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Which page the client opens for the offer, as the `Redirect Type` byte numbers it. */
 export enum ShowStoreOfferRedirectType {
@@ -19,7 +19,7 @@ export enum ShowStoreOfferRedirectType {
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-store-offer-packet/
  */
-export default class ShowStoreOfferPacket extends DataPacket {
+export default class ShowStoreOfferPacket extends FieldNetworkPacket {
     /** The offer to look up on the page the redirect type chooses. */
     public offerId: UUID = new UUID();
 

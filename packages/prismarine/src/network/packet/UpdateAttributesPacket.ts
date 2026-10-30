@@ -1,6 +1,6 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { updateAttributesPacket } from '@jsprismarine/protocol/wire/definitions/updateAttributes';
 
 import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -25,7 +25,7 @@ import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute
  *
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
  */
-export default class UpdateAttributesPacket extends DataPacket {
+export default class UpdateAttributesPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
     public attributes: Attribute[] = [];
 

@@ -1,7 +1,7 @@
 import { jigsaw_structure_data } from '@jsprismarine/bedrock-data';
 import { jigsawStructureDataPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The jigsaw structure rules: how villages, bastions, trail ruins and the rest are assembled
@@ -22,7 +22,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class JigsawStructureDataPacket extends DataPacket {
+export default class JigsawStructureDataPacket extends FieldNetworkPacket {
     /** The rules as network NBT. Defaults to vanilla's. */
     public structureData: Buffer = jigsaw_structure_data;
 

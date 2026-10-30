@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Which edge of a loading screen the client is reporting.
@@ -25,7 +25,7 @@ export enum ServerboundLoadingScreenPacketType {
  * "Loading Screen Id is now optional" as a correction to the schema, not a wire change.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-loading-screen-packet/
  */
-export default class ServerboundLoadingScreenPacket extends DataPacket {
+export default class ServerboundLoadingScreenPacket extends FieldNetworkPacket {
     /** Start or end of the screen, see {@link ServerboundLoadingScreenPacketType}. */
     public loadingScreenType = ServerboundLoadingScreenPacketType.Unknown;
 

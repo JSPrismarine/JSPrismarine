@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Points an Education Edition tripod camera at a player.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  * | Target Player ID | varint64 | Unique id of the player to photograph |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/camera-packet/
  */
-export default class CameraPacket extends DataPacket {
+export default class CameraPacket extends FieldNetworkPacket {
     /** Camera ID, the unique id of the camera actor taking the picture. */
     public cameraId = 0n;
 

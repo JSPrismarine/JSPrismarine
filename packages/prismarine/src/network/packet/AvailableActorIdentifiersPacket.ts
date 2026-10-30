@@ -1,7 +1,7 @@
 import { entity_identifiers } from '@jsprismarine/bedrock-data';
 import { availableActorIdentifiersPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Every actor type the client may be asked to render, sent once at world start.
@@ -20,7 +20,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class AvailableActorIdentifiersPacket extends DataPacket {
+export default class AvailableActorIdentifiersPacket extends FieldNetworkPacket {
     /** `Identifier List` as network NBT. Defaults to vanilla's. */
     public identifiers: Buffer = entity_identifiers;
 

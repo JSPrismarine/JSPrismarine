@@ -1,6 +1,6 @@
 import { layoutAt, textPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type TextPacketType from '../type/TextPacketType';
 
@@ -19,7 +19,7 @@ import type TextPacketType from '../type/TextPacketType';
  * category byte and what a 1.26 client reads. Older protocols wrote the type first, no
  * variant index, and the filtered string unconditionally.
  */
-export default class TextPacket extends DataPacket {
+export default class TextPacket extends FieldNetworkPacket {
     /** "Message Type": a global `TextPacketType` value, not an index within the body variant. */
     public type!: TextPacketType;
     /** "Localize?": whether the client should run the message through its translations. */

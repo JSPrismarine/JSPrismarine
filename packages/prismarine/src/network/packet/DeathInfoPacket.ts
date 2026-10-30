@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells a client why its player died, so the death screen can say so.
@@ -25,7 +25,7 @@ import DataPacket from './DataPacket';
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/death-info-packet/
  * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
  */
-export default class DeathInfoPacket extends DataPacket {
+export default class DeathInfoPacket extends FieldNetworkPacket {
     /** Death Cause Attack Name: the bare translation key of the death message. */
     public cause = '';
 

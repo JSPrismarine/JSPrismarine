@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells a client how much damage its armor took, and leaves the client to apply it.
@@ -18,7 +18,7 @@ import DataPacket from './DataPacket';
  * | Armor Slots | varuint64 | A bitset, one bit per armor slot |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/hurt-armor-packet/
  */
-export default class HurtArmorPacket extends DataPacket {
+export default class HurtArmorPacket extends FieldNetworkPacket {
     /**
      * Cause, the damage cause that produced the hit, as a `SharedTypes::Legacy::ActorDamageCause`
      * number. Mojang's datagen snapshot numbers its 35 members consecutively from `Override` (0)

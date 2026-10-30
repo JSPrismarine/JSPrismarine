@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** One `FeatureRegistry::FeatureBinaryJsonFormat` entry of the `FeaturesDataList`. */
 export interface FeatureRegistryEntry {
@@ -26,7 +26,7 @@ export interface FeatureRegistryEntry {
  * | FeaturesDataList | varuint32 count, then that many entries | each entry is `Feature Name` then `Binary Json Output`, both strings; see {@link FeatureRegistryEntry} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/feature-registry-packet/
  */
-export default class FeatureRegistryPacket extends DataPacket {
+export default class FeatureRegistryPacket extends FieldNetworkPacket {
     /** FeaturesDataList: one entry per feature the client may place itself. Empty by default. */
     public features: FeatureRegistryEntry[] = [];
 

@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The offers a villager has, sent when a player opens the trading screen.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-trade-packet/
  */
-export default class UpdateTradePacket extends DataPacket {
+export default class UpdateTradePacket extends FieldNetworkPacket {
     /** The id of the open trading window. */
     public containerId = 0;
 

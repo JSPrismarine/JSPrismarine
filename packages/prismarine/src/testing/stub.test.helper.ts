@@ -1,9 +1,9 @@
 /**
  * The members a test may hand to {@link stub} or {@link stubOf}, or assign over a real instance.
  *
- * A class that declares `constructor` to name its static side - `DataPacket` does, so a packet
- * can read its own `NetID` - makes plain `Partial<T>` unsatisfiable by an object literal, since
- * the literal's `constructor` is `Function`. Dropping that one key leaves the public shape.
+ * A class type that includes `constructor` makes plain `Partial<T>` unsatisfiable by an object
+ * literal, since the literal's `constructor` is `Function`. Dropping that one key leaves the
+ * public shape.
  */
 export type StubMembers<T extends object> = Partial<Omit<T, 'constructor'>>;
 

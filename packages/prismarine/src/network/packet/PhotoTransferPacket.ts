@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Where a photo lives, as the Type and Source Type bytes number it. */
 export enum PhotoType {
@@ -20,7 +20,7 @@ export enum PhotoType {
  * Type as `PhotoType` bytes, Owner ID as an int64 LE, then New Photo Name as a string.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/photo-transfer-packet/
  */
-export default class PhotoTransferPacket extends DataPacket {
+export default class PhotoTransferPacket extends FieldNetworkPacket {
     /** File name the photo is stored under. */
     public photoName = '';
 

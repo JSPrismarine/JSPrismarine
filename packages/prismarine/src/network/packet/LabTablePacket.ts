@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** What the lab table is being asked to do, as the Type byte numbers it. */
 export enum LabTableType {
@@ -36,7 +36,7 @@ export enum LabTableReactionType {
  * ZigZag varint32), then Reaction as a `LabTableReactionType` byte.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lab-table-packet/
  */
-export default class LabTablePacket extends DataPacket {
+export default class LabTablePacket extends FieldNetworkPacket {
     public type: LabTableType = LabTableType.StartCombine;
 
     /** Where the lab table stands. */

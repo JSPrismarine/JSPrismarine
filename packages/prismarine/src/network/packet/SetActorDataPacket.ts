@@ -1,7 +1,7 @@
 import { layoutAt } from '@jsprismarine/protocol';
 
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { setActorDataPacket } from '@jsprismarine/protocol/wire/definitions/setActorData';
 
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -16,7 +16,7 @@ import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
  * `PropertySyncData` (int entries, then float entries), and `Tick` as a varuint64. Server to
  * client only.
  */
-export default class SetActorDataPacket extends DataPacket {
+export default class SetActorDataPacket extends FieldNetworkPacket {
     /** Target Runtime ID of the entity whose data changed. */
     public runtimeEntityId!: bigint;
     /** Actor Data: the metadata entries to send. Only the entries present in the map are written. */

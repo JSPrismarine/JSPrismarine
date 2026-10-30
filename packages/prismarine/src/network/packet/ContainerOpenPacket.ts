@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { containerOpenPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Opens a container for the client.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class ContainerOpenPacket extends DataPacket {
+export default class ContainerOpenPacket extends FieldNetworkPacket {
     /** `Container Id`: the window the client should file this container under. */
     public windowId!: number;
 

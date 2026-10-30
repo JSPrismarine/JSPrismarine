@@ -1,7 +1,7 @@
 import { Gametype } from '@jsprismarine/minecraft';
 import { layoutAt, updatePlayerGameTypePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A player's new game type, sent to every client so each one updates its cached copy.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * the page's own 2207 changelog corrects to the values the generated `Gametype` enum holds.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-player-game-type-packet/
  */
-export default class UpdatePlayerGameTypePacket extends DataPacket {
+export default class UpdatePlayerGameTypePacket extends FieldNetworkPacket {
     /** Player Game Type: the game type the target player now has. */
     public playerGameType: Gametype = Gametype.SURVIVAL;
 

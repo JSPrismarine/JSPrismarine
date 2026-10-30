@@ -1,7 +1,7 @@
 import { MatchmakingState, layoutAt, clientboundMatchmakingStatePacket } from '@jsprismarine/protocol';
 import type { MatchmakingStateOptions } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells a client how its matchmaking request is going.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ClientboundMatchmakingStatePacket extends DataPacket {
+export default class ClientboundMatchmakingStatePacket extends FieldNetworkPacket {
     /** `state`. */
     public state: number = MatchmakingState.Idle;
 

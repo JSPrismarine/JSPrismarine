@@ -1,6 +1,6 @@
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** A pack setting value, in the four shapes the `oneOf` allows. */
 export type PackSettingValue = number | boolean | string | string[];
@@ -22,7 +22,7 @@ export enum PackSettingValueType {
  * varuint32 count of strings.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-pack-setting-change-packet/
  */
-export default class ServerboundPackSettingChangePacket extends DataPacket {
+export default class ServerboundPackSettingChangePacket extends FieldNetworkPacket {
     public packId = new UUID();
     public packSettingName = '';
 

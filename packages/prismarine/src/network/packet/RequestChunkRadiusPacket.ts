@@ -1,6 +1,6 @@
 import { layoutAt, requestChunkRadiusPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client asking the server for a view distance.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * `ChunkRadiusUpdatedPacket`, and a retail client discards every `LevelChunk` that arrives
  * before that answer.
  */
-export default class RequestChunkRadiusPacket extends DataPacket {
+export default class RequestChunkRadiusPacket extends FieldNetworkPacket {
     /** The docs' Chunk Radius: how far the client wants to see, in chunks. */
     public radius!: number;
 

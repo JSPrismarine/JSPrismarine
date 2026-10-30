@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Where the Code Builder websocket server lives, and whether to open the app now.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * open code builder as a boolean.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/code-builder-packet/
  */
-export default class CodeBuilderPacket extends DataPacket {
+export default class CodeBuilderPacket extends FieldNetworkPacket {
     /** URL of the Code Builder websocket server. */
     public url = '';
 

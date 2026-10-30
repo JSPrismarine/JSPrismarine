@@ -1,6 +1,6 @@
 import { layoutAt, requestNetworkSettingsPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The first packet of a connection, and the only one sent before compression is agreed.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Server
  */
-export default class RequestNetworkSettingsPacket extends DataPacket {
+export default class RequestNetworkSettingsPacket extends FieldNetworkPacket {
     /** `ClientNetworkVersion`, the protocol version the client speaks. */
     public protocolVersion!: number;
 

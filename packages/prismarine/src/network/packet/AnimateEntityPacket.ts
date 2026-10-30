@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A one-off animation to play on a set of actors.
@@ -14,7 +14,7 @@ import DataPacket from './DataPacket';
  * followed by that many `ActorRuntimeID` (plain LEB128 varuint64).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/animate-entity-packet/
  */
-export default class AnimateEntityPacket extends DataPacket {
+export default class AnimateEntityPacket extends FieldNetworkPacket {
     /** mAnimation: the animation to play. */
     public animation = '';
 

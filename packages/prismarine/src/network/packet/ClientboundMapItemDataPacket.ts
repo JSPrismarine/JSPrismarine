@@ -1,6 +1,6 @@
 import BlockPosition from '../../world/BlockPosition';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The artwork a {@link MapDecoration} draws, as the Image Type int8 numbers it.
@@ -113,7 +113,7 @@ export interface MapItemTrackedActorUniqueId {
  * | Pixels | optional uint32[] | Packed ARGB, each written little-endian |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/clientbound-map-item-data-packet/
  */
-export default class ClientboundMapItemDataPacket extends DataPacket {
+export default class ClientboundMapItemDataPacket extends FieldNetworkPacket {
     /** Map ID, which stays the same across sessions of one world. */
     public mapId = 0n;
 

@@ -1,6 +1,6 @@
 import { emotePacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Bits of the Flags byte in an `EmotePacket`. */
 export enum EmoteFlags {
@@ -18,7 +18,7 @@ export enum EmoteFlags {
  * Flags as a uint8, see {@link EmoteFlags}.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/emote-packet/
  */
-export default class EmotePacket extends DataPacket {
+export default class EmotePacket extends FieldNetworkPacket {
     /** Runtime id of the player performing the emote. */
     public actorRuntimeId = 0n;
 

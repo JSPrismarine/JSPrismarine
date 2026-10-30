@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client's periodic report of which chunk blobs it has and which it is missing.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-blob-status-packet/
  */
-export default class ClientCacheBlobStatusPacket extends DataPacket {
+export default class ClientCacheBlobStatusPacket extends FieldNetworkPacket {
     /** Blob hashes the client needs the server to send in full. */
     public missingIds: bigint[] = [];
 

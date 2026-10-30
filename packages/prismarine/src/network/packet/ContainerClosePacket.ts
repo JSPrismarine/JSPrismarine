@@ -1,6 +1,6 @@
 import { containerClosePacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Closes a container, in either direction.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * Wire order at protocol 2193: `Container Id` (uint8), `Container Type` (uint8),
  * `Server Initiated Close` (boolean).
  */
-export default class ContainerClosePacket extends DataPacket {
+export default class ContainerClosePacket extends FieldNetworkPacket {
     /** `Container Id`: the window being closed. */
     public containerId!: number;
 

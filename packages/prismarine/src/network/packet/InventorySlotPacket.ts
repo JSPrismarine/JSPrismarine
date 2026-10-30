@@ -2,7 +2,7 @@ import { inventorySlotPacket, layoutAt } from '@jsprismarine/protocol';
 
 import { Item } from '../../item/Item';
 import { ContainerUiId } from '../type/ItemStackRequest';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * One slot of one container, changed.
@@ -18,7 +18,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class InventorySlotPacket extends DataPacket {
+export default class InventorySlotPacket extends FieldNetworkPacket {
     /** `Container Id`; the crafting grid lives in the player's own UI, which is 124. */
     public windowId!: number;
 

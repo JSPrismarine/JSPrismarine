@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** One chunk blob and the hash the client files it under. */
 export interface MissingBlobData {
@@ -30,7 +30,7 @@ export interface MissingBlobData {
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-miss-response-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/guides/client-cache-miss-response-packet-validation/
  */
-export default class ClientCacheMissResponsePacket extends DataPacket {
+export default class ClientCacheMissResponsePacket extends FieldNetworkPacket {
     /** The blobs being delivered, in no particular order. */
     public blobs: MissingBlobData[] = [];
 

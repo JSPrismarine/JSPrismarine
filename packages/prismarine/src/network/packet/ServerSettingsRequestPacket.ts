@@ -1,6 +1,6 @@
 import { layoutAt, serverSettingsRequestPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client asking for the server's settings form, sent while it sets up its settings
@@ -14,7 +14,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/
  */
-export default class ServerSettingsRequestPacket extends DataPacket {
+export default class ServerSettingsRequestPacket extends FieldNetworkPacket {
     /** Reads the empty payload, which consumes no bytes. */
     public decodePayload(): void {
         layoutAt(serverSettingsRequestPacket, this.codecProtocol).decode(this);

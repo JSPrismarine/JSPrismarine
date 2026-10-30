@@ -1,7 +1,7 @@
 import { layoutAt, setActorMotionPacket } from '@jsprismarine/protocol';
 
 import type { Vector3 } from '@jsprismarine/math';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Gives an entity a velocity, which the receiving client then integrates itself.
@@ -20,7 +20,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-motion-packet/
  */
-export default class SetActorMotionPacket extends DataPacket {
+export default class SetActorMotionPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
     public motion!: Vector3;
 

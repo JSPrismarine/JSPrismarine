@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells the client to open a websocket connection to the given address.
@@ -14,7 +14,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/automation-client-connect-packet/
  */
-export default class AutomationClientConnectPacket extends DataPacket {
+export default class AutomationClientConnectPacket extends FieldNetworkPacket {
     /** The address the client connects to, without a scheme. */
     public websocketServerUri = '';
 

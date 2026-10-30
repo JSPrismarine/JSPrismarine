@@ -1,5 +1,5 @@
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Most bytes an actor flag bit set needs: seven flag bits per byte, `ActorFlags.COUNT` flags. */
 const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);
@@ -17,7 +17,7 @@ const MAX_FLAG_BYTES = Math.ceil(ActorFlags.COUNT / 7);
  * gophertunnel reads at 2193.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/client-movement-prediction-sync-packet/
  */
-export default class ClientMovementPredictionSyncPacket extends DataPacket {
+export default class ClientMovementPredictionSyncPacket extends FieldNetworkPacket {
     /** Actor flag bits, bit `n` set when `ActorFlags` member `n` is on. */
     public actorFlags = 0n;
 

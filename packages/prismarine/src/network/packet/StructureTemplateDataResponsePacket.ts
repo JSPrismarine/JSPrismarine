@@ -1,7 +1,7 @@
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Which request this answers, as the Response Type byte numbers it. */
 export enum StructureTemplateResponseType {
@@ -28,7 +28,7 @@ export enum StructureTemplateResponseType {
  * follows reads off by one.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-template-data-response-packet/
  */
-export default class StructureTemplateDataResponsePacket extends DataPacket {
+export default class StructureTemplateDataResponsePacket extends FieldNetworkPacket {
     /** Name from the request this answers. */
     public structureName = '';
 

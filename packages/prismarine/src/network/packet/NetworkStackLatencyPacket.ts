@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A ping the client uses for its debug latency graph.
@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
  * boolean. Mojang marks the packet deprecated, but a 1.26.51 client still sends it.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/
  */
-export default class NetworkStackLatencyPacket extends DataPacket {
+export default class NetworkStackLatencyPacket extends FieldNetworkPacket {
     /** The sender's clock when it built the packet, in its own units. */
     public creationTime = 0n;
 

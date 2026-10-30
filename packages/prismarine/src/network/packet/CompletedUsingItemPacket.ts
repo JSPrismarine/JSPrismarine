@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * How an item was used, as the Item Use Method int32 numbers it.
@@ -38,7 +38,7 @@ export enum ItemUseMethod {
  * Method as an int32 in little-endian byte order (see {@link ItemUseMethod}).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/completed-using-item-packet/
  */
-export default class CompletedUsingItemPacket extends DataPacket {
+export default class CompletedUsingItemPacket extends FieldNetworkPacket {
     /** Item Id: the network id of the item that finished being used. */
     public itemId = 0;
 

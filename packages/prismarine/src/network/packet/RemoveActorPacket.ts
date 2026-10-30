@@ -1,6 +1,6 @@
 import { layoutAt, removeActorPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells the client an entity is gone. Players are removed the same way.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * | ---- |:----:|:-----:|
  * | Target Actor ID | varint64 | ZigZag encoded unique id |
  */
-export default class RemoveActorPacket extends DataPacket {
+export default class RemoveActorPacket extends FieldNetworkPacket {
     public uniqueEntityId!: bigint;
 
     /**

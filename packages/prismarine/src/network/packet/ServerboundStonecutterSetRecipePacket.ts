@@ -1,6 +1,6 @@
 import { layoutAt, serverboundStonecutterSetRecipePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A client picking a recipe in an open stonecutter.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ServerboundStonecutterSetRecipePacket extends DataPacket {
+export default class ServerboundStonecutterSetRecipePacket extends FieldNetworkPacket {
     /** `containerId`. */
     public containerId: number = 0;
 

@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Which furnace screen the options belong to: the docs' `SetPlayerFurnaceOptionsPacketPayload
@@ -48,7 +48,7 @@ export enum FurnaceLayout {
  * | Layout | varint32 | ZigZag; one of {@link FurnaceLayout} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-player-furnace-options-packet/
  */
-export default class SetPlayerFurnaceOptionsPacket extends DataPacket {
+export default class SetPlayerFurnaceOptionsPacket extends FieldNetworkPacket {
     /** FurnaceType: which of the three smelting screens the options are for. */
     public furnaceType: FurnaceType = FurnaceType.None;
 

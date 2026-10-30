@@ -8,7 +8,7 @@ import CommandParameter, {
     CommandParameterType,
     CommandParameterTypeFlag
 } from '../type/CommandParameter';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The name protocol 2193 writes a command's `Permission Level` under.
@@ -59,7 +59,7 @@ const PARSE_SYMBOL_INDEX_MASK = 0xffff;
  *
  * **Bound To:** Client
  */
-export default class AvailableCommandsPacket extends DataPacket {
+export default class AvailableCommandsPacket extends FieldNetworkPacket {
     public commandData: CommandData[] = [];
     public hardcodedEnums: CommandEnum[] = [];
     public softEnums: CommandEnum[] = [];

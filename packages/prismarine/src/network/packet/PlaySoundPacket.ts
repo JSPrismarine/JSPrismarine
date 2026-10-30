@@ -2,7 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Sound names this packet and the `/playsound` command accept, a subset of the client's sound definitions. */
 export enum SoundName {
@@ -77,7 +77,7 @@ export enum SoundName {
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/play-sound-packet/
  */
-export default class PlaySoundPacket extends DataPacket {
+export default class PlaySoundPacket extends FieldNetworkPacket {
     public name: SoundName | string = '';
     /**
      * Where the sound plays.

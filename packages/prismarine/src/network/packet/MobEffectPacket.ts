@@ -1,6 +1,6 @@
 import { layoutAt, mobEffectPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * What a {@link MobEffectPacket} does to the effect it names, as the Event ID byte numbers it.
@@ -36,7 +36,7 @@ export enum MobEffectEvent {
  * | Ambient | boolean | Set for beacon and conduit effects |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-effect-packet/
  */
-export default class MobEffectPacket extends DataPacket {
+export default class MobEffectPacket extends FieldNetworkPacket {
     /** Target Runtime ID, the actor the effect is on. */
     public targetRuntimeId = 0n;
 

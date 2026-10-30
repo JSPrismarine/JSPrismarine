@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { layoutAt, spawnParticleEffectPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Plays a named particle effect, including ones that only a behavior pack knows about.
@@ -18,7 +18,7 @@ import DataPacket from './DataPacket';
  * string when the byte is set.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
  */
-export default class SpawnParticleEffectPacket extends DataPacket {
+export default class SpawnParticleEffectPacket extends FieldNetworkPacket {
     /** Dimension the effect belongs to. */
     public dimensionId = 0;
 

@@ -2,7 +2,7 @@ import { layoutAt } from '@jsprismarine/protocol';
 
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/playerSkin';
 
 /**
@@ -15,7 +15,7 @@ import { playerSkinPacket } from '@jsprismarine/protocol/wire/definitions/player
  * trusted flag of its own at this level; it travels inside the skin as its `TrustedSkinFlag`
  * string, which `Skin.isTrusted` records.
  */
-export default class PlayerSkinPacket extends DataPacket {
+export default class PlayerSkinPacket extends FieldNetworkPacket {
     /** The player whose skin changed. */
     public uuid!: UUID;
     /** The new skin, laid out as `SerializedSkin`. */

@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The receipts for everything the player has bought from a server's store offers.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/purchase-receipt-packet/
  */
-export default class PurchaseReceiptPacket extends DataPacket {
+export default class PurchaseReceiptPacket extends FieldNetworkPacket {
     /** One proof of purchase per offer the player owns. */
     public purchaseReceipts: string[] = [];
 

@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** What the player asked the NPC to do, as the `Request Type` byte numbers it. */
 export enum NpcRequestType {
@@ -24,7 +24,7 @@ export enum NpcRequestType {
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/npc-request-packet/
  */
-export default class NpcRequestPacket extends DataPacket {
+export default class NpcRequestPacket extends FieldNetworkPacket {
     /** The NPC the player interacted with. */
     public npcRuntimeId = 0n;
 

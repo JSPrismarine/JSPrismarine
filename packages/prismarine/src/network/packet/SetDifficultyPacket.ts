@@ -1,7 +1,7 @@
 import { Difficulty } from '@jsprismarine/minecraft';
 import { layoutAt, setDifficultyPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A difficulty change, sent by a client from the settings menu and by the server when the
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * `Difficulty` value (Peaceful 0, Easy 1, Normal 2, Hard 3).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-difficulty-packet/
  */
-export default class SetDifficultyPacket extends DataPacket {
+export default class SetDifficultyPacket extends FieldNetworkPacket {
     /** `Difficulty`, written as a varuint32. */
     public difficulty = Difficulty.NORMAL;
 

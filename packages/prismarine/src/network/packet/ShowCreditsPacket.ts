@@ -1,6 +1,6 @@
 import { layoutAt, showCreditsPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The docs' `CreditsState`: whether the credits are starting or have finished. */
 export enum CreditsState {
@@ -23,7 +23,7 @@ export enum CreditsState {
  * **Bound To:** Client and Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/show-credits-packet/
  */
-export default class ShowCreditsPacket extends DataPacket {
+export default class ShowCreditsPacket extends FieldNetworkPacket {
     /** The runtime id of the player watching. */
     public playerRuntimeId = 0n;
 

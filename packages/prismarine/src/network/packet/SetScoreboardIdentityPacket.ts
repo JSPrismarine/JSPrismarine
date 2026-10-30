@@ -1,6 +1,6 @@
 import { layoutAt, setScoreboardIdentityPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { ScoreboardIdentityPacketInfo } from '@jsprismarine/protocol';
 
@@ -26,7 +26,7 @@ export enum ScoreboardIdentityPacketType {
  * Player Unique Id behind its own presence byte.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-scoreboard-identity-packet/
  */
-export default class SetScoreboardIdentityPacket extends DataPacket {
+export default class SetScoreboardIdentityPacket extends FieldNetworkPacket {
     public type: ScoreboardIdentityPacketType = ScoreboardIdentityPacketType.Update;
 
     /** The entries whose identity is being set or cleared. */

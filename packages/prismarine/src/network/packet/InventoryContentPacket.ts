@@ -3,7 +3,7 @@ import { inventoryContentPacket, layoutAt } from '@jsprismarine/protocol';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item } from '../../item/Item';
 import { ContainerUiId } from '../type/ItemStackRequest';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Everything one container holds, in one go.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class InventoryContentPacket extends DataPacket {
+export default class InventoryContentPacket extends FieldNetworkPacket {
     /** `Container Id`: the window these slots belong to. */
     public windowId!: number;
 

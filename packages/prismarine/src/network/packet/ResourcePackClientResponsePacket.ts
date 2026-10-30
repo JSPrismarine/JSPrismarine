@@ -1,7 +1,7 @@
 import { layoutAt, resourcePackClientResponsePacket } from '@jsprismarine/protocol';
 
 import type ResourcePackStatusType from '../type/ResourcePackStatusType';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client's answer to the resource pack exchange, packet 8.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-client-response-packet/
  */
-export default class ResourcePackClientResponsePacket extends DataPacket {
+export default class ResourcePackClientResponsePacket extends FieldNetworkPacket {
     public status!: ResourcePackStatusType;
     public packIds: string[] = [];
 

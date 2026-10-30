@@ -4,7 +4,7 @@ import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
 
 import type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor';
@@ -41,7 +41,7 @@ export type { ActorLink } from '@jsprismarine/protocol/wire/definitions/addActor
  * | Synched Properties | PropertySyncData | Client-synced entity property values |
  * | Actor Links | ActorLink[] | varuint32 count, then each {@link ActorLink} |
  */
-export default class AddActorPacket extends DataPacket {
+export default class AddActorPacket extends FieldNetworkPacket {
     /** Zero means the entity has no unique id of its own and goes out under its runtime id. */
     public uniqueEntityId = 0n;
     public runtimeEntityId!: bigint;

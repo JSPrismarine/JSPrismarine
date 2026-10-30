@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The docs' `SoftEnumUpdateType`: what to do with the values this packet carries. */
 export enum SoftEnumUpdateType {
@@ -23,7 +23,7 @@ export enum SoftEnumUpdateType {
  *
  * **Bound To:** Client
  */
-export default class UpdateSoftEnumPacket extends DataPacket {
+export default class UpdateSoftEnumPacket extends FieldNetworkPacket {
     /** `Enum Name`: which enum this changes, as named in `AvailableCommandsPacket`. */
     public enumName!: string;
 

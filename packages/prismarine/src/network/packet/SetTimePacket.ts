@@ -1,6 +1,6 @@
 import { layoutAt, setTimePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells the client the world time, at login and whenever it changes.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * | ---- |:----:|:-----:|
  * | Time | varint32 | ZigZag encoded; the world tick |
  */
-export default class SetTimePacket extends DataPacket {
+export default class SetTimePacket extends FieldNetworkPacket {
     public time!: number;
 
     public decodePayload(): void {

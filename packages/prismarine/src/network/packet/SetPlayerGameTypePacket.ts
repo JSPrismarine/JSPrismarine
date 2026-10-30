@@ -1,7 +1,7 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 import { layoutAt, setPlayerGameTypePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Packet 62 on protocol 2193. Carries one field, Player Game Type, as a varint32.
@@ -9,7 +9,7 @@ import DataPacket from './DataPacket';
  * The client sends it when the player picks a game type from the dropdown; the server sends
  * it back so the client shows the game type the server holds.
  */
-export default class SetPlayerGameTypePacket extends DataPacket {
+export default class SetPlayerGameTypePacket extends FieldNetworkPacket {
     /** Player Game Type, a `Gametype` value written ZigZag encoded. */
     public gametype!: Gametype;
 

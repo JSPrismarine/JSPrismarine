@@ -3,6 +3,31 @@ import NetworkBinaryStream from './NetworkBinaryStream';
 import type { ProtocolContext } from './ProtocolContext';
 import { netIdFor, protocolVersion } from './wire/versions/v2193';
 
+const PACKET_ID_MASK = 0x3ff;
+
+/**
+ * Reads the packet id from a Bedrock packet header without consuming its body.
+ *
+ * The header is an unsigned varint. Its low ten bits are the packet id; sender and target
+ * subclient ids occupy the bits above them. For a truncated varint, the bytes that are present
+ * still contribute to the returned id; callers can pass it through their ordinary packet lookup.
+ * @param buffer - Encoded packet bytes positioned at the header.
+ * @returns The packet id in the low ten bits of the header.
+ */
+export const readPacketId = (buffer: Uint8Array): number => {
+    let value = 0;
+
+    for (let shift = 0; shift < 35; shift += 7) {
+        const byte = buffer[shift / 7];
+        if (byte === undefined) break;
+
+        value |= (byte & 0x7f) << shift;
+        if ((byte & 0x80) === 0) break;
+    }
+
+    return value & PACKET_ID_MASK;
+};
+
 /**
  * A Bedrock packet with its wire header and packet-specific payload codec.
  *
@@ -14,7 +39,7 @@ import { netIdFor, protocolVersion } from './wire/versions/v2193';
  */
 export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     // The actual packet id is represented by the first 10 bits of the packet ID.
-    private static PID_MASK = 0x3ff;
+    private static PID_MASK = PACKET_ID_MASK;
     private static SUB_CLIENT_MASK = 0x03;
 
     // Next 2 bits are the sender sub client ID.

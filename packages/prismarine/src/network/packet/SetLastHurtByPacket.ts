@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Tells the client which kind of actor hit the player last.
@@ -15,7 +15,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-last-hurt-by-packet/
  */
-export default class SetLastHurtByPacket extends DataPacket {
+export default class SetLastHurtByPacket extends FieldNetworkPacket {
     /** The `ActorType` of the last attacker. */
     public lastHurtBy = 0;
 

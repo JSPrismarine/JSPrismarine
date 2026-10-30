@@ -1,6 +1,6 @@
 import { layoutAt, resourcePackDataInfoPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The docs' `PackType`: what kind of pack is about to be sent, as the `Pack Type` byte numbers
@@ -39,7 +39,7 @@ export enum PackType {
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-data-info-packet/
  */
-export default class ResourcePackDataInfoPacket extends DataPacket {
+export default class ResourcePackDataInfoPacket extends FieldNetworkPacket {
     /** The pack id and version joined by an underscore, as `ResourcePacksInfoPacket` gave them. */
     public resourceName = '';
 

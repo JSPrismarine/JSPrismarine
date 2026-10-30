@@ -1,7 +1,7 @@
 import { layoutAt, networkChunkPublisherUpdatePacket } from '@jsprismarine/protocol';
 
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** One entry of `Server Built Chunks List`: the docs' `ChunkPos`, an X and a Z in chunks. */
 export interface ChunkCoord {
@@ -26,7 +26,7 @@ export interface ChunkCoord {
  *
  * **Bound To:** Client
  */
-export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
+export default class NetworkChunkPublisherUpdatePacket extends FieldNetworkPacket {
     /** `New position for view`, normally the player's own position. */
     public position!: BlockPosition;
     /** `New radius for view`, in blocks: the chunk radius shifted left by four. */

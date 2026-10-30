@@ -1,5 +1,5 @@
 import { ArmorSlot } from '@jsprismarine/minecraft';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A piece of armor, as the Armor Slot varint32 of an `ArmorSlotAndDamagePair` numbers it.
@@ -30,7 +30,7 @@ export interface ArmorSlotAndDamagePair {
  * counted list, and gophertunnel at 2193 agrees.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-armor-damage-packet/
  */
-export default class PlayerArmorDamagePacket extends DataPacket {
+export default class PlayerArmorDamagePacket extends FieldNetworkPacket {
     /** Armor Slot and Damage Pairs: one entry per piece that took damage. */
     public armorSlotAndDamagePairs: ArmorSlotAndDamagePair[] = [];
 

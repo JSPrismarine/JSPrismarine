@@ -1,7 +1,7 @@
 import { layoutAt, moveActorAbsolutePacket } from '@jsprismarine/protocol';
 
 import type { Vector3 } from '@jsprismarine/math';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Where an entity now is, as the server tells a client.
@@ -18,7 +18,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-absolute-packet/
  */
-export default class MoveActorAbsolutePacket extends DataPacket {
+export default class MoveActorAbsolutePacket extends FieldNetworkPacket {
     /** The entity is standing on something, rather than falling. */
     public static readonly FLAG_ON_GROUND = 0x01;
 

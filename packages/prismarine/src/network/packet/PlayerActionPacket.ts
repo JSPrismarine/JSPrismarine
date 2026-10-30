@@ -1,7 +1,7 @@
 import { layoutAt, playerActionPacket } from '@jsprismarine/protocol';
 
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The docs' `PlayerActionType`, the Action field of `PlayerActionPacket`, numbered as the
@@ -60,7 +60,7 @@ export enum PlayerActionType {
  * varint32), Block Position (`BlockPos`, three ZigZag varint32 with a signed y), Result Pos
  * (`BlockPos`), Face (ZigZag varint32).
  */
-export default class PlayerActionPacket extends DataPacket {
+export default class PlayerActionPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
     public action!: number;
     public blockPosition!: BlockPosition;

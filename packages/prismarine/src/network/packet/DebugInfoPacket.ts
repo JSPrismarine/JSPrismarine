@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A blob of server debug text tied to an actor.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * bytes are not required to be text.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/debug-info-packet/
  */
-export default class DebugInfoPacket extends DataPacket {
+export default class DebugInfoPacket extends FieldNetworkPacket {
     /** Actor Id: the actor the debug data describes. */
     public actorId = 0n;
 

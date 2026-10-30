@@ -1,6 +1,6 @@
 import { EnchantType } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * An enchantment, as the Enchant Type uint8 of an `EnchantmentInstance` numbers it. Generated
@@ -62,7 +62,7 @@ export interface ItemEnchantOption {
  * Id (varuint32).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-enchant-options-packet/
  */
-export default class PlayerEnchantOptionsPacket extends DataPacket {
+export default class PlayerEnchantOptionsPacket extends FieldNetworkPacket {
     /** Options: one entry per button of the table, empty to clear the table. */
     public options: ItemEnchantOption[] = [];
 

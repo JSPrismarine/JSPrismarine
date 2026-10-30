@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Degrees per step of the single byte a rotation is packed into. */
 const DEGREES_PER_STEP = 360 / 256;
@@ -24,7 +24,7 @@ const DEGREES_PER_STEP = 360 / 256;
  * before them. 2193 replaced that with per-component presence bytes and added Ticks.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-delta-packet/
  */
-export default class MoveActorDeltaPacket extends DataPacket {
+export default class MoveActorDeltaPacket extends FieldNetworkPacket {
     /** Runtime id of the actor being moved. */
     public runtimeEntityId = 0n;
 

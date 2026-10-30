@@ -1,6 +1,6 @@
 import { layoutAt, setHealthPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Sets the health bar of the client that receives it.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-health-packet/
  */
-export default class SetHealthPacket extends DataPacket {
+export default class SetHealthPacket extends FieldNetworkPacket {
     /**
      * The docs' `Health` field, in half hearts (0 to 20 by default).
      *

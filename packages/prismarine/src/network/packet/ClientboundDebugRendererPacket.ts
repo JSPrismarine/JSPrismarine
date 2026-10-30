@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The strings the Type field carries.
@@ -39,7 +39,7 @@ export interface DebugMarkerData {
  * presence byte is written for a clear as well, with no data behind it.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/clientbound-debug-renderer-packet/
  */
-export default class ClientboundDebugRendererPacket extends DataPacket {
+export default class ClientboundDebugRendererPacket extends FieldNetworkPacket {
     /** Type: the action to perform. */
     public type: string = DebugRendererType.ClearDebugMarkers;
 

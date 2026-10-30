@@ -1,6 +1,6 @@
 import { layoutAt, playerHotbarPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Moves the player's hotbar selection.
@@ -20,7 +20,7 @@ import DataPacket from './DataPacket';
  * | Should select slot? | boolean | False leaves the held slot alone |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-hotbar-packet/
  */
-export default class PlayerHotbarPacket extends DataPacket {
+export default class PlayerHotbarPacket extends FieldNetworkPacket {
     /** Selected Slot, the hotbar index to hold. */
     public selectedSlot = 0;
 

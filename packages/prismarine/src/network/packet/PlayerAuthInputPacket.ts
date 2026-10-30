@@ -6,7 +6,7 @@ import type { ItemStackRequest } from '../type/ItemStackRequest';
 import { readItemStackRequest } from '../type/ItemStackRequest';
 import type { UseItemData } from './InventoryTransactionPacket';
 import { InventoryAction, LegacySlotChange, readUseItemData, writeUseItemData } from './InventoryTransactionPacket';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * How many flags `PlayerAuthInputData` has room for: one past its highest member, 66.
@@ -143,7 +143,7 @@ export interface AuthInputItemUse {
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-auth-input-packet/
  */
-export default class PlayerAuthInputPacket extends DataPacket {
+export default class PlayerAuthInputPacket extends FieldNetworkPacket {
     /** `Player Rotation` X: the pitch at the start of the tick. */
     public pitch = 0;
     /** `Player Rotation` Y: the yaw at the start of the tick. */

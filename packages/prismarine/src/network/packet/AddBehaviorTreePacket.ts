@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Hands the client a behavior tree as JSON.
@@ -10,7 +10,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-behavior-tree-packet/
  */
-export default class AddBehaviorTreePacket extends DataPacket {
+export default class AddBehaviorTreePacket extends FieldNetworkPacket {
     /** The tree as a JSON document. */
     public behaviorTreeStructure = '';
 

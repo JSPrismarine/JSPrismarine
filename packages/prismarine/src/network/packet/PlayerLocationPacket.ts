@@ -1,6 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The docs' `PlayerLocationPacketType`: the two forms of a player location update, with the
@@ -23,7 +23,7 @@ export enum PlayerLocationPacketType {
  * are both on the wire, which is also how gophertunnel writes it.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/player-location-packet/
  */
-export default class PlayerLocationPacket extends DataPacket {
+export default class PlayerLocationPacket extends FieldNetworkPacket {
     /** Unique id of the player whose location is updated or hidden. */
     public targetActorId = 0n;
 

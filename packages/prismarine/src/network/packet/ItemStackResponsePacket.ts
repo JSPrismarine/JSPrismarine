@@ -1,7 +1,7 @@
 import { ItemStackResponseResult } from '@jsprismarine/minecraft';
 import type { FullContainerName } from '../type/ItemStackRequest';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 // `ItemStackResponseResult` is generated from Mojang's documentation, where it is
 // `ItemStackNetResult`. It carries sixty-eight reasons a request can fail; this server sends
@@ -73,7 +73,7 @@ export interface ItemStackResponse {
  *
  * **Bound To:** Client
  */
-export default class ItemStackResponsePacket extends DataPacket {
+export default class ItemStackResponsePacket extends FieldNetworkPacket {
     public responses: ItemStackResponse[] = [];
 
     /**

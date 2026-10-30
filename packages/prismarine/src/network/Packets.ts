@@ -42,7 +42,6 @@ import ContainerSetDataPacket from './packet/ContainerSetDataPacket';
 import CorrectPlayerMovePredictionPacket from './packet/CorrectPlayerMovePredictionPacket';
 import CraftingDataPacket from './packet/CraftingDataPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
-import DataPacket from './packet/DataPacket';
 import DeathInfoPacket from './packet/DeathInfoPacket';
 import DebugInfoPacket from './packet/DebugInfoPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
@@ -226,10 +225,6 @@ export {
     CorrectPlayerMovePredictionPacket,
     CraftingDataPacket,
     CreativeContentPacket,
-    /**
-     * @group Special Packets
-     */
-    DataPacket,
     DeathInfoPacket,
     DebugInfoPacket,
     DisconnectPacket,

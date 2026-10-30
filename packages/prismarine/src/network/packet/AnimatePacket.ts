@@ -1,6 +1,6 @@
 import { AnimateAction, AnimateHand, animatePacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 export { AnimateAction };
 
@@ -12,7 +12,7 @@ export { AnimateAction };
  * trailing `Hand` byte from 2225 on. One class serves every version; which fields travel is the
  * layout's decision, not this file's.
  */
-export default class AnimatePacket extends DataPacket {
+export default class AnimatePacket extends FieldNetworkPacket {
     /** `Action`, as the raw byte. See {@link AnimateAction} for the numbers. */
     public action!: number;
 

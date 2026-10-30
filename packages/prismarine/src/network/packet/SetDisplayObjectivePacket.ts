@@ -1,6 +1,6 @@
 import { layoutAt, setDisplayObjectivePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Which way the client orders an objective's lines, as the `SortOrder` ZigZag varint32 numbers it. */
 export enum ObjectiveSortOrder {
@@ -21,7 +21,7 @@ export enum ObjectiveSortOrder {
  * SortOrder as a ZigZag varint32.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-display-objective-packet/
  */
-export default class SetDisplayObjectivePacket extends DataPacket {
+export default class SetDisplayObjectivePacket extends FieldNetworkPacket {
     /** Where the objective is shown: `list`, `sidebar` or `belowname`. */
     public displaySlotName = '';
 

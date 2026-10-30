@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Spawns a painting on the client.
@@ -22,7 +22,7 @@ import DataPacket from './DataPacket';
  * | Motif | string | The artwork's name, such as `Kebab` |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-painting-packet/
  */
-export default class AddPaintingPacket extends DataPacket {
+export default class AddPaintingPacket extends FieldNetworkPacket {
     /** Target Actor ID, the painting's unique id. */
     public targetActorId = 0n;
 

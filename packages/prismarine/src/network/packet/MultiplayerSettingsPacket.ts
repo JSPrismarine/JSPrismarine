@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** What a `MultiplayerSettingsPacket` asks for, as the PacketType varint32 numbers it. */
 export enum MultiplayerSettingsPacketType {
@@ -18,7 +18,7 @@ export enum MultiplayerSettingsPacketType {
  * {@link MultiplayerSettingsPacketType}).
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/multiplayer-settings-packet/
  */
-export default class MultiplayerSettingsPacket extends DataPacket {
+export default class MultiplayerSettingsPacket extends FieldNetworkPacket {
     /** PacketType: the single setting this packet carries. */
     public packetType: MultiplayerSettingsPacketType = MultiplayerSettingsPacketType.EnableMultiplayer;
 

@@ -6,7 +6,7 @@ import { Item } from '../../item/Item';
 import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 import { addPlayerPacket } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 
 import type { ActorLink } from './AddActorPacket';
@@ -23,7 +23,7 @@ import type { ItemStackDescriptorData } from '@jsprismarine/protocol/wire/struct
  * optional `Passenger Block Data` inserted before the device id from 2225 on. One class
  * serves every version; which fields travel is the layout's decision, not this file's.
  */
-export default class AddPlayerPacket extends DataPacket {
+export default class AddPlayerPacket extends FieldNetworkPacket {
     public uuid!: UUID;
     public name!: string;
     public uniqueEntityId!: bigint;

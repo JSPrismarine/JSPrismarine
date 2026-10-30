@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type PlayStatus from '../type/PlayStatus';
 
@@ -8,7 +8,7 @@ import type PlayStatus from '../type/PlayStatus';
  * Protocol 2193 layout after the header: `Status`, a big-endian int32 holding a `PlayStatus`
  * enum value. Nothing else.
  */
-export default class PlayStatusPacket extends DataPacket {
+export default class PlayStatusPacket extends FieldNetworkPacket {
     /** The `Status` field. */
     public status!: PlayStatus;
 

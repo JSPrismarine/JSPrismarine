@@ -1,6 +1,6 @@
 import { layoutAt, modalFormRequestPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A custom form for the client to show, answered by `ModalFormResponsePacket`.
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  * Wire layout at protocol 2193: Form ID as a varuint32, then Form UI JSON as a string.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/modal-form-request-packet/
  */
-export default class ModalFormRequestPacket extends DataPacket {
+export default class ModalFormRequestPacket extends FieldNetworkPacket {
     /** Identifies the form in the client's reply. */
     public formId = 0;
 

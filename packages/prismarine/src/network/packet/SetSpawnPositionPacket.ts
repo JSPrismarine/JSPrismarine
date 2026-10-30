@@ -1,7 +1,7 @@
 import { layoutAt, setSpawnPositionPacket } from '@jsprismarine/protocol';
 
 import { Vector3 } from '@jsprismarine/math';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The docs' `SpawnPositionType`, written as a ZigZag varint32. */
 export enum SpawnPositionType {
@@ -16,7 +16,7 @@ export enum SpawnPositionType {
  * x, y, z as ZigZag varint32), Dimension type (ZigZag varint32), Spawn Block Pos (`BlockPos`).
  * `position` is the Block Position field and `blockPosition` is the Spawn Block Pos field.
  */
-export default class SetSpawnPositionPacket extends DataPacket {
+export default class SetSpawnPositionPacket extends FieldNetworkPacket {
     public type!: SpawnPositionType;
     public position!: Vector3;
     public dimension!: number;

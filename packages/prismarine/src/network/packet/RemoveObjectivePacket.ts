@@ -1,6 +1,6 @@
 import { layoutAt, removeObjectivePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Removes a scoreboard objective from the client.
@@ -14,7 +14,7 @@ import DataPacket from './DataPacket';
  * Objective Name as a string.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/remove-objective-packet/
  */
-export default class RemoveObjectivePacket extends DataPacket {
+export default class RemoveObjectivePacket extends FieldNetworkPacket {
     /** Name the objective was registered under. */
     public objectiveName = '';
 

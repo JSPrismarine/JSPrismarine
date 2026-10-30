@@ -1,6 +1,6 @@
 import { layoutAt, levelEventGenericPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A level event whose payload is too large for `LevelEventPacket`'s single position and data
@@ -20,7 +20,7 @@ import DataPacket from './DataPacket';
  * | Event data | headless compound | The docs type it `unknown`; see {@link serializedEventData} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-event-generic-packet/
  */
-export default class LevelEventGenericPacket extends DataPacket {
+export default class LevelEventGenericPacket extends FieldNetworkPacket {
     /** Which event this is, and so what the data holds. */
     public eventId = 0;
 

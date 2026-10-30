@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** What the correction applies to, as the PredictionType uint8 numbers it. */
 export enum RewindType {
@@ -29,7 +29,7 @@ export enum RewindType {
  * for player corrections takes it for the ground flag.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/correct-player-move-prediction-packet/
  */
-export default class CorrectPlayerMovePredictionPacket extends DataPacket {
+export default class CorrectPlayerMovePredictionPacket extends FieldNetworkPacket {
     /** PredictionType: whether the player or the vehicle they ride is being corrected. */
     public predictionType: RewindType = RewindType.Player;
 

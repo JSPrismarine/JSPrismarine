@@ -3,7 +3,7 @@ import { commandRequestPacket, layoutAt } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A slash command a client typed.
@@ -16,7 +16,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-request-packet/
  */
-export default class CommandRequestPacket extends DataPacket {
+export default class CommandRequestPacket extends FieldNetworkPacket {
     /** `Command`: what was typed, with its leading slash still on. */
     public commandName = '';
 

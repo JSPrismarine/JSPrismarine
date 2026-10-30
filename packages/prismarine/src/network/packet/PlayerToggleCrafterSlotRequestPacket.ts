@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The client enabling or disabling one slot of a crafter block.
@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
  * position), Slot Index as a uint8, then Is Disabled as a boolean.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-toggle-crafter-slot-request-packet/
  */
-export default class PlayerToggleCrafterSlotRequestPacket extends DataPacket {
+export default class PlayerToggleCrafterSlotRequestPacket extends FieldNetworkPacket {
     public posX = 0;
     public posY = 0;
     public posZ = 0;

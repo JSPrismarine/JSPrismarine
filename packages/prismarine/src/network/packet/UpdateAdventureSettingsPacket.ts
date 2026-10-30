@@ -1,6 +1,6 @@
 import { layoutAt, updateAdventureSettingsPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Replaces the client's `AdventureSettings`.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-adventure-settings-packet/
  */
-export default class UpdateAdventureSettingsPacket extends DataPacket {
+export default class UpdateAdventureSettingsPacket extends FieldNetworkPacket {
     /** `no PvM`: the player may not attack mobs. */
     public noAttackingMobs!: boolean;
 

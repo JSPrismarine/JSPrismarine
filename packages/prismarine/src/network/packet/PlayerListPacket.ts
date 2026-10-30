@@ -1,6 +1,6 @@
 import { layoutAt } from '@jsprismarine/protocol';
 import { playerListPacket } from '@jsprismarine/protocol/wire/definitions/playerList';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 
@@ -25,7 +25,7 @@ export type { PlayerListData } from '@jsprismarine/protocol/wire/structures/Play
  * walks at the protocol version stamped on it: which `SerializedSkin` layout the entries use
  * - and so where the PlayFab id sits - is the layout's decision, not this file's.
  */
-export default class PlayerListPacket extends DataPacket {
+export default class PlayerListPacket extends FieldNetworkPacket {
     public entries: PlayerListEntry[] = [];
     public type!: number;
 

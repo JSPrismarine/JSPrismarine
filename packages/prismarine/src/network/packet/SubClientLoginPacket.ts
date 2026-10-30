@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The login of a second, third or fourth player sharing one connection in split screen.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sub-client-login-packet/
  */
-export default class SubClientLoginPacket extends DataPacket {
+export default class SubClientLoginPacket extends FieldNetworkPacket {
     /** The chain JSON exactly as it arrived, unparsed and unverified. */
     public chainData = '';
 

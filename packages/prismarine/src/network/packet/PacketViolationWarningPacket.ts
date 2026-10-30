@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * What the client objected to, as the Violation Type varint32 numbers it.
@@ -44,7 +44,7 @@ export enum PacketViolationSeverity {
  * | Violation Context | string | The client's own description of what went wrong |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/packet-violation-warning-packet/
  */
-export default class PacketViolationWarningPacket extends DataPacket {
+export default class PacketViolationWarningPacket extends FieldNetworkPacket {
     /** Violation Type: what kind of problem the client found. */
     public type: PacketViolationType = PacketViolationType.Unknown;
 

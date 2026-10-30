@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** A link the Education Edition client offers alongside the world. */
 export interface ExternalLinkSettings {
@@ -28,7 +28,7 @@ export interface ExternalLinkSettings {
  * between the second and the third, so leaving one out shifts everything after it.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/education-settings-packet/
  */
-export default class EducationSettingsPacket extends DataPacket {
+export default class EducationSettingsPacket extends FieldNetworkPacket {
     /** URI the Code Builder panel opens. */
     public codeBuilderDefaultUri = '';
 

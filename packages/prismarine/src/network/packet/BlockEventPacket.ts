@@ -1,6 +1,6 @@
 import BlockPosition from '../../world/BlockPosition';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Replays a block's own animation on the client: a chest lid, a shulker box, an end gateway.
@@ -20,7 +20,7 @@ import DataPacket from './DataPacket';
  * | Event Value | varint32 | Meaning depends on Event Type |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-event-packet/
  */
-export default class BlockEventPacket extends DataPacket {
+export default class BlockEventPacket extends FieldNetworkPacket {
     /** Block Position, the block the event belongs to. */
     public blockPosition: BlockPosition = new BlockPosition(0, 0, 0);
 

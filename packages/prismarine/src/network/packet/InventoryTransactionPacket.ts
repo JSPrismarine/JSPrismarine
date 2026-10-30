@@ -9,7 +9,7 @@ import {
 import type { LegacySlotChange, TransactionType } from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
 import { HandSlot } from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
 import { Item } from '../../item/Item';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type {
@@ -213,7 +213,7 @@ export const writeUseItemData = (stream: BinaryStream, data: UseItemData): void 
  * through `ItemStackRequestPacket`, so a Normal transaction is a legacy client's and a
  * Mismatch is the client saying its inventory disagrees with the server's.
  */
-export default class InventoryTransactionPacket extends DataPacket {
+export default class InventoryTransactionPacket extends FieldNetworkPacket {
     public legacyRequestId!: number;
     public legacySlotChanges!: LegacySlotChange[];
 

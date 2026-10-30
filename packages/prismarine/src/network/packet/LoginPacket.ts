@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Device from '../../utils/Device';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** The skin fields `Skin.fromJWT` reads, named from its parameter so the two cannot drift. */
 type SkinData = Parameters<typeof Skin.fromJWT>[0];
@@ -125,7 +125,7 @@ const identityFromXUID = (xuid: string): string => {
  * Encoding writes `chainData` and `clientData` back as they arrived, so a decoded packet
  * reproduces its own bytes.
  */
-export default class LoginPacket extends DataPacket {
+export default class LoginPacket extends FieldNetworkPacket {
     /**
      * The client's xbox live ID.
      */

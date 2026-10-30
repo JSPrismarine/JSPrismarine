@@ -3,7 +3,7 @@ import { commandOutputPacket, CommandOutputType, layoutAt } from '@jsprismarine/
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import CommandOriginData from '@jsprismarine/protocol/wire/structures/CommandOriginData';
 import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { CommandOutputMessage } from '@jsprismarine/protocol';
 
@@ -25,7 +25,7 @@ export type { CommandOutputMessage } from '@jsprismarine/protocol';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-output-packet/
  */
-export default class CommandOutputPacket extends DataPacket {
+export default class CommandOutputPacket extends FieldNetworkPacket {
     /** The origin of the request this answers. Send back the one the request arrived with. */
     public originData = new CommandOriginData(CommandOriginType.Player, new UUID(), '', 0n);
 

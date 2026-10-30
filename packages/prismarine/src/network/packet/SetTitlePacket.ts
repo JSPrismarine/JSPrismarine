@@ -1,7 +1,7 @@
 import { layoutAt, setTitlePacket } from '@jsprismarine/protocol';
 
 import { TitleType } from '@jsprismarine/minecraft';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Shows a title, a subtitle or an action bar message, or sets how long they stay.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-title-packet/
  */
-export default class SetTitlePacket extends DataPacket {
+export default class SetTitlePacket extends FieldNetworkPacket {
     public titleType: TitleType = TitleType.TITLE;
 
     /** The text to show, or JSON when the type is one of the text object members. */

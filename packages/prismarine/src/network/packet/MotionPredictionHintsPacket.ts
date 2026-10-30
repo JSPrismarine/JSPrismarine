@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The velocity an actor is expected to keep, fed to the client's movement prediction.
@@ -15,7 +15,7 @@ import DataPacket from './DataPacket';
  * mMotion as three floats in little-endian byte order, then mOnGround as a boolean.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/motion-prediction-hints-packet/
  */
-export default class MotionPredictionHintsPacket extends DataPacket {
+export default class MotionPredictionHintsPacket extends FieldNetworkPacket {
     /** mRuntimeId: the actor that is moving. */
     public runtimeId = 0n;
 

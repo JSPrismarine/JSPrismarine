@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { Item } from '../../item/Item';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Spawns a dropped item on the client.
@@ -19,7 +19,7 @@ import DataPacket from './DataPacket';
  * | Entity Data | SynchedActorDataList | See {@link Metadata.networkSerialize} |
  * | Is From Fishing | boolean | |
  */
-export default class AddItemActorPacket extends DataPacket {
+export default class AddItemActorPacket extends FieldNetworkPacket {
     /** Zero means the item has no unique id of its own and goes out under its runtime id. */
     public uniqueEntityId = 0n;
     public runtimeEntityId!: bigint;

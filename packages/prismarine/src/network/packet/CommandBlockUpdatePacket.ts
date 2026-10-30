@@ -1,6 +1,6 @@
 import { NetworkUtil } from '../NetworkUtil';
 import type BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The docs' `CommandBlockMode`: how a command block fires, as the `Command Block Mode`
@@ -37,7 +37,7 @@ export type CommandBlockTarget =
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-block-update-packet/
  */
-export default class CommandBlockUpdatePacket extends DataPacket {
+export default class CommandBlockUpdatePacket extends FieldNetworkPacket {
     public target: CommandBlockTarget = { isBlock: false, targetRuntimeId: 0n };
     public command = '';
     public lastOutput = '';

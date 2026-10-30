@@ -3,7 +3,7 @@ import { ItemData, NetworkBinaryStream } from '@jsprismarine/protocol';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
 import { itemDataForProtocol } from '../codec/itemData';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ItemRegistryEntry } from '@jsprismarine/protocol';
@@ -39,7 +39,7 @@ const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
  * 2 `None`), and `Item Component Data` (network NBT compound with varint lengths, little
  * endian).
  */
-export default class ItemRegistryPacket extends DataPacket {
+export default class ItemRegistryPacket extends FieldNetworkPacket {
     /**
      * The encoded captured table per protocol version, built once and kept.
      *

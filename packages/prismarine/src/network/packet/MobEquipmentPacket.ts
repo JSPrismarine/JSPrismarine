@@ -1,7 +1,7 @@
 import { layoutAt, mobEquipmentPacket } from '@jsprismarine/protocol';
 
 import { Item } from '../../item/Item';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * What an entity is holding, and which slot it came from.
@@ -24,7 +24,7 @@ import DataPacket from './DataPacket';
  * whatever the id is. See {@link Item.networkSerialize}.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-equipment-packet/
  */
-export default class MobEquipmentPacket extends DataPacket {
+export default class MobEquipmentPacket extends FieldNetworkPacket {
     public runtimeEntityId!: bigint;
     public item!: Item;
     public inventorySlot!: number;

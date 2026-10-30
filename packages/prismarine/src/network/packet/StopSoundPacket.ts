@@ -1,6 +1,6 @@
 import { layoutAt, stopSoundPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Stops a sound that is still playing, such as a music disc.
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/stop-sound-packet/
  */
-export default class StopSoundPacket extends DataPacket {
+export default class StopSoundPacket extends FieldNetworkPacket {
     public soundName = '';
 
     /** Stops everything the client is playing, whatever `soundName` says. */

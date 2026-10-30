@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The most `Client Pixels List` entries the docs allow in one packet (`maxItems`), one per
@@ -22,7 +22,7 @@ export interface MapClientPixel {
  * pairs.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/map-info-request-packet/
  */
-export default class MapInfoRequestPacket extends DataPacket {
+export default class MapInfoRequestPacket extends FieldNetworkPacket {
     /** The map's unique id, which is the id in the map item's NBT. */
     public mapUniqueId = 0n;
 

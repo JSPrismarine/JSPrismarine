@@ -1,6 +1,6 @@
 import { layoutAt, serverboundMatchmakingCancelPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Asks the server to cancel the matchmaking request in flight. The payload is empty.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ServerboundMatchmakingCancelPacket extends DataPacket {
+export default class ServerboundMatchmakingCancelPacket extends FieldNetworkPacket {
     /** Writes the fields in layout order. */
     public encodePayload(): void {
         layoutAt(serverboundMatchmakingCancelPacket, this.codecProtocol).encode(this, {});

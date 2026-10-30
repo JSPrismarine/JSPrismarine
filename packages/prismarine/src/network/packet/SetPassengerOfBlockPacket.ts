@@ -1,7 +1,7 @@
 import { layoutAt, setPassengerOfBlockPacket } from '@jsprismarine/protocol';
 import type { PassengerOfBlock } from '@jsprismarine/protocol/wire/structures/PassengerOfBlock';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Seats an actor on a block, or takes it off one when the data is absent.
@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class SetPassengerOfBlockPacket extends DataPacket {
+export default class SetPassengerOfBlockPacket extends FieldNetworkPacket {
     /** `passenger`. */
     public passenger: bigint = 0n;
 

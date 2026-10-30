@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Whether the client is sitting on a loading screen waiting for ticking areas to preload.
@@ -15,7 +15,7 @@ import DataPacket from './DataPacket';
  * | Waiting For Preload | boolean | |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/ticking-areas-load-status-packet/
  */
-export default class TickingAreasLoadStatusPacket extends DataPacket {
+export default class TickingAreasLoadStatusPacket extends FieldNetworkPacket {
     /** Waiting For Preload: `true` while the client is still waiting on the preload. */
     public preload: boolean = false;
 

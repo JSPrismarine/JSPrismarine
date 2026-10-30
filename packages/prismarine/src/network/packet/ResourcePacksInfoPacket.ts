@@ -1,6 +1,6 @@
 import { layoutAt, resourcePacksInfoPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 import type { PackIdVersion, ResourcePackEntry } from '@jsprismarine/protocol';
 
@@ -14,7 +14,7 @@ export type { PackIdVersion, ResourcePackEntry };
  * The fourth flag and the world template arrived at 2168; a reader without them takes the
  * flag for the start of the template and drops the connection.
  */
-export default class ResourcePacksInfoPacket extends DataPacket {
+export default class ResourcePacksInfoPacket extends FieldNetworkPacket {
     public resourcePackRequired!: boolean;
     public hasAddonPacks!: boolean;
     public hasScripts!: boolean;

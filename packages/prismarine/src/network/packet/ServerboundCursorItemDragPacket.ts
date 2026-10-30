@@ -1,6 +1,6 @@
 import { CursorItemDragState, layoutAt, serverboundCursorItemDragPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A client starting or stopping a cursor item split-drag.
@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  *
  * @see `docs/research/protocol-2225-added-packets.md`
  */
-export default class ServerboundCursorItemDragPacket extends DataPacket {
+export default class ServerboundCursorItemDragPacket extends FieldNetworkPacket {
     /** `state`. */
     public state: number = CursorItemDragState.Start;
     /** Writes the fields in layout order. */

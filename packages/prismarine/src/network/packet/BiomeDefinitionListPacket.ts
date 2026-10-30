@@ -1,7 +1,7 @@
 import { biome_definitions_network } from '@jsprismarine/bedrock-data';
 import { biomeDefinitionListPacket, layoutAt } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * Every biome the client can render, and the data each one carries.
@@ -26,7 +26,7 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  */
-export default class BiomeDefinitionListPacket extends DataPacket {
+export default class BiomeDefinitionListPacket extends FieldNetworkPacket {
     /** Both fields as the network carries them. Defaults to vanilla's. */
     public definitions: Buffer = biome_definitions_network;
 

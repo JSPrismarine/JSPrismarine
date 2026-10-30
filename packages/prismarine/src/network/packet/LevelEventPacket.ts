@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { LevelEvent } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A world event: the client is told *what* happened and where, and picks the sound and the
@@ -17,7 +17,7 @@ import DataPacket from './DataPacket';
  * Wire order at protocol 2193: `Event Id` (varint32), `Position` (a `Vec3` of three floats),
  * `Data` (varint32).
  */
-export default class LevelEventPacket extends DataPacket {
+export default class LevelEventPacket extends FieldNetworkPacket {
     /** `Event Id`: what happened, from vanilla's grouped ranges. */
     public eventId!: LevelEvent;
 

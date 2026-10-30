@@ -1,4 +1,4 @@
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * A creative player middle-clicking an actor to get its spawn egg.
@@ -8,7 +8,7 @@ import DataPacket from './DataPacket';
  * the actor's NBT). The flag order differs from `BlockPickRequestPacket`.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/actor-pick-request-packet/
  */
-export default class ActorPickRequestPacket extends DataPacket {
+export default class ActorPickRequestPacket extends FieldNetworkPacket {
     /** Unique id of the picked actor. */
     public actorId = 0n;
 

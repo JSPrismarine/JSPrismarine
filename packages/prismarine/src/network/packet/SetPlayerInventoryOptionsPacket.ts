@@ -1,5 +1,5 @@
 import { InventoryLayout, InventoryLeftTab, InventoryRightTab } from '@jsprismarine/minecraft';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 // All three are generated from Mojang's documentation, where they are `InventoryLeftTabIndex`,
 // `InventoryRightTabIndex` and `InventoryLayout`.
@@ -25,7 +25,7 @@ export { InventoryLayout, InventoryLeftTab, InventoryRightTab };
  * | Layout Craft | varint32 | ZigZag; one of {@link InventoryLayout} |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-player-inventory-options-packet/
  */
-export default class SetPlayerInventoryOptionsPacket extends DataPacket {
+export default class SetPlayerInventoryOptionsPacket extends FieldNetworkPacket {
     /** Left Inventory Tab: the recipe book tab that is open. */
     public leftTab: InventoryLeftTab = InventoryLeftTab.NONE;
 

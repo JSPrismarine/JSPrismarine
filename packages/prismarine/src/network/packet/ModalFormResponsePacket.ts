@@ -1,6 +1,6 @@
 import { layoutAt, modalFormResponsePacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /** Why a form closed without a response. */
 export enum ModalFormCancelReason {
@@ -21,7 +21,7 @@ export enum ModalFormCancelReason {
  * optional. The presence bytes are what a real client sends, so they stay.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/modal-form-response-packet/
  */
-export default class ModalFormResponsePacket extends DataPacket {
+export default class ModalFormResponsePacket extends FieldNetworkPacket {
     /** The id the server chose when it sent the form. */
     public formId = 0;
 

@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../NetworkUtil';
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The docs' `UnlockedRecipesPacketPayload::PacketType`, what the client should do with the
@@ -31,7 +31,7 @@ export enum UnlockedRecipesType {
  * string per recipe. The type is the one field in this packet that is not a varint.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/unlocked-recipes-packet/
  */
-export default class UnlockedRecipesPacket extends DataPacket {
+export default class UnlockedRecipesPacket extends FieldNetworkPacket {
     /** What the client should do with {@link UnlockedRecipesPacket.recipes}. */
     public type: UnlockedRecipesType = UnlockedRecipesType.Empty;
 

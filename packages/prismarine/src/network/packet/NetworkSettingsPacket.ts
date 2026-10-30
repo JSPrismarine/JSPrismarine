@@ -1,7 +1,7 @@
 import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { layoutAt, networkSettingsPacket } from '@jsprismarine/protocol';
 
-import DataPacket from './DataPacket';
+import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
 
 /**
  * The two `Compression Threshold` values this server has a name for.
@@ -31,7 +31,7 @@ export enum CompressionThreshold {
  *
  * **Bound To:** Client
  */
-export default class NetworkSettingsPacket extends DataPacket {
+export default class NetworkSettingsPacket extends FieldNetworkPacket {
     /** `Compression Threshold`: the smallest payload that gets compressed, or 0 for none. */
     public compressionThreshold!: number;
     /** `CompressionAlgorithm` that every later batch is compressed with. */

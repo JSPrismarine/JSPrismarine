@@ -17,7 +17,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
 import { itemData2193, itemDataForProtocol } from '../network/codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
-import DataPacket from '../network/packet/DataPacket';
+import NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { storedItem } from '../inventory/persistence';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
@@ -105,7 +105,7 @@ const DEFAULT_MAX_STACK_SIZE = 64;
  * gets protocol 2193's, the canonical table.
  */
 const wireItemData = (stream: BinaryStream): ProtocolItemData =>
-    stream instanceof DataPacket ? itemDataForProtocol(stream.codecProtocol) : itemData2193;
+    stream instanceof NetworkPacket ? itemDataForProtocol(stream.codecProtocol) : itemData2193;
 
 /**
  * One item stack, as the rest of the server holds one.
