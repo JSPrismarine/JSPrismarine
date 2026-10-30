@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, resourcePackDataInfoPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -27,10 +28,10 @@ export enum PackType {
  * The client answers with one `ResourcePackChunkRequestPacket` per chunk, and the server
  * replies to each with a `ResourcePackChunkDataPacket`.
  *
- * Wire order at protocol 2193: `Resource Name` as a string, `Chunk Size` and
- * `Number of Chunks` as uint32 LE, `File Size` as a uint64 LE, `File Hash` as a varuint32
- * byte length followed by that many bytes, `Is Premium Pack` as a byte, then `Pack Type` as a
- * byte.
+ * The wire layout lives in `@jsprismarine/protocol`'s `resourcePackDataInfoPacket`
+ * definition: `Resource Name` as a string, `Chunk Size` and `Number of Chunks` as uint32 LE,
+ * `File Size` as a uint64 LE, `File Hash` as a varuint32 byte length followed by that many
+ * bytes, `Is Premium Pack` as a byte, then `Pack Type` as a byte.
  *
  * Nothing sends this yet. The server announces no downloadable packs, so no client ever asks
  * for a chunk.
@@ -61,24 +62,26 @@ export default class ResourcePackDataInfoPacket extends DataPacket {
 
     /** Reads the pack name, its size, its hash and its type. */
     public decodePayload(): void {
-        this.resourceName = NetworkUtil.readString(this);
-        this.chunkSize = this.readUnsignedIntLE();
-        this.numberOfChunks = this.readUnsignedIntLE();
-        this.fileSize = this.readUnsignedLongLE();
-        this.fileHash = this.read(this.readUnsignedVarInt());
-        this.isPremiumPack = this.readBoolean();
-        this.packType = this.readByte();
+        const read = layoutAt(resourcePackDataInfoPacket, this.codecProtocol).decode(this);
+        this.resourceName = read.resourceName;
+        this.chunkSize = read.chunkSize;
+        this.numberOfChunks = read.numberOfChunks;
+        this.fileSize = read.fileSize;
+        this.fileHash = read.fileHash;
+        this.isPremiumPack = read.isPremiumPack;
+        this.packType = read.packType;
     }
 
     /** Writes the pack name, its size, its hash and its type. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, this.resourceName);
-        this.writeUnsignedIntLE(this.chunkSize);
-        this.writeUnsignedIntLE(this.numberOfChunks);
-        this.writeUnsignedLongLE(this.fileSize);
-        this.writeUnsignedVarInt(this.fileHash.byteLength);
-        this.write(this.fileHash);
-        this.writeBoolean(this.isPremiumPack);
-        this.writeByte(this.packType);
+        layoutAt(resourcePackDataInfoPacket, this.codecProtocol).encode(this, {
+            resourceName: this.resourceName,
+            chunkSize: this.chunkSize,
+            numberOfChunks: this.numberOfChunks,
+            fileSize: this.fileSize,
+            fileHash: this.fileHash,
+            isPremiumPack: this.isPremiumPack,
+            packType: this.packType
+        });
     }
 }

@@ -65,6 +65,7 @@ import { playStatusPacket } from './playStatus';
 import {
     resourcePackChunkDataPacket,
     resourcePackChunkRequestPacket,
+    resourcePackDataInfoPacket,
     resourcePacksInfoPacket,
     resourcePackStackPacket
 } from './resourcePacks';
@@ -148,6 +149,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         setActorLinkPacket,
         resourcePackChunkDataPacket,
         resourcePackChunkRequestPacket,
+        resourcePackDataInfoPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
         serverToClientHandshakePacket,

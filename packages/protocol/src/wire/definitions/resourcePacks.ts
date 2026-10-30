@@ -141,3 +141,26 @@ export const resourcePackChunkDataPacket = definePacket('ResourcePackChunkDataPa
     /** `Chunk Data`: a varint byte length, then the chunk's bytes. */
     chunkData: t.byteArray
 });
+
+/**
+ * The `ResourcePackDataInfoPacket` field list.
+ *
+ * The client answers with one `ResourcePackChunkRequestPacket` per chunk, and the server
+ * replies to each with a `ResourcePackChunkDataPacket`.
+ */
+export const resourcePackDataInfoPacket = definePacket('ResourcePackDataInfoPacket', {
+    /** `Resource Name`: the pack id and version joined by an underscore. */
+    resourceName: t.string,
+    /** `Chunk Size`: the largest chunk, in bytes. */
+    chunkSize: t.lu32,
+    /** `Number of Chunks`: how many chunks the pack is split into. */
+    numberOfChunks: t.lu32,
+    /** `File Size`: the size of the whole zip, in bytes. */
+    fileSize: t.lu64,
+    /** `File Hash`: a SHA256 digest of the zip, as raw bytes rather than text. */
+    fileHash: t.byteArray,
+    /** `Is Premium Pack`: whether the player needs an entitlement to use the pack. */
+    isPremiumPack: t.bool,
+    /** `Pack Type`: a `PackType`, 6 for a resource pack. */
+    packType: t.uint8
+});
