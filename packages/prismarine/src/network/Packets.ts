@@ -26,7 +26,7 @@ import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientC
 import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
 import ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/packet/ClientMovementPredictionSyncPacket';
 import ClientboundDebugRendererPacket from '@jsprismarine/protocol/packet/ClientboundDebugRendererPacket';
-import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
+import ClientboundMapItemDataPacket from '@jsprismarine/protocol/packet/ClientboundMapItemDataPacket';
 import ClientboundMatchmakingStatePacket from '@jsprismarine/protocol/packet/ClientboundMatchmakingStatePacket';
 import ClientboundPlayAudioContentPacket from '@jsprismarine/protocol/packet/ClientboundPlayAudioContentPacket';
 import ClientboundStonecutterSetRecipePacket from '@jsprismarine/protocol/packet/ClientboundStonecutterSetRecipePacket';
