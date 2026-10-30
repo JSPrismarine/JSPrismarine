@@ -1,6 +1,10 @@
-import { Metadata } from '../../entity/Metadata';
+import { layoutAt } from '@jsprismarine/protocol';
+
 import { SyncedProperties } from '../type/SyncedProperties';
 import DataPacket from './DataPacket';
+import { setActorDataPacket } from './setActorData.wire';
+
+import type { Metadata } from '../../entity/Metadata';
 
 /**
  * Sends a delta of an entity's metadata to clients that can see it.
@@ -30,20 +34,11 @@ export default class SetActorDataPacket extends DataPacket {
     public tick: bigint = 0n;
 
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.metadata.networkSerialize(this);
-        this.syncedProperties.networkSerialize(this);
-        this.writeUnsignedVarLong(this.tick);
+        layoutAt(setActorDataPacket, this.codecProtocol).encode(this, this);
     }
 
     /** Reads the four fields back, the mirror of {@link encodePayload}. */
     public decodePayload(): void {
-        this.runtimeEntityId = this.readUnsignedVarLong();
-
-        this.metadata = new Metadata(false);
-        this.metadata.networkDeserialize(this);
-
-        this.syncedProperties = SyncedProperties.networkDeserialize(this);
-        this.tick = this.readUnsignedVarLong();
+        Object.assign(this, layoutAt(setActorDataPacket, this.codecProtocol).decode(this));
     }
 }
