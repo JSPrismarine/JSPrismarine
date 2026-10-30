@@ -5,8 +5,9 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
+import PacketRegistry from '../PacketRegistry';
 import type PlayerSession from '../PlayerSession';
-import ResourcePacksReadyForValidationPacket from '../packet/ResourcePacksReadyForValidationPacket';
+import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
 import ResourcePacksReadyForValidationHandler from './ResourcePacksReadyForValidationHandler';
 
 const fakeSession = () => {
@@ -35,5 +36,18 @@ describe('ResourcePacksReadyForValidationHandler', () => {
 
         expect(logged).toEqual(['Steve finished loading its resource packs']);
         expect(sent).toEqual([]);
+    });
+
+    it('registers the protocol packet with its handler', async () => {
+        const registry = new PacketRegistry({
+            getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
+        });
+        await registry['registerPackets']();
+        await registry['registerHandlers']();
+
+        expect(registry.getPackets().get(0x154)).toBe(ResourcePacksReadyForValidationPacket);
+        expect(registry.getHandler('ResourcePacksReadyForValidationPacket')).toBeInstanceOf(
+            ResourcePacksReadyForValidationHandler
+        );
     });
 });

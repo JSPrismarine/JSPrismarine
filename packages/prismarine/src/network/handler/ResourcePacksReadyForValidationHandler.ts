@@ -1,6 +1,6 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type ResourcePacksReadyForValidationPacket from '../packet/ResourcePacksReadyForValidationPacket';
+import type ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

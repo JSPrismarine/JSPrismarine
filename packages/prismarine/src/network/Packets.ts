@@ -108,7 +108,7 @@ import ResourcePackClientResponsePacket from './packet/ResourcePackClientRespons
 import ResourcePackDataInfoPacket from '@jsprismarine/protocol/packet/ResourcePackDataInfoPacket';
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
-import ResourcePacksReadyForValidationPacket from './packet/ResourcePacksReadyForValidationPacket';
+import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
 import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
 import ServerSettingsResponsePacket from '@jsprismarine/protocol/packet/ServerSettingsResponsePacket';
