@@ -35,6 +35,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import { Item } from '../item/Item';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type ClientConnection from '../network/ClientConnection';
+import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
 import ItemStackRequestHandler from '../network/handler/ItemStackRequestHandler';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
@@ -230,6 +231,7 @@ const buildPlayer = (world: World, server: Server, name: string): Player => {
     });
 
     const connection = stub<ClientConnection>({
+        codec: Codec2193,
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
         sendDataPacket: async () => {},
         attachPlayerSession: () => {},

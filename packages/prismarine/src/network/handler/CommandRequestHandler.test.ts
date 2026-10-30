@@ -77,7 +77,10 @@ describe('CommandRequestHandler', () => {
         const { sent } = await run(packet, false);
 
         expect(sent).toHaveLength(1);
-        expect(sent[0]).toMatchObject({ successCount: 0 });
+        const [reply] = sent;
+        expect(reply).toBeInstanceOf(CommandOutputPacket);
+        if (!(reply instanceof CommandOutputPacket)) return;
+        expect(reply.getPacketData()).toMatchObject({ successCount: 0 });
     });
 
     it('drops a request whose origin is not the player', async () => {

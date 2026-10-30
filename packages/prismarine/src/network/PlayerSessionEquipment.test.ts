@@ -103,6 +103,7 @@ const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Dev
 const viewer = () => {
     const sent: NetworkPacket[] = [];
     const session = stub<PlayerSession>({
+        getConnection: () => stub<ClientConnection>({ codec: protocolCodec }),
         send: async (packet) => void sent.push(packet),
         sendAbilities: async () => {},
         sendArmorFor: async () => {},

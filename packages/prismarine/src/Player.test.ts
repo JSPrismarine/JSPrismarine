@@ -528,7 +528,7 @@ describe('Player', () => {
                 'SetActorDataPacket'
             ]);
             expect(sent[0]).toMatchObject({ runtimeEntityId: player.getRuntimeId(), event: ActorEvent.SPAWN_ALIVE });
-            expect(sent[1]).toMatchObject({ health: 20 });
+            expect(sent[1]?.getPacketData()).toMatchObject({ health: 20 });
         });
 
         it('leaves a living player as they are', async () => {

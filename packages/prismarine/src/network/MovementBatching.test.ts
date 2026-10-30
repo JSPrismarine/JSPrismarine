@@ -105,7 +105,7 @@ describe('entity movement on the wire', () => {
         await session.flushQueuedMoves();
 
         const ids = batches[0]!.map((packet) => packet.runtimeEntityId);
-        expect(ids).toEqual([7, 3]);
+        expect(ids).toEqual([7n, 3n]);
     });
 
     it('still sends a one-off move on its own', async () => {

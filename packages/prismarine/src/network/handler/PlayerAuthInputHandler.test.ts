@@ -289,7 +289,7 @@ describe('PlayerAuthInputHandler', () => {
                         blockFace: 1,
                         hotbarSlot: 0,
                         hand: HandSlot.MAINHAND,
-                        itemInHand: stub(),
+                        itemInHand: Item.air(),
                         playerPosition: Vector3.ZERO,
                         clickPosition: Vector3.ZERO,
                         blockRuntimeId: 0,

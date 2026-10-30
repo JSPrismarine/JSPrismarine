@@ -79,7 +79,8 @@ const harness = ({
         getName: () => 'test-world',
         getUUID: () => 'level-uuid',
         getSeed: () => 42n,
-        getGameRuleManager: () => stub<GameRuleManager>()
+        getGameRuleManager: () =>
+            stub<GameRuleManager>({ getGameRules: () => new Map<string, [boolean | number, boolean]>() })
     });
 
     const player = stub<Player>({

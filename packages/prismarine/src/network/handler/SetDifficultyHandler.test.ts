@@ -53,7 +53,7 @@ describe('SetDifficultyHandler', () => {
         await new SetDifficultyHandler().handle(packet, server, session);
 
         expect(logged).toEqual(['Steve asked for difficulty 42, which the server does not change']);
-        expect(sent).toMatchObject([{ difficulty: Difficulty.HARD }]);
+        expect(sent.map((packet) => packet.getPacketData())).toMatchObject([{ difficulty: Difficulty.HARD }]);
     });
 
     it('stays quiet when the client already shows the configured difficulty', async () => {
