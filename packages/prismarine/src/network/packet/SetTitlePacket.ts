@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, setTitlePacket } from '@jsprismarine/protocol';
+
 import { TitleType } from '../type/SetTitleType';
 import DataPacket from './DataPacket';
 
@@ -44,25 +45,28 @@ export default class SetTitlePacket extends DataPacket {
 
     /** Reads the title type, its text, the three durations and the trailing identity strings. */
     public decodePayload(): void {
-        this.titleType = this.readVarInt();
-        this.titleText = NetworkUtil.readString(this);
-        this.fadeInTime = this.readVarInt();
-        this.stayTime = this.readVarInt();
-        this.fadeOutTime = this.readVarInt();
-        this.xuid = NetworkUtil.readString(this);
-        this.platformOnlineId = NetworkUtil.readString(this);
-        this.filteredTitleMessage = NetworkUtil.readString(this);
+        const read = layoutAt(setTitlePacket, this.codecProtocol).decode(this);
+        this.titleType = read.titleType;
+        this.titleText = read.titleText;
+        this.fadeInTime = read.fadeInTime;
+        this.stayTime = read.stayTime;
+        this.fadeOutTime = read.fadeOutTime;
+        this.xuid = read.xuid;
+        this.platformOnlineId = read.platformOnlineId;
+        this.filteredTitleMessage = read.filteredTitleMessage;
     }
 
     /** Writes the title type, its text, the three durations and the trailing identity strings. */
     public encodePayload(): void {
-        this.writeVarInt(this.titleType);
-        NetworkUtil.writeString(this, this.titleText);
-        this.writeVarInt(this.fadeInTime);
-        this.writeVarInt(this.stayTime);
-        this.writeVarInt(this.fadeOutTime);
-        NetworkUtil.writeString(this, this.xuid);
-        NetworkUtil.writeString(this, this.platformOnlineId);
-        NetworkUtil.writeString(this, this.filteredTitleMessage);
+        layoutAt(setTitlePacket, this.codecProtocol).encode(this, {
+            titleType: this.titleType,
+            titleText: this.titleText,
+            fadeInTime: this.fadeInTime,
+            stayTime: this.stayTime,
+            fadeOutTime: this.fadeOutTime,
+            xuid: this.xuid,
+            platformOnlineId: this.platformOnlineId,
+            filteredTitleMessage: this.filteredTitleMessage
+        });
     }
 }

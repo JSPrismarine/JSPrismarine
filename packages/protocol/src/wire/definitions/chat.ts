@@ -1,5 +1,5 @@
 /**
- * The packets that put text on the screen.
+ * The packets that put text on the screen: chat and the title overlay.
  *
  * Layouts follow each packet's docs page at 1.26.51 and are unchanged since protocol 2193.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
@@ -134,3 +134,31 @@ export const textPacket = definePacket('TextPacket', {
 
 /** What `TextPacket` carries. */
 export type TextPayload = PayloadOf<typeof textPacket>;
+
+/**
+ * The `SetTitlePacket` field list.
+ *
+ * The three trailing strings are the fields the packet gained after 1.16. Omitting them
+ * leaves the client reading the next packet's bytes as `Xuid`.
+ */
+export const setTitlePacket = definePacket('SetTitlePacket', {
+    /** `Title Type`: a `TitleType`, saying what `Title Text` means. */
+    titleType: t.varint32,
+    /** `Title Text`: the text, or JSON for the text object types. */
+    titleText: t.string,
+    /** `Fade In Time`, in ticks. */
+    fadeInTime: t.varint32,
+    /** `Stay Time`, in ticks. */
+    stayTime: t.varint32,
+    /** `Fade Out Time`, in ticks. */
+    fadeOutTime: t.varint32,
+    /** `Xuid`: empty when the player is not signed in. */
+    xuid: t.string,
+    /** `Platform Online Id`: a uint64 written as text, or empty. */
+    platformOnlineId: t.string,
+    /** `Filtered Title Message`: empty leaves `Title Text` in place. */
+    filteredTitleMessage: t.string
+});
+
+/** What `SetTitlePacket` carries. */
+export type SetTitlePayload = PayloadOf<typeof setTitlePacket>;
