@@ -1,3 +1,14 @@
+import type {
+    BiomeSourceDefinition,
+    ClimateParameter,
+    ClimateParameterPoint,
+    FlatGeneratorDefinition,
+    GeneratorDefinition,
+    LevelStem,
+    NoiseGeneratorDefinition
+} from '@jsprismarine/worldgen';
+import { parseLevelStem, unquantizeClimateCoord } from '@jsprismarine/worldgen';
+
 import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
 
@@ -14,6 +25,20 @@ export interface LegacyWorldEntity {
     };
 }
 
+/**
+ * The generators a save was made with, in the shape of Java's `world_gen_settings.dat`.
+ *
+ * Written once the stems are resolved and read back before they are resolved again, so a world
+ * keeps the terrain it was generated with when the config changes under it. The stems are
+ * stored as Java `dimension` documents, which is what `parseLevelStem` reads.
+ */
+export interface WorldGenSettings {
+    /** The seed as a decimal string, since JSON cannot hold a 64-bit integer. */
+    readonly seed: string;
+    /** The resolved stem of every dimension, by Java dimension id such as `minecraft:the_nether`. */
+    readonly dimensions: Readonly<Record<string, LevelStem>>;
+}
+
 /** World state a provider stores outside the chunk data. */
 export interface WorldPersistenceData {
     spawn?: { x: number; y: number; z: number };
@@ -21,9 +46,19 @@ export interface WorldPersistenceData {
     weather?: SavedWeather;
     /** Used by providers that do not store actors in chunk data. */
     entities?: LegacyWorldEntity[];
+    /** The seed and stems the save was generated with. */
+    worldGenSettings?: WorldGenSettings;
 }
 
-/** Reads persisted world state at the JSON and NBT boundaries. */
+/**
+ * Reads persisted world state at the JSON and NBT boundaries.
+ *
+ * A malformed spawn, rule, weather or entity entry is dropped. A malformed stem is not: the
+ * stems say which terrain the save holds, and starting with different ones would generate a
+ * different world into the same chunks.
+ *
+ * @throws When `worldGenSettings` is present and one of its stems does not parse.
+ */
 export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => {
     if (!isRecord(value)) return {};
 
@@ -31,13 +66,138 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const gameRules = gameRulesOf(value['gameRules']);
     const weather = savedWeatherOf(value['weather']);
     const entities = entitiesOf(value['entities']);
+    const worldGenSettings = worldGenSettingsOf(value['worldGenSettings']);
 
     return {
         ...(spawn === undefined ? {} : { spawn }),
         ...(gameRules === undefined ? {} : { gameRules }),
         ...(weather === undefined ? {} : { weather }),
-        ...(entities === undefined ? {} : { entities })
+        ...(entities === undefined ? {} : { entities }),
+        ...(worldGenSettings === undefined ? {} : { worldGenSettings })
     };
+};
+
+/**
+ * The persisted state as the JSON object a provider stores.
+ *
+ * Everything but the stems is already plain data. A parsed stem is not: its biome source and
+ * flat settings carry camel-cased fields and quantized climate values, so it is written back as
+ * the Java document `parseLevelStem` reads.
+ */
+export const worldPersistenceJsonOf = (data: WorldPersistenceData): Record<string, unknown> => {
+    const { worldGenSettings, ...rest } = data;
+    if (worldGenSettings === undefined) return { ...rest };
+
+    return {
+        ...rest,
+        worldGenSettings: {
+            seed: worldGenSettings.seed,
+            dimensions: Object.fromEntries(
+                Object.entries(worldGenSettings.dimensions).map(([id, stem]) => [id, levelStemJsonOf(stem)])
+            )
+        }
+    };
+};
+
+/**
+ * Whether a stem's generator is `minecraft:noise`, narrowing it to its settings and biome
+ * source. `GeneratorDefinition` carries an unknown-kind variant typed `type: string`, so a plain
+ * comparison on `type` does not narrow the union by itself.
+ */
+export const isNoiseGenerator = (generator: GeneratorDefinition): generator is NoiseGeneratorDefinition =>
+    generator.type === 'minecraft:noise';
+
+/** Whether a stem's generator is `minecraft:flat`, narrowing it to its layers. */
+export const isFlatGenerator = (generator: GeneratorDefinition): generator is FlatGeneratorDefinition =>
+    generator.type === 'minecraft:flat';
+
+/** A parsed level stem as the Java `dimension` document it came from. */
+export const levelStemJsonOf = (stem: LevelStem): Record<string, unknown> => ({
+    type: stem.type,
+    generator: generatorJsonOf(stem.generator)
+});
+
+const generatorJsonOf = (generator: GeneratorDefinition): Record<string, unknown> => {
+    if (isNoiseGenerator(generator)) {
+        return {
+            type: generator.type,
+            settings: generator.settings,
+            biome_source: biomeSourceJsonOf(generator.biomeSource)
+        };
+    }
+    if (isFlatGenerator(generator)) {
+        const { layers, biome, lakes, features, structureOverrides } = generator.settings;
+        return {
+            type: generator.type,
+            settings: {
+                layers: layers.map((layer) => ({ block: layer.block, height: layer.height })),
+                biome,
+                lakes,
+                features,
+                ...(structureOverrides === undefined ? {} : { structure_overrides: structureOverrides })
+            }
+        };
+    }
+    if (generator.type === 'minecraft:debug') return { type: generator.type };
+
+    // A kind this package does not know keeps whatever `settings` it was read with.
+    const settings = 'settings' in generator ? generator.settings : undefined;
+    return { type: generator.type, ...(settings === undefined ? {} : { settings }) };
+};
+
+const biomeSourceJsonOf = (source: BiomeSourceDefinition): Record<string, unknown> => {
+    switch (source.type) {
+        case 'minecraft:multi_noise':
+            if ('preset' in source) return { type: source.type, preset: source.preset };
+            return {
+                type: source.type,
+                biomes: source.biomes.map((entry) => ({
+                    biome: entry.biome,
+                    parameters: climateParameterPointJsonOf(entry.parameters)
+                }))
+            };
+        case 'minecraft:fixed':
+            return { type: source.type, biome: source.biome };
+        case 'minecraft:checkerboard':
+            return { type: source.type, biomes: [...source.biomes], scale: source.scale };
+        case 'minecraft:the_end':
+            return { type: source.type };
+    }
+};
+
+/** A climate box back in Java's unquantized floats, each axis as `[min, max]`. */
+const climateParameterPointJsonOf = (point: ClimateParameterPoint): Record<string, unknown> => {
+    const span = (parameter: ClimateParameter): [number, number] => [
+        unquantizeClimateCoord(parameter.min),
+        unquantizeClimateCoord(parameter.max)
+    ];
+    return {
+        temperature: span(point.temperature),
+        humidity: span(point.humidity),
+        continentalness: span(point.continentalness),
+        erosion: span(point.erosion),
+        depth: span(point.depth),
+        weirdness: span(point.weirdness),
+        offset: unquantizeClimateCoord(point.offset)
+    };
+};
+
+const worldGenSettingsOf = (value: unknown): WorldGenSettings | undefined => {
+    if (!isRecord(value)) return undefined;
+
+    const rawSeed = value['seed'];
+    const seed = typeof rawSeed === 'string' ? rawSeed : isFiniteNumber(rawSeed) ? String(rawSeed) : undefined;
+    const rawDimensions = value['dimensions'];
+    if (seed === undefined || !isRecord(rawDimensions)) {
+        throw new Error('worldGenSettings needs a seed string and a dimensions object');
+    }
+
+    const dimensions: Record<string, LevelStem> = {};
+    for (const [id, stem] of Object.entries(rawDimensions)) {
+        dimensions[id] = parseLevelStem(stem, `worldGenSettings.dimensions[${JSON.stringify(id)}]`);
+    }
+
+    return { seed, dimensions };
 };
 
 /** Validates legacy file data before migrating it and removing its source file. */

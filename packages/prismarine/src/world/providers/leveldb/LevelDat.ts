@@ -6,7 +6,7 @@ import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { Generator } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
-import type { FlatGeneratorDefinition, FlatGeneratorSettings, GeneratorDefinition } from '@jsprismarine/worldgen';
+import type { FlatGeneratorSettings, GeneratorDefinition } from '@jsprismarine/worldgen';
 
 import { bedrockBiomeIdOf } from '../../generators/datadriven';
 
@@ -119,14 +119,6 @@ export const levelDatGeneratorOf = (overworld: GeneratorDefinition | undefined):
             return Generator.OVERWORLD;
     }
 };
-
-/**
- * Whether a stem's generator is `minecraft:flat`, narrowing it so its layers can be read. The
- * union carries an unknown-kind variant typed `type: string`, which is why a plain comparison
- * on `type` does not narrow by itself.
- */
-export const isFlatGenerator = (generator: GeneratorDefinition): generator is FlatGeneratorDefinition =>
-    generator.type === 'minecraft:flat';
 
 /** The layers of the game's own `ClassicFlat` preset, which is what a fresh flat world gets. */
 const CLASSIC_FLAT_LAYERS: readonly { block: string; height: number }[] = [

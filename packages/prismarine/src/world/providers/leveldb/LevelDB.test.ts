@@ -268,6 +268,45 @@ describe('world', () => {
             await reopened.provider.disable();
         });
 
+        it('keeps the stems a save was generated with in the world data record', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const data = {
+                spawn: { x: 10, y: 65, z: -3 },
+                worldGenSettings: {
+                    seed: '1234',
+                    dimensions: {
+                        'minecraft:overworld': parseLevelStem({
+                            type: 'minecraft:overworld',
+                            generator: {
+                                type: 'minecraft:noise',
+                                settings: 'minecraft:large_biomes',
+                                biome_source: { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' }
+                            }
+                        }),
+                        'minecraft:the_nether': parseLevelStem({
+                            type: 'minecraft:the_nether',
+                            generator: {
+                                type: 'minecraft:noise',
+                                settings: 'minecraft:nether',
+                                biome_source: { type: 'minecraft:multi_noise', preset: 'minecraft:nether' }
+                            }
+                        })
+                    }
+                }
+            } satisfies WorldPersistenceData;
+
+            await provider.enable();
+            await provider.writeWorldData(data);
+            expect(await provider.readWorldData()).toEqual(data);
+            await provider.disable();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect(await reopened.provider.readWorldData()).toEqual(data);
+            await reopened.provider.disable();
+        });
+
         describe('level.dat', () => {
             const levelDat = (worldPath: string) => decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat'))).root;
 

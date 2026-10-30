@@ -13,7 +13,7 @@ import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprism
 import fs from 'node:fs';
 import path from 'node:path';
 import type { WorldPersistenceData } from '../WorldPersistence';
-import { parseWorldPersistenceData } from '../WorldPersistence';
+import { parseWorldPersistenceData, worldPersistenceJsonOf } from '../WorldPersistence';
 
 const WORLD_DATA_FILE_NAME = 'jsprismarine-world.dat';
 
@@ -130,7 +130,7 @@ export default abstract class BaseProvider implements Provider {
     /** Writes world state as one provider-owned NBT compound. */
     public async writeWorldData(data: WorldPersistenceData): Promise<void> {
         const root = new NBTTagCompound('');
-        root.addValue('Data', new Types.StringVal(JSON.stringify(data)));
+        root.addValue('Data', new Types.StringVal(JSON.stringify(worldPersistenceJsonOf(data))));
 
         const stream = new BinaryStream();
         const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);

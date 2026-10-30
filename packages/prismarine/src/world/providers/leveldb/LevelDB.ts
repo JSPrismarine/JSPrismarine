@@ -26,7 +26,6 @@ import {
 import {
     LEVEL_DAT_STORAGE_VERSION,
     flatWorldLayersOf,
-    isFlatGenerator,
     levelDatGeneratorOf,
     readLevelDat,
     readLevelName,
@@ -48,7 +47,12 @@ import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
 import type { LevelDatInputs } from '../Provider';
-import { parseWorldPersistenceData, worldPersistenceDataOf } from '../../WorldPersistence';
+import {
+    isFlatGenerator,
+    parseWorldPersistenceData,
+    worldPersistenceDataOf,
+    worldPersistenceJsonOf
+} from '../../WorldPersistence';
 
 /** The `Version` byte written since 1.21.120. Older values make the game run upgrade passes. */
 export const CHUNK_VERSION = 42;
@@ -174,10 +178,11 @@ export default class LevelDB extends BaseProvider {
         const metadata: WorldPersistenceData = {
             ...(data.spawn === undefined ? {} : { spawn: data.spawn }),
             ...(data.gameRules === undefined ? {} : { gameRules: data.gameRules }),
-            ...(data.weather === undefined ? {} : { weather: data.weather })
+            ...(data.weather === undefined ? {} : { weather: data.weather }),
+            ...(data.worldGenSettings === undefined ? {} : { worldGenSettings: data.worldGenSettings })
         };
         const root = new NBTTagCompound('');
-        root.addValue('Data', new Types.StringVal(JSON.stringify(metadata)));
+        root.addValue('Data', new Types.StringVal(JSON.stringify(worldPersistenceJsonOf(metadata))));
         this.requireDatabase().write(new WriteBatch().put(WORLD_DATA_KEY, this.writeActorNbt(root)));
     }
 
