@@ -29,6 +29,7 @@ import SetSpawnPositionPacket from './SetSpawnPositionPacket';
 import StartGamePacket from './StartGamePacket';
 import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
+import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
 
 export {
     ChangeDimensionPacket,
@@ -61,7 +62,8 @@ export {
     SetSpawnPositionPacket,
     StartGamePacket,
     StartGamePacket2225,
-    TextPacket
+    TextPacket,
+    UpdateAdventureSettingsPacket
 };
 
 export { GameRuleType } from './StartGamePacket';
@@ -105,6 +107,7 @@ export type { Experiment, ResourcePackStack, ResourcePackStackEntry } from './Re
 export type { PackIdVersion, ResourcePackEntry, ResourcePacksInfo } from './ResourcePacksInfoPacket';
 export type { SetLocalPlayerAsInitialized } from './SetLocalPlayerAsInitializedPacket';
 export type { SetHealthPayload } from './SetHealthPacket';
+export type { UpdateAdventureSettingsPayload } from './UpdateAdventureSettingsPacket';
 export type { SetCommandsEnabledPayload } from './SetCommandsEnabledPacket';
 export type { SetDifficultyPayload } from './SetDifficultyPacket';
 export type { SetTimePayload } from './SetTimePacket';

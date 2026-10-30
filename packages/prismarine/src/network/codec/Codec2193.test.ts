@@ -6,6 +6,7 @@ import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPack
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import Identifiers from '../Identifiers';
@@ -34,6 +35,7 @@ describe('network/codec', () => {
                 ChangeDimensionPacket.name,
                 PlayerHotbarPacket.name,
                 NetworkChunkPublisherUpdatePacket.name,
+                UpdateAdventureSettingsPacket.name,
                 RespawnPacket.name,
                 SetSpawnPositionPacket.name,
                 SetTimePacket.name

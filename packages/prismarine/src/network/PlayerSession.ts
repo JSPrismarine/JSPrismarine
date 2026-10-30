@@ -83,7 +83,7 @@ import UpdateAbilitiesPacket, {
     AbilityLayerFlag,
     AbilityLayerType
 } from './packet/UpdateAbilitiesPacket';
-import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import CommandData from './type/CommandData';
 import { CommandEnum } from './type/CommandEnum';
@@ -555,12 +555,14 @@ export default class PlayerSession {
     public async sendSettings(player?: Player): Promise<void> {
         const target = player ?? this.player;
 
-        const packet = new UpdateAdventureSettingsPacket();
-        packet.worldImmutable = target.gamemode === Gametype.SPECTATOR;
-        packet.noAttackingPlayers = target.gamemode === Gametype.SPECTATOR;
-        packet.noAttackingMobs = target.gamemode === Gametype.SPECTATOR;
-        packet.autoJump = true;
-        packet.showNameTags = true;
+        const spectator = target.gamemode === Gametype.SPECTATOR;
+        const packet = new UpdateAdventureSettingsPacket({
+            worldImmutable: spectator,
+            noAttackingPlayers: spectator,
+            noAttackingMobs: spectator,
+            autoJump: true,
+            showNameTags: true
+        });
         await this.connection.sendDataPacket(packet);
     }
 

@@ -152,7 +152,6 @@ import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket'
 import TransferPacket from './packet/TransferPacket';
 import UnlockedRecipesPacket from './packet/UnlockedRecipesPacket';
 import UpdateAbilitiesPacket from './packet/UpdateAbilitiesPacket';
-import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import UpdateBlockSyncedPacket from './packet/UpdateBlockSyncedPacket';
@@ -320,7 +319,6 @@ export {
     TransferPacket,
     UnlockedRecipesPacket,
     UpdateAbilitiesPacket,
-    UpdateAdventureSettingsPacket,
     UpdateAttributesPacket,
     UpdateBlockPacket,
     UpdateBlockSyncedPacket,
