@@ -4,7 +4,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import AvailableActorIdentifiersPacket from './AvailableActorIdentifiersPacket';
 
 describe('network', () => {
@@ -12,7 +12,7 @@ describe('network', () => {
         describe('AvailableActorIdentifiersPacket', () => {
             it('writes the packet id as a varuint followed by the payload bytes', () => {
                 const pk = new AvailableActorIdentifiersPacket();
-                pk.encode();
+                pk.encode({ protocolVersion: 2193, entityIdentifiers: entity_identifiers });
 
                 const buffer = pk.getBuffer();
 
@@ -68,12 +68,12 @@ describe('network', () => {
                 pk.setReadBuffer(Buffer.from([0x77, 0x0a, 0x00, 0x00]));
                 pk.decode();
 
-                expect([...pk.identifiers]).toEqual([0x0a, 0x00, 0x00]);
+                expect(pk.identifiers).toEqual(Buffer.from([0x0a, 0x00, 0x00]));
                 expect(pk.feof()).toBe(true);
             });
 
             it('uses the network id the client expects', () => {
-                expect(netIdFor('AvailableActorIdentifiersPacket')).toBe(Identifiers.AvailableActorIdentifiersPacket);
+                expect(netIdFor('AvailableActorIdentifiersPacket')).toBe(PacketIdentifier.AVAILABLE_ACTOR_IDENTIFIERS);
                 expect(netIdFor('AvailableActorIdentifiersPacket')).toBe(0x77);
             });
         });

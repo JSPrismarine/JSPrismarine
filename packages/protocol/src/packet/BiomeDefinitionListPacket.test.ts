@@ -3,8 +3,8 @@ import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
-import { NetworkUtil } from '../NetworkUtil';
+import { PacketIdentifier } from '../PacketIdentifier';
+import { NetworkUtil } from '../wire/networkUtil';
 import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
 
 /**
@@ -38,7 +38,7 @@ describe('network', () => {
         describe('BiomeDefinitionListPacket', () => {
             it('writes the packet id as a varuint followed by the payload bytes', () => {
                 const pk = new BiomeDefinitionListPacket();
-                pk.encode();
+                pk.encode({ protocolVersion: 2193, biomeDefinitions: biome_definitions_network });
 
                 const buffer = pk.getBuffer();
 
@@ -114,12 +114,12 @@ describe('network', () => {
                 pk.setReadBuffer(Buffer.from([0x7a, 0x00, 0x00]));
                 pk.decode();
 
-                expect([...pk.definitions]).toEqual([0x00, 0x00]);
+                expect(pk.definitions).toEqual(Buffer.from([0x00, 0x00]));
                 expect(pk.feof()).toBe(true);
             });
 
             it('uses the network id the client expects', () => {
-                expect(netIdFor('BiomeDefinitionListPacket')).toBe(Identifiers.BiomeDefinitionListPacket);
+                expect(netIdFor('BiomeDefinitionListPacket')).toBe(PacketIdentifier.BIOME_DEFINITION_LIST);
                 expect(netIdFor('BiomeDefinitionListPacket')).toBe(0x7a);
             });
         });

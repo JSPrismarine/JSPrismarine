@@ -4,7 +4,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import Identifiers from '../Identifiers';
+import { PacketIdentifier } from '../PacketIdentifier';
 import JigsawStructureDataPacket from './JigsawStructureDataPacket';
 
 describe('network', () => {
@@ -12,7 +12,7 @@ describe('network', () => {
         describe('JigsawStructureDataPacket', () => {
             it('writes the packet id as a varuint followed by the payload bytes', () => {
                 const pk = new JigsawStructureDataPacket();
-                pk.encode();
+                pk.encode({ protocolVersion: 2193, jigsawStructureData: jigsaw_structure_data });
 
                 const buffer = pk.getBuffer();
 
@@ -41,12 +41,12 @@ describe('network', () => {
                 pk.setReadBuffer(Buffer.from([0xb9, 0x02, 0x0a, 0x00, 0x00]));
                 pk.decode();
 
-                expect([...pk.structureData]).toEqual([0x0a, 0x00, 0x00]);
+                expect(pk.structureData).toEqual(Buffer.from([0x0a, 0x00, 0x00]));
                 expect(pk.feof()).toBe(true);
             });
 
             it('uses the network id the client expects', () => {
-                expect(netIdFor('JigsawStructureDataPacket')).toBe(Identifiers.JigsawStructureDataPacket);
+                expect(netIdFor('JigsawStructureDataPacket')).toBe(PacketIdentifier.JIGSAW_STRUCTURE_DATA);
                 expect(netIdFor('JigsawStructureDataPacket')).toBe(0x139);
             });
         });

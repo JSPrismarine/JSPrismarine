@@ -40,6 +40,9 @@ import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
 import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
 import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
+import AvailableActorIdentifiersPacket from './AvailableActorIdentifiersPacket';
+import BiomeDefinitionListPacket from './BiomeDefinitionListPacket';
+import JigsawStructureDataPacket from './JigsawStructureDataPacket';
 
 export {
     ChangeDimensionPacket,
@@ -83,7 +86,10 @@ export {
     StartGamePacket2225,
     TextPacket,
     UpdateAdventureSettingsPacket,
-    UpdatePlayerGameTypePacket
+    UpdatePlayerGameTypePacket,
+    AvailableActorIdentifiersPacket,
+    BiomeDefinitionListPacket,
+    JigsawStructureDataPacket
 };
 
 export { GameRuleType } from './StartGamePacket';

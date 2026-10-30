@@ -1,7 +1,8 @@
-import { biome_definitions_network } from '@jsprismarine/bedrock-data';
-import { biomeDefinitionListPacket, layoutAt } from '@jsprismarine/protocol';
+import { biomeDefinitionListPacket } from '../wire/definitions/biomeDefinitionList';
+import { layoutAt } from '../wire/WireLayout';
+import FieldNetworkPacket from '../FieldNetworkPacket';
 
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import type { ProtocolContext } from '../ProtocolContext';
 
 /**
  * Every biome the client can render, and the data each one carries.
@@ -16,23 +17,29 @@ import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
  * biome section is indices into this list, and a client that reaches the world-generation
  * screen with an empty one cannot build the world and disconnects.
  *
- * This server defines no custom biomes, so it replays vanilla's: the exact payload a Bedrock
- * Dedicated Server 1.26.51.1 sends, recorded by `packages/client/tools/capture-server-data.mjs`.
- * Vanilla sends 89 biomes, none with chunk generation data, over a 187-entry string list.
- * Modeling the map field by field would only create ways to disagree with the client about a
- * blob that is identical for every server of this version.
+ * The full payload is supplied for the negotiated connection through
+ * `ProtocolContext.biomeDefinitions`, or explicitly through {@link definitions}. It is kept as
+ * bytes here because captures may include version-specific tags and chunk generation data.
  *
  * The wire layout is the `biomeDefinitionListPacket` definition in the protocol package.
  *
  * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/biome-definition-list-packet/
  */
 export default class BiomeDefinitionListPacket extends FieldNetworkPacket {
-    /** Both fields as the network carries them. Defaults to vanilla's. */
-    public definitions: Buffer = biome_definitions_network;
+    /** Both fields as the network carries them, or `null` to use the connection's captured bytes. */
+    public definitions: Buffer | null = null;
 
-    /** Writes the definitions, which are the whole payload. */
-    public encodePayload(): void {
-        layoutAt(biomeDefinitionListPacket, this.codecProtocol).encode(this, this);
+    /** Writes the definitions, taking the bytes from the connection context when unset. */
+    public encodePayload(context?: ProtocolContext): void {
+        const definitions = this.definitions ?? context?.biomeDefinitions;
+        if (definitions === undefined) {
+            throw new Error(
+                'BiomeDefinitionListPacket requires biome definition data in the packet or protocol context'
+            );
+        }
+
+        layoutAt(biomeDefinitionListPacket, this.codecProtocol).encode(this, { definitions });
     }
 
     /** Reads the definitions, which run to the end of the packet. */
