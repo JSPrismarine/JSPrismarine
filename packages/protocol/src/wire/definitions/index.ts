@@ -25,6 +25,7 @@ import { biomeDefinitionListPacket } from './biomeDefinitionList';
 import { blockActorDataPacket, updateBlockPacket } from './blocks';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
+import { textPacket } from './chat';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
 import { containerClosePacket, containerOpenPacket, mobEquipmentPacket } from './containers';
 import { gameRulesChangedPacket } from './gameRulesChanged';
@@ -98,6 +99,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         serverToClientHandshakePacket,
         setActorDataPacket,
         startGamePacket,
+        textPacket,
         syncActorPropertyPacket,
         trimDataPacket,
         updateAbilitiesPacket,

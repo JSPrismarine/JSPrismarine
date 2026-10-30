@@ -1,37 +1,8 @@
-import { NetworkUtil } from '../NetworkUtil';
-import TextPacketType from '../type/TextPacketType';
+import { layoutAt, textPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
-/** The three shapes of the Body variant, as the docs name them. The value is the variant index on the wire. */
-const enum BodyVariant {
-    MessageOnly = 0,
-    AuthorAndMessage = 1,
-    MessageAndParams = 2
-}
-
-/**
- * The body variant a message type is sent in.
- *
- * Derived rather than stored: it is a restatement of the type, and the two disagreeing is a
- * packet the client reads the wrong number of strings out of. Every type not listed here,
- * `TextObjectAnnouncement` included, is MessageOnly.
- */
-const variantOf = (type: TextPacketType): BodyVariant => {
-    switch (type) {
-        case TextPacketType.Chat:
-        case TextPacketType.Whisper:
-        case TextPacketType.Announcement:
-            return BodyVariant.AuthorAndMessage;
-
-        case TextPacketType.Translate:
-        case TextPacketType.Popup:
-        case TextPacketType.JukeboxPopup:
-            return BodyVariant.MessageAndParams;
-
-        default:
-            return BodyVariant.MessageOnly;
-    }
-};
+import type TextPacketType from '../type/TextPacketType';
 
 /**
  * Chat, system messages, popups and translations (docs id 9).
@@ -68,73 +39,31 @@ export default class TextPacket extends DataPacket {
     public filtered!: string;
 
     public decodePayload(): void {
-        this.needsTranslation = this.readBoolean();
-
-        // The variant index says which shape follows. The type is read as sent and left to
-        // the handler; it is the index, not the type, that decides what to read next.
-        const variant = this.readByte();
-        this.type = this.readByte();
-
-        switch (variant) {
-            case BodyVariant.MessageOnly:
-                this.message = NetworkUtil.readString(this);
-                break;
-
-            case BodyVariant.AuthorAndMessage:
-                this.sourceName = NetworkUtil.readString(this);
-                this.message = NetworkUtil.readString(this);
-                break;
-
-            case BodyVariant.MessageAndParams: {
-                this.message = NetworkUtil.readString(this);
-                const count = this.readUnsignedVarInt();
-                this.parameters = [];
-                for (let i = 0; i < count; i++) {
-                    this.parameters.push(NetworkUtil.readString(this));
-                }
-                break;
-            }
-
-            default:
-                throw new Error(`Unknown TextPacket body variant ${variant}`);
-        }
-
-        this.xuid = NetworkUtil.readString(this);
-        this.platformChatId = NetworkUtil.readString(this);
-        this.filtered = this.readBoolean() ? NetworkUtil.readString(this) : '';
+        const read = layoutAt(textPacket, this.codecProtocol).decode(this);
+        this.needsTranslation = read.needsTranslation;
+        this.type = read.body.type;
+        this.sourceName = read.body.sourceName;
+        this.message = read.body.message;
+        this.parameters = read.body.parameters;
+        this.xuid = read.xuid;
+        this.platformChatId = read.platformChatId;
+        this.filtered = read.filtered ?? '';
     }
 
     public encodePayload(): void {
-        this.writeBoolean(this.needsTranslation);
-
-        const variant = variantOf(this.type);
-        this.writeByte(variant);
-        this.writeByte(this.type);
-
-        switch (variant) {
-            case BodyVariant.MessageOnly:
-                NetworkUtil.writeString(this, this.message);
-                break;
-
-            case BodyVariant.AuthorAndMessage:
-                NetworkUtil.writeString(this, this.sourceName ?? '');
-                NetworkUtil.writeString(this, this.message);
-                break;
-
-            case BodyVariant.MessageAndParams:
-                NetworkUtil.writeString(this, this.message);
-                this.writeUnsignedVarInt(this.parameters.length);
-                for (const parameter of this.parameters) {
-                    NetworkUtil.writeString(this, parameter);
-                }
-                break;
-        }
-
-        NetworkUtil.writeString(this, this.xuid);
-        NetworkUtil.writeString(this, this.platformChatId);
-
-        const filtered = this.filtered ?? '';
-        this.writeBoolean(filtered.length > 0);
-        if (filtered.length > 0) NetworkUtil.writeString(this, filtered);
+        // Which of the text fields travel is the message type's business, and the layout's
+        // body handles it; an empty filtered message is the absent optional.
+        layoutAt(textPacket, this.codecProtocol).encode(this, {
+            needsTranslation: this.needsTranslation,
+            body: {
+                type: this.type,
+                sourceName: this.sourceName ?? '',
+                message: this.message,
+                parameters: this.parameters
+            },
+            xuid: this.xuid,
+            platformChatId: this.platformChatId,
+            filtered: this.filtered ? this.filtered : null
+        });
     }
 }
