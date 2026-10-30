@@ -8,9 +8,8 @@
  * Read through a `ConfigBuilder` of its own rather than through `Config`,
  * because `Config` reads every key it knows at `enable` time and the content
  * build happens before that. Both builders open the same `config.json` with
- * the same key order, so whichever one writes first, the file comes out the
- * same - these keys used to live in a `config.yaml` of their own, which the
- * server then mistook for a legacy config and converted over `config.json`.
+ * the same key order, so the file stays ordered whichever one writes first.
+ * These keys used to live in a separate `config.yaml`.
  */
 import { configFilePath } from '../config/Config';
 import { ConfigBuilder } from '../config/ConfigBuilder';

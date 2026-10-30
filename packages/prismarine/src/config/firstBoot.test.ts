@@ -10,12 +10,9 @@ import { Config } from './Config';
  * What the generated config file looks like after a boot, regardless of which
  * process touched it first.
  *
- * Three bugs lived here at once. The content settings wrote a `config.yaml` of
- * their own beside `config.json`; the watch-mode host read them before the
- * child's `Config` existed, so that `config.yaml` was then mistaken for a
- * legacy config and converted, which put `content-strict` and friends at the
- * top of `config.json`; and `$schema` was appended wherever the write
- * happened to land rather than kept first.
+ * `Config` and content settings share `config.json`, even when the watch-mode
+ * host reads content settings first. `$schema` stays first and the keys follow
+ * their definition order.
  */
 describe('the config file a boot generates', () => {
     let root: string;
@@ -101,21 +98,13 @@ describe('the config file a boot generates', () => {
         expect(readFileSync(configFile(), 'utf8')).toBe(firstBoot);
     });
 
-    it.each(['config.yml', 'config.yaml'])('refuses to start over a %s, naming the file and the way out', (name) => {
-        writeFileSync(path.join(root, name), 'port: 25565\n');
-
-        expect(() => new Config()).toThrow(/no longer supports YAML/);
-        expect(() => new Config()).toThrow(name);
-        expect(() => new Config()).toThrow(/config\.json/);
-        // The file is the person's config; refusing must not touch it.
-        expect(readFileSync(path.join(root, name), 'utf8')).toBe('port: 25565\n');
-    });
-
-    it('refuses even when a config.json already exists, so the YAML is not silently ignored', async () => {
+    it.each(['config.yml', 'config.yaml'])('ignores an existing %s beside config.json', async (name) => {
         await boot();
-        writeFileSync(path.join(root, 'config.yaml'), 'content-strict: true\n');
+        const yamlFile = path.join(root, name);
+        writeFileSync(yamlFile, 'content-strict: true\n');
 
-        expect(() => new Config()).toThrow(/no longer supports YAML/);
-        expect(() => readContentSettings()).toThrow(/no longer supports YAML/);
+        expect(() => new Config()).not.toThrow();
+        expect(readContentSettings()).toEqual({ strict: false, worldPacks: [], datapacks: [] });
+        expect(readFileSync(yamlFile, 'utf8')).toBe('content-strict: true\n');
     });
 });

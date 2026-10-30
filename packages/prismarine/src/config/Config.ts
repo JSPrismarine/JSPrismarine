@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-
 import type { LogLevel } from '@jsprismarine/logger';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
@@ -13,27 +11,9 @@ import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
 const isDev = process.env.NODE_ENV === 'development';
 
 const FILE_NAME = 'config.json';
-const YAML_FILE_NAMES = ['config.yml', 'config.yaml'];
 
-/**
- * Where the server config lives, refusing to run beside a YAML config.
- *
- * The server read `config.yml` and `config.yaml` once; that support is gone, and the `yaml`
- * dependency with it. The error, rather than a silent ignore or an automatic conversion,
- * because the file holds settings somebody chose: ignoring it would run the server on
- * defaults they turned off, and converting it would need the YAML parser this removed. The
- * person moves the handful of keys once and deletes the file.
- */
-export const configFilePath = (): string => {
-    const yamlFile = YAML_FILE_NAMES.map((name) => withCwd(name)).find((candidate) => fs.existsSync(candidate));
-    if (yamlFile !== undefined) {
-        throw new Error(
-            `JSPrismarine no longer supports YAML configs. Move the settings from ${yamlFile} into ` +
-                `config.json (JSON, where // comments are allowed) and delete the YAML file.`
-        );
-    }
-    return withCwd(FILE_NAME);
-};
+/** Returns the path to the server's JSON configuration file. */
+export const configFilePath = (): string => withCwd(FILE_NAME);
 
 /** The difficulty names a config file may use, as the protocol numbers them. */
 export const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {

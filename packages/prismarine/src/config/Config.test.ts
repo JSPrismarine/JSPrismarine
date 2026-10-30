@@ -107,12 +107,11 @@ describe('config', () => {
             expect(text).toContain('"view-distance": 10');
         });
 
-        it.each(['config.yml', 'config.yaml'])('refuses to start beside a %s instead of ignoring it', (name) => {
+        it.each(['config.yml', 'config.yaml'])('ignores an existing %s', (name) => {
             const yamlFile = path.join(configDirectory, name);
             writeFileSync(yamlFile, 'port: 25565\n');
 
-            expect(() => new Config()).toThrow(/no longer supports YAML/);
-            // The file holds settings somebody chose; refusing must not touch it.
+            expect(() => new Config()).not.toThrow();
             expect(readFileSync(yamlFile, 'utf8')).toBe('port: 25565\n');
         });
 
