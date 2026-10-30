@@ -25,7 +25,7 @@ import type { PlainNbt } from './nbt';
 
 const enabled = !!process.env.JSP_VANILLA_BLOCKS;
 
-const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
+const cacheRoot = join(import.meta.dirname, '..', '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
 
 const vanillaBehaviorPack = (): string => {
     const root = join(cacheRoot, 'bedrock-samples');
