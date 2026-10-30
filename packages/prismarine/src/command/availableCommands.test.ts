@@ -3,8 +3,11 @@ import type { BedrockParameterTypeName } from '@jsprismarine/commands';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import { CommandParameterFlags, CommandParameterTypeFlag } from '../network/type/CommandParameter';
+import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
+import {
+    CommandParameterFlags,
+    CommandParameterTypeFlag
+} from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import { PARAMETER_TYPES, commandDataOf } from './availableCommands';
 import { buildVanillaCommands } from './vanillaCommands';
 

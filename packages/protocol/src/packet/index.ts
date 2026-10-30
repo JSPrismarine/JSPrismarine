@@ -1,4 +1,5 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
+import AvailableCommandsPacket from './AvailableCommandsPacket';
 import AddItemActorPacket from './AddItemActorPacket';
 import AddPlayerPacket from './AddPlayerPacket';
 import AddPaintingPacket from './AddPaintingPacket';
@@ -77,6 +78,7 @@ import ServerboundPackSettingChangePacket from './ServerboundPackSettingChangePa
 export {
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
+    AvailableCommandsPacket,
     AddItemActorPacket,
     AddPlayerPacket,
     AddPaintingPacket,

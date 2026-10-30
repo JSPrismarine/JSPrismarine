@@ -6,14 +6,17 @@ import type {
     SuggestionsBuilder
 } from '@jsprismarine/brigadier';
 import { Suggestions } from '@jsprismarine/brigadier';
-import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
+import CommandParameter, {
+    CommandParameterFlags,
+    CommandParameterType
+} from '@jsprismarine/protocol/wire/structures/CommandParameter';
 
 import { Vector3 } from '@jsprismarine/math';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 // Imported straight from its module rather than through the barrel; see `CommandManager.ts`.
 import { Entity } from '../entity/Entity';
-import { CommandEnum } from '../network/type/CommandEnum';
+import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation, { parseAbsoluteCoordinate } from '../utils/ParseTildeCaretNotation';
 import type { CommandExecutor } from './CommandExecutor';

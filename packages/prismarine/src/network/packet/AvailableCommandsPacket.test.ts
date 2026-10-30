@@ -12,12 +12,15 @@ import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { NetworkUtil } from '../NetworkUtil';
 import PlayerSession from '../PlayerSession';
-import { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
-import CommandData from '../type/CommandData';
-import { CommandEnum } from '../type/CommandEnum';
-import CommandEnumConstraint from '../type/CommandEnumConstraint';
-import CommandParameter, { CommandArgumentType, CommandParameterType } from '../type/CommandParameter';
-import AvailableCommandsPacket from './AvailableCommandsPacket';
+import { CommandChainedSubcommand } from '@jsprismarine/protocol/wire/structures/CommandChainedSubcommand';
+import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
+import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
+import CommandEnumConstraint from '@jsprismarine/protocol/wire/structures/CommandEnumConstraint';
+import CommandParameter, {
+    CommandArgumentType,
+    CommandParameterType
+} from '@jsprismarine/protocol/wire/structures/CommandParameter';
+import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { testContent } from '../../testing/entityServer';
 

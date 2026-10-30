@@ -17,9 +17,9 @@ import { canExecute } from '../permission/PermissionManager';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
-import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
+import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import { CommandParameterType } from './type/CommandParameter';
+import { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import { testContent } from '../testing/entityServer';
 
 /** What a fresh `permissions.json` grants everyone. */

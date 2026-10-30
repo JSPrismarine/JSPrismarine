@@ -26,6 +26,16 @@ import CameraPreset, { AimAssistTargetMode, CameraAudioListener, ControlScheme }
 import type { CameraAimAssistDefinition, CameraPresetData } from './CameraPreset';
 import CameraSplineDefinition, { CameraSplineType } from './CameraSplineDefinition';
 import type { SplineDefinitionProgressKeyFrame, SplineDefinitionRotationKeyFrame } from './CameraSplineDefinition';
+import { CommandChainedSubcommand } from '../wire/structures/CommandChainedSubcommand';
+import CommandData from '../wire/structures/CommandData';
+import { CommandEnum } from '../wire/structures/CommandEnum';
+import CommandEnumConstraint from '../wire/structures/CommandEnumConstraint';
+import CommandParameter, {
+    CommandArgumentType,
+    CommandParameterFlags,
+    CommandParameterType,
+    CommandParameterTypeFlag
+} from '../wire/structures/CommandParameter';
 import { ChunkPos } from './ChunkPos';
 import ClientStoreEntryPointConfig from './ClientStoreEntryPointConfig';
 import { DataItem } from './DataItem';
@@ -101,6 +111,15 @@ export {
     CameraInstruction,
     CameraPreset,
     CameraSplineDefinition,
+    CommandChainedSubcommand,
+    CommandData,
+    CommandEnum,
+    CommandEnumConstraint,
+    CommandParameter,
+    CommandArgumentType,
+    CommandParameterFlags,
+    CommandParameterType,
+    CommandParameterTypeFlag,
     CameraSplineType,
     ChunkPos,
     ClientStoreEntryPointConfig,

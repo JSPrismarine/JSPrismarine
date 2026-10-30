@@ -21,7 +21,7 @@ import { Dimensions } from '../world/Dimension';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
-import { CommandParameterFlags } from '../network/type/CommandParameter';
+import { CommandParameterFlags } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import { testContent } from '../testing/entityServer';
 import * as Commands from './Commands';
 import { Command, argument, literal } from './Command';

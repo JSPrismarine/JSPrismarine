@@ -19,8 +19,8 @@ import { collectAsyncCommands, deferCommandWork } from './Command';
 // module and the binding is not a constructor yet by the time `instanceof` runs.
 import Player from '../Player';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
-import { CommandEnum } from '../network/type/CommandEnum';
-import CommandParameter, { CommandParameterFlags } from '../network/type/CommandParameter';
+import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
+import CommandParameter, { CommandParameterFlags } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import Timer from '../utils/Timer';
 import type { CommandArgumentType } from './CommandArguments';
 import { CommandArgument, isCommandArgument } from './CommandArguments';

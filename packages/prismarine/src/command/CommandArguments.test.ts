@@ -4,7 +4,7 @@ import type Server from '../Server';
 import { testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { CommandArgumentCommand, CommandArgumentMob } from './CommandArguments';
-import { CommandParameterType } from '../network/type/CommandParameter';
+import { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 
 describe('command', () => {
     describe('CommandArgumentMob', () => {

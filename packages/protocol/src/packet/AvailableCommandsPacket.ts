@@ -1,14 +1,21 @@
-import { NetworkUtil } from '../../network/NetworkUtil';
-import { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
-import CommandData from '../type/CommandData';
-import { CommandEnum } from '../type/CommandEnum';
-import CommandEnumConstraint from '../type/CommandEnumConstraint';
+import { CommandChainedSubcommand } from '../wire/structures/CommandChainedSubcommand';
+import CommandData from '../wire/structures/CommandData';
+import { CommandEnum } from '../wire/structures/CommandEnum';
+import CommandEnumConstraint from '../wire/structures/CommandEnumConstraint';
 import CommandParameter, {
     CommandParameterFlags,
     CommandParameterType,
     CommandParameterTypeFlag
-} from '../type/CommandParameter';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+} from '../wire/structures/CommandParameter';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+
+const readString = (packet: FieldNetworkPacket): string => packet.read(packet.readUnsignedVarInt()).toString('utf8');
+
+const writeString = (packet: FieldNetworkPacket, value: string): void => {
+    const encoded = Buffer.from(value, 'utf8');
+    packet.writeUnsignedVarInt(encoded.byteLength);
+    packet.write(encoded);
+};
 
 /**
  * The name protocol 2193 writes a command's `Permission Level` under.
@@ -58,6 +65,7 @@ const PARSE_SYMBOL_INDEX_MASK = 0xffff;
  * `CommandParameter.ts`.
  *
  * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/available-commands-packet/
  */
 export default class AvailableCommandsPacket extends FieldNetworkPacket {
     public commandData: CommandData[] = [];
@@ -149,17 +157,17 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
 
         this.writeUnsignedVarInt(enumValueIndexes.size);
         enumValueIndexes.forEach((_index: number, enumValue: string) => {
-            NetworkUtil.writeString(this, enumValue);
+            writeString(this, enumValue);
         });
 
         this.writeUnsignedVarInt(chainedValueIndexes.size);
         chainedValueIndexes.forEach((_index: number, value: string) => {
-            NetworkUtil.writeString(this, value);
+            writeString(this, value);
         });
 
         this.writeUnsignedVarInt(postfixIndexes.size);
         postfixIndexes.forEach((_index: number, postfix: string) => {
-            NetworkUtil.writeString(this, postfix);
+            writeString(this, postfix);
         });
 
         this.writeUnsignedVarInt(enums.length);
@@ -204,22 +212,22 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
     public decodePayload(): void {
         const enumValues: string[] = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            enumValues.push(NetworkUtil.readString(this));
+            enumValues.push(readString(this));
         }
 
         const chainedValues: string[] = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            chainedValues.push(NetworkUtil.readString(this));
+            chainedValues.push(readString(this));
         }
 
         const postfixes: string[] = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            postfixes.push(NetworkUtil.readString(this));
+            postfixes.push(readString(this));
         }
 
         const enums: CommandEnum[] = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const name = NetworkUtil.readString(this);
+            const name = readString(this);
             const values: string[] = [];
             for (let j = 0, indices = this.readUnsignedVarInt(); j < indices; j++) {
                 const index = this.readUnsignedIntLE();
@@ -232,7 +240,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
 
         const chainedSubcommands: CommandChainedSubcommand[] = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const name = NetworkUtil.readString(this);
+            const name = readString(this);
             const values: string[] = [];
             for (let j = 0, pairs = this.readUnsignedVarInt(); j < pairs; j++) {
                 const first = this.readUnsignedVarInt();
@@ -250,10 +258,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
         this.commandData = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
             const data = new CommandData();
-            data.commandName = NetworkUtil.readString(this);
-            data.commandDescription = NetworkUtil.readString(this);
+            data.commandName = readString(this);
+            data.commandDescription = readString(this);
             data.flags = this.readUnsignedShortLE();
-            data.permission = commandPermissionFromString(NetworkUtil.readString(this));
+            data.permission = commandPermissionFromString(readString(this));
 
             const aliasIndex = this.readIntLE();
             data.aliases = aliasIndex === -1 ? null : (enums[aliasIndex] ?? null);
@@ -274,7 +282,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
 
                 const overload: CommandParameter[] = [];
                 for (let k = 0, parameters = this.readUnsignedVarInt(); k < parameters; k++) {
-                    const paramName = NetworkUtil.readString(this);
+                    const paramName = readString(this);
                     const type = this.readUnsignedIntLE();
                     const isOptional = this.readBoolean();
                     const options = this.readByte();
@@ -324,10 +332,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
 
         this.softEnums = [];
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            const name = NetworkUtil.readString(this);
+            const name = readString(this);
             const values: string[] = [];
             for (let j = 0, options = this.readUnsignedVarInt(); j < options; j++) {
-                values.push(NetworkUtil.readString(this));
+                values.push(readString(this));
             }
             this.softEnums.push(Object.assign(new CommandEnum(), { name, values, soft: true }));
         }
@@ -377,7 +385,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             return index === undefined ? [] : [index];
         });
 
-        NetworkUtil.writeString(this, name);
+        writeString(this, name);
         this.writeUnsignedVarInt(indices.length);
         indices.forEach((index) => this.writeUnsignedIntLE(index));
     }
@@ -399,7 +407,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             return index === undefined ? [] : [index];
         });
 
-        NetworkUtil.writeString(this, name);
+        writeString(this, name);
         this.writeUnsignedVarInt(indices.length);
         indices.forEach((index) => {
             this.writeUnsignedVarInt(index);
@@ -414,10 +422,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
         postfixIndexes: Map<string, number>,
         chainedSubcommandIndexes: Map<string, number>
     ): void {
-        NetworkUtil.writeString(this, data.commandName);
-        NetworkUtil.writeString(this, data.commandDescription);
+        writeString(this, data.commandName);
+        writeString(this, data.commandDescription);
         this.writeUnsignedShortLE(data.flags);
-        NetworkUtil.writeString(this, commandPermissionToString(data.permission));
+        writeString(this, commandPermissionToString(data.permission));
 
         // `Alias Enum` is a signed index; -1 says the command has none.
         this.writeIntLE(data.aliases === null ? -1 : (enumIndexes.get(data.aliases.name) ?? -1));
@@ -438,7 +446,7 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
             this.writeUnsignedVarInt(overload.length);
 
             overload.forEach((parameter) => {
-                NetworkUtil.writeString(this, parameter.paramName);
+                writeString(this, parameter.paramName);
 
                 let type: number = parameter.paramType;
                 let flags: number = parameter.flags;
@@ -470,10 +478,10 @@ export default class AvailableCommandsPacket extends FieldNetworkPacket {
     }
 
     private writeSoftEnum(_enum: CommandEnum): void {
-        NetworkUtil.writeString(this, _enum.name);
+        writeString(this, _enum.name);
         this.writeUnsignedVarInt(_enum.values.length);
         _enum.values.forEach((value: string) => {
-            NetworkUtil.writeString(this, value);
+            writeString(this, value);
         });
     }
 
