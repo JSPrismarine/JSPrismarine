@@ -105,17 +105,23 @@ import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 export interface DataDrivenGeneratorOptions {
     /** The Java registries, already read off disk. */
     readonly registries: JavaWorldgenRegistries;
-    /** The dimension being generated. Defaults to the Overworld. */
+    /**
+     * The dimension the instance's own `Generator` methods fill. Defaults to the Overworld.
+     *
+     * With {@link DataDrivenGeneratorOptions.noiseSettings} and
+     * {@link DataDrivenGeneratorOptions.biomeSource} this is the default {@link PipelineKey};
+     * {@link DataDrivenGenerator.forStem} serves any other.
+     */
     readonly dimension?: DimensionType;
-    /** The `worldgen/noise_settings` identifier. Defaults to `minecraft:overworld`. */
+    /** The `worldgen/noise_settings` identifier of the default key. Defaults to `minecraft:overworld`. */
     readonly noiseSettings?: string;
     /**
-     * The biome layout, as the `biome_source` of a level stem describes it.
+     * The biome layout of the default key, as the `biome_source` of a level stem describes it.
      *
      * A definition rather than a built `BiomeSource`, because the worker threads build their
-     * own generator from the same options and an object with closures cannot cross a thread.
-     * A `multi_noise` preset resolves through the `reports/biome_parameters` registry. Defaults
-     * to the `minecraft:overworld` preset.
+     * own generator and an object with closures cannot cross a thread. A `multi_noise` preset
+     * resolves through the `reports/biome_parameters` registry. Defaults to the
+     * `minecraft:overworld` preset.
      */
     readonly biomeSource?: BiomeSourceDefinition;
     /** Whether to run the decoration pass. On by default; a terrain test turns it off. */
@@ -290,18 +296,87 @@ export const defaultChunkPipeline = (): string => {
     return fileURLToPath(new URL(beside, import.meta.url));
 };
 
-/** What a `terrain` task carries besides its position. */
-export interface TerrainTaskInput {
-    /** The world seed as a decimal string, because a `bigint` does not survive every clone. */
-    readonly seed: string;
+/** What a `terrain` task carries besides its position, its seed and its pipeline key. */
+export interface TerrainTaskInput extends ChunkTaskInput {
     /** The structure pieces that push this chunk's terrain around, laid out on the main thread. */
     readonly beard: readonly BeardPiece[];
     /** The junction points that contribute after the pieces, in Java's order. */
     readonly junctions: readonly BeardJunction[];
 }
 
-/** What the generator built for one seed, which every chunk of that world shares. */
+/**
+ * What picks one compiled pipeline out of a generator shared between dimensions: the settings a
+ * level stem names and the dimension it fills. The seed is the other half of the cache key and
+ * travels separately, because one key serves every world on the server that uses that stem.
+ *
+ * Plain data, because every task carries its key across the worker boundary and the worker
+ * compiles the pipeline from it. One generator and one worker pool therefore serve the
+ * Overworld, the Nether and the End instead of three of each.
+ */
+export interface PipelineKey {
+    /** The `worldgen/noise_settings` identifier. */
+    readonly noiseSettings: string;
+    /**
+     * The document {@link PipelineKey.noiseSettings} stands for when the stem carried its
+     * settings inline instead of naming a registered id.
+     *
+     * Part of the key because the workers' registries are bundled when the pool opens, which
+     * may be before a lazily loaded dimension is built; the first task that names an inline id
+     * registers it where it runs.
+     */
+    readonly inlineNoiseSettings?: Readonly<Record<string, unknown>>;
+    /** The biome layout, as the stem's `biome_source` describes it. */
+    readonly biomeSource: BiomeSourceDefinition;
+    /** The dimension whose bounds every chunk of this key takes. */
+    readonly dimension: DimensionType;
+}
+
+/** Whether a value cloned across the worker boundary has every field of a {@link PipelineKey}. */
+export const isPipelineKey = (value: unknown): value is PipelineKey =>
+    typeof value === 'object' &&
+    value !== null &&
+    'noiseSettings' in value &&
+    typeof value.noiseSettings === 'string' &&
+    'biomeSource' in value &&
+    typeof value.biomeSource === 'object' &&
+    value.biomeSource !== null &&
+    'type' in value.biomeSource &&
+    typeof value.biomeSource.type === 'string' &&
+    'dimension' in value &&
+    typeof value.dimension === 'object' &&
+    value.dimension !== null &&
+    'id' in value.dimension &&
+    typeof value.dimension.id === 'string' &&
+    'bedrockId' in value.dimension &&
+    typeof value.dimension.bedrockId === 'number' &&
+    'minY' in value.dimension &&
+    typeof value.dimension.minY === 'number' &&
+    'height' in value.dimension &&
+    typeof value.dimension.height === 'number';
+
+/** The `worldgen/noise_settings` id of the default key, which is the Overworld's. */
+const DEFAULT_NOISE_SETTINGS = 'minecraft:overworld';
+
+/**
+ * The string a pipeline is cached under: the key's three parts and the seed.
+ *
+ * The dimension enters by id, because a type's bounds follow from its id and the Java
+ * definition it carries is not something to stringify per chunk.
+ */
+const pipelineCacheKey = (key: PipelineKey, seed: bigint): string =>
+    `${key.dimension.id}\n${key.noiseSettings}\n${JSON.stringify(key.biomeSource)}\n${seed}`;
+
+/** The string a parsed biome source is cached under; the parse costs up to 345 ms for the Overworld's. */
+const biomeSourceCacheKey = (key: PipelineKey): string => `${key.dimension.id}\n${JSON.stringify(key.biomeSource)}`;
+
+/** What the generator built for one key and seed, which every chunk of that world shares. */
 interface SeededPipeline {
+    /** The settings and dimension this pipeline was compiled for. */
+    readonly key: PipelineKey;
+    /** The dimension of {@link SeededPipeline.key}, whose bounds every chunk takes. */
+    readonly dimension: DimensionType;
+    /** The biome layout of {@link SeededPipeline.key}, parsed once per key. */
+    readonly biomeSource: BiomeSource;
     readonly randomState: RandomState;
     readonly settings: NoiseGeneratorSettings;
     readonly surface: SurfaceSystem;
@@ -539,16 +614,28 @@ const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] =
 /**
  * The chunk generator that reads Java's data.
  *
- * One instance covers one dimension and caches everything that depends only on the seed, plus
- * recent terrain tiles shared by neighboring feature regions.
+ * One instance covers one server. Its own `Generator` methods fill the dimension the options
+ * name, and {@link DataDrivenGenerator.forStem} returns a `Generator` for any other stem that
+ * shares this instance's registries, caches and worker pool. Everything that depends on a
+ * {@link PipelineKey} and a seed is compiled once per pair and kept, plus recent terrain tiles
+ * shared by neighboring feature regions.
  */
 export class DataDrivenGenerator implements Generator {
-    private readonly dimension: DimensionType;
+    /** The key the instance's own `Generator` methods generate under. */
+    private readonly defaultKey: PipelineKey;
     private readonly worldgen: WorldgenData;
     private readonly materialRules: MaterialRuleData;
-    private readonly biomeSource: BiomeSource;
     private readonly structureSpawnOverrides: ReadonlyMap<string, readonly StructureSpawnOverride[]>;
+    /** Compiled pipelines by {@link pipelineCacheKey}. */
     private readonly pipelines = new Map<string, SeededPipeline>();
+    /** Parsed biome sources by {@link biomeSourceCacheKey}, shared by every seed of one key. */
+    private readonly biomeSources = new Map<string, BiomeSource>();
+    /**
+     * The `worldgen/noise_settings` documents, the registries' plus any inline document a key
+     * brought along. The map {@link DataDrivenGenerator.worldgen} reads, so an entry added here
+     * is one it can parse.
+     */
+    private readonly noiseSettingsDocuments: Map<string, unknown>;
 
     /** Whether {@link DataDrivenGenerator.stopGenerating} has been called. */
     private stopped = false;
@@ -583,7 +670,8 @@ export class DataDrivenGenerator implements Generator {
      * The band each chunk somebody asked for is waiting in, while it is being built.
      *
      * Only the chunks a caller named, not the neighbors built to satisfy them: see
-     * {@link DataDrivenGenerator.urgencyOf}. Entries live for one request.
+     * {@link DataDrivenGenerator.urgencyOf}. Keyed by dimension and position, because two
+     * dimensions sharing this generator both have a chunk (0, 0). Entries live for one request.
      */
     private readonly urgencies = new Map<string, GenerationPriority>();
 
@@ -596,11 +684,16 @@ export class DataDrivenGenerator implements Generator {
             registries.structures,
             naturalSpawnTypesOf(registries.biomes)
         );
-        this.dimension = options.dimension ?? Dimensions.Overworld;
+        this.defaultKey = {
+            noiseSettings: options.noiseSettings ?? DEFAULT_NOISE_SETTINGS,
+            biomeSource: options.biomeSource ?? DEFAULT_BIOME_SOURCE,
+            dimension: options.dimension ?? Dimensions.Overworld
+        };
+        this.noiseSettingsDocuments = new Map(registries.noiseSettings);
         this.worldgen = new WorldgenData({
             densityFunctions: registries.densityFunctions,
             noises: registries.noises,
-            noiseSettings: registries.noiseSettings
+            noiseSettings: this.noiseSettingsDocuments
         });
         this.materialRules = new MaterialRuleData(
             { materialRules: registries.materialRules, materialConditions: registries.materialConditions },
@@ -613,11 +706,6 @@ export class DataDrivenGenerator implements Generator {
             }
         );
 
-        this.biomeSource = parseBiomeSource(
-            options.biomeSource ?? DEFAULT_BIOME_SOURCE,
-            registries.biomeParameters,
-            `${this.dimension.id}.biome_source`
-        );
         this.stagePool = this.openStagePool(registries);
         this.chunkPool = this.stagePool === undefined ? this.openChunkPool(registries) : undefined;
         // Only when the whole ladder is not already pooled: a worker that builds a chunk runs
@@ -653,9 +741,6 @@ export class DataDrivenGenerator implements Generator {
             ...where,
             setup: {
                 registryBundle: shareRegistryBundle(registries),
-                dimension: this.dimension,
-                ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
-                ...(this.options.biomeSource === undefined ? {} : { biomeSource: this.options.biomeSource }),
                 carve: this.options.carve !== false,
                 structures: this.options.structures !== false,
                 javaTemplates: stages.javaTemplates === true
@@ -691,9 +776,6 @@ export class DataDrivenGenerator implements Generator {
             ...where,
             setup: {
                 registryBundle: shareRegistryBundle(registries),
-                dimension: this.dimension,
-                ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
-                ...(this.options.biomeSource === undefined ? {} : { biomeSource: this.options.biomeSource }),
                 carve: this.options.carve !== false
             } satisfies ChunkPipelineSetup
         });
@@ -725,9 +807,6 @@ export class DataDrivenGenerator implements Generator {
             ...where,
             setup: {
                 registryBundle: shareRegistryBundle(registries),
-                dimension: this.dimension,
-                ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
-                ...(this.options.biomeSource === undefined ? {} : { biomeSource: this.options.biomeSource }),
                 carve: this.options.carve !== false
             } satisfies TerrainPipelineSetup
         });
@@ -757,10 +836,10 @@ export class DataDrivenGenerator implements Generator {
                     status: 'full',
                     chunkX: cx,
                     chunkZ: cz,
-                    dimension: this.dimension.bedrockId,
-                    input: { seed: pipeline.randomState.seed.toString() } satisfies ChunkTaskInput
+                    dimension: pipeline.dimension.bedrockId,
+                    input: this.taskInput(pipeline)
                 },
-                this.urgencyOf(cx, cz)
+                this.urgencyOf(pipeline, cx, cz)
             );
             this.chunkPoolAnswered = true;
         } catch (error) {
@@ -857,14 +936,56 @@ export class DataDrivenGenerator implements Generator {
         _config?: WorldConfig,
         options?: ChunkRequestOptions
     ): Promise<Chunk> {
-        const pipeline = this.pipelineFor(seed);
-        const key = this.chunkKey(cx, cz);
-        this.urgencies.set(key, options?.urgency ?? 'immediate');
+        return this.generateUnder(this.defaultKey, cx, cz, seed, options);
+    }
+
+    /**
+     * A `Generator` for one stem over this instance's registries, caches and worker pool.
+     *
+     * This is how three dimensions share one pool of workers: each gets a view that tags its
+     * tasks with its key, and the pipelines the key compiles are kept here, one per seed. The
+     * view's `stopGenerating` stops this whole generator, because a shutdown is the only caller
+     * and it is stopping the server's one pool.
+     *
+     * @throws When the key's biome source cannot be built, which is the moment a misconfigured
+     *   stem should fail rather than at its first chunk. The noise settings id is checked when
+     *   the first pipeline compiles; a factory that wants it checked earlier looks it up first.
+     */
+    public forStem(key: PipelineKey): Generator {
+        this.biomeSourceFor(key);
+
+        return {
+            generateChunk: (cx, cz, seed = 0n, _config, options) => this.generateUnder(key, cx, cz, seed, options),
+            raiseUrgency: (cx, cz, urgency) => this.raiseUrgencyUnder(key, cx, cz, urgency),
+            surfaceAt: (x, z, seed = 0n) => this.surfaceUnder(key, x, z, seed),
+            locate: (request) => this.locateUnder(key, request),
+            structureSpawnOverrideAt: (identifier, at, seed = 0n) =>
+                this.structureSpawnOverrideUnder(key, identifier, at, seed),
+            stopGenerating: () => this.stopGenerating()
+        };
+    }
+
+    /** {@link DataDrivenGenerator.generateChunk} for one key. */
+    private async generateUnder(
+        key: PipelineKey,
+        cx: number,
+        cz: number,
+        seed: bigint,
+        options: ChunkRequestOptions | undefined
+    ): Promise<Chunk> {
+        const pipeline = this.pipelineFor(key, seed);
+        const urgencyKey = this.urgencyKey(pipeline, cx, cz);
+        this.urgencies.set(urgencyKey, options?.urgency ?? 'immediate');
         try {
             return await this.buildChunk(cx, cz, pipeline);
         } finally {
-            this.urgencies.delete(key);
+            this.urgencies.delete(urgencyKey);
         }
+    }
+
+    /** What every task of a pipeline carries: its seed and the key the worker compiles from. */
+    private taskInput(pipeline: SeededPipeline): ChunkTaskInput {
+        return { ...pipeline.key, seed: pipeline.randomState.seed.toString() };
     }
 
     /** The body of {@link DataDrivenGenerator.generateChunk}, once its urgency is recorded. */
@@ -905,13 +1026,19 @@ export class DataDrivenGenerator implements Generator {
      *
      * @param cx - Chunk x.
      * @param cz - Chunk z.
-     * @param seed - The world seed, which pins this generator's pipeline.
+     * @param seed - The world seed, which with the key pins the pipeline.
+     * @param key - The stem's settings and dimension. Defaults to the instance's own.
      * @returns The payload, with an empty transfer list.
      * @throws When the ladder reached `full` without leaving a region, which would mean a
      * status body stopped writing one.
      */
-    public async buildFullTile(cx: number, cz: number, seed: bigint): Promise<GenerationRegionTransfer> {
-        const pipeline = this.pipelineFor(seed);
+    public async buildFullTile(
+        cx: number,
+        cz: number,
+        seed: bigint,
+        key: PipelineKey = this.defaultKey
+    ): Promise<GenerationRegionTransfer> {
+        const pipeline = this.pipelineFor(key, seed);
         this.retain(pipeline, cx, cz);
 
         const staged = await pipeline.scheduler.generate(cx, cz, 'full');
@@ -934,6 +1061,7 @@ export class DataDrivenGenerator implements Generator {
      * @param cz - Center chunk z.
      * @param seed - The world seed.
      * @param terrain - The nine tiles in {@link FEATURE_VIEW_TILES} order.
+     * @param key - The stem's settings and dimension. Defaults to the instance's own.
      * @returns The center chunk's own feature writes and its eight outbound patches.
      * @throws RangeError when the task does not carry the complete 3 by 3 terrain view.
      */
@@ -941,13 +1069,14 @@ export class DataDrivenGenerator implements Generator {
         cx: number,
         cz: number,
         seed: bigint,
-        terrain: readonly GenerationRegionPayload[]
+        terrain: readonly GenerationRegionPayload[],
+        key: PipelineKey = this.defaultKey
     ): readonly RegionChunkPatch[] {
         if (terrain.length !== FEATURE_VIEW_TILES.length) {
             throw new RangeError(`A feature task needs ${FEATURE_VIEW_TILES.length} terrain tiles.`);
         }
 
-        const pipeline = this.pipelineFor(seed);
+        const pipeline = this.pipelineFor(key, seed);
         const tiles = terrain.map((payload) => this.adoptRegion(payload, pipeline));
         return this.featurePatchesFor(cx, cz, tiles, pipeline);
     }
@@ -964,9 +1093,10 @@ export class DataDrivenGenerator implements Generator {
      *
      * @param cx - Chunk x.
      * @param cz - Chunk z.
-     * @param seed - The world seed, which pins this generator's pipeline.
+     * @param seed - The world seed, which with the key pins the pipeline.
      * @param beard - The structure pieces that push this chunk's terrain around.
      * @param junctions - The jigsaw junctions to add after all piece contributions.
+     * @param key - The stem's settings and dimension. Defaults to the instance's own.
      * @returns The tile and the buffers to transfer. The tile is spent: its bytes belong to the
      * receiving thread.
      */
@@ -975,14 +1105,17 @@ export class DataDrivenGenerator implements Generator {
         cz: number,
         seed: bigint,
         beard: readonly BeardPiece[],
-        junctions: readonly BeardJunction[] = []
+        junctions: readonly BeardJunction[] = [],
+        key: PipelineKey = this.defaultKey
     ): Promise<GenerationRegionTransfer> {
-        const pipeline = this.pipelineFor(seed);
+        const pipeline = this.pipelineFor(key, seed);
         return (await this.buildTerrain(cx, cz, pipeline, beard, junctions)).transfer();
     }
 
     /** @inheritDoc */
     public stopGenerating(): void {
+        // Once. Every stem view forwards here, so a shutdown reaches this several times.
+        if (this.stopped) return;
         this.stopped = true;
         for (const pipeline of this.pipelines.values()) pipeline.queue.stop();
 
@@ -993,9 +1126,13 @@ export class DataDrivenGenerator implements Generator {
         void this.chunkPool?.destroy();
     }
 
-    /** Every Java state the translator could not place, for a caller that wants to report them. */
-    public unmappedStates(seed: bigint): readonly string[] {
-        return this.pipelineFor(seed).translator.unmappedStates();
+    /**
+     * Every Java state the translator could not place, for a caller that wants to report them.
+     *
+     * @param key - The stem's settings and dimension. Defaults to the instance's own.
+     */
+    public unmappedStates(seed: bigint, key: PipelineKey = this.defaultKey): readonly string[] {
+        return this.pipelineFor(key, seed).translator.unmappedStates();
     }
 
     /**
@@ -1004,9 +1141,16 @@ export class DataDrivenGenerator implements Generator {
      * A start is laid out against the bare noise terrain and touches no chunk, so this is the
      * cheap way to ask where a structure is: a comparison against Java's `/locate` needs the
      * generation point and the box, and neither needs a block placed.
+     *
+     * @param key - The stem's settings and dimension. Defaults to the instance's own.
      */
-    public structureStartsAt(chunkX: number, chunkZ: number, seed = 0n): readonly StructureStart[] {
-        return this.pipelineFor(seed).structures?.startsFor(chunkX, chunkZ) ?? [];
+    public structureStartsAt(
+        chunkX: number,
+        chunkZ: number,
+        seed = 0n,
+        key: PipelineKey = this.defaultKey
+    ): readonly StructureStart[] {
+        return this.pipelineFor(key, seed).structures?.startsFor(chunkX, chunkZ) ?? [];
     }
 
     /** @inheritDoc */
@@ -1015,10 +1159,20 @@ export class DataDrivenGenerator implements Generator {
         at: { readonly x: number; readonly y: number; readonly z: number },
         seed = 0n
     ): boolean | undefined {
+        return this.structureSpawnOverrideUnder(this.defaultKey, identifier, at, seed);
+    }
+
+    /** {@link DataDrivenGenerator.structureSpawnOverrideAt} for one key. */
+    private structureSpawnOverrideUnder(
+        key: PipelineKey,
+        identifier: string,
+        at: { readonly x: number; readonly y: number; readonly z: number },
+        seed: bigint
+    ): boolean | undefined {
         const overrides = this.structureSpawnOverrides.get(identifier);
         if (overrides === undefined) return undefined;
 
-        const starts = this.structureStartsAt(Math.floor(at.x / 16), Math.floor(at.z / 16), seed);
+        const starts = this.structureStartsAt(Math.floor(at.x / 16), Math.floor(at.z / 16), seed, key);
         return starts.some((start) =>
             overrides.some(
                 (override) =>
@@ -1030,14 +1184,23 @@ export class DataDrivenGenerator implements Generator {
         );
     }
 
-    /** The structure types this server has no builder for, which therefore generate nothing. */
-    public unbuiltStructureTypes(seed = 0n): ReadonlySet<string> {
-        return this.pipelineFor(seed).structures?.unbuiltTypes() ?? new Set();
+    /**
+     * The structure types this server has no builder for, which therefore generate nothing.
+     *
+     * @param key - The stem's settings and dimension. Defaults to the instance's own.
+     */
+    public unbuiltStructureTypes(seed = 0n, key: PipelineKey = this.defaultKey): ReadonlySet<string> {
+        return this.pipelineFor(key, seed).structures?.unbuiltTypes() ?? new Set();
     }
 
     /** @inheritDoc */
     public locate(request: StructureSearchRequest): StructureSearchResult | undefined {
-        const starts = this.pipelineFor(request.seed ?? 0n).structures;
+        return this.locateUnder(this.defaultKey, request);
+    }
+
+    /** {@link DataDrivenGenerator.locate} for one key. */
+    private locateUnder(key: PipelineKey, request: StructureSearchRequest): StructureSearchResult | undefined {
+        const starts = this.pipelineFor(key, request.seed ?? 0n).structures;
         if (starts === undefined) return undefined;
 
         const found = starts.locate({
@@ -1053,7 +1216,12 @@ export class DataDrivenGenerator implements Generator {
 
     /** @inheritDoc */
     public surfaceAt(x: number, z: number, seed = 0n): SurfaceProbe {
-        const level = this.pipelineFor(seed).level;
+        return this.surfaceUnder(this.defaultKey, x, z, seed);
+    }
+
+    /** {@link DataDrivenGenerator.surfaceAt} for one key. */
+    private surfaceUnder(key: PipelineKey, x: number, z: number, seed: bigint): SurfaceProbe {
+        const level = this.pipelineFor(key, seed).level;
 
         // `baseHeight` answers the level above the topmost match, the way Java's does, so the
         // block itself is one below. `MOTION_BLOCKING` stops at solid or fluid, which is the
@@ -1075,8 +1243,8 @@ export class DataDrivenGenerator implements Generator {
         return new GenerationRegion({
             chunkX: cx,
             chunkZ: cz,
-            minY: this.dimension.minY,
-            height: this.dimension.height,
+            minY: pipeline.dimension.minY,
+            height: pipeline.dimension.height,
             radius,
             seaLevel: pipeline.settings.seaLevel,
             seed: pipeline.randomState.seed,
@@ -1131,14 +1299,14 @@ export class DataDrivenGenerator implements Generator {
                     status: 'terrain',
                     chunkX: cx,
                     chunkZ: cz,
-                    dimension: this.dimension.bedrockId,
+                    dimension: pipeline.dimension.bedrockId,
                     input: {
-                        seed: pipeline.randomState.seed.toString(),
+                        ...this.taskInput(pipeline),
                         beard: beard.pieces,
                         junctions: beard.junctions
                     } satisfies TerrainTaskInput
                 },
-                this.urgencyOf(cx, cz)
+                this.urgencyOf(pipeline, cx, cz)
             );
             if (stagePool === undefined) this.poolAnswered = true;
             else this.stagePoolAnswered = true;
@@ -1179,7 +1347,7 @@ export class DataDrivenGenerator implements Generator {
         } else {
             try {
                 const input: FeatureTaskInput = {
-                    seed: pipeline.randomState.seed.toString(),
+                    ...this.taskInput(pipeline),
                     terrain: tiles.map((tile) => tile.workerInput())
                 };
                 const result = await stagePool.run(
@@ -1187,10 +1355,10 @@ export class DataDrivenGenerator implements Generator {
                         status: 'features',
                         chunkX: chunk.chunkX,
                         chunkZ: chunk.chunkZ,
-                        dimension: this.dimension.bedrockId,
+                        dimension: pipeline.dimension.bedrockId,
                         input
                     },
-                    this.urgencyOf(chunk.chunkX, chunk.chunkZ)
+                    this.urgencyOf(pipeline, chunk.chunkX, chunk.chunkZ)
                 );
                 this.stagePoolAnswered = true;
                 patches = featurePatchesFromWorker(result.payload);
@@ -1302,9 +1470,9 @@ export class DataDrivenGenerator implements Generator {
         // the hillside it is about to stand on. The starts are laid out against the bare noise,
         // which has no beard of its own, so there is no circle here.
         sampler.context.beardifier = createBeardifier(beard, junctions);
-        const floor = Math.max(this.dimension.minY, pipeline.settings.noiseSettings.minY);
+        const floor = Math.max(pipeline.dimension.minY, pipeline.settings.noiseSettings.minY);
         const ceiling = Math.min(
-            this.dimension.minY + this.dimension.height - 1,
+            pipeline.dimension.minY + pipeline.dimension.height - 1,
             pipeline.settings.noiseSettings.minY + pipeline.settings.noiseSettings.height - 1
         );
 
@@ -1471,20 +1639,32 @@ export class DataDrivenGenerator implements Generator {
      * because a neighbor needs it is `soon`: it is wanted, and it should not be ahead of a
      * chunk a player is waiting on.
      */
-    private urgencyOf(chunkX: number, chunkZ: number): GenerationPriority {
-        return this.urgencies.get(this.chunkKey(chunkX, chunkZ)) ?? 'soon';
+    private urgencyOf(pipeline: SeededPipeline, chunkX: number, chunkZ: number): GenerationPriority {
+        return this.urgencies.get(this.urgencyKey(pipeline, chunkX, chunkZ)) ?? 'soon';
+    }
+
+    /** Where a chunk's band is kept: by the dimension's Bedrock id and the position. */
+    private urgencyKey(pipeline: { readonly dimension: DimensionType }, chunkX: number, chunkZ: number): string {
+        return `${pipeline.dimension.bedrockId}:${chunkX},${chunkZ}`;
     }
 
     /** @inheritDoc */
     public raiseUrgency(cx: number, cz: number, urgency: GenerationPriority): void {
-        const key = this.chunkKey(cx, cz);
-        const current = this.urgencies.get(key);
+        this.raiseUrgencyUnder(this.defaultKey, cx, cz, urgency);
+    }
+
+    /** {@link DataDrivenGenerator.raiseUrgency} for one key. */
+    private raiseUrgencyUnder(key: PipelineKey, cx: number, cz: number, urgency: GenerationPriority): void {
+        const urgencyKey = this.urgencyKey(key, cx, cz);
+        const current = this.urgencies.get(urgencyKey);
         if (current !== undefined && GENERATION_PRIORITIES.indexOf(current) <= GENERATION_PRIORITIES.indexOf(urgency)) {
             return;
         }
 
-        this.urgencies.set(key, urgency);
-        const here = (task: { chunkX: number; chunkZ: number }): boolean => task.chunkX === cx && task.chunkZ === cz;
+        this.urgencies.set(urgencyKey, urgency);
+        // The dimension too: the pool is shared, and chunk (0, 0) of the Nether is not this one.
+        const here = (task: { chunkX: number; chunkZ: number; dimension: number }): boolean =>
+            task.chunkX === cx && task.chunkZ === cz && task.dimension === key.dimension.bedrockId;
         this.pool?.promote(here, urgency);
         this.stagePool?.promote(here, urgency);
         this.chunkPool?.promote(here, urgency);
@@ -1513,12 +1693,17 @@ export class DataDrivenGenerator implements Generator {
      */
     private decorate(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): void {
         const random = new WorldgenRandom();
-        const origin = { x: cx * 16, y: this.dimension.minY, z: cz * 16 };
+        const origin = { x: cx * 16, y: pipeline.dimension.minY, z: cz * 16 };
         const populationSeed = random.setDecorationSeed(pipeline.randomState.seed, origin.x, origin.z);
         const world = region.featureWorld();
         const palette = this.biomePaletteAround(cx, cz, pipeline);
         const starts = pipeline.structures?.startsFor(cx, cz) ?? [];
-        const clip = chunkWriteBox(cx, cz, this.dimension.minY, this.dimension.minY + this.dimension.height - 1);
+        const clip = chunkWriteBox(
+            cx,
+            cz,
+            pipeline.dimension.minY,
+            pipeline.dimension.minY + pipeline.dimension.height - 1
+        );
         const writer = starts.length === 0 ? undefined : createRegionStructureWriter(region, pipeline.level, clip);
         DECORATION_STEPS.forEach((step, stepIndex) => {
             if (writer !== undefined && pipeline.structures !== undefined) {
@@ -1609,8 +1794,8 @@ export class DataDrivenGenerator implements Generator {
         }
 
         const biomes = new Set<string>();
-        const bottom = this.dimension.minY >> 2;
-        const top = (this.dimension.minY + this.dimension.height - 1) >> 2;
+        const bottom = pipeline.dimension.minY >> 2;
+        const top = (pipeline.dimension.minY + pipeline.dimension.height - 1) >> 2;
         for (let quartX = cx * 4; quartX < cx * 4 + 4; quartX++) {
             for (let quartZ = cz * 4; quartZ < cz * 4 + 4; quartZ++) {
                 for (let quartY = bottom; quartY <= top; quartY++) {
@@ -1635,7 +1820,7 @@ export class DataDrivenGenerator implements Generator {
      * hands a chunk back and therefore the work that caps the pool.
      */
     private toChunk(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): Chunk {
-        const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), this.dimension);
+        const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), pipeline.dimension);
         // The constructor is a load rather than a write, so nothing has told the chunk it is
         // unsaved. A generated chunk is exactly the thing that has never been written to disk.
         chunk.markChanged();
@@ -1672,8 +1857,8 @@ export class DataDrivenGenerator implements Generator {
                 block.java.name !== 'minecraft:water' && pipeline.oracle.fluid(block.java) === 'water' ? 1 : 0;
         }
 
-        const minY = this.dimension.minY;
-        const height = this.dimension.height;
+        const minY = pipeline.dimension.minY;
+        const height = pipeline.dimension.height;
         let top = minY - 1;
         for (let column = 0; column < 256; column++) {
             if (columnTops[column]! > top) top = columnTops[column]!;
@@ -1769,13 +1954,13 @@ export class DataDrivenGenerator implements Generator {
      */
     private recordBiomes(cx: number, cz: number, chunk: Chunk, pipeline: SeededPipeline): void {
         const biomes = chunk.getBiomes();
-        const sections = subChunkCount(this.dimension);
-        const floor = minSubChunk(this.dimension);
+        const sections = subChunkCount(pipeline.dimension);
+        const floor = minSubChunk(pipeline.dimension);
         const resolver = pipeline.biomeCells;
         const cells = new Uint16Array(BIOME_CELLS_PER_SUBCHUNK);
 
         for (let section = 0; section < sections; section++) {
-            const sectionMinY = this.dimension.minY + section * 16;
+            const sectionMinY = pipeline.dimension.minY + section * 16;
             let uniform = true;
             for (let cellX = 0; cellX < 4; cellX++) {
                 for (let cellZ = 0; cellZ < 4; cellZ++) {
@@ -1812,33 +1997,60 @@ export class DataDrivenGenerator implements Generator {
         }
     }
 
-    private pipelineFor(seed: bigint): SeededPipeline {
-        const key = seed.toString();
-        const cached = this.pipelines.get(key);
+    /** The compiled pipeline for one key and seed, built on first use and kept. */
+    private pipelineFor(key: PipelineKey, seed: bigint): SeededPipeline {
+        const cacheKey = pipelineCacheKey(key, seed);
+        const cached = this.pipelines.get(cacheKey);
         if (cached) return cached;
 
-        const built = this.buildPipeline(seed);
-        this.pipelines.set(key, built);
+        const built = this.buildPipeline(key, seed);
+        this.pipelines.set(cacheKey, built);
         return built;
     }
 
-    private buildPipeline(seed: bigint): SeededPipeline {
+    /**
+     * The parsed biome source for one key, built on first use and kept.
+     *
+     * @throws When the definition names a `multi_noise` preset the reports do not list, or a
+     *   biome source type this server does not build.
+     */
+    private biomeSourceFor(key: PipelineKey): BiomeSource {
+        const cacheKey = biomeSourceCacheKey(key);
+        const cached = this.biomeSources.get(cacheKey);
+        if (cached) return cached;
+
+        const parsed = parseBiomeSource(
+            key.biomeSource,
+            this.options.registries.biomeParameters,
+            `${key.dimension.id}.biome_source`
+        );
+        this.biomeSources.set(cacheKey, parsed);
+        return parsed;
+    }
+
+    private buildPipeline(key: PipelineKey, seed: bigint): SeededPipeline {
         const registries = this.options.registries;
-        const settingsId = this.options.noiseSettings ?? 'minecraft:overworld';
-        const settings = this.worldgen.settings(settingsId);
+        const dimension = key.dimension;
+        // An inline document arrives with the key, because a worker's registries were bundled
+        // when the pool opened and the stem that carries it may have been built since.
+        if (key.inlineNoiseSettings !== undefined && !this.noiseSettingsDocuments.has(key.noiseSettings)) {
+            this.noiseSettingsDocuments.set(key.noiseSettings, key.inlineNoiseSettings);
+        }
+        const settings = this.worldgen.settings(key.noiseSettings);
         const randomState = new RandomState(this.worldgen, seed, settings);
         const surface = new SurfaceSystem(randomState);
         const climateOf = this.climateLookup();
 
-        const possibleBiomes = new Set(this.biomeSource.possibleBiomes());
-        const resolver = memoizeBiomeResolver(this.biomeSource.resolver(createClimateSampler(randomState)));
+        const biomeSource = this.biomeSourceFor(key);
+        const possibleBiomes = new Set(biomeSource.possibleBiomes());
+        const resolver = memoizeBiomeResolver(biomeSource.resolver(createClimateSampler(randomState)));
         const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(seed));
         const oracle = createJavaBlockOracle(registries.blockTags);
         const level = createNoiseStructureLevel({
             randomState,
             settings,
-            minY: this.dimension.minY,
-            height: this.dimension.height,
+            minY: dimension.minY,
+            height: dimension.height,
             noiseBiome: resolver,
             isSolid: (state) => oracle.isSolid(state),
             isFluid: (state) => oracle.fluid(state) !== 'empty',
@@ -1851,9 +2063,12 @@ export class DataDrivenGenerator implements Generator {
         const decoration =
             this.options.decorate === false
                 ? { featuresByStep: [], biomeDecoration: new Map<string, BiomeDecoration>() }
-                : this.buildDecorationPlan();
+                : this.buildDecorationPlan(biomeSource);
         const holders = new ChunkHolderMap<GenerationChunk>((chunkX, chunkZ) => new GenerationChunk(chunkX, chunkZ));
         const pipeline: SeededPipeline = {
+            key,
+            dimension,
+            biomeSource,
             randomState,
             settings,
             surface,
@@ -1966,7 +2181,7 @@ export class DataDrivenGenerator implements Generator {
      * feature's seed. {@link sortFeaturesPerStep} is what merges the biomes' disagreeing orders
      * into the one list per step the index counts along.
      */
-    private buildDecorationPlan(): {
+    private buildDecorationPlan(biomeSource: BiomeSource): {
         readonly featuresByStep: readonly StepFeatures[];
         readonly biomeDecoration: ReadonlyMap<string, BiomeDecoration>;
     } {
@@ -1978,7 +2193,7 @@ export class DataDrivenGenerator implements Generator {
         });
 
         const byBiome = new Map<string, readonly (readonly string[])[]>();
-        for (const biome of this.biomeSource.possibleBiomes()) {
+        for (const biome of biomeSource.possibleBiomes()) {
             byBiome.set(biome, this.biomeFeatureReferences(biome));
         }
 

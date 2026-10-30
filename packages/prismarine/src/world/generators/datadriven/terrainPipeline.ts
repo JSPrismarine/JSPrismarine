@@ -18,22 +18,20 @@
  * 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
-import type { BiomeSourceDefinition } from '@jsprismarine/worldgen';
 
-import type { DimensionType } from '../../Dimension';
-import { Dimensions } from '../../Dimension';
 import type { TerrainTaskInput } from './DataDrivenGenerator';
-import { DataDrivenGenerator } from './DataDrivenGenerator';
+import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
 import { readRegistryBundle } from './registryBundle';
 
-/** What a worker is handed once, to build its terrain pipeline from. */
+/**
+ * What a worker is handed once, to build its terrain pipeline from.
+ *
+ * The dimension and its settings travel with every task as a `PipelineKey` instead, so one
+ * pool serves every dimension of a server.
+ */
 export interface TerrainPipelineSetup {
     /** The registries as bytes, shared rather than copied to each worker. */
     readonly registryBundle: SharedArrayBuffer;
-    readonly dimension: DimensionType;
-    readonly noiseSettings?: string;
-    /** The biome layout; see `DataDrivenGeneratorOptions.biomeSource`. */
-    readonly biomeSource?: BiomeSourceDefinition;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve: boolean;
 }
@@ -59,7 +57,13 @@ const isSetup = (value: unknown): value is TerrainPipelineSetup =>
 
 /** Whether a task's input is a terrain task's, checked at the same boundary. */
 const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
-    typeof value === 'object' && value !== null && 'seed' in value && typeof value.seed === 'string';
+    isPipelineKey(value) &&
+    'seed' in value &&
+    typeof value.seed === 'string' &&
+    'beard' in value &&
+    Array.isArray(value.beard) &&
+    'junctions' in value &&
+    Array.isArray(value.junctions);
 
 /**
  * Builds this worker's terrain pipeline.
@@ -77,9 +81,6 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
     const generator = new DataDrivenGenerator({
         registries: readRegistryBundle(setup.registryBundle),
-        dimension: setup.dimension ?? Dimensions.Overworld,
-        ...(setup.noiseSettings === undefined ? {} : { noiseSettings: setup.noiseSettings }),
-        ...(setup.biomeSource === undefined ? {} : { biomeSource: setup.biomeSource }),
         carve: setup.carve,
         // Nothing above `terrain` runs here, and a worker that laid structures out would repeat
         // work the main thread has already done and cached.
@@ -91,7 +92,9 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         async run(task: GenerationTask): Promise<GenerationResult> {
             if (task.status !== 'terrain') throw new UnsupportedWorkerStatusError(task.status);
             if (!isTerrainInput(task.input)) {
-                throw new TypeError(`The terrain task at ${task.chunkX}, ${task.chunkZ} carries no seed.`);
+                throw new TypeError(
+                    `The terrain task at ${task.chunkX}, ${task.chunkZ} carries no seed and pipeline key.`
+                );
             }
 
             const tile = await generator.buildTerrainTile(
@@ -99,7 +102,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                 task.chunkZ,
                 BigInt(task.input.seed),
                 task.input.beard,
-                task.input.junctions
+                task.input.junctions,
+                task.input
             );
             return { payload: tile.payload, transferList: tile.transferList };
         }

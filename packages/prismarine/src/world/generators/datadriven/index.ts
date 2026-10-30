@@ -4,7 +4,7 @@
  * The registries come out of the pack stack `@jsprismarine/packs` composes, plus the biome
  * parameter reports; see [`javaWorldgenData.ts`](javaWorldgenData.ts) for which and why.
  */
-export { DataDrivenGenerator, type DataDrivenGeneratorOptions } from './DataDrivenGenerator';
+export { DataDrivenGenerator, type DataDrivenGeneratorOptions, type PipelineKey } from './DataDrivenGenerator';
 export {
     GenerationRegion,
     type GenerationRegionOptions,

@@ -2,6 +2,10 @@
  * Builds the same chunks three ways: on this thread, through the legacy whole-chunk pool, and
  * through the shared status pool. Reports whether each worker path matches inline output.
  *
+ * Two dimensions go through each pool at once, the Overworld as the generator's own key and the
+ * End through `forStem`, because one pool serves every dimension of a server and a worker that
+ * mixed up two keys would show here as an End chunk with Overworld blocks in it.
+ *
  * A separate process rather than a test body because of how a worker resolves modules. A
  * worker thread is a second module loader and reads the pipeline off disk through Node's own
  * resolution, so it needs whatever loader the host was started with; vitest's workers are not
@@ -10,6 +14,9 @@
  *
  * Prints `ok` and exits 0 when every chunk matched, or the positions that differed and exits 1.
  */
+import { Dimensions } from '../src/world/Dimension';
+import type { Generator } from '../src/world/Generator';
+import type { PipelineKey } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
 import {
@@ -33,6 +40,19 @@ const CHUNKS = [
     [0, 1],
     [9, 9],
     [-5, 3]
+] as const;
+
+/** The End's stem, which shares every pool with the Overworld above. */
+const END: PipelineKey = {
+    noiseSettings: 'minecraft:end',
+    biomeSource: { type: 'minecraft:the_end' },
+    dimension: Dimensions.TheEnd
+};
+
+/** Fewer End chunks than Overworld ones: the point is interleaving, and an End chunk is not cheap either. */
+const END_CHUNKS = [
+    [0, 0],
+    [9, 9]
 ] as const;
 
 const sources = findJavaWorldgenSources();
@@ -84,16 +104,25 @@ const inline = open('inline');
 const chunkPool = open('chunks');
 const stagePool = open('stages');
 
-const expected = new Map<string, string>();
-for (const [x, z] of CHUNKS) expected.set(`${x},${z}`, built(await inline.generateChunk(x, z, SEED)));
+/** Every chunk of both dimensions, keyed by dimension and position. */
+const buildAll = async (generator: DataDrivenGenerator): Promise<Map<string, string>> => {
+    const end: Generator = generator.forStem(END);
+    const actual = new Map<string, string>();
+    await Promise.all([
+        ...CHUNKS.map(async ([x, z]) => {
+            actual.set(`overworld ${x},${z}`, built(await generator.generateChunk(x, z, SEED)));
+        }),
+        ...END_CHUNKS.map(async ([x, z]) => {
+            actual.set(`end ${x},${z}`, built(await end.generateChunk(x, z, SEED)));
+        })
+    ]);
+    return actual;
+};
+
+const expected = await buildAll(inline);
 
 const compare = async (generator: DataDrivenGenerator): Promise<string[]> => {
-    const actual = new Map<string, string>();
-    await Promise.all(
-        CHUNKS.map(async ([x, z]) => {
-            actual.set(`${x},${z}`, built(await generator.generateChunk(x, z, SEED)));
-        })
-    );
+    const actual = await buildAll(generator);
     return [...expected].filter(([position, chunk]) => actual.get(position) !== chunk).map(([position]) => position);
 };
 

@@ -15,6 +15,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
+import { Dimensions } from '../../Dimension';
 import { GenerationStopped } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './javaTranslation';
@@ -63,6 +64,33 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
 
             expect(columnOf(second, 7, 9)).toEqual(columnOf(first, 7, 9));
             expect(second.networkSerialize().equals(first.networkSerialize())).toBe(true);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'serves another dimension through forStem without touching its own',
+        async () => {
+            const end = terrainOnly.forStem({
+                noiseSettings: 'minecraft:end',
+                biomeSource: { type: 'minecraft:the_end' },
+                dimension: Dimensions.TheEnd
+            });
+
+            const [endChunk, overworld] = await Promise.all([
+                end.generateChunk(0, 0, SEED),
+                terrainOnly.generateChunk(0, 0, SEED)
+            ]);
+
+            expect(endChunk.getDimension()).toBe(Dimensions.TheEnd);
+            expect(endChunk.getMinY()).toBe(0);
+            expect(endChunk.getBiome(8, 64, 8)).toBe(bedrockBiomeIdOf('minecraft:the_end'));
+            expect(columnOf(endChunk, 8, 8)).toContain('minecraft:end_stone');
+            expect(columnOf(endChunk, 8, 8)).not.toContain('minecraft:bedrock');
+
+            expect(overworld.getDimension()).toBe(Dimensions.Overworld);
+            expect(overworld.getBlockRuntimeId(0, -64, 0)).toBe(BlockRuntimeIds.getByName('minecraft:bedrock'));
+            expect(columnOf(overworld, 8, 8)).not.toContain('minecraft:end_stone');
         },
         CHUNK_TIMEOUT
     );

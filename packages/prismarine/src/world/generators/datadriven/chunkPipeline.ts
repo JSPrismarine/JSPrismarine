@@ -24,25 +24,23 @@
  * parsed registries in 75 ms against 540 reading the 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
-import type { BiomeSourceDefinition } from '@jsprismarine/worldgen';
 
-import type { DimensionType } from '../../Dimension';
-import { Dimensions } from '../../Dimension';
-import type { TerrainTaskInput } from './DataDrivenGenerator';
-import { DataDrivenGenerator } from './DataDrivenGenerator';
+import type { PipelineKey, TerrainTaskInput } from './DataDrivenGenerator';
+import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { cacheRoot } from './javaWorldgenData';
 import { readRegistryBundle } from './registryBundle';
 import type { GenerationRegionPayload } from './GenerationRegion';
 
-/** What a worker is handed once, to build its generator from. */
+/**
+ * What a worker is handed once, to build its generator from.
+ *
+ * Nothing here names a dimension or its settings. Those travel with every task as a
+ * {@link PipelineKey}, which is what lets one pool serve every dimension of a server.
+ */
 export interface ChunkPipelineSetup {
     /** The registries as bytes, shared rather than copied to each worker. */
     readonly registryBundle: SharedArrayBuffer;
-    readonly dimension?: DimensionType;
-    readonly noiseSettings?: string;
-    /** The biome layout; see `DataDrivenGeneratorOptions.biomeSource`. */
-    readonly biomeSource?: BiomeSourceDefinition;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve?: boolean;
     /** Whether the decoration pass includes structure placement. Defaults to true. */
@@ -51,15 +49,17 @@ export interface ChunkPipelineSetup {
     readonly javaTemplates?: boolean;
 }
 
-/** What a chunk task carries: the seed, as a string because a bigint does not clone. */
-export interface ChunkTaskInput {
+/**
+ * What every chunk task carries: the key the worker compiles its pipeline from and the seed, as
+ * a string because a bigint does not clone.
+ */
+export interface ChunkTaskInput extends PipelineKey {
+    /** The world seed as a decimal string, because a `bigint` does not survive every clone. */
     readonly seed: string;
 }
 
-/** What a `features` task carries: its seed and the nine immutable terrain tiles it reads. */
-export interface FeatureTaskInput {
-    /** The world seed as a decimal string, because a `bigint` does not survive every clone. */
-    readonly seed: string;
+/** What a `features` task carries besides its key and seed: the nine immutable terrain tiles it reads. */
+export interface FeatureTaskInput extends ChunkTaskInput {
     /** Terrain payloads in the feature view's row-major offset order. */
     readonly terrain: readonly GenerationRegionPayload[];
 }
@@ -82,14 +82,11 @@ const isSetup = (value: unknown): value is ChunkPipelineSetup =>
 
 /** Whether a task's input is a chunk task's, checked at the same boundary. */
 const isChunkInput = (value: unknown): value is ChunkTaskInput =>
-    typeof value === 'object' && value !== null && 'seed' in value && typeof value.seed === 'string';
+    isPipelineKey(value) && 'seed' in value && typeof value.seed === 'string';
 
-/** Whether a task carries structure inputs along with its seed. */
+/** Whether a task carries structure inputs along with its key and seed. */
 const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
-    typeof value === 'object' &&
-    value !== null &&
-    'seed' in value &&
-    typeof value.seed === 'string' &&
+    isChunkInput(value) &&
     'beard' in value &&
     Array.isArray(value.beard) &&
     'junctions' in value &&
@@ -121,12 +118,9 @@ const isRegionPayload = (value: unknown): value is GenerationRegionPayload =>
     'entitySpawns' in value &&
     Array.isArray(value.entitySpawns);
 
-/** Whether a value carries nine valid terrain tiles and a seed. */
+/** Whether a value carries nine valid terrain tiles along with its key and seed. */
 const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
-    typeof value === 'object' &&
-    value !== null &&
-    'seed' in value &&
-    typeof value.seed === 'string' &&
+    isChunkInput(value) &&
     'terrain' in value &&
     Array.isArray(value.terrain) &&
     value.terrain.length === 9 &&
@@ -136,8 +130,8 @@ const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
  * Builds this worker's generator.
  *
  * Called once per worker. Everything expensive lives here: parsing the shared registries, the
- * density graph, the 7594-entry climate biome source, the structure template store and then the
- * noise tables the first chunk builds.
+ * density graph and the structure template store. The 7594-entry climate biome source and the
+ * noise tables follow with the first task of each key and seed.
  *
  * @param setup - What the pool was built with.
  * @returns The pipeline the pool drives.
@@ -149,9 +143,6 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
     const registries = readRegistryBundle(setup.registryBundle);
     const generator = new DataDrivenGenerator({
         registries,
-        dimension: setup.dimension ?? Dimensions.Overworld,
-        ...(setup.noiseSettings === undefined ? {} : { noiseSettings: setup.noiseSettings }),
-        ...(setup.biomeSource === undefined ? {} : { biomeSource: setup.biomeSource }),
         ...(setup.carve === undefined ? {} : { carve: setup.carve }),
         ...(setup.structures === undefined ? {} : { structures: setup.structures }),
         // Read off disk here rather than carried, because the templates are tens of megabytes
@@ -165,7 +156,9 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         async run(task: GenerationTask): Promise<GenerationResult> {
             if (task.status === 'terrain') {
                 if (!isTerrainInput(task.input)) {
-                    throw new TypeError(`The terrain task at ${task.chunkX}, ${task.chunkZ} carries no seed.`);
+                    throw new TypeError(
+                        `The terrain task at ${task.chunkX}, ${task.chunkZ} carries no seed and pipeline key.`
+                    );
                 }
 
                 const tile = await generator.buildTerrainTile(
@@ -173,14 +166,17 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                     task.chunkZ,
                     BigInt(task.input.seed),
                     task.input.beard,
-                    task.input.junctions
+                    task.input.junctions,
+                    task.input
                 );
                 return { payload: tile.payload, transferList: tile.transferList };
             }
 
             if (task.status === 'features') {
                 if (!isFeatureInput(task.input)) {
-                    throw new TypeError(`The feature task at ${task.chunkX}, ${task.chunkZ} carries no terrain view.`);
+                    throw new TypeError(
+                        `The feature task at ${task.chunkX}, ${task.chunkZ} carries no terrain view, seed and pipeline key.`
+                    );
                 }
 
                 return {
@@ -188,7 +184,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                         task.chunkX,
                         task.chunkZ,
                         BigInt(task.input.seed),
-                        task.input.terrain
+                        task.input.terrain,
+                        task.input
                     ),
                     transferList: []
                 };
@@ -196,10 +193,17 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
             if (task.status === 'full') {
                 if (!isChunkInput(task.input)) {
-                    throw new TypeError(`The chunk task at ${task.chunkX}, ${task.chunkZ} carries no seed.`);
+                    throw new TypeError(
+                        `The chunk task at ${task.chunkX}, ${task.chunkZ} carries no seed and pipeline key.`
+                    );
                 }
 
-                const tile = await generator.buildFullTile(task.chunkX, task.chunkZ, BigInt(task.input.seed));
+                const tile = await generator.buildFullTile(
+                    task.chunkX,
+                    task.chunkZ,
+                    BigInt(task.input.seed),
+                    task.input
+                );
                 return { payload: tile.payload, transferList: tile.transferList };
             }
 
