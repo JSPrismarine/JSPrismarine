@@ -130,6 +130,22 @@ filling a whole chunk should use. A sample answers the same in either order, so 
 only about how long an `interpolated` node can hold its eight cell corners: a column walk leaves
 a cell every eight blocks, a cell walk every 128.
 
+**Dimensions.** Five parsers read the documents that bind a dimension to a generator, all with
+path-qualified errors. `parseDimensionType` reads a `dimension_type` file in its 26.3 shape
+(`has_fixed_time`, `skybox`, `cardinal_light`, `attributes`), applies the wiki's defaults for the
+absent fields and keeps `attributes` as a map of raw JSON. `parseLevelStem` reads a stem's
+`type` and `generator`; a `minecraft:noise` generator keeps its `settings` id and parses its
+`biome_source`, a `minecraft:flat` generator parses its layers, `minecraft:debug` has no fields,
+and an unknown kind keeps `{ type, settings }` for a generator factory to read.
+`parseWorldPreset` reads a `worldgen/world_preset` file into a map of stems and requires
+`minecraft:overworld`. `parseFlatGeneratorSettings` reads the `settings` object of a flat
+generator or a `flat_level_generator_preset`, with Java's `height` per layer rather than this
+server's `size`. `parseBiomeSource` builds a `FixedBiomeSource`, `CheckerboardBiomeSource`,
+`MultiNoiseBiomeSource` or `TheEndBiomeSource` from a stem's `biome_source`; a `multi_noise`
+`preset` resolves through the parameter lists the caller passes, keyed by
+`multi_noise_biome_source_parameter_list` id, because the datapack's two list files only name
+the preset and the climate boxes live in the data generator's `reports/biome_parameters`.
+
 ## Seams left open
 
 The terrain core is the bottom of the stack. Four stages sit on top of it, and each has an
