@@ -33,7 +33,7 @@ import { bossEventPacket } from './bossEvent';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
-import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
+import { chunkRadiusUpdatedPacket, requestChunkRadiusPacket } from './chunkRadiusUpdated';
 import { commandOutputPacket, commandRequestPacket } from './commands';
 import {
     containerClosePacket,
@@ -139,6 +139,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         playStatusPacket,
         removeActorPacket,
         removeObjectivePacket,
+        requestChunkRadiusPacket,
         setActorLinkPacket,
         resourcePacksInfoPacket,
         resourcePackStackPacket,
