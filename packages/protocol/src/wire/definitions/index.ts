@@ -29,6 +29,7 @@ import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
 import { blockActorDataPacket, updateBlockPacket } from './blocks';
+import { bossEventPacket } from './bossEvent';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { setTitlePacket, textPacket } from './chat';
@@ -96,6 +97,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         availableActorIdentifiersPacket,
         biomeDefinitionListPacket,
         blockActorDataPacket,
+        bossEventPacket,
         cameraAimAssistPresetsPacket,
         cameraPresetsPacket,
         chunkRadiusUpdatedPacket,

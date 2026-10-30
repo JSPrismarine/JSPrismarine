@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
+import { bossEventPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -42,9 +43,9 @@ export enum BossBarOverlay {
 /**
  * Adds, removes or updates the boss bar at the top of a player's screen.
  *
- * Wire order at protocol 2193: `Target Actor ID` as a ZigZag varint64, `Event Type` as a byte,
- * `Name` and `FilteredName` as strings, `Health Percent` as a float LE, then `Color` and
- * `Overlay` as one byte each.
+ * The wire layout lives in `@jsprismarine/protocol`'s `bossEventPacket` definition: `Target
+ * Actor ID` as a ZigZag varint64, `Event Type` as a byte, `Name` and `FilteredName` as
+ * strings, `Health Percent` as a float LE, then `Color` and `Overlay` as one byte each.
  *
  * Every field is present whatever the event type is. Up to protocol 2192 the packet also
  * carried a `Player ID` between the target and the event type, and only wrote the fields the
@@ -74,23 +75,26 @@ export default class BossEventPacket extends DataPacket {
 
     /** Reads the target, the event type, and the bar's title, health and style. */
     public decodePayload(): void {
-        this.targetActorId = this.readVarLong();
-        this.eventType = this.readByte();
-        this.name = NetworkUtil.readString(this);
-        this.filteredName = NetworkUtil.readString(this);
-        this.healthPercent = this.readFloatLE();
-        this.color = this.readByte();
-        this.overlay = this.readByte();
+        const read = layoutAt(bossEventPacket, this.codecProtocol).decode(this);
+        this.targetActorId = read.targetActorId;
+        this.eventType = read.eventType;
+        this.name = read.name;
+        this.filteredName = read.filteredName;
+        this.healthPercent = read.healthPercent;
+        this.color = read.color;
+        this.overlay = read.overlay;
     }
 
     /** Writes the target, the event type, and the bar's title, health and style. */
     public encodePayload(): void {
-        this.writeVarLong(this.targetActorId);
-        this.writeByte(this.eventType);
-        NetworkUtil.writeString(this, this.name);
-        NetworkUtil.writeString(this, this.filteredName);
-        this.writeFloatLE(this.healthPercent);
-        this.writeByte(this.color);
-        this.writeByte(this.overlay);
+        layoutAt(bossEventPacket, this.codecProtocol).encode(this, {
+            targetActorId: this.targetActorId,
+            eventType: this.eventType,
+            name: this.name,
+            filteredName: this.filteredName,
+            healthPercent: this.healthPercent,
+            color: this.color,
+            overlay: this.overlay
+        });
     }
 }
