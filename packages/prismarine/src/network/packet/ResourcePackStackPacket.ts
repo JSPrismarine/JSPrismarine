@@ -1,4 +1,5 @@
-import { NetworkUtil } from '../../network/NetworkUtil';
+import { layoutAt, resourcePackStackPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 import type { Experiment } from '@jsprismarine/minecraft';
@@ -17,13 +18,9 @@ export interface PackInstanceId {
  * Sent in response to `ResourcePackClientResponsePacket` with the order the client applies
  * the packs in.
  *
- * Protocol 2193 layout, in wire order: `Texture Pack Required` boolean, `Texture Pack List`
- * as a varuint count of `PackInstanceId` entries (`Pack ID`, `Version`, `Sub Pack Name`
- * strings), `Base Game Version` string, `Experiments` (`Toggles` as a uint32 little endian
- * count of `Name` string and `Enabled` boolean pairs, then `ExperimentsEverToggled` boolean),
- * and `Include Editor Packs` boolean. The experiments count is the one field in this packet
- * that is not a varint. There is a single pack list; the behavior pack list that older
- * protocols sent ahead of it is gone.
+ * The wire layout is the `resourcePackStackPacket` definition in `@jsprismarine/protocol`.
+ * There is a single pack list; the behavior pack list that older protocols sent ahead of it
+ * is gone.
  */
 export default class ResourcePackStackPacket extends DataPacket {
     /** `Texture Pack Required`. When true the client must download the packs or leave. */
@@ -39,53 +36,32 @@ export default class ResourcePackStackPacket extends DataPacket {
     /** `Include Editor Packs`, whether an Editor world adds the vanilla editor packs to the stack. */
     public includeEditorPacks = false;
 
-    /** Writes the fields in the protocol 2193 order described on the class. */
-    public encodePayload(): void {
-        this.writeBoolean(this.texturePackRequired);
-
-        this.writeUnsignedVarInt(this.texturePackList.length);
-        for (const pack of this.texturePackList) {
-            NetworkUtil.writeString(this, pack.packId);
-            NetworkUtil.writeString(this, pack.version);
-            NetworkUtil.writeString(this, pack.subPackName);
-        }
-
-        NetworkUtil.writeString(this, this.baseGameVersion);
-
-        // The docs mark this count "No size compression": uint32 little endian, not a varint.
-        this.writeUnsignedIntLE(this.experiments.length);
-        for (const experiment of this.experiments) {
-            NetworkUtil.writeString(this, experiment.name);
-            this.writeBoolean(experiment.enabled);
-        }
-
-        this.writeBoolean(this.experimentsAlreadyEnabled);
-        this.writeBoolean(this.includeEditorPacks);
+    public decodePayload(): void {
+        const read = layoutAt(resourcePackStackPacket, this.codecProtocol).decode(this);
+        this.texturePackRequired = read.texturePackRequired;
+        this.texturePackList = read.texturePacks.map((pack) => ({
+            packId: pack.uuid,
+            version: pack.version,
+            subPackName: pack.subPackName
+        }));
+        this.baseGameVersion = read.gameVersion;
+        this.experiments = read.experiments;
+        this.experimentsAlreadyEnabled = read.experimentsAlreadyEnabled;
+        this.includeEditorPacks = read.includeEditorPacks;
     }
 
-    /** Reads the fields in the protocol 2193 order described on the class. */
-    public decodePayload(): void {
-        this.texturePackRequired = this.readBoolean();
-
-        this.texturePackList = [];
-        let packCount = this.readUnsignedVarInt();
-        while (packCount-- > 0) {
-            this.texturePackList.push({
-                packId: NetworkUtil.readString(this),
-                version: NetworkUtil.readString(this),
-                subPackName: NetworkUtil.readString(this)
-            });
-        }
-
-        this.baseGameVersion = NetworkUtil.readString(this);
-
-        this.experiments = [];
-        let experimentCount = this.readUnsignedIntLE();
-        while (experimentCount-- > 0) {
-            this.experiments.push({ name: NetworkUtil.readString(this), enabled: this.readBoolean() });
-        }
-
-        this.experimentsAlreadyEnabled = this.readBoolean();
-        this.includeEditorPacks = this.readBoolean();
+    public encodePayload(): void {
+        layoutAt(resourcePackStackPacket, this.codecProtocol).encode(this, {
+            texturePackRequired: this.texturePackRequired,
+            texturePacks: this.texturePackList.map((pack) => ({
+                uuid: pack.packId,
+                version: pack.version,
+                subPackName: pack.subPackName
+            })),
+            gameVersion: this.baseGameVersion,
+            experiments: this.experiments,
+            experimentsAlreadyEnabled: this.experimentsAlreadyEnabled,
+            includeEditorPacks: this.includeEditorPacks
+        });
     }
 }

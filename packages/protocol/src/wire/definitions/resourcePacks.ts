@@ -6,7 +6,9 @@
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
+import type { Experiment } from '@jsprismarine/minecraft';
 import type { PackIdVersion, ResourcePackEntry } from '../../packet/ResourcePacksInfoPacket';
+import type { ResourcePackStackEntry } from '../../packet/ResourcePackStackPacket';
 
 /** `PackIdVersion` on the wire: the two uuid halves, then the version string. */
 const packIdVersion = t.custom<PackIdVersion>(
@@ -64,4 +66,50 @@ export const resourcePacksInfoPacket = definePacket('ResourcePacksInfoPacket', {
     worldTemplate: packIdVersion,
     /** `Resource Packs`: one entry per pack the client has to download. */
     resourcePackEntries: t.list(resourcePackEntry)
+});
+
+/** The docs' `PackInstanceId` on the wire: `Pack ID`, `Version`, `Sub Pack Name` strings. */
+const packInstanceId = t.custom<ResourcePackStackEntry>(
+    'PackInstanceId',
+    (s, v) => {
+        t.string.write(s, v.uuid);
+        t.string.write(s, v.version);
+        t.string.write(s, v.subPackName);
+    },
+    (s) => ({ uuid: t.string.read(s), version: t.string.read(s), subPackName: t.string.read(s) })
+);
+
+/** One `Experiments` toggle: `Name` string, `Enabled` boolean. */
+const experimentToggle = t.custom<Experiment>(
+    'ExperimentToggle',
+    (s, v) => {
+        t.string.write(s, v.name);
+        t.bool.write(s, v.enabled);
+    },
+    (s) => ({ name: t.string.read(s), enabled: t.bool.read(s) })
+);
+
+/**
+ * The `ResourcePackStackPacket` field list.
+ *
+ * One pack list, not two. 748 sent the behavior packs ahead of the texture packs, and a reader
+ * that still expects them takes the texture pack count for the behavior pack count and every
+ * field after it is read from the wrong place.
+ */
+export const resourcePackStackPacket = definePacket('ResourcePackStackPacket', {
+    /** `Texture Pack Required`: when true the client must download the packs or leave. */
+    texturePackRequired: t.bool,
+    /** `Texture Pack List`, applied in order with the first entry on top. */
+    texturePacks: t.list(packInstanceId),
+    /** `Base Game Version`. Vanilla sends `*`. */
+    gameVersion: t.string,
+    /**
+     * `Experiments` toggles: active toggles followed by always-on ones. The docs mark the
+     * count "No size compression": uint32 little endian, the one non-varint count here.
+     */
+    experiments: t.listWith(t.lu32, experimentToggle),
+    /** `ExperimentsEverToggled`: whether any experiment was ever toggled in this world. */
+    experimentsAlreadyEnabled: t.bool,
+    /** `Include Editor Packs`: whether an Editor world adds the vanilla editor packs. */
+    includeEditorPacks: t.bool
 });
