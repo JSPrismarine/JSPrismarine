@@ -28,7 +28,7 @@ import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import PositionMode from './network/type/PositionMode';
 import { PlayStatus } from '@jsprismarine/protocol';
-import TextPacketType from './network/type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 import { loadAdvancements } from './advancement/progress';
 import { advancementChangedDimension, advancementPlayerTick } from './advancement/triggers';
 import { enchantmentSeedOf } from './enchantment/enchantingTable';

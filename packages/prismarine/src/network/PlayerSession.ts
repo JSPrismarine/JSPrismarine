@@ -78,7 +78,7 @@ import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/packet/GameRulesChangedPacket';
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
-import TextPacket from './packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
     AbilityLayerFlag,
@@ -91,7 +91,7 @@ import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum'
 import CommandParameter, { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import PositionMode from './type/PositionMode';
 import ChunkSender from './ChunkSender';
-import TextPacketType from './type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 /**
  * Chunks per batch, and the reason it is small.
@@ -1540,17 +1540,18 @@ export default class PlayerSession {
     }): Promise<void> {
         if (!message) throw new Error('A message is required');
 
-        const pk = new TextPacket();
-        pk.message = message;
         // `Filtered Message` is the text after chat filtering. A dedicated server leaves it
         // empty for its own messages; repeating the message there doubled the payload.
-        pk.filtered = '';
-        pk.sourceName = sourceName;
-        pk.xuid = xuid;
-        pk.platformChatId = platformChatId;
-        pk.parameters = parameters;
-        pk.needsTranslation = needsTranslation;
-        pk.type = type;
+        const pk = new TextPacket({
+            type,
+            needsTranslation,
+            sourceName,
+            message,
+            parameters,
+            xuid,
+            platformChatId,
+            filtered: ''
+        });
         await this.connection.sendDataPacket(pk);
     }
 

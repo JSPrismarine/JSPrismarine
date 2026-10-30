@@ -33,7 +33,7 @@ import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { isRespawnBlock } from '../world/RespawnPoint';
-import TextPacketType from '../network/type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 import { fillContainerLoot } from '../inventory/containerLoot';
 import { openContainerContents, restorePlacedContents } from '../inventory/containerStore';
 import type { ContentPosition } from '../content/world/adapter';

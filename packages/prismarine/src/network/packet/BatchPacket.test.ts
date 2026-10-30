@@ -3,18 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { CompressionProvider, UNCOMPRESSED_BATCH } from '../CompressionProvider';
 import BatchPacket, { DEFAULT_COMPRESSION_LEVEL } from './BatchPacket';
-import TextPacket from './TextPacket';
-import TextPacketType from '../type/TextPacketType';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 const message = (text: string) => {
-    const packet = new TextPacket();
-    packet.type = TextPacketType.Raw;
-    packet.needsTranslation = false;
-    packet.message = text;
-    packet.xuid = '';
-    packet.platformChatId = '';
-    packet.filtered = text;
-    return packet;
+    return new TextPacket({
+        type: TextPacketType.Raw,
+        needsTranslation: false,
+        message: text,
+        xuid: '',
+        platformChatId: '',
+        filtered: text
+    });
 };
 
 const batchOf = (text: string) => {

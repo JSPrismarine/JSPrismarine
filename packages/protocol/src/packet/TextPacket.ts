@@ -80,6 +80,7 @@ const variantOf = (type: TextPacketType): BodyVariant => {
  * `TextPacketType` number (translate as 2), which is what gophertunnel's `text.go` writes
  * after its category byte and what a 1.26 client reads. Older protocols wrote the type first,
  * no variant index, and the filtered string unconditionally.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/text-packet/
  */
 export default class TextPacket extends NetworkPacket<Text> {
     public get id(): number {

@@ -9,8 +9,8 @@ import {
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 import BatchPacket from './packet/BatchPacket';
-import TextPacket from './packet/TextPacket';
-import TextPacketType from './type/TextPacketType';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 /**
  * The new codec in `@jsprismarine/protocol` and the server's own `BatchPacket` have to
@@ -42,13 +42,14 @@ const networkSettings = () => {
 };
 
 const text = (message: string) => {
-    const packet = new TextPacket();
-    packet.type = TextPacketType.Raw;
-    packet.needsTranslation = false;
-    packet.message = message;
-    packet.xuid = '';
-    packet.platformChatId = '';
-    packet.filtered = '';
+    const packet = new TextPacket({
+        type: TextPacketType.Raw,
+        needsTranslation: false,
+        message,
+        xuid: '',
+        platformChatId: '',
+        filtered: ''
+    });
     packet.encode();
     return packet;
 };

@@ -145,7 +145,7 @@ import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequest
 import SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
 import SyncActorPropertyPacket from '@jsprismarine/protocol/packet/SyncActorPropertyPacket';
 import TakeItemActorPacket from '@jsprismarine/protocol/packet/TakeItemActorPacket';
-import TextPacket from './packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import TickingAreasLoadStatusPacket from '@jsprismarine/protocol/packet/TickingAreasLoadStatusPacket';
 import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 import UnlockedRecipesPacket from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';

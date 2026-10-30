@@ -16,7 +16,7 @@ import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprisma
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
-import TextPacketType from '../../network/type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playersOf, resolveEntity, resolvePlayer } from './support';
 

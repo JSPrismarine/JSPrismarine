@@ -4,9 +4,9 @@ import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import TextPacket from './packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import PlayerSession from './PlayerSession';
-import TextPacketType from './type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 /** A session whose connection records what goes out. */
 const sessionWithRecorder = () => {
@@ -39,10 +39,16 @@ describe('network', () => {
                 expect(packet).toBeInstanceOf(TextPacket);
                 if (!(packet instanceof TextPacket)) return;
 
-                expect(packet.type).toBe(TextPacketType.Chat);
-                expect(packet.message).toBe('hello');
-                expect(packet.sourceName).toBe('Server');
-                expect(packet.filtered).toBe('');
+                expect(packet.getPacketData()).toEqual({
+                    type: TextPacketType.Chat,
+                    needsTranslation: false,
+                    sourceName: 'Server',
+                    message: 'hello',
+                    parameters: [],
+                    xuid: '',
+                    platformChatId: '',
+                    filtered: ''
+                });
             });
 
             it('refuses an empty message', async () => {

@@ -1,9 +1,9 @@
 import { Chat, ChatType } from '../../chat/Chat';
-import TextPacketType from '../type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import type TextPacket from '../packet/TextPacket';
+import type TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 
 /** What a Bedrock client's chat box lets a player type, and so the most the server takes. */
 const MAX_MESSAGE_LENGTH = 512;
@@ -49,18 +49,24 @@ export default class TextHandler implements PacketHandler<TextPacket> {
      */
     public async handle(packet: TextPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const text = packet.getPacketData();
 
-        if (packet.type !== TextPacketType.Chat) {
+        if (text === null) {
+            server.getLogger().verbose(`Dropped an empty text packet from ${player.getName()}`, 'TextHandler/handle');
+            return;
+        }
+
+        if (text.type !== TextPacketType.Chat) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a text of type ${TextPacketType[packet.type] ?? packet.type} from ${player.getName()}: a client only sends Chat`,
+                    `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${player.getName()}: a client only sends Chat`,
                     'TextHandler/handle'
                 );
             return;
         }
 
-        const message = [...packet.message.replace(FORMATTING_CODE, '')]
+        const message = [...text.message.replace(FORMATTING_CODE, '')]
             .filter(isTypeable)
             .join('')
             .trim()

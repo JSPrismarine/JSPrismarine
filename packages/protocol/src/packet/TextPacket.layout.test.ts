@@ -1,8 +1,9 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { layoutAt, textPacket } from '@jsprismarine/protocol';
+import { layoutAt } from '../wire/WireLayout';
+import { textPacket } from '../wire/definitions/chat';
 import { describe, expect, it } from 'vitest';
 
-import TextPacketType from '../type/TextPacketType';
+import { TextPacketType } from './TextPacket';
 
 /**
  * The bytes the hand-written encoder produced, recorded before the class moved to the

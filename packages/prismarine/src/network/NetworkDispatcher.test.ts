@@ -11,13 +11,13 @@ import type { ProtocolCodec } from './codec/ProtocolCodec';
 import type ClientConnection from './ClientConnection';
 import NetworkDispatcher from './NetworkDispatcher';
 import BatchPacket from './packet/BatchPacket';
-import TextPacket from './packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketRegistry from './PacketRegistry';
 import type PlayerSession from './PlayerSession';
 import type { SessionPhase } from './SessionPhase';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
-import TextPacketType from './type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 /** A transport the test drives by hand: subscriptions in, emit helpers out. */
 class FakeTransport implements Transport<TransportConnection> {
@@ -85,14 +85,14 @@ const fakeLogger = () => {
 const address = (token: string) => stub<InetAddress>({ toToken: () => token });
 
 const message = (text: string) => {
-    const packet = new TextPacket();
-    packet.type = TextPacketType.Raw;
-    packet.needsTranslation = false;
-    packet.message = text;
-    packet.xuid = '';
-    packet.platformChatId = '';
-    packet.filtered = text;
-    return packet;
+    return new TextPacket({
+        type: TextPacketType.Raw,
+        needsTranslation: false,
+        message: text,
+        xuid: '',
+        platformChatId: '',
+        filtered: text
+    });
 };
 
 /** One uncompressed batch holding the packet, as bytes off the wire. */

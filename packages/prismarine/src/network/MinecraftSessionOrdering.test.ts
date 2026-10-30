@@ -5,8 +5,8 @@ import { stub } from '../testing/stub.test.helper';
 import MinecraftSession from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
 import BatchPacket from './packet/BatchPacket';
-import TextPacket from './packet/TextPacket';
-import TextPacketType from './type/TextPacketType';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 /**
  * The order frames reach RakNet in, which is the order the client applies them in.
@@ -17,14 +17,14 @@ import TextPacketType from './type/TextPacketType';
  * a later packet to be applied first.
  */
 const message = (text: string) => {
-    const packet = new TextPacket();
-    packet.type = TextPacketType.Raw;
-    packet.needsTranslation = false;
-    packet.message = text;
-    packet.xuid = '';
-    packet.platformChatId = '';
-    packet.filtered = text;
-    return packet;
+    return new TextPacket({
+        type: TextPacketType.Raw,
+        needsTranslation: false,
+        message: text,
+        xuid: '',
+        platformChatId: '',
+        filtered: text
+    });
 };
 
 const batchOf = (text: string) => {

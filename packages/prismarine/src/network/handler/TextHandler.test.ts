@@ -8,22 +8,21 @@ import { ChatType } from '../../chat/Chat';
 import type { ChatManager } from '../../chat/ChatManager';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import TextPacket from '../packet/TextPacket';
-import TextPacketType from '../type/TextPacketType';
+import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import { TextPacketType } from '@jsprismarine/protocol';
 import TextHandler from './TextHandler';
 
 /** A Chat text as a client sends it: its own name as the author, nothing filtered. */
-const chatPacket = (message: string): TextPacket => {
-    const pk = new TextPacket();
-    pk.type = TextPacketType.Chat;
-    pk.needsTranslation = false;
-    pk.sourceName = 'runner';
-    pk.message = message;
-    pk.xuid = '2535';
-    pk.platformChatId = '';
-    pk.filtered = '';
-    return pk;
-};
+const chatPacket = (message: string, type: TextPacketType = TextPacketType.Chat): TextPacket =>
+    new TextPacket({
+        type,
+        needsTranslation: false,
+        sourceName: 'runner',
+        message,
+        xuid: '2535',
+        platformChatId: '',
+        filtered: ''
+    });
 
 describe('network', () => {
     describe('handler', () => {
@@ -40,9 +39,15 @@ describe('network', () => {
             });
 
             it('takes the sender from the session, not from the name the packet carries', async () => {
-                const pk = chatPacket('hello');
-                pk.sourceName = 'admin';
-                pk.xuid = '1';
+                const pk = new TextPacket({
+                    type: TextPacketType.Chat,
+                    needsTranslation: false,
+                    sourceName: 'admin',
+                    message: 'hello',
+                    xuid: '1',
+                    platformChatId: '',
+                    filtered: ''
+                });
 
                 const { sent, player, server, session } = fakeChat();
                 await new TextHandler().handle(pk, server, session);
@@ -60,9 +65,7 @@ describe('network', () => {
                     TextPacketType.Announcement,
                     200
                 ]) {
-                    const pk = chatPacket('server is down');
-                    pk.type = type;
-                    await new TextHandler().handle(pk, server, session);
+                    await new TextHandler().handle(chatPacket('server is down', type), server, session);
                 }
 
                 expect(sent).toEqual([]);

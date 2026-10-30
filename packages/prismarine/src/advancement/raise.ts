@@ -17,7 +17,7 @@
 import type { TriggerEvents, TriggerName } from '@jsprismarine/advancements';
 
 import type Player from '../Player';
-import TextPacketType from '../network/type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 import { advancementsOf } from './progress';
 
 /** Raises one trigger for one player and announces whatever it completed. */

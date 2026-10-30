@@ -1,5 +1,5 @@
 import type { CommandExecutor } from '../command/CommandExecutor';
-import TextPacketType from '../network/type/TextPacketType';
+import { TextPacketType } from '@jsprismarine/protocol';
 
 /**
  * How a chat is shown. The values are the `TextPacketType` numbers the client reads.
