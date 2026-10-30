@@ -19,6 +19,7 @@ import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/Net
 import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SetTimePacket from '@jsprismarine/protocol/packet/SetTimePacket';
@@ -161,6 +162,7 @@ export default class PacketRegistry {
         this.registerPacket(UpdateAdventureSettingsPacket);
         this.registerPacket(PlayerFogPacket);
         this.registerPacket(SetPlayerGameTypePacket);
+        this.registerPacket(UpdatePlayerGameTypePacket);
         this.registerPacket(RespawnPacket);
         this.registerPacket(SetSpawnPositionPacket);
         this.registerPacket(SetTimePacket);

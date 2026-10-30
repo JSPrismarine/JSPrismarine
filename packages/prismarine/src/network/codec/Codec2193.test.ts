@@ -9,6 +9,7 @@ import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/Net
 import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
 import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import Identifiers from '../Identifiers';
@@ -40,6 +41,7 @@ describe('network/codec', () => {
                 UpdateAdventureSettingsPacket.name,
                 PlayerFogPacket.name,
                 SetPlayerGameTypePacket.name,
+                UpdatePlayerGameTypePacket.name,
                 RespawnPacket.name,
                 SetSpawnPositionPacket.name,
                 SetTimePacket.name

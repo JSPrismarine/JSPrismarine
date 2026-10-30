@@ -32,6 +32,7 @@ import StartGamePacket from './StartGamePacket';
 import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
 import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
+import UpdatePlayerGameTypePacket from './UpdatePlayerGameTypePacket';
 
 export {
     ChangeDimensionPacket,
@@ -67,7 +68,8 @@ export {
     StartGamePacket,
     StartGamePacket2225,
     TextPacket,
-    UpdateAdventureSettingsPacket
+    UpdateAdventureSettingsPacket,
+    UpdatePlayerGameTypePacket
 };
 
 export { GameRuleType } from './StartGamePacket';

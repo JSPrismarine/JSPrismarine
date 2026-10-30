@@ -155,7 +155,6 @@ import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import UpdateBlockSyncedPacket from './packet/UpdateBlockSyncedPacket';
 import UpdateClientOptionsPacket from './packet/UpdateClientOptionsPacket';
 import UpdateEquipPacket from './packet/UpdateEquipPacket';
-import UpdatePlayerGameTypePacket from './packet/UpdatePlayerGameTypePacket';
 import UpdateSoftEnumPacket from './packet/UpdateSoftEnumPacket';
 import UpdateTradePacket from './packet/UpdateTradePacket';
 
@@ -320,7 +319,6 @@ export {
     UpdateBlockSyncedPacket,
     UpdateClientOptionsPacket,
     UpdateEquipPacket,
-    UpdatePlayerGameTypePacket,
     UpdateSoftEnumPacket,
     UpdateTradePacket
 };

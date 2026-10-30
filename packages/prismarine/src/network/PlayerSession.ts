@@ -76,7 +76,7 @@ import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGame
 import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
-import UpdatePlayerGameTypePacket from './packet/UpdatePlayerGameTypePacket';
+import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
@@ -1074,10 +1074,11 @@ export default class PlayerSession {
      * @param {Player} target - The player whose game type changed.
      */
     public async sendGameTypeFor(target: Player): Promise<void> {
-        const packet = new UpdatePlayerGameTypePacket();
-        packet.playerGameType = target.gamemode;
-        packet.targetPlayer = target.getRuntimeId();
-        packet.tick = target === this.player ? this.lastInputTick : 0n;
+        const packet = new UpdatePlayerGameTypePacket({
+            playerGameType: target.gamemode,
+            targetPlayer: target.getRuntimeId(),
+            tick: target === this.player ? this.lastInputTick : 0n
+        });
         await this.connection.sendDataPacket(packet);
     }
 
