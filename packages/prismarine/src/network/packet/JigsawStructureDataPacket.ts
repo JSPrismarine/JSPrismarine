@@ -1,4 +1,6 @@
 import { jigsaw_structure_data } from '@jsprismarine/bedrock-data';
+import { jigsawStructureDataPacket, layoutAt } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -16,17 +18,21 @@ import DataPacket from './DataPacket';
  * and handed on verbatim. Two hundred kilobytes, once per join, and mostly repeated names that
  * compress well.
  *
+ * The wire layout is the `jigsawStructureDataPacket` definition in the protocol package.
+ *
  * **Bound To:** Client
  */
 export default class JigsawStructureDataPacket extends DataPacket {
     /** The rules as network NBT. Defaults to vanilla's. */
     public structureData: Buffer = jigsaw_structure_data;
 
+    /** Writes the rules, which are the whole payload. */
     public encodePayload(): void {
-        this.write(this.structureData);
+        layoutAt(jigsawStructureDataPacket, this.codecProtocol).encode(this, this);
     }
 
+    /** Reads the rules, which run to the end of the packet. */
     public decodePayload(): void {
-        this.structureData = this.readRemaining();
+        Object.assign(this, layoutAt(jigsawStructureDataPacket, this.codecProtocol).decode(this));
     }
 }

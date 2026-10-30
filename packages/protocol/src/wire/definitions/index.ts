@@ -8,6 +8,7 @@
  */
 import { animatePacket } from './animate';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
+import { jigsawStructureDataPacket } from './jigsawStructureData';
 import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
 import { levelSoundEventPacket } from './levelSoundEvent';
@@ -39,6 +40,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
     [
         animatePacket,
         chunkRadiusUpdatedPacket,
+        jigsawStructureDataPacket,
         levelChunkPacket,
         levelEventGenericPacket,
         levelSoundEventPacket,
