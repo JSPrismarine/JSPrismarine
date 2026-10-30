@@ -1,6 +1,6 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../NetworkUtil';
+import { layoutAt, levelSoundEventPacket } from '@jsprismarine/protocol';
 import DataPacket from './DataPacket';
 
 /** The `LevelSoundEvent` number behind each name the wire carries, built once. */
@@ -67,35 +67,40 @@ export default class LevelSoundEventPacket extends DataPacket {
 
     /** Reads the eight fields in docs order. */
     public decodePayload(): void {
-        this.sound = soundByName.get(NetworkUtil.readString(this)) ?? -1;
-
-        this.positionX = this.readFloatLE();
-        this.positionY = this.readFloatLE();
-        this.positionZ = this.readFloatLE();
-
-        this.extraData = this.readVarInt();
-        this.entityType = NetworkUtil.readString(this);
-        this.isBabyMob = this.readBoolean();
-        this.disableRelativeVolume = this.readBoolean();
-        this.entityUniqueId = this.readLongLE();
-        this.fireAtPosition = this.readBoolean() ? NetworkUtil.readVector3(this) : null;
+        const read = layoutAt(levelSoundEventPacket, this.codecProtocol).decode(this);
+        this.sound = soundByName.get(read.soundName) ?? -1;
+        this.positionX = read.position.x;
+        this.positionY = read.position.y;
+        this.positionZ = read.position.z;
+        this.extraData = read.extraData;
+        this.entityType = read.entityType;
+        this.isBabyMob = read.isBabyMob;
+        this.disableRelativeVolume = read.disableRelativeVolume;
+        this.entityUniqueId = read.entityUniqueId;
+        this.fireAtPosition =
+            read.fireAtPosition === null
+                ? null
+                : new Vector3(read.fireAtPosition.x, read.fireAtPosition.y, read.fireAtPosition.z);
     }
 
     /** Writes the eight fields in docs order. */
     public encodePayload(): void {
-        NetworkUtil.writeString(this, LevelSoundEventName[this.sound] ?? '');
-
-        this.writeFloatLE(this.positionX);
-        this.writeFloatLE(this.positionY);
-        this.writeFloatLE(this.positionZ);
-
-        this.writeVarInt(this.extraData);
-        NetworkUtil.writeString(this, this.entityType);
-        this.writeBoolean(this.isBabyMob);
-        this.writeBoolean(this.disableRelativeVolume);
-        this.writeLongLE(this.entityUniqueId);
-
-        this.writeBoolean(this.fireAtPosition !== null);
-        if (this.fireAtPosition !== null) NetworkUtil.writeVector3(this, this.fireAtPosition);
+        layoutAt(levelSoundEventPacket, this.codecProtocol).encode(this, {
+            soundName: LevelSoundEventName[this.sound] ?? '',
+            position: { x: this.positionX, y: this.positionY, z: this.positionZ },
+            extraData: this.extraData,
+            entityType: this.entityType,
+            isBabyMob: this.isBabyMob,
+            disableRelativeVolume: this.disableRelativeVolume,
+            entityUniqueId: this.entityUniqueId,
+            fireAtPosition:
+                this.fireAtPosition === null
+                    ? null
+                    : {
+                          x: this.fireAtPosition.getX(),
+                          y: this.fireAtPosition.getY(),
+                          z: this.fireAtPosition.getZ()
+                      }
+        });
     }
 }
