@@ -10,6 +10,7 @@
 import { Vector3 } from '@jsprismarine/math';
 
 import { custom } from './fieldTypes';
+import { readItemStackDescriptor, writeItemStackDescriptor } from './structures/ItemStackDescriptor';
 import { Metadata } from './structures/Metadata';
 import { readPassengerOfBlock, writePassengerOfBlock } from './structures/PassengerOfBlock';
 import Skin from './structures/skin/Skin';
@@ -17,6 +18,7 @@ import { SyncedProperties } from './structures/SyncedProperties';
 import UUID from './structures/UUID';
 
 import type { WireType } from './fieldTypes';
+import type { ItemStackDescriptorData } from './structures/ItemStackDescriptor';
 import type { PassengerOfBlock } from './structures/PassengerOfBlock';
 import type { SkinWireLayout } from './structures/skin/Skin';
 
@@ -41,6 +43,13 @@ export const vector3: WireType<Vector3> = custom(
         stream.writeFloatLE(value.getZ());
     },
     (stream) => new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE())
+);
+
+/** `NetworkItemStackDescriptor`: one item stack, as the six fields on the wire. */
+export const itemStackDescriptor: WireType<ItemStackDescriptorData> = custom(
+    'NetworkItemStackDescriptor',
+    writeItemStackDescriptor,
+    readItemStackDescriptor
 );
 
 /** `SynchedActorDataList`: the entity metadata, as `Metadata` reads and writes it. */

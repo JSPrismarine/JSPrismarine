@@ -4,6 +4,12 @@ import type { ItemType } from '@jsprismarine/items';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
+import {
+    readItemStackDescriptor,
+    writeItemStackDescriptor
+} from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
+
+import type { ItemStackDescriptorData } from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
 
 import type { ServerContent } from '../content/ServerContent';
 import { javaItemTagsForBedrock } from '../content/javaTags';
@@ -638,19 +644,31 @@ export class Item {
      * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/
      */
     public networkSerialize(stream: BinaryStream, stackNetId: number | null = null): void {
+        writeItemStackDescriptor(stream, this.toStackDescriptor(stream, stackNetId));
+    }
+
+    /**
+     * This stack as the six wire fields of a `NetworkItemStackDescriptor`.
+     *
+     * The descriptor is what travels in a declarative field list, which has no `Item` to hand
+     * it; a packet class converts here and the bytes are the protocol package's to write. An
+     * empty stack zeroes every field after the id, as {@link networkSerialize} always has.
+     * @param stream - The stream the stack is bound for, which names the item numbering.
+     * @param stackNetId - The stack's net id, when the receiver tracks one.
+     * @returns The descriptor the stack goes out as.
+     */
+    public toStackDescriptor(stream: BinaryStream, stackNetId: number | null = null): ItemStackDescriptorData {
         const runtimeId = this.wireId(wireItemData(stream));
+        const empty = runtimeId === 0;
 
-        stream.writeShortLE(runtimeId);
-        stream.writeUnsignedShortLE(runtimeId === 0 ? 0 : this.getAmount());
-        stream.writeUnsignedVarInt(runtimeId === 0 ? 0 : this.meta);
-
-        stream.writeBoolean(stackNetId !== null);
-        if (stackNetId !== null) {
-            stream.writeVarInt(stackNetId);
-        }
-
-        stream.writeUnsignedVarInt(runtimeId === 0 ? 0 : this.getBlockRuntimeId());
-        this.writeExtraData(stream, runtimeId !== 0);
+        return {
+            id: runtimeId,
+            stackSize: empty ? 0 : this.getAmount(),
+            auxValue: empty ? 0 : this.meta,
+            stackNetId,
+            blockRuntimeId: empty ? 0 : this.getBlockRuntimeId(),
+            userData: empty ? Buffer.alloc(0) : this.extraData()
+        };
     }
 
     /**
@@ -724,11 +742,13 @@ export class Item {
      * @param {boolean} present - whether this stack holds anything at all.
      */
     private writeExtraData(stream: BinaryStream, present: boolean): void {
-        if (!present) {
-            stream.writeUnsignedVarInt(0);
-            return;
-        }
+        const blob = present ? this.extraData() : Buffer.alloc(0);
+        stream.writeUnsignedVarInt(blob.byteLength);
+        stream.write(blob);
+    }
 
+    /** The `User Data Buffer` bytes themselves; see {@link writeExtraData} for what is in them. */
+    private extraData(): Buffer {
         const blob = new NetworkBinaryStream();
         const blocksAttacks = this.hasComponent('minecraft:blocks_attacks');
         new ItemInstanceUserData(this.userDataTag(), {
@@ -737,8 +757,7 @@ export class Item {
             ...(blocksAttacks ? { blockingTick: 0n } : {})
         }).serialize(blob);
 
-        stream.writeUnsignedVarInt(blob.getBuffer().byteLength);
-        stream.write(new Uint8Array(blob.getBuffer()));
+        return blob.getBuffer();
     }
 
     /**
@@ -761,43 +780,25 @@ export class Item {
      * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/
      */
     public static networkDeserialize(stream: BinaryStream): Item {
-        return Item.readStack(stream, true);
+        return Item.fromStackDescriptor(stream, readItemStackDescriptor(stream));
     }
 
     /**
-     * Reads the form that carries no stack net id - the creative menu's.
+     * The stack a `NetworkItemStackDescriptor` describes.
      *
-     * The counterpart to {@link networkSerializeWithoutStackId}; see it for why the two
-     * forms exist and what confusing them costs.
+     * The counterpart of {@link toStackDescriptor}, for the packet classes that take their
+     * stacks from a declarative field list rather than off the stream themselves.
+     * @param stream - The stream the descriptor came off, which names the item numbering.
+     * @param descriptor - The six wire fields.
+     * @returns The stack, with an unknown id kept so it goes back out as the client sent it.
      */
-    public static networkDeserializeWithoutStackId(stream: BinaryStream): Item {
-        return Item.readStack(stream, false);
-    }
-
-    private static readStack(stream: BinaryStream, hasStackIdFlag: boolean): Item {
-        // Two bytes in the tracked form, a varint in the other. This is the one asymmetry
-        // between them that is not the flag, and it is the reason they no longer share a
-        // reader beyond this line.
-        const runtimeId = hasStackIdFlag ? stream.readShortLE() : stream.readVarInt();
-
-        const count = stream.readUnsignedShortLE();
-        const meta = stream.readUnsignedVarInt();
-
-        // Stack net id, only present when the flag above says so.
-        const stackNetworkId = hasStackIdFlag && stream.readBoolean() ? stream.readVarInt() : 0;
-
-        // Block runtime id, for the block this item places. Unsigned in the tracked form.
-        if (hasStackIdFlag) stream.readUnsignedVarInt();
-        else stream.readVarInt();
-
-        const userDataLength = stream.readUnsignedVarInt();
+    public static fromStackDescriptor(stream: BinaryStream, descriptor: ItemStackDescriptorData): Item {
         const userData = new ItemInstanceUserData();
-        if (userDataLength > 0) userData.deserialize(new NetworkBinaryStream(stream.read(userDataLength)));
+        if (descriptor.userData.byteLength > 0) {
+            userData.deserialize(new NetworkBinaryStream(descriptor.userData));
+        }
 
-        // Read to the end whatever the id, because an empty stack is no longer a bare zero -
-        // it is a full stack of zeroes, and stopping at the id leaves the rest of it to be
-        // read as the next field.
-        if (runtimeId === 0) {
+        if (descriptor.id === 0) {
             return new Item({
                 name: 'minecraft:air',
                 canPlaceOnBlocks: userData.canPlaceOnBlocks,
@@ -808,14 +809,41 @@ export class Item {
         // Keep an unknown runtime id so a custom item goes back out with the
         // number the client's item registry assigned it.
         const item = new Item({
-            runtimeId,
-            name: wireItemData(stream).nameOf(runtimeId) ?? 'minecraft:unknown',
-            meta,
-            count,
+            runtimeId: descriptor.id,
+            name: wireItemData(stream).nameOf(descriptor.id) ?? 'minecraft:unknown',
+            meta: descriptor.auxValue,
+            count: descriptor.stackSize,
             canPlaceOnBlocks: userData.canPlaceOnBlocks,
             canDestroyBlocks: userData.canDestroyBlocks
         });
-        item.stackNetworkId = stackNetworkId;
+        item.stackNetworkId = descriptor.stackNetId ?? 0;
         return item;
+    }
+
+    /**
+     * Reads the form that carries no stack net id - the creative menu's.
+     *
+     * The counterpart to {@link networkSerializeWithoutStackId}; see it for why the two
+     * forms exist and what confusing them costs.
+     */
+    public static networkDeserializeWithoutStackId(stream: BinaryStream): Item {
+        // A varint id and a varint block runtime id, where the tracked form uses two fixed
+        // bytes and an unsigned varint. That asymmetry, and the missing flag, is why the two
+        // forms do not share a reader. Everything after is read whatever the id is: an empty
+        // stack is no longer a bare zero, and stopping at the id leaves the rest of it to be
+        // read as the next field.
+        const id = stream.readVarInt();
+        const stackSize = stream.readUnsignedShortLE();
+        const auxValue = stream.readUnsignedVarInt();
+        stream.readVarInt(); // Block runtime id, for the block this item places.
+
+        return Item.fromStackDescriptor(stream, {
+            id,
+            stackSize,
+            auxValue,
+            stackNetId: null,
+            blockRuntimeId: 0,
+            userData: stream.read(stream.readUnsignedVarInt())
+        });
     }
 }

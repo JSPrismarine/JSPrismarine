@@ -8,22 +8,14 @@
  * v1.26.60 `metadata.zip` (`AddPlayerPacketPayload.json`) and gophertunnel's
  * `AddPlayer.Marshal` at v1.63.0 (`OptionalMarshaler` of `PassengerOfBlock` before
  * `DeviceID`), which agree. Nothing else changed.
- *
- * This definition lives beside the class because the carried item is a prismarine-owned
- * `Item`; it moves to `@jsprismarine/protocol`'s registry when that does.
  */
-import { definePacket, gated, SINCE_2225, t } from '@jsprismarine/protocol';
-import { actorLinks } from '@jsprismarine/protocol/wire/definitions/addActor';
-import {
-    metadata,
-    passengerOfBlock,
-    syncedProperties,
-    uuid,
-    vector3
-} from '@jsprismarine/protocol/wire/structureTypes';
-import { itemStackDescriptor } from '../wire/fieldTypes';
+import { definePacket, gated } from '../define';
+import * as t from '../fieldTypes';
+import { itemStackDescriptor, metadata, passengerOfBlock, syncedProperties, uuid, vector3 } from '../structureTypes';
+import { SINCE_2225 } from '../wireGates';
+import { actorLinks } from './addActor';
 
-import type { PayloadOf } from '@jsprismarine/protocol';
+import type { PayloadOf } from '../define';
 
 /**
  * One `SerializedLayer` of the abilities data. The layers travel in

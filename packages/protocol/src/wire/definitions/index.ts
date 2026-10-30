@@ -7,6 +7,7 @@
  * the registry with no further registration.
  */
 import { addActorPacket } from './addActor';
+import { addPlayerPacket } from './addPlayer';
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
@@ -51,6 +52,7 @@ import type { PacketDefinition } from '../define';
 export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
     [
         addActorPacket,
+        addPlayerPacket,
         animatePacket,
         availableActorIdentifiersPacket,
         biomeDefinitionListPacket,

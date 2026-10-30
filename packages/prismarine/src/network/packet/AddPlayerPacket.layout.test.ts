@@ -10,7 +10,7 @@ import UUID from '../../utils/UUID';
 import BlockPosition from '../../world/BlockPosition';
 import { SyncedProperties } from '../type/SyncedProperties';
 import AddPlayerPacket from './AddPlayerPacket';
-import { addPlayerPacket } from './addPlayer.wire';
+import { addPlayerPacket } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 
 import type { PassengerOfBlock } from '../type/PassengerOfBlock';
 
@@ -53,7 +53,7 @@ describe('the declarative AddPlayer layout against the packet class it replaces'
             pitch: 0,
             yaw: 0,
             headYaw: 0,
-            carriedItem: Item.air(),
+            carriedItem: Item.air().toStackDescriptor(new BinaryStream()),
             gamemode: reference.gamemode,
             metadata: new Metadata(),
             syncedProperties: new SyncedProperties(),

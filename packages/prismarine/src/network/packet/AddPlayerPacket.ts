@@ -7,10 +7,11 @@ import type UUID from '../../utils/UUID';
 import { SyncedProperties } from '../type/SyncedProperties';
 import type { PassengerOfBlock } from '../type/PassengerOfBlock';
 import DataPacket from './DataPacket';
-import { addPlayerPacket } from './addPlayer.wire';
+import { addPlayerPacket } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 
 import type { ActorLink } from './AddActorPacket';
-import type { SerializedAbilitiesData } from './addPlayer.wire';
+import type { SerializedAbilitiesData } from '@jsprismarine/protocol/wire/definitions/addPlayer';
+import type { ItemStackDescriptorData } from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
 
 /**
  * Spawns another player's entity on a client.
@@ -87,16 +88,17 @@ export default class AddPlayerPacket extends DataPacket {
     }
 
     /**
-     * The held stack, in the tracked form. Air is a full empty stack at this version, not a
-     * bare zero - a single byte here left the client reading the gamemode out of the middle
-     * of it, and everything after that was one field out.
+     * The held stack as the layout carries it: a `NetworkItemStackDescriptor`, which the
+     * protocol package writes and this class converts the server's `Item` into. Air is a full
+     * empty stack at this version, not a bare zero - a single byte here left the client
+     * reading the gamemode out of the middle of it, and everything after that one field out.
      */
-    public get carriedItem(): Item {
-        return this.item ?? Item.air();
+    public get carriedItem(): ItemStackDescriptorData {
+        return (this.item ?? Item.air()).toStackDescriptor(this);
     }
 
-    public set carriedItem(value: Item) {
-        this.item = value;
+    public set carriedItem(value: ItemStackDescriptorData) {
+        this.item = Item.fromStackDescriptor(this, value);
     }
 
     /**

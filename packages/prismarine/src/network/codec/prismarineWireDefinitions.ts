@@ -9,7 +9,7 @@
  * server bytes either way.
  */
 import { addActorPacket } from '@jsprismarine/protocol/wire/definitions/addActor';
-import { addPlayerPacket } from '../packet/addPlayer.wire';
+import { addPlayerPacket } from '@jsprismarine/protocol/wire/definitions/addPlayer';
 import { gameRulesChangedPacket } from '@jsprismarine/protocol/wire/definitions/gameRulesChanged';
 import { inventoryTransactionPacket } from '../packet/inventoryTransaction.wire';
 import { playerListPacket } from '@jsprismarine/protocol/wire/definitions/playerList';
