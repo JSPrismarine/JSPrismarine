@@ -8,7 +8,7 @@ import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
 import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
-import { collapseNetherPortal, isNetherPortal, lightNetherPortal } from '../rules/portal';
+import { activateEndPortal, collapseNetherPortal, isNetherPortal, lightNetherPortal } from '../rules/portal';
 import { breakBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateNumber } from '../state';
 import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
@@ -136,6 +136,7 @@ export const portalFamily = defineFamily(
             if (event.block.states['end_portal_eye_bit'] === true) return undefined;
             setStates(world, event.block, { end_portal_eye_bit: true });
             world.playSound(event.block.position, 'block.end_portal_frame.fill');
+            activateEndPortal(world, event.block.position);
             return true;
         }
     }

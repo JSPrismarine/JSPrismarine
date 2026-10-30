@@ -12,9 +12,10 @@
 import type { BlockFace, BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { PORTAL_BLOCK_NAMES } from '@jsprismarine/blocks';
 
-import { isVertical, offset } from '../geometry';
+import type { HorizontalFace } from '../geometry';
+import { FACE_STEPS, HORIZONTAL_FACES, isVertical, offset, opposite } from '../geometry';
 import { AIR, isAir, OBSIDIAN } from '../identifiers';
-import { bareName } from '../state';
+import { bareName, stateBoolean } from '../state';
 import type { WorldActions } from '../world';
 
 const namespaced = (name: string): string => `minecraft:${name}`;
@@ -285,4 +286,87 @@ export const collapseNetherPortal = (
     for (const position of cleared) world.setBlock(position, AIR, undefined, false);
     for (const position of cleared) world.notifyNeighbors(position);
     return cleared;
+};
+
+/** The state an end portal frame sets once an eye of ender is in it. */
+export const END_PORTAL_EYE_STATE = 'end_portal_eye_bit';
+
+/** The state that says which way an end portal frame faces. */
+export const END_PORTAL_FACING_STATE = 'minecraft:cardinal_direction';
+
+/** The sound Bedrock plays when a ring fills with end portal. */
+export const END_PORTAL_SPAWN_SOUND = 'block.end_portal.spawn';
+
+/** The twelve frame positions around a 3 by 3 center, each with the facing it must carry. */
+const endRingFrames = (center: BlockPosition): { position: BlockPosition; facing: HorizontalFace }[] => {
+    const frames: { position: BlockPosition; facing: HorizontalFace }[] = [];
+    for (const side of HORIZONTAL_FACES) {
+        const step = FACE_STEPS[side];
+        for (let lateral = -1; lateral <= 1; lateral += 1) {
+            frames.push({
+                position: {
+                    x: center.x + step.x * 2 + step.z * lateral,
+                    y: center.y,
+                    z: center.z + step.z * 2 + step.x * lateral
+                },
+                facing: opposite(side)
+            });
+        }
+    }
+    return frames;
+};
+
+/** Whether a position holds an end portal frame with an eye, facing the given way. */
+const isEyedFrameFacing = (world: WorldActions, position: BlockPosition, facing: HorizontalFace): boolean => {
+    const block = world.getBlock(position);
+    if (block === undefined || !isEndPortalFrame(block.identifier)) return false;
+    return stateBoolean(block, END_PORTAL_EYE_STATE) && block.states[END_PORTAL_FACING_STATE] === facing;
+};
+
+/**
+ * Java's end portal frame pattern as Bedrock accepts it, the flat ring only:
+ * twelve `end_portal_frame` blocks around a 3 by 3, every one holding an eye
+ * and facing the center.
+ *
+ * The frame's own facing says which side of the ring it is on, so there are
+ * three centers to try, two blocks inward and up to one block sideways.
+ *
+ * @param frameAt - The frame that was just filled.
+ * @returns The center of the 3 by 3 the ring surrounds, or undefined when no complete ring includes the frame.
+ */
+export const findEndPortalRing = (world: WorldActions, frameAt: BlockPosition): BlockPosition | undefined => {
+    const frame = world.getBlock(frameAt);
+    if (frame === undefined || !isEndPortalFrame(frame.identifier)) return undefined;
+    const facing = frame.states[END_PORTAL_FACING_STATE];
+    const inward = HORIZONTAL_FACES.find((face) => face === facing);
+    if (inward === undefined) return undefined;
+
+    const step = FACE_STEPS[inward];
+    for (let lateral = -1; lateral <= 1; lateral += 1) {
+        const center = {
+            x: frameAt.x + step.x * 2 + step.z * lateral,
+            y: frameAt.y,
+            z: frameAt.z + step.z * 2 + step.x * lateral
+        };
+        if (endRingFrames(center).every((ring) => isEyedFrameFacing(world, ring.position, ring.facing))) return center;
+    }
+    return undefined;
+};
+
+/**
+ * Fills the ring around a frame with `end_portal` when the frame completes it,
+ * overwriting whatever the 3 by 3 holds, and plays the activation sound.
+ *
+ * @returns The center that was filled, or undefined when the ring is not complete.
+ */
+export const activateEndPortal = (world: WorldActions, frameAt: BlockPosition): BlockPosition | undefined => {
+    const center = findEndPortalRing(world, frameAt);
+    if (center === undefined) return undefined;
+    for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dz = -1; dz <= 1; dz += 1) {
+            world.setBlock({ x: center.x + dx, y: center.y, z: center.z + dz }, END_PORTAL, undefined, false);
+        }
+    }
+    world.playSound(center, END_PORTAL_SPAWN_SOUND);
+    return center;
 };

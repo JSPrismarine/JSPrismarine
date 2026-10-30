@@ -6,7 +6,15 @@ import { bindFamily } from '../harness';
 import { AIR } from '../identifiers';
 import type { VoxelDimension } from '../voxelWorld';
 import { createVoxelWorld } from '../voxelWorld';
-import { connectedPortalBlocks, findEmptyPortalShape, NETHER_PORTAL, portalInterior, THE_END } from './portal';
+import {
+    connectedPortalBlocks,
+    END_PORTAL,
+    findEmptyPortalShape,
+    findEndPortalRing,
+    NETHER_PORTAL,
+    portalInterior,
+    THE_END
+} from './portal';
 
 const OBSIDIAN = 'minecraft:obsidian';
 
@@ -285,5 +293,100 @@ describe('portalFamily collapse', () => {
         for (const position of portalInterior(frame)) {
             expect(harness.dimension.identifierAt(position)).toBe(NETHER_PORTAL);
         }
+    });
+});
+
+describe('end portal ring', () => {
+    const CENTER: BlockPosition = { x: 100, y: 60, z: 200 };
+    const FRAME = 'minecraft:end_portal_frame';
+
+    /** The twelve frames around a 3 by 3 center, every one holding an eye and facing the center. */
+    const ringFrames = (center: BlockPosition): { position: BlockPosition; facing: string }[] => {
+        const frames: { position: BlockPosition; facing: string }[] = [];
+        for (let k = -1; k <= 1; k += 1) {
+            frames.push({ position: { ...center, x: center.x + k, z: center.z - 2 }, facing: 'south' });
+            frames.push({ position: { ...center, x: center.x + k, z: center.z + 2 }, facing: 'north' });
+            frames.push({ position: { ...center, x: center.x - 2, z: center.z + k }, facing: 'east' });
+            frames.push({ position: { ...center, x: center.x + 2, z: center.z + k }, facing: 'west' });
+        }
+        return frames;
+    };
+
+    const buildRing = (world: VoxelDimension, center: BlockPosition, eyes = true): void => {
+        for (const frame of ringFrames(center)) {
+            world.set(frame.position, FRAME, {
+                end_portal_eye_bit: eyes ? 1 : 0,
+                'minecraft:cardinal_direction': frame.facing
+            });
+        }
+    };
+
+    it('finds the center from any of the twelve frames', () => {
+        const world = createVoxelWorld().overworld;
+        buildRing(world, CENTER);
+
+        for (const frame of ringFrames(CENTER)) {
+            expect(findEndPortalRing(world, frame.position)).toEqual(CENTER);
+        }
+    });
+
+    it('does not match while one frame is missing its eye', () => {
+        const world = createVoxelWorld().overworld;
+        buildRing(world, CENTER);
+        world.set({ ...CENTER, x: CENTER.x + 2, z: CENTER.z + 1 }, FRAME, {
+            end_portal_eye_bit: 0,
+            'minecraft:cardinal_direction': 'west'
+        });
+
+        expect(findEndPortalRing(world, { ...CENTER, x: CENTER.x - 2, z: CENTER.z })).toBeUndefined();
+    });
+
+    it('does not match while one frame faces away from the center', () => {
+        const world = createVoxelWorld().overworld;
+        buildRing(world, CENTER);
+        world.set({ ...CENTER, x: CENTER.x, z: CENTER.z - 2 }, FRAME, {
+            end_portal_eye_bit: 1,
+            'minecraft:cardinal_direction': 'north'
+        });
+
+        expect(findEndPortalRing(world, { ...CENTER, x: CENTER.x - 2, z: CENTER.z })).toBeUndefined();
+    });
+
+    it('does not match a frame that is not part of any ring', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(CENTER, FRAME, { end_portal_eye_bit: 1, 'minecraft:cardinal_direction': 'south' });
+
+        expect(findEndPortalRing(world, CENTER)).toBeUndefined();
+    });
+
+    it('fills the 3 by 3 with end portal when the last eye goes in', () => {
+        const harness = bindFamily(portalFamily, FRAME);
+        buildRing(harness.dimension, CENTER);
+        const last = { ...CENTER, x: CENTER.x + 1, z: CENTER.z + 2 };
+        harness.dimension.set(last, FRAME, { end_portal_eye_bit: 0, 'minecraft:cardinal_direction': 'north' });
+
+        expect(harness.interact(last)).toBe(true);
+
+        let written = 0;
+        for (let dx = -1; dx <= 1; dx += 1) {
+            for (let dz = -1; dz <= 1; dz += 1) {
+                if (harness.dimension.identifierAt({ ...CENTER, x: CENTER.x + dx, z: CENTER.z + dz }) === END_PORTAL) {
+                    written += 1;
+                }
+            }
+        }
+        expect(written).toBe(9);
+        expect(harness.dimension.sounds.map((sound) => sound.name)).toContain('block.end_portal.spawn');
+    });
+
+    it('leaves the center alone when the ring is still incomplete after the eye', () => {
+        const harness = bindFamily(portalFamily, FRAME);
+        buildRing(harness.dimension, CENTER, false);
+        const first = { ...CENTER, x: CENTER.x - 2, z: CENTER.z };
+
+        expect(harness.interact(first)).toBe(true);
+
+        expect(harness.dimension.identifierAt(CENTER)).toBe(AIR);
+        expect(harness.dimension.stateAt(first, 'end_portal_eye_bit')).toBe(true);
     });
 });
