@@ -8,6 +8,7 @@ import CreativeContentPacket from './CreativeContentPacket';
 import DisconnectPacket from './DisconnectPacket';
 import ItemRegistryPacket from './ItemRegistryPacket';
 import LevelChunkPacket from './LevelChunkPacket';
+import LevelEventPacket from './LevelEventPacket';
 import LoginPacket from './LoginPacket';
 import MovePlayerPacket from './MovePlayerPacket';
 import MotionPredictionHintsPacket from './MotionPredictionHintsPacket';
@@ -70,6 +71,7 @@ export {
     DisconnectPacket,
     ItemRegistryPacket,
     LevelChunkPacket,
+    LevelEventPacket,
     LoginPacket,
     MovePlayerPacket,
     MotionPredictionHintsPacket,
@@ -157,6 +159,7 @@ export type {
 } from './CraftingDataPacket';
 export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
+export type { LevelEvent } from './LevelEventPacket';
 export type { MovePlayer } from './MovePlayerPacket';
 export type { MotionPredictionHints } from './MotionPredictionHintsPacket';
 export { PlayerLocationPacketType } from './PlayerLocationPacket';

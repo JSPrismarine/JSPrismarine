@@ -22,7 +22,8 @@ import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import BlockActorDataPacket from './packet/BlockActorDataPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
-import LevelEventPacket from './packet/LevelEventPacket';
+import Vec3 from '@jsprismarine/protocol/structure/Vec3';
+import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 
@@ -348,12 +349,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** @inheritdoc */
     public worldEffect(position: Vector3 | null, effect: LevelEvent, data: number): void {
-        const packet = new LevelEventPacket();
-        packet.eventId = effect;
+        const protocolPosition = position === null ? null : new Vec3(position.getX(), position.getY(), position.getZ());
         // Without this every event played at the world origin: the sound arrived with no
         // direction to it and the particles were nowhere near the block.
-        packet.position = position;
-        packet.data = data;
+        const packet = new LevelEventPacket({ eventId: effect, position: protocolPosition, data });
 
         if (position === null) {
             this.send(packet);

@@ -62,7 +62,7 @@ import LecternUpdatePacket from './packet/LecternUpdatePacket';
 import LegacyTelemetryEventPacket from '@jsprismarine/protocol/packet/LegacyTelemetryEventPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelEventGenericPacket from '@jsprismarine/protocol/packet/LevelEventGenericPacket';
-import LevelEventPacket from './packet/LevelEventPacket';
+import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import LoginPacket from './packet/LoginPacket';
 import MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
