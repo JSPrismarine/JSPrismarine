@@ -1,5 +1,5 @@
-import { NetworkUtil } from '../NetworkUtil';
-import FieldNetworkPacket from '@jsprismarine/protocol/FieldNetworkPacket';
+import FieldNetworkPacket from '../FieldNetworkPacket';
+import { NetworkUtil } from '../wire/networkUtil';
 
 /** What the player asked the NPC to do, as the `Request Type` byte numbers it. */
 export enum NpcRequestType {

@@ -466,3 +466,9 @@ export { default as LegacyTelemetryEventPacket } from './LegacyTelemetryEventPac
 export * from './LegacyTelemetryEventPacket';
 export { default as ServerboundDiagnosticsPacket } from './ServerboundDiagnosticsPacket';
 export * from './ServerboundDiagnosticsPacket';
+export { default as AutomationClientConnectPacket } from './AutomationClientConnectPacket';
+export * from './AutomationClientConnectPacket';
+export { default as CodeBuilderPacket } from './CodeBuilderPacket';
+export * from './CodeBuilderPacket';
+export { default as NpcRequestPacket } from './NpcRequestPacket';
+export * from './NpcRequestPacket';

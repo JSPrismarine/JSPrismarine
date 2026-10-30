@@ -1,7 +1,7 @@
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type NpcRequestPacket from '../packet/NpcRequestPacket';
-import { NpcRequestType } from '../packet/NpcRequestPacket';
+import type NpcRequestPacket from '@jsprismarine/protocol/packet/NpcRequestPacket';
+import { NpcRequestType } from '@jsprismarine/protocol/packet/NpcRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**

@@ -5,7 +5,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import NpcRequestPacket, { NpcRequestType } from '../packet/NpcRequestPacket';
+import NpcRequestPacket, { NpcRequestType } from '@jsprismarine/protocol/packet/NpcRequestPacket';
 import NpcRequestHandler from './NpcRequestHandler';
 
 describe('NpcRequestHandler', () => {
