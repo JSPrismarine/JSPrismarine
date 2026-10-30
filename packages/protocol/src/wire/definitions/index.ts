@@ -21,6 +21,7 @@ import {
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
+import { updateBlockPacket } from './blocks';
 import { cameraAimAssistPresetsPacket } from './cameraAimAssistPresets';
 import { cameraPresetsPacket } from './cameraPresets';
 import { chunkRadiusUpdatedPacket } from './chunkRadiusUpdated';
@@ -92,6 +93,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         trimDataPacket,
         updateAbilitiesPacket,
         updateAttributesPacket,
+        updateBlockPacket,
         updateSubChunkBlocksPacket,
         voxelShapesPacket,
         networkChunkPublisherUpdatePacket,

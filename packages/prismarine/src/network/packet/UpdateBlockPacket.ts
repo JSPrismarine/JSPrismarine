@@ -1,3 +1,5 @@
+import { layoutAt, updateBlockPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /** Which of a position's two block layers an update targets. */
@@ -57,23 +59,22 @@ export default class UpdateBlockPacket extends DataPacket {
 
     /** Reads the position, the block and how to apply it. */
     public decodePayload(): void {
-        this.x = this.readVarInt();
-        this.y = this.readVarInt();
-        this.z = this.readVarInt();
-
-        this.blockRuntimeId = this.readUnsignedVarInt();
-        this.flags = this.readUnsignedVarInt();
-        this.layer = this.readUnsignedVarInt();
+        const read = layoutAt(updateBlockPacket, this.codecProtocol).decode(this);
+        this.x = read.position.x;
+        this.y = read.position.y;
+        this.z = read.position.z;
+        this.blockRuntimeId = read.blockRuntimeId;
+        this.flags = read.flags;
+        this.layer = read.layer;
     }
 
     /** Writes the position, the block and how to apply it. */
     public encodePayload(): void {
-        this.writeVarInt(this.x);
-        this.writeVarInt(this.y);
-        this.writeVarInt(this.z);
-
-        this.writeUnsignedVarInt(this.blockRuntimeId);
-        this.writeUnsignedVarInt(this.flags);
-        this.writeUnsignedVarInt(this.layer);
+        layoutAt(updateBlockPacket, this.codecProtocol).encode(this, {
+            position: { x: this.x, y: this.y, z: this.z },
+            blockRuntimeId: this.blockRuntimeId,
+            flags: this.flags,
+            layer: this.layer
+        });
     }
 }

@@ -41,6 +41,7 @@ export type { AddPlayerPayload } from './wire/definitions/addPlayer';
 export * from './wire/definitions/animate';
 export * from './wire/definitions/availableActorIdentifiers';
 export * from './wire/definitions/biomeDefinitionList';
+export * from './wire/definitions/blocks';
 export * from './wire/definitions/cameraAimAssistPresets';
 export * from './wire/definitions/cameraPresets';
 export * from './wire/definitions/chunkRadiusUpdated';
