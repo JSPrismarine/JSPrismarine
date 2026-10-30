@@ -4,6 +4,8 @@ Investigations against primary sources for the data-driven vanilla effort. The p
 
 The first nine notes, written 2026-10-24, asked how a Bedrock server becomes data-driven. The eight that follow, written the same day, ask the narrower question the plan now turns on: whether Java Edition's data can drive a server that speaks to Bedrock clients.
 
+The dimension notes, written 2026-10-30, ask what it takes to run the Overworld, the Nether and the End as one save with portals between them, and how to describe each dimension and its generator as data.
+
 ## The Bedrock side
 
 - [bedrock-data-extraction.md](bedrock-data-extraction.md): obtaining the Bedrock Dedicated Server automatically, what its zip contains, what is and is not data-driven in vanilla Bedrock, Mojang/bedrock-samples, licensing, peer projects, running BDS headless in CI, what this server hardcodes today.
@@ -26,6 +28,12 @@ The first nine notes, written 2026-10-24, asked how a Bedrock server becomes dat
 - [edition-behavior-differences.md](edition-behavior-differences.md): 278 classified differences between the editions, each marked for who decides it and what happens if the server implements Java's version, plus a testable wording for the parity claim and the categories it must exclude.
 - [storage-and-chunk-translation.md](storage-and-chunk-translation.md): what this repository persists today, the Bedrock LevelDB format against Java's Anvil format, the cost of translating at the chunk boundary measured on this repository's code, and a storage recommendation.
 - [cross-edition-worldgen-parity.md](cross-edition-worldgen-parity.md): whether Java's published world generator produces Bedrock-identical worlds, the random number generator ceiling, structures, a verification method against a real server, and deepslate.
+
+## Dimensions and portals
+
+- [data-driven-dimensions.md](data-driven-dimensions.md): Java's `dimension_type`, level stem, world preset and generator model in its 26.3 shape, Bedrock's integer ids, heights and 2026 custom dimensions, what this repository parses and sends today, six servers compared, and the design for a `DimensionType` registry, `LevelStem` per dimension, `GeneratorFactories` and one `Level` per save with the config migration.
+- [dimension-storage-network-config.md](dimension-storage-network-config.md): how LevelDB and Anvil address a dimension, the `level.dat`, player and entity fields a multi-dimension save needs, what the worker pool carries per pool and per task, the fourteen packets that name a dimension and which the server fills, the blast radius of splitting `World`, and the test order for a save and load round trip.
+- [portals-and-dimension-travel.md](portals-and-dimension-travel.md): nether portal frame, lighting, collapse, timers, cooldown, coordinate scaling, search and creation read from the 26.3 jar, end portal ring, platform and exit, the eight-step Bedrock dimension change sequence three reimplementations agree on, what the repository has, and the block-layer and server-layer design with its test plan.
 
 ## Method and prior art
 
