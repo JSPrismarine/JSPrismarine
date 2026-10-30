@@ -65,3 +65,31 @@ export const setActorLinkPacket = definePacket('SetActorLinkPacket', {
 
 /** What `SetActorLinkPacket` carries. */
 export type SetActorLinkPayload = PayloadOf<typeof setActorLinkPacket>;
+
+/**
+ * The `MobEffectPacket` field list.
+ *
+ * Every field travels whatever the `Event ID` is: a `Remove` carries the amplifier and the
+ * duration it is dropping, not a shortened body.
+ */
+export const mobEffectPacket = definePacket('MobEffectPacket', {
+    /** `Target Runtime ID`: the actor the effect is on. */
+    targetRuntimeId: t.varuint64,
+    /** `Event ID`: a `MobEffectEvent`, what to do with the effect. */
+    eventId: t.uint8,
+    /** `Effect ID`: the status effect's number. */
+    effectId: t.varint32,
+    /** `Effect Amplifier`: one below the level shown in game, and may be negative. */
+    effectAmplifier: t.varint32,
+    /** `Show Particles`: whether viewers see particles around the actor. */
+    showParticles: t.bool,
+    /** `Effect Duration Ticks`: at 20 ticks per second. A negative duration never expires. */
+    effectDurationTicks: t.varint32,
+    /** `Tick`: the `PlayerInputTick` the change belongs to, zero for anyone else's actor. */
+    tick: t.varuint64,
+    /** `Ambient`: set for beacon and conduit effects. */
+    ambient: t.bool
+});
+
+/** What `MobEffectPacket` carries. */
+export type MobEffectPayload = PayloadOf<typeof mobEffectPacket>;

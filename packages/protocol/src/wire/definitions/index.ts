@@ -18,7 +18,13 @@ import {
     serverboundStonecutterSetRecipePacket,
     setPassengerOfBlockPacket
 } from './added2225';
-import { actorEventPacket, removeActorPacket, setActorLinkPacket, takeItemActorPacket } from './actors';
+import {
+    actorEventPacket,
+    mobEffectPacket,
+    removeActorPacket,
+    setActorLinkPacket,
+    takeItemActorPacket
+} from './actors';
 import { animatePacket } from './animate';
 import { availableActorIdentifiersPacket } from './availableActorIdentifiers';
 import { biomeDefinitionListPacket } from './biomeDefinitionList';
@@ -99,6 +105,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         levelChunkPacket,
         levelEventGenericPacket,
         levelSoundEventPacket,
+        mobEffectPacket,
         mobEquipmentPacket,
         modalFormRequestPacket,
         modalFormResponsePacket,

@@ -1,3 +1,5 @@
+import { layoutAt, mobEffectPacket } from '@jsprismarine/protocol';
+
 import DataPacket from './DataPacket';
 
 /**
@@ -64,25 +66,28 @@ export default class MobEffectPacket extends DataPacket {
 
     /** Reads the target, the event, and the effect's parameters. */
     public decodePayload(): void {
-        this.targetRuntimeId = this.readUnsignedVarLong();
-        this.eventId = this.readByte();
-        this.effectId = this.readVarInt();
-        this.effectAmplifier = this.readVarInt();
-        this.showParticles = this.readBoolean();
-        this.effectDurationTicks = this.readVarInt();
-        this.tick = this.readUnsignedVarLong();
-        this.ambient = this.readBoolean();
+        const read = layoutAt(mobEffectPacket, this.codecProtocol).decode(this);
+        this.targetRuntimeId = read.targetRuntimeId;
+        this.eventId = read.eventId;
+        this.effectId = read.effectId;
+        this.effectAmplifier = read.effectAmplifier;
+        this.showParticles = read.showParticles;
+        this.effectDurationTicks = read.effectDurationTicks;
+        this.tick = read.tick;
+        this.ambient = read.ambient;
     }
 
     /** Writes the target, the event, and the effect's parameters. */
     public encodePayload(): void {
-        this.writeUnsignedVarLong(this.targetRuntimeId);
-        this.writeByte(this.eventId);
-        this.writeVarInt(this.effectId);
-        this.writeVarInt(this.effectAmplifier);
-        this.writeBoolean(this.showParticles);
-        this.writeVarInt(this.effectDurationTicks);
-        this.writeUnsignedVarLong(this.tick);
-        this.writeBoolean(this.ambient);
+        layoutAt(mobEffectPacket, this.codecProtocol).encode(this, {
+            targetRuntimeId: this.targetRuntimeId,
+            eventId: this.eventId,
+            effectId: this.effectId,
+            effectAmplifier: this.effectAmplifier,
+            showParticles: this.showParticles,
+            effectDurationTicks: this.effectDurationTicks,
+            tick: this.tick,
+            ambient: this.ambient
+        });
     }
 }
