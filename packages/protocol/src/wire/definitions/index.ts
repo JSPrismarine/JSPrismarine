@@ -54,6 +54,7 @@ import { levelChunkPacket } from './levelChunk';
 import { levelEventGenericPacket } from './levelEventGeneric';
 import { levelSoundEventPacket } from './levelSoundEvent';
 import { moveActorAbsolutePacket, movePlayerPacket, setActorMotionPacket } from './movement';
+import { requestNetworkSettingsPacket } from './networkSettings';
 import {
     emotePacket,
     playerActionPacket,
@@ -151,6 +152,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         removeActorPacket,
         removeObjectivePacket,
         requestChunkRadiusPacket,
+        requestNetworkSettingsPacket,
         setActorLinkPacket,
         resourcePackChunkDataPacket,
         resourcePackClientResponsePacket,

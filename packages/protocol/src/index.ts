@@ -62,6 +62,7 @@ export * from './wire/definitions/levelChunk';
 export * from './wire/definitions/levelEventGeneric';
 export * from './wire/definitions/levelSoundEvent';
 export * from './wire/definitions/movement';
+export * from './wire/definitions/networkSettings';
 export * from './wire/definitions/player';
 export * from './wire/definitions/playerList';
 export * from './wire/definitions/playerSkin';
