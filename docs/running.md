@@ -27,10 +27,10 @@ local CloudburstMC/Data checkout.
 
 ### 1.3 World generation data
 
-The default `Overworld` generator builds terrain from Mojang's published Java Edition world
-generation data. That data is not shipped with this server; it comes from a pinned Java Edition
-server jar that `pnpm run dev` fetches and runs Mojang's data generator against, caching the
-result under `node_modules/.cache/jsprismarine/`.
+The default world preset, `minecraft:normal`, builds terrain from Mojang's published Java
+Edition world generation data. That data is not shipped with this server; it comes from a
+pinned Java Edition server jar that `pnpm run dev` fetches and runs Mojang's data generator
+against, caching the result under `node_modules/.cache/jsprismarine/`.
 
 This happens automatically the first time you run `pnpm run dev`, and takes a 62 MB download and
 a couple of minutes. Afterwards the step compares a few file names and exits, so later runs are
@@ -45,9 +45,9 @@ Running the data generator needs a JDK 25 or newer. JSPrismarine looks at `JSP_J
 `JSP_JAVA_HOME` if you have several and want to choose. Without a JDK, `pnpm run dev` stops with
 a message instead of starting a broken world.
 
-To run with no Java at all, set `generator` to `Flat` for your world in `jsp/config.json`. A flat
-world needs none of this data. It is also not Minecraft terrain, so this is a deliberate choice
-rather than a fallback the server makes for you.
+To run with no Java at all, set `preset` to `minecraft:flat` for your world in `jsp/config.json`
+(see [Worlds](#worlds)). A flat world needs none of this data. It is also not Minecraft terrain,
+so this is a deliberate choice rather than a fallback the server makes for you.
 
 To arrange the cache by hand, or to refresh it:
 
@@ -223,17 +223,70 @@ Older servers kept their settings in `config.yml` or `config.yaml`. The server
 does not read those files and ignores them if they exist. Move any settings you
 still need into `config.json` (where `//` comments are allowed).
 
-### World seeds
+### Worlds
 
-Write a world's `seed` as a string:
+Each entry under `worlds` is one world: its `seed`, the `provider` that stores it on disk and
+the `preset` that says which dimensions it has and how each one generates. The preset is a Java
+`worldgen/world_preset` id. `minecraft:normal`, the default, is the Overworld, the Nether and
+the End with vanilla terrain; `minecraft:flat` is a superflat Overworld that needs no Java data;
+`minecraft:large_biomes` and `minecraft:amplified` are the other two vanilla presets.
 
 ```json
 {
     "worlds": {
-        "world": { "generator": "Overworld", "provider": "LevelDB", "seed": "8475011743740320021" }
+        "world": { "preset": "minecraft:normal", "provider": "LevelDB", "seed": "8475011743740320021" }
     }
 }
 ```
+
+`dimensions` changes one dimension at a time without giving up the rest of the preset. Each key
+is a Java dimension id, and its entry may set the dimension's `type`, its `generator` or when
+it loads. A key you leave out comes from the preset, and an id the preset doesn't have adds a
+dimension. This world keeps the Nether and the End from `minecraft:normal` but makes its
+Overworld flat, with the same `generator` object a Java datapack writes in a `dimension` file:
+
+```json
+{
+    "worlds": {
+        "world": {
+            "seed": "8475011743740320021",
+            "provider": "LevelDB",
+            "preset": "minecraft:normal",
+            "dimensions": {
+                "minecraft:overworld": {
+                    "generator": {
+                        "type": "minecraft:flat",
+                        "settings": {
+                            "biome": "minecraft:plains",
+                            "layers": [
+                                { "block": "minecraft:bedrock", "height": 1 },
+                                { "block": "minecraft:grass_block", "height": 3 }
+                            ]
+                        }
+                    }
+                },
+                "minecraft:the_end": { "load": "eager" }
+            }
+        }
+    }
+}
+```
+
+`load` is `lazy` by default, which builds a dimension the first time something enters it, so a
+server nobody takes to the End never pays for it. `eager` builds it at startup instead, which
+moves that cost to the start and uses more memory while the server runs.
+
+Older configs spelled the same thing as `generator: "Overworld"` or `generator: "Flat"`, with
+flat layers under `layers` as `{ "block", "size" }`. The server still reads both keys: `Overworld`
+is `preset: "minecraft:normal"`, `Flat` is `preset: "minecraft:flat"`, and `layers` becomes a
+`minecraft:flat` generator for `minecraft:overworld` with each layer's `size` written as
+`height`. It logs once per world that the keys are deprecated and writes the new spelling back
+to the file, so you only see the message until the next start. Any other `generator` name stops
+the server with an error, as it did before.
+
+### World seeds
+
+Write a world's `seed` as a string, as the examples above do.
 
 A Minecraft seed is a 64-bit integer and a JSON number is a double, which is
 exact only below 2^53. Written as a number, `8475011743740320021` is read back
