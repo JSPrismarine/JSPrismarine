@@ -8,6 +8,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
+import { itemDataForProtocol } from '@jsprismarine/prismarine/network/codec/itemData';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -126,8 +127,7 @@ describe(FAMILIES.registryItems2225, () => {
     describe('what a session is actually sent', () => {
         const sentAt = (protocolVersion: number): Map<string, number> => {
             const packet = new ItemRegistryPacket();
-            packet.codecProtocol = protocolVersion;
-            packet.encode();
+            packet.encode({ protocolVersion, itemData: itemDataForProtocol(protocolVersion) });
 
             const stream = new BinaryStream(packet.getBuffer());
             expect(stream.readUnsignedVarInt()).toBe(netIdFor('ItemRegistryPacket'));

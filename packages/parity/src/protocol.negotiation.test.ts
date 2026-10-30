@@ -225,7 +225,7 @@ describe(FAMILIES.protocolNegotiation, () => {
         expect(connection.codec).toBeUndefined();
         expect(sent).toHaveLength(1);
         expect(sent[0]).toBeInstanceOf(PlayStatusPacket);
-        expect(sent[0]).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
+        expect(sent[0]?.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
         expect(hangups).toHaveLength(1);
         expect(hangups[0]!.reason).toBe(DisconnectReason.OUTDATED_CLIENT);
         // The refusal names the newest version the registry speaks, which is what the
@@ -236,7 +236,7 @@ describe(FAMILIES.protocolNegotiation, () => {
     it('a newer unsupported client is told the server is outdated', async () => {
         const { sent, hangups } = await negotiate(latestCodec.protocolVersion + 1);
 
-        expect(sent[0]).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
+        expect(sent[0]?.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(hangups).toHaveLength(1);
         expect(hangups[0]!.reason).toBe(DisconnectReason.OUTDATED_SERVER);
     });
