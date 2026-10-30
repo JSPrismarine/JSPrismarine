@@ -37,6 +37,7 @@ import { chunkRadiusUpdatedPacket, requestChunkRadiusPacket } from './chunkRadiu
 import { clientCacheStatusPacket } from './clientCache';
 import { commandOutputPacket, commandRequestPacket } from './commands';
 import { disconnectPacket } from './disconnect';
+import { onScreenTextureAnimationPacket } from './effects';
 import {
     containerClosePacket,
     containerOpenPacket,
@@ -142,6 +143,7 @@ export const wireDefinitions: ReadonlyMap<string, PacketDefinition> = new Map(
         modalFormResponsePacket,
         moveActorAbsolutePacket,
         movePlayerPacket,
+        onScreenTextureAnimationPacket,
         setActorMotionPacket,
         emotePacket,
         playerActionPacket,
