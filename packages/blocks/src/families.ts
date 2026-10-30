@@ -29,6 +29,28 @@ export interface BlockFamilyRule {
 }
 
 /**
+ * The blocks the `jsprismarine:portal` family claims, grouped by the role each
+ * plays in a portal, without the namespace.
+ *
+ * `@jsprismarine/block-behaviors` reads the groups to know which block is a
+ * nether portal, which is an end portal frame and which fire lights a frame,
+ * so the family rule and the geometry rules name the blocks once. `nether_portal`
+ * is Java's name for `portal`, kept for a pack that uses it.
+ */
+export const PORTAL_BLOCK_NAMES = {
+    /** The lit nether portal block, `minecraft:portal` on Bedrock. */
+    netherPortal: ['portal', 'nether_portal'],
+    /** The block the end portal frame ring fills with. */
+    endPortal: ['end_portal'],
+    /** The ring block an eye of ender goes into. */
+    endPortalFrame: ['end_portal_frame'],
+    /** The End's intradimensional gateway. */
+    endGateway: ['end_gateway'],
+    /** The two fires, either of which lights a nether portal frame. */
+    fire: ['fire', 'soul_fire']
+} as const satisfies Record<string, readonly string[]>;
+
+/**
  * Every family, in match order. The order carries meaning: `_fence_gate`
  * before `_fence`, `_wall_sign` before `_wall`, `redstone_torch` before
  * `torch`, and the inert bucket before the plain-cube default.
@@ -76,7 +98,7 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
     { behavior: 'jsprismarine:liquid', exact: ['water', 'flowing_water', 'lava', 'flowing_lava'] },
     {
         behavior: 'jsprismarine:portal',
-        exact: ['portal', 'end_portal', 'end_portal_frame', 'end_gateway', 'fire', 'soul_fire', 'nether_portal']
+        exact: Object.values(PORTAL_BLOCK_NAMES).flat()
     },
     {
         behavior: 'jsprismarine:double_slab',
