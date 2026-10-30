@@ -1,4 +1,4 @@
-import { NetworkBinaryStream, PacketIdentifier } from '@jsprismarine/protocol';
+import { NetworkBinaryStream, PacketIdentifier, v2193 } from '@jsprismarine/protocol';
 
 import type {
     Disconnect,
@@ -67,11 +67,17 @@ export default class ClientPacketRegistry {
     private readonly unknown: Set<number> = new Set();
 
     /**
-     * @param constructor - the packet class; its id is read off a throwaway instance,
-     * because `NetworkPacket` declares the id as an instance getter rather than a static.
+     * Creates a registry that decodes version-gated packets for one negotiated protocol.
+     * @param protocolVersion - The protocol version used by the connection.
+     */
+    public constructor(private readonly protocolVersion: number = v2193.protocolVersion) {}
+
+    /**
+     * Registers a packet class under its default network id.
+     * @param constructor - The packet class to register.
      */
     public register(constructor: PacketConstructor): void {
-        const id = new constructor().id;
+        const id = new constructor().getId();
 
         if (this.packets.has(id)) {
             throw new Error(`Packet id 0x${id.toString(16)} is already registered to ${this.packets.get(id)!.name}`);
@@ -103,7 +109,11 @@ export default class ClientPacketRegistry {
         }
 
         const packet = new constructor();
-        return { id, name: constructor.name, data: packet.deserialize(new NetworkBinaryStream(buffer)) };
+        return {
+            id,
+            name: constructor.name,
+            data: packet.deserialize(new NetworkBinaryStream(buffer), { protocolVersion: this.protocolVersion })
+        };
     }
 
     /**

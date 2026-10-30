@@ -58,7 +58,6 @@ import GameRulesChangedPacket from './GameRulesChangedPacket';
 import HurtArmorPacket from './HurtArmorPacket';
 import SetSpawnPositionPacket from './SetSpawnPositionPacket';
 import StartGamePacket from './StartGamePacket';
-import StartGamePacket2225 from './StartGamePacket2225';
 import SubClientLoginPacket from './SubClientLoginPacket';
 import TextPacket from './TextPacket';
 import UpdateAdventureSettingsPacket from './UpdateAdventureSettingsPacket';
@@ -138,7 +137,6 @@ export {
     HurtArmorPacket,
     SetSpawnPositionPacket,
     StartGamePacket,
-    StartGamePacket2225,
     SubClientLoginPacket,
     TextPacket,
     UpdateAdventureSettingsPacket,
@@ -159,7 +157,7 @@ export {
 };
 
 export { GameRuleType } from './StartGamePacket';
-export { EditorLevelMigrationVersion } from './StartGamePacket2225';
+export { EditorLevelMigrationVersion } from './StartGamePacket';
 export {
     CreativeItemCategory,
     creativeCategoryOf,

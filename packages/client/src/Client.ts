@@ -9,8 +9,9 @@ import {
     ResourcePacksInfoPacket,
     ServerToClientHandshakePacket,
     StartGamePacket,
-    StartGamePacket2225,
-    TextPacket
+    TextPacket,
+    v2193,
+    v2225
 } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
 import LoginSequence from './login/LoginSequence';
@@ -29,21 +30,20 @@ import type { ITransport, TransportStats } from './net/ITransport';
  * message that says which side is behind, which is the least a client owes somebody who
  * cannot connect.
  */
-export const PROTOCOL_VERSION = 2193;
+export const PROTOCOL_VERSION = v2193.protocolVersion;
 export const MINECRAFT_VERSION = '1.26.51';
 
 /**
  * The Minecraft version string that goes with each protocol this client can speak, and the
- * `StartGamePacket` layout to read at it.
+ * Minecraft version to report when speaking each protocol.
  *
  * A server refuses a login whose protocol is not its own, so capturing data from a 1.26.60
- * server means speaking 2225 to it. Only `StartGamePacket` differs between the two layouts
- * among the packets this client decodes; everything else it reads is unchanged at 2225, and
- * everything it sends during a login is too.
+ * server means speaking 2225 to it. Protocol packet classes use the selected version to read
+ * version-gated fields; everything else this client reads and sends is unchanged at 2225.
  */
 const PROTOCOLS = new Map([
-    [2193, { minecraftVersion: MINECRAFT_VERSION, startGame: StartGamePacket }],
-    [2225, { minecraftVersion: '1.26.60', startGame: StartGamePacket2225 }]
+    [v2193.protocolVersion, { minecraftVersion: MINECRAFT_VERSION }],
+    [v2225.protocolVersion, { minecraftVersion: '1.26.60' }]
 ]);
 
 export interface ClientOptions {
@@ -86,7 +86,7 @@ export interface ClientOptions {
 export default class Client extends EventEmitter {
     private readonly logger: Logger;
     private readonly auth: IAuthProvider;
-    private readonly registry = new ClientPacketRegistry();
+    private readonly registry: ClientPacketRegistry;
     private readonly transport: ITransport;
     private readonly session: ClientSession;
 
@@ -110,6 +110,8 @@ export default class Client extends EventEmitter {
             );
         }
 
+        this.registry = new ClientPacketRegistry(this.protocolVersion);
+
         this.auth =
             options.auth ??
             new OfflineAuthProvider({
@@ -127,7 +129,7 @@ export default class Client extends EventEmitter {
             ItemRegistryPacket,
             ResourcePacksInfoPacket,
             ResourcePackStackPacket,
-            protocol.startGame,
+            StartGamePacket,
             TextPacket
         ]);
 
