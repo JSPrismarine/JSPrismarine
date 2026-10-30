@@ -5,6 +5,7 @@ import { PacketIdentifier } from '../PacketIdentifier';
 import ItemData from '../structure/ItemData';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { ProtocolContext } from '../ProtocolContext';
 
 /** One `ItemData` entry of `ItemRegistryPacket`. */
 export interface ItemRegistryEntry {
@@ -22,12 +23,16 @@ export interface ItemRegistryEntry {
      * empty compound the field still requires.
      */
     componentData?: NBTTagCompound;
+    /** Already encoded network NBT from a captured item table; written byte for byte. */
+    componentDataBuffer?: Buffer;
 }
 
 /** The decoded `ItemRegistryPacket`: the `Item Data` array in wire order. */
 export interface ItemRegistry {
     /** One entry per item the server declared, in the order the server sent them. */
     items: ItemRegistryEntry[];
+    /** Whether to use the injected vanilla item table instead of the explicit entries. */
+    useContextItemData?: boolean;
 }
 
 /**
@@ -44,16 +49,26 @@ export interface ItemRegistry {
  * little endian).
  */
 export default class ItemRegistryPacket extends NetworkPacket<ItemRegistry> {
+    /** Creates a registry packet, defaulting to the connection's injected vanilla item table. */
+    public constructor(packetData?: ItemRegistry) {
+        super(packetData ?? { items: [], useContextItemData: true });
+    }
+
     public get id(): number {
         return PacketIdentifier.ITEM_REGISTRY;
     }
 
-    protected serializePayload(stream: NetworkBinaryStream, data: ItemRegistry): void {
-        stream.writeUnsignedVarInt(data.items.length);
-        for (const item of data.items) {
-            new ItemData(item.name, item.runtimeId, item.componentBased, item.version, item.componentData).serialize(
-                stream
-            );
+    protected serializePayload(stream: NetworkBinaryStream, data: ItemRegistry, context?: ProtocolContext): void {
+        const items = data.useContextItemData ? ItemRegistryPacket.entriesFrom(context?.itemData) : data.items;
+        stream.writeUnsignedVarInt(items.length);
+        for (const item of items) {
+            new ItemData(
+                item.name,
+                item.runtimeId,
+                item.componentBased,
+                item.version,
+                item.componentDataBuffer ?? item.componentData
+            ).serialize(stream);
         }
     }
 
@@ -73,5 +88,18 @@ export default class ItemRegistryPacket extends NetworkPacket<ItemRegistry> {
         }
 
         return { items };
+    }
+
+    /** Builds registry entries from the item data injected by the server for this connection. */
+    private static entriesFrom(itemData: ProtocolContext['itemData']): ItemRegistryEntry[] {
+        if (itemData === undefined) return [];
+
+        return Object.entries(itemData.table).map(([name, item]) => ({
+            name,
+            runtimeId: item.runtime_id,
+            componentBased: item.component_based,
+            version: item.version,
+            componentDataBuffer: itemData.components[name]
+        }));
     }
 }

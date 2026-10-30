@@ -205,9 +205,9 @@ for, gets nothing.
   `ContentCommandHostSlot`, that package's five groups with their bodies left open, so the real
   `CommandHost` is assignable without this package depending on it yet. Replace the type with the
   real import when you take the dependency.
-- `@jsprismarine/wire` needs no adapter. It reads `ServerContent.blocks.palette`,
-  `ServerContent.items.registry` and `ServerContent.recipes` to write `StartGamePacket`'s block
-  properties, `ItemRegistryPacket`, `CreativeContentPacket` and `CraftingDataPacket`.
+- `network/contentPayloads.ts` adapts `ServerContent.blocks.palette`, `ServerContent.items.registry`
+  and `ServerContent.recipes` to the payload builders in `@jsprismarine/protocol/payload` for
+  `StartGamePacket`, `ItemRegistryPacket`, `CreativeContentPacket` and `CraftingDataPacket`.
 
 ## What a running server still refuses
 

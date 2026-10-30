@@ -109,7 +109,7 @@ readable throughout the migration.
 | Commands and the `.mcfunction` runtime | `packages/commands/`, `packages/mcfunction/` |
 | The systems neither edition publishes as data, and light | `packages/engine-systems/`, `packages/lighting/` |
 | Terrain, decoration and structures | `packages/worldgen/`, `packages/features/`, `packages/structures/` |
-| The registries turned into client packets | `packages/wire/` |
+| The registries turned into client packet payloads | `packages/protocol/src/payload/` |
 | Parity test suite and dashboard | `packages/parity/` |
 | The composition root that joins all of it to a running server | `packages/prismarine/src/content/` |
 

@@ -1,6 +1,10 @@
 import { Codec2193 } from './Codec2193';
 import { itemData2225 } from './itemData';
 import { minecraftVersions, packetIds, protocolVersion } from './v2225';
+import { biome_definitions_network, block_definitions } from '@jsprismarine/bedrock-data/v2225';
+import { entity_identifiers, jigsaw_structure_data } from '@jsprismarine/bedrock-data';
+
+import type { ProtocolContext } from '@jsprismarine/protocol';
 
 /**
  * The codec for protocol 2225 (Minecraft 1.26.60): the first delta codec, carrying only what
@@ -15,6 +19,14 @@ class Codec2225 extends Codec2193 {
     public override readonly minecraftVersions = minecraftVersions;
     public override readonly ids = packetIds;
     public override readonly itemData = itemData2225;
+    public override readonly context: ProtocolContext = {
+        protocolVersion,
+        itemData: itemData2225,
+        blockDefinitions: block_definitions,
+        entityIdentifiers: entity_identifiers,
+        biomeDefinitions: biome_definitions_network,
+        jigsawStructureData: jigsaw_structure_data
+    };
 
     public override netIdOf(name: string): number | undefined {
         return this.ids[name];

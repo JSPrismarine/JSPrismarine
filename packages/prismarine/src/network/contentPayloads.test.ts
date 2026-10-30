@@ -4,7 +4,7 @@ import { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { blockRuntimeId } from '@jsprismarine/protocol';
-import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/wire';
+import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/protocol/payload';
 import { describe, expect, it, vi } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
@@ -520,7 +520,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             // compound and Mojang's own tables decide the capture's, the capture
             // writes `minecraft:food` alone for the 47 foods it does not mark
             // component based, and `minecraft:icon` is a resource pack fact this
-            // build leaves empty. `@jsprismarine/wire` measures the gap field by
+            // build leaves empty. The protocol payload builder measures the gap field by
             // field; this records the whole-compound number so a change to the
             // projection shows up as a change to it.
             console.debug(

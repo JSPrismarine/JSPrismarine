@@ -3,9 +3,8 @@ import { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32, writeBlockStateNbt } f
 import type { BlockState, BlockStateValue } from './BlockState';
 import { BlockStateSchemas } from './BlockStateSchema';
 
-// The hash, the bytes it is taken over and the reserved id belong to the protocol, not to this
-// server: the client computes the same number from the same bytes, and `@jsprismarine/wire`
-// builds payloads against them too. Re-exported because this file is where callers already look.
+// The hash, the bytes it is taken over, and the reserved id belong to the protocol: the client
+// computes the same number from the same bytes, and protocol payload builders use them too.
 export { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32 } from '@jsprismarine/protocol';
 
 /**

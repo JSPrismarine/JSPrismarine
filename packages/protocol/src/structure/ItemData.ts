@@ -22,22 +22,29 @@ export enum ItemVersion {
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/item-data/}
  */
 export default class ItemData extends NetworkStructure {
+    private componentDataBuffer: Buffer | undefined;
+    public componentData: NBTTagCompound;
+
     /**
      * Creates an entry.
      * @param itemName - `Item Name`, such as `minecraft:stick`.
      * @param itemId - `Item Id`, an int16. Negative for a block's item form.
      * @param componentBased - `Is Component Based`, true when components define the item.
      * @param version - `Item Version`.
-     * @param componentData - `Item Component Data`. Defaults to an empty compound.
+     * @param componentData - `Item Component Data` as a compound or captured network-NBT bytes.
+     *   Defaults to an empty compound.
      */
     public constructor(
         public itemName: string,
         public itemId: number,
         public componentBased: boolean,
         public version: ItemVersion,
-        public componentData: NBTTagCompound = new NBTTagCompound()
+        componentData: NBTTagCompound | Buffer = new NBTTagCompound()
     ) {
         super();
+        this.componentData = new NBTTagCompound();
+        if (Buffer.isBuffer(componentData)) this.componentDataBuffer = componentData;
+        else this.componentData = componentData;
     }
 
     /** Writes the five fields in docs order. */
@@ -46,7 +53,8 @@ export default class ItemData extends NetworkStructure {
         stream.writeShortLE(this.itemId);
         stream.writeBoolean(this.componentBased);
         stream.writeVarInt(this.version);
-        this.componentData.writeToStream(stream, ByteOrder.LITTLE_ENDIAN, true);
+        if (this.componentDataBuffer !== undefined) stream.write(this.componentDataBuffer);
+        else this.componentData.writeToStream(stream, ByteOrder.LITTLE_ENDIAN, true);
     }
 
     /** Reads the five fields in docs order. */
@@ -56,5 +64,6 @@ export default class ItemData extends NetworkStructure {
         this.componentBased = stream.readBoolean();
         this.version = stream.readVarInt();
         this.componentData = NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN, true);
+        this.componentDataBuffer = undefined;
     }
 }

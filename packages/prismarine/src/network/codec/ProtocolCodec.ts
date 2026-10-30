@@ -1,5 +1,6 @@
 import type DataPacket from '../packet/DataPacket';
 import type { ProtocolItemData } from './itemData';
+import type { ProtocolContext } from '@jsprismarine/protocol';
 
 /**
  * One protocol version's view of the wire: which Minecraft versions speak it, which wire id
@@ -26,6 +27,9 @@ export interface ProtocolCodec {
      * module-level table.
      */
     readonly itemData: ProtocolItemData;
+
+    /** Protocol-specific tables and captures supplied by the server for packet codecs. */
+    readonly context: ProtocolContext;
 
     /**
      * A packet instance for an inbound wire id, stamped with this codec's id and version.

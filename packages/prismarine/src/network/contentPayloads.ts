@@ -4,12 +4,10 @@
  *
  * A Bedrock client builds its world out of what the join burst tells it:
  * `StartGamePacket.Block Properties`, `ItemRegistryPacket`,
- * `CreativeContentPacket` and `CraftingDataPacket`. `@jsprismarine/wire` owns
- * the translation from a content registry into each of those, and
- * `@jsprismarine/protocol` owns the bytes. This module is the join between
- * them: it picks which blocks and items the client has to be told about,
- * calls the four builders, and turns their results into the payload shapes
- * the packets write.
+ * `CreativeContentPacket` and `CraftingDataPacket`. `@jsprismarine/protocol`
+ * owns both their payload translation and their bytes. This module picks
+ * which blocks and items the client has to be told about, calls the protocol
+ * builders, and turns their results into the payload shapes the packets write.
  *
  * It is built once per `ServerContent` and protocol version. A content reload
  * replaces that object whole, so the cache is a `WeakMap` keyed on it and
@@ -39,7 +37,7 @@ import {
     buildItemRegistry,
     creativeItemProperties,
     itemIdsOf
-} from '@jsprismarine/wire';
+} from '@jsprismarine/protocol/payload';
 
 import { itemData2193 } from './codec/itemData';
 import { assertContentPaletteAgrees } from './contentPalette';
@@ -56,7 +54,7 @@ import type {
     ItemStackData,
     PotionMix
 } from '@jsprismarine/protocol';
-import type { CreativeCatalog, ItemIdLookup, WireItemInstance, WireResult } from '@jsprismarine/wire';
+import type { CreativeCatalog, ItemIdLookup, WireItemInstance, WireResult } from '@jsprismarine/protocol/payload';
 
 /** The captured vanilla item components, parsed once from network NBT. */
 const capturedItemComponents = Object.fromEntries(
@@ -223,7 +221,7 @@ export interface ContentPayloadOptions {
  *   managers, so two servers with the same content send the same bytes.
  * @throws {import('./contentPalette').ContentPaletteError} When the content
  *   palette disagrees with the one a client has.
- * @throws {import('@jsprismarine/wire').BlockPaletteError} When a declared
+ * @throws {import('@jsprismarine/protocol/payload').BlockPaletteError} When a declared
  *   definition names a vanilla block the client palette does not have, or
  *   declares a state the client disagrees with.
  */

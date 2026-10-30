@@ -116,7 +116,6 @@
         "@jsprismarine/spawning": "workspace:*",
         "@jsprismarine/structures": "workspace:*",
         "@jsprismarine/trading": "workspace:*",
-        "@jsprismarine/wire": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
         "jsonc-parser": "3.3.1"
     }

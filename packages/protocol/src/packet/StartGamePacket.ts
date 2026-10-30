@@ -2,6 +2,7 @@ import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import type { ProtocolContext } from '../ProtocolContext';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
@@ -211,7 +212,7 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
         return undefined;
     }
 
-    protected serializePayload(stream: NetworkBinaryStream, data: StartGame): void {
+    protected serializePayload(stream: NetworkBinaryStream, data: StartGame, context?: ProtocolContext): void {
         stream.writeVarLong(data.entityId);
         stream.writeUnsignedVarLong(data.runtimeEntityId);
         stream.writeVarInt(data.gamemode);
@@ -315,8 +316,10 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
         stream.writeUnsignedLongLE(data.currentTick);
         stream.writeVarInt(data.enchantmentSeed);
 
-        stream.writeUnsignedVarInt(data.blockProperties.length);
-        for (const block of data.blockProperties) {
+        const blockProperties =
+            data.blockProperties.length > 0 ? data.blockProperties : (context?.blockDefinitions ?? []);
+        stream.writeUnsignedVarInt(blockProperties.length);
+        for (const block of blockProperties) {
             stream.writeString(block.name);
             stream.write(block.definition);
         }

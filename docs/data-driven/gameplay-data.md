@@ -186,7 +186,7 @@ lets a 2x2 recipe match in any corner of a 3x3 table, and a shaped pattern is tr
 and in both the written and the mirrored arrangement.
 
 `CraftingDataPacket` is written from the registry. `compileRecipeBook` translates the whole book
-through `javaItemToBedrock`, `buildCraftingData` in `@jsprismarine/wire` turns it into the packet's
+through `javaItemToBedrock`, `buildCraftingData` in `@jsprismarine/protocol/payload` turns it into the packet's
 lists, and `PlayerSession.sendCraftingData` sends it on join. Recipe network ids come from registry
 order: `orderRecipes` sorts by namespace and then path, comparing UTF-16 code units, and
 `assignNetIds` numbers the sorted list from 1 because Bedrock reserves 0 for "no recipe". Adding one

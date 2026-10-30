@@ -20,7 +20,7 @@
 import { projectItemToBedrock } from '@jsprismarine/items';
 import type { BEDROCK_ONLY_ITEM_PROPERTIES } from '@jsprismarine/items';
 import { NBTTagCompound } from '@jsprismarine/nbt';
-import type { ItemRegistryEntry } from '@jsprismarine/protocol';
+import type { ItemRegistryEntry } from '../packet/ItemRegistryPacket';
 
 import type { NbtValue } from './nbt';
 import { nbtByte, nbtCompound, nbtFloat, nbtInt, nbtList, nbtString } from './nbt';

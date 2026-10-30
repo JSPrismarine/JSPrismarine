@@ -24,6 +24,7 @@ export * from './BatchCodec';
 export * from './BlockRuntimeId';
 export * from './CompressionCodec';
 export * from './EncryptionCodec';
+export * from './ProtocolContext';
 export * from './packet';
 export * from './structure';
 export * from './wire/define';

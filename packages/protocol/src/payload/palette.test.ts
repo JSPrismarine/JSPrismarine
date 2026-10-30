@@ -17,7 +17,7 @@ import {
 import { nbtCompound, nbtInt, nbtList, nbtString, writeNetworkNbt } from './nbt';
 
 import type { CapturedBlockState } from './palette';
-import type { BlockProperty } from '@jsprismarine/protocol';
+import type { BlockProperty } from '../packet/StartGamePacket';
 
 /** Every block state a real server recorded in the creative catalog. */
 const captured = (): readonly CapturedBlockState[] => [

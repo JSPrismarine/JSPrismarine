@@ -44,6 +44,7 @@ class HandshakeCodec implements ProtocolCodec {
      * packet carries an item, so nothing reads this before negotiation.
      */
     public readonly itemData = latestCodec.itemData;
+    public readonly context = latestCodec.context;
 
     public createPacket(netId: number, buffer?: Buffer): DataPacket | null {
         if (!handshakeNetIds.has(netId)) return null;

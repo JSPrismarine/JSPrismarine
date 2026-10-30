@@ -18,6 +18,12 @@
                 "module": "./dist/*.es.js",
                 "require": "./dist/*.cjs.cjs"
             },
+            "./payload": {
+                "types": "./dist/payload/index.d.ts",
+                "import": "./dist/payload/index.es.js",
+                "module": "./dist/payload/index.es.js",
+                "require": "./dist/payload/index.cjs.cjs"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -31,6 +37,7 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": "./src/index.ts",
+        "./payload": "./src/payload/index.ts",
         "./*": "./src/*.ts",
         "./package.json": "./package.json"
     },
@@ -51,6 +58,8 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/protocol",
     "devDependencies": {
+        "@jsprismarine/bedrock-data": "workspace:*",
+        "@jsprismarine/packs": "workspace:*",
         "@types/node": "24.19.2",
         "glob": "13.0.6",
         "typescript": "7.0.2",
@@ -59,8 +68,12 @@
     },
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/blocks": "workspace:*",
+        "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/items": "workspace:*",
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
-        "@jsprismarine/nbt": "workspace:*"
+        "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/recipes": "workspace:*"
     }
 }

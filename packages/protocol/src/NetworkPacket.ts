@@ -1,4 +1,5 @@
 import type NetworkBinaryStream from './NetworkBinaryStream';
+import type { ProtocolContext } from './ProtocolContext';
 
 /**
  * Represents the network packet (aka DataPacket).
@@ -32,18 +33,20 @@ export default abstract class NetworkPacket<T> {
     public constructor(private packetData: T | null = null) {}
 
     /**
-     * Serializes the payload of the network packet into a binary stream.
-     * @param stream - The binary stream to serialize into.
-     * @param packetData - The packet data to serialize.
+     * Serializes the packet body, using server-supplied tables when the payload needs them.
+     * @param stream - The stream positioned after the packet header.
+     * @param packetData - The typed body to encode.
+     * @param context - Versioned registries and captured data for this connection.
      */
-    protected abstract serializePayload(stream: NetworkBinaryStream, packetData: T): void;
+    protected abstract serializePayload(stream: NetworkBinaryStream, packetData: T, context?: ProtocolContext): void;
 
     /**
      * Serializes the network packet into a binary stream.
      * @param stream - The binary stream to serialize into.
+     * @param context - Optional protocol data supplied for the connection.
      * @returns The serialized network packet as a Buffer.
      */
-    public serialize(stream: NetworkBinaryStream): Buffer {
+    public serialize(stream: NetworkBinaryStream, context?: ProtocolContext): Buffer {
         if (this.packetData === null) {
             throw new Error(`Cannot serialize packet without data, PID: ${this.id.toString(16)}`);
         }
@@ -52,21 +55,25 @@ export default abstract class NetworkPacket<T> {
                 (this.senderSubClientId << NetworkPacket.SENDER_SUB_CLIENT_SHIFT) |
                 (this.targetSubClientId << NetworkPacket.TARGET_SUB_CLIENT_SHIFT)
         );
-        this.serializePayload(stream, this.packetData);
+        this.serializePayload(stream, this.packetData, context);
         return stream.getBuffer();
     }
 
     /**
-     * Deserializes the payload of the network packet from a binary stream.
-     * @param stream - The binary stream to deserialize from.
+     * Deserializes the packet body, using server-supplied tables when the payload needs them.
+     * @param stream - The stream positioned after the packet header.
+     * @param context - Versioned registries and captured data for this connection.
+     * @returns The typed packet body.
      */
-    protected abstract deserializePayload(stream: NetworkBinaryStream): T;
+    protected abstract deserializePayload(stream: NetworkBinaryStream, context?: ProtocolContext): T;
 
     /**
      * Deserializes the network packet from a binary stream.
-     * @param stream - The binary stream to deserialize from.
+     * @param stream - The stream containing the packet header and body.
+     * @param context - Optional protocol data supplied for the connection.
+     * @returns The typed packet body.
      */
-    public deserialize(stream: NetworkBinaryStream): T {
+    public deserialize(stream: NetworkBinaryStream, context?: ProtocolContext): T {
         const header = stream.readUnsignedVarInt();
         const pid = header & NetworkPacket.PID_MASK;
         if (pid !== this.id) {
@@ -75,7 +82,7 @@ export default abstract class NetworkPacket<T> {
         this.senderSubClientId = (header >> NetworkPacket.SENDER_SUB_CLIENT_SHIFT) & NetworkPacket.SUB_CLIENT_MASK;
         this.targetSubClientId = (header >> NetworkPacket.TARGET_SUB_CLIENT_SHIFT) & NetworkPacket.SUB_CLIENT_MASK;
         try {
-            this.packetData = this.deserializePayload(stream);
+            this.packetData = this.deserializePayload(stream, context);
         } catch (e: unknown) {
             throw new Error(`Error deserializing packet payload: ${e}`);
         }

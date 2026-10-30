@@ -26,25 +26,9 @@ import { protocolVersion as protocol2193 } from './v2193';
 import { protocolVersion as protocol2225 } from './v2225';
 
 import type { ItemTypeEntry } from '@jsprismarine/bedrock-data';
+import type { ProtocolItemData } from '@jsprismarine/protocol';
 
-/** One protocol version's item registry data, and the lookups both wire directions need. */
-export interface ProtocolItemData {
-    /** The protocol version this table was captured from. */
-    readonly protocolVersion: number;
-    /** Every item name a client of this version can be told about, and the number it travels as. */
-    readonly table: Readonly<Record<string, ItemTypeEntry>>;
-    /** Item name to its `Item Component Data`, as network NBT, for every item that has any. */
-    readonly components: Readonly<Record<string, Buffer>>;
-    /**
-     * The item a runtime id names, which is {@link table} read backwards.
-     *
-     * A stack arrives from the client as the number this server told it, so the index has to
-     * go the other way to identify what a player is holding. Built on first use and kept.
-     * @param {number} runtimeId - the number read off the wire.
-     * @returns {string | undefined} the item name, or undefined for a number no table names.
-     */
-    nameOf(runtimeId: number): string | undefined;
-}
+export type { ProtocolItemData } from '@jsprismarine/protocol';
 
 /** A {@link ProtocolItemData} over one captured table, with the reverse index built on demand. */
 const itemDataOver = (protocolVersion: number, table: Readonly<Record<string, ItemTypeEntry>>): ProtocolItemData => {

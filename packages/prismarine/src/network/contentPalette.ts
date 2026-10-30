@@ -12,7 +12,7 @@
  *
  * So the disagreement has to be found here, at startup, rather than in a
  * session. Two checks run: `assertBlockPaletteAgrees` from
- * `@jsprismarine/wire` over the definitions the server is about to declare,
+ * `@jsprismarine/protocol/payload` over the definitions the server is about to declare,
  * and {@link assertContentPaletteAgrees} over the palette behind them, which
  * sees the case the first cannot - a vanilla block whose states the content
  * build changed without declaring anything.

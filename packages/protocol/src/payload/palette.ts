@@ -20,8 +20,9 @@
  */
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
-import { blockRuntimeId } from '@jsprismarine/protocol';
-import type { BlockProperty } from '@jsprismarine/protocol';
+import { blockRuntimeId } from '../BlockRuntimeId';
+
+import type { BlockProperty } from '../packet/StartGamePacket';
 
 import { readNetworkNbt } from './nbt';
 
@@ -34,7 +35,7 @@ export {
     blockStateCompound,
     fnv1a32,
     writeBlockStateNbt
-} from '@jsprismarine/protocol';
+} from '../BlockRuntimeId';
 
 /** One block state a real server recorded, together with the number it gave it. */
 export interface CapturedBlockState {

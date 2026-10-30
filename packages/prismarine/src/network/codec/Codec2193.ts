@@ -1,4 +1,11 @@
 import * as Packets from '../Packets';
+import {
+    biome_definitions_network,
+    block_definitions,
+    entity_identifiers,
+    jigsaw_structure_data
+} from '@jsprismarine/bedrock-data';
+import type { ProtocolContext } from '@jsprismarine/protocol';
 import type DataPacket from '../packet/DataPacket';
 import { itemData2193 } from './itemData';
 import type { ProtocolItemData } from './itemData';
@@ -24,6 +31,14 @@ export class Codec2193 implements ProtocolCodec {
     public readonly minecraftVersions: readonly string[] = minecraftVersions;
     public readonly ids: Readonly<Record<string, number>> = packetIds;
     public readonly itemData: ProtocolItemData = itemData2193;
+    public readonly context: ProtocolContext = {
+        protocolVersion,
+        itemData: itemData2193,
+        blockDefinitions: block_definitions,
+        entityIdentifiers: entity_identifiers,
+        biomeDefinitions: biome_definitions_network,
+        jigsawStructureData: jigsaw_structure_data
+    };
 
     private byId: Map<number, PacketClass> | null = null;
 

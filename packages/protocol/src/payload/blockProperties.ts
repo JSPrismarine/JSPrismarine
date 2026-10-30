@@ -21,7 +21,7 @@
 import type { BlockDefinitionDocument, BlockStateDefinition, BlockTrait, BlockType } from '@jsprismarine/blocks';
 import type { ComponentEntry } from '@jsprismarine/content';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import type { BlockProperty } from '@jsprismarine/protocol';
+import type { BlockProperty } from '../packet/StartGamePacket';
 
 import type { NbtValue } from './nbt';
 import { nbtByte, nbtCompound, nbtFloat, nbtInt, nbtList, nbtString, writeNetworkNbt } from './nbt';
