@@ -15,7 +15,6 @@ import LevelChunkPacket from '../packet/LevelChunkPacket';
 import { Metadata } from '../../entity/Metadata';
 import { BuildPlatform } from '@jsprismarine/minecraft';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../packet/PlayerListPacket';
-import PlayerListPacket2225 from '../packet/PlayerListPacket2225';
 import PlayerSkinPacket from '../packet/PlayerSkinPacket';
 import Skin from '../../utils/skin/Skin';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
@@ -67,7 +66,6 @@ describe('network/codec', () => {
             const changed = {
                 AddActorPacket: AddActorPacket2225,
                 AddPlayerPacket: AddPlayerPacket2225,
-                PlayerListPacket: PlayerListPacket2225,
                 StartGamePacket: StartGamePacket2225
             };
             for (const [name, packetClass] of Object.entries(changed)) {
@@ -283,7 +281,8 @@ describe('network/codec', () => {
                 legacy.setNetId(Codec2225.netIdOf('PlayerListPacket')!);
                 legacy.encode();
 
-                const reader = new PlayerListPacket2225(legacy.getBuffer());
+                const reader = new PlayerListPacket(legacy.getBuffer());
+                reader.codecProtocol = 2225;
                 // Either it throws reading past the buffer, or it survives with a desynced
                 // read that leaves the stream unconsumed. Both end the client's join.
                 let parsed = true;
@@ -296,7 +295,9 @@ describe('network/codec', () => {
             });
 
             it('carries the PlayFab id on the entry at 2225 and inside the skin at 2193', () => {
-                const at2225 = roundTrip(addPacket(new PlayerListPacket2225()));
+                const packet2225 = addPacket(new PlayerListPacket());
+                packet2225.codecProtocol = 2225;
+                const at2225 = roundTrip(packet2225);
                 expect(at2225.entries[0]!.getSkin()!.getPlayFabId()).toBe('PFID-abc123');
                 expect(at2225.entries[0]!.getName()).toBe('Terracotta');
                 expect(at2225.entries[0]!.getBuildPlatform()).toBe(BuildPlatform.WIN32);
@@ -313,11 +314,11 @@ describe('network/codec', () => {
                 expect(at2225.getBuffer().equals(legacy.getBuffer())).toBe(false);
             });
 
-            it('substitutes the 2225 class for the player list packet', () => {
-                const list = Codec2225.prepareOutbound(addPacket(new PlayerListPacket()));
-                expect(list).toBeInstanceOf(PlayerListPacket2225);
-                expect(list.getName()).toBe('PlayerListPacket');
-                expect((list as PlayerListPacket).entries).toHaveLength(1);
+            it('stamps the player list packet, whose layout the stamp alone selects', () => {
+                const list = addPacket(new PlayerListPacket());
+                expect(Codec2225.prepareOutbound(list)).toBe(list);
+                expect(list.codecProtocol).toBe(2225);
+                expect(list.entries).toHaveLength(1);
             });
 
             it('round-trips a skin packet whose skin no longer carries the id', () => {

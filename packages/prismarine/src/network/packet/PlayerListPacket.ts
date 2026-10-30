@@ -1,10 +1,14 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { BuildPlatform } from '@jsprismarine/minecraft';
+import { layoutAt } from '@jsprismarine/protocol';
 import { NetworkUtil } from '../../network/NetworkUtil';
-import UUID from '../../utils/UUID';
-import Skin, { SKIN_WIRE_2193 } from '../../utils/skin/Skin';
+import type UUID from '../../utils/UUID';
+import { SKIN_WIRE_2193 } from '../../utils/skin/Skin';
+import type Skin from '../../utils/skin/Skin';
 import type { SkinWireLayout } from '../../utils/skin/Skin';
 import DataPacket from './DataPacket';
+import { playerListPacket } from './playerList.wire';
+import type { PlayerListBody } from './playerList.wire';
 
 /** The fields of one player list entry. A Remove entry needs only `uuid`. */
 interface PlayerListData {
@@ -192,71 +196,42 @@ export enum PlayerListAction {
  * variant selector (1 for an Add entry, 0 for a Remove entry), the Action as a uint8, and the
  * UUID. An Add entry continues with the fields `PlayerListEntry.networkSerialize` writes. The
  * trusted-skin flag lives inside the skin, so nothing follows the entries.
+ *
+ * The wire layout lives in `playerList.wire.ts`'s declarative definition, which this class
+ * walks at the protocol version stamped on it: which `SerializedSkin` layout the entries use
+ * - and so where the PlayFab id sits - is the layout's decision, not this file's.
  */
 export default class PlayerListPacket extends DataPacket {
     public entries: PlayerListEntry[] = [];
     public type!: number;
 
-    public encodePayload(): void {
-        const adding = this.type === PlayerListAction.TYPE_ADD;
-
-        this.writeUnsignedVarInt(this.entries.length);
-        for (const entry of this.entries) {
-            this.writeUnsignedVarInt(adding ? 1 : 0);
-            this.writeByte(this.type);
-
-            entry.getUUID().networkSerialize(this);
-            if (adding) entry.networkSerialize(this, this.skinLayout());
-        }
+    /** The body under the key its 2193 shape travels as; the stamped version picks one. */
+    public get bodyWithPlayFabIdInSkin(): PlayerListBody {
+        return { type: this.type, entries: this.entries };
     }
 
-    /**
-     * Which `SerializedSkin` layout this packet's entries use, and so where the PlayFab id
-     * sits. The seam protocol 2225 overrides; 2193 keeps the id inside the skin.
-     * @returns {SkinWireLayout} the layout.
-     */
-    protected skinLayout(): SkinWireLayout {
-        return SKIN_WIRE_2193;
+    public set bodyWithPlayFabIdInSkin(value: PlayerListBody | null) {
+        if (value === null) return;
+        this.type = value.type;
+        this.entries = value.entries;
+    }
+
+    /** The body under the key its 2225 shape travels as. */
+    public get bodyWithPlayFabIdOnEntry(): PlayerListBody {
+        return this.bodyWithPlayFabIdInSkin;
+    }
+
+    public set bodyWithPlayFabIdOnEntry(value: PlayerListBody | null) {
+        this.bodyWithPlayFabIdInSkin = value;
+    }
+
+    /** Writes the entries through the layout the stamped protocol version resolves. */
+    public encodePayload(): void {
+        layoutAt(playerListPacket, this.codecProtocol).encode(this, this);
     }
 
     /** Reads the entries back, the mirror of {@link encodePayload}. */
     public decodePayload(): void {
-        this.entries = [];
-        for (let i = 0, count = this.readUnsignedVarInt(); i < count; i++) {
-            this.readUnsignedVarInt(); // Variant selector: 1 for Add, 0 for Remove.
-            this.type = this.readByte(); // Action.
-
-            const uuid = UUID.networkDeserialize(this);
-            if (this.type !== PlayerListAction.TYPE_ADD) {
-                this.entries.push(new PlayerListEntry({ uuid }));
-                continue;
-            }
-
-            const layout = this.skinLayout();
-            const runtimeId = this.readVarLong();
-            const name = NetworkUtil.readString(this);
-            const xuid = NetworkUtil.readString(this);
-            const playFabId = layout.carriesPlayFabId ? null : NetworkUtil.readString(this);
-            const platformChatId = NetworkUtil.readString(this);
-            const buildPlatform = this.readIntLE();
-            const skin = Skin.networkDeserialize(this, layout);
-            if (playFabId !== null) skin.setPlayFabId(playFabId);
-
-            this.entries.push(
-                new PlayerListEntry({
-                    uuid,
-                    runtimeId,
-                    name,
-                    xuid,
-                    platformChatId,
-                    buildPlatform,
-                    skin,
-                    isTeacher: this.readBoolean(),
-                    isHost: this.readBoolean(),
-                    isSubClient: this.readBoolean(),
-                    color: this.readIntLE()
-                })
-            );
-        }
+        Object.assign(this, layoutAt(playerListPacket, this.codecProtocol).decode(this));
     }
 }

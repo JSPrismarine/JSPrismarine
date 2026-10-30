@@ -1,6 +1,5 @@
 import AddActorPacket2225 from '../packet/AddActorPacket2225';
 import AddPlayerPacket2225 from '../packet/AddPlayerPacket2225';
-import PlayerListPacket2225 from '../packet/PlayerListPacket2225';
 import StartGamePacket2225 from '../packet/StartGamePacket2225';
 import { Codec2193 } from './Codec2193';
 import type { PacketClass } from './Codec2193';
@@ -28,7 +27,6 @@ class Codec2225 extends Codec2193 {
         return {
             AddActorPacket: AddActorPacket2225,
             AddPlayerPacket: AddPlayerPacket2225,
-            PlayerListPacket: PlayerListPacket2225,
             StartGamePacket: StartGamePacket2225
         };
     }
