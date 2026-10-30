@@ -1,14 +1,13 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
+import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import Player from '../../Player';
 import type Server from '../../Server';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import { Position } from '../../world/Position';
 import type ClientConnection from '../ClientConnection';
 import { createConnectedPlayer } from '../createConnectedPlayer';
-import { PlayStatusPacket } from '../Packets';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatus from '../type/PlayStatus';
 import type ConnectionPacketHandler from './ConnectionPacketHandler';
 
 export default class LoginHandler implements ConnectionPacketHandler<LoginPacket> {
@@ -48,8 +47,6 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
      * plaintext. A client accepts that when no handshake arrives.
      */
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
-        const playStatus = new PlayStatusPacket();
-
         // A failed status is followed by a disconnect, as the docs have it: the status picks
         // the client's "Outdated client" or "Outdated server" screen, and the disconnect
         // carries the matching reason and hangs up. Without it the connection stayed open.
@@ -61,8 +58,8 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // be gated on is only entered by negotiating.
         if (packet.protocol !== connection.codec.protocolVersion) {
             const outdatedClient = packet.protocol < connection.codec.protocolVersion;
-            playStatus.status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
-            await connection.sendDataPacket(playStatus, true);
+            const status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
+            await connection.sendDataPacket(new PlayStatusPacket({ status }), true);
             await connection.disconnect(
                 outdatedClient
                     ? `Outdated client! Please use ${connection.codec.minecraftVersions.at(-1)}`
@@ -77,8 +74,10 @@ export default class LoginHandler implements ConnectionPacketHandler<LoginPacket
         // the server building a player it would only tear down again. The disconnect that
         // follows carries `ServerFull` and hangs up.
         if (server.getSessionManager().getAllPlayers().length >= server.getConfig().getMaxPlayers()) {
-            playStatus.status = PlayStatus.LoginFailed_ServerFullSubClient;
-            await connection.sendDataPacket(playStatus, true);
+            await connection.sendDataPacket(
+                new PlayStatusPacket({ status: PlayStatus.LoginFailed_ServerFullSubClient }),
+                true
+            );
             await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
             return;
         }

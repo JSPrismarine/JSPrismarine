@@ -41,7 +41,7 @@ import CraftingDataPacket from '@jsprismarine/protocol/packet/CraftingDataPacket
 import CreativeContentPacket from '@jsprismarine/protocol/packet/CreativeContentPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import DebugInfoPacket from '@jsprismarine/protocol/packet/DebugInfoPacket';
-import DisconnectPacket from './packet/DisconnectPacket';
+import DisconnectPacket from '@jsprismarine/protocol/packet/DisconnectPacket';
 import EducationSettingsPacket from '@jsprismarine/protocol/packet/EducationSettingsPacket';
 import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
 import EmotePacket from '@jsprismarine/protocol/packet/EmotePacket';
@@ -85,7 +85,7 @@ import PacketViolationWarningPacket from '@jsprismarine/protocol/packet/PacketVi
 import PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
 import PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
-import PlayStatusPacket from './packet/PlayStatusPacket';
+import PlayStatusPacket from '@jsprismarine/protocol/packet/PlayStatusPacket';
 import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerArmorDamagePacket from '@jsprismarine/protocol/packet/PlayerArmorDamagePacket';
 import PlayerAuthInputPacket from './packet/PlayerAuthInputPacket';

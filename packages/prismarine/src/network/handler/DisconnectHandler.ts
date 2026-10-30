@@ -1,7 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
+import type { DisconnectPacket } from '@jsprismarine/protocol';
 import type Server from '../../Server';
 import type PlayerSession from '../PlayerSession';
-import type DisconnectPacket from '../packet/DisconnectPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -25,10 +25,13 @@ export default class DisconnectHandler implements PacketHandler<DisconnectPacket
      * its name. A bare number out of 150 members says little to whoever reads the log.
      */
     public async handle(packet: DisconnectPacket, server: Server, session: PlayerSession): Promise<void> {
+        const disconnect = packet.getPacketData();
+        if (disconnect === null) throw new Error('DisconnectPacket has no payload');
+
         const player = session.getPlayer();
-        const name = DisconnectReason[packet.reason];
-        const reason = name === undefined ? `${packet.reason}` : `${packet.reason} (${name})`;
-        const message = packet.skipMessage ? '' : ` and message "${packet.message}"`;
+        const name = DisconnectReason[disconnect.reason];
+        const reason = name === undefined ? `${disconnect.reason}` : `${disconnect.reason} (${name})`;
+        const message = disconnect.skipMessage ? '' : ` and message "${disconnect.message ?? ''}"`;
 
         server
             .getLogger()

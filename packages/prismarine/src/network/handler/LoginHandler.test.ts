@@ -18,9 +18,8 @@ import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import LoginPacket from '../packet/LoginPacket';
-import PlayStatusPacket from '../packet/PlayStatusPacket';
+import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatus from '../type/PlayStatus';
 import LoginHandler from './LoginHandler';
 import { testContent } from '../../testing/entityServer';
 
@@ -283,7 +282,7 @@ describe('network', () => {
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
-                expect(status.status).toBe(PlayStatus.LoginFailed_ClientOld);
+                expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ClientOld);
                 expect(sent).toHaveLength(1);
                 expect(disconnect).toHaveBeenCalledWith(
                     `Outdated client! Please use ${Codec2193.minecraftVersions.at(-1)}`,
@@ -321,7 +320,7 @@ describe('network', () => {
                 const [status] = sent;
                 expect(status).toBeInstanceOf(PlayStatusPacket);
                 assert(status instanceof PlayStatusPacket);
-                expect(status.status).toBe(PlayStatus.LoginFailed_ServerFullSubClient);
+                expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ServerFullSubClient);
                 expect(disconnect).toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
                 expect(connection.attachPlayerSession).not.toHaveBeenCalled();
             });
@@ -342,7 +341,7 @@ describe('network', () => {
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
-                expect(status.status).toBe(PlayStatus.LoginFailed_ServerOld);
+                expect(status.getPacketData()?.status).toBe(PlayStatus.LoginFailed_ServerOld);
                 expect(sent).toHaveLength(1);
                 expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
             });

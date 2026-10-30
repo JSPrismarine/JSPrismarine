@@ -1,4 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
+import { DisconnectPacket } from '@jsprismarine/protocol';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -8,7 +9,6 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
-import DisconnectPacket from '../packet/DisconnectPacket';
 import DisconnectHandler from './DisconnectHandler';
 
 /**
@@ -36,11 +36,11 @@ const harness = () => {
 };
 
 const goodbye = (reason: number, message?: string): DisconnectPacket =>
-    Object.assign(new DisconnectPacket(), {
-        reason,
-        skipMessage: message === undefined,
-        message: message ?? ''
-    });
+    new DisconnectPacket(
+        message === undefined
+            ? { reason, skipMessage: true }
+            : { reason, skipMessage: false, message, filteredMessage: '' }
+    );
 
 describe('DisconnectHandler', () => {
     it('logs the reason by number and name, and the message, with who sent them', async () => {

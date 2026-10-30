@@ -5,7 +5,7 @@ import type { RakNetSession } from '@jsprismarine/raknet';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import assert from 'assert';
 import MinecraftSession from './MinecraftSession';
-import { DisconnectPacket } from './Packets';
+import { DisconnectPacket } from '@jsprismarine/protocol';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type { SessionPhase } from './SessionPhase';
 import type { RakNetTransportConnection } from './transport/RakNetTransport';
@@ -89,10 +89,12 @@ export default class ClientConnection extends MinecraftSession {
         hideReason = true,
         code: DisconnectReason = DisconnectReason.DISCONNECTED
     ): Promise<void> {
-        const packet = new DisconnectPacket();
-        packet.reason = code;
-        packet.skipMessage = hideReason;
-        packet.message = reason;
+        const packet = new DisconnectPacket({
+            reason: code,
+            skipMessage: hideReason,
+            message: reason,
+            filteredMessage: ''
+        });
 
         // Both at once, because neither waits on the other, and both awaited so the caller
         // knows the whole tear-down is done. Framing can be queued behind a chunk batch

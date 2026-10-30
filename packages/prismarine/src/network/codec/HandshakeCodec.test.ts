@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { NetworkSettingsPacket, RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
+import {
+    DisconnectPacket,
+    NetworkSettingsPacket,
+    PlayStatusPacket,
+    RequestNetworkSettingsPacket
+} from '@jsprismarine/protocol';
 
 import Codec2193 from './Codec2193';
 import { latestCodec } from './CodecRegistry';
 import HandshakeCodec from './HandshakeCodec';
-import DisconnectPacket from '../packet/DisconnectPacket';
 import LoginPacket from '../packet/LoginPacket';
-import PlayStatusPacket from '../packet/PlayStatusPacket';
 
 describe('network/codec/HandshakeCodec', () => {
     const handshakePackets = [RequestNetworkSettingsPacket, NetworkSettingsPacket, PlayStatusPacket, DisconnectPacket];

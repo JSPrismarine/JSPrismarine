@@ -1,10 +1,6 @@
-import { DisconnectReason } from '@jsprismarine/minecraft';
 import {
-    DisconnectPacket,
     LoginPacket,
     NetworkBinaryStream,
-    PlayStatus,
-    PlayStatusPacket,
     ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePackStatus,
@@ -12,13 +8,10 @@ import {
 } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
-import ServerDisconnectPacket from './packet/DisconnectPacket';
 import ServerLoginPacket from './packet/LoginPacket';
-import ServerPlayStatusPacket from './packet/PlayStatusPacket';
 import ServerResourcePackClientResponsePacket from './packet/ResourcePackClientResponsePacket';
 import ServerResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ServerResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
-import ServerPlayStatus from './type/PlayStatus';
 import ResourcePackStatusType from './type/ResourcePackStatusType';
 
 import type { NetworkPacket } from '@jsprismarine/protocol';
@@ -81,54 +74,6 @@ describe('login sequence interop', () => {
             server.clientData = data.clientData;
 
             expect(readAsClient(new LoginPacket(), serverBytes(server))).toEqual(data);
-        });
-    });
-
-    describe('PlayStatus', () => {
-        it('agrees byte for byte and both sides read the whole packet', () => {
-            const server = new ServerPlayStatusPacket();
-            server.status = ServerPlayStatus.PlayerSpawn;
-            const bytes = serverBytes(server);
-
-            expect(clientBytes(new PlayStatusPacket({ status: PlayStatus.PlayerSpawn }))).toEqual(bytes);
-            expect(readAsClient(new PlayStatusPacket(), bytes).status).toBe(PlayStatus.PlayerSpawn);
-            expect(readAsServer(new ServerPlayStatusPacket(), bytes).status).toBe(ServerPlayStatus.PlayerSpawn);
-        });
-    });
-
-    describe('Disconnect', () => {
-        it('agrees byte for byte when the messages are present', () => {
-            const server = new ServerDisconnectPacket();
-            server.reason = DisconnectReason.KICKED;
-            server.skipMessage = false;
-            server.message = 'Bye';
-            server.filteredMessage = '';
-            const bytes = serverBytes(server);
-
-            expect(
-                clientBytes(
-                    new DisconnectPacket({
-                        reason: DisconnectReason.KICKED,
-                        skipMessage: false,
-                        message: 'Bye',
-                        filteredMessage: ''
-                    })
-                )
-            ).toEqual(bytes);
-            expect(readAsClient(new DisconnectPacket(), bytes)).toEqual({
-                reason: DisconnectReason.KICKED,
-                skipMessage: false,
-                message: 'Bye',
-                filteredMessage: ''
-            });
-        });
-
-        it('agrees that selector 1 ends the packet', () => {
-            const bytes = clientBytes(new DisconnectPacket({ reason: DisconnectReason.SHUTDOWN, skipMessage: true }));
-            const server = readAsServer(new ServerDisconnectPacket(), bytes);
-
-            expect(server.reason).toBe(DisconnectReason.SHUTDOWN);
-            expect(server.skipMessage).toBe(true);
         });
     });
 

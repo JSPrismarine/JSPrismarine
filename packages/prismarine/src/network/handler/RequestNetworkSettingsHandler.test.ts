@@ -1,5 +1,11 @@
 import type { Logger } from '@jsprismarine/logger';
-import { CompressionThreshold, NetworkSettingsPacket, RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
+import {
+    CompressionThreshold,
+    NetworkSettingsPacket,
+    PlayStatus,
+    PlayStatusPacket,
+    RequestNetworkSettingsPacket
+} from '@jsprismarine/protocol';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,8 +17,6 @@ import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
 import Identifiers from '../Identifiers';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import PlayStatusPacket from '../packet/PlayStatusPacket';
-import PlayStatus from '../type/PlayStatus';
 import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
 
 /**
@@ -93,7 +97,7 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(sent).toHaveLength(1);
         const { packet, comp } = sent[0]!;
         expect(packet).toBeInstanceOf(PlayStatusPacket);
-        expect(packet).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
+        expect(packet.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
         // Compression was never agreed, so a prefixed batch would be read as garbage.
         expect(comp).toBe(false);
         // The status first, so the client has a screen to put the reason on.
@@ -112,7 +116,7 @@ describe('RequestNetworkSettingsHandler', () => {
         await new RequestNetworkSettingsHandler().handle(request(Identifiers.Protocol + 10), server, connection);
 
         expect(sent).toHaveLength(1);
-        expect(sent[0]!.packet).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
+        expect(sent[0]!.packet.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
     });
 

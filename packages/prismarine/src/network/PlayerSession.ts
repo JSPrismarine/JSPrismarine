@@ -63,8 +63,7 @@ import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbso
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
-import PlayStatusPacket from './packet/PlayStatusPacket';
-import PlayStatus from './type/PlayStatus';
+import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
@@ -1988,9 +1987,7 @@ export default class PlayerSession {
 
     /** Sends a `PlayStatus` to this player's client. */
     public async sendPlayStatus(status: PlayStatus): Promise<void> {
-        const pk = new PlayStatusPacket();
-        pk.status = status;
-        await this.connection.sendDataPacket(pk, true);
+        await this.connection.sendDataPacket(new PlayStatusPacket({ status }), true);
     }
 
     public getConnection(): ClientConnection {

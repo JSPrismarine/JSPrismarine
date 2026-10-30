@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { DisconnectReason } from '@jsprismarine/minecraft';
+import { DisconnectPacket } from '@jsprismarine/protocol';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import ClientConnection from './ClientConnection';
@@ -110,11 +111,17 @@ describe('network', () => {
             vi.spyOn(connection, 'forceDisconnect').mockImplementation(() => {});
 
             await connection.disconnect('Outdated client!', false);
-            expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Outdated client!' }), false);
+            const first = send.mock.calls.at(-1)?.[0];
+            expect(first).toBeInstanceOf(DisconnectPacket);
+            expect(first?.getPacketData()).toMatchObject({ message: 'Outdated client!' });
+            expect(send).toHaveBeenLastCalledWith(first, false);
 
             connection.hasCompression = true;
             await connection.disconnect('Kicked', false);
-            expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Kicked' }), true);
+            const second = send.mock.calls.at(-1)?.[0];
+            expect(second).toBeInstanceOf(DisconnectPacket);
+            expect(second?.getPacketData()).toMatchObject({ message: 'Kicked' });
+            expect(send).toHaveBeenLastCalledWith(second, true);
         });
 
         it('stamps the goodbye with the reason code it was given', async () => {
@@ -125,16 +132,19 @@ describe('network', () => {
             vi.spyOn(connection, 'forceDisconnect').mockImplementation(() => {});
 
             await connection.disconnect();
-            expect(send).toHaveBeenLastCalledWith(
-                expect.objectContaining({ reason: DisconnectReason.DISCONNECTED }),
-                false
-            );
+            const defaultPacket = send.mock.calls.at(-1)?.[0];
+            expect(defaultPacket).toBeInstanceOf(DisconnectPacket);
+            expect(defaultPacket?.getPacketData()).toMatchObject({ reason: DisconnectReason.DISCONNECTED });
+            expect(send).toHaveBeenLastCalledWith(defaultPacket, false);
 
             await connection.disconnect('Kicked', false, DisconnectReason.KICKED);
-            expect(send).toHaveBeenLastCalledWith(
-                expect.objectContaining({ reason: DisconnectReason.KICKED, message: 'Kicked' }),
-                false
-            );
+            const kickedPacket = send.mock.calls.at(-1)?.[0];
+            expect(kickedPacket).toBeInstanceOf(DisconnectPacket);
+            expect(kickedPacket?.getPacketData()).toMatchObject({
+                reason: DisconnectReason.KICKED,
+                message: 'Kicked'
+            });
+            expect(send).toHaveBeenLastCalledWith(kickedPacket, false);
         });
 
         it('does nothing for a connection that never got a player', async () => {
