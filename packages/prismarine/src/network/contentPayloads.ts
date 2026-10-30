@@ -453,7 +453,7 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
         [report.furnaceRecipes, 'held back §e%§r cooking recipes']
     ] as const;
 
-    const said = clauses.filter(([count]) => count > 0).map(([count, text]) => text.replace('%', String(count)));
+    const said = clauses.filter(([count]) => count > 0).map(([count, text]) => text.replaceAll('%', String(count)));
 
     return said.length === 0 ? undefined : `The content build ${said.join(', ')}`;
 };
