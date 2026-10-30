@@ -6,6 +6,7 @@ import { defineConfig } from 'vitest/config';
 const reporters = ['verbose'];
 const extraReporters = !process.env.GITHUB_ACTIONS ? [] : ['github-actions', 'junit'];
 const exclude = [
+    '.claude/**/*.*',
     '.changeset/**/*.*',
     '.github/**/*.*',
     '.husky/**/*.*',
