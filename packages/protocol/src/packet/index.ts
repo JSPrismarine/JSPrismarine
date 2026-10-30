@@ -21,6 +21,7 @@ import SetDifficultyPacket from './SetDifficultyPacket';
 import SetHealthPacket from './SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
 import SetTimePacket from './SetTimePacket';
+import SetSpawnPositionPacket from './SetSpawnPositionPacket';
 import StartGamePacket from './StartGamePacket';
 import StartGamePacket2225 from './StartGamePacket2225';
 import TextPacket from './TextPacket';
@@ -49,6 +50,7 @@ export {
     SetHealthPacket,
     SetLocalPlayerAsInitializedPacket,
     SetTimePacket,
+    SetSpawnPositionPacket,
     StartGamePacket,
     StartGamePacket2225,
     TextPacket
@@ -95,6 +97,8 @@ export type { SetHealthPayload } from './SetHealthPacket';
 export type { SetCommandsEnabledPayload } from './SetCommandsEnabledPacket';
 export type { SetDifficultyPayload } from './SetDifficultyPacket';
 export type { SetTimePayload } from './SetTimePacket';
+export { SpawnPositionType } from './SetSpawnPositionPacket';
+export type { SetSpawnPositionPayload } from './SetSpawnPositionPacket';
 export type { ClientToServerHandshake } from './ClientToServerHandshakePacket';
 export type { ItemRegistry, ItemRegistryEntry } from './ItemRegistryPacket';
 export type { ServerToClientHandshake } from './ServerToClientHandshakePacket';

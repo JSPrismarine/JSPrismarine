@@ -23,7 +23,7 @@ import type Server from '../../Server';
 import { DIFFICULTIES, difficultyName } from '../../config/Config';
 import PlaySoundPacket from '../../network/packet/PlaySoundPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
-import SetSpawnPositionPacket, { SpawnPositionType } from '../../network/packet/SetSpawnPositionPacket';
+import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SpawnParticleEffectPacket from '../../network/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '../../network/packet/StopSoundPacket';
 import PositionMode from '../../network/type/PositionMode';
@@ -321,11 +321,13 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             const at = blockPositionOf(position);
             world.setSpawnPosition(at);
 
-            const packet = new SetSpawnPositionPacket();
-            packet.type = SpawnPositionType.WorldSpawn;
-            packet.position = at;
-            packet.blockPosition = at;
-            packet.dimension = world.getDimension().id;
+            const blockPosition = { x: at.getX(), y: at.getY(), z: at.getZ() };
+            const packet = new SetSpawnPositionPacket({
+                type: SpawnPositionType.WorldSpawn,
+                position: blockPosition,
+                dimension: world.getDimension().id,
+                blockPosition
+            });
 
             return carryOut(
                 world.saveLevelData().then(async () => server.broadcastPacket(packet)),
@@ -348,11 +350,13 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
                 forced: true
             });
 
-            const packet = new SetSpawnPositionPacket();
-            packet.type = SpawnPositionType.PlayerRespawn;
-            packet.position = at;
-            packet.blockPosition = at;
-            packet.dimension = worldOf(server, dimension).getDimension().id;
+            const blockPosition = { x: at.getX(), y: at.getY(), z: at.getZ() };
+            const packet = new SetSpawnPositionPacket({
+                type: SpawnPositionType.PlayerRespawn,
+                position: blockPosition,
+                dimension: worldOf(server, dimension).getDimension().id,
+                blockPosition
+            });
 
             return carryOut(player.getNetworkSession().send(packet), true);
         },

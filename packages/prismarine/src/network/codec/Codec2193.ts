@@ -3,6 +3,7 @@ import CommandRequestPacket from '@jsprismarine/protocol/packet/CommandRequestPa
 import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
 import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
 import SetHealthPacket from '@jsprismarine/protocol/packet/SetHealthPacket';
+import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import SetTimePacket from '@jsprismarine/protocol/packet/SetTimePacket';
 import {
     biome_definitions_network,
@@ -24,6 +25,7 @@ export type PacketClass =
     | typeof SetCommandsEnabledPacket
     | typeof SetDifficultyPacket
     | typeof SetHealthPacket
+    | typeof SetSpawnPositionPacket
     | typeof SetTimePacket;
 
 const protocolPackets = {
@@ -31,6 +33,7 @@ const protocolPackets = {
     SetCommandsEnabledPacket,
     SetDifficultyPacket,
     SetHealthPacket,
+    SetSpawnPositionPacket,
     SetTimePacket
 } satisfies Record<string, PacketClass>;
 

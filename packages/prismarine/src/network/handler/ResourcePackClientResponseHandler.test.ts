@@ -31,7 +31,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
-import SetSpawnPositionPacket from '../packet/SetSpawnPositionPacket';
+import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import StartGamePacket from '../packet/StartGamePacket';
@@ -237,9 +237,9 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(packet).toBeInstanceOf(SetSpawnPositionPacket);
         if (!(packet instanceof SetSpawnPositionPacket)) return;
 
-        const components = (position: Vector3) => [position.getX(), position.getY(), position.getZ()];
-        expect(components(packet.position)).toEqual([0, 64, -1]);
-        expect(components(packet.blockPosition)).toEqual([0, 64, -1]);
+        const data = packet.getPacketData();
+        expect(data?.position).toEqual({ x: 0, y: 64, z: -1 });
+        expect(data?.blockPosition).toEqual({ x: 0, y: 64, z: -1 });
     });
 
     it('sends no Respawn when the player returns to a saved position', async () => {

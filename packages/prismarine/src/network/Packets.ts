@@ -134,7 +134,6 @@ import SetPassengerOfBlockPacket from './packet/SetPassengerOfBlockPacket';
 import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
-import SetSpawnPositionPacket from './packet/SetSpawnPositionPacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import SettingsCommandPacket from './packet/SettingsCommandPacket';
 import ShowCreditsPacket from './packet/ShowCreditsPacket';
@@ -307,7 +306,6 @@ export {
     SetPlayerFurnaceOptionsPacket,
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
-    SetSpawnPositionPacket,
     SetTitlePacket,
     SettingsCommandPacket,
     ShowCreditsPacket,

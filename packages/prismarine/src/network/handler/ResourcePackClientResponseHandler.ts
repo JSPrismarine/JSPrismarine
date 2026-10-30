@@ -1,7 +1,7 @@
 import { Chat, ChatType } from '../../chat/Chat';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '../packet/RespawnPacket';
-import SetSpawnPositionPacket, { SpawnPositionType } from '../packet/SetSpawnPositionPacket';
+import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Generator, getGametypeId } from '@jsprismarine/minecraft';
@@ -274,12 +274,16 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         // The world spawn is a `Vector3` and may be fractional, while both positions in this
         // packet are `BlockPos`. A ZigZag varint write truncates toward zero without a word,
         // so a spawn at -0.5 would have been sent as block 0 rather than block -1.
-        const setSpawnPos = new SetSpawnPositionPacket();
-        setSpawnPos.dimension = world.getDimension().id;
-        setSpawnPos.position = BlockPosition.fromVector3(worldSpawnPos);
-        setSpawnPos.blockPosition = setSpawnPos.position;
-        setSpawnPos.type = SpawnPositionType.PlayerRespawn;
-        await connection.sendDataPacket(setSpawnPos);
+        const spawn = BlockPosition.fromVector3(worldSpawnPos);
+        const blockPosition = { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
+        await connection.sendDataPacket(
+            new SetSpawnPositionPacket({
+                type: SpawnPositionType.PlayerRespawn,
+                position: blockPosition,
+                dimension: world.getDimension().id,
+                blockPosition
+            })
+        );
 
         await player.sendSettings();
         await session.sendAttributes();
