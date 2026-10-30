@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel } from './Config';
+import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
 
 describe('config', () => {
     describe('Config', () => {
@@ -39,7 +40,7 @@ describe('config', () => {
         it('should have the default worlds', () => {
             expect(config.getWorlds()).toEqual({
                 world: {
-                    generator: 'Overworld',
+                    preset: 'minecraft:normal',
                     provider: 'LevelDB',
                     // A string, because the seed is 64 bits and a JSON number is a double.
                     seed: expect.stringMatching(/^-?\d+$/)
@@ -107,6 +108,63 @@ describe('config', () => {
             expect(text).toContain('"view-distance": 10');
         });
 
+        it('should rewrite a world read in the old spelling without touching the rest', async () => {
+            const file = path.join(configDirectory, 'config.json');
+            writeFileSync(
+                file,
+                [
+                    '{',
+                    '  // My server.',
+                    '  "port": 25565, // forwarded',
+                    '  "worlds": {',
+                    '    "world": { "generator": "Flat", "layers": [{ "block": "stone", "size": 3 }], "seed": "9" }',
+                    '  },',
+                    '  "motd": "Hi there"',
+                    '}',
+                    ''
+                ].join('\n')
+            );
+
+            const reread = new Config();
+            await reread.enable();
+            expect(reread.getWorlds()).toEqual({
+                world: { generator: 'Flat', layers: [{ block: 'stone', size: 3 }], seed: '9' }
+            });
+
+            const normalized = normalizeWorldData(reread.getWorlds()['world']!, ['minecraft:flat']);
+            reread.setWorld('world', worldDataOf(normalized), true);
+
+            const text = readFileSync(file, 'utf8');
+            expect(text).toContain('  // My server.');
+            expect(text).toContain('"port": 25565, // forwarded');
+            expect(text).toContain('"motd": "Hi there"');
+            expect(text).not.toContain('"generator": "Flat"');
+            expect(text).not.toContain('"size"');
+            expect(text.indexOf('"worlds":')).toBeLessThan(text.indexOf('"motd":'));
+            const written = new Config();
+            await written.enable();
+            expect(written.getWorlds()).toEqual({
+                world: {
+                    preset: 'minecraft:flat',
+                    seed: '9',
+                    dimensions: {
+                        'minecraft:overworld': {
+                            generator: {
+                                type: 'minecraft:flat',
+                                settings: {
+                                    biome: 'minecraft:plains',
+                                    layers: [{ block: 'stone', height: 3 }],
+                                    lakes: false,
+                                    features: false,
+                                    structure_overrides: []
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
         it.each(['config.yml', 'config.yaml'])('ignores an existing %s', (name) => {
             const yamlFile = path.join(configDirectory, name);
             writeFileSync(yamlFile, 'port: 25565\n');
@@ -172,7 +230,7 @@ describe('config', () => {
             expect(config.getOnlineMode()).toBe(true);
             expect(config.getPacketCompressionLevel()).toBe(7);
             expect(config.getWorlds()).toEqual({
-                world: { generator: 'Overworld', provider: 'LevelDB', seed: expect.stringMatching(/^-?\d+$/) }
+                world: { preset: 'minecraft:normal', provider: 'LevelDB', seed: expect.stringMatching(/^-?\d+$/) }
             });
         });
 

@@ -5,6 +5,7 @@ import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
 import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
 import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
+import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
 
 import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
 
@@ -48,7 +49,7 @@ const COMMENTS = {
     port: 'The UDP port the server listens on. Bedrock clients look for 19132.',
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
     'level-name': 'Which entry of `worlds` players join.',
-    worlds: 'Every world the server loads, by name, with its generator, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
+    worlds: 'Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
     'max-players': 'How many players may be online at once.',
     gamemode: 'The default game mode for new players: survival, creative, adventure or spectator.',
     difficulty: 'How dangerous the monsters are: peaceful, easy, normal or hard.',
@@ -113,14 +114,14 @@ const DEFAULTS = {
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
 
 /**
- * The single flat world a server with no `worlds` key runs, on a seed of its own.
+ * The single world a server with no `worlds` key runs: the normal preset on a seed of its own.
  *
  * The seed is written as a string because it is a 64-bit value and a JSON number is a double:
  * written as a number, half the seeds this draws would be read back rounded. See
  * {@link import('./JsonConfigTypes').WorldData.seed}.
  */
 const defaultWorlds = (): Record<string, WorldData> => ({
-    world: { generator: 'Overworld', provider: 'LevelDB', seed: SeedGenerator().toString() }
+    world: { preset: DEFAULT_WORLD_PRESET, provider: 'LevelDB', seed: SeedGenerator().toString() }
 });
 
 /** Runtime settings that take precedence over values in the server config file. */
@@ -307,6 +308,22 @@ export class Config {
 
     public getWorlds(): Record<string, WorldData> {
         return this.worlds;
+    }
+
+    /**
+     * Replaces one `worlds` entry, which is how an entry read in the old `generator` and
+     * `layers` spelling is written back as `preset` and `dimensions` so the file converges.
+     *
+     * The whole `worlds` map is rewritten, because the file keeps its top-level keys and their
+     * comments but a replaced map loses the comments inside it. Nothing else in the file moves.
+     *
+     * @param name - The world's key under `worlds`.
+     * @param data - The entry to store, normally from `worldDataOf`.
+     * @param commit - Whether to write the map to the config file.
+     */
+    public setWorld(name: string, data: WorldData, commit = false): void {
+        this.worlds = { ...this.worlds, [name]: data };
+        if (commit) this.configBuilder.set('worlds', this.worlds);
     }
 
     /**
