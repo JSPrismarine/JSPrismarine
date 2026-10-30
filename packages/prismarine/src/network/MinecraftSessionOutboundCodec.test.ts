@@ -1,10 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import { Vector3 } from '@jsprismarine/math';
-import type Server from '../Server';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { stub } from '../testing/stub.test.helper';
-import GameRuleManager from '../world/GameRuleManager';
 import MinecraftSession, { broadcastSharedBatches } from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
 import type { ProtocolCodec } from './codec/ProtocolCodec';
@@ -13,14 +12,20 @@ import Codec2225 from './codec/Codec2225';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import BatchPacket from './packet/BatchPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
-import StartGamePacket from './packet/StartGamePacket';
+import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import { HandSlot } from './packet/InventoryTransactionPacket';
 
+const START_GAME_CAPTURE = readFileSync(
+    new URL('../../../protocol/src/packet/__fixtures__/start-game-bds-1.26.51.1.bin', import.meta.url)
+);
+const START_GAME_DATA = new StartGamePacket().deserialize(new NetworkBinaryStream(START_GAME_CAPTURE), {
+    protocolVersion: 2193
+});
+
 /**
- * The outbound half of per-session protocol codecs: gameplay code builds the base (2193)
- * packet classes, and the session's codec decides what actually encodes. A 2225 session must
- * put the 2225 layout on the wire for the packets whose layout changed, while a 2193 session
- * keeps the old one - from the same base instance.
+ * The outbound half of per-session protocol codecs: the session's codec stamps the Protocol
+ * packet with its negotiated version before encoding. A 2225 session must put the 2225 layout
+ * on the wire while a 2193 session keeps the old one, using the same packet class.
  */
 const fakeSession = (codec: ProtocolCodec) => {
     const framed: Buffer[] = [];
@@ -53,25 +58,7 @@ const animate = () => {
     return packet;
 };
 
-const startGame = () => {
-    const packet = new StartGamePacket();
-    packet.entityId = -2n;
-    packet.runtimeEntityId = 7n;
-    packet.gamemode = 1;
-    packet.playerPos = new Vector3(0.5, 64, -2);
-    packet.pitch = 1;
-    packet.yaw = 180;
-    packet.seed = 258n;
-    packet.worldSpawnPos = new Vector3(8, -60, -16);
-    packet.gameRules = new GameRuleManager(stub<Server>());
-    packet.time = 6000;
-    packet.levelId = 'level-id';
-    packet.worldName = 'A world';
-    packet.serverIdentifier = 'JSPrismarine';
-    packet.scenarioIdentifier = 'scenario';
-    packet.worldIdentifier = 'world-id';
-    return packet;
-};
+const startGame = () => new StartGamePacket(START_GAME_DATA);
 
 describe('network', () => {
     describe('MinecraftSession outbound codec', () => {
@@ -104,7 +91,7 @@ describe('network', () => {
             expect(decoded2193).toMatchObject({ action: 1, runtimeEntityId: 300n, swingSource: 'attack' });
         });
 
-        it('a 2225 session sends the 2225 StartGamePacket layout from a base instance', async () => {
+        it('a 2225 session sends the versioned StartGame layout through the Protocol packet', async () => {
             const old = fakeSession(Codec2193);
             const next = fakeSession(Codec2225);
 
@@ -121,13 +108,17 @@ describe('network', () => {
             expect(decoded2225).toBeInstanceOf(StartGamePacket);
             decoded2225!.decode();
             expect(decoded2225!.feof()).toBe(true);
-            expect(decoded2225).toMatchObject({ time: 6000, worldName: 'A world' });
+            expect(decoded2225!.getPacketData()).toMatchObject({
+                serverVersion: '1.26.51',
+                levelName: 'capture',
+                editorLevelMigrationVersion: 0
+            });
 
             const decoded2193 = Codec2193.createPacket(Codec2193.netIdOf('StartGamePacket')!, bytes2193);
             expect(decoded2193).toBeInstanceOf(StartGamePacket);
             decoded2193!.decode();
             expect(decoded2193!.feof()).toBe(true);
-            expect(decoded2193).toMatchObject({ time: 6000, worldName: 'A world' });
+            expect(decoded2193!.getPacketData()).toMatchObject({ serverVersion: '1.26.51', levelName: 'capture' });
         });
 
         it('the chunk batch path encodes LevelChunkPacket under the session codec', async () => {

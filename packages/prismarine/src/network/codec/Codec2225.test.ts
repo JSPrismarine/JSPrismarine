@@ -1,9 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import type Server from '../../Server';
-import { stub } from '../../testing/stub.test.helper';
-import GameRuleManager from '../../world/GameRuleManager';
 import BlockPosition from '../../world/BlockPosition';
 import { Item } from '../../item/Item';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
@@ -20,7 +17,6 @@ import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
 import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import StartGamePacket from '../packet/StartGamePacket';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import Codec2193 from './Codec2193';
 import Codec2225 from './Codec2225';
@@ -113,32 +109,6 @@ describe('network/codec', () => {
             const decoded = roundTrip(packet);
             expect(decoded.getPacketData()).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: true });
             expect(decoded.getPacketData()?.payload).toStrictEqual(Buffer.from([1, 2, 3]));
-        });
-
-        it('round-trips the Editor Level Migration Version int8 StartGamePacket gained', () => {
-            const packet = new StartGamePacket();
-            packet.codecProtocol = 2225;
-            packet.entityId = -2n;
-            packet.runtimeEntityId = 7n;
-            packet.gamemode = 1;
-            packet.playerPos = new Vector3(0.5, 64, -2);
-            packet.pitch = 1;
-            packet.yaw = 180;
-            packet.seed = 258n;
-            packet.worldSpawnPos = new Vector3(8, -60, -16);
-            packet.gameRules = new GameRuleManager(stub<Server>());
-            packet.time = 6000;
-            packet.levelId = 'level-id';
-            packet.worldName = 'A world';
-            packet.serverIdentifier = 'JSPrismarine';
-            packet.scenarioIdentifier = 'scenario';
-            packet.worldIdentifier = 'world-id';
-            packet.editorLevelMigrationVersion = 1;
-
-            const decoded = roundTrip(packet);
-            // Day Cycle Stop Time is the field right behind the insertion, so its survival
-            // says the int8 moved the later fields by exactly one.
-            expect(decoded).toMatchObject({ time: 6000, editorLevelMigrationVersion: 1 });
         });
 
         it('round-trips the trailing Passenger Block Data AddActorPacket gained', () => {

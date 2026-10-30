@@ -1,7 +1,6 @@
 import { block_definitions, item_components, item_table, item_tags } from '@jsprismarine/bedrock-data';
 import { BlockPalette, BlockStateModel, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Logger } from '@jsprismarine/logger';
-import { Vector3 } from '@jsprismarine/math';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { blockRuntimeId } from '@jsprismarine/protocol';
 import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/protocol/payload';
@@ -13,8 +12,6 @@ import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import CreativeInventory from '../inventory/CreativeInventory';
-import { stub } from '../testing/stub.test.helper';
-import GameRuleManager from '../world/GameRuleManager';
 import { ContentPaletteError } from './contentPalette';
 import {
     buildNetworkContentPayloads,
@@ -23,17 +20,14 @@ import {
     networkContentPayloads
 } from './contentPayloads';
 import { itemAsStack } from './payloadAdapters';
-import StartGamePacket from './packet/StartGamePacket';
 
 import { itemData2193, itemData2225 } from './codec/itemData';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ContentPayloadOptions, ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
-import type Server from '../Server';
 import type { ContentOptions } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import type { Definition, Definitions } from '@jsprismarine/packs';
-import type { BlockProperty } from '@jsprismarine/protocol';
 
 /** The fixture palette doubles as the client's: a client that has exactly these two blocks. */
 const client = (): BlockPalette => fixtureBlockPalette();
@@ -356,31 +350,6 @@ describe('network', () => {
 });
 
 /**
- * A `StartGamePacket` whose only variable is `Block Properties`, encoded.
- *
- * Everything else is a fixed value, so two buffers that differ differ in the
- * block definitions.
- */
-const startGame = (blockProperties: readonly BlockProperty[] | null): Buffer => {
-    const packet = new StartGamePacket();
-    packet.entityId = 1n;
-    packet.runtimeEntityId = 1n;
-    packet.gamemode = 1;
-    packet.seed = 0n;
-    packet.worldSpawnPos = new Vector3(0, 64, 0);
-    packet.levelId = 'level';
-    packet.worldName = 'world';
-    packet.serverIdentifier = 'JSPrismarine';
-    packet.scenarioIdentifier = 'JSPrismarine';
-    packet.worldIdentifier = 'world';
-    packet.gameRules = new GameRuleManager(stub<Server>());
-    packet.blockProperties = blockProperties;
-    packet.encode();
-
-    return packet.getBuffer();
-};
-
-/**
  * The real build, against Mojang's fetched packs.
  *
  * Gated the way the content tests are: it needs the caches
@@ -569,14 +538,8 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             expect(disagreements).toEqual([]);
         }, 180_000);
 
-        it('writes the same StartGamePacket the captured path writes', () => {
-            // Same packet twice, once told what the registries declared and once
-            // left to the captured definitions, so a difference is the block
-            // properties and nothing else.
-            const fromContent = startGame(vanilla().blockProperties);
-            const fromCapture = startGame(null);
-
-            expect(fromContent.equals(fromCapture)).toBe(true);
+        it('declares the same StartGame blocks as the captured path', () => {
+            expect(vanilla().blockProperties).toEqual(block_definitions);
         }, 180_000);
     }
 );

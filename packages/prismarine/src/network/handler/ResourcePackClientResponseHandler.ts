@@ -4,7 +4,8 @@ import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
-import { DisconnectReason, Generator, getGametypeId } from '@jsprismarine/minecraft';
+import { DisconnectReason } from '@jsprismarine/minecraft';
+import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import type { Player, PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/Human';
 import { syncActorPropertyPacket } from '../actorProperties';
@@ -12,7 +13,6 @@ import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import BlockPosition from '../../world/BlockPosition';
-import Flat from '../../world/generators/Flat';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
 import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
@@ -21,8 +21,8 @@ import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStruc
 import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
-import StartGamePacket from '../packet/StartGamePacket';
 import { joinContentPayloads } from '../contentPayloads';
+import { createStartGameData } from '../startGameData';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -221,42 +221,19 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         await connection.sendDataPacket(new JigsawStructureDataPacket());
 
-        const startGame = new StartGamePacket();
-        startGame.entityId = player.getRuntimeId();
-        startGame.runtimeEntityId = player.getRuntimeId();
-        startGame.gamemode = player.gamemode;
-        startGame.defaultGamemode = getGametypeId(server.getConfig().getGamemode());
-        startGame.difficulty = server.getConfig().getDifficulty();
-        startGame.dimension = world.getDimension().id;
-        // Only two generator types exist here. A plugin's generator is reported as Overworld,
-        // which is what the client assumes for terrain it did not make itself.
-        startGame.generator = world.getGenerator() instanceof Flat ? Generator.FLAT : Generator.OVERWORLD;
-
         const worldSpawnPos = await world.getSpawnPosition();
-        startGame.worldSpawnPos = worldSpawnPos;
-
-        // BDS reports where the spawn point asked for, not where the player ended up; the
-        // final spot follows in the Respawn that releases the client.
-        const joinSpawn = player.getJoinSpawn();
-        startGame.playerPos = joinSpawn ? eyePositionAt(joinSpawn.requested) : player.getPosition();
-        startGame.pitch = player.pitch;
-        startGame.yaw = player.yaw;
-
-        startGame.serverIdentifier = 'JSPrismarine';
-        startGame.worldIdentifier = world.getName();
-        startGame.scenarioIdentifier = 'JSPrismarine';
-        startGame.levelId = world.getUUID();
-        startGame.ticks = server.getTick();
-        startGame.time = world.getTicks();
-        startGame.worldName = world.getName();
-        startGame.seed = world.getSeed();
-        startGame.serverAuthoritativeBlockBreaking = server.getConfig().getServerAuthoritativeBlockBreaking();
-        startGame.gameRules = world.getGameRuleManager();
-        // Every block the content build holds that the client's own palette
-        // does not, which with hashed runtime ids is the only way a block
-        // this server invented resolves to anything on the client.
-        startGame.blockProperties = payloads?.blockProperties ?? null;
-        await connection.sendDataPacket(startGame);
+        await connection.sendDataPacket(
+            new StartGamePacket(
+                createStartGameData({
+                    server,
+                    player,
+                    world,
+                    worldSpawnPosition: worldSpawnPos,
+                    serverVersion: connection.codec.minecraftVersions.at(-1) ?? '',
+                    blockProperties: payloads?.blockProperties
+                })
+            )
+        );
 
         // Every item the content build resolved, with the numbers the
         // captured table gives them. Without it a pack's own item has no row

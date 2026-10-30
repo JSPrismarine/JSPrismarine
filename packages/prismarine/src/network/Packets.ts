@@ -136,7 +136,7 @@ import ShowStoreOfferPacket from '@jsprismarine/protocol/packet/ShowStoreOfferPa
 import SimpleEventPacket from '@jsprismarine/protocol/packet/SimpleEventPacket';
 import SpawnExperienceOrbPacket from '@jsprismarine/protocol/packet/SpawnExperienceOrbPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
-import StartGamePacket from './packet/StartGamePacket';
+import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
 import StructureBlockUpdatePacket from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
 import StructureTemplateDataRequestPacket from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';

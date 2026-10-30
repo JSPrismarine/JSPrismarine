@@ -34,7 +34,7 @@ import ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/Reso
 import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
-import StartGamePacket from '../packet/StartGamePacket';
+import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 
 /**
@@ -274,8 +274,8 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(payloads[2]?.position.x).toBe(7.5);
 
         // StartGame reports the requested spot, not the final one.
-        const startGame = packets.find((packet) => packet instanceof StartGamePacket);
-        expect(startGame?.playerPos).toEqual(new Vector3(4.5, 69 + 1.62, -6.5));
+        const startGame = packets.find((packet): packet is StartGamePacket => packet instanceof StartGamePacket);
+        expect(startGame?.getPacketData()?.position).toEqual({ x: 4.5, y: 69 + 1.62, z: -6.5 });
     });
 
     it('declares what the content build holds in StartGame', async () => {
@@ -287,8 +287,8 @@ describe('ResourcePackClientResponseHandler', () => {
         // The fixture's two blocks are both in the client's palette and
         // neither is one Mojang defines in data, so the registries declare an
         // empty list where the captured path would have sent all 98.
-        const startGame = packets.find((packet) => packet instanceof StartGamePacket);
-        expect(startGame?.blockProperties).toEqual([]);
+        const startGame = packets.find((packet): packet is StartGamePacket => packet instanceof StartGamePacket);
+        expect(startGame?.getPacketData()?.blockProperties).toEqual([]);
     });
 
     it('announces the block breaking mode the config chose in StartGame', async () => {
@@ -301,8 +301,8 @@ describe('ResourcePackClientResponseHandler', () => {
                 session
             );
 
-            const startGame = packets.find((packet) => packet instanceof StartGamePacket);
-            expect(startGame?.serverAuthoritativeBlockBreaking).toBe(serverAuthoritativeBreaking);
+            const startGame = packets.find((packet): packet is StartGamePacket => packet instanceof StartGamePacket);
+            expect(startGame?.getPacketData()?.serverAuthoritativeBlockBreaking).toBe(serverAuthoritativeBreaking);
         }
     });
 
