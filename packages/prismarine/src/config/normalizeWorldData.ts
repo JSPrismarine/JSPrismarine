@@ -1,11 +1,36 @@
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-import type { DimensionConfig, FlatLayer, GeneratorDefinitionJson, WorldData } from './JsonConfigTypes';
+import type { DimensionConfig, GeneratorDefinitionJson, WorldData } from './JsonConfigTypes';
 
 /** The `worldgen/world_preset` a world uses when its entry names none. */
 export const DEFAULT_WORLD_PRESET = 'minecraft:normal';
 
 /** The `worldgen/world_preset` the old `generator: 'Flat'` stands for. */
 export const FLAT_WORLD_PRESET = 'minecraft:flat';
+
+/**
+ * One layer of a flat world, bottom first, as the old `layers` key spelled it.
+ *
+ * `FlatLayerJson` is the replacement, which calls the same number `height` as Java does.
+ */
+export interface FlatLayer {
+    readonly block: string;
+    readonly size: number;
+}
+
+/**
+ * A `worlds.<name>` entry as a config written before `preset` and `dimensions` spells it.
+ *
+ * `generator` named the generator class, `Overworld` or `Flat`, and `layers` the flat layers.
+ * Neither key is part of {@link WorldData} or the config schema any more; this is the shape
+ * {@link normalizeWorldData} still reads so an old file loads and is written back in the new
+ * spelling on its first start.
+ */
+export interface LegacyWorldData extends WorldData {
+    /** The old generator name, `Overworld` or `Flat`, in any case. */
+    readonly generator?: string;
+    /** The old flat world layers, read only with `generator: 'Flat'`. */
+    readonly layers?: readonly FlatLayer[];
+}
 
 /**
  * What the old `generator` names stand for, keyed lowercase because `GeneratorManager`
@@ -69,7 +94,7 @@ const flatGeneratorOf = (layers: readonly FlatLayer[]): GeneratorDefinitionJson 
  * @throws When `generator` is a string other than `Overworld` or `Flat`, in any case, which is
  *   what `GeneratorManager` refused before this.
  */
-export const normalizeWorldData = (data: WorldData, knownKinds: readonly string[]): NormalizedWorldData => {
+export const normalizeWorldData = (data: LegacyWorldData, knownKinds: readonly string[]): NormalizedWorldData => {
     const { seed, provider, generator, layers } = data;
     const deprecations: string[] = [];
     const dimensions: Record<string, DimensionConfig> = { ...data.dimensions };

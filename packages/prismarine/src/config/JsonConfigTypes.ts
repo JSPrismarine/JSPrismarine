@@ -3,17 +3,6 @@ import type { LogLevel } from '@jsprismarine/logger';
 import type { StoredInventory } from '../inventory/persistence';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 
-/**
- * One layer of a flat world, bottom first, as the deprecated `layers` key spells it.
- *
- * The replacement is {@link FlatLayerJson}, which calls the same number `height` as Java does.
- */
-export interface FlatLayer {
-    block: string;
-    /** @asType integer @minimum 0 */
-    size: number;
-}
-
 /** One layer of a `minecraft:flat` generator's `settings.layers`, bottom first, in Java's spelling. */
 export interface FlatLayerJson {
     /** The block the layer is made of, as a Java identifier such as `minecraft:stone`. */
@@ -94,17 +83,6 @@ export interface WorldData {
     preset?: string;
     /** Per-dimension overrides of the preset's stems, and dimensions the preset lacks. */
     dimensions?: Record<string, DimensionConfig>;
-    /**
-     * The old generator name, `Overworld` or `Flat`.
-     * @deprecated Use `preset`: `Overworld` is `minecraft:normal` and `Flat` is `minecraft:flat`.
-     */
-    generator?: string;
-    /**
-     * The old flat world layers, read only with `generator: 'Flat'`.
-     * @deprecated Use `dimensions['minecraft:overworld'].generator` with a `minecraft:flat`
-     * generator whose `settings.layers` spell each layer as `{ block, height }`.
-     */
-    layers?: FlatLayer[];
 }
 
 /** The subset of world settings read by a generator or provider. */

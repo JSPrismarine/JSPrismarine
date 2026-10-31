@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type { WorldData } from '../config/JsonConfigTypes';
+import type { LegacyWorldData } from '../config/normalizeWorldData';
 import { definitionsOf } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import { buildServerContent } from '../content/ServerContent';
@@ -123,7 +124,11 @@ const SKY_DIMENSION_TYPE = {
 };
 
 /** A manager over a server double whose config names the given entries. */
-const buildManager = (levelName: string, worlds: Record<string, WorldData>, content: ServerContent = testContent()) => {
+const buildManager = (
+    levelName: string,
+    worlds: Record<string, LegacyWorldData>,
+    content: ServerContent = testContent()
+) => {
     const logged: string[] = [];
     const setWorld = vi.fn<Config['setWorld']>();
     const logger = stub<Logger>({
@@ -270,7 +275,7 @@ describe('WorldManager', () => {
         await manager.disable();
     });
 
-    it('says each deprecated key once and writes the entry back in the new spelling', async () => {
+    it('says each old key once and writes the entry back in the new spelling', async () => {
         const { manager, logged, setWorld } = buildManager('main', {
             main: { ...entryOf(), generator: 'Flat', layers: [{ block: 'minecraft:stone', size: 3 }] }
         });

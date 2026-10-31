@@ -69,13 +69,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import type { Level } from './Level';
 
-export type {
-    FlatLayer,
-    LevelData,
-    StoredPlayerAttribute,
-    WorldConfig,
-    WorldPlayerData
-} from '../config/JsonConfigTypes';
+export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;

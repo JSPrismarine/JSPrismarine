@@ -137,8 +137,10 @@ A `worlds.<name>` entry is `{ seed, provider, preset?, dimensions? }`. Every key
 | `dimensions.<id>.type` | The dimension type id. Defaults to the preset's stem. A type the vanilla three do not cover has to be defined by a datapack in the server's pack stack, such as one listed under `content-datapacks`. One type backs one dimension per level: two stems naming the same type stop the server with an error. |
 | `dimensions.<id>.generator` | The stem's generator object, in the shape a Java `dimension` document writes: `type`, and `settings` and `biome_source` as the kind needs them. Defaults to the preset's stem. A flat generator's `settings` is the object with `layers`, `biome`, `lakes`, `features` and `structure_overrides`, or a `worldgen/flat_level_generator_preset` id such as `minecraft:tunnelers_dream`, which resolves through the pack stack when the world's flat generator is built. |
 | `dimensions.<id>.load` | `lazy`, the default for everything but the Overworld, builds the world on first entry; `eager` builds it at startup. |
-| `generator` | Deprecated. The old generator name, `Overworld` or `Flat`. Still read; see [Migrating an old entry](#migrating-an-old-entry). |
-| `layers` | Deprecated. The old flat layers as `{ block, size }`, read only with `generator: "Flat"`. |
+
+A config written before `preset` existed spelled a world with `generator` and `layers` keys. The
+schema no longer lists them, and the server translates them once on its first start; see
+[Migrating an old entry](#migrating-an-old-entry).
 
 The default world, with every dimension of the normal preset:
 
@@ -207,8 +209,9 @@ level on their own:
 ### Migrating an old entry
 
 Older configs spelled a world as `generator: "Overworld"` or `generator: "Flat"`, with flat
-layers under `layers`. The server still reads both keys and translates them before anything else
-looks at the entry:
+layers under `layers`. Neither key is part of `WorldData` or the config schema any more, so an
+editor marks them as unknown properties until the file is rewritten. The server still reads both
+through `LegacyWorldData` and translates them before anything else looks at the entry:
 
 | Old entry | Read as |
 | --- | --- |
@@ -220,10 +223,11 @@ looks at the entry:
 
 The names are matched without regard to case. A `preset` or an Overworld `generator` the entry
 already spells the new way wins over the translated one, so an entry that carries both keeps what
-its author wrote last. The server logs one warning per deprecated key per world, writes the entry
-back to `config.json` in the new spelling, and logs that it did, so the warnings appear once. The
-save needs no conversion: Overworld chunk keys never carried a dimension integer, and the stems are
-written into the save from the translated entry on that first load.
+its author wrote last. The server logs one warning per old key per world, writes the entry back
+to `config.json` in the new spelling, and logs that it did, so the warnings appear once and the
+editor's unknown-property marks go with them. The save needs no conversion: Overworld chunk keys
+never carried a dimension integer, and the stems are written into the save from the translated
+entry on that first load.
 
 ## Generator kinds
 

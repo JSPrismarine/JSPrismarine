@@ -297,12 +297,13 @@ an existing world does nothing to its terrain: the server keeps the saved stems 
 line per dimension where the config disagrees. Start a new world folder for new terrain.
 
 Older configs spelled the same thing as `generator: "Overworld"` or `generator: "Flat"`, with
-flat layers under `layers` as `{ "block", "size" }`. The server still reads both keys: `Overworld`
-is `preset: "minecraft:normal"`, `Flat` is `preset: "minecraft:flat"`, and `layers` becomes a
+flat layers under `layers` as `{ "block", "size" }`. The config schema no longer lists either
+key, so an editor flags them, but the server still reads both: `Overworld` is
+`preset: "minecraft:normal"`, `Flat` is `preset: "minecraft:flat"`, and `layers` becomes a
 `minecraft:flat` generator for `minecraft:overworld` with each layer's `size` written as
 `height`. It logs once per world that the keys are deprecated and writes the new spelling back
-to the file, so you only see the message until the next start. Any other `generator` name stops
-the server with an error, as it did before.
+to the file, so you only see the message and the editor's marks until the next start. Any other
+`generator` name stops the server with an error, as it did before.
 
 ### World seeds
 

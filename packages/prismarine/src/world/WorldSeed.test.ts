@@ -19,7 +19,7 @@ import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
  * A nineteen digit Java seed. As a `number` it rounds to 8475011743740319744, which is 277
  * away and a different world, so this is the value the whole bigint chain exists for.
  */
-const CONFIGURED: WorldData = { seed: '8475011743740320021', generator: 'Overworld' };
+const CONFIGURED: WorldData = { seed: '8475011743740320021' };
 const EXPECTED = 8475011743740320021n;
 
 /** Builds a world the way `WorldManager` does, from a config entry. */

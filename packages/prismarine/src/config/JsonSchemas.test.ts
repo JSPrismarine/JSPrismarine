@@ -124,15 +124,15 @@ describe('JSON schemas', () => {
     describe('config.schema.json worlds', () => {
         const validate = (world: unknown) => ajv.compile(readSchema('config.schema.json'))({ worlds: { world } });
 
-        // The generator writes the `@deprecated` text, not `true`, so editors can show it.
-        it('marks the old generator and layers keys deprecated and still accepts them', () => {
+        // The server still translates the old `generator` and `layers` keys on its first start
+        // and writes the entry back without them; the schema describes the written shape only.
+        it('describes a world by preset and dimensions, without the old generator and layers keys', () => {
             const { properties } = readSchema('config.schema.json').definitions.WorldData;
 
-            expect(properties.generator.deprecated).toContain('preset');
-            expect(properties.layers.deprecated).toContain("dimensions['minecraft:overworld']");
-            expect(properties.preset.deprecated).toBeUndefined();
+            expect(Object.keys(properties).sort()).toEqual(['dimensions', 'preset', 'provider', 'seed']);
             expect(properties.preset.default).toBe('minecraft:normal');
-            expect(validate({ seed: 1, generator: 'Flat', layers: [{ block: 'stone', size: 1 }] })).toBe(true);
+            expect(validate({ seed: 1, preset: 'minecraft:flat' })).toBe(true);
+            expect(validate({ seed: 1, generator: 'Flat', layers: [{ block: 'stone', size: 1 }] })).toBe(false);
         });
 
         it('limits load to eager or lazy and requires a generator to name its type', () => {
