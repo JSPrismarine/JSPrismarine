@@ -2420,9 +2420,11 @@ export class World implements Service {
      * Tells the travel service about every entity whose body overlaps a portal block this tick.
      *
      * One touch per entity, for the first portal block found walking the body's cells from the
-     * feet up: a body in two portal blocks at once is in one portal. A player whose client is
-     * still on the loading screen of the last change is skipped: another change would be
-     * refused, so the body scan is not worth running.
+     * feet up: a body in two portal blocks at once is in one portal. An entity on portal
+     * cooldown is touched too, so the travel service can wind the cooldown back while it
+     * stands in the arrival portal. A player whose client is still on the loading screen of
+     * the last change is skipped: another change would be refused, so the body scan is not
+     * worth running.
      */
     private async touchPortals(entities: readonly Entity[]): Promise<void> {
         const travel = this.server.getDimensionTravel();
@@ -2431,7 +2433,7 @@ export class World implements Service {
         // the entity's own update advances the contact. An entity in no portal costs no await.
         const touches: Promise<void>[] = [];
         for (const entity of entities) {
-            if (entity.isOnPortalCooldown() || isMidDimensionChange(entity)) continue;
+            if (isMidDimensionChange(entity)) continue;
             const portal = this.portalOverlapping(entity);
             if (portal !== undefined) touches.push(travel.touch(entity, portal));
         }

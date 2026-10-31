@@ -1,5 +1,6 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
+import { Gametype } from '@jsprismarine/minecraft';
 import { PacketIdentifier, PlayStatus, PlayerActionType, PositionMode } from '@jsprismarine/protocol';
 import { Config, Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -232,5 +233,14 @@ describe('traveling through a nether portal on a real server', () => {
         ]) {
             expect(client.getRegistry().getUnknownIds()).not.toContain(id);
         }
+
+        // Standing in the arrival portal must not start a trip back: every touched tick winds
+        // the cooldown back (Java's `Entity.setAsInsidePortal`), so travel needs leaving and
+        // re-entering. Creative makes a regression immediate, since its transition delay is
+        // zero once the cooldown has run out.
+        await player.setGamemode(Gametype.CREATIVE);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        expect(received.filter((p) => p.id === PacketIdentifier.CHANGE_DIMENSION)).toHaveLength(1);
+        expect(player.getWorld().getDimension().bedrockId).toBe(NETHER);
     }, 90_000);
 });

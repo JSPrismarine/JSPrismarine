@@ -186,8 +186,9 @@ export class Entity {
     /**
      * Ticks left before this entity may enter a portal again. Counted down in {@link Entity.update}.
      *
-     * Set on departure, so arriving inside the destination portal does not start a trip straight
-     * back. Bedrock stores it as the actor's `PortalCooldown` tag, and the serializer carries it
+     * Set on departure, and wound back to its full length by every {@link Entity.touchPortal}
+     * while it runs, so the destination portal only counts it down once the entity has stepped
+     * out. Bedrock stores it as the actor's `PortalCooldown` tag, and the serializer carries it
      * through a save.
      */
     protected portalCooldown = 0;
@@ -482,7 +483,7 @@ export class Entity {
             if (this.invulnerableTicks === 0) this.lastDamageTaken = 0;
         }
 
-        if (this.portalCooldown > 0) this.portalCooldown--;
+        this.processPortalCooldown();
 
         const contact = this.portalContactState;
         if (contact !== undefined) {
@@ -501,6 +502,16 @@ export class Entity {
         }
 
         this.tickStatusEffects();
+    }
+
+    /**
+     * Counts the portal cooldown down by one tick, as Java's `Entity.processPortalCooldown`.
+     *
+     * `Player` holds the count while its client is still loading into the last dimension
+     * change, so the arrival portal is met with the full cooldown once the screen closes.
+     */
+    protected processPortalCooldown(): void {
+        if (this.portalCooldown > 0) this.portalCooldown--;
     }
 
     /**
@@ -579,14 +590,19 @@ export class Entity {
      * Records that this entity overlaps a portal block on the current tick.
      *
      * The world calls this once per tick for each entity whose box overlaps a portal. The first
-     * call opens the contact; later calls refresh it. Ignored while on cooldown, so an entity
-     * that has just arrived is not sent straight back.
+     * call opens the contact; later calls refresh it. A touch while on cooldown opens nothing
+     * and winds the cooldown back to its full length instead, as Java's
+     * `Entity.setAsInsidePortal` does, so an entity that has just arrived only travels again
+     * after it has left the portal for the whole cooldown and stepped back in.
      * @param at - Where the entity stands, kept as the contact's entry position.
      * @param portal - The portal block overlapped, which the trip is resolved from. Without
      * one the contact counts but never travels.
      */
     public touchPortal(at: Vector3, portal?: PortalBlockRef): void {
-        if (this.isOnPortalCooldown()) return;
+        if (this.isOnPortalCooldown()) {
+            this.setPortalCooldown();
+            return;
+        }
 
         this.portalContactState ??= new PortalContact(at);
         this.portalContactState.touch(at, portal);

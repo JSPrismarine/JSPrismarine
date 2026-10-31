@@ -1169,6 +1169,19 @@ export default class Player extends Human {
     }
 
     /**
+     * Counts the portal cooldown down by one tick, unless the client is still loading into the
+     * last dimension change.
+     *
+     * `ServerPlayer.processPortalCooldown` holds the count while `isChangingDimension`, so the
+     * ten ticks only start once the loading screen has closed; a player who arrives inside the
+     * destination portal then has them wound back every tick they stay in it.
+     */
+    protected override processPortalCooldown(): void {
+        if (this.getNetworkSession().pendingDimensionChange() !== undefined) return;
+        super.processPortalCooldown();
+    }
+
+    /**
      * Whether the player's actions cost food at all.
      *
      * Creative and spectator players are fed by definition in vanilla, and draining their

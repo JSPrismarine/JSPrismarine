@@ -109,15 +109,17 @@ export class DimensionTravel {
      * The world calls this once per tick per entity standing in a portal. The first touch
      * raises a cancelable `EntityPortalEnterEvent`, waits for every listener, asynchronous
      * ones included, and opens the entity's contact timer unless one canceled; later touches
-     * keep it counting. Nothing happens for an entity on portal cooldown, as in Java's
-     * `handlePortal`, for one that rides or carries another, which Bedrock refuses to send
-     * through (MCPE-47288), or for a player whose client is still on the loading screen of
-     * the last change.
+     * keep it counting. A touch for an entity on portal cooldown raises nothing and winds the
+     * cooldown back to its full length, as Java's `Entity.setAsInsidePortal`, so the arrival
+     * portal cannot send it back until it has left and stepped back in. Nothing happens for an
+     * entity that rides or carries another, which Bedrock refuses to send through
+     * (MCPE-47288), or for a player whose client is still on the loading screen of the last
+     * change.
      */
     public async touch(entity: Entity, portal: PortalBlockRef): Promise<void> {
-        if (entity.isOnPortalCooldown() || isMidDimensionChange(entity) || this.isInRide(entity)) return;
+        if (isMidDimensionChange(entity) || this.isInRide(entity)) return;
 
-        if (entity.portalContact() === undefined) {
+        if (!entity.isOnPortalCooldown() && entity.portalContact() === undefined) {
             const event = new EntityPortalEnterEvent(entity, portal);
             await this.server.emit('entityPortalEnter', event);
             if (event.isCanceled()) return;

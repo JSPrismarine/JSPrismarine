@@ -283,7 +283,7 @@ describe('world portal contacts', () => {
         expect(touch).not.toHaveBeenCalled();
     });
 
-    it('leaves an entity on portal cooldown alone', async () => {
+    it('dispatches the touch for an entity on portal cooldown, whose touch winds the cooldown back', async () => {
         const touch = vi.fn<DimensionTravel['touch']>();
         const player = standingAt(new Vector3(10.5, 64, 10.5), true);
         const { world } = worldTicking({
@@ -294,6 +294,6 @@ describe('world portal contacts', () => {
 
         await world.update(1);
 
-        expect(touch).not.toHaveBeenCalled();
+        expect(touch).toHaveBeenCalledTimes(1);
     });
 });

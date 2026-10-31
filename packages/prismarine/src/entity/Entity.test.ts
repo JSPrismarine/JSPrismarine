@@ -73,7 +73,7 @@ describe('entity', () => {
                 expect(entity.portalContact()).toBe(contact);
             });
 
-            it('refuses a touch while on cooldown', () => {
+            it('opens no contact for a touch while on cooldown, winding the cooldown back to its full length', () => {
                 const { entity } = entityAt(0, 64, 0);
                 entity.setPortalCooldown(10);
 
@@ -81,6 +81,9 @@ describe('entity', () => {
 
                 expect(entity.isOnPortalCooldown()).toBe(true);
                 expect(entity.portalContact()).toBeUndefined();
+                // Java's `Entity.setAsInsidePortal`: standing in a portal on cooldown starts the
+                // cooldown over, so travel needs leaving the portal and stepping back in.
+                expect(entity.getPortalCooldown()).toBe(300);
             });
 
             it('waits 300 ticks by default, as a mob does in vanilla', () => {

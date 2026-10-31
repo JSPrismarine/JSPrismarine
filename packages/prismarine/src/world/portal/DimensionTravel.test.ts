@@ -9,6 +9,7 @@ import path from 'node:path';
 
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
+import { Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -29,6 +30,7 @@ import { EntityRuntimes } from '../../entity/data/live';
 import { Entity } from '../../entity/Entity';
 import { Item } from '../../entity/other/Item';
 import type ClientConnection from '../../network/ClientConnection';
+import Codec2193 from '../../network/codec/Codec2193';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import Player from '../../Player';
@@ -230,6 +232,7 @@ const playerAt = (server: Server, world: World, feet: Vector3): Player => {
         }
     });
     const connection = stub<ClientConnection>({
+        codec: Codec2193,
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
         sendDataPacket: async () => {},
         sendPacketsAsync: async () => {},
@@ -541,14 +544,20 @@ describe('DimensionTravel.touch', () => {
         await scene.level.disable();
     }, 60_000);
 
-    it('ignores an entity on portal cooldown', async () => {
+    it('opens no contact for an entity on portal cooldown, and winds the cooldown back to its full length', async () => {
         const scene = await buildScene();
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
         item.setPortalCooldown(5);
+        const entered: Entity[] = [];
+        scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
         await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
 
         expect(item.portalContact()).toBeUndefined();
+        expect(entered).toEqual([]);
+        // Java's `Entity.setAsInsidePortal`: a touch while on cooldown starts it over, so it
+        // only runs out once the entity has left the portal.
+        expect(item.getPortalCooldown()).toBe(300);
 
         await scene.level.disable();
     }, 60_000);
@@ -756,6 +765,88 @@ describe('DimensionTravel through the tick', () => {
         await scene.level.disable();
     }, 60_000);
 
+    it('keeps a mob that stays in the arrival portal there, however many ticks pass', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
+        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(mob);
+        await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), 1);
+        expect(mob.getWorld()).toBe(scene.nether);
+
+        // It arrived inside the Nether portal, so the world dispatches a touch every tick.
+        // Well past the 300 tick cooldown: each touch winds the cooldown back to its full
+        // length, as Java's `Entity.setAsInsidePortal` does, so the mob never bounces back.
+        const arrivalPortal = portalAt(scene.nether, new Vector3(12, 70, 0));
+        for (let tick = 2; tick <= 420; tick += 1) await tickInPortal(scene.travel, mob, arrivalPortal, tick);
+
+        expect(mob.getWorld()).toBe(scene.nether);
+        expect(mob.portalContact()).toBeUndefined();
+        expect(mob.isOnPortalCooldown()).toBe(true);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('travels again once the mob has left the portal for the whole cooldown and stepped back in', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
+        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(mob);
+        let tick = 0;
+        await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), ++tick);
+        expect(mob.getWorld()).toBe(scene.nether);
+        const arrivalPortal = portalAt(scene.nether, new Vector3(12, 70, 0));
+        for (let stand = 0; stand < 50; stand += 1) await tickInPortal(scene.travel, mob, arrivalPortal, ++tick);
+
+        for (let out = 0; out < 100; out += 1) await mob.update(++tick);
+        expect(mob.isOnPortalCooldown()).toBe(true);
+
+        // Stepping back in before the cooldown has run out winds it back to the full 300,
+        // minus the one tick the same update counts down.
+        await tickInPortal(scene.travel, mob, arrivalPortal, ++tick);
+        expect(mob.getWorld()).toBe(scene.nether);
+        expect(mob.getPortalCooldown()).toBe(299);
+
+        // Out of the portal, the cooldown finally runs down, and the next contact travels.
+        for (let out = 0; out < 300; out += 1) await mob.update(++tick);
+        expect(mob.isOnPortalCooldown()).toBe(false);
+        await tickInPortal(scene.travel, mob, arrivalPortal, ++tick);
+
+        expect(mob.getWorld()).toBe(scene.overworld);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('keeps a creative player in the Nether while they stand in the arrival portal', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        bot.gamemode = Gametype.CREATIVE;
+        await scene.overworld.addEntity(bot);
+
+        // Creative goes through on the first contact tick, into the portal the trip builds.
+        await scene.overworld.update(1);
+        expect(bot.getWorld()).toBe(scene.nether);
+        const pending = bot.getNetworkSession().pendingDimensionChange();
+        expect(pending).toBeDefined();
+        // The client closes its loading screen with the bot still standing in the portal.
+        expect(await bot.getNetworkSession().completeDimensionChange(pending!.loadingScreenId)).toBe(true);
+        expect(bot.getFeetY()).toBeCloseTo(70);
+
+        const changes: unknown[] = [];
+        scene.server.on('playerChangeDimension', (event) => void changes.push(event));
+        // Well past the 10 tick cooldown: standing in the portal winds it back every tick.
+        for (let tick = 2; tick <= 420; tick += 1) await scene.nether.update(tick);
+
+        expect(changes).toEqual([]);
+        expect(bot.getWorld()).toBe(scene.nether);
+        expect(bot.portalContact()).toBeUndefined();
+        expect(bot.isOnPortalCooldown()).toBe(true);
+
+        await scene.level.disable();
+    }, 60_000);
+
     it('takes a bot standing in a hand-built portal to the Nether world through `World.update` alone', async () => {
         const scene = await buildScene();
         await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
@@ -783,14 +874,17 @@ describe('DimensionTravel through the tick', () => {
         const entered: Entity[] = [];
         scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
 
-        // The bot stands in the portal the trip built. Its 10 tick cooldown runs out while the
-        // client has still not closed the screen, and the Nether keeps ticking it.
+        // The bot stands in the portal the trip built, the client has still not closed the
+        // screen, and the Nether keeps ticking it.
         expect(bot.getFeetY()).toBeCloseTo(70);
         for (let tick = 81; tick <= 180; tick += 1) await scene.nether.update(tick);
 
-        // The world never dispatched a touch for the bot, so no contact and no event.
+        // The world never dispatched a touch for the bot, so no contact and no event, and the
+        // cooldown is held while the screen is open, as `ServerPlayer.processPortalCooldown`
+        // holds it while `isChangingDimension`.
         expect(entered).toEqual([]);
         expect(bot.getWorld()).toBe(scene.nether);
+        expect(bot.getPortalCooldown()).toBe(10);
         expect(bot.portalContact()).toBeUndefined();
         expect(bot.getNetworkSession().pendingDimensionChange()).toBe(pending);
         expect(scene.nether.getPlayers()).toContain(bot);
