@@ -424,7 +424,7 @@ describeFamily(
             });
         });
 
-        describe('chunk 0,0 of each `minecraft:normal` stem', () => {
+        describe('the generated chunks of each `minecraft:normal` stem', () => {
             let dimensions: VanillaDimension[];
             const generator = new DataDrivenGenerator({
                 registries,
@@ -510,6 +510,37 @@ describeFamily(
                     expect([...generator.unbuiltStructureTypes(SEED, key)], stemId).toEqual([]);
                 }
             });
+
+            it(
+                'grows the End pillar and pending crystal the seed-derived spike list predicts',
+                async () => {
+                    // Java derives the ten pillars from the world seed alone
+                    // (`EndSpikeFeature.getSpikesForLevel`, fight note section 5). For seed 1234
+                    // the first sits at (42, 0), radius 4, height 97, unguarded, so chunk (2, 0)
+                    // of the End stem has to hold its column, its cap and its crystal.
+                    const end = dimensions.find((entry) => entry.stemId === END_TYPE_ID)!;
+                    const chunk = await generator.forStem(end.key).generateChunk(2, 0, SEED);
+                    const column = (y: number): string => chunk.getBlock(42 & 0xf, y, 0).name;
+
+                    for (let y = chunk.getMinY(); y < 97; y++) {
+                        expect(column(y), `y ${y}`).toBe('minecraft:obsidian');
+                    }
+                    expect(column(97)).toBe('minecraft:bedrock');
+                    expect(column(98)).toBe('minecraft:fire');
+                    for (let y = 99; y <= 107; y++) expect(column(y), `y ${y}`).toBe('minecraft:air');
+
+                    // Worldgen crystals are Java's `crystal_invulnerable: false` with no beam
+                    // target and the base plate left at the client default.
+                    const crystals = chunk
+                        .getEntitySpawns()
+                        .filter((spawn) => spawn.type === 'minecraft:ender_crystal');
+                    expect(crystals).toHaveLength(1);
+                    expect(crystals[0]).toMatchObject({ x: 42.5, y: 98, z: 0.5, invulnerable: false });
+                    expect(crystals[0]!.beamTarget).toBeUndefined();
+                    expect(crystals[0]!.showBottom).toBeUndefined();
+                },
+                GENERATION_TIMEOUT
+            );
         });
     },
     { tags: ['real-data'] }
