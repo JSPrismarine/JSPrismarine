@@ -275,16 +275,21 @@ Overworld flat, with the same `generator` object a Java datapack writes in a `di
 ```
 
 `load` is `lazy` by default, which builds a dimension the first time something enters it, so a
-server nobody takes to the End never pays for it. `eager` builds it at startup instead, which
-moves that cost to the start and uses more memory while the server runs. The Overworld of the
-world players join is always built at startup.
+server nobody takes to the End never pays for it. A lazy dimension skips the spawn search and the
+start-region generation an eager one does; the first traveler loads the chunks they arrive in.
+`eager` builds it at startup instead, which moves that cost to the start and uses more memory
+while the server runs. The Overworld of the world players join is always built at startup. A
+player who logged out in a lazy dimension comes back there on the next login, and the server
+builds it then if nobody has visited since the boot.
 
 A `generator` may be any of four kinds. `minecraft:noise` is vanilla terrain and needs the Java
 data from [section 1.3](#13-world-generation-data); `minecraft:flat`, `jsprismarine:void` (empty
 chunks) and `minecraft:debug` (every block state on a grid) need none of it. Without that data,
 only `minecraft:normal` and `minecraft:flat` exist as presets, each with the Overworld alone. A
-`type` other than the vanilla three has to come from a datapack listed under `content-datapacks`,
-and adding an id the preset lacks needs both `type` and `generator`.
+`type` other than the vanilla three has to come from a datapack in the server's pack stack, such
+as one listed under `content-datapacks`, and adding an id the preset lacks needs both `type` and
+`generator`. Each `type` backs one dimension per world: two dimensions naming the same type stop
+the server with an error.
 
 A world remembers the dimensions it was generated with. Changing `preset` or a `generator` for
 an existing world does nothing to its terrain: the server keeps the saved stems and logs one
