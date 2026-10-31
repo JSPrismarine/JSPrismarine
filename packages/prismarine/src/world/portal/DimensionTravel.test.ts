@@ -444,9 +444,9 @@ describe('DimensionTravel.touch', () => {
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
         const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
 
-        scene.travel.touch(item, portal);
+        await scene.travel.touch(item, portal);
         const contact = item.portalContact();
-        scene.travel.touch(item, portal);
+        await scene.travel.touch(item, portal);
 
         expect(contact?.getPortal()).toBe(portal);
         expect(item.portalContact()).toBe(contact);
@@ -466,14 +466,31 @@ describe('DimensionTravel.touch', () => {
             if (refuse) event.preventDefault();
         });
 
-        scene.travel.touch(item, portal);
+        await scene.travel.touch(item, portal);
         expect(item.portalContact()).toBeUndefined();
 
         refuse = false;
-        scene.travel.touch(item, portal);
-        scene.travel.touch(item, portal);
+        await scene.travel.touch(item, portal);
+        await scene.travel.touch(item, portal);
         expect(item.portalContact()).toBeDefined();
         expect(entered).toEqual([portal, portal]);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('waits for an asynchronous listener, so one that cancels after an await still stops the contact', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        scene.server.on('entityPortalEnter', async (event) => {
+            // A plugin that asks a database before it decides.
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            event.preventDefault();
+        });
+
+        await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+
+        expect(item.portalContact()).toBeUndefined();
 
         await scene.level.disable();
     }, 60_000);
@@ -492,7 +509,7 @@ describe('DimensionTravel.touch', () => {
         // Past the 10 tick cooldown, with the screen never closed.
         player.setPortalCooldown(0);
 
-        scene.travel.touch(player, portalAt(scene.nether, new Vector3(12, 70, 0)));
+        await scene.travel.touch(player, portalAt(scene.nether, new Vector3(12, 70, 0)));
 
         expect(player.portalContact()).toBeUndefined();
 
@@ -504,7 +521,7 @@ describe('DimensionTravel.touch', () => {
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
         item.setPortalCooldown(5);
 
-        scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+        await scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
 
         expect(item.portalContact()).toBeUndefined();
 
@@ -584,7 +601,7 @@ describe('DimensionTravel.transfer', () => {
 
 /** One world tick for an entity standing in a portal: the world's touch, then the entity's own update. */
 const tickInPortal = async (travel: DimensionTravel, entity: Entity, portal: PortalBlockRef, tick: number) => {
-    travel.touch(entity, portal);
+    await travel.touch(entity, portal);
     await entity.update(tick);
 };
 

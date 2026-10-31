@@ -103,18 +103,19 @@ export class DimensionTravel {
      * Records that an entity's body overlaps a portal block on this tick.
      *
      * The world calls this once per tick per entity standing in a portal. The first touch
-     * raises a cancelable `EntityPortalEnterEvent` and opens the entity's contact timer; later
-     * touches keep it counting. Nothing happens for an entity on portal cooldown, as in Java's
+     * raises a cancelable `EntityPortalEnterEvent`, waits for every listener, asynchronous
+     * ones included, and opens the entity's contact timer unless one canceled; later touches
+     * keep it counting. Nothing happens for an entity on portal cooldown, as in Java's
      * `handlePortal`, for one that rides or carries another, which Bedrock refuses to send
      * through (MCPE-47288), or for a player whose client is still on the loading screen of
      * the last change.
      */
-    public touch(entity: Entity, portal: PortalBlockRef): void {
+    public async touch(entity: Entity, portal: PortalBlockRef): Promise<void> {
         if (entity.isOnPortalCooldown() || isMidDimensionChange(entity) || this.isInRide(entity)) return;
 
         if (entity.portalContact() === undefined) {
             const event = new EntityPortalEnterEvent(entity, portal);
-            this.server.post(['entityPortalEnter', event]);
+            await this.server.emit('entityPortalEnter', event);
             if (event.isCanceled()) return;
         }
 

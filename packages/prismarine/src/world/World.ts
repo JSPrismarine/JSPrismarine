@@ -741,7 +741,7 @@ export class World implements Service {
         // before `handlePortal`.
         const endPortalContactsProfile = startProfileSpan(this.server, `World.portalContacts:${this.name}`);
         try {
-            this.touchPortals(tickingEntities);
+            await this.touchPortals(tickingEntities);
         } finally {
             endPortalContactsProfile();
         }
@@ -2430,15 +2430,19 @@ export class World implements Service {
      * still on the loading screen of the last change is skipped: another change would be
      * refused, so the body scan is not worth running.
      */
-    private touchPortals(entities: readonly Entity[]): void {
+    private async touchPortals(entities: readonly Entity[]): Promise<void> {
         const travel = this.server.getDimensionTravel?.();
         if (travel === undefined) return;
 
+        // Awaited so that an asynchronous `entityPortalEnter` listener has answered before
+        // the entity's own update advances the contact. An entity in no portal costs no await.
+        const touches: Promise<void>[] = [];
         for (const entity of entities) {
             if (entity.isOnPortalCooldown() || isMidDimensionChange(entity)) continue;
             const portal = this.portalOverlapping(entity);
-            if (portal !== undefined) travel.touch(entity, portal);
+            if (portal !== undefined) touches.push(travel.touch(entity, portal));
         }
+        await Promise.all(touches);
     }
 
     /**
