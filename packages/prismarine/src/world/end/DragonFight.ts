@@ -3,15 +3,16 @@
  *
  * One of these lives on the End world and is ticked by it. It owns the persistent fight state
  * (whether the dragon is alive, where the exit portal stands, which gateways remain), spawns
- * the dragon when one should exist, and runs the boss bar for the players in the arena. The
- * fight's consequences grow in later slices: the dragon's death opens the portal, and four
- * placed crystals respawn it.
+ * the dragon when one should exist, runs the boss bar for the players in the arena, and takes
+ * the dragon's death: the exit portal opens, the egg lands on a world's first kill, a gateway
+ * is spent and the experience is paid. A later slice adds the four-crystal respawn.
  */
-import { endPodium } from '@jsprismarine/features';
-import { shuffledCopy } from '@jsprismarine/features';
+import { blockState, endGateway, endPodium, shuffledCopy } from '@jsprismarine/features';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { LegacyRandomSource } from '@jsprismarine/worldgen';
 
 import type { DataEntity } from '../../entity/data/DataEntity';
+import { addExperiencePoints } from '../../entity/Experience';
 import { BossBar } from '../../network/BossBar';
 import type Player from '../../Player';
 import type { World } from '../World';
@@ -35,6 +36,21 @@ const DRAGON_RESPAWN_CHECK_TICKS = 1200;
 /** How many gateway positions ring the island, Java's `GATEWAY_COUNT`. */
 const GATEWAY_COUNT = 20;
 
+/** How far out the gateway ring sits, Java's `GATEWAY_DISTANCE`. */
+const GATEWAY_DISTANCE = 96;
+
+/** The y every gateway stands at, Java's `spawnNewGateway`. */
+const GATEWAY_Y = 75;
+
+/** A twentieth of the circle, the angle step in Java's `spawnNewGateway`. */
+const GATEWAY_ANGLE_STEP = 0.15707963267948966;
+
+/** Experience for a world's first dragon kill, Java's `EnderDragon.tickDeath`. */
+const FIRST_KILL_EXPERIENCE = 12000;
+
+/** Experience for every kill after the first. */
+const REPEAT_KILL_EXPERIENCE = 500;
+
 /** The dragon heals one point this often while a crystal is near, Java's `checkCrystals` cadence. */
 const CRYSTAL_HEAL_INTERVAL = 10;
 
@@ -43,6 +59,7 @@ const CRYSTAL_HEAL_RADIUS = 32;
 
 const DRAGON_IDENTIFIER = 'minecraft:ender_dragon';
 const CRYSTAL_IDENTIFIER = 'minecraft:ender_crystal';
+const XP_ORB_IDENTIFIER = 'minecraft:xp_orb';
 
 /** A fight no save has seen yet: everything at Java's codec defaults, waiting for the scan. */
 const freshState = (): DragonFightState => ({
@@ -77,6 +94,13 @@ export class DragonFight {
     private lastBarPercent: number | undefined;
     /** Whether the missing dragon type has been reported, so the log says it once. */
     private reportedMissingDragonType = false;
+    /**
+     * A death's world consequences still in flight.
+     *
+     * The removal listener is synchronous, so {@link setDragonKilled} runs as its own task;
+     * the next tick waits it out, so no tick or save sees a half-opened portal.
+     */
+    private settling: Promise<void> | undefined;
 
     /**
      * Restores a fight from its saved state, or starts a fresh one that scans the world on its
@@ -106,6 +130,11 @@ export class DragonFight {
      * waited 1200 ticks - the crystals heal it, and its health drives the bar.
      */
     public async tick(): Promise<void> {
+        if (this.settling !== undefined) {
+            await this.settling;
+            this.settling = undefined;
+        }
+
         this.ticks += 1;
         if ((this.ticks - 1) % PLAYER_SCAN_INTERVAL === 0) await this.updatePlayers();
         if (!this.playerNear) return;
@@ -121,20 +150,31 @@ export class DragonFight {
     }
 
     /**
-     * Takes the dragon's death: the bar empties and hides, and the fight remembers the kill, so
-     * no new dragon spawns until a respawn sequence runs. The death's consequences in the world
-     * - the open portal, the egg, the gateway, the experience - land in a later slice.
+     * Takes the dragon's death, in Java's `setDragonKilled` order: the bar empties and hides,
+     * the podium is re-placed active with end portal blocks filling its ring, one gateway
+     * index is spent on a new gateway, the egg lands on a world's first kill, the experience
+     * is paid, and the flags flip so no new dragon spawns until a respawn sequence runs.
+     *
+     * The removal listener calls this when the 200-tick death hold ends, which is when Java's
+     * `tickDeath` calls its counterpart.
      */
     public async setDragonKilled(dragon: DataEntity): Promise<void> {
         if (this.fight.dragonUniqueId !== undefined && dragon.persistentIdentity !== this.fight.dragonUniqueId) return;
 
+        const firstKill = !this.fight.previouslyKilled;
         this.dragon = undefined;
         this.fight.dragonUniqueId = undefined;
-        this.fight.dragonKilled = true;
-        this.fight.previouslyKilled = true;
         this.lastBarPercent = 0;
         await this.bar.setPercent(0);
         for (const player of this.bar.players()) await this.bar.removePlayer(player);
+
+        this.placeExitPortal(true);
+        await this.spawnNewGateway();
+        if (firstKill) this.placeDragonEgg();
+        this.awardExperience(dragon, firstKill);
+
+        this.fight.dragonKilled = true;
+        this.fight.previouslyKilled = true;
     }
 
     /**
@@ -152,7 +192,7 @@ export class DragonFight {
 
         this.dragon = undefined;
         if (reason === 'death' || reason === 'death_behavior') {
-            this.setDragonKilled(entity).catch((error: unknown) => this.report(String(error)));
+            this.settling = this.setDragonKilled(entity).catch((error: unknown) => this.report(String(error)));
         } else if (reason !== 'chunk unload') {
             // Gone without dying or being saved - forget it, so the 1200-tick check spawns anew.
             this.fight.dragonUniqueId = undefined;
@@ -245,6 +285,75 @@ export class DragonFight {
         const origin = this.fight.exitPortalLocation ?? { x: 0, y: this.podiumY(), z: 0 };
         this.fight.exitPortalLocation = origin;
         endPodium(active).place(fightFeatureWorld(this.world), new LegacyRandomSource(this.world.getSeed()), origin);
+    }
+
+    /**
+     * Java's `spawnNewGateway`: pops the last index of the shuffled list and places the
+     * `end_gateway` feature at that spot of the 20-position ring 96 blocks out, at y 75.
+     *
+     * The gateway carries no exit, so its block entity records no destination: the teleport is
+     * a later slice, and the blocks are what this kill owes the world. The chunks the feature
+     * spans are loaded first, because nothing else ever loads the ring.
+     */
+    private async spawnNewGateway(): Promise<void> {
+        const index = this.fight.gateways.pop();
+        if (index === undefined) return;
+
+        const angle = 2 * (-Math.PI + GATEWAY_ANGLE_STEP * index);
+        const origin = {
+            x: Math.floor(GATEWAY_DISTANCE * Math.cos(angle)),
+            y: GATEWAY_Y,
+            z: Math.floor(GATEWAY_DISTANCE * Math.sin(angle))
+        };
+        for (const x of [origin.x - 1, origin.x + 1]) {
+            for (const z of [origin.z - 1, origin.z + 1]) await this.world.getChunkAt(x, z);
+        }
+        endGateway(undefined, false).place(
+            fightFeatureWorld(this.world),
+            new LegacyRandomSource(this.world.getSeed()),
+            origin
+        );
+    }
+
+    /** Java's first-kill egg: the dragon egg at the MOTION_BLOCKING heightmap position above (0, 0). */
+    private placeDragonEgg(): void {
+        const features = fightFeatureWorld(this.world);
+        features.setBlock(
+            { x: 0, y: features.getHeight('MOTION_BLOCKING', 0, 0), z: 0 },
+            blockState('minecraft:dragon_egg')
+        );
+    }
+
+    /**
+     * Java's death payout: 12000 points on a world's first kill and 500 after, split as ten
+     * `floor(xp * 0.08)` awards plus one `floor(xp * 0.2)`. Java spreads the ten over the
+     * death animation's ticks 155 through 200; this server pays the whole schedule when the
+     * animation's end removes the dragon.
+     *
+     * Each award drops an `xp_orb` entity, the way block breaks do. Nothing picks orbs up
+     * yet, so the player who dealt the killing blow is also paid the total directly; take the
+     * direct payment out when orb pickup lands, or a kill will pay twice.
+     */
+    private awardExperience(dragon: DataEntity, firstKill: boolean): void {
+        const xp = firstKill ? FIRST_KILL_EXPERIENCE : REPEAT_KILL_EXPERIENCE;
+        const awards = [...Array.from({ length: 10 }, () => Math.floor(xp * 0.08)), Math.floor(xp * 0.2)];
+        for (const value of awards) {
+            this.world.dataEntities().runtime.spawn(XP_ORB_IDENTIFIER, { ...dragon.position }, { data: { value } });
+        }
+
+        const killerId = dragon.body.damage.last()?.sourceId;
+        const killer = this.world.getPlayers().find((player) => Number(player.getRuntimeId()) === killerId);
+        if (killer === undefined) return;
+
+        addExperiencePoints(
+            {
+                getLevel: () => killer.attributes.getValue(AttributeIds.PlayerLevel),
+                getProgress: () => killer.attributes.getValue(AttributeIds.PlayerExperience),
+                setLevel: (level) => killer.attributes.setValue(AttributeIds.PlayerLevel, level),
+                setProgress: (progress) => killer.attributes.setValue(AttributeIds.PlayerExperience, progress)
+            },
+            xp
+        );
     }
 
     /** Java's `spawnExitPortal` position: the (0, 0) surface, stepped down through bedrock above y 63. */

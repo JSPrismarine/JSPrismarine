@@ -35,6 +35,8 @@ import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
 import { Dimensions } from '../Dimension';
 import EntityGrid from '../EntityGrid';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { portalRuleOf } from '../portal/rules';
 import { createEngineWorld } from '../EngineWorld';
 import type { Generator } from '../Generator';
 import { Position } from '../Position';
@@ -58,6 +60,16 @@ const FLOOR_Y = 64;
 
 /** How far out, in chunks, the fixture loads ground. */
 const LOADED_RADIUS = 2;
+
+/**
+ * The chunks under the two gateways the death tests pin: index 8, the last of seed 1234's
+ * shuffle, lands at (-78, 75, 56), and index 9, the last of the saved fixture list, at
+ * (-92, 75, 29). The gateway ring sits 96 blocks out, beyond the square above.
+ */
+const GATEWAY_CHUNKS = [
+    [-5, 3],
+    [-6, 1]
+] as const;
 
 const BLOCKS = [
     'minecraft:air',
@@ -109,6 +121,15 @@ const ENTITIES = new Map([
                 'minecraft:physics': {}
             }
         })
+    ],
+    [
+        'minecraft:xp_orb',
+        entityFile('minecraft:xp_orb', {
+            components: {
+                'minecraft:collision_box': { width: 0.25, height: 0.25 },
+                'minecraft:physics': {}
+            }
+        })
     ]
 ]);
 
@@ -138,6 +159,7 @@ const liveEndWorld = (): {
     const chunks = new Map<number, Chunk>();
     for (let x = -LOADED_RADIUS; x <= LOADED_RADIUS; x += 1)
         for (let z = -LOADED_RADIUS; z <= LOADED_RADIUS; z += 1) chunks.set(Chunk.packXZ(x, z), endChunk(x, z));
+    for (const [x, z] of GATEWAY_CHUNKS) chunks.set(Chunk.packXZ(x, z), endChunk(x, z));
 
     const players = new Map<bigint, Player>();
     const runtimes = new EntityRuntimes();
@@ -489,6 +511,121 @@ describe('the dragon fight over a live End world', () => {
             const fight = freshFight(killedState());
 
             expect(fight.state().gateways).toEqual([4, 2, 9]);
+        });
+    });
+
+    describe('the dragon dying', () => {
+        /**
+         * The twenty cells of the active podium's ring: inside the rim's 2.5-block radius,
+         * around the bedrock pillar. The research note's section 2 counts them at twenty.
+         */
+        const ringCells = (): [number, number][] => {
+            const cells: [number, number][] = [];
+            for (let x = -2; x <= 2; x += 1) {
+                for (let z = -2; z <= 2; z += 1) {
+                    if ((x !== 0 || z !== 0) && x * x + z * z < 2.5 * 2.5) cells.push([x, z]);
+                }
+            }
+            return cells;
+        };
+
+        /** Kills the fight's live dragon through the real hurt path and lets the fight settle. */
+        const killDragon = async (fight: DragonFight, killerId?: number): Promise<void> => {
+            const dragon = dragons()[0];
+            if (dragon === undefined) throw new Error('no dragon stands in the arena');
+            dragon.instance.attributes.set('health', 1);
+            live.runtime.hurt(dragon, killerId, 'entity_attack', 8);
+            await run(fight, 2);
+        };
+
+        /** The values of every experience orb lying in the world, in spawn order. */
+        const orbValues = (): unknown[] =>
+            live.runtime
+                .all()
+                .filter((entity) => entity.identifier === 'minecraft:xp_orb')
+                .map((orb) => orb.spawnData?.['value']);
+
+        it('opens the portal, drops the egg and spends a gateway on the first kill', async () => {
+            const { player } = enterArena(world, players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+
+            await killDragon(fight, Number(player.getRuntimeId()));
+
+            const cells = ringCells();
+            expect(cells).toHaveLength(20);
+            for (const [x, z] of cells) expect(blockNameAt(world, x, FLOOR_Y, z)).toBe('minecraft:end_portal');
+            // The egg sits at the MOTION_BLOCKING heightmap position above (0, 0): the pillar top.
+            expect(blockNameAt(world, 0, FLOOR_Y + 4, 0)).toBe('minecraft:dragon_egg');
+            // Index 8, popped from seed 1234's shuffle, lands at Java's ring position (-78, 75, 56).
+            expect(blockNameAt(world, -78, 75, 56)).toBe('minecraft:end_gateway');
+            expect(blockNameAt(world, -78, 77, 56)).toBe('minecraft:bedrock');
+            expect(blockNameAt(world, -78, 73, 56)).toBe('minecraft:bedrock');
+            expect(blockNameAt(world, -77, 75, 56)).toBe('minecraft:air');
+            expect(fight.state().gateways).toHaveLength(19);
+            expect(fight.state().gateways).not.toContain(8);
+            expect(fight.state().dragonKilled).toBe(true);
+            expect(fight.state().previouslyKilled).toBe(true);
+        });
+
+        it('fills the ring with the block the travel rules carry a player out with', async () => {
+            const { player } = enterArena(world, players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+
+            await killDragon(fight, Number(player.getRuntimeId()));
+
+            const ring = blockNameAt(world, 1, FLOOR_Y, 0);
+            const rule = ring === undefined ? undefined : portalRuleOf(ring);
+            expect(rule?.kind).toBe('end');
+            expect(rule?.links[END.id]).toBe(Dimensions.Overworld.id);
+        });
+
+        it('pays the first kill 12000 points, as orbs and directly to the killer', async () => {
+            const { player } = enterArena(world, players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+
+            await killDragon(fight, Number(player.getRuntimeId()));
+
+            // Java's split: ten awards of floor(12000 * 0.08) over the death hold, floor(12000 * 0.2) at its end.
+            expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 960), 2400]);
+            // 12000 points from scratch: 1395 reach level 30, the rest climbs Java's 9n - 158
+            // curve to level 68 with 22 points toward the 454-point level 69.
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(68);
+            expect(player.attributes.getValue(AttributeIds.PlayerExperience)).toBeCloseTo(22 / 454, 10);
+        });
+
+        it('pays 500, spends the next gateway and places no egg on a repeat kill', async () => {
+            const { player } = enterArena(world, players, 0, 70, 0);
+            const fight = freshFight({ ...killedState(), dragonKilled: false });
+            await run(fight, 1);
+
+            await killDragon(fight, Number(player.getRuntimeId()));
+
+            for (const [x, z] of ringCells()) expect(blockNameAt(world, x, FLOOR_Y, z)).toBe('minecraft:end_portal');
+            expect(blockNameAt(world, 0, FLOOR_Y + 4, 0)).toBe('minecraft:air');
+            // Index 9, the last of the saved list, lands at (-92, 75, 29); the list keeps the rest.
+            expect(blockNameAt(world, -92, 75, 29)).toBe('minecraft:end_gateway');
+            expect(fight.state().gateways).toEqual([4, 2]);
+            expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 40), 100]);
+            // 500 points from scratch: 315 reach level 15, the rest climbs to level 19 with 7
+            // points toward the 57-point level 20.
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(19);
+            expect(player.attributes.getValue(AttributeIds.PlayerExperience)).toBeCloseTo(7 / 57, 10);
+        });
+
+        it('pays the orbs but no direct award when no player dealt the killing blow', async () => {
+            const { player } = enterArena(world, players, 0, 70, 0);
+            const fight = freshFight();
+            await run(fight, 1);
+            const dragon = dragons()[0]!;
+
+            live.runtime.remove(dragon.id, 'death_behavior');
+            await run(fight, 2);
+
+            expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 960), 2400]);
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(0);
         });
     });
 });
