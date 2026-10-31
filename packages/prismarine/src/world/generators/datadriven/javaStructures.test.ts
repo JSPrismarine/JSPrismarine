@@ -14,10 +14,14 @@
  * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */
+import { createHash } from 'node:crypto';
+
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import type Chunk from '../../chunk/Chunk';
 import type { Generator } from '../../Generator';
+import { Dimensions } from '../../Dimension';
+import type { PipelineKey } from './DataDrivenGenerator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
@@ -50,6 +54,24 @@ const TRAIL_RUINS_CHUNK = { x: -113, z: 50 };
  * desert, and four of those grow a well.
  */
 const DESERT_WELL_CHUNK = { x: -691, z: -239 };
+
+/** The End's level stem, which the end city is the one structure of. */
+const END_STEM: PipelineKey = {
+    noiseSettings: 'minecraft:end',
+    biomeSource: { type: 'minecraft:the_end' },
+    dimension: Dimensions.TheEnd
+};
+
+/** The chunk an end city starts in for the seed, the first found walking outward from the origin. */
+const END_CITY_CHUNK = { x: -77, z: -37 };
+
+/**
+ * The End chunk the city starts in, block for block, so the layout cannot drift unnoticed.
+ *
+ * The End has no generation corpus yet, so this one digest stands in for it. A change in the
+ * end city's layout, Java's End terrain or the template translation moves it; nothing else does.
+ */
+const END_CITY_CHUNK_DIGEST = 'dabf486203e5f5147adcfc30f7ab52eaafdf3c00b2b8d9501f042a4f27701d0d';
 
 describe.skipIf(!enabled)('the structures the data-driven overworld generates', { tags: ['real-data'] }, () => {
     let generator: DataDrivenGenerator;
@@ -454,6 +476,58 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         );
     });
 
+    describe('an end city in the End', () => {
+        /** Every block name of a chunk, column by column, run through one hash. */
+        const digestOf = (chunk: Chunk): string => {
+            const hash = createHash('sha256');
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    for (let y = chunk.getMinY(); y <= chunk.getMaxY(); y++) {
+                        hash.update(chunk.getBlock(x, y, z).name);
+                        hash.update('\n');
+                    }
+                }
+            }
+            return hash.digest('hex');
+        };
+
+        it(
+            'starts in the chunk the seeded placement chose, on an island high enough for it',
+            () => {
+                const start = generator
+                    .structureStartsAt(END_CITY_CHUNK.x, END_CITY_CHUNK.z, SEED, END_STEM)
+                    .find((candidate) => candidate.structure === 'minecraft:end_city');
+
+                expect(start).toBeDefined();
+                expect(start!.set).toBe('minecraft:end_cities');
+                expect([start!.chunkX, start!.chunkZ]).toEqual([END_CITY_CHUNK.x, END_CITY_CHUNK.z]);
+                // Seven blocks into the chunk, and Java refuses a site under y 60.
+                expect([start!.origin.x, start!.origin.z]).toEqual([
+                    END_CITY_CHUNK.x * 16 + 7,
+                    END_CITY_CHUNK.z * 16 + 7
+                ]);
+                expect(start!.origin.y).toBeGreaterThanOrEqual(60);
+                expect(start!.pieces.length).toBeGreaterThan(5);
+                expect(generator.unbuiltStructureTypes(SEED, END_STEM).size).toBe(0);
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'places purpur and end rods in the chunk, with a shulker on its sentry marker',
+            async () => {
+                const chunk = await generator.forStem(END_STEM).generateChunk(END_CITY_CHUNK.x, END_CITY_CHUNK.z, SEED);
+                const names = identifiersAbove(chunk, 60);
+
+                expect(names).toContain('minecraft:purpur_block');
+                expect(names).toContain('minecraft:end_rod');
+                expect(chunk.getEntitySpawns().map((spawn) => spawn.type)).toContain('minecraft:shulker');
+                expect(digestOf(chunk)).toBe(END_CITY_CHUNK_DIGEST);
+            },
+            CHUNK_TIMEOUT
+        );
+    });
+
     it(
         'names the structure types that still have no builder',
         () => {
@@ -465,7 +539,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
 
             // The inventory of what this server does not generate yet. A family that lands comes
             // off this list, and a type that silently stops generating lands back on it.
-            expect(missing).toEqual(['minecraft:end_city', 'minecraft:fortress']);
+            expect(missing).toEqual(['minecraft:fortress']);
         },
         CHUNK_TIMEOUT
     );

@@ -3,9 +3,9 @@
  *
  * The registry is the whole of the dispatch. A type with no row here generates nothing and is
  * reported through `StructureStartSource.unbuiltTypes`, so a missing structure is visible rather
- * than silent. Fourteen of the sixteen are here; the end city and the nether fortress are not,
- * and neither has a dimension to generate in.
+ * than silent. Fifteen of the sixteen are here; the nether fortress is not.
  */
+import { buildEndCity } from './javaStructureEndCity';
 import { buildJigsawStructure } from './javaStructureJigsaw';
 import { buildIgloo, buildNetherFossil, buildOceanRuin, buildShipwreck } from './javaStructureLegacyTemplates';
 import { buildWoodlandMansion } from './javaStructureMansion';
@@ -31,5 +31,6 @@ export const STRUCTURE_BUILDERS: ReadonlyMap<string, StructureBuilder> = new Map
     ['minecraft:shipwreck', buildShipwreck],
     ['minecraft:stronghold', buildStronghold],
     ['minecraft:swamp_hut', buildSwampHut],
-    ['minecraft:woodland_mansion', buildWoodlandMansion]
+    ['minecraft:woodland_mansion', buildWoodlandMansion],
+    ['minecraft:end_city', buildEndCity]
 ]);

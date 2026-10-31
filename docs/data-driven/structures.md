@@ -50,7 +50,7 @@ generation point decides whether it is kept.
 
 ## What generates
 
-50 of the 52 generate.
+51 of the 52 generate.
 
 | Type | Structures | State |
 | --- | --- | --- |
@@ -68,16 +68,20 @@ generation point decides whether it is kept.
 | `stronghold` | 1 | Generates, at the unsnapped ring position |
 | `swamp_hut` | 1 | Generates |
 | `woodland_mansion` | 1 | Generates, without the cobblestone pillars Java drops under it |
-| `end_city` | 1 | Not implemented |
+| `end_city` | 1 | Generates |
 | `fortress` | 1 | Not implemented |
 
 The jigsaw type is the five villages, the pillager outpost, the bastion, the ancient city, the
 trail ruins, the trial chambers and the eighteen abandoned camps.
 
-Five of them have no dimension to generate in yet. `nether_fossil`, `bastion_remnant`,
-`fortress` and `ruined_portal_nether` are the nether's and `end_city` is the end's, and the
-server carries an overworld generator and a flat one and nothing else. That is also why
-`end_city` and `fortress` are the two left unimplemented: neither would be reachable.
+`fortress` is the one left unimplemented. It is the nether's, as `nether_fossil`,
+`bastion_remnant` and `ruined_portal_nether` are, and `end_city` is the end's; the data-driven
+generator serves those dimensions through their level stems.
+
+The end city is Java's `EndCityPieces` read from the 26.3 jar: the house, the tower column, the
+bridges that end in further houses, the fat tower, and the ship the bridge generator hangs once
+per city. A dropped batch leaves its near `bridge_end` on the tower, as Java does. Bedrock has no
+item frame entity, so the elytra hangs in a `frame` block whose block entity holds it.
 
 ## Terrain adaptation
 
