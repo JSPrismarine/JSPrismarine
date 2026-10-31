@@ -193,6 +193,11 @@ export class Entity {
     protected portalCooldown = 0;
 
     /**
+     * The server tick a world last claimed this entity's update for; see {@link Entity.claimUpdate}.
+     */
+    private lastUpdatedTick = -1;
+
+    /**
      * The portal this entity is standing in, or undefined when it is in none.
      *
      * Created by the first {@link Entity.touchPortal}, advanced each tick in {@link Entity.update},
@@ -544,6 +549,23 @@ export class Entity {
      */
     public isOnPortalCooldown(): boolean {
         return this.portalCooldown > 0;
+    }
+
+    /**
+     * Claims this entity's one update of a server tick for the world asking.
+     *
+     * The level ticks its worlds one after another, and a portal trip moves an entity from
+     * the world being ticked into one that is ticked later in the same pass. That world finds
+     * the arrival in its roster and would update it a second time. The first world claims the
+     * tick before updating; the second sees the claim and leaves the entity for the next tick.
+     *
+     * @param tick - The server's tick counter.
+     * @returns True the first time a world asks for a given tick, false for every later ask.
+     */
+    public claimUpdate(tick: number): boolean {
+        if (this.lastUpdatedTick === tick) return false;
+        this.lastUpdatedTick = tick;
+        return true;
     }
 
     /**

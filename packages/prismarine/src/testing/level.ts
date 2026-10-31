@@ -128,7 +128,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         update: async (tick) => {
             ticks++;
             weather.tick(ticks);
-            await Promise.all(worlds().map(async (world) => world.update(tick)));
+            for (const world of worlds()) await world.update(tick);
         },
         save: async () => {},
         saveLevelData: async () => {},

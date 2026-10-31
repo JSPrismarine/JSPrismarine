@@ -710,10 +710,14 @@ export class World implements Service {
             endEntityGridProfile();
         }
 
+        // Claimed per tick, so an entity that arrived from a world the level ticked earlier
+        // this pass is not updated twice: see {@link Entity.claimUpdate}.
         const tickingEntities = entities.filter((entity) => {
-            if (entity instanceof Player) return true;
-            const position = entity.getPosition();
-            return isPositionTicking(position.getX(), position.getZ());
+            if (!(entity instanceof Player)) {
+                const position = entity.getPosition();
+                if (!isPositionTicking(position.getX(), position.getZ())) return false;
+            }
+            return entity.claimUpdate(tick);
         });
 
         // Before the updates, so the contact an entity's own update advances this tick already

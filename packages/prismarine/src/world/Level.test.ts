@@ -12,15 +12,18 @@ import path from 'node:path';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Generator as GeneratorType } from '@jsprismarine/minecraft';
+import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Config } from '../config/Config';
+import type { Entity } from '../entity/Entity';
+import Player from '../Player';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { TEST_GENERATOR_KIND } from '../testing/level';
-import { stub } from '../testing/stub.test.helper';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID } from './Dimension';
 import type { DimensionType } from './Dimension';
@@ -29,8 +32,10 @@ import type { Generator } from './Generator';
 import { GeneratorFactories } from './GeneratorFactories';
 import { Level } from './Level';
 import type { LevelOptions } from './Level';
+import { Position } from './Position';
 import { readLevelDat } from './providers/leveldb/LevelDat';
 import LevelDB from './providers/leveldb/LevelDB';
+import type { World } from './World';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
 
@@ -227,6 +232,62 @@ describe('Level', () => {
             // `/time set` through either world sets the one clock.
             nether.setTicks(6000);
             expect(overworld.getTicks()).toBe(6000);
+
+            await level.disable();
+        });
+    });
+
+    describe('the tick', () => {
+        /**
+         * A player, since a world ticks every player and only the mobs near one, whose own
+         * update records the tick and, the first time, walks out of its world into `to`.
+         */
+        const travelerIn = (from: World, to: World) => {
+            const updates: number[] = [];
+            let position = new Position(0, 64, 0, from);
+            const traveler: Entity = stubOf(Player, {
+                attributes: new Attributes(),
+                viewDistance: 4,
+                getRuntimeId: () => 7n,
+                getType: () => 'minecraft:player',
+                getName: () => 'traveler',
+                toString: () => 'traveler',
+                getPosition: () => position,
+                getWorld: () => position.getWorld(),
+                getFeetY: () => position.getY() - 1.62,
+                getBox: () => ({ width: 0.6, height: 1.8 }),
+                isOnPortalCooldown: () => false,
+                update: async (tick) => {
+                    updates.push(tick);
+                    if (position.getWorld() !== from) return;
+                    await from.removeEntity(traveler);
+                    position = new Position(0, 64, 0, to);
+                    await to.addEntity(traveler);
+                }
+            });
+            return { traveler, updates };
+        };
+
+        it('ticks an entity once, however many worlds it crosses during the update', async () => {
+            const { level } = buildLevel('crossing');
+            await level.enable();
+            const overworld = await level.world(OVERWORLD_STEM_ID);
+            const nether = await level.world(NETHER_STEM_ID);
+
+            // Leaving the world ticked first for the one ticked second is the case a sequential
+            // tick alone would get wrong: the Nether reads its roster after the Overworld's tick
+            // has put the traveler in it.
+            const { traveler, updates } = travelerIn(overworld, nether);
+            await overworld.addEntity(traveler);
+
+            await level.update(1);
+            expect(updates).toEqual([1]);
+            expect(nether.getEntities()).toContain(traveler);
+            expect(overworld.getEntities()).not.toContain(traveler);
+
+            // The next tick finds it in the Nether and ticks it there, once.
+            await level.update(2);
+            expect(updates).toEqual([1, 2]);
 
             await level.disable();
         });

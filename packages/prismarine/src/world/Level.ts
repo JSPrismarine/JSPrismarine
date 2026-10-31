@@ -580,6 +580,11 @@ export class Level {
      * `advanceWeatherCycle` before its tick lists: a fire scheduled this tick should be put out
      * by rain that started this tick.
      *
+     * The worlds tick one after another in stem order, as `MinecraftServer.tickChildren` walks
+     * its levels, rather than interleaved. An entity that leaves one world for another during
+     * its update is then in exactly one world's roster at any point of the tick; a world
+     * ticked later skips an arrival that was already ticked this tick.
+     *
      * @param tick - The server's tick counter, which the worlds pace their own work by.
      */
     public async update(tick: number): Promise<void> {
@@ -587,7 +592,17 @@ export class Level {
 
         this.currentTick++;
         this.weather.tick(this.currentTick);
-        await Promise.all([...this.worlds()].map(async (world) => world.update(tick)));
+        for (const world of this.worldsInStemOrder()) await world.update(tick);
+    }
+
+    /** The loaded worlds in stem order, which is the order the level ticks them in. */
+    private worldsInStemOrder(): World[] {
+        const worlds: World[] = [];
+        for (const id of this.stems.keys()) {
+            const world = this.loadedWorld(id);
+            if (world !== undefined) worlds.push(world);
+        }
+        return worlds;
     }
 
     /**
