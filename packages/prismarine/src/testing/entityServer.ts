@@ -58,6 +58,7 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
         // Nothing it holds rides anything, so nothing is kept out of a portal.
         isInRide: () => false,
+        onEntityRemoved: () => () => false,
         tick: async () => {},
         persist: () => {},
         restore: () => undefined,

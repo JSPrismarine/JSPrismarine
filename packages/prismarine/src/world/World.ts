@@ -59,6 +59,8 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
 import { startProfileSpan } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import { DragonFight } from './end/DragonFight';
+import type { DragonFightState } from './WorldPersistence';
 import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
@@ -471,6 +473,9 @@ export class World implements Service {
      * the prototype has one too.
      */
     private portalIndex: PortalIndex | undefined;
+
+    /** The End's dragon fight, created on the first ask in a dimension that has one. */
+    private dragonFight: DragonFight | undefined;
     private readonly physics: BlockPhysics;
 
     /**
@@ -751,6 +756,16 @@ export class World implements Service {
             await this.touchPortals(tickingEntities);
         } finally {
             endPortalContactsProfile();
+        }
+
+        // Before the entity updates, as Java's `ServerLevel.tick` runs the fight before the
+        // entities, so a dragon the fight spawns this tick stands in the world its first update
+        // reads. A dimension without a fight skips this on one flag read.
+        const endDragonFightProfile = startProfileSpan(this.server, `World.dragonFight:${this.name}`);
+        try {
+            await this.getDragonFight()?.tick();
+        } finally {
+            endDragonFightProfile();
         }
 
         const endEntityUpdatesProfile = startProfileSpan(this.server, `World.entityUpdates:${this.name}`);
@@ -1920,6 +1935,28 @@ export class World implements Service {
     /** The lit nether portal blocks of this world, kept in step with its block writes and chunk loads. */
     public getPortalIndex(): PortalIndex {
         return (this.portalIndex ??= new PortalIndex());
+    }
+
+    /**
+     * The dragon fight of this world, created on first ask over the state the save held.
+     *
+     * @returns The fight, or undefined in a dimension whose type has no
+     * `has_ender_dragon_fight` flag, which is every vanilla dimension but the End.
+     */
+    public getDragonFight(): DragonFight | undefined {
+        if (!this.dimension.java.hasEnderDragonFight) return undefined;
+
+        return (this.dragonFight ??= new DragonFight(this, this.level.storedDragonFightState(), this.level.seed));
+    }
+
+    /**
+     * The fight's persistable state, without creating a fight that never ran.
+     *
+     * The level's save reads this; a world whose fight was never asked for answers undefined,
+     * and the level keeps whatever the save already held.
+     */
+    public dragonFightSaveState(): DragonFightState | undefined {
+        return this.dragonFight?.state();
     }
 
     /** The light engine and the two scheduled tick lists - see {@link WorldSystems}. */

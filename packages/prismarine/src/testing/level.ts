@@ -114,6 +114,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
             spawn = at;
         },
         legacyEntities: () => options.legacyEntities ?? [],
+        storedDragonFightState: () => undefined,
         isClosed: () => false,
         loadedWorld: () => undefined,
         worlds: function* () {

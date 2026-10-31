@@ -340,6 +340,8 @@ export class LiveEntityRuntime {
     /** The world the spawn rules read, which is not known until the adapter is assembled. */
     private spawnWorld: SpawnWorld | undefined;
     private started = false;
+    /** Who hears about removals beyond the body index, such as the End's dragon fight. */
+    private readonly removalListeners = new Set<(entity: DataEntity, reason: string) => void>();
 
     public constructor(options: LiveEntityOptions) {
         this.options = options;
@@ -350,7 +352,10 @@ export class LiveEntityRuntime {
             host: liveHost(options, this.bodies),
             report: options.report,
             onSpawn: (entity) => this.bodies.add(entity, this.runtime.leashHolderIdOf(entity.id)),
-            onRemove: (entity) => this.bodies.drop(entity),
+            onRemove: (entity, reason) => {
+                this.bodies.drop(entity);
+                for (const listener of this.removalListeners) listener(entity, reason);
+            },
             gameEvents: {
                 add: (listener) => options.liveWorld()?.addGameEventListener(listener),
                 move: (listener) => options.liveWorld()?.moveGameEventListener(listener)
@@ -362,6 +367,21 @@ export class LiveEntityRuntime {
                 return Number(Entity.runtimeIdCount);
             }
         });
+    }
+
+    /**
+     * Hears about every entity the runtime removes, after the body is gone.
+     *
+     * The End's dragon fight learns of its dragon's death through this rather than through a
+     * field on the runtime, so the runtime stays ignorant of who is watching. The reason is the
+     * removal reason the runtime recorded: `death` and `death_behavior` are deaths,
+     * `chunk unload` means the entity still exists in the save.
+     *
+     * @returns A function that unsubscribes the listener.
+     */
+    public onEntityRemoved(listener: (entity: DataEntity, reason: string) => void): () => void {
+        this.removalListeners.add(listener);
+        return () => this.removalListeners.delete(listener);
     }
 
     /**

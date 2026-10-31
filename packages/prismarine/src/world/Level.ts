@@ -39,7 +39,7 @@ import type Provider from './providers/Provider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
 import type { WorldData } from './World';
-import type { LegacyWorldEntity, WorldPersistenceData } from './WorldPersistence';
+import type { DragonFightState, LegacyWorldEntity, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
@@ -161,6 +161,9 @@ export class Level {
 
     /** Bedrock's `SpawnX/Y/Z`: one spawn per save, in the Overworld. */
     private spawn: Vector3 | null = null;
+
+    /** The dragon fight the save held, handed to the End world's fight when it is created. */
+    private storedDragonFight: DragonFightState | undefined;
 
     /** Entity snapshots the save kept outside its chunks, for a provider without actor storage. */
     private legacy: readonly LegacyWorldEntity[] = [];
@@ -604,6 +607,7 @@ export class Level {
             this.gameRuleManager.setGameRule(name, value, editable);
         }
         if (stored.entities && this.provider.supportsChunkUnload !== true) this.legacy = stored.entities;
+        this.storedDragonFight = stored.dragonFight;
 
         // The clock is written to `level.dat` alone, so it is read back from there; without it
         // every boot started the day over at tick zero.
@@ -684,13 +688,15 @@ export class Level {
         const stems = Object.fromEntries(this.stems);
         try {
             const stored = (await this.provider.readWorldData()) ?? {};
+            const dragonFight = this.dragonFightState();
             const data: WorldPersistenceData = {
                 ...stored,
                 ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
                 gameRules: Array.from(this.gameRuleManager.getGameRules()),
                 weather: this.weather.saved(),
                 ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
-                worldGenSettings: { seed: this.seed.toString(), dimensions: stems }
+                worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
+                ...(dragonFight === undefined ? {} : { dragonFight })
             };
             await this.provider.writeWorldData(data);
             this.provider.saveLevelData({
@@ -703,6 +709,26 @@ export class Level {
             this.server.getLogger().error(`Failed to save level data for ${this.name}`);
             this.server.getLogger().error(error);
         }
+    }
+
+    /** The dragon fight the save held, which the End world's fight starts from. */
+    public storedDragonFightState(): DragonFightState | undefined {
+        return this.storedDragonFight;
+    }
+
+    /**
+     * The live fight state to save, from whichever loaded world runs one.
+     *
+     * A level has at most one fight: Java creates one per level, in the dimension whose type
+     * sets `has_ender_dragon_fight`. A world whose fight never ran answers undefined and the
+     * save keeps what it already held.
+     */
+    private dragonFightState(): DragonFightState | undefined {
+        for (const world of this.worlds()) {
+            const state = world.dragonFightSaveState();
+            if (state !== undefined) return state;
+        }
+        return undefined;
     }
 
     /** The Nether's `coordinate_scale`, from its stem's type; Java's 8 for a level without one. */
