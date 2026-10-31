@@ -25,6 +25,18 @@ To install `@jsprismarine/prismarine`, use the following command:
 pnpm install @jsprismarine/prismarine --save
 ```
 
+## Worlds and dimensions
+
+Each `worlds.<name>` entry in `config.json` is a `Level`: one save with one seed, clock, set of
+game rules and weather, and one `World` per dimension. The dimensions come from a Java
+`worldgen/world_preset` named by `preset`, with per-dimension overrides under `dimensions`. A
+stem's generator is built by the `GeneratorFactories` registry, whose built-in kinds are
+`minecraft:noise`, `minecraft:flat`, `jsprismarine:void` and `minecraft:debug`; register a
+`{ kind, build(context) }` factory to add one. Portal travel between a level's worlds is the
+`DimensionTravel` service, reached through `Server.getDimensionTravel()`, with the cancelable
+`entityPortalEnter` and `playerChangeDimension` events. The guide is
+[docs/data-driven/dimensions.md](../../docs/data-driven/dimensions.md).
+
 ## JSON Schemas
 
 The server uses `config.json` for its settings.
