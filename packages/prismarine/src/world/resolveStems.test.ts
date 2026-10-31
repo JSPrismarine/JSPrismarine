@@ -131,6 +131,36 @@ describe('resolveStems', () => {
         ).toThrowError("dimensions['mypack:sky'] adds a dimension minecraft:normal lacks, so it needs a type");
     });
 
+    it('refuses two dimensions that bind one dimension type, naming both', () => {
+        expect(() =>
+            resolveStems(
+                normalizeWorldData(
+                    {
+                        seed: '1',
+                        dimensions: {
+                            'mypack:sky': { type: Dimensions.Nether.id, generator: { type: 'minecraft:debug' } }
+                        }
+                    },
+                    KINDS
+                ),
+                PRESETS
+            )
+        ).toThrowError(
+            'The minecraft:the_nether and mypack:sky dimensions both bind the dimension type minecraft:the_nether; a type backs one dimension per level'
+        );
+    });
+
+    it('refuses a saved dimension that binds the type of a configured one', () => {
+        expect(() =>
+            resolveStems(normalizeWorldData({ seed: '1' }, KINDS), PRESETS, {
+                seed: '1',
+                dimensions: { 'mypack:sky': { type: Dimensions.TheEnd.id, generator: { type: 'minecraft:debug' } } }
+            })
+        ).toThrowError(
+            'The minecraft:the_end and mypack:sky dimensions both bind the dimension type minecraft:the_end; a type backs one dimension per level'
+        );
+    });
+
     it('refuses a preset no registry defines, naming the ones that exist', () => {
         expect(() =>
             resolveStems(normalizeWorldData({ seed: '1', preset: 'minecraft:nope' }, KINDS), PRESETS)

@@ -172,8 +172,8 @@ export class Level {
     private closed = false;
 
     /**
-     * @throws {Error} When the stems have no `minecraft:overworld`, or a stem names a dimension
-     *   type that `dimensionTypes` does not carry.
+     * @throws {Error} When the stems have no `minecraft:overworld`, a stem names a dimension
+     *   type that `dimensionTypes` does not carry, or two stems bind one type.
      */
     public constructor(options: LevelOptions) {
         this.name = options.name;
@@ -230,7 +230,12 @@ export class Level {
      * Joins each stem's Java type with its Bedrock overlay, handing out custom ids in stem
      * order.
      *
-     * @throws {Error} When a stem names a type the definitions do not carry.
+     * `resolveStems` refuses two stems of one type before a provider opens; this repeats the
+     * check for a level built some other way, because two worlds of one type would share a
+     * Bedrock id and write over each other's chunks.
+     *
+     * @throws {Error} When a stem names a type the definitions do not carry, or two stems bind
+     *   one type.
      */
     private static resolveDimensionTypes(
         name: string,
@@ -238,10 +243,17 @@ export class Level {
         definitions: ReadonlyMap<string, DimensionTypeDefinition>
     ): ReadonlyMap<string, DimensionType> {
         const resolved = new Map<string, DimensionType>();
+        const boundBy = new Map<string, string>();
         let nextCustomId = FIRST_CUSTOM_DIMENSION_ID;
 
         for (const [id, stem] of stems) {
-            if (resolved.has(stem.type)) continue;
+            const earlier = boundBy.get(stem.type);
+            if (earlier !== undefined) {
+                throw new Error(
+                    `The ${earlier} and ${id} stems of level ${name} both bind the dimension type ${stem.type}; a type backs one dimension per level`
+                );
+            }
+            boundBy.set(stem.type, id);
 
             const definition = definitions.get(stem.type);
             if (definition === undefined) {

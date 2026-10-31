@@ -63,8 +63,8 @@ export const worldPresetsOf = (registries: JavaWorldgenRegistries): ReadonlyMap<
  *   dimension and both generator kinds.
  * @returns The stems by dimension id, preset order first, then the dimensions the config or the
  *   save added.
- * @throws When the preset is unknown, an override's generator is malformed, or an added
- *   dimension lacks its `type` or `generator`.
+ * @throws When the preset is unknown, an override's generator is malformed, an added
+ *   dimension lacks its `type` or `generator`, or two dimensions bind one dimension type.
  */
 export const resolveStems = (
     world: NormalizedWorldData,
@@ -107,7 +107,32 @@ export const resolveStems = (
         stems.set(id, stem);
     }
 
+    const sharing = sharedTypeOf(stems);
+    if (sharing !== undefined) {
+        const [first, second, type] = sharing;
+        throw new Error(
+            `The ${first} and ${second} dimensions both bind the dimension type ${type}; a type backs one dimension per level`
+        );
+    }
+
     return stems;
+};
+
+/**
+ * The first two stems that bind one dimension type, and the type, or undefined when every
+ * stem has its own.
+ *
+ * A dimension type decides a world's Bedrock id and so its chunk keys in the save, which is
+ * why two worlds cannot share one.
+ */
+const sharedTypeOf = (stems: ReadonlyMap<string, LevelStem>): [string, string, string] | undefined => {
+    const boundBy = new Map<string, string>();
+    for (const [id, stem] of stems) {
+        const earlier = boundBy.get(stem.type);
+        if (earlier !== undefined) return [earlier, id, stem.type];
+        boundBy.set(stem.type, id);
+    }
+    return undefined;
 };
 
 /** Whether two stems describe the same terrain, compared as the documents they save to. */

@@ -141,6 +141,20 @@ describe('Level', () => {
             ).toThrowError('names the dimension type mypack:missing, which is not loaded');
         });
 
+        it('refuses two stems that bind one dimension type, naming both', () => {
+            expect(() =>
+                buildLevel('shared-type', {
+                    stems: new Map([
+                        [OVERWORLD_STEM_ID, stemOf(Dimensions.Overworld.id)],
+                        [NETHER_STEM_ID, stemOf(Dimensions.Nether.id)],
+                        [SKY_STEM_ID, stemOf(Dimensions.Nether.id)]
+                    ])
+                })
+            ).toThrowError(
+                'The minecraft:the_nether and mypack:sky stems of level shared-type both bind the dimension type minecraft:the_nether; a type backs one dimension per level'
+            );
+        });
+
         it('builds a dimension once and answers the same world every time after', async () => {
             const { level, builds } = buildLevel('lazy');
             await level.enable();
