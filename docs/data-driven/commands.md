@@ -130,7 +130,7 @@ and `/deop` sit higher still.
 
 ## What the server leaves out, and why
 
-Seven commands are deliberately not wired. The rule the project follows is worth stating plainly,
+Six commands are deliberately not wired. The rule the project follows is worth stating plainly,
 because it decides what you see when you type one: an unwired command is **not registered at all**.
 Nothing parses it, no alias is registered for it, and it never reaches your client's command list.
 Type `/effect give @s minecraft:speed` and you get `Unknown command. Type "/help" for help.` A
@@ -147,12 +147,28 @@ it, so the gap closes by deleting a row:
 | `/data`      | reading and writing NBT by path                                                 |
 | `/effect`    | a status effect system; `MobEffectPacket` is a wire type with nothing behind it |
 | `/item`      | item modifiers and Java-addressable inventory slots                             |
-| `/locate`    | a radial search; the generator places structures and never looks one up         |
 | `/place`     | feature, jigsaw and structure placement outside the generator                   |
 | `/ride`      | entity riding outside the data-driven entity runtime                            |
 
 `vanillaCommands.test.ts` asserts that the registered set plus this table equals everything the
 package implements, so a command cannot fall out of both.
+
+`/locate` used to sit in this table and now runs, in two of its three forms. `/locate structure`
+asks the generator where the nearest structure of a name starts, without building a chunk: the
+data-driven generator lays its structure sets out against the bare noise, so it answers for any
+structure it places in the dimension you are standing in, `minecraft:stronghold` and
+`minecraft:ancient_city` from the Overworld, `minecraft:fortress` from the Nether,
+`minecraft:end_city` from the End. The name is a Java id with or without its namespace, a
+structure tag such as `#minecraft:village`, or Bedrock's family name, `village` or
+`ruinedportal`. The search is Java's: a radius of 100 placement regions rather than chunks, and
+every ring of the strongholds' concentric placement, so a stronghold two thousand blocks out is
+found from spawn. The answer is Java's too, `The nearest minecraft:stronghold is at [-768, ~, 1840]
+(1993 blocks away)`: the start chunk's corner, the height hidden because a structure has none, and
+the flat distance, which is also the command's result. `/locate biome` walks the climate sampler
+on Java's grid, 6400 blocks out at one column per 32 blocks and one sample per 64 blocks of
+height, and prints the sampled height and a three-axis distance. `/locate poi` is refused with
+`This server has no point of interest index yet`: Java answers it from a `PoiManager`, an index
+of bed, job site and portal blocks kept per loaded chunk, and this server keeps no such index.
 
 Separately, 29 of Bedrock's own commands are not implemented at all. They group by reason:
 

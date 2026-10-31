@@ -136,9 +136,26 @@ the monument out, so the floor plan is unchanged and the room is whole.
 
 `DataDrivenGenerator.structureStartsAt(chunkX, chunkZ, seed)` answers the starts that reach into
 a chunk without generating it. A start carries the structure identifier, the set that offered the
-chunk, the chunk it started in, the decoration step, its bounding box, its pieces and its
-generation point. The generation point is the position Java makes the biome check at and the
-position `/locate` reports, so it is the field to compare against Java directly.
+chunk, the chunk it started in, the decoration step, its bounding box, its pieces, its generation
+point and its locate position. The generation point is the position Java makes the biome check
+at, so it is the field to compare a layout against Java directly. The locate position is Java's
+`StructurePlacement.getLocatePos`, the start chunk's corner moved by the set's `locate_offset`,
+which is what `/locate` prints and what an eye of ender flies toward.
+
+`DataDrivenGenerator.locate(request)` is the search behind `/locate structure`, Java's
+`findNearestMapStructure`. Its radius counts rings of placement regions, so the command's 100
+reaches 3400 chunks for a set spaced 34 apart, and a concentric ring placement is searched whole
+however far its rings lie. Candidates are laid out nearest first and the first one the biome
+accepts wins, so a search costs a few layouts rather than a few thousand. A `#tag` such as
+`#minecraft:village` resolves through `tags/worldgen/structure` by `membersOfTag`, and
+`locatableNames` lists every id and tag for the command's suggestions. One difference from Java
+remains: Java finishes a ring of regions and answers the nearest start in it, where this answers
+the nearest start by candidate chunk across the whole search, so the two can disagree when a
+nearer candidate sits one ring further out.
+
+`DataDrivenGenerator.locateBiome(request)` is the walk behind `/locate biome`, Java's
+`BiomeSource.findClosestBiome3d` over the same climate sampler the chunks read, in Java's spiral
+order and with Java's vertical alternation, so the cell it answers is the cell Java answers.
 
 `DataDrivenGenerator.unbuiltStructureTypes(seed)` names the structure types a world asked for and
 got nothing from.
