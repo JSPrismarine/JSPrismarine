@@ -21,8 +21,9 @@ import type { ServerContent } from '../content/ServerContent';
 import type { ContentPosition } from '../content/world/adapter';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { ServerWorldHandle } from '../content/world/serverSource';
+import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
 import { Item } from './Item';
-import { useItemOnBlock } from './interaction';
+import { useItemInAir, useItemOnBlock } from './interaction';
 import { createBlockEntity } from '../world/generators/datadriven/javaGeneratedContent';
 import BlockUpdateScheduler from '../world/BlockUpdateScheduler';
 import Chunk from '../world/chunk/Chunk';
@@ -32,7 +33,7 @@ import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
-import type Player from '../Player';
+import Player from '../Player';
 import { fakeLevel } from '../testing/level';
 
 /** One call to the session's container opener, as the harness records it. */
@@ -92,7 +93,8 @@ const ITEMS = [
     'minecraft:redstone_torch',
     'minecraft:repeater',
     'minecraft:comparator',
-    'minecraft:flint_and_steel'
+    'minecraft:flint_and_steel',
+    'minecraft:ender_eye'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -184,7 +186,9 @@ const liveWorld = (
             // The advancement engine, so the triggers `useItemOnBlock` raises have somewhere
             // to land. Read late, because the content is built over this world.
             getContent: () => content(),
-            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} })
+            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
+            // Rolled by an eye of ender for its shatter; this one always survives.
+            getRandom: () => () => 0.5
         }
     });
 
@@ -233,11 +237,13 @@ const installWorldSystems = (
 };
 
 /**
- * A player reduced to what {@link useItemOnBlock} reads off one.
+ * A player reduced to what {@link useItemOnBlock} and {@link useItemInAir} read off one.
  *
- * Built as the members the path calls rather than on the real prototype, because a `Player` is
- * a network session and this is a test about what a click does to the world. The inventory is a
- * real one with the stack in hotbar slot 0, because a placement takes from it.
+ * Built as the members the path calls over the real prototype rather than constructed, because
+ * a `Player` is a network session and this is a test about what a click does to the world. The
+ * prototype is there so the actor port's `instanceof Player` holds, which is what reads the
+ * game mode off it. The inventory is a real one with the stack in hotbar slot 0, because a
+ * placement takes from it.
  */
 const playerHolding = (
     world: World,
@@ -275,13 +281,16 @@ const playerHolding = (
         send: async () => {}
     };
 
-    return {
+    return Object.assign(Object.create(Player.prototype), {
         getWorld: () => world,
         getServer: () => world.getServer(),
         getInventory: () => inventory,
         getNetworkSession: () => session,
         getRuntimeId: () => 7n,
         getPosition: () => new Vector3(1.5, 65, 1.5),
+        getFeetY: () => 65 - 1.62,
+        getBox: () => ({ width: 0.6, height: 1.8 }),
+        getStatusEffects: () => [],
         pitch: rotation.pitch,
         yaw: rotation.yaw,
         headYaw: rotation.yaw,
@@ -297,7 +306,7 @@ const playerHolding = (
         isOnGround: () => true,
         isSneaking: () => sneaking,
         gamemode
-    } as unknown as Player;
+    });
 };
 
 /** The inventory sends {@link playerHolding}'s session counted, which the double alone carries. */
@@ -582,6 +591,72 @@ describe('useItemOnBlock', () => {
         expect(click(playerHolding(world, 'minecraft:chest', true), { x: 2, y: 64, z: 2 })).toBe('handled');
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(0);
         expect(world.loadedBlockAt(2, 65, 2)?.name).toBe('minecraft:wooden_door');
+    });
+
+    describe('useItemInAir', () => {
+        /** Where the world says the stronghold is, or nothing, which stands in for the generator. */
+        const strongholdAt = (found: { x: number; y: number; z: number } | undefined) =>
+            Object.assign(world, { locateStructure: () => found && { structure: 'minecraft:stronghold', ...found } });
+
+        /** A player holding eyes, in the world's entity index, which is where the throw finds the thrower. */
+        const eyes = (count: number, gamemode: Gametype = Gametype.SURVIVAL) => {
+            const player = playerHolding(
+                world,
+                new Item({ name: 'minecraft:ender_eye', count, content }),
+                false,
+                gamemode
+            );
+            Object.assign(world, { entities: new Map([[player.getRuntimeId(), player]]) });
+            return player;
+        };
+
+        /** The eyes in flight, once the throw's asynchronous add has settled. */
+        const thrown = async () => {
+            await new Promise((resolve) => setImmediate(resolve));
+            return world.getEntities().filter((entity) => entity instanceof EyeOfEnderSignal);
+        };
+
+        it('throws an eye of ender toward the stronghold and spends one', async () => {
+            strongholdAt({ x: 400, y: 0, z: -96 });
+            const player = eyes(2);
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+
+            const [eye] = await thrown();
+            expect(eye).toBeInstanceOf(EyeOfEnderSignal);
+            expect(eye?.getPosition().getY()).toBeCloseTo(65 - 1.62 + 0.9);
+            expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('keeps the eye in a creative hand', async () => {
+            strongholdAt({ x: 400, y: 0, z: -96 });
+            const player = eyes(2, Gametype.CREATIVE);
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+
+            expect(await thrown()).toHaveLength(1);
+            expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
+        });
+
+        it('throws nothing and spends nothing when no stronghold is in range, and tells the client', async () => {
+            strongholdAt(undefined);
+            const player = eyes(2);
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+
+            expect(await thrown()).toHaveLength(0);
+            expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
+            // The client took one out of its own hand the moment it clicked.
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('declines for an item no behavior wants in the air', () => {
+            const player = playerHolding(world, 'minecraft:stick');
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('declined');
+            expect(sessionOf(player).inventoriesSent).toBe(0);
+        });
     });
 
     describe('placing', () => {

@@ -40,7 +40,7 @@ import {
 } from '@jsprismarine/protocol';
 import Codec2193 from '../codec/Codec2193';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
-import { useItemOnBlock } from '../../item/interaction';
+import { useItemInAir, useItemOnBlock } from '../../item/interaction';
 import type { InteractionResult } from '../../item/interaction';
 import type { ServerWorldHandle } from '../../content/world/serverSource';
 import type { ServerItemActorPort } from '../../item/actorPort';
@@ -59,7 +59,8 @@ vi.mock('../../entity/Archery', async (importActual) => ({
 // So is the click on a block, which `item/interaction.test.ts` places against a real world.
 vi.mock('../../item/interaction', async (importActual) => ({
     ...(await importActual<typeof import('../../item/interaction')>()),
-    useItemOnBlock: vi.fn((): InteractionResult => 'handled')
+    useItemOnBlock: vi.fn((): InteractionResult => 'handled'),
+    useItemInAir: vi.fn((): InteractionResult => 'handled')
 }));
 
 const TICK = 400;
@@ -408,6 +409,17 @@ describe('InventoryTransactionHandler', () => {
 
         expect(withBow.itemUse).toEqual([`begin ${TICK}`]);
         expect(withStone.itemUse).toEqual([]);
+    });
+
+    it('offers a click at nothing to the item in hand', async () => {
+        const world = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:ender_eye' }));
+        vi.mocked(useItemInAir).mockClear();
+
+        await handle(transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE })), world);
+
+        expect(vi.mocked(useItemInAir)).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(useItemInAir).mock.calls[0]?.[0].player).toBe(world.player);
+        expect(world.logged).toEqual([]);
     });
 
     it('swings at the entity the runtime id names, with the damage of the item the server holds', async () => {

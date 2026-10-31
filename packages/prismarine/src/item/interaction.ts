@@ -41,6 +41,7 @@ import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
 import { contentStackOf } from './contentStack';
 import type { Item } from './Item';
+import type { ItemStack } from '@jsprismarine/items';
 import type Player from '../Player';
 import type { SystemBlock } from '../world/WorldSystems';
 
@@ -81,6 +82,13 @@ export interface EntityInteraction {
     readonly player: Player;
     /** The entity the click landed on, which is what `targetOf` answers with. */
     readonly target: ItemSource;
+}
+
+/** What {@link useItemInAir} is given about one click on nothing. */
+export interface AirInteraction {
+    readonly content: ServerContent;
+    readonly actors: ServerItemActorPort;
+    readonly player: Player;
 }
 
 /** The block a hook reads, out of the live world, or undefined when its chunk is not loaded. */
@@ -222,6 +230,34 @@ const placeBlock = (
     return target;
 };
 
+/**
+ * Writes a count into the hand slot.
+ *
+ * Through {@link Item.withCount}, so what is left keeps the stack network id the client knows it
+ * by. A count of zero empties the slot rather than leaving an entry of nothing in it.
+ */
+const setHeldCount = (player: Player, count: number): void => {
+    const inventory = player.getInventory();
+    const slot = inventory.getHandSlotIndex();
+    const held = inventory.getEntry(slot);
+    if (held === null) return;
+
+    if (count > 0) inventory.setItemInHand(new ContainerEntry({ item: held.getItem().withCount(count), count }));
+    else inventory.removeItem(slot);
+};
+
+/**
+ * Puts the stack a behavior handed back into the hand, for a result that names the item held.
+ *
+ * This is the one carry-back for every hook result: without it bone meal, a fire charge, a spawn
+ * egg and every other consumable used on a block, an entity or the air stayed at full count.
+ */
+const putBackStack = (player: Player, stack: ItemStack | undefined): void => {
+    const held = player.getInventory().getItemInHand();
+    if (stack === undefined || stack.identifier !== held.getName()) return;
+    setHeldCount(player, stack.count);
+};
+
 /** Sends a player their inventory, without holding up the click that changed it. */
 const resendInventory = (player: Player): void => {
     void player
@@ -233,21 +269,14 @@ const resendInventory = (player: Player): void => {
 /**
  * Takes one of the held item out of the hand, for anyone but a creative player: the block a
  * placement put down, or the item a block hook reported the click cost.
- *
- * Through {@link Item.withCount}, so what is left keeps the stack network id the client knows it
- * by. The last one empties the slot.
  */
 const spendHeldItem = (player: Player): void => {
     if (player.gamemode === Gametype.CREATIVE) return;
 
     const inventory = player.getInventory();
-    const slot = inventory.getHandSlotIndex();
-    const held = inventory.getEntry(slot);
+    const held = inventory.getEntry(inventory.getHandSlotIndex());
     if (held === null) return;
-
-    const left = held.getCount() - 1;
-    if (left > 0) inventory.setItemInHand(new ContainerEntry({ item: held.getItem().withCount(left), count: left }));
-    else inventory.removeItem(slot);
+    setHeldCount(player, held.getCount() - 1);
 };
 
 /**
@@ -445,13 +474,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 faceLocation: interaction.faceLocation
             });
             if (used !== undefined) {
-                // The hook's answer is the stack to put back, the same carry-back
-                // `useItemOnEntity` does: without it bone meal, a fire charge and every other
-                // consumable used on a block stayed at full count.
-                if (used.stack?.identifier === held.getName()) {
-                    held.count = used.stack.count;
-                    heldEntry?.setCount(used.stack.count);
-                }
+                putBackStack(player, used.stack);
 
                 // Java raises both: `any_block_use` for every interaction with a block, and
                 // `item_used_on_block` for the item that did it, whose conditions see the tool.
@@ -491,8 +514,7 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
     const { content, actors, player, target } = interaction;
 
     const inventory = player.getInventory();
-    const handSlot = inventory.getHandSlotIndex();
-    const heldEntry = inventory.getEntry(handSlot);
+    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
     const held = inventory.getItemInHand();
     const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
@@ -506,11 +528,39 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
 
         // Targeted item use has no later inventory path, so carry its stack result back now.
         // Spawn eggs use this to spend one egg after creating their entity at the target.
-        if (used.stack?.identifier === held.getName()) {
-            held.count = used.stack.count;
-            heldEntry?.setCount(used.stack.count);
-        }
+        putBackStack(player, used.stack);
 
+        return 'handled';
+    });
+};
+
+/**
+ * Runs the content hooks for one right click on nothing, which is Bedrock's `Use` action.
+ *
+ * The item in hand gets `onUse` with no target recorded, so a behavior that acts on an entity
+ * declines and one that acts from the hand, an eye of ender or a snowball, runs. The stack it
+ * hands back goes into the hand and the inventory is resent either way, because the client
+ * took the item out of its own copy of the hand the moment it clicked and has to be told
+ * whether the server agrees.
+ *
+ * @returns Whether a behavior consumed the click.
+ */
+export const useItemInAir = (interaction: AirInteraction): InteractionResult => {
+    const { content, actors, player } = interaction;
+
+    const inventory = player.getInventory();
+    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
+    const held = inventory.getItemInHand();
+    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
+    if (stack === undefined) return 'declined';
+    const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
+
+    return actors.duringInteraction(source, undefined, () => {
+        const used = stack.dispatchFirst('onUse', { itemStack: stack, source, useDuration: 0 });
+        if (used === undefined) return 'declined';
+
+        putBackStack(player, used.stack);
+        resendInventory(player);
         return 'handled';
     });
 };

@@ -10,7 +10,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
-import { useItemOnBlock, useItemOnEntity } from '../../item/interaction';
+import { useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
 import type {
@@ -108,6 +108,23 @@ const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntit
                 position: { x: position.getX(), y: position.getY(), z: position.getZ() }
             }
         });
+    } catch (error: unknown) {
+        server.getLogger().error(error);
+        return 'declined';
+    }
+};
+
+/**
+ * One right click on nothing, offered to the item in hand.
+ *
+ * @returns Whether a behavior consumed the click. A behavior that throws is logged and declines.
+ */
+const contentUseInAir = (server: Server, player: Player): InteractionResult => {
+    const content = server.getContent();
+    const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
+
+    try {
+        return useItemInAir({ content, actors, player });
     } catch (error: unknown) {
         server.getLogger().error(error);
         return 'declined';
@@ -502,8 +519,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     player.beginItemUse(server.getTick());
                 }
 
-                // Eating and throwing on a click at nothing are not implemented. Each needs
-                // the server to change the held slot and tell the client, and neither does yet.
+                // The item's own `onUse`, which is how an eye of ender or a snowball leaves the
+                // hand. Eating is not here: it ends in a release the content has no path for yet.
+                contentUseInAir(server, player);
                 return;
 
             // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,
