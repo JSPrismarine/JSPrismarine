@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/entity-goals",
-    "version": "0.0.0",
+    "version": "0.16.0",
     "description": "The 170 vanilla Bedrock AI goals and the A* path finder they navigate with, written against the goal seam of @jsprismarine/entities",
     "sideEffects": false,
     "publishConfig": {

@@ -1,5 +1,15 @@
 # @jsprismarine/color-parser
 
+## 0.16.0
+
+### Patch Changes
+
+- [#2622](https://github.com/JSPrismarine/JSPrismarine/pull/2622) [`707964d`](https://github.com/JSPrismarine/JSPrismarine/commit/707964d1a85072dbd157d74a63dd2471aafa8b8f) Thanks [@filiphsps](https://github.com/filiphsps)! - Cap the console replay buffer at 1000 records (configurable with `capacity`) so a long boot without an attached console no longer grows memory without bound. A dropped backlog is announced with one line before the kept records are replayed.
+  
+  Export the level order as `LOG_LEVELS`, with `isLogLevel` and `isAtLeastLevel`, so other packages derive level checks from the logger instead of copying the table.
+- Updated dependencies []:
+  - @jsprismarine/color-parser@0.16.0
+
 ## 0.15.2
 
 ### Patch Changes

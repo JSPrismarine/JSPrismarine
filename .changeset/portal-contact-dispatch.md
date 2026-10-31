@@ -1,5 +1,0 @@
----
-"@jsprismarine/prismarine": patch
----
-
-Entities and players standing in a lit portal now travel. `World.update` reports every ticking entity whose body overlaps a portal block to `DimensionTravel.touch`, which opens the entity's portal contact; once the contact reaches the portal rule's delay (80 ticks for a survival player in a nether portal, none for creative or for anything that is not a player), `Entity.update` resolves the trip and `DimensionTravel.transfer` moves the traveler, players through `PlayerSession.changeWorld` and everything else by `removeEntity` and `addEntity`, with a portal cooldown of 10 ticks for players and 300 for the rest. An entity that rides or carries a data-driven mob stays, as on Bedrock. Plugins can observe or cancel the trip through the new `EntityPortalEnterEvent` (`entityPortalEnter`) and `PlayerChangeDimensionEvent` (`playerChangeDimension`), and reach the service through `Server.getDimensionTravel()`. `PortalIndex` also forgets a chunk's portal blocks when the chunk unloads.

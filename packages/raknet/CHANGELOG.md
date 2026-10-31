@@ -1,5 +1,23 @@
 # @jsprismarine/raknet
 
+## 0.16.0
+
+### Minor Changes
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f0294ef`](https://github.com/JSPrismarine/JSPrismarine/commit/f0294ef0b8e358f4fda308d7c8f1c901bf1bf3e7) Thanks [@filiphsps](https://github.com/filiphsps)! - Move protocol codec construction, packet lookup, version metadata, and handshake filtering into
+  `@jsprismarine/protocol`. Prismarine now passes captured item, block, and world data through
+  `ProtocolContext`, and no longer re-exports the Protocol namespace, packet barrel, or identifier
+  compatibility API. Server packet dispatch is held by `PacketHandlerRegistry`, and Prismarine
+  declares the Brigadier dependency its command source and public declarations import.
+  
+  `ServerName` now receives protocol metadata directly instead of reading `getIdentifiers()` from
+  the Prismarine server object.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/binaryutils@0.16.0
+
 ## 0.15.2
 
 ### Patch Changes
