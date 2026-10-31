@@ -86,6 +86,18 @@ export class PortalIndex {
     }
 
     /**
+     * Forgets every portal block inside a chunk that is leaving memory.
+     *
+     * A trip must not land in a portal the world cannot read; the chunk's blocks come back
+     * into the index through {@link PortalIndex.chunkLoaded} when it is read again.
+     */
+    public chunkUnloaded(chunk: Chunk): void {
+        for (const [key, at] of this.blocks) {
+            if (at.getX() >> 4 === chunk.getX() && at.getZ() >> 4 === chunk.getZ()) this.blocks.delete(key);
+        }
+    }
+
+    /**
      * Records every portal block a freshly loaded chunk holds.
      *
      * A sub chunk whose palette names no portal block is skipped without reading its blocks,

@@ -81,4 +81,18 @@ describe('PortalIndex', () => {
         expect(index.has({ x: -32 + 4, y: 71, z: 48 + 9 })).toBe(true);
         expect(index.has({ x: -32, y: -60, z: 48 })).toBe(true);
     });
+
+    it('forgets the blocks of an unloaded chunk and no others', () => {
+        const index = new PortalIndex();
+        index.add({ x: -32 + 4, y: 70, z: 48 + 9 });
+        index.add({ x: -32, y: -60, z: 48 });
+        index.add({ x: -33, y: 70, z: 48 });
+        index.add({ x: 0, y: 70, z: 0 });
+
+        index.chunkUnloaded(new Chunk(-2, 3, new Map(), Dimensions.Overworld));
+
+        expect(index.size).toBe(2);
+        expect(index.has({ x: -33, y: 70, z: 48 })).toBe(true);
+        expect(index.has({ x: 0, y: 70, z: 0 })).toBe(true);
+    });
 });

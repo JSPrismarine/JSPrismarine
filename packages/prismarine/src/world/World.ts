@@ -2382,6 +2382,7 @@ export class World implements Service {
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
+        this.portalIndex?.chunkUnloaded(chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         this.lastChunkIndex = -1;
         this.lastChunk = null;
