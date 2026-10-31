@@ -103,9 +103,45 @@ jobs:
                   pnpm run version:unstable
                   pnpm run release:unstable
 
+    aot-data:
+        name: 🗃️ Prepare executable data
+        needs: release
+        if: ${{ needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
+        runs-on: windows-latest
+        permissions:
+            contents: read
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: ⬇️ Fetch the Java server jar
+              run: pnpm run fetch:java-server
+
+            - name: 🏭 Generate Java data
+              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
+
+            - name: 🚚 Upload executable data
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: executable-java-data
+                  path: |
+                      node_modules/.cache/jsprismarine/java-reports/
+                      node_modules/.cache/jsprismarine/java-structures/
+                      node_modules/.cache/jsprismarine/vanilla-datapack/
+                  if-no-files-found: error
+
     aot-build:
         name: 🗃️ Build standalone executables (${{ matrix.group }})
-        needs: release
+        needs: [release, aot-data]
         if: ${{ needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
         strategy:
             matrix:
@@ -140,6 +176,34 @@ jobs:
 
             - name: 📦 Install
               uses: ./.github/common/install
+
+            - name: 📥 Download executable data
+              if: runner.os != 'Windows'
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: executable-java-data
+                  path: node_modules/.cache/jsprismarine
+
+            - name: 📥 Download executable data archive
+              if: runner.os == 'Windows'
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: executable-java-data
+                  path: ${{ runner.temp }}/executable-java-data
+                  skip-decompress: true
+
+            - name: 📦 Extract executable data
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  $archiveDirectory = Join-Path $env:RUNNER_TEMP 'executable-java-data'
+                  $downloadedArchive = Get-ChildItem -LiteralPath $archiveDirectory -File | Select-Object -First 1
+                  if ($null -eq $downloadedArchive) {
+                      throw 'The executable data archive was not downloaded.'
+                  }
+                  $archivePath = Join-Path $env:RUNNER_TEMP 'executable-java-data.zip'
+                  Move-Item -LiteralPath $downloadedArchive.FullName -Destination $archivePath -Force
+                  Expand-Archive -LiteralPath $archivePath -DestinationPath 'node_modules/.cache/jsprismarine' -Force
 
             # Keep installation and the lockfile on pnpm; Bun only compiles the executables.
             - name: 🐰 Setup Bun

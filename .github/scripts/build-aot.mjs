@@ -80,7 +80,11 @@ for (const name of buildMetadata) {
  * compiled binary stops carrying these names, so a Bun that changes the scheme breaks loudly
  * here rather than silently costing the pool its workers.
  */
-const embeddedNameOf = (entry) => `/$bunfs/root/${entry.replace('./packages/', '').replace(/\.ts$/, '.js')}`;
+const relativeEmbeddedNameOf = (entry) => entry.replace('./packages/', '').replace(/\.ts$/, '.js');
+const embeddedNameOf = (entry) => `/$bunfs/root/${relativeEmbeddedNameOf(entry)}`;
+/** Windows targets store embedded files on Bun's virtual `B:` drive. */
+const embeddedFileNameOf = (entry) =>
+    target.startsWith('bun-windows-') ? `B:/~BUN/root/${relativeEmbeddedNameOf(entry)}` : embeddedNameOf(entry);
 
 for (const [name, entry] of Object.entries(workerEntrypoints)) {
     args.push('--define', `${name}=${JSON.stringify(`file://${embeddedNameOf(entry)}`)}`);
@@ -117,11 +121,14 @@ try {
     writeFileSync(embeddedDataPath, checkedInSource);
 }
 
-const binary = readFileSync(path.resolve(repositoryRoot, outputPath));
+// Bun appends `.exe` on Windows when the output path omits the extension.
+const binaryPath =
+    process.platform === 'win32' && !outputPath.toLowerCase().endsWith('.exe') ? `${outputPath}.exe` : outputPath;
+const binary = readFileSync(path.resolve(repositoryRoot, binaryPath));
 for (const entry of Object.values(workerEntrypoints)) {
-    if (!binary.includes(Buffer.from(embeddedNameOf(entry)))) {
+    if (!binary.includes(Buffer.from(embeddedFileNameOf(entry)))) {
         throw new Error(
-            `${outputPath} does not carry ${embeddedNameOf(entry)}; Bun changed how it names ` +
+            `${binaryPath} does not carry ${embeddedFileNameOf(entry)}; Bun changed how it names ` +
                 'embedded entrypoints, and the generation pool would silently lose its workers'
         );
     }

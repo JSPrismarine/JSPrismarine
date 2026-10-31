@@ -17,6 +17,7 @@
         "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen && pnpm --filter ./packages/server run dev",
         "bringup": "pnpm --filter @jsprismarine/bedrock-data run bringup",
+        "fetch:java-server": "node packages/bedrock-data/utils/java/fetch-server.ts",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
         "build:docs": "pnpm --filter @jsprismarine/docs run docs",
