@@ -7,6 +7,7 @@ import { join } from 'node:path';
 // module imports nothing but `node:fs` and `node:path`, so `scripts/dashboard.ts` can load it
 // under plain node.
 import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 /**
  * Where each comparison's reference data comes from, and whether this checkout has it.
@@ -117,6 +118,18 @@ const firstMatching = (root: string, depth: number, holds: (path: string) => boo
 
 /** Every reference source the parity comparisons read, with how this checkout gets it. */
 export const REFERENCES = {
+    /** The committed Bedrock Dedicated Server block palette snapshot and its property domains. */
+    bedrockBlockPalette: {
+        id: 'bedrock-block-palette',
+        kind: 'committed',
+        holds: 'the block states and property domains captured from the Bedrock Dedicated Server',
+        howToGet:
+            'the snapshot selected by the datagen manifest is committed; a missing file means the checkout is incomplete',
+        locate: () => {
+            const snapshot = blockPaletteSnapshotPath();
+            return existsSync(snapshot) ? snapshot : undefined;
+        }
+    },
     /** The Java 26.3 jar dump: per-state hardness, light, friction and related properties. */
     javaBlockProperties: committed(
         'java-block-properties',

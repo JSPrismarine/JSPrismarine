@@ -56,6 +56,8 @@ export const FAMILIES = {
 
     /** Java and Bedrock tag data through the resolved runtime registries. */
     integrationTags: 'integration.tags',
+    /** Vanilla block behaviors write states accepted by the Bedrock block catalog. */
+    integrationBlockBehaviors: 'integration.block-behaviors',
     /** A representative vanilla data-driven entity through an event, tick, and physics step. */
     integrationEntityRuntime: 'integration.entity-runtime',
     /** The composed vanilla spawn rules through the natural spawn loop. */
