@@ -2204,6 +2204,45 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('beam, base and invulnerable spawn state', () => {
+        it('carries the beam target, base plate and invulnerable state onto the spawned body', () => {
+            const { runtime } = runtimeOf();
+
+            const crystal = runtime.spawn('minecraft:cow', GROUND, {
+                beamTarget: { x: 0, y: 128, z: 0 },
+                showBottom: false,
+                invulnerable: true
+            });
+
+            expect(crystal?.body.beamTarget).toEqual({ x: 0, y: 128, z: 0 });
+            expect(crystal?.body.showBottom).toBe(false);
+            expect(crystal?.body.invulnerable).toBe(true);
+        });
+
+        it('leaves the three fields at their defaults when the spawn names none', () => {
+            const { runtime } = runtimeOf();
+
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+
+            expect(cow?.body.beamTarget).toBeUndefined();
+            expect(cow?.body.showBottom).toBeUndefined();
+            expect(cow?.body.invulnerable).toBe(false);
+        });
+
+        it('refuses melee and explosion damage while the record says invulnerable', () => {
+            const { runtime } = runtimeOf();
+            const guarded = runtime.spawn('minecraft:cow', GROUND, { invulnerable: true });
+            if (guarded === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            runtime.hurt(guarded, undefined, 'entity_attack', 5);
+            runtime.hurt(guarded, undefined, 'entity_explosion', 5);
+            runtime.hurt(guarded, undefined, 'block_explosion', 5);
+
+            expect(guarded.instance.attributes.get('health')?.current).toBe(10);
+            expect(runtime.all()).toContain(guarded);
+        });
+    });
+
     describe('counting', () => {
         it('counts entities of one type within a radius', () => {
             const { runtime } = runtimeOf();

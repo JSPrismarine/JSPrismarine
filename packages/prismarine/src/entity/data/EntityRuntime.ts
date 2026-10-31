@@ -637,6 +637,9 @@ export class EntityRuntime implements EntityScene {
         const body = new MobBody(id, at, facts);
         body.yaw = options.yaw ?? 0;
         body.pitch = options.pitch ?? 0;
+        body.beamTarget = options.beamTarget;
+        body.showBottom = options.showBottom;
+        body.invulnerable = options.invulnerable === true;
         body.owner = options.ownerId;
         body.ownerIdentity = options.ownerId === undefined ? undefined : this.host.playerIdentityOf?.(options.ownerId);
         this.spawning = body;
@@ -1412,6 +1415,9 @@ export class EntityRuntime implements EntityScene {
         options: { readonly feedback?: boolean } = {}
     ): void {
         if (this.pendingDeaths.has(entity.id)) return;
+        // An invulnerable record refuses everything, as Java's invulnerable end crystals do
+        // through the respawn sequence.
+        if (entity.body.invulnerable) return;
         if (entity.instance.attributes.get('health') === undefined) return;
 
         if (sourceId !== undefined && ['entity_attack', 'entity_explosion', 'projectile'].includes(cause)) {

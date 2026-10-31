@@ -102,6 +102,24 @@ describe('the data entity record', () => {
         expect(nbt.getLong('UniqueID', 0n)).toBe(7n);
     });
 
+    it('round-trips the beam target, base plate and invulnerable state', () => {
+        const { runtime } = entityFixture();
+        const crystal = runtime.spawn('minecraft:cow', GROUND, {
+            beamTarget: { x: 0, y: 128, z: 0 },
+            showBottom: false,
+            invulnerable: true
+        });
+        if (crystal === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+        const record = dataEntityRecordIn(written(dataEntityRecordOf(crystal, undefined)));
+        if (record === undefined) throw new Error('the crystal record could not be read back');
+        const restored = runtime.restore(record, GROUND);
+
+        expect(restored?.body.beamTarget).toEqual({ x: 0, y: 128, z: 0 });
+        expect(restored?.body.showBottom).toBe(false);
+        expect(restored?.body.invulnerable).toBe(true);
+    });
+
     it('restores entity-specific spawn data from the saved record', () => {
         const { runtime } = entityFixture();
         const data = { variant: 'warm', fuse: 37 };

@@ -107,6 +107,26 @@ export class MobBody {
     /** Ticks remaining on an active `minecraft:explode` fuse, if this component is lit. */
     public fuseTicks: number | undefined;
 
+    /**
+     * The block an end crystal's beam points at, or undefined for no beam.
+     *
+     * Sent to the client as the `BLOCK_TARGET` actor data. The client treats the zero
+     * position the same as an absent key, so clearing a beam it has already seen means
+     * writing `{ x: 0, y: 0, z: 0 }` rather than undefined.
+     */
+    public beamTarget: EntityPosition | undefined;
+
+    /**
+     * Whether an end crystal draws its bedrock base plate.
+     *
+     * Undefined keeps the client's default, which is to draw it; the end crystal item
+     * spawns with false, as Java's `EndCrystalItem.useOn` does.
+     */
+    public showBottom: boolean | undefined;
+
+    /** Whether the entity refuses all damage, as the respawn sequence's crystals do. */
+    public invulnerable = false;
+
     /** Ticks an ignited entity remains visibly on fire after leaving sunlight. */
     public fireTicks = 0;
 

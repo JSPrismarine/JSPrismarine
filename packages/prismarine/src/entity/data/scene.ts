@@ -40,6 +40,12 @@ export interface SpawnOptions {
     readonly pitch?: number;
     /** The entity responsible for this spawn, such as the owner of chained TNT. */
     readonly ownerId?: number;
+    /** The block an end crystal's beam points at, or absent for no beam. */
+    readonly beamTarget?: EntityPosition;
+    /** Whether an end crystal draws its base plate; absent keeps the client default, true. */
+    readonly showBottom?: boolean;
+    /** Whether the entity refuses all damage, as the respawn sequence's crystals do. */
+    readonly invulnerable?: boolean;
     /** Entity-specific fields supplied by the spawn source, preserved across saves. */
     readonly data?: Readonly<Record<string, unknown>>;
 }

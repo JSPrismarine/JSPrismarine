@@ -77,6 +77,12 @@ export interface DataEntityRecord {
     readonly sleeping: boolean;
     readonly loveTicks: number;
     readonly breedCooldown: number;
+    /** The block an end crystal's beam points at. */
+    readonly beamTarget?: EntityPosition;
+    /** Whether an end crystal draws its base plate; absent keeps the default, true. */
+    readonly showBottom?: boolean;
+    /** Whether the entity refuses all damage, as the respawn sequence's crystals do. */
+    readonly invulnerable?: boolean;
     /** Remaining ticks on an active component-defined explosion fuse. */
     readonly fuseTicks?: number;
     /** Remaining ticks an entity stays on fire. */
@@ -142,6 +148,9 @@ export const dataEntityRecordOf = (
         sleeping: body.sleeping,
         loveTicks: body.loveTicks,
         breedCooldown: body.breedCooldown,
+        ...(body.beamTarget === undefined ? {} : { beamTarget: { ...body.beamTarget } }),
+        ...(body.showBottom === undefined ? {} : { showBottom: body.showBottom }),
+        ...(body.invulnerable ? { invulnerable: true } : {}),
         ...(body.fuseTicks === undefined ? {} : { fuseTicks: body.fuseTicks }),
         ...(body.fireTicks <= 0 ? {} : { fireTicks: body.fireTicks }),
         ...(instance.hasComponent('minecraft:projectile')
@@ -324,6 +333,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
             : undefined;
 
     const home = positionOf(parsed['home']);
+    const beamTarget = positionOf(parsed['beamTarget']);
     const spawnData = isObject(parsed['spawnData']) ? parsed['spawnData'] : undefined;
     const equipment = equipmentOf(parsed['equipment']);
     const equipmentInventorySlots = equipmentInventorySlotsOf(parsed['equipmentInventorySlots']);
@@ -353,6 +363,9 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         sleeping: parsed['sleeping'] === true,
         loveTicks: numberOf(parsed['loveTicks'], 0),
         breedCooldown: numberOf(parsed['breedCooldown'], 0),
+        ...(beamTarget === undefined ? {} : { beamTarget }),
+        ...(typeof parsed['showBottom'] === 'boolean' ? { showBottom: parsed['showBottom'] } : {}),
+        ...(parsed['invulnerable'] === true ? { invulnerable: true } : {}),
         ...(typeof parsed['fuseTicks'] === 'number' && Number.isFinite(parsed['fuseTicks'])
             ? { fuseTicks: Math.max(0, Math.trunc(parsed['fuseTicks'])) }
             : {}),
@@ -411,6 +424,9 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.sleeping = record.sleeping;
     body.loveTicks = record.loveTicks;
     body.breedCooldown = record.breedCooldown;
+    body.beamTarget = record.beamTarget;
+    body.showBottom = record.showBottom;
+    body.invulnerable = record.invulnerable === true;
     body.fuseTicks = record.fuseTicks;
     body.fireTicks = record.fireTicks ?? 0;
     if (body.fireTicks > 0) body.conditions.add('on_fire');
