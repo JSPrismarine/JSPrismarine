@@ -100,7 +100,7 @@ export const parseDimensionType = (json: unknown, path = '<dimension_type>'): Di
         );
     }
 
-    const timelines = optional(raw['timelines'], [] as readonly string[], (value) => {
+    const timelines = optional<readonly string[]>(raw['timelines'], [], (value) => {
         const read = stringOrList(value, `${path}.timelines`);
         return typeof read === 'string' ? [read] : read;
     });

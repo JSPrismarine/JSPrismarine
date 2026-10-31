@@ -130,7 +130,7 @@ export type WorldgenRegistryKind = (typeof WORLDGEN_REGISTRY_KINDS)[number];
 
 /** Whether a `worldgen/` subdirectory name is one this loader routes. */
 export const isWorldgenRegistryKind = (kind: string): kind is WorldgenRegistryKind =>
-    (WORLDGEN_REGISTRY_KINDS as readonly string[]).includes(kind);
+    WORLDGEN_REGISTRY_KINDS.some((known) => known === kind);
 
 /**
  * The identifier a worldgen file registers under: the kind, then the
