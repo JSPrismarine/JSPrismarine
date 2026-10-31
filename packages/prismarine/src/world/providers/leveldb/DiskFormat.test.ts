@@ -47,6 +47,33 @@ describe('world', () => {
             }
         });
 
+        it('carries a custom dimension id of 1000 as the same int32 the Nether uses', () => {
+            // x=7, z=-1, then 1000 little endian, then the tag; a sub chunk key adds its index.
+            const data3d = encodeChunkKey({ x: 7, z: -1, dimension: 1000, tag: ChunkTag.Data3D });
+            expect(data3d.byteLength).toBe(13);
+            expect(data3d).toEqual(
+                Buffer.from([7, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xe8, 0x03, 0, 0, ChunkTag.Data3D])
+            );
+            expect(decodeChunkKey(data3d)).toEqual({ x: 7, z: -1, dimension: 1000, tag: ChunkTag.Data3D });
+
+            const subChunk = encodeChunkKey({
+                x: 7,
+                z: -1,
+                dimension: 1000,
+                tag: ChunkTag.SubChunkPrefix,
+                subChunk: 3
+            });
+            expect(subChunk.byteLength).toBe(14);
+            expect([...subChunk.subarray(8)]).toEqual([0xe8, 0x03, 0, 0, ChunkTag.SubChunkPrefix, 3]);
+            expect(decodeChunkKey(subChunk)).toEqual({
+                x: 7,
+                z: -1,
+                dimension: 1000,
+                tag: ChunkTag.SubChunkPrefix,
+                subChunk: 3
+            });
+        });
+
         it('round-trips a signed sub chunk index', () => {
             // -4 is the Overworld's bottom slice. Read unsigned it becomes 252, and the terrain
             // ends up stacked in the wrong order with nothing to say so.

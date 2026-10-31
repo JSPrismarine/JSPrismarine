@@ -791,6 +791,54 @@ describe('world', () => {
                 await provider.disable();
             });
 
+            it('keeps a custom dimension at id 1000 apart from the Overworld and the Nether', async () => {
+                // The first id a level hands a type without a Bedrock overlay. Its key carries
+                // the int32 1000 where the Nether's carries 1, and its column is its own.
+                const sky = dimensionTypeOf(
+                    { ...VANILLA_DIMENSION_TYPES['minecraft:overworld'], minY: 0, height: 128 },
+                    'mypack:sky',
+                    FIRST_CUSTOM_DIMENSION_ID
+                );
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                await provider.writeChunk(chunkIn(Dimensions.Overworld, 0, 0, 'minecraft:oak_log'));
+                await provider.writeChunk(chunkIn(Dimensions.Nether, 0, 0, 'minecraft:netherrack'));
+                await provider.writeChunk(chunkIn(sky, 0, 0, 'minecraft:glowstone'));
+                await provider.writeChunk(chunkIn(sky, 4, -4, 'minecraft:glowstone'));
+                await provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const gen = generator();
+                const restored = await reopened.provider.readChunk(sky, 0, 0, 1234n, gen);
+                const nether = await reopened.provider.readChunk(Dimensions.Nether, 0, 0, 1234n, gen);
+
+                expect(gen.calls).toEqual([]);
+                expect(restored.getDimension()).toBe(sky);
+                expect(restored.getMinY()).toBe(0);
+                expect(restored.getMaxY()).toBe(127);
+                expect(restored.getBlockRuntimeId(1, 40, 1)).toBe(id('minecraft:glowstone'));
+                expect(nether.getBlockRuntimeId(1, 40, 1)).toBe(id('minecraft:netherrack'));
+                expect(reopened.provider.readBiomes(sky, 0, 0)?.palettes.length).toBe(8);
+
+                const sorted = (chunks: Iterable<{ x: number; z: number }>) =>
+                    [...chunks].sort((a, b) => a.x - b.x || a.z - b.z);
+                expect(sorted(reopened.provider.listChunks(sky))).toEqual([
+                    { x: 0, z: 0 },
+                    { x: 4, z: -4 }
+                ]);
+                expect(sorted(reopened.provider.listChunks(Dimensions.Overworld))).toEqual([{ x: 0, z: 0 }]);
+                expect(sorted(reopened.provider.listChunks(Dimensions.Nether))).toEqual([{ x: 0, z: 0 }]);
+                await reopened.provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const skyKeys = [...database.keys()].filter((key) => decodeChunkKey(key)?.dimension === 1000);
+                expect(skyKeys.length).toBeGreaterThan(0);
+                expect(skyKeys.every((key) => key.readInt32LE(8) === 1000)).toBe(true);
+                await database.close();
+            });
+
             it("writes a player's dimension and spawn dimension as Bedrock integers", async () => {
                 const worldPath = scratch();
                 const { provider } = harness(worldPath);
