@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { ActorEvent, Dimension, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
+import { ActorEvent, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
@@ -22,14 +22,13 @@ import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
-import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
-import { PlayStatus, PositionMode, TextPacketType } from '@jsprismarine/protocol';
+import { PositionMode, TextPacketType } from '@jsprismarine/protocol';
 import { loadAdvancements } from './advancement/progress';
-import { advancementChangedDimension, advancementPlayerTick } from './advancement/triggers';
+import { advancementPlayerTick } from './advancement/triggers';
 import { enchantmentSeedOf } from './enchantment/enchantingTable';
 import { restoreInventory } from './inventory/persistence';
 import type Device from './utils/Device';
@@ -512,57 +511,20 @@ export default class Player extends Human {
     }
 
     /**
-     * Change the player's current world.
+     * Moves the player to another world, arriving at that world's spawn.
+     *
+     * The sequence lives in {@link PlayerSession.changeWorld}; this is the entry point for
+     * callers that have a world and no arrival of their own, such as a teleport between
+     * worlds, which moves the player again once the change completes.
      * @param {World} world - the new world
      */
     public async setWorld(world: World): Promise<void> {
-        const session = this.getNetworkSession();
-
-        // Every send opens a loading screen on the client, and the client reports each one
-        // back by the id the packet carried, so each send gets a fresh packet with its own id.
-        const changeDimension = async (dimension: Dimension) => {
-            const packet = new ChangeDimensionPacket({
-                dimension,
-                position: this.getPosition(),
-                respawn: false,
-                loadingScreenId: session.beginLoadingScreen()
-            });
-            await session.send(packet);
-        };
-
-        // The cracks belong to a block in the world being left.
-        await this.stopMining();
-
-        // Out of the old world first, so it stops broadcasting to us and its players are
-        // told we left. Then the old world's entities come off this client, before
-        // `addEntity` below fills the tracker with the new world's.
-        const left = this.getWorld().getDimension().name;
-
-        await this.getWorld().removeEntity(this);
-        await this.getNetworkSession().despawnAllTrackedEntities();
-
-        this.position = this.position.withWorld(world);
-        // The new world's spawns go out here, ahead of the ChangeDimension packets below.
-        // Whether the client keeps them across the change is unverified.
-        await world.addEntity(this);
-
-        await changeDimension(Dimension.OVERWORLD);
-        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
-        await changeDimension(Dimension.NETHER);
-        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
-
-        await this.sendInitialSpawnChunks();
-
-        await changeDimension(Dimension.NETHER);
-        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
-        await changeDimension(Dimension.OVERWORLD);
-        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
-
-        await this.getNetworkSession().clearChunks();
-        await this.getNetworkSession().needNewChunks();
-        await this.getNetworkSession().sendPlayStatus(PlayStatus.PlayerSpawn);
-
-        advancementChangedDimension(this, left, world.getDimension().name);
+        return this.getNetworkSession().changeWorld({
+            world,
+            position: await world.getSpawnPosition(),
+            yaw: this.yaw,
+            pitch: this.pitch
+        });
     }
 
     public isOnline(): boolean {

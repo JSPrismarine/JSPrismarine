@@ -17,6 +17,7 @@ import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { fakePlayer } from './testing/fakePlayer.test.helper';
 import { stub } from './testing/stub.test.helper';
+import { Dimensions } from './world/DimensionType';
 import { Position } from './world/Position';
 import type { BlockMining } from './world/BlockMining';
 import type { World } from './world/World';
@@ -480,7 +481,9 @@ describe('Player', () => {
             stub<World>({
                 getName: () => 'other',
                 addEntity: async () => {},
-                getDimension: () => ({ name: 'minecraft:the_nether' }) as never
+                broadcastMove: async () => {},
+                getSpawnPosition: async () => new Vector3(0, 64, 0),
+                getDimension: () => Dimensions.Nether
             });
 
         it('animates the cracks every tick while a block is being mined, and stops after', async () => {
@@ -535,6 +538,15 @@ describe('Player', () => {
     });
 
     describe('setWorld', () => {
+        const nether = () =>
+            stub<World>({
+                getName: () => 'other',
+                addEntity: async () => {},
+                broadcastMove: async () => {},
+                getSpawnPosition: async () => new Vector3(8.5, 70, -3.5),
+                getDimension: () => Dimensions.Nether
+            });
+
         it('takes the old world entities off the client before the dimension change', async () => {
             // The client keeps rendering what it was never told to remove. Changing dimension
             // does not clear it, so every mob from the old world has to be despawned by hand.
@@ -554,11 +566,7 @@ describe('Player', () => {
             expect(player.getNetworkSession().tracks(mobId)).toBe(true);
             sent.length = 0;
 
-            const target = stub<World>({
-                getDimension: () => ({ name: 'minecraft:the_nether' }) as never,
-                getName: () => 'other',
-                addEntity: async () => {}
-            });
+            const target = nether();
             await player.setWorld(target);
 
             const removal = sent.findIndex(
@@ -571,30 +579,22 @@ describe('Player', () => {
             expect(player.getWorld()).toBe(target);
         });
 
-        it('gives every dimension change its own loading screen id, which the session then matches', async () => {
-            // The client reports each screen back by the id its ChangeDimensionPacket carried,
-            // and the docs want that id unique among the screens still open.
+        it("arrives at the new world's spawn, facing the way the player was", async () => {
+            // The session does the change; this only chooses the arrival. A caller with a
+            // destination of its own, such as a teleport, moves the player again afterwards.
             const { player, sent } = fakePlayer();
-            const target = stub<World>({
-                getName: () => 'other',
-                addEntity: async () => {},
-                getDimension: () => ({ name: 'minecraft:the_nether' }) as never
-            });
+            player.yaw = 45;
+            player.pitch = -10;
 
-            await player.setWorld(target);
+            await player.setWorld(nether());
 
-            const changes = sent.filter((packet) => packet instanceof ChangeDimensionPacket);
-            const ids = changes.flatMap((packet) => {
-                const id = packet.getPacketData()?.loadingScreenId;
-                return id === null || id === undefined ? [] : [id];
-            });
-            expect(changes.length).toBeGreaterThan(1);
-            expect(ids).toHaveLength(changes.length);
-            expect(new Set(ids).size).toBe(ids.length);
-
-            const session = player.getNetworkSession();
-            for (const id of ids) expect(session.endLoadingScreen(id)).toBe(true);
-            for (const id of ids) expect(session.endLoadingScreen(id)).toBe(false);
+            const change = sent.find((packet) => packet instanceof ChangeDimensionPacket);
+            expect(change?.getPacketData()?.position).toEqual({ x: 8.5, y: 70, z: -3.5 });
+            expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
+            expect(player.getPosition().getX()).toBe(8.5);
+            expect(player.yaw).toBe(45);
+            expect(player.pitch).toBe(-10);
+            expect(player.getNetworkSession().pendingDimensionChange()).toBeDefined();
         });
     });
 
