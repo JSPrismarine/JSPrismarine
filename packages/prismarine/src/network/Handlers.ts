@@ -4,6 +4,7 @@ import AnimateHandler from './handler/AnimateHandler';
 import AnvilDamageHandler from './handler/AnvilDamageHandler';
 import BlockPickRequestHandler from './handler/BlockPickRequestHandler';
 import BookEditHandler from './handler/BookEditHandler';
+import BossEventHandler from './handler/BossEventHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import ClientCameraAimAssistHandler from './handler/ClientCameraAimAssistHandler';
@@ -76,6 +77,7 @@ export {
     AnvilDamageHandler,
     BlockPickRequestHandler,
     BookEditHandler,
+    BossEventHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
     ClientCameraAimAssistHandler,
