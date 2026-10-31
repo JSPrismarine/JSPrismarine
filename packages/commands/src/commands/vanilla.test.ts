@@ -696,6 +696,32 @@ describe('/execute as a real subcommand chain', () => {
         expect(seen).toEqual(['minecraft:the_nether']);
     });
 
+    it('takes a namespaced dimension id in `in` as it is', () => {
+        const seen: string[] = [];
+        for (const dimension of ['minecraft:the_nether', 'mypack:skylands']) {
+            run(`execute in ${dimension} run setblock 0 0 0 minecraft:stone`, {
+                world: {
+                    setBlock: (dimension) => {
+                        seen.push(dimension);
+                        return true;
+                    }
+                }
+            });
+        }
+
+        expect(seen).toEqual(['minecraft:the_nether', 'mypack:skylands']);
+    });
+
+    it('suggests the dimensions the host has for `in`', async () => {
+        const host = testCommandHost({ world: { dimensions: () => ['minecraft:overworld', 'mypack:skylands'] } });
+        const dispatcher = registerVanillaCommands().getDispatcher();
+        const source = createCommandSource({ host, permissionLevel: 4 });
+
+        const suggestions = await dispatcher.getCompletionSuggestions(dispatcher.parse('execute in my', source));
+
+        expect(suggestions.getList().map((suggestion) => suggestion.getText())).toEqual(['mypack:skylands']);
+    });
+
     it('floors the position with `align`', () => {
         const placed: unknown[] = [];
         run('execute positioned 1.7 2.3 3.9 align xz run setblock ~ ~ ~ minecraft:stone', {

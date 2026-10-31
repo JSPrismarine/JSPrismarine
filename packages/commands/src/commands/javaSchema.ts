@@ -46,6 +46,7 @@ import { gameRule } from '../gamerules';
 import {
     anchorArgument,
     command,
+    dimensionArgument,
     report,
     resolvePosition,
     resolveRotation,
@@ -270,7 +271,7 @@ const javaArgumentType = (
         case 'minecraft:entity_anchor':
             return anchorArgument();
         case 'minecraft:dimension':
-            return stringArgument();
+            return dimensionArgument();
         case 'minecraft:gamemode':
             return enumArgument('GameMode', ['survival', 'creative', 'adventure', 'spectator'] as const);
         case 'minecraft:swizzle':

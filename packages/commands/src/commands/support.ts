@@ -11,10 +11,11 @@ import type {
 } from '@jsprismarine/brigadier';
 import { CommandSyntaxException, argument, literal } from '@jsprismarine/brigadier';
 
-import type { Coordinate, CoordinateTriple, ScoreHolderModel } from '../argumentTypes';
-import { enumArgument } from '../argumentTypes';
+import type { BedrockDescribedType, Coordinate, CoordinateTriple, ScoreHolderModel } from '../argumentTypes';
+import { enumArgument, stringArgument } from '../argumentTypes';
 import type { CommandSource, EntityRef, Rotation, Vector3 } from '../host';
 import type { SelectorModel } from '../selector';
+import { suggestFromData } from '../suggestions';
 
 /** The command result Brigadier treats as "did nothing". */
 export const FAILED = 0;
@@ -177,8 +178,25 @@ export const report = (source: CommandSource, count: number, message: string): n
     return count;
 };
 
-/** The three dimensions `/execute in` and `/teleport` accept. */
-export const dimensionArgument = () => enumArgument('Dimension', ['overworld', 'nether', 'the_end'] as const);
+/** The Bedrock spellings of the three vanilla dimensions, which is what the client's `Dimension` enum holds. */
+const BEDROCK_DIMENSIONS = ['overworld', 'nether', 'the_end'] as const;
+
+/**
+ * A dimension name, for `/execute in` and `execute if dimension`.
+ *
+ * Any token parses, since dimensions are data-driven and a custom one is only known to the
+ * host. {@link toDimensionId} turns the token into a Java id and {@link dimensionSuggestions}
+ * offers the host's `dimensions()`. The client's `Dimension` enum holds only the vanilla three.
+ */
+export const dimensionArgument = (): BedrockDescribedType<string> => ({
+    parse: stringArgument().parse,
+    describeBedrock: () => ({ kind: 'enum', name: 'Dimension', values: BEDROCK_DIMENSIONS })
+});
+
+/** Suggests the dimensions the host has, Java ids included. */
+export const dimensionSuggestions = suggestFromData<CommandSource>((context) =>
+    context.getSource().host.world.dimensions()
+);
 
 /** The five game modes `/gamemode` accepts, in Mojang's Bedrock spelling. */
 export const gameModeArgument = () =>
@@ -187,6 +205,13 @@ export const gameModeArgument = () =>
 /** The two anchors `execute anchored` and `execute facing entity` accept. */
 export const anchorArgument = () => enumArgument('ActorLocation', ['eyes', 'feet'] as const);
 
-/** `minecraft:overworld` from `overworld`, which is how the enum spells it. */
-export const toDimensionId = (name: string): string =>
-    name === 'the_end' ? 'minecraft:the_end' : `minecraft:${name === 'nether' ? 'the_nether' : name}`;
+/**
+ * The Java dimension id a dimension argument names.
+ *
+ * A namespaced id, `minecraft:the_nether` or `mypack:skylands`, is taken as it is. A bare name
+ * is given the `minecraft:` namespace, and Bedrock's `nether` becomes Java's `the_nether`.
+ */
+export const toDimensionId = (name: string): string => {
+    if (name.includes(':')) return name;
+    return `minecraft:${name === 'nether' ? 'the_nether' : name}`;
+};

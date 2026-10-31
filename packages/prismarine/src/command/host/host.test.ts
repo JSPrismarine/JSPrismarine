@@ -442,6 +442,16 @@ describe('the server command host', () => {
             expect(player.setPosition).not.toHaveBeenCalled();
         });
 
+        it('takes the dimension of a cross-dimension `/tp` as a namespaced Java id', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('execute in minecraft:the_nether run tp @a 10 70 10')).resolves.toBe(1);
+
+            expect(player.getNetworkSession().changeWorld).toHaveBeenCalledWith(
+                expect.objectContaining({ world: fixture.nether, position: new Vector3(10, 70, 10) })
+            );
+        });
+
         it('changes a game mode', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 

@@ -44,6 +44,7 @@ import {
     arg,
     command,
     dimensionArgument,
+    dimensionSuggestions,
     lit,
     resolvePosition,
     resolveRotation,
@@ -152,9 +153,11 @@ export const registerExecute = (registry: CommandRegistry<CommandSource>) => {
     root.addChild(
         lit('in')
             .then(
-                arg('dimension', dimensionArgument()).redirect(root, {
-                    apply: (context) => source(context).withDimension(toDimensionId(value(context, 'dimension')))
-                })
+                arg('dimension', dimensionArgument())
+                    .suggests(dimensionSuggestions)
+                    .redirect(root, {
+                        apply: (context) => source(context).withDimension(toDimensionId(value(context, 'dimension')))
+                    })
             )
             .build()
     );
@@ -491,7 +494,7 @@ const buildConditions = (
     node.then(
         lit('dimension').then(
             attach(
-                arg('dimension', dimensionArgument()),
+                arg('dimension', dimensionArgument()).suggests(dimensionSuggestions),
                 (context) => source(context).dimension === toDimensionId(value(context, 'dimension'))
             )
         )
