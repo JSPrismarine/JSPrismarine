@@ -113,6 +113,22 @@ const roundTrip = (codec: ProtocolCodec, packet: NetworkPacket<unknown>): RoundT
     return { bytes, data: inbound!.getPacketData(), reencoded: Buffer.from(inbound!.getBuffer()) };
 };
 
+/**
+ * The data a `ChangeDimension` carries once its position has been through the wire.
+ *
+ * The position is three float32s, so a coordinate such as the eye height 71.62 reads back as
+ * the nearest float32, 71.62000274658203. The row asserts what the wire can carry, which is
+ * `Math.fround` of each coordinate, and leaves every other field as the server set it.
+ */
+const withFloat32Position = (sent: object): object => {
+    if (!('position' in sent) || typeof sent.position !== 'object' || sent.position === null) return sent;
+    const position: Record<string, unknown> = {};
+    for (const [axis, value] of Object.entries(sent.position)) {
+        position[axis] = typeof value === 'number' ? Math.fround(value) : value;
+    }
+    return { ...sent, position };
+};
+
 describe(FAMILIES.protocolDimensionChange, () => {
     const codecs = registeredCodecs;
     let sequence: NetworkPacket<unknown>[] = [];
@@ -159,7 +175,9 @@ describe(FAMILIES.protocolDimensionChange, () => {
                     if (sent === null) continue;
                     expect(typeof sent, packet.getName()).toBe('object');
                     if (typeof sent !== 'object') continue;
-                    expect(trip.data, packet.getName()).toMatchObject(sent);
+                    expect(trip.data, packet.getName()).toMatchObject(
+                        packet instanceof ChangeDimensionPacket ? withFloat32Position(sent) : sent
+                    );
                 }
             });
         });
