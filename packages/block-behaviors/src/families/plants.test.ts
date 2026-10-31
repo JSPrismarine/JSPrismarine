@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import type { HookBlock } from '@jsprismarine/blocks';
+
 import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
 import { MAX_CROP_GROWTH } from '../rules/growth';
+import { OVERWORLD, VoxelDimension, VoxelWorld } from '../voxelWorld';
 import {
     bambooFamily,
     climbingFamily,
@@ -17,6 +20,21 @@ import {
 
 const ground = { x: 0, y: 0, z: 0 };
 const plant = { x: 0, y: 1, z: 0 };
+
+class BambooSupportDimension extends VoxelDimension {
+    public hasBlockTag(block: HookBlock, tag: string): boolean {
+        return tag === 'minecraft:supports_bamboo' && block.identifier === 'minecraft:gravel';
+    }
+}
+
+class BambooSupportWorld extends VoxelWorld {
+    private readonly bambooDimension = new BambooSupportDimension(OVERWORLD);
+
+    public override at(dimension = OVERWORLD): BambooSupportDimension {
+        if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
+        return this.bambooDimension;
+    }
+}
 
 describe('cropFamily', () => {
     it('grows a stage per random tick that the chance comes up on', () => {
@@ -274,6 +292,39 @@ describe('bambooFamily', () => {
 
         expect(harness.dimension.identifierAt({ x: 0, y: 4, z: 0 })).toBe(AIR);
         expect(harness.dimension.drops).toHaveLength(4);
+    });
+
+    it('keeps a stalk rooted on gravel, which the bamboo support tag allows', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: new BambooSupportWorld() });
+        harness.dimension.set(ground, 'minecraft:gravel');
+        harness.dimension.set(plant, 'minecraft:bamboo');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:bamboo');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('keeps soil support when the host cannot query Java block tags', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo');
+        harness.dimension.set(ground, 'minecraft:dirt');
+        harness.dimension.set(plant, 'minecraft:bamboo');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:bamboo');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('pops a stalk whose ground is outside the bamboo support tag', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: new BambooSupportWorld() });
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:bamboo');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+        expect(harness.dimension.drops).toHaveLength(1);
     });
 });
 

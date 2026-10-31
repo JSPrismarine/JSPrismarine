@@ -289,6 +289,14 @@ export const bambooFamily = defineFamily(
                 if (!supported) popBlock(world, event.block);
                 return;
             }
+            if (name === 'bamboo') {
+                const supported =
+                    below !== undefined &&
+                    (world.hasBlockTag?.(below, 'minecraft:supports_bamboo') ??
+                        SOIL_NAMES.has(bareName(below.identifier)));
+                if (!supported) popBlock(world, event.block);
+                return;
+            }
             popWithoutGround(world, event.block, SOIL_NAMES);
         },
         onTick: (event, world) => {
