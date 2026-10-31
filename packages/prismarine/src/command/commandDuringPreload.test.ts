@@ -157,7 +157,7 @@ describe('a command typed while the start region is still generating', () => {
     afterAll(async () => {
         open();
         await booting.catch(() => {});
-        await server.getWorldManager().getDefaultWorld().getProvider()?.close?.();
+        await server.getWorldManager().getDefaultWorld().getProvider().disable();
         rmSync(root, { recursive: true, force: true });
         if (previousDir === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previousDir;

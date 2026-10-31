@@ -14,6 +14,7 @@ import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
+import { fakeLevel } from '../testing/level';
 
 /**
  * A world reduced to what breaking a block touches. The real one wants a server, a provider
@@ -80,7 +81,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         // here because a world with no entity map is not a world: `dropContents` counts the
         // stacks already on the ground before it adds another.
         entities: new Map(),
-        currentTick: 0,
+        level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
         getChunkAt: async () => chunk,

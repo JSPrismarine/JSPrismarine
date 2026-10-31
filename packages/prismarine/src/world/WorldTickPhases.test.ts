@@ -9,6 +9,10 @@ import { Position } from './Position';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';
 import { inertEntityRuntime } from '../testing/entityServer';
+import { fakeLevel } from '../testing/level';
+import type GameRuleManager from './GameRuleManager';
+import type BaseProvider from './providers/BaseProvider';
+import type Provider from './providers/Provider';
 
 /**
  * The order a tick reports what happened in it.
@@ -21,7 +25,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
  */
 const worldTicking = ({
     trackingInterval = 1,
-    currentTick = 19,
+    currentTick = 20,
     entities = [],
     entityAttributesChanged
 }: {
@@ -70,16 +74,15 @@ const worldTicking = ({
         // The real one: it is ordinary in-memory bookkeeping, and a tick rebuilds it. Only what
         // would reach the disk, a chunk or the network is stood in for.
         entityGrid: new EntityGrid(),
-        // One short of the second the time is put on the wire, so that the phase runs at all:
-        // it is sent once a second rather than every tick.
-        currentTick,
+        // The level's clock stands on the second the time is put on the wire, so that the
+        // phase runs at all: it is sent once a second rather than every tick. Chunk unloading
+        // is outside the phase ordering this fixture exercises.
+        level: fakeLevel({
+            ticks: currentTick,
+            gameRules: stub<GameRuleManager>({ getGameRule: () => [true, true] as const }),
+            provider: stub<BaseProvider & Provider>({ supportsChunkUnload: false })
+        }),
         dimension: Dimensions.Overworld,
-        // Chunk unloading is outside the phase ordering this fixture exercises.
-        provider: { supportsChunkUnload: false },
-        // The weather cycle reads `doWeatherCycle` and reports a change through the sink. It
-        // reports nothing here, because a clear sky stays clear and the client's default is
-        // clear; the rule is what it needs to run at all.
-        gameRuleManager: { getGameRule: () => [true, true] as const },
         getEntities: () => entities,
         getPlayers: () => [],
         runBlockUpdates: async () => void calls.push('blockUpdates'),

@@ -13,6 +13,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
  * A nineteen digit Java seed. As a `number` it rounds to 8475011743740319744, which is 277
@@ -32,22 +33,29 @@ const testWorld = (config: WorldData) => {
     });
 
     const seeds: bigint[] = [];
+    const server = stub<Server>({
+        getLogger: () => logger,
+        getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
+        getContent: () => testContent(),
+        getEntityRuntime: () => inertEntityRuntime()
+    });
     const world = new World({
         name: 'seed-test',
         path: 'seed-test',
-        server: stub<Server>({
-            getLogger: () => logger,
-            getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
-            getContent: () => testContent(),
-            getEntityRuntime: () => inertEntityRuntime()
+        server,
+        // The seed is the level's: the config becomes one on the way into the level, as
+        // `WorldManager` does it.
+        level: fakeLevel({
+            server,
+            seed: worldSeedOf(config.seed),
+            provider: stub<BaseProvider & Provider>({
+                readChunk: async (_dimension, x, z, seed) => {
+                    seeds.push(seed);
+                    return new Chunk(x, z, new Map(), Dimensions.Overworld);
+                }
+            })
         }),
-        provider: stub<BaseProvider & Provider>({
-            readChunk: async (_dimension, x, z, seed) => {
-                seeds.push(seed);
-                return new Chunk(x, z, new Map(), Dimensions.Overworld);
-            }
-        }),
-        seed: worldSeedOf(config.seed),
+        stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({}),
         config
     });

@@ -32,6 +32,7 @@ import { useItemOnEntity } from '../../item/interaction';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
+import { fakeLevel } from '../../testing/level';
 import { stub } from '../../testing/stub.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
 import { Scoreboard } from '../../command/host/scoreboard';
@@ -40,7 +41,7 @@ import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import LevelDB from '../../world/providers/leveldb/LevelDB';
 import { Dimensions } from '../../world/Dimension';
-import GameRuleManager, { GameRules } from '../../world/GameRuleManager';
+import { GameRules } from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
 import EntityGrid from '../../world/EntityGrid';
 import BlockPhysics from '../../world/physics/BlockPhysics';
@@ -657,7 +658,9 @@ interface Broadcasts {
  * Built on the real prototype with real chunks and real `WorldSystems`, so the
  * entity list, the chunk reads and the tick lists are the server's own.
  */
-const liveWorld = (): {
+const liveWorld = (
+    provider?: LevelDB
+): {
     world: World;
     broadcasts: Broadcasts;
     runtimes: EntityRuntimes;
@@ -687,19 +690,16 @@ const liveWorld = (): {
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.
         loading: new Map(),
-        currentTick: 0,
-        spawn: new Vector3(8, GROUND_Y, 8),
+        // A real level double, because a `World` built on its prototype never ran the
+        // constructor, and the content level group reads the rules and the clock through it.
+        level: fakeLevel({ server, seed: 1234n, spawn: new Vector3(8, GROUND_Y, 8), provider }),
         dimension: Dimensions.Overworld,
-        seed: 1234n,
         generator: stub<Generator>({}),
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
         entityChunkIndices: new Map(),
         entityGrid: new EntityGrid(),
         players: new Map(),
-        // A real one, because a `World` built on its prototype never ran the constructor that
-        // makes it, and the content level group reads the rules through it.
-        gameRuleManager: new GameRuleManager(server),
         server
     });
 
@@ -1966,17 +1966,15 @@ describe('the data-driven entity runtime over a live world', () => {
          * same folder, it is a restart.
          */
         const session = async (folder: string) => {
-            const built = liveWorld();
-            const provider = new LevelDB(folder, built.world.getServer());
+            const provider = new LevelDB(folder, testEntityServer());
             providers.push(provider);
+            const built = liveWorld(provider);
 
             Object.assign(built.world, {
                 name: 'roundtrip',
-                seed: 1234n,
                 // Only read for the name in the save log and for a chunk the database
                 // has no record of, which is not the one this writes and reads back.
-                generator: { generateChunk: (x: number, z: number) => new Chunk(x, z) },
-                provider
+                generator: { generateChunk: (x: number, z: number) => new Chunk(x, z) }
             });
             provider.setWorld(built.world);
             await provider.enable();
@@ -2124,16 +2122,14 @@ describe('the data-driven entity runtime over a live world', () => {
             const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-level-migrate-'));
             folders.push(folder);
 
-            const setup = liveWorld();
-            setup.hold(buildOver(setup.world, setup.runtimes));
-            const provider = new LevelDB(folder, setup.world.getServer());
+            const provider = new LevelDB(folder, testEntityServer());
             providers.push(provider);
+            const setup = liveWorld(provider);
+            setup.hold(buildOver(setup.world, setup.runtimes));
 
             Object.assign(setup.world, {
                 name: 'roundtrip',
-                seed: 1234n,
                 generator: { generateChunk: (x: number, z: number) => new Chunk(x, z) },
-                provider,
                 chunks: new Map<number, Chunk>()
             });
             provider.setWorld(setup.world);

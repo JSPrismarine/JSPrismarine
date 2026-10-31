@@ -33,6 +33,7 @@ import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
 import type Player from '../Player';
+import { fakeLevel } from '../testing/level';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -168,8 +169,7 @@ const liveWorld = (
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        currentTick: 0,
-        spawn: new Vector3(8, 64, 8),
+        level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),

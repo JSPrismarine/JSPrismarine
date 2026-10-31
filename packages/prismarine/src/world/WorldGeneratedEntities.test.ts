@@ -9,6 +9,9 @@ import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
+import { fakeLevel } from '../testing/level';
+import type BaseProvider from './providers/BaseProvider';
+import type Provider from './providers/Provider';
 
 /**
  * The seam between world generation and the world.
@@ -59,10 +62,9 @@ const worldLoading = (
         // `loadChunk` joins a load already in flight through this, and a world built on the
         // prototype never ran the constructor that would have made it.
         loading: new Map(),
-        seed: 1,
+        level: fakeLevel({ seed: 1n, provider: stub<BaseProvider & Provider>({ readChunk: async () => chunk }) }),
         generator: {},
         config: {},
-        provider: { readChunk: async () => chunk },
         systems: { onChunkLoaded: () => {} },
         addEntity: async (entity: Entity) => void added.push(entity),
         dataEntities: () => live,

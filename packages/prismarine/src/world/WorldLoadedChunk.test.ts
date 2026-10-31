@@ -11,6 +11,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
  * `getLoadedChunk` answers from a one entry cache, so the thing worth pinning is that the cache
@@ -25,19 +26,24 @@ const testWorld = () => {
         verbose: () => {}
     });
 
+    const server = stub<Server>({
+        getLogger: () => logger,
+        getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
+        getContent: () => testContent(),
+        getEntityRuntime: () => inertEntityRuntime()
+    });
+
     return new World({
         name: 'loaded-chunk-test',
         path: 'loaded-chunk-test',
-        server: stub<Server>({
-            getLogger: () => logger,
-            getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
-            getContent: () => testContent(),
-            getEntityRuntime: () => inertEntityRuntime()
+        server,
+        level: fakeLevel({
+            server,
+            provider: stub<BaseProvider & Provider>({
+                readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
+            })
         }),
-        provider: stub<BaseProvider & Provider>({
-            readChunk: async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
-        }),
-        seed: 0n,
+        stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({})
     });
 };

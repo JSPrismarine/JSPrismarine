@@ -1,3 +1,5 @@
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+
 import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
@@ -10,7 +12,8 @@ import { overworldStemOf } from './overworldStem';
 import { contentRandomTickHandlers } from './randomTicks';
 import { contentBlockTickHandlers } from './blockTicks';
 import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
-import { World } from './World';
+import { Level } from './Level';
+import type { World } from './World';
 import type BaseProvider from './providers/BaseProvider';
 
 import Anvil from './providers/anvil/Anvil';
@@ -42,10 +45,12 @@ const DEFAULT_WORLD_PROVIDER = 'LevelDB';
 export type ProviderClass = new (folderPath: string, server: Server) => BaseProvider;
 
 /**
- * The world manager is responsible level loading, unloading, and general level management.
+ * Loads and unloads levels, one per `worlds.<name>` entry, and answers which world holds a
+ * dimension.
  */
 export default class WorldManager implements Service {
-    private readonly worlds: Map<string, World> = new Map();
+    /** The loaded levels by folder name, in load order. */
+    private readonly levels = new Map<string, Level>();
     private readonly worldsByDimension = new Map<string, Set<World>>();
     private defaultWorld!: World;
     private readonly generatorFactories = new GeneratorFactories();
@@ -87,17 +92,23 @@ export default class WorldManager implements Service {
         const worldData = this.server.getConfig().getWorlds()[defaultWorld];
         if (!worldData) throw new Error(`Invalid level-name`);
 
-        // Named as the default before it is enabled, not after. Enabling a world generates its
-        // start region, which at `preload-radius: 24` is minutes, and until this assignment
-        // `getDefaultWorld()` answered `undefined` while its type said `World` - so a command
-        // typed at the console meanwhile threw a `TypeError` out of `CommandManager` instead of
-        // running. Nothing about the world is missing here except its terrain: it has its game
-        // rules, its name and its provider, which is what its callers ask it for.
-        const world = this.buildWorld(worldData, defaultWorld);
+        // Named as the default before it is enabled, not after. Enabling a level generates the
+        // Overworld's start region, which at `preload-radius: 24` is minutes, and until this
+        // assignment `getDefaultWorld()` answered `undefined` while its type said `World` - so
+        // a command typed at the console meanwhile threw a `TypeError` out of `CommandManager`
+        // instead of running. Nothing about the world is missing here except its terrain: it
+        // has its game rules, its name and its provider, which is what its callers ask it for.
+        // `Level.enable` builds its eager worlds before its first await, so the Overworld
+        // exists the moment the call returns its promise.
+        const level = this.buildLevel(worldData, defaultWorld);
+        const enabling = level.enable();
+        const world = level.loadedWorld(OVERWORLD_STEM_ID);
+        if (world === undefined) throw new Error(`Level ${defaultWorld} built no ${OVERWORLD_STEM_ID} world`);
         this.defaultWorld = world;
         this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
 
-        await this.enableWorld(world);
+        await enabling;
+        this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
     }
 
     /**
@@ -107,7 +118,7 @@ export default class WorldManager implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
-        await Promise.all(this.getWorlds().map(async (world) => this.unloadWorld(world.getName())));
+        await Promise.all([...this.levels.keys()].map(async (name) => this.unloadWorld(name)));
         this.providers.clear();
     }
 
@@ -138,40 +149,44 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * Save the world to disk.
+     * Saves every loaded level to disk.
      */
     public async save(): Promise<void> {
         this.server.getLogger().info('Saving worlds');
-        for (const world of this.getWorlds()) {
-            await world.save();
+        for (const level of this.levels.values()) {
+            await level.save();
         }
     }
 
     /**
-     * Load a world
+     * Loads a level and answers its Overworld.
      *
-     * @param worldData - the world data including provider key, generator
-     * @param folderName - the name of the folder containing the world
+     * @param worldData - The `worlds.<name>` entry: provider key, preset, seed.
+     * @param folderName - The folder under `worlds/` the level lives in.
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
-        const world = this.buildWorld(worldData, folderName);
-        await this.enableWorld(world);
+        const level = this.buildLevel(worldData, folderName);
+        await level.enable();
 
+        const world = level.loadedWorld(OVERWORLD_STEM_ID);
+        if (world === undefined) throw new Error(`Level ${folderName} built no ${OVERWORLD_STEM_ID} world`);
+        this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
         return world;
     }
 
     /**
-     * Builds a world and registers it, without generating anything.
+     * Builds a level and registers it, without opening anything.
      *
-     * Separate from {@link WorldManager.enableWorld} because the two take wildly different
-     * amounts of time and a caller may need the world during the second one. See
-     * {@link WorldManager.enable}.
-     * @param worldData - The provider key, generator and seed.
-     * @param folderName - The folder under `worlds/` this world lives in.
-     * @throws {Error} When the world is already loaded, or names a provider that is not
+     * The stems are the Overworld's alone for now: the one the entry's preset or its
+     * `dimensions['minecraft:overworld']` override names, through {@link overworldStemOf}. The
+     * other stems of the preset, and a saved `worldGenSettings` that disagrees with the config,
+     * are read when the level loader lands.
+     * @param worldData - The `worlds.<name>` entry.
+     * @param folderName - The folder under `worlds/` the level lives in.
+     * @throws {Error} When the level is already loaded, or names a provider that is not
      * registered.
      */
-    private buildWorld(worldData: WorldData, folderName: string): World {
+    private buildLevel(worldData: WorldData, folderName: string): Level {
         if (!worldData) throw new Error('Invalid world data');
 
         if (this.isWorldLoaded(folderName)) {
@@ -180,22 +195,6 @@ export default class WorldManager implements Service {
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
         const provider = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
-
-        // A world is built once, so each old key the entry still uses is said once.
-        const normalized = normalizeWorldData(worldData, this.generatorFactories.kinds());
-        for (const deprecation of normalized.deprecations) {
-            this.server.getLogger().warn(`World '${folderName}': ${deprecation}`);
-        }
-
-        const generator = this.generatorFactories.build({
-            stem: overworldStemOf(normalized, Dimensions.Overworld.id),
-            dimension: Dimensions.Overworld,
-            seed: worldSeedOf(worldData.seed),
-            content: () => this.server.getContent(),
-            worldgen: () => (this.worldgenRegistries ??= requireJavaWorldgenRegistries()),
-            logger: this.server.getLogger()
-        });
-
         if (!provider) {
             // Named, and with the alternatives listed. The `Filesystem` provider was removed, so
             // this is the first thing an existing config carrying it will hit, and "invalid
@@ -206,57 +205,57 @@ export default class WorldManager implements Service {
             );
         }
 
+        // A level is built once, so each old key the entry still uses is said once.
+        const normalized = normalizeWorldData(worldData, this.generatorFactories.kinds());
+        for (const deprecation of normalized.deprecations) {
+            this.server.getLogger().warn(`World '${folderName}': ${deprecation}`);
+        }
+
         // The behavior families answer the random ticks, and they are reachable only through the
-        // content registries. Read here rather than inside the world, because a world is built
+        // content registries. Read here rather than inside the level, because a level is built
         // from a config entry and the registries are the server's.
         const content = this.server.getContent();
+        const report = (what: string) => (identifier: string, error: unknown) => {
+            this.server.getLogger().error(error);
+            this.server.getLogger().error(`§c${identifier}§r threw on ${what}; it will not be reported again`);
+        };
 
-        // Closed over rather than passed, because a world's handlers are built while the world
-        // is being constructed and every one of them runs from its tick long afterwards.
-        let built: World | undefined;
-        const world = new World({
+        const level = new Level({
             name: folderName,
             path: levelPath,
             server: this.server,
             provider: new provider(levelPath, this.server),
-
             // The config holds whatever the file said; this is where it becomes a seed.
             seed: worldSeedOf(worldData.seed),
-            generator,
+            stems: new Map([[OVERWORLD_STEM_ID, overworldStemOf(normalized, Dimensions.Overworld.id)]]),
+            dimensionTypes: new Map([[Dimensions.Overworld.id, Dimensions.Overworld.java]]),
+            // The Overworld is where every player joins, so it is built with the level.
+            load: new Map([[OVERWORLD_STEM_ID, 'eager']]),
+            factories: this.generatorFactories,
+            worldgen: () => (this.worldgenRegistries ??= requireJavaWorldgenRegistries()),
             config: { ...worldData },
-            randomTickHandlers: contentRandomTickHandlers({
-                content,
-                world: () => built,
-                report: (identifier, error) => {
-                    this.server.getLogger().error(error);
-                    this.server
-                        .getLogger()
-                        .error(`§c${identifier}§r threw on a random tick; it will not be reported again`);
-                }
+            handlers: (world) => ({
+                randomTickHandlers: contentRandomTickHandlers({ content, world, report: report('a random tick') }),
+                blockTickHandlers: contentBlockTickHandlers({
+                    content,
+                    world,
+                    report: report('a scheduled block tick')
+                }),
+                redstoneUpdateHandlers: contentRedstoneUpdateHandlers({
+                    content,
+                    world,
+                    report: report('a redstone update')
+                })
             }),
-            blockTickHandlers: contentBlockTickHandlers({
-                content,
-                world: () => built,
-                report: (identifier, error) => {
-                    this.server.getLogger().error(error);
-                    this.server
-                        .getLogger()
-                        .error(`§c${identifier}§r threw on a scheduled block tick; it will not be reported again`);
-                }
-            }),
-            redstoneUpdateHandlers: contentRedstoneUpdateHandlers({
-                content,
-                world: () => built,
-                report: (identifier, error) => {
-                    this.server.getLogger().error(error);
-                    this.server
-                        .getLogger()
-                        .error(`§c${identifier}§r threw on a redstone update; it will not be reported again`);
-                }
-            })
+            onWorldBuilt: (world) => this.registerWorld(world)
         });
-        built = world;
-        this.worlds.set(world.getUUID(), world);
+        this.levels.set(folderName, level);
+
+        return level;
+    }
+
+    /** Indexes a world by its dimension and gives it somewhere to report its changes. */
+    private registerWorld(world: World): void {
         const dimension = world.getDimension().name;
         const dimensionWorlds = this.worldsByDimension.get(dimension) ?? new Set<World>();
         dimensionWorlds.add(world);
@@ -266,71 +265,64 @@ export default class WorldManager implements Service {
         // rather than built by the world, which must not have to know the network layer
         // exists in order to announce that a block changed.
         world.attachChangeSink(this.server.getWorldReplicators().for(world));
-
-        return world;
     }
 
     /**
-     * Opens a world's provider and generates its start region.
-     *
-     * The long half of loading a world: the spawn search and the preload both generate terrain,
-     * which is minutes rather than milliseconds.
-     * @param world - A world {@link WorldManager.buildWorld} has already registered.
-     */
-    private async enableWorld(world: World): Promise<void> {
-        await world.enable();
-        this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
-    }
-
-    /**
-     * Unloads a level by its folder name.
+     * Unloads a level by its folder name: every world of it saves and closes, then its
+     * provider.
      */
     public async unloadWorld(folderName: string): Promise<void> {
-        if (!this.isWorldLoaded(folderName)) {
+        const level = this.getLevel(folderName);
+        if (level === undefined) {
             this.server.getLogger().error(`Cannot unload a not loaded world with name §b${folderName}`);
             return;
         }
 
-        const world = this.getWorldByName(folderName);
-        if (!world) {
-            this.server.getLogger().error(`Cannot unload world ${folderName}`);
-            return;
+        await level.disable();
+        this.levels.delete(level.name);
+        for (const world of level.worlds()) {
+            const dimension = world.getDimension().name;
+            const dimensionWorlds = this.worldsByDimension.get(dimension);
+            dimensionWorlds?.delete(world);
+            if (dimensionWorlds?.size === 0) this.worldsByDimension.delete(dimension);
+            this.server.getLogger().verbose(`Successfully unloaded world ${world.getFormattedName()}!`);
         }
-
-        await world.disable();
-        this.worlds.delete(world.getUUID());
-        const dimension = world.getDimension().name;
-        const dimensionWorlds = this.worldsByDimension.get(dimension);
-        dimensionWorlds?.delete(world);
-        if (dimensionWorlds?.size === 0) this.worldsByDimension.delete(dimension);
-        this.server.getLogger().verbose(`Successfully unloaded world ${world.getFormattedName()}!`);
     }
 
     /**
-     * Returns whatever the world is loaded or not.
-     * @returns {boolean} true if the world is loaded, false otherwise
+     * Whether a level of that folder name is loaded.
+     * @returns {boolean} true if the level is loaded, false otherwise
      */
     public isWorldLoaded(folderName: string): boolean {
-        const world = Array.from(this.worlds.values()).find(
-            (world) => world.getName().toLowerCase() === folderName.toLowerCase()
-        );
+        return this.getLevel(folderName) !== undefined;
+    }
 
-        if (world) return true;
-        return false;
+    /** The loaded level of a folder name, compared case-insensitively, or undefined. */
+    public getLevel(folderName: string): Level | undefined {
+        const wanted = folderName.toLowerCase();
+        for (const level of this.levels.values()) {
+            if (level.name.toLowerCase() === wanted) return level;
+        }
+        return undefined;
+    }
+
+    /** Every loaded level, in load order. */
+    public getLevels(): Level[] {
+        return Array.from(this.levels.values());
     }
 
     /**
-     * Returns a world by its folder name.
+     * The Overworld of the level with that folder name, or null when none is loaded.
      */
     public getWorldByName(folderName: string): World | null {
-        return this.getWorlds().find((world) => world.getName().toLowerCase() === folderName.toLowerCase()) ?? null;
+        return this.getLevel(folderName)?.loadedWorld(OVERWORLD_STEM_ID) ?? null;
     }
 
     /**
-     * Returns an array with all worlds.
+     * Every loaded world of every loaded level.
      */
     public getWorlds(): World[] {
-        return Array.from(this.worlds.values());
+        return this.getLevels().flatMap((level) => [...level.worlds()]);
     }
 
     /**

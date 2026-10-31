@@ -729,7 +729,7 @@ export default class LevelDB extends BaseProvider {
 
     /** Creates `level.dat` and `levelname.txt` when the folder has none. */
     private ensureLevelMetadata(): void {
-        const name = this.getWorld().getName();
+        const name = this.saveName();
 
         if (readLevelDat(this.getPath()) === null) {
             writeLevelDat(this.getPath(), {
@@ -742,11 +742,10 @@ export default class LevelDB extends BaseProvider {
     }
 
     private buildLevelDat(name: string): NBTTagCompound {
-        const world = this.getWorld();
         const root = new NBTTagCompound('');
 
         root.addValue('LevelName', new Types.StringVal(name));
-        root.addValue('RandomSeed', new Types.LongVal(world.getSeed()));
+        root.addValue('RandomSeed', new Types.LongVal(this.saveSeed()));
         root.addValue('StorageVersion', new Types.NumberVal(LEVEL_DAT_STORAGE_VERSION));
         root.addValue('lastOpenedWithVersion', versionList());
 
@@ -771,7 +770,7 @@ export default class LevelDB extends BaseProvider {
      */
     public override saveLevelData(level: LevelDatInputs): void {
         const existing = readLevelDat(this.getPath());
-        const root = existing?.root ?? this.buildLevelDat(this.getWorld().getName());
+        const root = existing?.root ?? this.buildLevelDat(this.saveName());
 
         if (level.spawn !== undefined) {
             root.addValue('SpawnX', new Types.NumberVal(Math.trunc(level.spawn.x)));

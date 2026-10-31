@@ -24,6 +24,7 @@ import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { WorldSystems } from './WorldSystems';
+import { fakeLevel } from '../testing/level';
 
 /**
  * A field in a loaded chunk, and the proof that a random tick reaches it.
@@ -91,8 +92,7 @@ describe('contentRandomTickHandlers', () => {
 
         world = Object.assign(Object.create(World.prototype), {
             chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-            currentTick: 0,
-            spawn: new Vector3(8, 64, 8),
+            level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
             dimension: Dimensions.Overworld,
             blockUpdates: new BlockUpdateScheduler(),
             entities: new Map(),

@@ -52,10 +52,12 @@ import { Dimensions } from '../world/Dimension';
 import type { Generator } from '../world/Generator';
 import { Position } from '../world/Position';
 import LevelDB from '../world/providers/leveldb/LevelDB';
-import { World } from '../world/World';
+import type { World } from '../world/World';
 import ContainerEntry from './ContainerEntry';
 import { openContainerContents } from './containerStore';
 import { inertEntityRuntime } from '../testing/entityServer';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import { testLevel } from '../testing/level';
 
 /** Where the chest stands, and the slot of the player's inventory the diamonds start in. */
 const CHEST = { x: 4, y: 64, z: 4 };
@@ -178,10 +180,17 @@ const buildScene = async (name: string) => {
             })
     });
 
-    const provider = new LevelDB(folder, server);
-    world = new World({ name, path: folder, server, provider, seed: 1234n, generator: generator() });
-    provider.setWorld(world);
-    await provider.enable();
+    // The spawn is known before the world opens, so enabling it searches for nothing.
+    const level = testLevel({
+        name,
+        path: folder,
+        server,
+        provider: new LevelDB(folder, server),
+        generator: generator(),
+        spawn: new Vector3(0, 64, 0)
+    });
+    await level.enable();
+    world = await level.world(OVERWORLD_STEM_ID);
 
     const contentWorld = serverWorldSource({
         worldFor: () => world,
@@ -211,7 +220,7 @@ const buildScene = async (name: string) => {
     // store drop a write whose chunk is not in memory.
     await world.getChunk(0, 0);
 
-    return { server, world, provider, content, blocks: content.world.blockWorld.at('minecraft:overworld') };
+    return { server, world, level, content, blocks: content.world.blockWorld.at('minecraft:overworld') };
 };
 
 /** A player standing beside the chest, wired to a session that sends nowhere. */
@@ -292,7 +301,7 @@ describe('a block container a player can put things in', () => {
 
     it('takes a stack into a chest, gives it back, and keeps it across a reopen', async () => {
         const scene = await buildScene('round-trip');
-        const { server, world, provider, blocks } = scene;
+        const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Filler');
 
         blocks.setBlock(CHEST, 'minecraft:chest');
@@ -337,16 +346,16 @@ describe('a block container a player can put things in', () => {
             move(at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 9), at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 5), 12)
         ]);
         await world.save();
-        await provider.disable();
+        await level.disable();
 
         const reopened = await buildScene('round-trip');
         expect(storedItems(reopened.blocks, CHEST)[5]).toEqual({ identifier: 'minecraft:diamond', count: 12 });
-        await reopened.provider.disable();
+        await reopened.level.disable();
     }, 120_000);
 
     it('refuses a stack dropped onto a furnace output and takes one out of it', async () => {
         const scene = await buildScene('furnace');
-        const { server, world, provider, blocks } = scene;
+        const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Smelter');
 
         blocks.setBlock(FURNACE, 'minecraft:furnace');
@@ -394,12 +403,12 @@ describe('a block container a player can put things in', () => {
         ]);
         expect(player.getInventory().getItem(3).getName()).toBe('minecraft:stone');
 
-        await provider.disable();
+        await level.disable();
     }, 120_000);
 
     it('addresses both halves of a double chest as one run of 54 slots', async () => {
         const scene = await buildScene('double');
-        const { server, world, provider, blocks } = scene;
+        const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Hoarder');
 
         blocks.setBlock(CHEST, 'minecraft:chest');
@@ -433,12 +442,12 @@ describe('a block container a player can put things in', () => {
         expect(storedItems(blocks, CHEST)[3]).toBeUndefined();
         expect(storedItems(blocks, CHEST_PARTNER)[3]).toEqual({ identifier: 'minecraft:diamond', count: 3 });
 
-        await provider.disable();
+        await level.disable();
     }, 120_000);
 
     it('spills what a chest holds when the chest is broken', async () => {
         const scene = await buildScene('break');
-        const { server, world, provider, blocks } = scene;
+        const { server, world, level, blocks } = scene;
         const player = buildPlayer(world, server, 'Breaker');
 
         blocks.setBlock(CHEST, 'minecraft:chest');
@@ -475,12 +484,12 @@ describe('a block container a player can put things in', () => {
         expect(dropped.find((item) => item?.getName() === 'minecraft:diamond')?.getAmount()).toBe(7);
         expect(blocks.getBlock(CHEST)?.identifier).toBe('minecraft:air');
 
-        await provider.disable();
+        await level.disable();
     }, 120_000);
 
     it('gives each player their own ender chest from the same block', async () => {
         const scene = await buildScene('ender');
-        const { server, world, provider } = scene;
+        const { server, world, level } = scene;
         const first = buildPlayer(world, server, 'First');
         const second = buildPlayer(world, server, 'Second');
 
@@ -511,7 +520,7 @@ describe('a block container a player can put things in', () => {
         expect(first.getInventory().getEnderChest().getItem(2).getName()).toBe('minecraft:diamond');
         expect(second.getInventory().getEnderChest().getItem(2).getName()).toBe('minecraft:air');
 
-        await provider.disable();
+        await level.disable();
     }, 120_000);
 
     it('lets a broken shulker box leave with what is in it, enchantments and all', async () => {
@@ -560,7 +569,7 @@ describe('a block container a player can put things in', () => {
 
     it('gives back the enchantments, durability, name and lore a stack went in with', async () => {
         const scene = await buildScene('metadata');
-        const { server, world, provider, blocks, content } = scene;
+        const { server, world, level, blocks, content } = scene;
         const player = buildPlayer(world, server, 'Enchanter');
 
         blocks.setBlock(CHEST, 'minecraft:chest');
@@ -608,7 +617,7 @@ describe('a block container a player can put things in', () => {
         expect([...entries[0].getCompound('tag', false)!.getList('ench', false)!]).toHaveLength(2);
 
         await world.save();
-        await provider.disable();
+        await level.disable();
 
         // Out of a fresh world over the same database, and back into a player's hand, which is
         // the only reading of the record that proves nothing was lost on the way.
@@ -633,12 +642,12 @@ describe('a block container a player can put things in', () => {
         expect(back.getCustomName()).toBe('Rockbreaker');
         expect(back.getLore()).toEqual(['Mined a million blocks']);
 
-        await reopened.provider.disable();
+        await reopened.level.disable();
     }, 120_000);
 
     it('keeps an enchantment no Bedrock number names, such as sweeping edge', async () => {
         const scene = await buildScene('sweeping');
-        const { server, world, provider, blocks, content } = scene;
+        const { server, world, level, blocks, content } = scene;
         const player = buildPlayer(world, server, 'Swordsman');
 
         blocks.setBlock(CHEST, 'minecraft:chest');
@@ -670,16 +679,16 @@ describe('a block container a player can put things in', () => {
         expect(entry.getCompound('tag', false)?.getList('ench', false)).toBeNull();
 
         await world.save();
-        await provider.disable();
+        await level.disable();
 
         const reopened = await buildScene('sweeping');
         expect(storedItems(reopened.blocks, CHEST)[0]?.enchantments).toEqual({ 'minecraft:sweeping_edge': 3 });
-        await reopened.provider.disable();
+        await reopened.level.disable();
     }, 120_000);
 
     it('keeps two players at one chest looking at the same slots', async () => {
         const scene = await buildScene('viewers');
-        const { server, world, provider, blocks } = scene;
+        const { server, world, level, blocks } = scene;
         const first = buildPlayer(world, server, 'First');
         const second = buildPlayer(world, server, 'Second');
         await world.addEntity(first);
@@ -717,6 +726,6 @@ describe('a block container a player can put things in', () => {
         expect(second.getInventory().getItem(4).getName()).toBe('minecraft:diamond');
         expect(storedItems(blocks, CHEST)[1]).toBeUndefined();
 
-        await provider.disable();
+        await level.disable();
     }, 120_000);
 });

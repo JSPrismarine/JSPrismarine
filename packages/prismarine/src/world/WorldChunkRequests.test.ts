@@ -20,6 +20,7 @@ import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /** A world whose provider counts its reads and answers only when the test lets it. */
 const testWorld = (readChunk: BaseProvider['readChunk'], generator: Generator = stub<Generator>({})) => {
@@ -31,17 +32,19 @@ const testWorld = (readChunk: BaseProvider['readChunk'], generator: Generator = 
         verbose: () => {}
     });
 
+    const server = stub<Server>({
+        getLogger: () => logger,
+        getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
+        getContent: () => testContent(),
+        getEntityRuntime: () => inertEntityRuntime()
+    });
+
     return new World({
         name: 'chunk-request-test',
         path: 'chunk-request-test',
-        server: stub<Server>({
-            getLogger: () => logger,
-            getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
-            getContent: () => testContent(),
-            getEntityRuntime: () => inertEntityRuntime()
-        }),
-        provider: stub<BaseProvider & Provider>({ readChunk }),
-        seed: 0n,
+        server,
+        level: fakeLevel({ server, provider: stub<BaseProvider & Provider>({ readChunk }) }),
+        stem: TEST_OVERWORLD_STEM,
         generator
     });
 };

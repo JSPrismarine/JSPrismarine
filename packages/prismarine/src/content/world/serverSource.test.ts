@@ -28,6 +28,7 @@ import { buildServerContent } from '../ServerContent';
 import type { ServerContent } from '../ServerContent';
 import type { ContentPosition } from './adapter';
 import { serverWorldSource } from './serverSource';
+import { fakeLevel } from '../../testing/level';
 
 /**
  * The blocks this fixture declares, which are also the whole of its palette.
@@ -112,8 +113,7 @@ const liveWorld = (content: () => ServerContent): { world: World; chunk: Chunk; 
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        currentTick: 0,
-        spawn: new Vector3(8, 64, 8),
+        level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),

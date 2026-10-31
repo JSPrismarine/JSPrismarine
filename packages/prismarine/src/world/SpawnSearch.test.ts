@@ -11,6 +11,7 @@ import type { Generator, SurfaceProbe } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
  * What the spawn search is allowed to cost.
@@ -73,22 +74,29 @@ const oceanWithOneIsland = (probing: boolean): CountingGenerator => {
     };
 };
 
-const testWorld = (generator: Generator) =>
-    new World({
+const testWorld = (generator: Generator) => {
+    const server = stub<Server>({
+        getLogger: () => testLogger(),
+        getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
+        getContent: () => testContent(),
+        getEntityRuntime: () => inertEntityRuntime()
+    });
+
+    return new World({
         name: 'spawn-search-test',
         path: 'spawn-search-test',
-        server: stub<Server>({
-            getLogger: () => testLogger(),
-            getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
-            getContent: () => testContent(),
-            getEntityRuntime: () => inertEntityRuntime()
+        server,
+        level: fakeLevel({
+            server,
+            seed: 1234n,
+            provider: stub<BaseProvider & Provider>({
+                readChunk: async (_dimension, x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
+            })
         }),
-        provider: stub<BaseProvider & Provider>({
-            readChunk: async (_dimension, x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
-        }),
-        seed: 1234n,
+        stem: TEST_OVERWORLD_STEM,
         generator
     });
+};
 
 describe('the spawn search', () => {
     it('finds the one dry column without generating a chunk', async () => {

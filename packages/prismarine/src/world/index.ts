@@ -10,6 +10,7 @@ export * from './GeneratorFactories';
 export * from './generators/factories';
 export { FlatGenerator, type FlatGeneratorOptions } from './generators/Flat';
 export * from './Position';
+export * from './Level';
 export * from './World';
 export * from './lootLevel';
 

@@ -19,6 +19,8 @@ import { World } from './World';
 import { parseLevelStem } from '@jsprismarine/worldgen';
 import { parseWorldPersistenceData, worldPersistenceJsonOf } from './WorldPersistence';
 import type { WorldPersistenceData } from './WorldPersistence';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import { testLevel } from '../testing/level';
 
 const LEGACY_ITEM_COUNT = 1744;
 const NEXT_DROP_COUNT = World.ITEM_ENTITY_LIMIT - LEGACY_ITEM_COUNT + 1;
@@ -228,10 +230,11 @@ describe('world persistence', () => {
         const warnings: string[] = [];
         const server = testServer(warnings);
         const provider = new LevelDB(folder, server);
-        const world = new World({ name, path: folder, server, provider, seed: 1234n, generator });
+        const level = testLevel({ name, path: folder, server, provider, generator });
+        await level.enable();
 
         try {
-            await world.enable();
+            const world = await level.world(OVERWORLD_STEM_ID);
             await world.dropContents(
                 new Vector3(0, 64, 0),
                 Array.from(
@@ -259,7 +262,7 @@ describe('world persistence', () => {
                 }
             });
         } finally {
-            await world.disable();
+            await level.disable();
         }
     });
 });

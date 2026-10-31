@@ -6,6 +6,9 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { Position } from './Position';
 import { World } from './World';
+import { fakeLevel } from '../testing/level';
+import type BaseProvider from './providers/BaseProvider';
+import type Provider from './providers/Provider';
 
 const PLAYER_COUNT = 16;
 const CHUNK_COUNT = 32;
@@ -22,7 +25,7 @@ const worldWith = (
         chunks,
         players,
         loading: new Map(),
-        provider: { supportsChunkUnload: unloadable, writeChunk },
+        level: fakeLevel({ provider: stub<BaseProvider & Provider>({ supportsChunkUnload: unloadable, writeChunk }) }),
         getPlayers: () => Array.from(players.values()),
         enqueueSave: async (write: () => Promise<void>) => write(),
         getEntities: () => [],

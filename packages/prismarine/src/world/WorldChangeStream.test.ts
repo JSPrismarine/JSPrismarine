@@ -18,6 +18,7 @@ import type Provider from './providers/Provider';
 import { World } from './World';
 import type { WorldChange } from './WorldChange';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
  * The world-change stream: everything that rewrites what the world holds leaves it as one
@@ -53,12 +54,16 @@ const testServer = (): Server =>
 
 /** A world with one flat chunk in memory and a recorder subscribed to its change stream. */
 const flatWorld = async () => {
+    const server = testServer();
     const world = new World({
         name: 'world-change-stream-test',
         path: path.join(os.tmpdir(), 'world-change-stream-test'),
-        server: testServer(),
-        provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) }),
-        seed: 0n,
+        server,
+        level: fakeLevel({
+            server,
+            provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
+        }),
+        stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({})
     });
 

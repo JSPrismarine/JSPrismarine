@@ -1,11 +1,11 @@
-import GameRuleManager, { GameRules } from './GameRuleManager';
-
-import fs from 'node:fs';
+import type GameRuleManager from './GameRuleManager';
+import { GameRules } from './GameRuleManager';
 
 import { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
+import type { LevelStem } from '@jsprismarine/worldgen';
 import type { Block, Server, Service } from '../';
 import Timer from '../utils/Timer';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -47,8 +47,6 @@ import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
-import { withCwd } from '../utils/cwd';
-import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import { blockFromContent } from '../block/Block';
 import type { ChunkRequestOptions, Generator, StructureSearchResult } from './Generator';
 import { GenerationStopped } from './Generator';
@@ -56,7 +54,6 @@ import { createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { sectionTakesRandomTicks } from './randomTickSections';
-import { WorldWeather } from './Weather';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
@@ -66,8 +63,7 @@ import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
-import type { WorldPersistenceData } from './WorldPersistence';
-import { legacyWorldPersistenceDataOf } from './WorldPersistence';
+import type { Level } from './Level';
 
 export type {
     FlatLayer,
@@ -304,19 +300,21 @@ const CRACK_PARTICLES: readonly LevelEvent[] = [
     LevelEvent.PARTICLES_CRACK_BLOCK_EAST
 ];
 
-const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
-const WORLDS_FOLDER_NAME = 'worlds';
-
 export interface WorldData {
     name: string;
     path: string;
     server: Server;
-    provider: BaseProvider;
-    /** The world seed, as a 64-bit value. See {@link import('../utils/Seed').worldSeedOf}. */
-    seed: bigint;
+    /**
+     * The level this world is one dimension of, which owns the provider, the seed, the clock,
+     * the game rules, the weather, the spawn and the player records.
+     */
+    level: Level;
+    /** The stem this world was built from: its dimension type and its generator definition. */
+    stem: LevelStem;
+    /** The generator the level's factories built for {@link WorldData.stem}. */
     generator: Generator;
     config?: WorldConfig;
-    /** Defaults to the Overworld, which is the only one the server generates today. */
+    /** Defaults to the level's resolved type for the stem, or the Overworld when it has none. */
     dimension?: DimensionType;
     /**
      * What to run when a random tick lands on a block, keyed by block identifier.
@@ -384,18 +382,6 @@ export class World implements Service {
     private lastChunk: Chunk | null = null;
     private lastChunkSource: Map<number, Chunk> | null = null;
 
-    /**
-     * The world's game rules, built before anything can ask for them.
-     *
-     * Assigned at the top of the constructor and never reassigned, so it is not optional: a
-     * world that exists has its rules. The declaration has been nullable twice, each time to
-     * accommodate a test double built with `Object.create(World.prototype)`, which skips the
-     * constructor. That costs every call site in the server a check for a case the server
-     * does not have; the doubles carry a manager of their own instead.
-     */
-    private readonly gameRuleManager: GameRuleManager;
-    private currentTick = 0;
-
     /** Two minutes at the server's twenty ticks per second. */
     private static readonly AUTO_SAVE_INTERVAL_TICKS = 20 * 120;
 
@@ -415,12 +401,20 @@ export class World implements Service {
      * than only the socket.
      */
     private saving: Promise<void> | null = null;
-    private readonly provider: BaseProvider & Provider;
     private readonly server: Server;
-    private readonly seed: bigint;
+    private readonly level: Level;
+    private readonly stem: LevelStem;
     private readonly generator: Generator;
     private readonly config: WorldConfig;
     private readonly dimension: DimensionType;
+
+    /**
+     * This world's own spawn, for a dimension other than the Overworld.
+     *
+     * Bedrock keeps one spawn per save and it is in the Overworld, so the Overworld world keeps
+     * its spawn on the level, where the save reads and writes it; see
+     * {@link World.getKnownSpawnPosition}.
+     */
     private spawn: Vector3 | null = null;
 
     /**
@@ -431,14 +425,6 @@ export class World implements Service {
      * this is the ordinary case rather than a defensive one.
      */
     private closing = false;
-
-    /**
-     * Set once the provider has gone, after which there is nothing left to read or write.
-     *
-     * Separate from {@link World.closing} because the shutdown's own save happens between the
-     * two, and that save has to be allowed to write.
-     */
-    private closed = false;
 
     /**
      * The start region work while it is running, so a shutdown can wait for it rather than
@@ -459,18 +445,6 @@ export class World implements Service {
     private readonly systems: WorldSystems;
 
     /**
-     * The weather cycle, its level events and the five numbers the save keeps - see
-     * {@link WorldWeather}.
-     *
-     * Built on first use rather than in the constructor, because this package's world tests
-     * assemble a `World` with `Object.create(World.prototype)` and assign the handful of
-     * fields the path under test needs. Nothing configures the weather, so asking each of them
-     * to stand one up would be noise; everything it reads it reads through {@link
-     * World.weatherCycle} at call time.
-     */
-    private weather: WorldWeather | undefined;
-
-    /**
      * Where this world reports what happened in it.
      *
      * Dropped on the floor until something attaches a real one, which is what makes a world
@@ -481,8 +455,8 @@ export class World implements Service {
     public constructor({
         name,
         server,
-        provider,
-        seed,
+        level,
+        stem,
         generator,
         config,
         dimension,
@@ -492,19 +466,11 @@ export class World implements Service {
     }: WorldData) {
         this.name = name;
         this.server = server;
-        this.provider = provider;
-        // A rule set after this point goes out to everyone in the world through the sink, the
-        // same route the clock takes. `this.changes` is read when the rule changes, not now,
-        // so the replicator attached later is the one that hears it.
-        this.gameRuleManager = new GameRuleManager(server, (name, value, editable) => {
-            this.changes.gameRuleChanged(name, value, editable).catch((error: unknown) => {
-                this.server.getLogger().error(`Failed to send game rule ${name}: ${error}`);
-            });
-        });
-        this.seed = seed;
+        this.level = level;
+        this.stem = stem;
         this.generator = generator;
         this.config = config ?? {};
-        this.dimension = dimension ?? Dimensions.Overworld;
+        this.dimension = dimension ?? level.getDimensionTypes().get(stem.type) ?? Dimensions.Overworld;
         this.physics = new BlockPhysics(this);
         this.systems = new WorldSystems({
             view: {
@@ -514,7 +480,7 @@ export class World implements Service {
                 topOfColumn: (x, z) => this.topOfColumn(x, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
                 randomTickSpeed: () => {
-                    const [value] = this.gameRuleManager.getGameRule(GameRules.RandomTickSpeed) ?? [];
+                    const [value] = this.getGameRuleManager().getGameRule(GameRules.RandomTickSpeed) ?? [];
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
                 },
                 randomTickChunks: () => this.randomTickChunks()
@@ -529,17 +495,6 @@ export class World implements Service {
             blockTickHandlers,
             redstoneUpdateHandlers
         });
-
-        this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
-
-        try {
-            // Create folders if they don't exist.
-            const path = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata');
-            if (!fs.existsSync(path)) fs.mkdirSync(path, { recursive: true });
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to create world folders for ${this.name}`);
-            this.server.getLogger().error(error);
-        }
     }
 
     /**
@@ -555,43 +510,23 @@ export class World implements Service {
     }
 
     /**
-     * On enable hook.
+     * On enable hook: puts back what the save kept for this dimension and generates the start
+     * region. The level has opened the provider and read the save-level state by now.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        // Deliberately *not* subscribed to the server's tick event. The server already calls
+        // Deliberately *not* subscribed to the server's tick event. The level already calls
         // `update` on every world in its tick, and doing both ran each world - and so every
         // entity in it - twice per tick. Time itself went at double speed: breath ran out in
         // seven seconds instead of fifteen and drowning took four half-hearts a second
-        // instead of two. The server's call is the one to keep, and the duplication is the
+        // instead of two. The level's call is the one to keep, and the duplication is the
         // whole of the reason - the tick event is awaited inside the tick's budget now too,
         // so subscribing would buy nothing and cost a second update.
 
-        this.provider.setWorld(this);
-        await this.provider.enable();
-
-        const legacy = await this.getLegacyWorldData();
-        if (legacy !== null) {
-            await this.provider.migrateLegacyWorldData(legacy);
-
-            try {
-                await fs.promises.unlink(withCwd(WORLDS_FOLDER_NAME, this.name, LEGACY_LEVEL_DATA_FILE_NAME));
-            } catch (error: unknown) {
-                this.server.getLogger().error(`Failed to remove migrated level data for ${this.name}`);
-                this.server.getLogger().error(error);
-            }
-        }
-
-        const level = (await this.provider.readWorldData()) ?? {};
-        if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
-        this.weatherCycle().restore(level.weather);
-        if (level.gameRules) {
-            level.gameRules.forEach(([name, [value, editable]]) =>
-                this.gameRuleManager.setGameRule(name, value, editable)
-            );
-        }
-        if (level.entities && this.provider.supportsChunkUnload !== true) {
-            for (const entityData of level.entities) {
+        // Snapshots a provider without actor storage kept beside the save. They were written
+        // when the save had one world, so they are the Overworld's.
+        if (this.isOverworld()) {
+            for (const entityData of this.level.legacyEntities()) {
                 // The saved coordinates are actually used now. They used to be spread into
                 // an options object that had no place for them, so every entity restored
                 // from disk silently reappeared at the origin.
@@ -661,9 +596,10 @@ export class World implements Service {
      * once nothing is left that could ask it for anything.
      *
      * An autosave a tick started is one of those things. {@link World.save} waits for it
-     * before writing anything of its own, so by the time this reaches `provider.disable` no
+     * before writing anything of its own, so by the time the level closes the provider no
      * write is outstanding - closing the database under one is the same failure the start
-     * region race used to cause.
+     * region race used to cause. The provider itself is the level's to close, once every
+     * world of the save has been through this.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
@@ -674,8 +610,6 @@ export class World implements Service {
         await this.startingRegion?.catch(() => {});
 
         await this.save();
-        await this.provider.disable();
-        this.closed = true;
     }
 
     public getGenerator(): Generator {
@@ -695,9 +629,6 @@ export class World implements Service {
 
         // TODO: tick chunks
 
-        // Continue world time ticks
-        this.currentTick++;
-
         // Auto save every 2 minutes. The interval has to be a remainder rather than an
         // equality: `currentTick / 20 === 120` holds for exactly one value of the counter,
         // so the world was saved once, two minutes in, and then never again for the rest
@@ -706,7 +637,7 @@ export class World implements Service {
         // Started, not awaited - see {@link World.saving} for why the tick must not wait.
         const endAutoSaveProfile = startProfileSpan(this.server, `World.autosave:${this.name}`);
         try {
-            if (this.currentTick % World.AUTO_SAVE_INTERVAL_TICKS === 0) this.beginAutoSave();
+            if (this.getTicks() % World.AUTO_SAVE_INTERVAL_TICKS === 0) this.beginAutoSave();
         } finally {
             endAutoSaveProfile();
         }
@@ -720,21 +651,13 @@ export class World implements Service {
             endBlockUpdatesProfile();
         }
 
-        // Before the systems, as `ServerLevel.tick` runs `advanceWeatherCycle` before its tick
-        // lists: a fire scheduled this tick should be put out by rain that started this tick.
-        const endWeatherProfile = startProfileSpan(this.server, `World.weather:${this.name}`);
-        try {
-            this.weatherCycle().tick(this.currentTick);
-        } finally {
-            endWeatherProfile();
-        }
-
         // Java's order: the two scheduled tick lists, then the chunk tick that draws the random
         // positions, then the light the writes above queued. Budgeted, so one tick cannot stall
-        // on a light flood or a backlog of fluid ticks.
+        // on a light flood or a backlog of fluid ticks. The weather cycle ran before this, on
+        // the level, as `ServerLevel.tick` runs `advanceWeatherCycle` before its tick lists.
         const endSystemsProfile = startProfileSpan(this.server, `World.systems:${this.name}`);
         try {
-            this.systems.tick(this.currentTick);
+            this.systems.tick(this.getTicks());
         } finally {
             endSystemsProfile();
         }
@@ -1040,7 +963,7 @@ export class World implements Service {
         // Refused here rather than left to the provider, which answers with "The world
         // provider is not enabled" - the symptom, not the reason. The caller asked a world
         // that has shut down for a chunk, and that is what it should be told.
-        if (this.closed) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} has been closed`);
+        if (this.level.isClosed()) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} has been closed`);
 
         const index = Chunk.packXZ(x, z);
         const running = this.loading.get(index);
@@ -1063,11 +986,11 @@ export class World implements Service {
     /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
     private async readChunkInto(index: number, x: number, z: number, options?: ChunkRequestOptions): Promise<Chunk> {
         // Try - catch for provider errors
-        const chunk = await this.provider.readChunk(
+        const chunk = await this.getProvider().readChunk(
             this.dimension,
             x,
             z,
-            this.seed,
+            this.level.seed,
             this.generator,
             this.config,
             options
@@ -1084,11 +1007,11 @@ export class World implements Service {
         const discardedStacklessItems = await this.createStoredEntities(chunk);
         await this.createGeneratedEntities(chunk);
 
-        if (discardedStacklessItems && this.provider.supportsChunkUnload === true) {
+        if (discardedStacklessItems && this.getProvider().supportsChunkUnload === true) {
             try {
                 await this.enqueueSave(async () => {
                     this.dataEntities().persist();
-                    await this.provider.writeChunk(chunk);
+                    await this.getProvider().writeChunk(chunk);
                 });
             } catch (error: unknown) {
                 this.server
@@ -1397,10 +1320,12 @@ export class World implements Service {
      * go: see {@link placePlayerSpawn} for where a player actually starts.
      */
     public async getSpawnPosition(): Promise<Vector3> {
-        if (this.spawn) return this.spawn;
+        const known = this.getKnownSpawnPosition();
+        if (known) return known;
 
-        this.spawn = await this.findSurfaceSpawn();
-        return this.spawn;
+        const found = await this.findSurfaceSpawn();
+        this.setSpawnPosition(found);
+        return found;
     }
 
     /**
@@ -1449,7 +1374,7 @@ export class World implements Service {
     private async spawnSurfaceAt(x: number, z: number): Promise<number | undefined> {
         const probe = this.generator.surfaceAt;
         if (probe !== undefined) {
-            const terrain = probe.call(this.generator, x, z, this.seed);
+            const terrain = probe.call(this.generator, x, z, this.level.seed);
             return terrain === undefined || UNSUITABLE_SPAWN_TERRAIN.has(terrain.name) ? undefined : terrain.y;
         }
 
@@ -1487,7 +1412,7 @@ export class World implements Service {
             z: Math.trunc(origin.z),
             radiusInChunks,
             wanted: (structure) => structureNameMatches(name, structure),
-            seed: this.seed
+            seed: this.level.seed
         });
     }
 
@@ -1531,11 +1456,12 @@ export class World implements Service {
     }
 
     /**
-     * Set the world's spawn position.
+     * Set the world's spawn position. The Overworld's is the level's, Bedrock's `SpawnX/Y/Z`.
      * @param {Vector3} pos - The position.
      */
     public setSpawnPosition(pos: Vector3) {
-        this.spawn = pos;
+        if (this.isOverworld()) this.level.setSpawn(pos);
+        else this.spawn = pos;
     }
 
     /**
@@ -1543,11 +1469,17 @@ export class World implements Service {
      *
      * {@link World.getSpawnPosition} searches for dry land the first time it is asked, which
      * is why it is asynchronous. A caller inside the tick cannot wait for that search, so it
-     * gets what the world knows now.
+     * gets what the world knows now. The Overworld answers the level's spawn, which is the
+     * one the save keeps.
      * @returns {Vector3 | null} The spawn point, or null before it has been resolved.
      */
     public getKnownSpawnPosition(): Vector3 | null {
-        return this.spawn;
+        return this.isOverworld() ? this.level.getSpawn() : this.spawn;
+    }
+
+    /** Whether this is the level's Overworld, whose spawn and legacy entities the save keeps. */
+    private isOverworld(): boolean {
+        return this.dimension.bedrockId === Dimensions.Overworld.bedrockId;
     }
 
     /**
@@ -1735,7 +1667,7 @@ export class World implements Service {
         y: number,
         z: number,
         runtimeId: number,
-        now: number = this.currentTick,
+        now: number = this.getTicks(),
         delay = 1
     ): Promise<boolean> {
         const chunk = this.getLoadedChunk(x >> 4, z >> 4) ?? (await this.getChunkAt(x, z));
@@ -1766,7 +1698,7 @@ export class World implements Service {
         y: number,
         z: number,
         runtimeId: number,
-        now: number = this.currentTick,
+        now: number = this.getTicks(),
         delay = 1,
         notifyNeighbors = true
     ): boolean {
@@ -1789,7 +1721,7 @@ export class World implements Service {
         const runtimeId = BlockRuntimeIds.tryGetByState(block.name, block.states);
         if (runtimeId === null) return false;
 
-        return this.setLoadedBlockRuntimeId(x, y, z, runtimeId, this.currentTick, 1, notifyNeighbors);
+        return this.setLoadedBlockRuntimeId(x, y, z, runtimeId, this.getTicks(), 1, notifyNeighbors);
     }
 
     /** The write itself, once a chunk to write into is in hand. */
@@ -1849,7 +1781,7 @@ export class World implements Service {
         y: number,
         z: number,
         name: string,
-        now: number = this.currentTick,
+        now: number = this.getTicks(),
         delay = 1
     ): Promise<boolean> {
         const runtimeId = BlockRuntimeIds.tryGetByName(name);
@@ -1868,22 +1800,9 @@ export class World implements Service {
         return this.systems;
     }
 
-    /** This world's weather, built the first time anything asks. */
-    private weatherCycle(): WorldWeather {
-        this.weather ??= new WorldWeather({
-            cycleAllowed: () => this.getGameRuleManager().getGameRule(GameRules.DoWeatherCycle)?.[0] !== false,
-            randomInt: (bound) => Math.floor(Math.random() * bound),
-            broadcast: (event, data) => {
-                this.changes.worldEffect(null, event, data);
-            }
-        });
-
-        return this.weather;
-    }
-
-    /** What the sky is doing: `clear`, `rain` or `thunder`. */
+    /** What the sky is doing: `clear`, `rain` or `thunder`. One answer per level. */
     public getWeather(): Weather {
-        return this.weatherCycle().current();
+        return this.level.getWeather().current();
     }
 
     /**
@@ -1908,10 +1827,11 @@ export class World implements Service {
      * reads 15.
      *
      * @returns False for a position in a chunk whose light the engine has not computed, which
-     * is also what a fire there would answer: nothing is ticking it.
+     * is also what a fire there would answer: nothing is ticking it. Always false in a
+     * dimension without a sky, where Java's `hasSkylight` is false and nothing can see rain.
      */
     public isRainingAt(x: number, y: number, z: number): boolean {
-        if (!this.weatherCycle().raining()) return false;
+        if (!this.dimension.java.hasSkylight || !this.level.getWeather().raining()) return false;
 
         return this.systems.lighting.getSkyLight(x, y, z) === FULL_SKY_LIGHT;
     }
@@ -1924,7 +1844,7 @@ export class World implements Service {
      *   randomized default: 10 to 150 minutes clear, 10 to 20 raining, 3 to 13 storming.
      */
     public setWeather(kind: Weather, durationTicks?: number): void {
-        this.weatherCycle().set(kind, durationTicks);
+        this.level.getWeather().set(kind, durationTicks);
     }
 
     /**
@@ -2027,10 +1947,10 @@ export class World implements Service {
      * falling sand duplicates itself, and water spreads twice into the same hole.
      */
     private async runBlockUpdates(): Promise<void> {
-        const due = this.blockUpdates.due(this.currentTick);
+        const due = this.blockUpdates.due(this.getTicks());
 
         for (const { x, y, z } of due) {
-            await this.physics.update(x, y, z, this.currentTick);
+            await this.physics.update(x, y, z, this.getTicks());
         }
     }
 
@@ -2201,8 +2121,8 @@ export class World implements Service {
      */
     private reportItemEntityLimit(lost: number): void {
         const last = this.itemEntityLimitReportedAt;
-        if (last !== undefined && this.currentTick - last < World.ITEM_ENTITY_LIMIT_REPORT_INTERVAL) return;
-        this.itemEntityLimitReportedAt = this.currentTick;
+        if (last !== undefined && this.getTicks() - last < World.ITEM_ENTITY_LIMIT_REPORT_INTERVAL) return;
+        this.itemEntityLimitReportedAt = this.getTicks();
 
         this.server
             .getLogger()
@@ -2285,7 +2205,7 @@ export class World implements Service {
      * this made.
      */
     public async sendTime(): Promise<void> {
-        if (this.currentTick % World.TIME_SYNC_INTERVAL_TICKS !== 0) return;
+        if (this.getTicks() % World.TIME_SYNC_INTERVAL_TICKS !== 0) return;
 
         await this.changes.timeChanged(this.getTicks());
     }
@@ -2356,7 +2276,7 @@ export class World implements Service {
      * the provider instead of accumulating for the life of the server.
      */
     private async unloadDistantChunks(): Promise<void> {
-        if (this.provider.supportsChunkUnload !== true) return;
+        if (this.getProvider().supportsChunkUnload !== true) return;
 
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
@@ -2386,7 +2306,7 @@ export class World implements Service {
                 const entities = this.entitiesInChunk(chunk);
                 if (chunk.getHasChanged() || entities.length > 0) {
                     this.dataEntities().persist();
-                    await this.provider.writeChunk(chunk);
+                    await this.getProvider().writeChunk(chunk);
                 }
             });
         } catch (error: unknown) {
@@ -2666,7 +2586,7 @@ export class World implements Service {
         for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
             for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) {
                 try {
-                    await this.provider.writeChunk(chunk);
+                    await this.getProvider().writeChunk(chunk);
                 } catch (error: unknown) {
                     chunk.markChanged();
                     this.server
@@ -2762,20 +2682,42 @@ export class World implements Service {
         await this.saveLevelData();
     }
 
+    /** The level this world is one dimension of. */
+    public getLevel(): Level {
+        return this.level;
+    }
+
+    /** The stem this world was built from: its dimension type id and its generator definition. */
+    public getStem(): LevelStem {
+        return this.stem;
+    }
+
+    /** The level's game rules, which every world of the save shares. */
     public getGameRuleManager(): GameRuleManager {
-        return this.gameRuleManager;
+        return this.level.getGameRuleManager();
     }
 
+    /** The level's clock, which every world of the save shares. */
     public getTicks(): number {
-        return this.currentTick;
+        return this.level.getTicks();
     }
 
+    /** Sets the level's clock, which is what `/time set` does. */
     public setTicks(tick: number): void {
-        this.currentTick = tick;
+        this.level.setTicks(tick);
     }
 
-    public getProvider(): any {
-        return this.provider;
+    /** The level's provider, which serves every dimension of the save. */
+    public getProvider(): BaseProvider & Provider {
+        return this.level.getProvider();
+    }
+
+    /**
+     * Tells everyone in this world that a game rule changed. Called by the level, whose rules
+     * these are, for each of its worlds.
+     */
+    public async announceGameRule(name: string, value: boolean | number, editable: boolean): Promise<void> {
+        await this.changes.gameRuleChanged(name, value, editable);
     }
 
     // This is used for example in start game packet
@@ -2797,7 +2739,7 @@ export class World implements Service {
      * 2^53 arrived here rounded, which generated a world the player had not asked for.
      */
     public getSeed(): bigint {
-        return this.seed;
+        return this.level.seed;
     }
 
     /**
@@ -2811,72 +2753,13 @@ export class World implements Service {
         return this.dimension;
     }
 
-    private async getLegacyWorldData(): Promise<WorldPersistenceData | null> {
-        const file = withCwd(WORLDS_FOLDER_NAME, this.name, LEGACY_LEVEL_DATA_FILE_NAME);
-        if (!fs.existsSync(file)) return null;
-
-        try {
-            const data: unknown = (await readJsonFile(file, '{}')).get([]);
-            return legacyWorldPersistenceDataOf(data);
-        } catch (error: unknown) {
-            // Keep an unreadable legacy file so a later startup can retry the migration.
-            this.server.getLogger().error(`Failed to read legacy world data for ${this.name}`);
-            this.server.getLogger().error(error);
-            return null;
-        }
-    }
-
     /**
-     * Writes world metadata through the provider.
-     *
-     * The spawn point written is the one the world already knows. Resolving it is a search
-     * for dry land, and that generates terrain - which this used to do from inside the
-     * autosave's tick, and from the middle of a shutdown where it reached a provider that had
-     * already closed. {@link World.enable} resolves it once instead, so there is one to write
-     * by the time anything saves.
-     *
-     * A world whose spawn is still unknown writes everything else and leaves the stored spawn
-     * where it is. Overwriting a real spawn point with a guess would be worse than the gap.
+     * Writes the level's metadata through the provider: the spawn, the clock, the rules, the
+     * weather and the stems. The level's, because Bedrock keeps one of each per save; kept
+     * here so `/setworldspawn` and the autosave reach it through the world they hold.
      */
     public async saveLevelData(): Promise<void> {
-        const spawn = this.getKnownSpawnPosition();
-        if (!spawn) {
-            this.server
-                .getLogger()
-                .debug(`No spawn point to save for ${this.getFormattedName()}`, 'World/saveLevelData');
-        }
-
-        const entities = this.getEntities()
-            .filter((entity) => !(entity instanceof Player))
-            .map((entity) => ({
-                type: entity.getType(),
-                position: {
-                    x: entity.getPosition().getX(),
-                    y: entity.getPosition().getY(),
-                    z: entity.getPosition().getZ(),
-                    pitch: entity.pitch,
-                    yaw: entity.yaw,
-                    headYaw: entity.headYaw
-                }
-            }));
-
-        try {
-            const stored = (await this.provider.readWorldData()) ?? {};
-            const data: WorldPersistenceData = {
-                ...stored,
-                ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
-                gameRules: Array.from(this.getGameRuleManager().getGameRules()),
-                weather: this.weatherCycle().saved(),
-                ...(this.provider.supportsChunkUnload === true ? {} : { entities })
-            };
-            await this.provider.writeWorldData(data);
-            // Until a `Level` owns the save, the world passes what it knows: the spawn and its
-            // own clock. The stems and the Nether scale arrive with the level.
-            this.provider.saveLevelData({ ...(spawn ? { spawn: data.spawn } : {}), time: this.getTicks() });
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save world data for ${this.getFormattedName()}`);
-            this.server.getLogger().error(error);
-        }
+        await this.level.saveLevelData();
     }
 
     /**
@@ -2886,37 +2769,19 @@ export class World implements Service {
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
         const key = World.playerDataKey(player);
+        const data = await this.level.getPlayerData(key);
+        if (data) return data;
 
-        try {
-            const data = await this.provider.readPlayerData?.(key);
-            if (data) return data;
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to read player data for ${key}`);
-            this.server.getLogger().error(error);
-        }
+        // Missing player data is the ordinary case - it is what a first join looks like - so
+        // this is a debug line and not an error. It used to raise "Player has no XUID" for
+        // anybody unauthenticated and log that as a failure on every single join, which is a
+        // thing `LoginHandler` explicitly permits and `savePlayerData` has always written a
+        // record for.
+        this.server.getLogger().debug(`PlayerData is missing for player ${key}`);
 
-        try {
-            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${key}.json`);
-            await fs.promises.access(file);
-            // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
-            const data: unknown = (await readJsonFile(file, '{}')).get([]);
-            return data as Partial<WorldPlayerData>;
-        } catch (error: unknown) {
-            // Missing player data is the ordinary case - it is what a first join looks like -
-            // so this is a debug line and not an error. It used to raise "Player has no XUID"
-            // for anybody unauthenticated and log that as a failure on every single join,
-            // which is a thing `LoginHandler` explicitly permits and `savePlayerData` has
-            // always written a file for.
-            this.server
-                .getLogger()
-                .debug(
-                    `PlayerData is missing for player ${key}: ${error instanceof Error ? error.message : String(error)}`
-                );
-
-            // No position: a player who has never been here is placed by `placePlayerSpawn`,
-            // which needs to know that rather than be handed the raw spawn point.
-            return { gamemode: this.server.getConfig().getGamemode() };
-        }
+        // No position: a player who has never been here is placed by `placePlayerSpawn`,
+        // which needs to know that rather than be handed the raw spawn point.
+        return { gamemode: this.server.getConfig().getGamemode() };
     }
     /**
      * What a player's data file is named after.
@@ -2930,18 +2795,11 @@ export class World implements Service {
         return player.getXUID() || player.getName();
     }
 
+    /**
+     * Writes a player's record into the level, filed under {@link World.playerDataKey} and
+     * stamped with this world's dimension so the next login puts them back here.
+     */
     public async savePlayerData(player: Player): Promise<void> {
-        // A shutdown kicks everyone, and each client's connection closes some time after the
-        // world has already saved and closed its provider - so this arrives once more, per
-        // player, with nothing left to write to. The shutdown's own `save` wrote them while
-        // they were still online, so there is nothing lost in declining.
-        if (this.closed) {
-            this.server
-                .getLogger()
-                .debug(`${player.getName()} left after ${this.getFormattedName()} closed`, 'World/savePlayerData');
-            return;
-        }
-
         const data = {
             // Serialised explicitly: the uuid is a parsed object now, and letting JSON have
             // its way with it would write out the four raw parts instead of the identity.
@@ -2987,21 +2845,7 @@ export class World implements Service {
             savedAt: Date.now()
         } satisfies WorldPlayerData;
 
-        try {
-            const key = World.playerDataKey(player);
-            if (this.provider.writePlayerData) {
-                await this.provider.writePlayerData(key, data);
-                return;
-            }
-
-            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${key}.json`);
-            const document = await readJsonFile(file, '{}');
-            for (const [key, value] of Object.entries(data)) document.set([key], value);
-            await writeJsonFile(file, document);
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save player data`);
-            this.server.getLogger().error(error);
-        }
+        await this.level.savePlayerData(World.playerDataKey(player), data);
     }
 
     /**

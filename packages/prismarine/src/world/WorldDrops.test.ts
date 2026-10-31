@@ -15,6 +15,7 @@ import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { fakeLevel } from '../testing/level';
 
 /**
  * A break, all the way to the packet that puts the dropped stack on someone's screen.
@@ -82,7 +83,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         entityChunkIndices: new Map(),
-        currentTick: 0,
+        level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
         entities,
@@ -129,7 +130,7 @@ const emptyWorld = () => {
         players: new Map(),
         entityChunkIndices: new Map(),
         chunks: new Map(),
-        currentTick: 0,
+        level: fakeLevel(),
         changes: NULL_WORLD_CHANGE_SINK,
         server: {
             getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),

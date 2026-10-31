@@ -209,7 +209,8 @@ export default class Server extends EventEmitter {
         this.commandManager = new CommandManager(this);
         this.ticker = new ServerTicker({
             emitTick: (event) => this.emit('tick', event),
-            getWorlds: () => this.worldManager.getWorlds(),
+            // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
+            getWorlds: () => this.worldManager.getLevels(),
             tickFunctions: () => this.commandManager.tickFunctions(),
             getChunkScheduler: () => this.chunkScheduler,
             getChunkSendBudgetMs: () => this.config.getChunkSendBudgetMs(),

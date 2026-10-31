@@ -27,6 +27,7 @@ import { World } from './World';
 import type { SystemBlock } from './WorldSystems';
 import { contentBlockTickHandlers } from './blockTicks';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
  * The engine systems, driven by a real world tick.
@@ -117,17 +118,9 @@ const fluidContentFor = (world: () => World | undefined): ServerContent => {
     return built;
 };
 
-/**
- * Sets the random tick speed on a world that has finished being built.
- *
- * `getGameRuleManager` still answers `null`, because the manager's own change callback can
- * fire while the world's constructor is still running. By the time a test holds a world it
- * cannot be null, so an absent one is a failure rather than a rule quietly left unset.
- */
+/** Sets the random tick speed on the level behind a world. */
 const setRandomTickSpeed = (world: World, blocksPerSubChunk: number): void => {
-    const rules = world.getGameRuleManager();
-    if (rules === null) throw new Error('the world was built without a game rule manager');
-    rules.setGameRule('randomTickSpeed', blocksPerSubChunk, true);
+    world.getGameRuleManager().setGameRule('randomTickSpeed', blocksPerSubChunk, true);
 };
 
 /** A world with nine flat chunks around the origin already in memory. */
@@ -138,12 +131,16 @@ const flatWorld = async (
     let world: World | undefined;
     const content = buildContent?.(() => world) ?? testContent();
 
+    const server = testServer(content);
     world = new World({
         name: 'engine-systems-test',
         path: path.join(os.tmpdir(), 'engine-systems-test'),
-        server: testServer(content),
-        provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) }),
-        seed: 0n,
+        server,
+        level: fakeLevel({
+            server,
+            provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
+        }),
+        stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({}),
         randomTickHandlers,
         blockTickHandlers:
@@ -176,8 +173,13 @@ const nameAt = (world: World, x: number, y: number, z: number): string =>
 const stateAt = (world: World, x: number, y: number, z: number, state: string) =>
     world.loadedBlockAt(x, y, z)?.states[state];
 
+/** Advances the level's clock and ticks the world, as `Level.update` does for each of its worlds. */
 const runTicks = async (world: World, ticks: number): Promise<void> => {
-    for (let tick = 0; tick < ticks; tick++) await world.update(world.getTicks() + 1);
+    const level = world.getLevel();
+    for (let tick = 0; tick < ticks; tick++) {
+        level.setTicks(level.getTicks() + 1);
+        await world.update(level.getTicks());
+    }
 };
 
 /**

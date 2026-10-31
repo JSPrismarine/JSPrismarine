@@ -33,6 +33,9 @@ import { Position } from './Position';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { contentBlockTickHandlers } from './blockTicks';
+import { fakeLevel } from '../testing/level';
+import type GameRuleManager from './GameRuleManager';
+import type { GameRuleEntry } from './GameRuleManager';
 
 /**
  * Every path that destroys a block, over a world with the real content behind it.
@@ -208,29 +211,30 @@ interface Fixture {
     chunk: Chunk;
     spawned: Entity[];
     /** The world's game rules, by the name they were set under. A test writes into it. */
-    rules: Map<string, readonly [boolean | number, boolean]>;
+    rules: Map<string, GameRuleEntry>;
 }
 
 /** A `World` reduced to what a destruction touches: no disk, no network, everything else real. */
 const liveWorld = (content: () => ServerContent | undefined): Fixture => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
-    const rules = new Map<string, readonly [boolean | number, boolean]>();
+    const rules = new Map<string, GameRuleEntry>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        currentTick: 0,
-        spawn: new Vector3(8, 64, 8),
+        level: fakeLevel({
+            spawn: new Vector3(8, 64, 8),
+            gameRules: stub<GameRuleManager>({
+                getGameRule: () => [true, true] as const,
+                findGameRule: (name: string) => rules.get(name.toLowerCase())
+            })
+        }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
         entityChunkIndices: new Map(),
         players: new Map(),
         entityGrid: { near: () => [] },
-        gameRuleManager: {
-            getGameRule: () => [true, true] as const,
-            findGameRule: (name: string) => rules.get(name.toLowerCase())
-        },
         getChunkAt: async () => chunk,
         // Fire reads a player list through `minecraft:fire_spread_radius_around_player`.
         // The content adapter reads the same player fields as it does for a live player.
@@ -272,7 +276,7 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
 /** Runs the world's scheduled block and fluid ticks. */
 const runTicks = (world: World, count: number): void => {
     for (let tick = 1; tick <= count; tick += 1) {
-        Object.assign(world, { currentTick: tick });
+        world.setTicks(tick);
         world.getSystems().tick(tick);
     }
 };
@@ -288,7 +292,7 @@ describe('a block the world destroyed', () => {
     let world: World;
     let chunk: Chunk;
     let spawned: Entity[];
-    let rules: Map<string, readonly [boolean | number, boolean]>;
+    let rules: Map<string, GameRuleEntry>;
     let content: ServerContent;
     let random: RandomSource;
 

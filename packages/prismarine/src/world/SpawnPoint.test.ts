@@ -46,9 +46,11 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
-import { World } from './World';
+import type { World } from './World';
 import type WorldManager from './WorldManager';
 import { inertEntityRuntime } from '../testing/entityServer';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import { testLevel } from '../testing/level';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };
@@ -144,11 +146,17 @@ const buildScene = async (name: string) => {
             })
     });
 
-    const provider = new LevelDB(folder, server);
-    world = new World({ name, path: folder, server, provider, seed: 1234n, generator: generator() });
-    provider.setWorld(world);
-    await provider.enable();
-    world.setSpawnPosition(WORLD_SPAWN);
+    // The spawn is known before the world opens, so enabling it searches for nothing.
+    const level = testLevel({
+        name,
+        path: folder,
+        server,
+        provider: new LevelDB(folder, server),
+        generator: generator(),
+        spawn: WORLD_SPAWN
+    });
+    await level.enable();
+    world = await level.world(OVERWORLD_STEM_ID);
 
     const contentWorld: ServerWorldHandle = serverWorldSource({
         worldFor: () => world,
@@ -179,7 +187,7 @@ const buildScene = async (name: string) => {
     return {
         server,
         world,
-        provider,
+        level,
         content,
         contentWorld,
         blocks: content.world.blockWorld.at('minecraft:overworld')
@@ -259,7 +267,7 @@ describe('a player with a spawn point of their own', () => {
         expect([fallback.block.getX(), fallback.block.getY(), fallback.block.getZ()]).toEqual([0, 70, 0]);
         expect(player.getSpawnPoint()).toBeUndefined();
 
-        await scene.provider.disable();
+        await scene.level.disable();
     }, 120_000);
 
     it('honors a point /spawnpoint set whatever is standing there', async () => {
@@ -284,7 +292,7 @@ describe('a player with a spawn point of their own', () => {
         const point = await player.getRespawnPoint();
         expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([32, 65, -17]);
 
-        await scene.provider.disable();
+        await scene.level.disable();
     }, 120_000);
 
     it('moves the world spawn through /setworldspawn, which is where a player with no point goes', async () => {
@@ -300,7 +308,7 @@ describe('a player with a spawn point of their own', () => {
         const point = await player.getRespawnPoint();
         expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([-8, 72, 44]);
 
-        await scene.provider.disable();
+        await scene.level.disable();
     }, 120_000);
 
     it('keeps the point across a logout, through the player record', async () => {
@@ -313,7 +321,7 @@ describe('a player with a spawn point of their own', () => {
 
         await leaving.world.savePlayerData(player);
         await leaving.world.save();
-        await leaving.provider.disable();
+        await leaving.level.disable();
 
         const returning = await buildScene('persist');
         const back = buildPlayer(returning.world, returning.server, uuid);
@@ -324,6 +332,6 @@ describe('a player with a spawn point of their own', () => {
         const point = await back.getRespawnPoint();
         expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([BED.x, BED.y, BED.z + 1]);
 
-        await returning.provider.disable();
+        await returning.level.disable();
     }, 120_000);
 });

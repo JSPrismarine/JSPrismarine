@@ -36,8 +36,11 @@ import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import type Server from '../Server';
 import type WorldManager from './WorldManager';
-import { World } from './World';
-import { testContent } from '../testing/entityServer';
+import type { World } from './World';
+import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import type { Level } from './Level';
+import { testLevel } from '../testing/level';
 
 const WORLD_NAME = 'persistence';
 
@@ -65,6 +68,7 @@ const testServer = (worlds: () => World[] = () => []): Server => {
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getContent: () => testContent(),
+        getEntityRuntime: () => inertEntityRuntime(),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',
@@ -83,21 +87,20 @@ const generator = (): Generator => ({
     generateChunk: async (cx: number, cz: number) => new Chunk(cx, cz, new Map(), Dimensions.Overworld)
 });
 
-const buildWorld = (server: Server) => {
+/**
+ * A level over the one world folder, with its spawn already known so that opening the Overworld
+ * generates nothing.
+ */
+const buildLevel = (server: Server): Level => {
     const folder = path.join(scratch, 'worlds', WORLD_NAME);
-    const provider = new LevelDB(folder, server);
-    const world = new World({
+    return testLevel({
         name: WORLD_NAME,
         path: folder,
         server,
-        provider,
-        seed: 1234n,
-        generator: generator()
+        provider: new LevelDB(folder, server),
+        generator: generator(),
+        spawn: new Vector3(0, 64, 0)
     });
-
-    // `World.enable` is what normally does this, and this test never generates a chunk.
-    provider.setWorld(world);
-    return { world, provider };
 };
 
 /** A player of a fixed identity, so the second one reads the first one's record. */
@@ -144,9 +147,10 @@ const pickaxe = (): Item => {
 const logOutAndIn = async () => {
     let built: World | undefined;
     const server = testServer(() => (built === undefined ? [] : [built]));
-    const { world, provider } = buildWorld(server);
+    const level = buildLevel(server);
+    await level.enable();
+    const world = await level.world(OVERWORLD_STEM_ID);
     built = world;
-    await provider.enable();
 
     const uuid = UUID.fromRandom();
     const leaving = buildPlayer(world, server, uuid);
@@ -178,15 +182,18 @@ const logOutAndIn = async () => {
 
     await world.savePlayerData(leaving);
 
-    // A fresh process would reopen the database; reopening the provider is the same thing
-    // without the process.
-    await provider.disable();
-    await provider.enable();
+    // A fresh process would reopen the database; a second level over the same folder is the
+    // same thing without the process.
+    await level.disable();
+    const reopened = buildLevel(server);
+    await reopened.enable();
+    const back = await reopened.world(OVERWORLD_STEM_ID);
+    built = back;
 
-    const returning = buildPlayer(world, server, uuid);
+    const returning = buildPlayer(back, server, uuid);
     await returning.enable();
 
-    await provider.disable();
+    await reopened.disable();
     return returning;
 };
 

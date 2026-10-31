@@ -17,8 +17,11 @@ import type { Generator } from './Generator';
 import { GenerationStopped } from './Generator';
 import { readLevelDat } from './providers/leveldb/LevelDat';
 import LevelDB from './providers/leveldb/LevelDB';
-import { World } from './World';
+import type { World } from './World';
 import { inertEntityRuntime } from '../testing/entityServer';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import type { Level } from './Level';
+import { testLevel } from '../testing/level';
 
 /**
  * Shutting a world down while its start region is still being generated.
@@ -148,13 +151,24 @@ class CountingLevelDB extends LevelDB {
     }
 }
 
-const buildWorld = (name: string, generator: Generator) => {
+/**
+ * A level whose Overworld is built as the level opens, the way `WorldManager` loads the default
+ * world, over a provider that counts the chunk reads arriving after the shutdown began.
+ */
+const buildLevel = (name: string, generator: Generator) => {
     const server = testServer();
     const folder = path.join(scratch, 'worlds', name);
     const provider = new CountingLevelDB(folder, server);
-    const world = new World({ name, path: folder, server, provider, seed: 1234n, generator });
+    const level = testLevel({ name, path: folder, server, provider, generator, load: 'eager' });
 
-    return { world, provider };
+    return { level, provider };
+};
+
+/** The Overworld a level built as it opened; `Level.enable` builds it before its first await. */
+const overworldOf = (level: Level): World => {
+    const world = level.loadedWorld(OVERWORLD_STEM_ID);
+    if (world === undefined) throw new Error('the level built no Overworld');
+    return world;
 };
 
 const spawnInLevelDat = (name: string): { x: number; y: number; z: number } => {
@@ -176,14 +190,15 @@ const spawnInLevelDat = (name: string): { x: number; y: number; z: number } => {
  */
 const shutDownMidGeneration = async () => {
     const generator = gatedGenerator();
-    const { world, provider } = buildWorld(WORLD_NAME, generator);
+    const { level, provider } = buildLevel(WORLD_NAME, generator);
 
-    const enabling = world.enable();
+    const enabling = level.enable();
+    const world = overworldOf(level);
     await generator.parked;
 
     // The restart arrives here, with a batch of the start region still being generated.
     provider.shuttingDown = true;
-    const disabling = world.disable();
+    const disabling = level.disable();
     generator.open();
 
     // Settled rather than awaited, so a rejection is something to assert on rather than
@@ -346,16 +361,17 @@ const queueingGenerator = (chunkAt: (cx: number, cz: number) => Chunk): Queueing
  */
 const shutDownMidBatch = async () => {
     const generator = queueingGenerator(wholeChunk);
-    const { world, provider } = buildWorld(BATCH_WORLD_NAME, generator);
+    const { level, provider } = buildLevel(BATCH_WORLD_NAME, generator);
 
-    const enabling = world.enable();
+    const enabling = level.enable();
+    const world = overworldOf(level);
     await generator.parked;
     const queued = generator.requested;
 
     // What `GeneratorFactories` registers with `Server.releaseOnShutdown`, which runs before the
     // shutdown awaits anything - here, before `disable` is even called.
     generator.stopGenerating();
-    const disabling = world.disable();
+    const disabling = level.disable();
     generator.open();
 
     const settled = await Promise.allSettled([enabling, disabling]);
@@ -450,13 +466,14 @@ describe('shutting a world down partway through a start region batch', () => {
  */
 const shutDownMidSpawnSearch = async () => {
     const generator = queueingGenerator(emptyChunk);
-    const { world, provider } = buildWorld(SEARCH_WORLD_NAME, generator);
+    const { level, provider } = buildLevel(SEARCH_WORLD_NAME, generator);
 
-    const enabling = world.enable();
+    const enabling = level.enable();
+    const world = overworldOf(level);
     await generator.parked;
 
     generator.stopGenerating();
-    const disabling = world.disable();
+    const disabling = level.disable();
     generator.open();
 
     const settled = await Promise.allSettled([enabling, disabling]);

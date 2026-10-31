@@ -17,6 +17,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { definitionOf } from '../content/ContentOptions';
 import type Server from '../Server';
+import { fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import type { WorldContentBiomes } from './contentAdapter';
@@ -165,7 +166,7 @@ describe('the game rules a world carries', () => {
         const world: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
             dimension: Dimensions.Overworld,
-            gameRuleManager: rules
+            level: fakeLevel({ server, gameRules: rules })
         });
 
         return worldContentGroups({

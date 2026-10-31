@@ -17,8 +17,9 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
-import { World } from './World';
 import { inertEntityRuntime } from '../testing/entityServer';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import { testLevel } from '../testing/level';
 
 /**
  * The autosave, and the fact that a tick must not wait for it.
@@ -147,12 +148,20 @@ class GatedLevelDB extends LevelDB {
     }
 }
 
-/** A world over a real LevelDB in a scratch folder, with `CHUNK_COUNT` dirty chunks loaded. */
+/**
+ * A world over a real LevelDB in a scratch folder, with `CHUNK_COUNT` dirty chunks loaded.
+ *
+ * The level knows its spawn before the world opens, so enabling the world generates no start
+ * region: the chunks these tests save are loaded by hand, and the interesting state is reached
+ * in milliseconds.
+ */
 const loadedWorld = async (name: string) => {
     const server = testServer();
     const folder = path.join(scratch, 'worlds', name);
     const provider = new GatedLevelDB(folder, server);
-    const world = new World({ name, path: folder, server, provider, seed: 1234n, generator });
+    const level = testLevel({ name, path: folder, server, provider, generator, spawn: new Vector3(0, GROUND, 0) });
+    await level.enable();
+    const world = await level.world(OVERWORLD_STEM_ID);
 
     // Counted here rather than in `writeChunk`, because a pass that writes nothing still has
     // to be distinguishable from no pass at all.
@@ -169,14 +178,9 @@ const loadedWorld = async (name: string) => {
         }
     };
 
-    // What `World.enable` does for the provider, without the start region: the provider reads
-    // the world's dimension back out, so it has to know which world it belongs to.
-    provider.setWorld(world);
-    await provider.enable();
-
     for (let i = 0; i < CHUNK_COUNT; i++) await world.getChunk(i, 0);
 
-    return { world, provider };
+    return { world, provider, level };
 };
 
 beforeEach(() => {
@@ -194,10 +198,10 @@ afterEach(() => {
 
 describe('the autosave a tick starts', () => {
     it('lets the tick finish while chunks are still being written', async () => {
-        const { world, provider } = await loadedWorld('unblocked');
+        const { world, provider, level } = await loadedWorld('unblocked');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await world.update(AUTO_SAVE_TICK);
+        await level.update(AUTO_SAVE_TICK);
 
         // The tick is over and the save has not written a single chunk, because it is parked
         // on the first one. Awaited, this call could not have returned.
@@ -205,32 +209,32 @@ describe('the autosave a tick starts', () => {
         expect(provider.written).toBe(0);
 
         provider.openGate();
-        await world.disable();
+        await level.disable();
         expect(provider.written).toBe(CHUNK_COUNT);
     });
 
     it('does not start a second pass while the first is still running', async () => {
-        const { world, provider } = await loadedWorld('no-overlap');
+        const { world, provider, level } = await loadedWorld('no-overlap');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await world.update(AUTO_SAVE_TICK);
+        await level.update(AUTO_SAVE_TICK);
         await provider.parked;
 
         // Two minutes of ticks later the next autosave falls due, with the first still parked.
         world.setTicks(AUTO_SAVE_TICK * 2 - 1);
-        await world.update(AUTO_SAVE_TICK * 2);
+        await level.update(AUTO_SAVE_TICK * 2);
 
         expect(provider.passes).toBe(1);
 
         provider.openGate();
-        await world.disable();
+        await level.disable();
     });
 
     it('queues an explicit save behind itself rather than writing beside it', async () => {
-        const { world, provider } = await loadedWorld('explicit');
+        const { world, provider, level } = await loadedWorld('explicit');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await world.update(AUTO_SAVE_TICK);
+        await level.update(AUTO_SAVE_TICK);
         await provider.parked;
 
         // What a plugin or a console command does, with the autosave still parked. It has to
@@ -242,18 +246,18 @@ describe('the autosave a tick starts', () => {
         expect(provider.passes).toBe(2);
         expect(provider.concurrentPasses).toBe(1);
 
-        await world.disable();
+        await level.disable();
     });
 
     it('is waited for by a shutdown, so the provider never closes under a write', async () => {
-        const { world, provider } = await loadedWorld('shutdown');
+        const { world, provider, level } = await loadedWorld('shutdown');
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await world.update(AUTO_SAVE_TICK);
+        await level.update(AUTO_SAVE_TICK);
         await provider.parked;
 
         let shutDown = false;
-        const disabling = world.disable().then(() => void (shutDown = true));
+        const disabling = level.disable().then(() => void (shutDown = true));
 
         // A turn of the loop with the save still parked. The shutdown must still be waiting.
         await new Promise((resolve) => setImmediate(resolve));
@@ -270,7 +274,7 @@ describe('the autosave a tick starts', () => {
 
 describe('what a backgrounded autosave writes', () => {
     it('round trips every block, biome and block entity', async () => {
-        const { world, provider } = await loadedWorld('round-trip');
+        const { world, provider, level } = await loadedWorld('round-trip');
 
         // A block entity in the first chunk, so the comparison covers more than blocks.
         (await world.getChunk(0, 0)).setBlockEntity(signAt(3, GROUND + 1, 5));
@@ -280,9 +284,9 @@ describe('what a backgrounded autosave writes', () => {
         );
 
         world.setTicks(AUTO_SAVE_TICK - 1);
-        await world.update(AUTO_SAVE_TICK);
+        await level.update(AUTO_SAVE_TICK);
         provider.openGate();
-        await world.disable();
+        await level.disable();
 
         // A second world over the same folder, reading back what the first wrote.
         const server = testServer();

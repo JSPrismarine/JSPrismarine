@@ -5,6 +5,7 @@ import type { Server } from '../../';
 import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../Dimension';
 import type { Entity } from '../../entity/Entity';
+import type { Level } from '../Level';
 import type Provider from './Provider';
 import type { LevelDatInputs } from './Provider';
 
@@ -33,6 +34,7 @@ export default abstract class BaseProvider implements Provider {
     protected path: string;
     protected server: Server;
     protected world!: World;
+    private level: Level | undefined;
     private entitySource: EntitySource | null = null;
 
     public constructor(path: string, server: Server) {
@@ -46,12 +48,39 @@ export default abstract class BaseProvider implements Provider {
     /**
      * Attaches the world this provider logs and names the save after. Until an entity source is
      * attached, that world's entities are also the ones a chunk write persists.
+     *
+     * A provider that serves a {@link Level} is told about the level instead; see
+     * {@link BaseProvider.setLevel}.
      */
     public setWorld(world: World) {
         this.world = world;
     }
     public getWorld() {
         return this.world;
+    }
+
+    /**
+     * Attaches the level whose save this provider is, which is where the save's name and seed
+     * come from once a level owns it. A level has no world until one is asked for, so the
+     * metadata a format writes on open cannot wait for one.
+     */
+    public setLevel(level: Level): void {
+        this.level = level;
+    }
+
+    /** The level this provider serves, or undefined before {@link BaseProvider.setLevel}. */
+    public getLevel(): Level | undefined {
+        return this.level;
+    }
+
+    /** The save's name: the level's, or the attached world's before a level owns the save. */
+    protected saveName(): string {
+        return this.level?.name ?? this.world.getName();
+    }
+
+    /** The save's seed: the level's, or the attached world's before a level owns the save. */
+    protected saveSeed(): bigint {
+        return this.level?.seed ?? this.world.getSeed();
     }
 
     /** Attaches where a chunk write finds the entities of the chunk's dimension. */

@@ -20,6 +20,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /**
  * A block entity change leaving the world through its change sink.
@@ -64,12 +65,16 @@ const testServer = (): Server =>
 
 /** A world with one flat chunk in memory, recording every block entity change it reports. */
 const flatWorld = async () => {
+    const server = testServer();
     const world = new World({
         name: 'block-entity-replication-test',
         path: path.join(os.tmpdir(), 'block-entity-replication-test'),
-        server: testServer(),
-        provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) }),
-        seed: 0n,
+        server,
+        level: fakeLevel({
+            server,
+            provider: stub<BaseProvider & Provider>({ readChunk: async (_dimension, x, z) => flatChunk(x, z) })
+        }),
+        stem: TEST_OVERWORLD_STEM,
         generator: stub<Generator>({})
     });
 

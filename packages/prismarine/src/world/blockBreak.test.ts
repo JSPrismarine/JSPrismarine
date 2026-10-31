@@ -28,6 +28,7 @@ import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { fakeLevel } from '../testing/level';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -219,8 +220,7 @@ const liveWorld = (
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
-        currentTick: 0,
-        spawn: new Vector3(8, 64, 8),
+        level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities,

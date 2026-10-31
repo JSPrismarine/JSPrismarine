@@ -167,7 +167,7 @@ describe('the command layer on a booted server', () => {
     afterAll(async () => {
         // Guarded: a boot that threw leaves no world, and failing to tidy up
         // would report a second failure on top of the real one.
-        await world?.getProvider()?.close?.();
+        await world?.getProvider().disable();
         rmSync(root, { recursive: true, force: true });
         if (previousDir === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previousDir;
@@ -526,7 +526,7 @@ describe('the command layer on a server with packs of its own', () => {
     }, 120_000);
 
     afterAll(async () => {
-        await world?.getProvider()?.close?.();
+        await world?.getProvider().disable();
         rmSync(root, { recursive: true, force: true });
         if (previousDir === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previousDir;
