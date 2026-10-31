@@ -18,7 +18,8 @@ export interface BedrockDimensionOverlay {
     readonly bedrockName: string;
     /**
      * The client's floor, present only where it differs from the Java type.
-     * Absent for all three vanilla rows today; the Java type's `min_y` applies.
+     * The Nether row carries 0, matching its Java `min_y`; the Overworld and
+     * End rows leave it out and the Java type's `min_y` applies.
      */
     readonly minY?: number;
     /**

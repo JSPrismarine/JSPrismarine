@@ -2843,9 +2843,8 @@ export class World implements Service {
     /**
      * Which dimension this world is, and therefore how tall it is and where its floor sits.
      *
-     * Only the Overworld is reachable today - the Nether and the End need portals and their own
-     * generators - but the chunk stack and the disk format both need the answer, and hardcoding it
-     * in two places is how they end up disagreeing.
+     * Resolved once from the stem's type by the level. The chunk stack, the disk format and
+     * the portal rules all read it from here, so none of them carries its own copy.
      */
     public getDimension(): DimensionType {
         return this.dimension;
