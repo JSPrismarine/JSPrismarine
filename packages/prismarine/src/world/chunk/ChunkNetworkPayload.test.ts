@@ -7,13 +7,20 @@ import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
 import Chunk from './Chunk';
 import SubChunk from './SubChunk';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf, minSubChunk, subChunkCount } from '../Dimension';
+import type { DimensionType } from '../Dimension';
 import { VANILLA_DIMENSION_TYPES } from '../vanillaDimensionTypes';
 
 const stone = () => BlockRuntimeIds.getByName('minecraft:stone');
 const dirt = () => BlockRuntimeIds.getByName('minecraft:dirt');
 
+/**
+ * The 0..255 Overworld the server had before real world heights: shallower than the client's
+ * range for dimension 0, so its payload owes the client four padding sub chunks below.
+ */
+const SHALLOW_OVERWORLD: DimensionType = { ...Dimensions.Overworld, minY: 0, height: 256 };
+
 /** A small deterministic chunk: a floor, a patch of dirt, and one block well up in the air. */
-const build = (dimension = Dimensions.Legacy): Chunk => {
+const build = (dimension = SHALLOW_OVERWORLD): Chunk => {
     const chunk = new Chunk(3, -7, new Map(), dimension);
     const floor = dimension.minY;
 
@@ -42,13 +49,13 @@ describe('world', () => {
                 original.getX(),
                 original.getZ(),
                 original.getNetworkSubChunkCount(),
-                Dimensions.Legacy
+                SHALLOW_OVERWORLD
             );
 
             expect(restored.getX()).toBe(3);
             expect(restored.getZ()).toBe(-7);
 
-            const floor = Dimensions.Legacy.minY;
+            const floor = SHALLOW_OVERWORLD.minY;
             const probes: Array<[number, number, number]> = [
                 [0, floor, 0],
                 [15, floor + 3, 15],
@@ -69,7 +76,7 @@ describe('world', () => {
             // leaving the biome and border trailer. A wrong count desynchronizes the stream and
             // the client renders whatever the misalignment produces.
             const stream = new BinaryStream(payload);
-            Chunk.networkDeserialize(stream, 0, 0, chunk.getNetworkSubChunkCount(), Dimensions.Legacy);
+            Chunk.networkDeserialize(stream, 0, 0, chunk.getNetworkSubChunkCount(), SHALLOW_OVERWORLD);
 
             const trailer = payload.byteLength - stream.getReadIndex();
             expect(trailer).toBe(subChunkCount(Dimensions.Overworld) * 2 + 1);
@@ -206,12 +213,12 @@ describe('world', () => {
 
             expect(chunk.networkSerialize()).toBe(first);
 
-            chunk.setBlockRuntimeId(1, Dimensions.Legacy.minY + 1, 1, dirt());
+            chunk.setBlockRuntimeId(1, SHALLOW_OVERWORLD.minY + 1, 1, dirt());
             expect(chunk.networkSerialize()).not.toBe(first);
         });
 
         it('serialises an empty chunk to nothing but the trailer', () => {
-            const chunk = new Chunk(0, 0, new Map(), Dimensions.Legacy);
+            const chunk = new Chunk(0, 0, new Map(), SHALLOW_OVERWORLD);
 
             // Four padding sub chunks, then the biomes and the border byte.
             expect(chunk.networkSerialize().byteLength).toBe(8 + subChunkCount(Dimensions.Overworld) * 2 + 1);
@@ -238,7 +245,7 @@ describe('world', () => {
         });
 
         it('reads outside the dimension as air rather than throwing', () => {
-            const chunk = new Chunk(0, 0, new Map(), Dimensions.Legacy);
+            const chunk = new Chunk(0, 0, new Map(), SHALLOW_OVERWORLD);
 
             expect(chunk.getBlockRuntimeId(0, -1, 0)).toBe(BlockRuntimeIds.getByName('minecraft:air'));
             expect(chunk.getBlockRuntimeId(0, 999, 0)).toBe(BlockRuntimeIds.getByName('minecraft:air'));
@@ -246,14 +253,14 @@ describe('world', () => {
 
         it('refuses to place a block outside the dimension', () => {
             // Silently dropping the write would surface much later as a hole in the terrain.
-            const chunk = new Chunk(0, 0, new Map(), Dimensions.Legacy);
+            const chunk = new Chunk(0, 0, new Map(), SHALLOW_OVERWORLD);
 
             expect(() => chunk.setBlockRuntimeId(0, -1, 0, stone())).toThrow(/spans 0 to 255/);
             expect(() => chunk.setBlockRuntimeId(0, 256, 0, stone())).toThrow(/spans 0 to 255/);
         });
 
         it('refuses a sub chunk index outside the dimension', () => {
-            const chunk = new Chunk(0, 0, new Map(), Dimensions.Legacy);
+            const chunk = new Chunk(0, 0, new Map(), SHALLOW_OVERWORLD);
 
             // 16 used to be accepted, one past the top.
             expect(() => chunk.getSubChunk(16)).toThrow(/Invalid subchunk height/);

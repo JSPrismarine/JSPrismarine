@@ -113,24 +113,13 @@ export const dimensionTypeOf = (
 };
 
 /**
- * The three vanilla dimensions, built from the 26.3 `dimension_type` documents and the overlay,
- * plus the 0..255 Overworld the server used before it had real world heights.
+ * The three vanilla dimensions, built from the 26.3 `dimension_type` documents and the overlay.
  */
-export const Dimensions: Readonly<Record<'Overworld' | 'Nether' | 'TheEnd' | 'Legacy', DimensionType>> = (() => {
-    const Overworld = dimensionTypeOf(VANILLA_DIMENSION_TYPES['minecraft:overworld'], 'minecraft:overworld');
-    return {
-        Overworld,
-        Nether: dimensionTypeOf(VANILLA_DIMENSION_TYPES['minecraft:the_nether'], 'minecraft:the_nether'),
-        TheEnd: dimensionTypeOf(VANILLA_DIMENSION_TYPES['minecraft:the_end'], 'minecraft:the_end'),
-
-        /**
-         * The 0..255 shape the server used before real world heights, kept so the change to real
-         * ones could be made in two reviewable steps rather than one. Nothing should reach for this.
-         * @deprecated Use {@link Dimensions.Overworld}.
-         */
-        Legacy: { ...Overworld, minY: 0, height: 256 }
-    };
-})();
+export const Dimensions: Readonly<Record<'Overworld' | 'Nether' | 'TheEnd', DimensionType>> = {
+    Overworld: dimensionTypeOf(VANILLA_DIMENSION_TYPES['minecraft:overworld'], 'minecraft:overworld'),
+    Nether: dimensionTypeOf(VANILLA_DIMENSION_TYPES['minecraft:the_nether'], 'minecraft:the_nether'),
+    TheEnd: dimensionTypeOf(VANILLA_DIMENSION_TYPES['minecraft:the_end'], 'minecraft:the_end')
+};
 
 const vanillaByJavaId: ReadonlyMap<string, DimensionType> = new Map(
     [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((dimension) => [dimension.id, dimension])

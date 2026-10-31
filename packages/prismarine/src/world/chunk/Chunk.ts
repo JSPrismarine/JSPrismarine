@@ -16,9 +16,10 @@ import SubChunk from './SubChunk';
 
 /**
  * The vertical range the client gives a dimension id, which is the range a chunk payload has to
- * cover whatever shape the server's own definition has. The deprecated `Legacy` Overworld is
- * shallower than the client's and owes it padding below; the Nether and the End are not padded
- * and carry 8 and 16 biome sections rather than the Overworld's 24. A custom type has no
+ * cover whatever shape the server's own definition has. A vanilla type shallower than the
+ * client's range, such as the 0..255 Overworld the server once had, owes it padding below; the
+ * Nether and the End are not padded and carry 8 and 16 biome sections rather than the
+ * Overworld's 24. A custom type has no
  * built-in range: `DimensionData` told the client the type's own bounds, so those are the range.
  */
 const clientRangeOf = (dimension: DimensionType): DimensionType => {

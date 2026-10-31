@@ -33,7 +33,6 @@ describe('Dimensions', () => {
             height: 256,
             custom: false
         });
-        expect(Dimensions.Legacy).toMatchObject({ id: 'minecraft:overworld', bedrockId: 0, minY: 0, height: 256 });
     });
 
     it('derives the sub chunk range from the Bedrock-effective bounds', () => {

@@ -16,12 +16,6 @@ export {
 } from './DimensionType';
 
 /**
- * The name this type had before it carried the Java definition.
- * @deprecated Use {@link DimensionType}. Removed in the next release.
- */
-export type DimensionDefinition = DimensionType;
-
-/**
  * The two numbers the vertical arithmetic reads. A {@link DimensionType} has them, and so does
  * the record a chunk generation task carries for one.
  */
