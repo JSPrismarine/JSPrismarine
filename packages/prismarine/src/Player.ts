@@ -311,8 +311,9 @@ export default class Player extends Human {
         // The world of the dimension the record was written in, which is not always the one
         // the login built them in: a player who logged out of the nether used to come back in
         // the default world. Moved before anything reads the record, and without a packet:
-        // nothing has been told where this player is yet.
-        const record = await lastPlayerRecord(this, this.server.getWorldManager().getWorlds());
+        // nothing has been told where this player is yet. The level builds the world when its
+        // stem is lazy and nobody has been there since the boot.
+        const record = await lastPlayerRecord(this, this.getWorld().getLevel());
         if (record.world !== this.getWorld()) this.position = this.position.withWorld(record.world);
 
         const playerData = record.data;

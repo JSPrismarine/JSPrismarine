@@ -55,8 +55,6 @@ let previousDirectory: string | undefined;
 
 const testServer = (worlds: () => World[] = () => []): Server => {
     const server: Server = stub<Server>({
-        // A login now looks for the player's record in every loaded world, because each world
-        // keeps its own: see `lastPlayerRecord`.
         getWorldManager: () => stub<WorldManager>({ getWorlds: () => worlds() }),
         on: () => server,
         post: () => 0,

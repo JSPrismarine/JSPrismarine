@@ -22,6 +22,7 @@ import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
 import LoginHandler from './LoginHandler';
 import { testContent } from '../../testing/entityServer';
+import { fakeLevel } from '../../testing/level';
 
 /** A well-formed client identity; every real login carries one. */
 const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
@@ -101,6 +102,9 @@ describe('network', () => {
                     getSpawnPosition: async () => new Vector3(0, 64, 0),
                     getName: () => 'test-world',
                     getServer: () => server,
+                    // The login reads the player's record through the world's level: see
+                    // `lastPlayerRecord`.
+                    getLevel: () => fakeLevel({ server }),
                     // Announcing a move is the world's job now, not the entity's.
                     broadcastMove: async () => {},
                     getPlayerData: async () => ({ position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } })
@@ -127,9 +131,7 @@ describe('network', () => {
                 getContent: () => testContent(),
                 getLogger: logger,
                 getSessionManager: sessionManager,
-                // `getWorlds` because a login looks for the player's record in every loaded
-                // world, each world keeping its own: see `lastPlayerRecord`.
-                getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world, getWorlds: () => [world()] }),
+                getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world }),
                 getConfig: config,
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,

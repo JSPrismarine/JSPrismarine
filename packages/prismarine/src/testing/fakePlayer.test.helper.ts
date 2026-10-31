@@ -79,8 +79,6 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         removeListener: () => server,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
-        // A login looks for the player's record in every loaded world, each world keeping its
-        // own: see `lastPlayerRecord`.
         getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world], getDefaultWorld: () => world }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
