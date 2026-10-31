@@ -73,6 +73,27 @@ const END_CITY_CHUNK = { x: -77, z: -37 };
  */
 const END_CITY_CHUNK_DIGEST = 'dabf486203e5f5147adcfc30f7ab52eaafdf3c00b2b8d9501f042a4f27701d0d';
 
+/** The stem the Nether runs on, which is what `forStem` and `structureStartsAt` take. */
+const NETHER_STEM: PipelineKey = {
+    noiseSettings: 'minecraft:nether',
+    biomeSource: { type: 'minecraft:multi_noise', preset: 'minecraft:nether' },
+    dimension: Dimensions.Nether
+};
+
+/** Where this seed's nearest nether fortress to the origin starts, by the `nether_complexes` set. */
+const FORTRESS_CHUNK = { x: 14, z: 8 };
+
+/** The chunk of that fortress holding a corridor turn with a chest in it, seven pieces deep. */
+const FORTRESS_CHEST_CHUNK = { x: 13, z: 9 };
+
+/**
+ * The block names of {@link FORTRESS_CHEST_CHUNK}, hashed in y, x, z order.
+ *
+ * The Nether has no parity corpus yet, so this one chunk is the determinism check for it: a
+ * change to the fortress, the Nether terrain or its decoration moves the digest.
+ */
+const FORTRESS_CHEST_CHUNK_DIGEST = 'f9a1caaf981adaa4f54acc3806aaa2beb1357584f29264f1a347b7982070c307';
+
 describe.skipIf(!enabled)('the structures the data-driven overworld generates', { tags: ['real-data'] }, () => {
     let generator: DataDrivenGenerator;
     const chunks = new Map<string, Chunk>();
@@ -528,6 +549,70 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         );
     });
 
+    describe('the nether fortress', () => {
+        /** One Nether chunk, generated once through the Nether stem and kept. */
+        const netherChunkAt = async (chunkX: number, chunkZ: number): Promise<Chunk> => {
+            const key = `nether:${chunkX},${chunkZ}`;
+            const cached = chunks.get(key);
+            if (cached !== undefined) return cached;
+
+            const chunk = await generator.forStem(NETHER_STEM).generateChunk(chunkX, chunkZ, SEED);
+            chunks.set(key, chunk);
+            return chunk;
+        };
+
+        it(
+            'starts where the nether complexes placement puts it, with its floor at 48 or above',
+            () => {
+                const start = generator
+                    .structureStartsAt(FORTRESS_CHUNK.x, FORTRESS_CHUNK.z, SEED, NETHER_STEM)
+                    .find((candidate) => candidate.structure === 'minecraft:fortress');
+
+                expect(start).toBeDefined();
+                expect(start!.set).toBe('minecraft:nether_complexes');
+                expect(start!.chunkX).toBe(FORTRESS_CHUNK.x);
+                expect(start!.chunkZ).toBe(FORTRESS_CHUNK.z);
+                expect(start!.origin).toEqual({ x: FORTRESS_CHUNK.x * 16, y: 64, z: FORTRESS_CHUNK.z * 16 });
+                expect(start!.pieces.length).toBeGreaterThan(20);
+                expect(start!.boundingBox.minY).toBeGreaterThanOrEqual(48);
+                expect(generator.unbuiltStructureTypes(SEED, NETHER_STEM)).toEqual(new Set());
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'writes nether bricks and a chest on the nether bridge loot table into a castle chunk',
+            async () => {
+                const chunk = await netherChunkAt(FORTRESS_CHEST_CHUNK.x, FORTRESS_CHEST_CHUNK.z);
+
+                expect(chunk.getDimension()).toBe(Dimensions.Nether);
+                expect(blocksNamed(chunk, 'minecraft:nether_brick')).toBeGreaterThan(1000);
+                expect(blocksNamed(chunk, 'minecraft:nether_brick_fence')).toBeGreaterThan(0);
+                expect([...chunk.getBlockEntities()].map((entry) => entry.getId())).toEqual(['Chest']);
+                expect([...chunk.getBlockEntities()].map((entry) => entry.toNBT().getString('LootTable', ''))).toEqual([
+                    'loot_tables/chests/nether_bridge.json'
+                ]);
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'generates the same castle chunk every time',
+            async () => {
+                const chunk = await netherChunkAt(FORTRESS_CHEST_CHUNK.x, FORTRESS_CHEST_CHUNK.z);
+                const hash = createHash('sha256');
+                for (let y = chunk.getMinY(); y <= chunk.getMaxY(); y++) {
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) hash.update(`${chunk.getBlock(x, y, z).name}\n`);
+                    }
+                }
+
+                expect(hash.digest('hex')).toBe(FORTRESS_CHEST_CHUNK_DIGEST);
+            },
+            CHUNK_TIMEOUT
+        );
+    });
+
     it(
         'names the structure types that still have no builder',
         () => {
@@ -537,9 +622,9 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
             );
             const missing = [...types].filter((type) => !STRUCTURE_BUILDERS.has(type)).sort();
 
-            // The inventory of what this server does not generate yet. A family that lands comes
-            // off this list, and a type that silently stops generating lands back on it.
-            expect(missing).toEqual(['minecraft:fortress']);
+            // The inventory of what this server does not generate yet, empty since the end city
+            // and the nether fortress landed. A type that silently stops generating lands here.
+            expect(missing).toEqual([]);
         },
         CHUNK_TIMEOUT
     );

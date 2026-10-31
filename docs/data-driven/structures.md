@@ -50,7 +50,7 @@ generation point decides whether it is kept.
 
 ## What generates
 
-51 of the 52 generate.
+All 52 generate.
 
 | Type | Structures | State |
 | --- | --- | --- |
@@ -68,15 +68,18 @@ generation point decides whether it is kept.
 | `stronghold` | 1 | Generates, at the unsnapped ring position |
 | `swamp_hut` | 1 | Generates |
 | `woodland_mansion` | 1 | Generates, without the cobblestone pillars Java drops under it |
+| `fortress` | 1 | Generates |
 | `end_city` | 1 | Generates |
-| `fortress` | 1 | Not implemented |
 
 The jigsaw type is the five villages, the pillager outpost, the bastion, the ancient city, the
 trail ruins, the trial chambers and the eighteen abandoned camps.
 
-`fortress` is the one left unimplemented. It is the nether's, as `nether_fossil`,
-`bastion_remnant` and `ruined_portal_nether` are, and `end_city` is the end's; the data-driven
-generator serves those dimensions through their level stems.
+`nether_fossil`, `bastion_remnant`, `fortress` and `ruined_portal_nether` are the nether's and
+`end_city` is the end's; the data-driven generator serves those dimensions through their level
+stems. None is left unimplemented.
+
+The fortress is grown in code from Java's `NetherFortressPieces`, the way the stronghold is, and
+its layout for a seed is the layout Java produces.
 
 The end city is Java's `EndCityPieces` read from the 26.3 jar: the house, the tower column, the
 bridges that end in further houses, the fat tower, and the ship the bridge generator hangs once
