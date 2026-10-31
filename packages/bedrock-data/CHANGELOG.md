@@ -1,5 +1,315 @@
 # @jsprismarine/bedrock-data
 
+## 0.16.0
+
+### Minor Changes
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`4fd861a`](https://github.com/JSPrismarine/JSPrismarine/commit/4fd861abbae002d42f680a9e17c85f6e37fdb8d1) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove the legacy `item_id_map` export; consumers read item runtime IDs from `item_table`.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`fee087d`](https://github.com/JSPrismarine/JSPrismarine/commit/fee087d594e2a2961e5b75d7d16403518c143a14) Thanks [@filiphsps](https://github.com/filiphsps)! - Arrange the Java Edition world generation data as a prerequisite of `pnpm dev`, so a clean clone
+  needs nothing beyond `pnpm install && pnpm dev`.
+  
+  The default overworld is built from Mojang's published world generation data, which `pnpm install`
+  did not fetch. Starting a fresh checkout therefore reached the first chunk and threw, naming two
+  commands to run by hand. The new `ensure:worldgen` script runs those two steps itself, and only
+  when the cache is missing something: on a complete cache it compares file names and exits in a
+  fraction of a second without touching the network, so an offline checkout with a warm cache still
+  starts.
+  
+  It stays out of `prepare`, `start` and CI. The server jar is a 62 MB download that only somebody
+  starting a server needs, and builds and tests arrange their own data.
+  
+  Failures that a script cannot fix now print one actionable line rather than a stack trace, naming
+  the override environment variable and the flat-world option for a machine that will not have a JDK.
+  The JDK is looked for before the jar is downloaded, so a machine without Java finds out
+  immediately.
+  
+  `findJdkHome` also searches the `java` on `PATH`, having previously looked only at `JSP_JAVA_HOME`,
+  `JAVA_HOME` and macOS's `java_home`. A Linux install with a JDK on `PATH` but no `JAVA_HOME` set
+  was not finding it.
+
+### Patch Changes
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f60ce7d`](https://github.com/JSPrismarine/JSPrismarine/commit/f60ce7dd0fef48e4f586f4c307b215e370a69d17) Thanks [@filiphsps](https://github.com/filiphsps)! - Run the Bedrock capture in a Linux x86-64 container on hosts where Mojang's server binary cannot
+  run, so `dump:bedrock` works on an Apple Silicon or Linux arm64 machine. A Linux x86-64 host still
+  runs the binary directly, and that is what CI does. The runner is chosen from the host platform
+  and from whether a container daemon actually answers, and `JSP_BDS_RUNNER`,
+  `JSP_BDS_CONTAINER_CLI` and `JSP_BDS_CONTAINER_IMAGE` override the choice. No image carries the
+  server: the container mounts the staged copy from the gitignored fetch cache.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`b8ee548`](https://github.com/JSPrismarine/JSPrismarine/commit/b8ee548b13eb663a2aab41a4197e054854b4e2db) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `dump:bedrock`, the Bedrock half of the capture job. It copies the pinned Bedrock Dedicated Server into a run directory of its own, makes the binary executable, turns the content log on, and drives three passes: a dump behavior pack that writes every Script API registry to `src/jsp/bedrock/`, a reference world generated from a fixed seed and reduced to `src/jsp/reference_world.json`, and the packet capture, which now also keeps the raw payloads of the engine tables with no decoder yet under `src/jsp/packets/`. The reference world carries a digest per chunk of the heightmap, the 3D biome arrays, the terrain-class row and the block states, whole arrays for sixteen chunks, and one block histogram for the region. The job runs on Linux x86-64, which is the zip `sources.json` pins, and refuses anywhere else.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f5ea701`](https://github.com/JSPrismarine/JSPrismarine/commit/f5ea701bd7297d63eb524be1d4b76c07cf204569) Thanks [@filiphsps](https://github.com/filiphsps)! - Publish the Bedrock 1.26.60 (protocol 2225) data this repository can now capture.
+  
+  The `packets` pass was run twice against the pinned BDS 1.26.60.6. `required_item_list.json`,
+  `block_definitions.json` and `biome_definitions_network.nbt` reproduced byte for byte and are
+  committed under `src/jsp/v2225/`. `jigsaw_structure_data.nbt` is deliberately not: the engine
+  iterates its template pools out of an unordered container, so two runs agreeing is not the order
+  being fixed, and the same goes for the block palette — `datagen/manifest.json`'s 2225 entry still
+  declares no `blocks` for that reason, and 2193 stays `defaultProtocolVersion`.
+  
+  What the capture says is that the item registry is the only one of the three that moved. Against
+  2193 it adds four names, removes none, and **moves 82 runtime ids**; the block definitions and
+  the biome definitions came back identical. `utils/build.js` now builds an item table and the
+  binary payload conversions for every captured version, not only the default one, joining each
+  with its own version's CloudburstMC dump for the `Item Version` column the capture does not
+  record. The default version's generated files are byte-identical to what the previous generator
+  produced, which was checked by running both.
+  
+  The result is a new entry point, `@jsprismarine/bedrock-data/v2225`, exporting `item_table`,
+  `block_definitions` and `biome_definitions_network` for that protocol. It is published beside
+  the unversioned exports rather than in place of them: picking a table per session is a later
+  slice, and nothing that imports the unversioned names changes. A `registry.items-2225` parity
+  family compares the published table against the capture it was built from, which is the way this
+  goes wrong quietly — a 2225 table rebuilt from the 2193 capture looks right and is 82 items out.
+  
+  `packages/minecraft`'s 2225 entry also declares `recipes` now. The output is 2193's recipe set
+  exactly apart from its `minecraftVersion` header, because `vanilla_1.26.60` ships structures and
+  a manifest and no recipe layer at all: 1.26.60 revised no recipe.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`91a7a0b`](https://github.com/JSPrismarine/JSPrismarine/commit/91a7a0bfac2eac8c81961d5263e54b53dc0c3fc5) Thanks [@filiphsps](https://github.com/filiphsps)! - Resolve the unpacked Bedrock Dedicated Server from one place. `fetch:sources` writes the
+  cache path, and the Bedrock capture and the datagen generators now read it back from the
+  fetch instead of each building it themselves, so the writer and its readers cannot drift
+  apart over how the directory is keyed.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`0dac56a`](https://github.com/JSPrismarine/JSPrismarine/commit/0dac56a679dfcb3b0a2953e1bb451592833ec2a4) Thanks [@filiphsps](https://github.com/filiphsps)! - Let the client speak protocol 2225, so a 1.26.60 server can be captured.
+  
+  `Client` hardcoded protocol 2193, and a Bedrock Dedicated Server refuses a login at any version
+  but its own — pointing the capture at the pinned 1.26.60.6 server got "this client is out of
+  date" before a byte of data arrived. `ClientOptions` now takes a `protocolVersion`, the offline
+  identity reports the `GameVersion` that goes with it, and an unsupported version is refused in
+  the constructor rather than at the socket.
+  
+  `StartGamePacket` is the one packet the client decodes whose layout moved at 2225: `Editor Level
+  Migration Version`, an int8 inserted into the level settings between `Is Exported From Editor`
+  and `Day Cycle Stop Time`. `@jsprismarine/protocol` gains `StartGamePacket2225`, a subclass over
+  two hooks on the 2193 class, with both wire directions and round-trip coverage. A 2193 reader on
+  2225 bytes is one byte out from the insert on, so the block properties a capture is run for come
+  back wrong; whether the rest resynchronizes is luck, which the tests say in those terms.
+  
+  `capture-server-data.mjs` takes `--protocol`, and the `packets` pass of `dump:bedrock` passes the
+  version it staged.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`dbdbe5c`](https://github.com/JSPrismarine/JSPrismarine/commit/dbdbe5cfb8e43929ad1f4687bc5eed8353c5525d) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix what running the containerized Bedrock capture for real turned up. `pnpm run dump:bedrock --`
+  forwards pnpm's own `--` to the script, which Node's `parseArgs` read as the end of the options and
+  then rejected `--pass` as a positional, so every documented invocation with a flag failed before it
+  reached a server, including the `--protocol` one in CI. Only the `packets` pass has a client to let
+  in, so only it publishes the container's UDP ports now; publishing them for every pass made the
+  other three fail with `port is already allocated` whenever anything else held 19132. The image is
+  obtained once before the first pass rather than mid-capture, and a pull that fails because Docker
+  Desktop's credential helper is not on `PATH` says so instead of reporting a missing executable. The
+  reference world pass no longer hangs on its fourth tile: the engine's ticking budget fits exactly
+  three tiles, and releasing areas and creating the next one in the same tick never resolved.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`94793d0`](https://github.com/JSPrismarine/JSPrismarine/commit/94793d040e3e687f3698758c6aac5e18b8df5c5f) Thanks [@filiphsps](https://github.com/filiphsps)! - Replace the CloudburstMC/Data Git submodule with pinned downloads keyed by Bedrock protocol
+  version. A submodule is one checkout at one commit, so it could only ever carry one Bedrock
+  version's dumps. The `cloudburstData` entry of `sources.json` now holds a `versions` table -
+  `minecraftVersion`, `commit`, `url` and `sha256` per protocol version, plus
+  `defaultProtocolVersion` - and reuses the existing fetch machinery: each version caches under
+  `node_modules/.cache/jsprismarine/cloudburst-data/v<protocol>/`, is sha256-verified before
+  unpacking, and unpacks only the names in a new `extract` allowlist, `LICENSE` among them for the
+  Apache-2.0 attribution.
+  
+  `pnpm run fetch:cloudburst` fetches the default version and links it to `src/resources`, so
+  `utils/build.js` and every other consumer keep reading one path; `--protocol <n>` selects another
+  pinned version, and `JSP_CLOUDBURST_DATA_PATH` points at a local checkout for offline work.
+  Protocol 2193 (Minecraft 1.26.51) and 2225 (1.26.60) are pinned. The generated output under
+  `src/generated/` is unchanged.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`582536f`](https://github.com/JSPrismarine/JSPrismarine/commit/582536f53c4ed407b065155dc6dce7f5f48982d8) Thanks [@filiphsps](https://github.com/filiphsps)! - Carry out the event actions, fire the `minecraft:on_*` triggers, and give the components that
+  measure most real behavior. The package parsed the vanilla pack well and then did almost nothing
+  with it: 16 of the 157 implemented components carried behavior, every event action was collected
+  raw and reported, and nothing fired the eleven trigger components.
+  
+  **Event actions.** Nine keys parse into an `EntityAction` and run. Eight are everything the composed
+  vanilla pack writes, measured over its 850 events: `play_sound` 23 uses, `set_home_position` 17,
+  `emit_vibration` 9, `drop_item` 2, `execute_event_on_home_block` 2, and one each of
+  `emit_particle`, `reset_target` and `stop_movement`. The ninth is `queue_command`, which the
+  documentation describes and no vanilla entity uses. Six leave through the new
+  `EntityEnvironment.effects` seam; `set_home_position` and `stop_movement` go through the actuator
+  and `reset_target` clears the attack target the entity now owns. An action key the package does not
+  parse, a body it cannot read, and an action whose environment member a caller left out each reach
+  the report.
+  
+  **Damage and triggers.** `EntityInstance.damage` applies the damage instead of only offering it to
+  the components. The sensors decide the amount with the damager answering the `damager` and `other`
+  filter subjects, `minecraft:fire_immune` and `minecraft:freezing_immune` turn their causes aside
+  after the sensors have seen them, the rest comes off the `health` attribute, and
+  `minecraft:on_hurt`, `minecraft:on_hurt_by_player` and `minecraft:on_death` fire in that order.
+  `setAttackTarget` fires the two target triggers. `EntityInstance.trigger` is the firing point for
+  all eleven; the six that name equipment, fire, flight, sleep and friendly anger wait for a caller.
+  
+  **Components.** `minecraft:hurt_on_condition` (87 of the 129 vanilla entities),
+  `minecraft:breathable` (84), `minecraft:ageable` (35), `minecraft:ambient_sound_interval` (32),
+  `minecraft:rideable` (36), `minecraft:angry` (20) and `minecraft:damage_over_time` (3) stopped being
+  parse-only. `minecraft:despawn` now leaves a `minecraft:persistent` entity alone, and
+  `minecraft:timer` and `minecraft:environment_sensor` honor a `target` other than `self` through the
+  new `EntityInstance.raise`. 37 of the 157 implemented keys carry behavior, up from 16.
+  
+  **Breaking.** `EntityInstance.damage` returns a `DamageResult` rather than a `DamageOutcome`,
+  `EventAction` gained a `parsed` member, `TriggerComponentParams` and `RideableParams` moved to their
+  own modules with `target` narrowed from `string` to `EventTarget`, and `TRIGGER_COMPONENTS` is now a
+  tuple of its eleven names.
+  
+  `@jsprismarine/bedrock-data` exports the Java attribute golden as `java_entity_attributes`, which
+  the entity corpus test measures the Bedrock stats against: 423 stats are published in both editions
+  and 279 agree.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`0bc486e`](https://github.com/JSPrismarine/JSPrismarine/commit/0bc486e90372d7ae43425da17c71275a097e9722) Thanks [@filiphsps](https://github.com/filiphsps)! - Generate Java Edition's structures. Nothing generated before: the world generator read none of
+  the three registries a structure is built from, and `@jsprismarine/structures` was imported
+  nowhere in the server. It now loads `worldgen/structure`, `worldgen/structure_set` and
+  `worldgen/template_pool` alongside the eleven registries it already read, decides which chunks a
+  structure starts in from the 21 structure sets, lays the structure out against the bare noise
+  terrain, and writes its pieces into every chunk it covers. 50 of Java's 52 structures generate;
+  the end city and the nether fortress are the two left, and neither has a dimension to generate
+  in. [docs/data-driven/structures.md](../docs/data-driven/structures.md) is the inventory.
+  
+  29 structures ask for terrain adaptation through `terrain_adaptation`, and the field was not
+  read at all, so a village landed on whatever the noise happened to make. Java's beardifier
+  density function now runs from the structure starts before a chunk's terrain is sampled.
+  
+  The decoration pass runs Java's own loop: each step's structures, then that step's features,
+  sharing one index counter. A step's features are therefore seeded from the structure count
+  onward, which is what Java does and what this did not.
+  
+  `@jsprismarine/structures`' jigsaw assembler changed to match Java's placer. It draws the
+  rotation before the start element rather than after, sits a `terrain_matching` element on the
+  terrain through the new `JigsawSources.terrainHeight`, settles a projected start onto the
+  surface through `JigsawConfig.projectStartToHeightmap`, reserves vertical room under
+  `JigsawConfig.useExpansionHack`, and reports the generation point as `JigsawAssembly.origin`. A
+  pool element's `processors` may now be an inline list as well as an identifier, which is how
+  1439 of the 2287 vanilla pool elements write it. The same seed and pools no longer produce the
+  same layout as before, because the draw order and the ground level delta both changed.
+  
+  `@jsprismarine/bedrock-data` gained `extract:structures`, which lifts the 1511 `.nbt` templates
+  out of the pinned server jar into `node_modules/.cache/jsprismarine/java-structures/<version>/`;
+  `datagen:java` now runs it too. Reading them from the jar instead meant inflating all 17655 of
+  its entries inside the first chunk that placed one.
+  
+  The generator's hand-written Bedrock biome id table is gone. The ids come from
+  `@jsprismarine/mapping`'s generated registry table instead, so they regenerate with the pinned
+  version rather than drifting. `BEDROCK_BIOME_IDS` is no longer exported.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`c1591b1`](https://github.com/JSPrismarine/JSPrismarine/commit/c1591b1e567a51dc80ecbbdfdbdc8e7c7f4f6c42) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the Java data generator step the pipeline was missing. `pnpm --filter
+  @jsprismarine/bedrock-data run datagen:java` re-checks the fetched server jar's sha1, runs
+  Mojang's `net.minecraft.data.Main` against it, and writes the vanilla datapack to
+  `node_modules/.cache/jsprismarine/vanilla-datapack/<version>/` and the data reports to
+  `node_modules/.cache/jsprismarine/java-reports/<version>/generated/reports/`, the two
+  directories every Java-data reader already looks in. A re-run is a no-op unless `--force` is
+  passed.
+  
+  Nothing produced those directories before, so the data-driven overworld generator failed on
+  every server start with a message naming `fetch:sources` and `dump:java`, neither of which
+  writes them. Those messages now name `datagen:java`, and so does the pack stack diagnostic for
+  a missing Java vanilla datapack.
+  
+  The mapping and item table generators read `java -version` from stdout, which is empty
+  because the banner goes to stderr, so their own fallback run of the data generator always
+  threw "No JDK >= 25 found". They read `java --version` now.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`1acfa57`](https://github.com/JSPrismarine/JSPrismarine/commit/1acfa5708eace6165592fde0fa80032416957bdf) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the Java Edition property and attribute dumper and its goldens. `pnpm run dump:java` fetches
+  the pinned 26.3 server jar, verifies its sha1, compiles `utils/java-dump/DumpJavaData.java`
+  against it and writes `src/jsp/java/block_properties.json` (per-state properties for all 1286
+  blocks and 35723 states) and `src/jsp/java/entity_attributes.json` (2619 default attribute
+  values, dimensions and category for 93 entity types).
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f939230`](https://github.com/JSPrismarine/JSPrismarine/commit/f93923009aeecd86cc40835805fe08527aec6435) Thanks [@filiphsps](https://github.com/filiphsps)! - Write the captured jigsaw structure rules with their four registries in identifier order. The
+  engine serializes `template_pools` out of an unordered container, so two captures of one server
+  carried the same 64 pools in a different order and the committed golden was byte stable only by
+  luck. Reordering is invisible to a client - every entry names itself in `description.identifier`,
+  and every reference between the registries is that name rather than a position - so the payload a
+  server replays is unchanged apart from the order of whole entries, and a recapture of an unchanged
+  server is now an empty diff.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3eac4a7`](https://github.com/JSPrismarine/JSPrismarine/commit/3eac4a7901492b6b46231baeacba64081799d2cd) Thanks [@filiphsps](https://github.com/filiphsps)! - Run the capture job's host-side halves under the same `tsx` resolver the server starts under, so
+  the `palette` and `packets` passes can reach workspace packages. Both died on an import before
+  doing any work, because a workspace package resolves to TypeScript sources whose relative imports
+  carry no file extension.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`08de1ba`](https://github.com/JSPrismarine/JSPrismarine/commit/08de1bac21f3c5785a02649e4faa11d9a11f82b0) Thanks [@filiphsps](https://github.com/filiphsps)! - Make the Bedrock capture pipeline multi-version and remove the last manual step.
+  
+  `sources.json` pinned exactly one Bedrock Dedicated Server, so a capture could only ever target
+  one Bedrock version while `packages/minecraft` was already keyed per protocol. The `bds` entry
+  now carries a `versions` map, the same shape `cloudburstData` uses, and `fetch:sources` and
+  `dump:bedrock` take `--protocol <n>`. Protocol 2225 is pinned to BDS 1.26.60.6, whose sha256 was
+  measured from the download and whose sha1 and byte count match Bedrock-OSS/BDS-Versions. Each
+  version caches under `bds/v<protocol>/`, so two servers coexist, and only the selected one is
+  downloaded, because the zips are ~95 MB each.
+  
+  The captures themselves move to `src/jsp/v<protocol>/`, mirroring `src/generated/v<protocol>/`.
+  Generated re-export modules keep `jsp/block_definitions` and `jsp/required_item_list` resolving
+  at the paths they already had, so a consumer deep-importing either is unaffected and the
+  published surface only gains the versioned entries. `src/jsp/java/` stays unversioned: it tracks
+  Java Edition releases, which have no Bedrock protocol version.
+  
+  The block palette was the one artifact a human still had to make, through two server runs with
+  two hand edits between them. It is now the `palette` pass of the same job, reusing the manifest
+  writer the other passes already had, so
+  `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette` produces
+  `snapshot/v<protocol>/block-palette.json` with no manual step. `generate-recipes.js` defaults to
+  the server `fetch:sources` already unpacks instead of needing a hand-set path, keeping
+  `BEDROCK_SERVER` as the escape hatch.
+  
+  Also fixes four readers in `@jsprismarine/mapping` that still used the pre-versioning
+  `datagen/snapshot/block-palette.json`; two were tests that had been failing with ENOENT.
+  
+  Two unreferenced files, `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`, are
+  deleted. No code read either, and nothing in the pipeline regenerated them.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`29aa940`](https://github.com/JSPrismarine/JSPrismarine/commit/29aa940e8ddc1db5bf37b213179adad8e3eb21a5) Thanks [@filiphsps](https://github.com/filiphsps)! - Validate Java datapack definitions against `SpyglassMC/vanilla-mcdoc`.
+  `@jsprismarine/packs/mcdocValidator` exports `createMcdocValidator`, which reads a vanilla-mcdoc
+  checkout and returns a synchronous `DefinitionValidator`; construction is asynchronous because
+  binding the schema modules is, so `load` stays synchronous. Findings name the JSON pointer and the
+  reason, and the release gates `#[since=]` and `#[until=]` fields, which matters: the 26.3 vanilla
+  datapack reports one finding at 26.3 and thousands at 26.1.
+  
+  A vanilla-mcdoc finding is a warning by default, because the schema set trails Mojang's releases
+  and an error would drop the definition. At 26.3 the one disagreement is
+  `recipe/map_extending.json`, which vanilla ships with `"result": {}` where the schema wants an
+  `id`. `severity: 'error'` opts into the stricter reading.
+  
+  The four `@spyglassmc` packages are optional peer dependencies and the module is not re-exported
+  from the package index, so the eleven workspace packages importing the loader do not pay for 91
+  transitive packages they never load.
+  
+  `bedrock-data` pins `SpyglassMC/vanilla-mcdoc` in `sources.json`, so `fetch:sources` puts a
+  checkout in the cache beside the other pinned upstreams.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`c32bfed`](https://github.com/JSPrismarine/JSPrismarine/commit/c32bfededb57b65bab45897dda54e0fa621d0ff1) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Java-derived mob navigation and path costs, and separate overlapping mobs during movement.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`d795857`](https://github.com/JSPrismarine/JSPrismarine/commit/d7958576ad576a489298cdd772a8d68759af55c0) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `sources.json`, a manifest pinning the upstream data sources (the BDS 1.26.51.1 zip, Mojang/bedrock-samples v1.26.50.4, the Java Edition 26.3 server jar and GeyserMC/mappings), and a `fetch:sources` script that downloads them into `node_modules/.cache/jsprismarine/`, verifies each hash before unpacking, and writes `pack-hashes.json` with a sha256 per top-level folder. Environment overrides (`JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`, `JSP_GEYSER_MAPPINGS_PATH`) point at local copies for offline work.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3c40d16`](https://github.com/JSPrismarine/JSPrismarine/commit/3c40d1636595c254ba2869a6a1b03f6e30f929ce) Thanks [@filiphsps](https://github.com/filiphsps)! - `pnpm run bringup --protocol <n>` is the first command of a protocol bring-up: it verifies the
+  version is pinned in `sources.json` and `packages/minecraft/datagen/manifest.json` (and says
+  exactly what to pin when it is not), boots the pinned Bedrock Dedicated Server through the same
+  staging and runner machinery as `dump:bedrock`, and walks the capture client's full login against
+  it. `packages/client/tools/bringup-probe.mjs` reports each stage — network settings, login,
+  resource packs, start game, spawn — as pass or fail, and on a failure prints the undecodable
+  packet ids with the reader's offset and the last raw packets, which is what a developer iterates
+  on while implementing a new version's delta codec. The exit status is the probe's: 0 means our
+  client spawned on the real server, which exercises both wire directions of every join-path
+  packet. The runner selection `run.ts` always did now lives in `launcherForHost` in `runner.ts`,
+  shared by both entry points. `.agents/skills/protocol-bringup/SKILL.md` places the tool inside
+  the whole bring-up workflow.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`815800d`](https://github.com/JSPrismarine/JSPrismarine/commit/815800d3410bfd829fc583eb9bcd896369812247) Thanks [@filiphsps](https://github.com/filiphsps)! - Run data-defined interaction loot tables, resolve legacy Bedrock item variants, and preserve item counts and drop offsets.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`9258ef1`](https://github.com/JSPrismarine/JSPrismarine/commit/9258ef152ef8c0802eefc2cad93e1f8ddb950f46) Thanks [@filiphsps](https://github.com/filiphsps)! - Run ageable pause and reset effects, and drop data-defined items when entities grow up.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`494be3e`](https://github.com/JSPrismarine/JSPrismarine/commit/494be3e9d5dae9d074c7cc084d6eb136f86ae231) Thanks [@filiphsps](https://github.com/filiphsps)! - Wait for every chunk of each reference-region tile to load before releasing its ticking area. `createTickingArea` resolves on registration, not on chunk load, so the refworld pass saved a partial region; the pass now polls `dimension.getBlock` per chunk, and both the pack and the save reader fail with expected-versus-saved counts and missing chunk coordinates instead of writing a partial `reference_world.json`.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8128a63`](https://github.com/JSPrismarine/JSPrismarine/commit/8128a6344645e6798453b7c7eae77a69594e848c) Thanks [@filiphsps](https://github.com/filiphsps)! - Hold declarative wire layouts to a real server's bytes.
+  
+  The capture client gains `--wire`: one raw payload per packet kind the Bedrock Dedicated Server
+  sent during the login, written per protocol version as `src/jsp/v<protocol>/wire/<id>.bin` by the
+  `packets` pass. A new parity family, `protocol.wire-roundtrip`, decodes each captured payload
+  through its declarative layout and re-encodes it, and the bytes must come back exactly - the
+  layout our client decoded a real server's bytes through is the same frozen record our server
+  encodes with, so one round trip proves both directions and both roles. Coverage over the capture
+  is reported, not gated, and grows as packets gain definitions; the suite also holds every
+  captured id to having a name in the codec tables, which all 41 already do. The fixtures are a
+  committed snapshot: a re-capture may rewrite the recipe payload, whose net ids are per-session.
+
 ## 0.15.2
 
 No changes in this release.

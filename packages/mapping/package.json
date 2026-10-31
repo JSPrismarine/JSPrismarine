@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/mapping",
-    "version": "0.15.2",
+    "version": "0.16.0",
     "description": "The Java Edition to Bedrock Edition identifier seam: generated mapping tables and a reviewed loss list",
     "sideEffects": false,
     "publishConfig": {

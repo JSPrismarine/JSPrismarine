@@ -1,5 +1,0 @@
----
-'@jsprismarine/prismarine': patch
----
-
-Add `DimensionTravel.resolve`, which says where a trip through a portal block lands without moving anybody yet. A nether portal links to the other dimension by `coordinate_scale` with floor division and a clamp into `logical_height`, lands in the nearest lit portal within 128 blocks of the scaled position with the traveler's place in the source portal kept, and otherwise builds one for a player as `PortalForcer.createPortal` does, forced onto a platform between y 70 and ten below the ceiling when nothing fits. An end portal writes the 5 by 5 platform and lands at (100.5, 49, 0.5) facing west, one block higher for anything but a player; out of the End a player lands at their respawn point and anything else above the Overworld spawn. Every `World` keeps a `PortalIndex` of its lit portal blocks, fed from block writes and chunk loads, so the search reads a set rather than scanning blocks. The rules are the `DIMENSION_TRAVEL` and `PORTALS` tables in `world/portal/rules.ts`, with the frame and portal block lists derived from the shared `PORTAL_BLOCK_NAMES`.

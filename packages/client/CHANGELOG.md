@@ -1,5 +1,94 @@
 # @jsprismarine/client
 
+## 0.16.0
+
+### Patch Changes
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`0dac56a`](https://github.com/JSPrismarine/JSPrismarine/commit/0dac56a679dfcb3b0a2953e1bb451592833ec2a4) Thanks [@filiphsps](https://github.com/filiphsps)! - Let the client speak protocol 2225, so a 1.26.60 server can be captured.
+  
+  `Client` hardcoded protocol 2193, and a Bedrock Dedicated Server refuses a login at any version
+  but its own — pointing the capture at the pinned 1.26.60.6 server got "this client is out of
+  date" before a byte of data arrived. `ClientOptions` now takes a `protocolVersion`, the offline
+  identity reports the `GameVersion` that goes with it, and an unsupported version is refused in
+  the constructor rather than at the socket.
+  
+  `StartGamePacket` is the one packet the client decodes whose layout moved at 2225: `Editor Level
+  Migration Version`, an int8 inserted into the level settings between `Is Exported From Editor`
+  and `Day Cycle Stop Time`. `@jsprismarine/protocol` gains `StartGamePacket2225`, a subclass over
+  two hooks on the 2193 class, with both wire directions and round-trip coverage. A 2193 reader on
+  2225 bytes is one byte out from the insert on, so the block properties a capture is run for come
+  back wrong; whether the rest resynchronizes is luck, which the tests say in those terms.
+  
+  `capture-server-data.mjs` takes `--protocol`, and the `packets` pass of `dump:bedrock` passes the
+  version it staged.
+
+- [#2656](https://github.com/JSPrismarine/JSPrismarine/pull/2656) [`4bba527`](https://github.com/JSPrismarine/JSPrismarine/commit/4bba527f02a27523ac0dbabb381dbd5005bea45b) Thanks [@filiphsps](https://github.com/filiphsps)! - Answer the server's `ShowCredits Start` with `Finished` at once, the skip, so a headless client
+  leaving the End is not held on a credits screen it cannot roll. The client emits `credits` after
+  the answer and decodes the packet through a typed `showCreditsPacket` codec.
+
+- [#2656](https://github.com/JSPrismarine/JSPrismarine/pull/2656) [`f50ed35`](https://github.com/JSPrismarine/JSPrismarine/commit/f50ed35be58234e48d1bd7edcdc0eb55b949439a) Thanks [@filiphsps](https://github.com/filiphsps)! - Decode the dimension change sequence (`ChangeDimension`, `StopSound`, `NetworkChunkPublisherUpdate`, `PlayerAction`, `LevelChunk`, `MovePlayer`) and answer it. `DimensionChange` reports `StartLoadingScreen` with the server's id as the change arrives and `EndLoadingScreen` after the first chunk of the new dimension, so a portal trip on a server finishes. `Client` emits `dimensionChange` when the screen closes.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`08de1ba`](https://github.com/JSPrismarine/JSPrismarine/commit/08de1bac21f3c5785a02649e4faa11d9a11f82b0) Thanks [@filiphsps](https://github.com/filiphsps)! - Make the Bedrock capture pipeline multi-version and remove the last manual step.
+  
+  `sources.json` pinned exactly one Bedrock Dedicated Server, so a capture could only ever target
+  one Bedrock version while `packages/minecraft` was already keyed per protocol. The `bds` entry
+  now carries a `versions` map, the same shape `cloudburstData` uses, and `fetch:sources` and
+  `dump:bedrock` take `--protocol <n>`. Protocol 2225 is pinned to BDS 1.26.60.6, whose sha256 was
+  measured from the download and whose sha1 and byte count match Bedrock-OSS/BDS-Versions. Each
+  version caches under `bds/v<protocol>/`, so two servers coexist, and only the selected one is
+  downloaded, because the zips are ~95 MB each.
+  
+  The captures themselves move to `src/jsp/v<protocol>/`, mirroring `src/generated/v<protocol>/`.
+  Generated re-export modules keep `jsp/block_definitions` and `jsp/required_item_list` resolving
+  at the paths they already had, so a consumer deep-importing either is unaffected and the
+  published surface only gains the versioned entries. `src/jsp/java/` stays unversioned: it tracks
+  Java Edition releases, which have no Bedrock protocol version.
+  
+  The block palette was the one artifact a human still had to make, through two server runs with
+  two hand edits between them. It is now the `palette` pass of the same job, reusing the manifest
+  writer the other passes already had, so
+  `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette` produces
+  `snapshot/v<protocol>/block-palette.json` with no manual step. `generate-recipes.js` defaults to
+  the server `fetch:sources` already unpacks instead of needing a hand-set path, keeping
+  `BEDROCK_SERVER` as the escape hatch.
+  
+  Also fixes four readers in `@jsprismarine/mapping` that still used the pre-versioning
+  `datagen/snapshot/block-palette.json`; two were tests that had been failing with ENOENT.
+  
+  Two unreferenced files, `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`, are
+  deleted. No code read either, and nothing in the pipeline regenerated them.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3c40d16`](https://github.com/JSPrismarine/JSPrismarine/commit/3c40d1636595c254ba2869a6a1b03f6e30f929ce) Thanks [@filiphsps](https://github.com/filiphsps)! - `pnpm run bringup --protocol <n>` is the first command of a protocol bring-up: it verifies the
+  version is pinned in `sources.json` and `packages/minecraft/datagen/manifest.json` (and says
+  exactly what to pin when it is not), boots the pinned Bedrock Dedicated Server through the same
+  staging and runner machinery as `dump:bedrock`, and walks the capture client's full login against
+  it. `packages/client/tools/bringup-probe.mjs` reports each stage — network settings, login,
+  resource packs, start game, spawn — as pass or fail, and on a failure prints the undecodable
+  packet ids with the reader's offset and the last raw packets, which is what a developer iterates
+  on while implementing a new version's delta codec. The exit status is the probe's: 0 means our
+  client spawned on the real server, which exercises both wire directions of every join-path
+  packet. The runner selection `run.ts` always did now lives in `launcherForHost` in `runner.ts`,
+  shared by both entry points. `.agents/skills/protocol-bringup/SKILL.md` places the tool inside
+  the whole bring-up workflow.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8128a63`](https://github.com/JSPrismarine/JSPrismarine/commit/8128a6344645e6798453b7c7eae77a69594e848c) Thanks [@filiphsps](https://github.com/filiphsps)! - Hold declarative wire layouts to a real server's bytes.
+  
+  The capture client gains `--wire`: one raw payload per packet kind the Bedrock Dedicated Server
+  sent during the login, written per protocol version as `src/jsp/v<protocol>/wire/<id>.bin` by the
+  `packets` pass. A new parity family, `protocol.wire-roundtrip`, decodes each captured payload
+  through its declarative layout and re-encodes it, and the bytes must come back exactly - the
+  layout our client decoded a real server's bytes through is the same frozen record our server
+  encodes with, so one round trip proves both directions and both roles. Coverage over the capture
+  is reported, not gated, and grows as packets gain definitions; the suite also holds every
+  captured id to having a name in the codec tables, which all 41 already do. The fixtures are a
+  committed snapshot: a re-capture may rewrite the recipe payload, whose net ids are per-session.
+- Updated dependencies [[`30c3b75`](https://github.com/JSPrismarine/JSPrismarine/commit/30c3b757659005a41f24948cb22c1aad2d7c0a8d), [`94378af`](https://github.com/JSPrismarine/JSPrismarine/commit/94378afa7703ea12239c4837f8b18fbc4b5974cc), [`d4d0080`](https://github.com/JSPrismarine/JSPrismarine/commit/d4d00808c51e69517519dd35cc4071952387c88b), [`f5ea701`](https://github.com/JSPrismarine/JSPrismarine/commit/f5ea701bd7297d63eb524be1d4b76c07cf204569), [`d5dc760`](https://github.com/JSPrismarine/JSPrismarine/commit/d5dc760107a1dbc9c5ba9eb5fc9fb544d725c02d), [`c140ef6`](https://github.com/JSPrismarine/JSPrismarine/commit/c140ef6e3072eb97c7a8b123876ea08726ed9910), [`91a7a0b`](https://github.com/JSPrismarine/JSPrismarine/commit/91a7a0bfac2eac8c81961d5263e54b53dc0c3fc5), [`e0b6601`](https://github.com/JSPrismarine/JSPrismarine/commit/e0b6601c7d15192bf5067a4b6c0dd7aa6741e2f9), [`09979cd`](https://github.com/JSPrismarine/JSPrismarine/commit/09979cd9e3d6e3971f7d3e3d370f9a32473b8bf4), [`ff19749`](https://github.com/JSPrismarine/JSPrismarine/commit/ff19749df1f7e776064bd80a13547dcc9c421ac1), [`c9d1849`](https://github.com/JSPrismarine/JSPrismarine/commit/c9d1849bc559d8222140b20852f7af89074660d6), [`14ff23a`](https://github.com/JSPrismarine/JSPrismarine/commit/14ff23ad9b2df838457f98d58fcef567d7242d68), [`153ef65`](https://github.com/JSPrismarine/JSPrismarine/commit/153ef650f6a99338115fac97ce4face3a59ededf), [`0dac56a`](https://github.com/JSPrismarine/JSPrismarine/commit/0dac56a679dfcb3b0a2953e1bb451592833ec2a4), [`9ec832e`](https://github.com/JSPrismarine/JSPrismarine/commit/9ec832e9cb80462b10f2f9584af2e73bc327a498), [`5a0b34b`](https://github.com/JSPrismarine/JSPrismarine/commit/5a0b34b3da74e8c0d4d1e83ddab701563c9505ce), [`3d31eca`](https://github.com/JSPrismarine/JSPrismarine/commit/3d31ecaa4cb2b13394deacdfc3b95ae4eb0de51e), [`eee1692`](https://github.com/JSPrismarine/JSPrismarine/commit/eee1692f9692eb172a6ba6abbb64e46daa060a9c), [`2244da2`](https://github.com/JSPrismarine/JSPrismarine/commit/2244da2ab1a8f6b1f46d42a68de40af4e8023e2d), [`2f86764`](https://github.com/JSPrismarine/JSPrismarine/commit/2f86764d56a7e9ae5038854c27dd8fc9b3dfd0de), [`1606252`](https://github.com/JSPrismarine/JSPrismarine/commit/16062522d82a4d15282a6bdf4bb027394cacd3e6), [`2c459cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2c459cd2ab8822f0364c1ce8e473cf0487b294a8), [`c776757`](https://github.com/JSPrismarine/JSPrismarine/commit/c77675747b1bb4ef14e48c28dda0865bdd232ad2), [`38422a0`](https://github.com/JSPrismarine/JSPrismarine/commit/38422a034cfdd5efd8956bbd4552830a103a8a18), [`5a0d8e1`](https://github.com/JSPrismarine/JSPrismarine/commit/5a0d8e1cc55a81414223aa2089fce8301776f8f7), [`56487c6`](https://github.com/JSPrismarine/JSPrismarine/commit/56487c6347873aedbc3c828b2e532ea13a10fb00), [`7af8680`](https://github.com/JSPrismarine/JSPrismarine/commit/7af86809e55ed550b22a4d04118e1532d729262d), [`0627e9b`](https://github.com/JSPrismarine/JSPrismarine/commit/0627e9be0fbf1813ed28999742165c4ed9ca3a4d), [`d1a241c`](https://github.com/JSPrismarine/JSPrismarine/commit/d1a241c40329c0cb5a1c7ad49c2896d89bdae2a1), [`b6b916f`](https://github.com/JSPrismarine/JSPrismarine/commit/b6b916fa7328a12b7467f9112791d3281cd43cfb), [`8687de7`](https://github.com/JSPrismarine/JSPrismarine/commit/8687de7e31ac990b5b0b79c0b9059db2c127d106), [`28b5c00`](https://github.com/JSPrismarine/JSPrismarine/commit/28b5c00af0d5377e7030e82d409b6def544619ba), [`ccfb982`](https://github.com/JSPrismarine/JSPrismarine/commit/ccfb982275c8bcfa98de89f61048daeff811819c), [`1150058`](https://github.com/JSPrismarine/JSPrismarine/commit/1150058a0dad77ee54871f7c4ba234ef3d8c79b8), [`fb2eeaa`](https://github.com/JSPrismarine/JSPrismarine/commit/fb2eeaa6c76b546d45742c3cca1800c512a04e63), [`01d95b3`](https://github.com/JSPrismarine/JSPrismarine/commit/01d95b3a07c6924cf90386536e6d4a69deaa407c), [`91bdbee`](https://github.com/JSPrismarine/JSPrismarine/commit/91bdbee54178fda1cfa835e4eda6a51f8ffa0c59), [`86526cc`](https://github.com/JSPrismarine/JSPrismarine/commit/86526cc6d8e3422b6154963f75715fc3f7fba376), [`f198a15`](https://github.com/JSPrismarine/JSPrismarine/commit/f198a156a8c307c941efd01a4bd4604eba0f5626), [`4c88047`](https://github.com/JSPrismarine/JSPrismarine/commit/4c88047abd9a979343d8f0ab9393dacd1a037275), [`3204465`](https://github.com/JSPrismarine/JSPrismarine/commit/320446537230cbe4830ff9ca0bffa05133cf0592), [`88db8cd`](https://github.com/JSPrismarine/JSPrismarine/commit/88db8cdc94238bbdec632ca8451d8f36bf4b2416), [`9611f5d`](https://github.com/JSPrismarine/JSPrismarine/commit/9611f5d1588935528a0fa5dbd95b8ab08498739a), [`e3a0042`](https://github.com/JSPrismarine/JSPrismarine/commit/e3a0042b06e7493219bd869523775a0f10423440), [`934b5d2`](https://github.com/JSPrismarine/JSPrismarine/commit/934b5d22e8c158cde43c80ea9df8d7589e8bcafa), [`88c985e`](https://github.com/JSPrismarine/JSPrismarine/commit/88c985edcb1666f9e15c79eb4c3ee2ee1f134e62), [`ab2abdd`](https://github.com/JSPrismarine/JSPrismarine/commit/ab2abddd4567a51630e851566dc55a226d0cbccd), [`b786016`](https://github.com/JSPrismarine/JSPrismarine/commit/b78601670a934710ae604a88a33e47aaaff408ab), [`7a20ad8`](https://github.com/JSPrismarine/JSPrismarine/commit/7a20ad80c99ab96a461e1a37c363cf1d64904d8e), [`fec76ec`](https://github.com/JSPrismarine/JSPrismarine/commit/fec76ec7039ebf9543a62cc4167732f16754927c), [`08de1ba`](https://github.com/JSPrismarine/JSPrismarine/commit/08de1bac21f3c5785a02649e4faa11d9a11f82b0), [`ef12ef8`](https://github.com/JSPrismarine/JSPrismarine/commit/ef12ef8dee0fb445a80811306d20c44aabeb237d), [`6b0d00b`](https://github.com/JSPrismarine/JSPrismarine/commit/6b0d00bd2876ba30c45e45aa8e1d31b535050f27), [`57e3422`](https://github.com/JSPrismarine/JSPrismarine/commit/57e34226bd0f570548282994e088db7213f7fdc8), [`1427d68`](https://github.com/JSPrismarine/JSPrismarine/commit/1427d68b60d21a54c1a077792f71be0eccdac36e), [`b46c7f5`](https://github.com/JSPrismarine/JSPrismarine/commit/b46c7f5886ad6ce3aa0468630995743af6dc4cfd), [`f3f9fc3`](https://github.com/JSPrismarine/JSPrismarine/commit/f3f9fc3e9918a58054715f1923ad7e88b1804d91), [`537865c`](https://github.com/JSPrismarine/JSPrismarine/commit/537865cfe62a996b4f17872021d86ae87373b786), [`a7192d2`](https://github.com/JSPrismarine/JSPrismarine/commit/a7192d24a34fc313bb255d8ff083a81515e567fb), [`3f5537f`](https://github.com/JSPrismarine/JSPrismarine/commit/3f5537fb7ff52b79b5a5211c96c1e38545e32f98), [`c889ff9`](https://github.com/JSPrismarine/JSPrismarine/commit/c889ff93e1ab889d16fe0b6ddf401693e1ef2837), [`9d93172`](https://github.com/JSPrismarine/JSPrismarine/commit/9d931725e8d48fab773c2fe9f659b2f3e1d26325), [`f82703f`](https://github.com/JSPrismarine/JSPrismarine/commit/f82703f58e970ee0dcfbcc71bf7070b43247cc93), [`5ada190`](https://github.com/JSPrismarine/JSPrismarine/commit/5ada190f45738827cd2b67328404ce49226aea56), [`220290c`](https://github.com/JSPrismarine/JSPrismarine/commit/220290cf27e6ffeea04c6e0fc2e4d2e124ab4341), [`707964d`](https://github.com/JSPrismarine/JSPrismarine/commit/707964d1a85072dbd157d74a63dd2471aafa8b8f), [`7bbe9d6`](https://github.com/JSPrismarine/JSPrismarine/commit/7bbe9d66c3bc2f032f0fbc98f4c10c1cfaabfc35), [`b6cdccf`](https://github.com/JSPrismarine/JSPrismarine/commit/b6cdccf53598c32a024a774033b6cc4b06fd3da8), [`703bf42`](https://github.com/JSPrismarine/JSPrismarine/commit/703bf42237b001abcacbbdfbd67d3a8ed9de555e), [`cf0908c`](https://github.com/JSPrismarine/JSPrismarine/commit/cf0908cb644c07241cb0cef6c8f4acf4282e7d59), [`f0584a3`](https://github.com/JSPrismarine/JSPrismarine/commit/f0584a381c6bab5c61e5aa2cd3782218bc8d74e7), [`4855bcc`](https://github.com/JSPrismarine/JSPrismarine/commit/4855bcc3a5fffef4b6a2e362415caa6f672126dd), [`1825a4c`](https://github.com/JSPrismarine/JSPrismarine/commit/1825a4cf5443453bf306e6282c31c80446fd59e5), [`587b01a`](https://github.com/JSPrismarine/JSPrismarine/commit/587b01a9e42381394bfc195c5a5597315145a1e8), [`f3501ba`](https://github.com/JSPrismarine/JSPrismarine/commit/f3501ba313b497cbd28fd465a962867a08738e32), [`5f838b2`](https://github.com/JSPrismarine/JSPrismarine/commit/5f838b2c01ab875611fefd411c05a18f3172f26a), [`f5c7d59`](https://github.com/JSPrismarine/JSPrismarine/commit/f5c7d591d3fe46e95c5058c2114c382ecc61784a), [`8086b8c`](https://github.com/JSPrismarine/JSPrismarine/commit/8086b8c5b689736084844b4ed11587df9d432fbf), [`62c83dd`](https://github.com/JSPrismarine/JSPrismarine/commit/62c83dda69b32e25c7d21207b30c3a07fde22609), [`f0294ef`](https://github.com/JSPrismarine/JSPrismarine/commit/f0294ef0b8e358f4fda308d7c8f1c901bf1bf3e7), [`e2fcf7a`](https://github.com/JSPrismarine/JSPrismarine/commit/e2fcf7afa78e58a5a768d0f42abc035e50389a33), [`c3277be`](https://github.com/JSPrismarine/JSPrismarine/commit/c3277be5928541348011c503daaf74c671050d20), [`61c3417`](https://github.com/JSPrismarine/JSPrismarine/commit/61c3417ea32f651a7add6275c6ef81fbbfda3611), [`18b2fa6`](https://github.com/JSPrismarine/JSPrismarine/commit/18b2fa6dfe248dc201e6d9a232413831dcaf7060), [`a0d4b3f`](https://github.com/JSPrismarine/JSPrismarine/commit/a0d4b3fc39cc6ad3637e7b81ad535ae5afd869fd), [`3cb7c4d`](https://github.com/JSPrismarine/JSPrismarine/commit/3cb7c4d773526e3bc45a7cb786a37b199cde00ad), [`168bbb6`](https://github.com/JSPrismarine/JSPrismarine/commit/168bbb6c45890879074549cab88cf987a5fef829), [`ef39583`](https://github.com/JSPrismarine/JSPrismarine/commit/ef395830d28b1b242b20a7246c8bb6ec781f5f4c), [`3549805`](https://github.com/JSPrismarine/JSPrismarine/commit/354980555c096e06c6a54c8d06a3710fa247a6b2), [`152ff12`](https://github.com/JSPrismarine/JSPrismarine/commit/152ff1277534718f1c46827040b5f9e18fd806d8), [`9847149`](https://github.com/JSPrismarine/JSPrismarine/commit/9847149ce4428d5a4c166f9ec4d87c78f7406d83), [`0e208a5`](https://github.com/JSPrismarine/JSPrismarine/commit/0e208a5c1b79d9d568083e6cc6f473c6df89b33b), [`439eb59`](https://github.com/JSPrismarine/JSPrismarine/commit/439eb59cfd5c5bea9050c4945b8a57f0038ecd66), [`8b1bf1b`](https://github.com/JSPrismarine/JSPrismarine/commit/8b1bf1b337e7cb9e1d8f61d8df8b42e2b2badcb6), [`1e7a45b`](https://github.com/JSPrismarine/JSPrismarine/commit/1e7a45b8f9209c7844a76693b019ddb040bdd475), [`eb85543`](https://github.com/JSPrismarine/JSPrismarine/commit/eb85543638be38c53b604d70e11358ba72c9f61f), [`25fcdf8`](https://github.com/JSPrismarine/JSPrismarine/commit/25fcdf8b3d3835ecb66c0d4effe0da1a80b95368), [`23450ee`](https://github.com/JSPrismarine/JSPrismarine/commit/23450ee6e61092c05e2cebeca492c95b28e8da0d), [`cd01052`](https://github.com/JSPrismarine/JSPrismarine/commit/cd01052548178421cd323b316d77d87374cee9dc), [`912f83e`](https://github.com/JSPrismarine/JSPrismarine/commit/912f83eb3dd233d756506e1d6a309ed780fde00a), [`d5056d3`](https://github.com/JSPrismarine/JSPrismarine/commit/d5056d3fe5f8d2be49f42d3d03edab591bedf55a), [`8128a63`](https://github.com/JSPrismarine/JSPrismarine/commit/8128a6344645e6798453b7c7eae77a69594e848c), [`8a368eb`](https://github.com/JSPrismarine/JSPrismarine/commit/8a368ebb1f02d851ba3f8585a37639b4a418d9c8), [`1b92d98`](https://github.com/JSPrismarine/JSPrismarine/commit/1b92d984399f419962640740bfd8f689a3c5c5d3), [`20a16d1`](https://github.com/JSPrismarine/JSPrismarine/commit/20a16d1aec16579eaf25b61f7eeffd261408ef3b)]:
+  - @jsprismarine/protocol@0.16.0
+  - @jsprismarine/minecraft@0.16.0
+  - @jsprismarine/logger@0.16.0
+  - @jsprismarine/raknet@0.16.0
+  - @jsprismarine/auth@0.16.0
+
 ## 0.15.2
 
 ### Patch Changes

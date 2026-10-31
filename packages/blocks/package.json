@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/blocks",
-    "version": "0.0.0",
+    "version": "0.16.0",
     "description": "The Bedrock block definition grammar, component runtime, permutation evaluation, state model and the jsprismarine_vanilla overlay pack",
     "sideEffects": false,
     "publishConfig": {
