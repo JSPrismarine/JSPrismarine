@@ -121,7 +121,8 @@ Five optional members cover what a feature needs and world generation does not o
 chests and the spawner, `placeTemplate` for `template` and `fossil`, `spawnEntity` for the end
 spike's crystal, and `tagMembers` for the one state provider that enumerates a tag rather than
 testing it. When one is absent the feature does the visible part and skips the rest rather than
-failing.
+failing. `spawnEntity` takes an `EntitySpawnOptions` object carrying the yaw and the crystal's
+beam target, base plate and invulnerability, which the server applies to the entity it spawns.
 
 `TestFeatureWorld` is the in-memory adapter the tests use. It records every write in order,
 computes heightmaps from the stored blocks so a feature that reads a heightmap after writing sees
@@ -208,6 +209,11 @@ places its visible part and leaves the rest to the caller, so none of them fails
 - **Loot, spawners, gateways and the end crystal.** `monster_room`, `bonus_chest`, `end_gateway`
   and `end_spike` place their blocks and report what belongs in them through `setBlockEntity` and
   `spawnEntity`.
+- **The ten spike pillars.** Vanilla's `end_spike` ships an empty `spikes` list, which means
+  "derive the pillars from the world seed". `endSpikesForSeed` ports Java's derivation: the seed
+  reduces to a 16-bit key through the legacy LCG's `nextLong`, a second generator seeded by that
+  key shuffles the indices 0 through 9, and each pillar's radius, height and iron-bar cage follow
+  from its shuffled index.
 
 ## Known gaps
 
