@@ -74,12 +74,15 @@ const DIMENSION_TYPES: ReadonlyMap<string, DimensionTypeDefinition> = new Map([
 
 let scratch: string;
 
-const testServer = (): Server =>
+/**
+ * @param preloadRadius - How far around spawn an enabling world generates. Zero, the default,
+ *   keeps the start region out of every test but the one about it.
+ */
+const testServer = (preloadRadius = 0): Server =>
     stub<Server>({
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
-        // Nothing preloads: the start region is the Overworld's business, covered elsewhere.
-        getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
+        getConfig: () => stub<Config>({ getPreloadRadius: () => preloadRadius, getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime()
     });
@@ -99,8 +102,12 @@ const emptyGenerator = (dimension: DimensionType): Generator => ({
  * @param generatorFor - What the factory builds for each dimension. Defaults to empty chunks
  *   over dry land.
  */
-const buildLevel = (name: string, options: Partial<LevelOptions> = {}, generatorFor = emptyGenerator) => {
-    const server = testServer();
+const buildLevel = (
+    name: string,
+    options: Partial<LevelOptions> = {},
+    generatorFor = emptyGenerator,
+    server = testServer()
+) => {
     const folder = path.join(scratch, name);
     const provider = new LevelDB(folder, server);
     const builds = new Map<string, number>();
@@ -206,6 +213,41 @@ describe('Level', () => {
             expect(builds).toEqual(new Map([[Dimensions.Overworld.id, 1]]));
             expect(await level.world(OVERWORLD_STEM_ID)).toBe(overworld);
             expect(level.loadedWorld(NETHER_STEM_ID)).toBeUndefined();
+
+            await level.disable();
+        });
+
+        it('prepares the start region of an eager world and leaves a lazy one to its first visitor', async () => {
+            // One chunk around spawn, so the preload is nine generated chunks per prepared world.
+            const generated = new Map<string, number>();
+            const searched = new Map<string, number>();
+            const count = (counts: Map<string, number>, id: string) => counts.set(id, (counts.get(id) ?? 0) + 1);
+            const { level } = buildLevel(
+                'start-region',
+                { load: new Map([[OVERWORLD_STEM_ID, 'eager']]) },
+                (dimension) => ({
+                    generateChunk: async (cx, cz) => {
+                        count(generated, dimension.id);
+                        return new Chunk(cx, cz, new Map(), dimension);
+                    },
+                    surfaceAt: () => {
+                        count(searched, dimension.id);
+                        return { y: 64, name: 'minecraft:stone' };
+                    }
+                }),
+                testServer(1)
+            );
+
+            await level.enable();
+            expect(searched.get(Dimensions.Overworld.id)).toBeGreaterThan(0);
+            expect(generated.get(Dimensions.Overworld.id)).toBe(9);
+
+            // Built on a first portal trip, inside a server tick: the arrival's chunks are the
+            // travel path's to load, and a Nether spawn search would generate terrain nobody
+            // is standing on.
+            await level.world(NETHER_STEM_ID);
+            expect(searched.get(Dimensions.Nether.id)).toBeUndefined();
+            expect(generated.get(Dimensions.Nether.id)).toBeUndefined();
 
             await level.disable();
         });

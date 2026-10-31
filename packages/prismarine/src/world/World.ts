@@ -329,6 +329,15 @@ export interface WorldData {
     /** Defaults to the level's resolved type for the stem, or the Overworld when it has none. */
     dimension?: DimensionType;
     /**
+     * Whether {@link World.enable} settles the spawn and generates the chunks around it.
+     *
+     * `prepared`, the default, is for a world built as its level opens: the first player
+     * arrives into generated terrain. `deferred` is for a world the level builds on its first
+     * visit, from inside a server tick: enabling does neither, the travel path loads the
+     * chunks the arrival needs, and a spawn is searched for only if something asks for one.
+     */
+    startRegion?: 'prepared' | 'deferred';
+    /**
      * What to run when a random tick lands on a block, keyed by block identifier.
      *
      * The world draws the positions and `@jsprismarine/engine-systems` filters them; what a
@@ -419,6 +428,7 @@ export class World implements Service {
     private readonly generator: Generator;
     private readonly config: WorldConfig;
     private readonly dimension: DimensionType;
+    private readonly startRegion: 'prepared' | 'deferred';
 
     /**
      * This world's own spawn, for a dimension other than the Overworld.
@@ -479,6 +489,7 @@ export class World implements Service {
         generator,
         config,
         dimension,
+        startRegion,
         randomTickHandlers,
         blockTickHandlers,
         redstoneUpdateHandlers
@@ -490,6 +501,7 @@ export class World implements Service {
         this.generator = generator;
         this.config = config ?? {};
         this.dimension = dimension ?? level.getDimensionTypes().get(stem.type) ?? Dimensions.Overworld;
+        this.startRegion = startRegion ?? 'prepared';
         this.physics = new BlockPhysics(this);
         this.systems = new WorldSystems({
             view: {
@@ -530,7 +542,8 @@ export class World implements Service {
 
     /**
      * On enable hook: puts back what the save kept for this dimension and generates the start
-     * region. The level has opened the provider and read the save-level state by now.
+     * region, unless {@link WorldData.startRegion} defers it. The level has opened the provider
+     * and read the save-level state by now.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
@@ -568,6 +581,8 @@ export class World implements Service {
                 if (!this.restoreDataEntity(body)) await this.addEntity(body);
             }
         }
+
+        if (this.startRegion === 'deferred') return;
 
         this.startingRegion = this.prepareStartRegion();
         try {

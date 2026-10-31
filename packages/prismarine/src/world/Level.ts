@@ -10,7 +10,9 @@
  *
  * A world is built when first asked for, unless its stem is marked `eager`, in which case
  * {@link Level.enable} builds it. Building means asking the {@link GeneratorFactories} for the
- * stem's generator and enabling the world, which generates its start region.
+ * stem's generator and enabling the world. An eager world generates its start region as it
+ * enables; a lazy one, built from inside a server tick, leaves its first chunks to whoever
+ * arrives.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -321,10 +323,12 @@ export class Level {
      * The world of one dimension, built and enabled on first request.
      *
      * The first call for a dimension asks the factories for the stem's generator, builds the
-     * world and enables it, which generates the start region; every later call answers the
-     * same instance once that enabling has finished. Two overlapping first calls share one
-     * build. A world whose enabling failed is forgotten, so the call after the failure builds
-     * it again rather than answering the same rejection for the life of the level.
+     * world and enables it; every later call answers the same instance once that enabling has
+     * finished. Two overlapping first calls share one build. A world whose enabling failed is
+     * forgotten, so the call after the failure builds it again rather than answering the same
+     * rejection for the life of the level. Only an `eager` stem's world generates its start
+     * region here; a lazy one is built from inside a server tick and leaves its first chunks
+     * to whoever arrives.
      *
      * @param dimensionId - The stem's key, `minecraft:the_nether` for the Nether. The vanilla
      *   stems share their dimension type's id.
@@ -444,6 +448,11 @@ export class Level {
             dimension,
             generator,
             config: this.config,
+            // An eager world is built as the level opens and generates its start region then.
+            // A lazy one is built on its first visit, from inside a server tick, where a start
+            // region's worth of generation would stall the whole server; whoever arrives loads
+            // the chunks they stand in.
+            startRegion: this.load.get(dimensionId) === 'eager' ? 'prepared' : 'deferred',
             ...this.handlers?.(() => built, dimension)
         });
         built = world;
