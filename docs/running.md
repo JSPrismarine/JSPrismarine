@@ -226,10 +226,12 @@ still need into `config.json` (where `//` comments are allowed).
 ### Worlds
 
 Each entry under `worlds` is one world: its `seed`, the `provider` that stores it on disk and
-the `preset` that says which dimensions it has and how each one generates. The preset is a Java
+the `preset` that says which dimensions it has and how each one generates. The server loads
+every entry; `level-name` picks the one players join. The preset is a Java
 `worldgen/world_preset` id. `minecraft:normal`, the default, is the Overworld, the Nether and
 the End with vanilla terrain; `minecraft:flat` is a superflat Overworld that needs no Java data;
 `minecraft:large_biomes` and `minecraft:amplified` are the other two vanilla presets.
+[dimensions.md](data-driven/dimensions.md) describes every key and what is behind them.
 
 ```json
 {
@@ -274,7 +276,19 @@ Overworld flat, with the same `generator` object a Java datapack writes in a `di
 
 `load` is `lazy` by default, which builds a dimension the first time something enters it, so a
 server nobody takes to the End never pays for it. `eager` builds it at startup instead, which
-moves that cost to the start and uses more memory while the server runs.
+moves that cost to the start and uses more memory while the server runs. The Overworld of the
+world players join is always built at startup.
+
+A `generator` may be any of four kinds. `minecraft:noise` is vanilla terrain and needs the Java
+data from [section 1.3](#13-world-generation-data); `minecraft:flat`, `jsprismarine:void` (empty
+chunks) and `minecraft:debug` (every block state on a grid) need none of it. Without that data,
+only `minecraft:normal` and `minecraft:flat` exist as presets, each with the Overworld alone. A
+`type` other than the vanilla three has to come from a datapack listed under `content-datapacks`,
+and adding an id the preset lacks needs both `type` and `generator`.
+
+A world remembers the dimensions it was generated with. Changing `preset` or a `generator` for
+an existing world does nothing to its terrain: the server keeps the saved stems and logs one
+line per dimension where the config disagrees. Start a new world folder for new terrain.
 
 Older configs spelled the same thing as `generator: "Overworld"` or `generator: "Flat"`, with
 flat layers under `layers` as `{ "block", "size" }`. The server still reads both keys: `Overworld`
