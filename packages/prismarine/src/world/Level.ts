@@ -76,6 +76,7 @@ export interface LevelOptions {
     readonly name: string;
     /** The level folder, where the legacy `level.json` and the fallback player records live. */
     readonly path: string;
+    /** The server the level belongs to. The level reads its content and logger and hands it to each world it builds. */
     readonly server: Server;
     /** The one provider for every dimension of this save. The level opens and closes it. */
     readonly provider: BaseProvider & Provider;
