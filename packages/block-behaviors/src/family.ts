@@ -14,6 +14,7 @@ import type {
     BlockEvent,
     BlockHookName,
     BlockHooks,
+    BlockInteractResult,
     BlockNeighborChangedEvent,
     BlockPlaceEvent,
     BlockPlayerInteractEvent,
@@ -55,7 +56,7 @@ export interface FamilyHandlers {
         event: BlockPlayerInteractEvent,
         world: WorldActions,
         context: FamilyContext
-    ) => boolean | undefined;
+    ) => boolean | BlockInteractResult | undefined;
     readonly onStepOn?: (event: BlockStepOnEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onEntityFallOn?: (event: BlockEntityFallOnEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onEntity?: (event: BlockEntityEvent, world: WorldActions, context: FamilyContext) => void;

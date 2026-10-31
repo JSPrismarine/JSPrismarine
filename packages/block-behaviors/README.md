@@ -175,7 +175,7 @@ it from four hooks.
 | --- | --- | --- |
 | `onPlace` | `fire`, `soul_fire` | `findEmptyPortalShape` scans both axes for an obsidian frame around the fire, 2 to 21 interior blocks wide and 3 to 21 tall with the corners unchecked, and `lightNetherPortal` writes `minecraft:portal` with the frame's `portal_axis` into the interior. Nothing lights in `minecraft:the_end`. |
 | `onNeighborChanged` | `portal` | When the neighbor on a vertical face or a face along the portal's axis is neither portal nor obsidian, `collapseNetherPortal` clears every portal block `connectedPortalBlocks` reaches through the plane, in one go. |
-| `onPlayerInteract` | `end_portal_frame` | After the eye goes in, `findEndPortalRing` looks for the flat ring of twelve frames, each with an eye and facing the center, and `activateEndPortal` fills the 3 by 3 with `end_portal`. |
+| `onPlayerInteract` | `end_portal_frame` | After the eye goes in, `findEndPortalRing` looks for the flat ring of twelve frames, each with an eye and facing the center, and `activateEndPortal` fills the 3 by 3 with `end_portal`. The answer reports that the click cost the eye, which the dispatching server spends from the hand outside creative. |
 | `onRandomTick` | `portal` | In the Overworld, `piglinSpawnRoll` is `random() * 2000 < difficultyId`, and a hit spawns `minecraft:zombie_pigman` beside the bottom of the portal: south of a portal on the x axis, east of one on the z axis. |
 
 Two more functions are for the server's travel code rather than for a hook. `portalCreationSite`

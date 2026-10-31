@@ -231,12 +231,13 @@ const resendInventory = (player: Player): void => {
 };
 
 /**
- * Takes the placed block out of the hand, for anyone but a creative player.
+ * Takes one of the held item out of the hand, for anyone but a creative player: the block a
+ * placement put down, or the item a block hook reported the click cost.
  *
  * Through {@link Item.withCount}, so what is left keeps the stack network id the client knows it
  * by. The last one empties the slot.
  */
-const spendPlacedBlock = (player: Player): void => {
+const spendHeldItem = (player: Player): void => {
     if (player.gamemode === Gametype.CREATIVE) return;
 
     const inventory = player.getInventory();
@@ -387,8 +388,10 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
     const block = hookBlockAt(player, dimension, interaction.position);
     if (block === undefined) return 'declined';
 
-    const held = player.getInventory().getItemInHand();
-    const stack = contentStackOf(content, held);
+    const inventory = player.getInventory();
+    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
+    const held = inventory.getItemInHand();
+    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
     const placedBlock = placedBlockOf(content, held);
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
     const position = player.getPosition();
@@ -420,7 +423,13 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             // `jsprismarine:utility` says in as many words that the screens belong here.
             const opened = openContainer(interaction, block);
             const claimed = claimRespawnBlock(interaction, block);
-            if (opened || claimed || consumed === true) {
+            if (opened || claimed || consumed === true || typeof consumed === 'object') {
+                // A hook has no inventory, so one that reports the click cost the held item -
+                // the eye of ender a portal frame took - is charged here, outside creative.
+                if (typeof consumed === 'object' && consumed.consumesHeldItem === true) {
+                    spendHeldItem(player);
+                    resendInventory(player);
+                }
                 advancementBlockUsed(player, { origin: origin(interaction), block: block.identifier }, true);
                 return 'handled';
             }
@@ -436,6 +445,14 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 faceLocation: interaction.faceLocation
             });
             if (used !== undefined) {
+                // The hook's answer is the stack to put back, the same carry-back
+                // `useItemOnEntity` does: without it bone meal, a fire charge and every other
+                // consumable used on a block stayed at full count.
+                if (used.stack?.identifier === held.getName()) {
+                    held.count = used.stack.count;
+                    heldEntry?.setCount(used.stack.count);
+                }
+
                 // Java raises both: `any_block_use` for every interaction with a block, and
                 // `item_used_on_block` for the item that did it, whose conditions see the tool.
                 const event = { origin: origin(interaction), block: block.identifier, tool: held };
@@ -455,7 +472,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
 
         // Java's order: the trigger sees the stack the block came out of, then the stack pays.
         advancementPlacedBlock(player, { origin: placedAt, block: placedBlock, tool: held });
-        spendPlacedBlock(player);
+        spendHeldItem(player);
         resendInventory(player);
         return 'handled';
     });

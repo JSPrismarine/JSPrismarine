@@ -11,6 +11,7 @@ import type {
     BlockFace,
     BlockHookName,
     BlockHooks,
+    BlockInteractResult,
     BlockPosition,
     BlockStateValue,
     FaceLocation,
@@ -224,7 +225,7 @@ export class FamilyHarness {
             readonly faceLocation?: FaceLocation;
             readonly itemStack?: HookItem;
         } = {}
-    ): boolean | undefined {
+    ): boolean | BlockInteractResult | undefined {
         return this.handlers.onPlayerInteract?.({
             block: this.block(position),
             player: options.player ?? TEST_PLAYER,

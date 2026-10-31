@@ -189,7 +189,7 @@ straight to a pack's JavaScript without a translation table:
 | `onNeighborChanged` | `BlockNeighborChangedEvent` | `void` |
 | `onRandomTick` | `BlockTickEvent` | `void` |
 | `onTick` | `BlockTickEvent` | `void` |
-| `onPlayerInteract` | `BlockPlayerInteractEvent` | `boolean \| undefined` |
+| `onPlayerInteract` | `BlockPlayerInteractEvent` | `boolean \| BlockInteractResult \| undefined` |
 | `onStepOn` | `BlockStepOnEvent` | `void` |
 | `onEntityFallOn` | `BlockEntityFallOnEvent` | `void` |
 | `onEntity` | `BlockEntityEvent` | `void` |
@@ -198,7 +198,9 @@ straight to a pack's JavaScript without a translation table:
 
 Every event carries `block: HookBlock`, which is the identifier, the position, the dimension and
 the state values. `onPlayerInteract` is the one hook with a return value: `true` means the handler
-consumed the interaction, which stops the later handlers under `dispatchFirst`. The event types are
+consumed the interaction, which stops the later handlers under `dispatchFirst`. A handler whose
+interaction costs the player the held item answers `{ consumed: true, consumesHeldItem: true }`
+instead, and the host that dispatched the click takes the item out of the hand, outside creative. The event types are
 structural and name only what a handler reads, so the server's own `Player` and `Entity` classes are
 assignable to `HookActor` without this package depending on the server.
 

@@ -369,7 +369,9 @@ describe('end portal ring', () => {
         const last = { ...CENTER, x: CENTER.x + 1, z: CENTER.z + 2 };
         harness.dimension.set(last, FRAME, { end_portal_eye_bit: 0, 'minecraft:cardinal_direction': 'north' });
 
-        expect(harness.interact(last, { itemStack: heldItem('minecraft:ender_eye') })).toBe(true);
+        expect(harness.interact(last, { itemStack: heldItem('minecraft:ender_eye') })).toMatchObject({
+            consumed: true
+        });
 
         let written = 0;
         for (let dx = -1; dx <= 1; dx += 1) {
@@ -388,7 +390,9 @@ describe('end portal ring', () => {
         buildRing(harness.dimension, CENTER, false);
         const first = { ...CENTER, x: CENTER.x - 2, z: CENTER.z };
 
-        expect(harness.interact(first, { itemStack: heldItem('minecraft:ender_eye') })).toBe(true);
+        expect(harness.interact(first, { itemStack: heldItem('minecraft:ender_eye') })).toMatchObject({
+            consumed: true
+        });
 
         expect(harness.dimension.identifierAt(CENTER)).toBe(AIR);
         expect(harness.dimension.stateAt(first, 'end_portal_eye_bit')).toBe(true);

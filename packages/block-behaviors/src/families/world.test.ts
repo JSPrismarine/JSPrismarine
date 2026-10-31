@@ -187,7 +187,10 @@ describe('portalFamily', () => {
         });
 
         const eye = heldItem('minecraft:ender_eye');
-        expect(harness.interact(origin, { itemStack: eye })).toBe(true);
+        // The richer answer: the click is consumed and it cost an eye, which the host takes
+        // out of the player's inventory outside creative. The family has no inventory to
+        // spend from, so saying so is all it can do.
+        expect(harness.interact(origin, { itemStack: eye })).toEqual({ consumed: true, consumesHeldItem: true });
         expect(harness.dimension.stateAt(origin, 'end_portal_eye_bit')).toBe(true);
         expect(harness.interact(origin, { itemStack: eye })).toBeUndefined();
     });

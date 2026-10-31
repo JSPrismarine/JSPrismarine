@@ -160,14 +160,14 @@ export const portalFamily = defineFamily(
             if (event.block.states['end_portal_eye_bit'] === true) return undefined;
             // Only a held eye of ender goes into the frame; a bare hand or any other item
             // leaves the click to the next handler.
-            // TODO: vanilla also takes one eye off the stack outside creative, but this hook
-            // answers with a boolean and `WorldActions` reaches no inventory, so the eye is
-            // not consumed yet.
             if (heldName(event.itemStack) !== 'ender_eye') return undefined;
             setStates(world, event.block, { end_portal_eye_bit: true });
             world.playSound(event.block.position, 'block.end_portal_frame.fill');
             activateEndPortal(world, event.block.position);
-            return true;
+            // Java's `EnderEyeItem.useOn` takes one eye off the stack after writing the eye.
+            // `WorldActions` reaches no inventory, so the answer reports the cost and the
+            // host that dispatched the click charges it, outside creative.
+            return { consumed: true, consumesHeldItem: true };
         }
     }
 );

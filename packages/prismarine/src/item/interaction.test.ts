@@ -406,6 +406,24 @@ describe('useItemOnBlock', () => {
         expect(world.loadedBlockAt(6, 64, 6)?.states['growth']).toBe(1);
     });
 
+    it('takes the bone meal a survival use spends out of the hand', () => {
+        // `vanilla:bone_meal` answers `onUseOn` with the stack one shorter; the dispatch has
+        // to put that answer back in the slot the way `useItemOnEntity` already does, or no
+        // use-on-block interaction can ever cost an item.
+        place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:farmland', { moisturized_amount: 7 });
+        place(chunk, { x: 6, y: 64, z: 6 }, 'minecraft:wheat', { growth: 0 });
+        world.getSystems().onChunkLoaded(0, 0);
+        world.getSystems().lighting.flush();
+
+        const meal = new Item({ name: 'minecraft:bone_meal', count: 2, content });
+        const player = playerHolding(world, meal);
+
+        expect(click(player, { x: 6, y: 64, z: 6 })).toBe('handled');
+
+        expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+        expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
+    });
+
     it('ignites the air beside the clicked east face and reports that block change', () => {
         place(chunk, { x: 7, y: 64, z: 7 }, 'minecraft:oak_planks');
         const player = playerHolding(world, 'minecraft:flint_and_steel');
@@ -826,11 +844,12 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(9, 64, 7)?.states['minecraft:cardinal_direction']).toBe('west');
 
             // One held eye of ender per click, which is what lets the frame take it; the
-            // portal family refuses a bare hand.
+            // portal family refuses a bare hand. Survival, so each fill costs its one eye.
             for (const frame of ring) {
-                const filler = playerHolding(world, 'minecraft:ender_eye', false, Gametype.CREATIVE);
+                const filler = playerHolding(world, new Item({ name: 'minecraft:ender_eye', count: 1, content }));
                 expect(click(filler, frame.at)).toBe('handled');
                 expect(world.loadedBlockAt(frame.at.x, frame.at.y, frame.at.z)?.states['end_portal_eye_bit']).toBe(1);
+                expect(filler.getInventory().getItemInHand().getName()).toBe('minecraft:air');
             }
 
             for (let dx = -1; dx <= 1; dx += 1) {
@@ -839,6 +858,37 @@ describe('useItemOnBlock', () => {
                 }
             }
             expect(sounds).toContain('block.end_portal.spawn');
+        });
+
+        it('spends one eye of ender on the frame it fills, in survival', () => {
+            // Java's `EnderEyeItem.useOn` shrinks the stack by one after writing the eye. The
+            // portal family reports that cost with its answer, and the dispatch charges it
+            // here, where the inventory lives.
+            place(chunk, { x: 3, y: 64, z: 3 }, 'minecraft:end_portal_frame', {
+                end_portal_eye_bit: false,
+                'minecraft:cardinal_direction': 'south'
+            });
+
+            const player = playerHolding(world, new Item({ name: 'minecraft:ender_eye', count: 2, content }));
+            expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
+
+            expect(world.loadedBlockAt(3, 64, 3)?.states['end_portal_eye_bit']).toBe(1);
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('fills the frame without costing a creative player the eye', () => {
+            place(chunk, { x: 3, y: 64, z: 3 }, 'minecraft:end_portal_frame', {
+                end_portal_eye_bit: false,
+                'minecraft:cardinal_direction': 'south'
+            });
+
+            const eyes = new Item({ name: 'minecraft:ender_eye', count: 2, content });
+            const player = playerHolding(world, eyes, false, Gametype.CREATIVE);
+            expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
+
+            expect(world.loadedBlockAt(3, 64, 3)?.states['end_portal_eye_bit']).toBe(1);
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(2);
         });
 
         it('leaves an end portal frame empty for a bare-hand click', () => {

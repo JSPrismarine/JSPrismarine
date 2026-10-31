@@ -211,6 +211,24 @@ export interface BlockStateChangeEvent extends BlockEvent {
 }
 
 /**
+ * The object form of an `onPlayerInteract` answer, for an interaction that
+ * costs the player the held item.
+ *
+ * It consumes the click exactly as returning `true` does, and adds the one
+ * thing the boolean cannot say: that vanilla charges this click one of the
+ * held item. The handler has no inventory to spend from, so the host that
+ * dispatched the click takes the item out of the player's hand, outside
+ * creative. The portal family answers with it when a held eye of ender fills
+ * an end portal frame.
+ */
+export interface BlockInteractResult {
+    /** The handler consumed the interaction. */
+    readonly consumed: true;
+    /** Whether the interaction spends one of the held item. */
+    readonly consumesHeldItem?: boolean;
+}
+
+/**
  * The hook map `@jsprismarine/content` dispatches for blocks.
  *
  * A component never implements one of these. Components carry parameters and
@@ -231,10 +249,11 @@ export interface BlockHooks {
     /**
      * Runs when a player uses the block.
      *
-     * @returns True when the handler consumed the interaction, which stops
-     *   later handlers and the default item use; undefined to decline.
+     * @returns True or a {@link BlockInteractResult} when the handler consumed
+     *   the interaction, which stops later handlers and the default item use;
+     *   undefined to decline.
      */
-    onPlayerInteract: (event: BlockPlayerInteractEvent) => boolean | undefined;
+    onPlayerInteract: (event: BlockPlayerInteractEvent) => boolean | BlockInteractResult | undefined;
     /** Runs when an entity's feet enter the block's position. */
     onStepOn: (event: BlockStepOnEvent) => void;
     /** Runs when an entity lands on the block, for a block with `minecraft:entity_fall_on`. */
