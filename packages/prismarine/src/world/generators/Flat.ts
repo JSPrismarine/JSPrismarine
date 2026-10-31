@@ -25,6 +25,9 @@ export const DEFAULT_FLAT_SETTINGS: FlatGeneratorSettings = {
     features: false
 };
 
+/** What Java's `FlatLevelSource.getSeaLevel` answers: one above the Overworld's floor, so nothing is under water. */
+export const FLAT_SEA_LEVEL = -63;
+
 /** How a {@link FlatGenerator} is built. */
 export interface FlatGeneratorOptions {
     /** The layers, bottom up, and the biome. */
@@ -44,6 +47,9 @@ export interface FlatGeneratorOptions {
  * than refusing the world. Layers past the dimension's ceiling are dropped, as Java drops them.
  */
 export class FlatGenerator extends BaseGenerator {
+    /** @inheritDoc */
+    public readonly seaLevel = FLAT_SEA_LEVEL;
+
     private readonly settings: FlatGeneratorSettings;
     private readonly dimension: DimensionType;
 

@@ -8,7 +8,7 @@ import type { DimensionType } from '../../Dimension';
 import type { GeneratorBuildContext } from '../../GeneratorFactories';
 import { GeneratorFactories } from '../../GeneratorFactories';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
-import { FlatGenerator } from '../Flat';
+import { FLAT_SEA_LEVEL, FlatGenerator } from '../Flat';
 import { DEFAULT_FLAT_SETTINGS, flatGeneratorFactory, flatStem } from './flat';
 
 const contextFor = (dimension: DimensionType, settings: FlatGeneratorSettings): GeneratorBuildContext => ({
@@ -100,6 +100,13 @@ describe('the minecraft:flat factory', () => {
         expect(chunk.getBlock(0, -63, 0).name).toBe('minecraft:stone');
         expect(warnings).toEqual(['Flat layer block minecraft:not_a_block is unknown and generates as air']);
         expect(generator.surfaceAt()).toEqual({ y: -63, name: 'minecraft:stone' });
+    });
+
+    it('floods to nothing: its sea level is one above the Overworld floor, as in Java', () => {
+        const generator = flatGeneratorFactory.build(contextFor(Dimensions.Overworld, DEFAULT_FLAT_SETTINGS));
+
+        expect(generator.seaLevel).toBe(FLAT_SEA_LEVEL);
+        expect(generator.seaLevel).toBe(-63);
     });
 
     it('defaults to the layers the old Flat generator stacked, in plains', () => {

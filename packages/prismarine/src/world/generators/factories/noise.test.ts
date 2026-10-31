@@ -144,6 +144,15 @@ describe.skipIf(!enabled)('the minecraft:noise factory', { tags: ['real-data'] }
         CHUNK_TIMEOUT
     );
 
+    it('reports the sea level of each stem from its noise_settings', () => {
+        const own = new GeneratorFactories();
+
+        expect(own.build(contextFor(stemOf(Dimensions.Overworld), Dimensions.Overworld)).seaLevel).toBe(63);
+        expect(own.build(contextFor(stemOf(Dimensions.Nether), Dimensions.Nether)).seaLevel).toBe(32);
+        expect(own.build(contextFor(stemOf(Dimensions.TheEnd), Dimensions.TheEnd)).seaLevel).toBe(0);
+        own.stopGenerating();
+    });
+
     it('refuses a settings id no noise_settings document defines', () => {
         const stem: LevelStem = {
             type: Dimensions.Overworld.id,

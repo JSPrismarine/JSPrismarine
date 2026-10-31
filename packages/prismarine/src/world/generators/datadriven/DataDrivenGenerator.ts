@@ -953,8 +953,14 @@ export class DataDrivenGenerator implements Generator {
      */
     public forStem(key: PipelineKey): Generator {
         this.biomeSourceFor(key);
+        const settingsOf = () => this.settingsFor(key);
 
         return {
+            // Read when asked rather than here: parsing the settings resolves every density
+            // function they reach, and a stem built eagerly may never be entered.
+            get seaLevel() {
+                return settingsOf().seaLevel;
+            },
             generateChunk: (cx, cz, seed = 0n, _config, options) => this.generateUnder(key, cx, cz, seed, options),
             raiseUrgency: (cx, cz, urgency) => this.raiseUrgencyUnder(key, cx, cz, urgency),
             surfaceAt: (x, z, seed = 0n) => this.surfaceUnder(key, x, z, seed),
@@ -2028,15 +2034,23 @@ export class DataDrivenGenerator implements Generator {
         return parsed;
     }
 
-    private buildPipeline(key: PipelineKey, seed: bigint): SeededPipeline {
-        const registries = this.options.registries;
-        const dimension = key.dimension;
-        // An inline document arrives with the key, because a worker's registries were bundled
-        // when the pool opened and the stem that carries it may have been built since.
+    /**
+     * The parsed noise settings a key names.
+     *
+     * An inline document arrives with the key, because a worker's registries were bundled when
+     * the pool opened and the stem that carries it may have been built since.
+     */
+    private settingsFor(key: PipelineKey): NoiseGeneratorSettings {
         if (key.inlineNoiseSettings !== undefined && !this.noiseSettingsDocuments.has(key.noiseSettings)) {
             this.noiseSettingsDocuments.set(key.noiseSettings, key.inlineNoiseSettings);
         }
-        const settings = this.worldgen.settings(key.noiseSettings);
+        return this.worldgen.settings(key.noiseSettings);
+    }
+
+    private buildPipeline(key: PipelineKey, seed: bigint): SeededPipeline {
+        const registries = this.options.registries;
+        const dimension = key.dimension;
+        const settings = this.settingsFor(key);
         const randomState = new RandomState(this.worldgen, seed, settings);
         const surface = new SurfaceSystem(randomState);
         const climateOf = this.climateLookup();

@@ -108,6 +108,15 @@ export interface Generator {
     surfaceAt?(x: number, z: number, seed?: bigint): SurfaceProbe;
 
     /**
+     * The y this generator floods to, Java's `ChunkGenerator.getSeaLevel`.
+     *
+     * A noise generator answers its settings' `sea_level`; the flat generator answers Java's
+     * -63. Optional, because a generator with no water line of its own has nothing to say and
+     * the world then assumes the Overworld's 63, which is what Java's debug generator answers.
+     */
+    readonly seaLevel?: number;
+
+    /**
      * Says that a chunk already asked for is wanted more than it was.
      *
      * A chunk is requested once and waited on by everybody who wants it, so the band it was
