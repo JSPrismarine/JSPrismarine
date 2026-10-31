@@ -154,6 +154,9 @@ export interface GenerationPoolOptions {
      * inherits `process.execArgv`, so whatever loader the host was started with is already
      * installed in the worker, and a host running under `--import tsx` hands its workers a
      * loader that follows the extensionless `@jsprismarine/*` imports a dev checkout is full of.
+     * A host that reads TypeScript through its own loader instead, which is vitest, has no such
+     * flag to hand on, so the pool names the `tsx` beside the module itself; see
+     * {@link workerExecArgv}.
      */
     readonly pipeline: string;
     /**
@@ -257,22 +260,100 @@ const workerModuleSpecifier = (specifier: string): string => {
     return file === undefined ? specifier : pathToFileURL(resolve(file)).href;
 };
 
+/** Whether a specifier names TypeScript source, which only a dev checkout runs. */
+const isTypeScriptSource = (specifier: string): boolean => /\.[cm]?ts$/.test(specifier);
+
+/**
+ * The flags that install an ES module loader in the thread they start.
+ *
+ * A worker inherits them with the rest of `process.execArgv`, so a host carrying one has already
+ * given its workers whatever follows its imports. `--experimental-transform-types` is here
+ * because it is the one flag that lets Node's own loader read this project's TypeScript.
+ * `--require` is not: a CommonJS preload, which is how vitest starts its forks, cannot reach the
+ * worker's `import()`.
+ */
+const LOADER_FLAGS = ['--import', '--loader', '--experimental-loader', '--experimental-transform-types'] as const;
+
+const installsLoader = (flags: readonly string[]): boolean =>
+    flags.some((flag) => LOADER_FLAGS.some((name) => flag === name || flag.startsWith(`${name}=`)));
+
+/** What a thread was started with, which is what its workers inherit. */
+export interface HostFlags {
+    /** `process.execArgv`. */
+    readonly execArgv: readonly string[];
+    /** `NODE_OPTIONS`, which Node applies to every thread of the process. */
+    readonly nodeOptions: string;
+}
+
+const currentHost = (): HostFlags => ({ execArgv: process.execArgv, nodeOptions: process.env.NODE_OPTIONS ?? '' });
+
+/**
+ * The `tsx` the package owning a TypeScript module declares, as a URL `--import` takes, or
+ * undefined when there is none to find.
+ *
+ * Resolved from beside the module rather than from here, because that package is the one being
+ * run from source and its dev dependencies are what say how. This package does not depend on
+ * `tsx` and a built install never asks.
+ */
+const typeScriptLoader = (module: string): string | undefined => {
+    try {
+        return pathToFileURL(createRequire(pathToFileURL(resolve(module))).resolve('tsx')).href;
+    } catch {
+        return undefined;
+    }
+};
+
+/**
+ * The flags the workers start with, or undefined when inheriting this thread's is right.
+ *
+ * A worker thread is a second module loader and reads the pipeline off disk through Node's own
+ * resolution. It inherits `process.execArgv`, so a host started with `--import tsx` hands its
+ * workers the loader that follows a dev checkout's extensionless imports, and a built package
+ * needs none. A host whose own loader is not Node's has nothing to hand on: under vitest this
+ * thread reads TypeScript through Vite while a worker would read it through Node's strip-only
+ * loader, which stops at the first extensionless relative import and rejects the parameter
+ * properties and enums the source uses anyway. So when the pipeline or the worker entry is
+ * TypeScript source and nothing in the host's flags installs a loader, the workers get the `tsx`
+ * the pipeline's own package declares.
+ *
+ * @param options - The pipeline module and the worker entry.
+ * @param host - This thread's flags. Defaults to the process's; a test names its own.
+ * @returns The worker flags, or undefined to inherit.
+ */
+export const workerExecArgv = (
+    options: Pick<GenerationPoolOptions, 'pipeline' | 'worker'>,
+    host: HostFlags = currentHost()
+): string[] | undefined => {
+    const worker = options.worker ?? defaultGenerationWorker();
+    const pipeline = fileBehind(options.pipeline);
+    const source = [pipeline, worker].find((file) => file !== undefined && isTypeScriptSource(file));
+    if (source === undefined) return undefined;
+    if (installsLoader(host.execArgv) || installsLoader(host.nodeOptions.split(/\s+/))) return undefined;
+
+    const loader = typeScriptLoader(source);
+    return loader === undefined ? undefined : [...host.execArgv, '--import', loader];
+};
+
 /**
  * A fixed pool of piscina workers.
  *
  * Fixed rather than elastic: a worker's value is the pipeline it has already built, so one that
  * is retired for being idle throws away the 200 to 400 ms that went into it.
  */
-const piscinaRunner: TaskRunnerFactory = (options) =>
-    new Piscina<GenerationTask, GenerationResult>({
+const piscinaRunner: TaskRunnerFactory = (options) => {
+    const execArgv = workerExecArgv(options);
+
+    return new Piscina<GenerationTask, GenerationResult>({
         filename: options.worker ?? defaultGenerationWorker(),
         minThreads: options.workers,
         maxThreads: options.workers,
+        ...(execArgv === undefined ? {} : { execArgv }),
         workerData: {
             pipeline: workerModuleSpecifier(options.pipeline),
             setup: options.setup
         } satisfies GenerationWorkerData
     });
+};
 
 /**
  * Runs status bodies in worker threads.

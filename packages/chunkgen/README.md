@@ -227,6 +227,14 @@ published install needs nothing: the specifier is a built `.js`. A dev checkout 
 `node --import tsx`, and its workers do too, which is what follows the extensionless
 `@jsprismarine/*` imports a `.ts` pipeline module is full of. Nothing has to be built first.
 
+A host that reads TypeScript through a loader of its own, which is vitest, has no such flag to
+hand on, and its workers would read the `.ts` through Node's strip-only loader, which stops at the
+first extensionless import. When the pipeline or the worker entry is TypeScript source and nothing
+in `process.execArgv` or `NODE_OPTIONS` installs an ES module loader, the pool starts its workers
+with `--import` and the `tsx` resolved from beside the pipeline module, which is the one the
+package being run from source declares. `workerExecArgv(options)` is that decision, exported so a
+caller can see what its workers will get.
+
 `Math.random` is shadowed inside the worker and throws. It is seeded independently per V8
 isolate, so a main thread and six workers produce seven different sequences and a decorator that
 reached for it would give a different world depending on which worker ran the chunk.

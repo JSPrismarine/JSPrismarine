@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { GenerationPool, GenerationPoolClosedError } from './GenerationPool';
+import { GenerationPool, GenerationPoolClosedError, workerExecArgv } from './GenerationPool';
 
 const FAKE_PIPELINE = fileURLToPath(new URL('../test/fakePipeline.mjs', import.meta.url));
 
@@ -189,4 +189,39 @@ describe('GenerationPool', () => {
             /seeded per V8 isolate/
         );
     }, 60_000);
+});
+
+describe('workerExecArgv', () => {
+    const bare = { execArgv: ['--max-old-space-size=4096'], nodeOptions: '' };
+
+    it('lets a worker inherit the host flags for a built pipeline', () => {
+        expect(workerExecArgv({ pipeline: FAKE_PIPELINE, worker: '/somewhere/generationWorker.es.js' }, bare)).toBe(
+            undefined
+        );
+    });
+
+    it('lets a worker inherit a loader the host was started with', () => {
+        const pipeline = '/checkout/packages/prismarine/src/chunkPipeline.ts';
+
+        expect(workerExecArgv({ pipeline }, { execArgv: ['--import', 'tsx'], nodeOptions: '' })).toBe(undefined);
+        expect(workerExecArgv({ pipeline }, { execArgv: ['--import=tsx'], nodeOptions: '' })).toBe(undefined);
+        expect(workerExecArgv({ pipeline }, { execArgv: [], nodeOptions: '--import tsx' })).toBe(undefined);
+        expect(workerExecArgv({ pipeline }, { execArgv: ['--experimental-transform-types'], nodeOptions: '' })).toBe(
+            undefined
+        );
+    });
+
+    it('hands a worker the tsx the pipeline package declares, after a CommonJS preload', () => {
+        // A `.ts` in the sibling package that declares `tsx`, which is the checkout this is for.
+        // The preload is how vitest starts a fork, and it is not an ES module loader.
+        const pipeline = fileURLToPath(new URL('../../prismarine/src/world/pipeline.ts', import.meta.url));
+        const flags = workerExecArgv(
+            { pipeline },
+            { execArgv: ['--require', '/suppress-warnings.cjs'], nodeOptions: '' }
+        );
+
+        expect(flags?.slice(0, 2)).toEqual(['--require', '/suppress-warnings.cjs']);
+        expect(flags?.at(-2)).toBe('--import');
+        expect(flags?.at(-1)).toMatch(/^file:.*\/tsx\/dist\/loader\.mjs$/);
+    });
 });

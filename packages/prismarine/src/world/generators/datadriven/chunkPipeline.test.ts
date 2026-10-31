@@ -17,6 +17,7 @@
  * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */
+import { GenerationPool, workerExecArgv } from '@jsprismarine/chunkgen';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -25,6 +26,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import { Dimensions } from '../../Dimension';
 import type { ChunkPipelineSetup, ChunkTaskInput } from './chunkPipeline';
 import { createGenerationPipeline } from './chunkPipeline';
+import { defaultChunkPipeline } from './DataDrivenGenerator';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { findJavaWorldgenSources } from './javaWorldgenData';
 import { shareRegistryBundle } from './registryBundle';
@@ -114,6 +116,46 @@ describe('what a worker is handed', () => {
             Promise.resolve(pipeline.run({ status: 'full', chunkX: 0, chunkZ: 0, dimension: 2, input }))
         ).rejects.toThrowError('No noise settings are registered as minecraft:end');
     });
+});
+
+describe('the pipeline module in a worker thread', () => {
+    /**
+     * The seam the Fleet suite failed at. A server booted under vitest builds its pool from
+     * `defaultChunkPipeline()`, which names this directory's `.ts`, and the worker reads it
+     * through Node's loader rather than Vite's. Without a loader of its own the worker stopped
+     * at the first extensionless relative import with `ERR_MODULE_NOT_FOUND`. The refusal
+     * asserted here comes from inside the generator, which is the proof the module and
+     * everything it imports loaded.
+     */
+    it('imports the real module outside Vite and runs its factory', async () => {
+        const pipeline = defaultChunkPipeline();
+        const flags = workerExecArgv({ pipeline });
+        expect(flags?.at(-2)).toBe('--import');
+        expect(flags?.at(-1)).toMatch(/^file:.*\/tsx\//);
+
+        const pool = new GenerationPool({
+            pipeline,
+            workers: 1,
+            setup: {
+                registryBundle: shareRegistryBundle(emptyRegistries()),
+                javaTemplates: false
+            } satisfies ChunkPipelineSetup
+        });
+        const input: ChunkTaskInput = {
+            seed: '1',
+            noiseSettings: 'minecraft:end',
+            biomeSource: { type: 'minecraft:the_end' },
+            dimension: Dimensions.TheEnd
+        };
+
+        try {
+            await expect(pool.run({ status: 'full', chunkX: 0, chunkZ: 0, dimension: 2, input })).rejects.toThrowError(
+                'No noise settings are registered as minecraft:end'
+            );
+        } finally {
+            await pool.destroy();
+        }
+    }, 120_000);
 });
 
 describe.runIf(enabled)('a chunk built by workers', { tags: ['real-data'] }, () => {

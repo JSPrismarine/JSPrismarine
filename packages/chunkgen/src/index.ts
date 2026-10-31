@@ -43,6 +43,7 @@ export type {
     GenerationResult,
     GenerationTask,
     GenerationWorkerData,
+    HostFlags,
     TaskRunnerFactory,
     WorkerPipeline,
     WorkerPipelineFactory
@@ -52,7 +53,8 @@ export {
     GENERATION_PRIORITIES,
     GenerationCanceledError,
     GenerationPool,
-    GenerationPoolClosedError
+    GenerationPoolClosedError,
+    workerExecArgv
 } from './GenerationPool';
 export type { ShardedGenerationPoolOptions } from './ShardedGenerationPool';
 export { DEFAULT_REGION_CHUNKS, DEFAULT_STEAL_AFTER, ShardedGenerationPool } from './ShardedGenerationPool';
