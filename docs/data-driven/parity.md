@@ -67,7 +67,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | `loot` | tables, distribution | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
 | `entities` | stats, addactor | The nine shared mob stats against Java's attribute dump; a packet row per actor type |
 | `integration` | tags, entity-runtime, entity-coverage, spawning, client-packets | Loaded tags through resolved registries; a representative entity behavior; every composed entity declaration through runtime spawn and tick; natural spawning through composed vanilla rules; client join payloads |
-| `worldgen` | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns, and the generation corpus: this server's own chunk output recorded at a named commit |
+| `worldgen` | biomes, terrain, corpus, features, structures, determinism, dimensions | Java's biome lookups and dumped columns, and the generation corpus: this server's own chunk output recorded at a named commit; Java's dimension types and world presets through the parsers, and one chunk per vanilla dimension |
 | `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
 | `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |
 
@@ -107,6 +107,17 @@ Those rows measure change, not parity. A green `worldgen.corpus` says the genera
 it produced at the named commit; it says nothing about Java Edition. `worldgen.terrain` remains
 the row that compares against Java. `packages/parity/README.md` under "The generation corpus"
 says what each of the four covers, what the corpus cost, and what `worldgen.determinism` found.
+
+`worldgen.dimensions` reads the pinned datapack's four `dimension_type` and seven
+`worldgen/world_preset` documents through the public parsers of `@jsprismarine/worldgen` and
+compares them with the tables in
+[the dimension research note](../research/data-driven-dimensions.md) (sections 1.1, 1.2 and 2.5),
+including the three Bedrock overlay rows of `@jsprismarine/mapping`. It then generates chunk 0,0
+of each `minecraft:normal` stem at seed 1234 through the shared noise generator and checks the
+payload a client would get: blocks inside the Bedrock bounds, biomes the stem's own biome source
+can produce, 24, 8 and 16 biome sections for the Overworld, the Nether and the End, and no
+structure type without a builder. The Nether and the End have no generation corpus, so this row
+and the digests in `javaStructures.test.ts` are what pins their output.
 
 ### The allow list
 

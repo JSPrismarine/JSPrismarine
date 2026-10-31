@@ -79,6 +79,8 @@ export const FAMILIES = {
     worldgenStructures: 'worldgen.structures',
     /** The same chunk, generated twice and in different orders, is the same chunk. */
     worldgenDeterminism: 'worldgen.determinism',
+    /** Java's dimension types, presets and stems through the parsers, and one chunk per vanilla dimension. */
+    worldgenDimensions: 'worldgen.dimensions',
 
     /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
     commandsTree: 'commands.tree',
