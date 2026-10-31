@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 // The generator's own loader decides where the datapack and the data generator reports are,
 // including the two environment overrides it documents. Asking it is the only way a row that
@@ -8,6 +8,9 @@ import { join } from 'node:path';
 // load it under plain node; the loader itself sits in `javaWorldgenData.ts` and pulls in
 // `@jsprismarine/packs`, which strip-only mode cannot parse.
 import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenSources';
+// The datagen manifest decides which protocol version's block palette the unversioned exports
+// are generated from. Asking it is what keeps this reference on the same capture `registry.blocks`
+// and the block schemas read. The module reads one JSON file and imports nothing else.
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 /**

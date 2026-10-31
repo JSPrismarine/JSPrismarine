@@ -61,7 +61,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | --- | --- | --- |
 | `registry` | blocks, items, entities, biomes | The catalogs the server ships against the Bedrock captures |
 | `mapping` | blocks, items, entities, registries, untranslated | Chunker's totality property per mapping domain, and the three registries no published pairing covers |
-| `blocks` | properties | Every Bedrock block state's property row against the Java 26.3 jar dump |
+| `blocks` | properties, portals | Every Bedrock block state's property row against the Java 26.3 jar dump; the portal, frame and lighting blocks the portal rules name, with the states they read, against the palette capture |
 | `items` | components | Java's items and data component types against the Bedrock item capture |
 | `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |
 | `loot` | tables, distribution | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |

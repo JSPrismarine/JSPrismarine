@@ -17,7 +17,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `registry.*`    | blocks, items, entities, biomes     | The catalogs the server ships against the Bedrock captures                                                            |
 | `mapping.*`     | blocks, items, entities, registries, untranslated | Chunker's totality property per mapping domain, with the reviewed losses; the banner pattern, instrument and painting registries no pairing covers |
-| `blocks.*`      | properties                          | Every Bedrock block state's property row against the Java 26.3 jar dump                                               |
+| `blocks.*`      | properties, portals                 | Every Bedrock block state's property row against the Java 26.3 jar dump; the portal, frame and lighting blocks the portal rules name, with the states they read, against the palette capture |
 | `items.*`       | components                          | Java item components carried on mapped Bedrock identities against the item capture                                    |
 | `recipes.*`     | registry                            | Java recipe files parsed and compiled through the mapping                                                             |
 | `loot.*`        | tables, distribution                | Java loot tables parsed with references resolved; rolled counts against each table's declared weights                |

@@ -37,6 +37,8 @@ export const FAMILIES = {
 
     /** The per-state block property table against the Java 26.3 jar dump (phase 1 exit). */
     blocksProperties: 'blocks.properties',
+    /** The portal, frame and lighting blocks the portal rules name, with the states they read, against the palette capture. */
+    blocksPortals: 'blocks.portals',
 
     /** The item type table's Java-sourced components against the Bedrock item capture (phase 1 exit). */
     itemsComponents: 'items.components',
