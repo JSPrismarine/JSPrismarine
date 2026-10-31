@@ -144,7 +144,95 @@ describe('doorFamily', () => {
     });
 });
 
+const trapdoorStates = (states: Record<string, string | number | boolean> = {}) => ({
+    direction: 0,
+    open_bit: false,
+    upside_down_bit: false,
+    ...states
+});
+
+const trapdoorHarness = () => {
+    const harness = bindFamily(trapdoorFamily, 'minecraft:trapdoor');
+    harness.dimension.set(lower, 'minecraft:trapdoor', trapdoorStates());
+    return harness;
+};
+
 describe('trapdoorFamily', () => {
+    it('hangs a placed trapdoor on the clicked side face', () => {
+        // Java's `TrapDoorBlock.getStateForPlacement` takes the clicked face itself
+        // for a click on a side, and the Geyser-derived table spells that Java
+        // `facing` in the numeric `direction` on the weirdo order: east 0, west 1,
+        // south 2, north 3.
+        const harness = trapdoorHarness();
+
+        harness.place(lower, {
+            placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: 4 }, yaw: 180 },
+            face: 'north',
+            faceLocation: { x: 0.5, y: 0.25, z: 0.5 }
+        });
+
+        expect(harness.dimension.stateAt(lower, 'direction')).toBe(3);
+        expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(false);
+    });
+
+    it('takes the top half from a click in the upper half of a side face', () => {
+        const harness = trapdoorHarness();
+
+        harness.place(lower, {
+            placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: 4 }, yaw: 180 },
+            face: 'west',
+            faceLocation: { x: 0.5, y: 0.75, z: 0.5 }
+        });
+
+        expect(harness.dimension.stateAt(lower, 'direction')).toBe(1);
+        expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(true);
+    });
+
+    it('opposes the look direction for a click on the top of a block', () => {
+        // Java's vertical-click branch opposes the placer's horizontal direction,
+        // and a click on a top face takes the bottom half.
+        const placements = [
+            { yaw: 180, direction: 2 }, // looking north, facing south
+            { yaw: 270, direction: 1 }, // looking east, facing west
+            { yaw: 0, direction: 3 }, // looking south, facing north
+            { yaw: 90, direction: 0 } // looking west, facing east
+        ] as const;
+
+        for (const { yaw, direction } of placements) {
+            const harness = trapdoorHarness();
+
+            harness.place(lower, {
+                placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: 0 }, yaw },
+                face: 'up'
+            });
+
+            expect(harness.dimension.stateAt(lower, 'direction')).toBe(direction);
+            expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(false);
+        }
+    });
+
+    it('takes the top half from a click on the underside of a block', () => {
+        const harness = trapdoorHarness();
+
+        harness.place(lower, {
+            placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: -4 }, yaw: 0 },
+            face: 'down'
+        });
+
+        expect(harness.dimension.stateAt(lower, 'direction')).toBe(3);
+        expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(true);
+    });
+
+    it('leaves a placement the world performed on its palette state', () => {
+        const harness = trapdoorHarness();
+        harness.dimension.set(lower, 'minecraft:trapdoor', trapdoorStates({ direction: 2 }));
+
+        harness.place(lower, { placedBy: undefined });
+
+        expect(harness.dimension.stateAt(lower, 'direction')).toBe(2);
+        expect(harness.dimension.stateAt(lower, 'upside_down_bit')).toBe(false);
+    });
+
     it('toggles on interact and follows redstone, and refuses a hand on the iron one', () => {
         const wooden = bindFamily(trapdoorFamily, 'minecraft:trapdoor');
         wooden.dimension.set(lower, 'minecraft:trapdoor', { open_bit: false, direction: 0, upside_down_bit: false });

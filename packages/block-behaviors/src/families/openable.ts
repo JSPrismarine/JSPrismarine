@@ -6,12 +6,20 @@
  * open is `open_bit` in each case. What differs is the door's second half and
  * the hinge it picks when it is placed.
  */
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { BlockPlaceEvent, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import type { HorizontalFace } from '../geometry';
-import { CARDINAL_DIRECTIONS, offset, rotateClockwise, rotateCounterClockwise } from '../geometry';
-import { placementFacing } from '../rules/placement';
+import {
+    CARDINAL_DIRECTIONS,
+    HORIZONTAL_FACES,
+    offset,
+    opposite,
+    rotateClockwise,
+    rotateCounterClockwise,
+    WEIRDO_DIRECTIONS
+} from '../geometry';
+import { placedHalf, placementFacing } from '../rules/placement';
 import { isSolidSupport, popBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateBoolean, stateString } from '../state';
 import type { WorldActions } from '../world';
@@ -128,11 +136,44 @@ export const doorFamily = defineFamily(
     }
 );
 
+/**
+ * The Java `facing` a placed trapdoor takes.
+ *
+ * Java's `TrapDoorBlock.getStateForPlacement` hangs the trapdoor on the side
+ * face it was clicked against, and a click on the top or bottom of a block
+ * opposes the placer's horizontal direction instead. Java skips the clicked
+ * face when the placement replaced the clicked block itself, which the event
+ * cannot tell apart, so a click on the side of tall grass keeps the face.
+ */
+const trapdoorFacing = (event: BlockPlaceEvent): HorizontalFace | undefined => {
+    const clicked = HORIZONTAL_FACES.find((face) => face === event.face);
+    if (clicked !== undefined) return clicked;
+    const facing = placementFacing(event);
+    return facing === undefined ? undefined : opposite(facing);
+};
+
 /** Trapdoors: one block, opened the same way a door is. */
 export const trapdoorFamily = defineFamily(
     'jsprismarine:trapdoor',
-    'Toggles open_bit on interact unless it is iron, follows redstone, and oxidizes when it is copper.',
+    'Hangs on the clicked face or opposite the placer, takes its half from the click, toggles open_bit on interact unless it is iron, follows redstone, and oxidizes when it is copper.',
     {
+        onPlace: (event, world) => {
+            const patch: Record<string, BlockStateValue> = {};
+
+            // The Geyser-derived table spells the Java facing in the numeric
+            // `direction` state on the weirdo order: east 0, west 1, south 2, north 3.
+            // `placedHalf` is Java's half rule exactly: the underside of a block and a
+            // click in the upper half of a side face take the top.
+            const facing = trapdoorFacing(event);
+            if (facing !== undefined && hasState(event.block, 'direction')) {
+                patch['direction'] = WEIRDO_DIRECTIONS.indexOf(facing);
+            }
+            const half = placedHalf(event);
+            if (half !== undefined && hasState(event.block, 'upside_down_bit')) {
+                patch['upside_down_bit'] = half === 'top';
+            }
+            if (Object.keys(patch).length > 0) setStates(world, event.block, patch);
+        },
         onPlayerInteract: (event, world, context) => {
             if (event.sneaking && event.itemStack !== undefined) {
                 return waxOrScrapeOnInteract(world, event.block, event.itemStack) ? true : undefined;
