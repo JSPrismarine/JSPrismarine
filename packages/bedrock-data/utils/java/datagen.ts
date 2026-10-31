@@ -31,7 +31,7 @@ import { dirname, join } from 'node:path';
 import { hashFile } from '../fetch/hash.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
 import { extractJavaStructures } from './extract-structures.ts';
-import { findJdkHome } from './jdk.ts';
+import { findJdkHome, jdkBinaryPath } from './jdk.ts';
 import {
     cacheRoot,
     javaServerJarPath,
@@ -96,7 +96,7 @@ const jarVersion = JSON.parse(versionBytes.toString('utf8')) as JarVersion;
 // The run
 // ---------------------------------------------------------------------------
 
-const javaBinary = join(findJdkHome({ minimumMajor: jarVersion.java_version }), 'bin', 'java');
+const javaBinary = jdkBinaryPath(findJdkHome({ minimumMajor: jarVersion.java_version }), 'java');
 
 // The bundler unpacks its libraries into the working directory, so the generator runs in a
 // directory of its own that this step deletes afterwards.

@@ -19,6 +19,13 @@ export interface JdkRequirement {
     readonly binaries?: readonly string[];
 }
 
+/** Resolves a tool name to its executable under a JDK's `bin/` directory. */
+export const jdkBinaryPath = (home: string, binary: string): string => {
+    const executable =
+        process.platform === 'win32' && !binary.toLowerCase().endsWith('.exe') ? `${binary}.exe` : binary;
+    return join(home, 'bin', executable);
+};
+
 /**
  * The JDK that owns the `java` on `PATH`.
  *
@@ -96,8 +103,8 @@ const featureRelease = (javaBinary: string): number => {
 export const findJdkHome = (requirement: JdkRequirement): string => {
     const binaries = requirement.binaries ?? ['java'];
     for (const home of candidateHomes(requirement.minimumMajor)) {
-        if (!binaries.every((binary) => existsSync(join(home, 'bin', binary)))) continue;
-        if (featureRelease(join(home, 'bin', 'java')) >= requirement.minimumMajor) return home;
+        if (!binaries.every((binary) => existsSync(jdkBinaryPath(home, binary)))) continue;
+        if (featureRelease(jdkBinaryPath(home, 'java')) >= requirement.minimumMajor) return home;
     }
 
     throw new Error(
