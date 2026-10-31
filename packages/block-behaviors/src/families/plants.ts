@@ -2,10 +2,11 @@
  * Everything that grows: crops, saplings, leaves, flowers, the segmented
  * plants, the climbing blocks, the dripleaves and the eggs.
  */
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite } from '../geometry';
+import type { HorizontalFace } from '../geometry';
 import { AIR, isWater } from '../identifiers';
 import {
     advanceCounter,
@@ -41,6 +42,85 @@ const CAVE_VINE_NAMES: ReadonlySet<string> = new Set([
     'cave_vines_body_with_berries',
     'cave_vines_head_with_berries'
 ]);
+
+type FaceBit = { readonly face: BlockFace; readonly bit: number };
+
+/** The side directions Bedrock packs into `vine_direction_bits`. */
+const VINE_FACE_BITS = [
+    { face: 'south', bit: 1 },
+    { face: 'west', bit: 2 },
+    { face: 'north', bit: 4 },
+    { face: 'east', bit: 8 }
+] as const satisfies readonly { readonly face: HorizontalFace; readonly bit: number }[];
+
+/** The six faces Bedrock packs into `multi_face_direction_bits`. */
+const MULTI_FACE_BITS = [
+    { face: 'down', bit: 1 },
+    { face: 'up', bit: 2 },
+    { face: 'north', bit: 4 },
+    { face: 'south', bit: 8 },
+    { face: 'west', bit: 16 },
+    { face: 'east', bit: 32 }
+] as const satisfies readonly FaceBit[];
+
+const DRY_VEGETATION_FALLBACK_NAMES: ReadonlySet<string> = new Set([...SOIL_NAMES, 'sand', 'red_sand', 'terracotta']);
+const CACTUS_SUPPORT_FALLBACK_NAMES: ReadonlySet<string> = new Set(['cactus', 'sand', 'red_sand']);
+const SUGAR_CANE_SUPPORT_FALLBACK_NAMES: ReadonlySet<string> = new Set([...SOIL_NAMES, 'sand', 'red_sand']);
+const WITHER_ROSE_SUPPORT_FALLBACK_NAMES: ReadonlySet<string> = new Set([...SOIL_NAMES, 'netherrack', 'soul_sand']);
+
+/** Plant-specific Java support tags that differ from ordinary vegetation. */
+const PLANT_SUPPORT_TAGS: Readonly<Record<string, string>> = {
+    deadbush: 'minecraft:supports_dry_vegetation',
+    dead_bush: 'minecraft:supports_dry_vegetation',
+    cactus: 'minecraft:supports_cactus',
+    reeds: 'minecraft:supports_sugar_cane',
+    sugar_cane: 'minecraft:supports_sugar_cane',
+    lily_pad: 'minecraft:supports_lily_pad',
+    azalea: 'minecraft:supports_azalea',
+    flowering_azalea: 'minecraft:supports_azalea',
+    mangrove_propagule: 'minecraft:supports_mangrove_propagule',
+    wither_rose: 'minecraft:supports_wither_rose'
+};
+
+/** Whether a block is a valid substrate for the plant at `block`. */
+const hasPlantSupport = (world: WorldActions, block: HookBlock): boolean => {
+    const below = world.getBlock(offset(block.position, 'down'));
+    if (below === undefined) return false;
+
+    const name = bareName(block.identifier);
+    const tag = PLANT_SUPPORT_TAGS[name] ?? 'minecraft:supports_vegetation';
+    if (world.hasBlockTag !== undefined) return world.hasBlockTag(below, tag);
+
+    const groundName = bareName(below.identifier);
+    switch (tag) {
+        case 'minecraft:supports_dry_vegetation':
+            return (
+                DRY_VEGETATION_FALLBACK_NAMES.has(groundName) ||
+                (groundName.endsWith('_terracotta') && !groundName.endsWith('_glazed_terracotta'))
+            );
+        case 'minecraft:supports_cactus':
+            return CACTUS_SUPPORT_FALLBACK_NAMES.has(groundName);
+        case 'minecraft:supports_sugar_cane':
+            return SUGAR_CANE_SUPPORT_FALLBACK_NAMES.has(groundName);
+        case 'minecraft:supports_lily_pad':
+            return isWater(below.identifier);
+        case 'minecraft:supports_wither_rose':
+            return WITHER_ROSE_SUPPORT_FALLBACK_NAMES.has(groundName);
+        default:
+            return SOIL_NAMES.has(groundName);
+    }
+};
+
+/** Whether one of a block's flagged faces still touches a supporting block. */
+const hasSupportedAttachment = (
+    world: WorldActions,
+    block: HookBlock,
+    state: string,
+    faces: readonly FaceBit[]
+): boolean => {
+    const bits = stateNumber(block, state);
+    return faces.some(({ face, bit }) => (bits & bit) !== 0 && isSolidSupport(world, offset(block.position, face)));
+};
 
 const growthOf = (identifier: string): { readonly state: string; readonly max: number } =>
     GROWTH_STATES[bareName(identifier)] ?? { state: 'growth', max: MAX_CROP_GROWTH };
@@ -92,12 +172,18 @@ export const cropFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             const name = bareName(event.block.identifier);
             if (CAVE_VINE_NAMES.has(name)) {
+                if (event.face !== 'up') return;
                 const above = world.getBlock(offset(event.block.position, 'up'));
                 if (above === undefined || CAVE_VINE_NAMES.has(bareName(above.identifier))) return;
                 popWithoutSupport(world, event.block, 'up');
                 return;
             }
+            if (name === 'sweet_berry_bush') {
+                if (event.face === 'down' && !hasPlantSupport(world, event.block)) popBlock(world, event.block);
+                return;
+            }
             if (name === 'cocoa' || name === 'nether_wart') return;
+            if (event.face !== 'down') return;
             if (stateBoolean(event.block, 'upper_block_bit')) return;
             popWithoutGround(world, event.block, FARMLAND_NAMES);
         },
@@ -177,7 +263,7 @@ export const saplingFamily = defineFamily(
             growTree(world, event.block, bareName(event.block.identifier).replace(/_sapling$/, ''));
         },
         onNeighborChanged: (event, world) => {
-            popWithoutGround(world, event.block, SOIL_NAMES);
+            if (event.face === 'down' && !hasPlantSupport(world, event.block)) popBlock(world, event.block);
         },
         onBreak: (event, world) => {
             dropSelf(world, event.brokenBlock);
@@ -235,18 +321,24 @@ export const floraFamily = defineFamily(
     {
         onNeighborChanged: (event, world) => {
             if (stateBoolean(event.block, 'upper_block_bit')) {
+                if (event.face !== 'down') return;
                 const lower = world.getBlock(offset(event.block.position, 'down'));
                 if (lower === undefined || lower.identifier !== event.block.identifier) popBlock(world, event.block);
                 return;
             }
             if (hasState(event.block, 'upper_block_bit')) {
+                if (event.face !== 'up') {
+                    if (event.face === 'down' && !hasPlantSupport(world, event.block)) popBlock(world, event.block);
+                    return;
+                }
                 const upper = world.getBlock(offset(event.block.position, 'up'));
                 if (upper === undefined || upper.identifier !== event.block.identifier) {
                     popBlock(world, event.block);
                     return;
                 }
+                return;
             }
-            popWithoutGround(world, event.block, SOIL_NAMES);
+            if (event.face === 'down' && !hasPlantSupport(world, event.block)) popBlock(world, event.block);
         },
         onStepOn: (event, world) => {
             if (bareName(event.block.identifier) !== 'wither_rose') return;
@@ -277,10 +369,12 @@ export const bambooFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             const name = bareName(event.block.identifier);
             if (name.includes('coral')) {
+                if (event.face !== 'up') return;
                 const wet = isWater(world.getBlock(offset(event.block.position, 'up'))?.identifier ?? AIR);
                 if (!wet && !name.startsWith('dead_')) world.scheduleTick(event.block.position, 60);
                 return;
             }
+            if (event.face !== 'down') return;
             const below = world.getBlock(offset(event.block.position, 'down'));
             if (below !== undefined && below.identifier === event.block.identifier) return;
             if (name === 'kelp') {
@@ -341,20 +435,73 @@ export const climbingFamily = defineFamily(
             setStates(world, event.block, scaffoldingStates(world, event.block));
         },
         onNeighborChanged: (event, world) => {
+            const name = bareName(event.block.identifier);
             if (hasState(event.block, 'stability')) {
                 const states = scaffoldingStates(world, event.block);
                 setStates(world, event.block, states);
                 if (states['stability'] === 7) world.scheduleTick(event.block.position, 1);
                 return;
             }
+            if (name === 'vine') {
+                const sideBit = VINE_FACE_BITS.find(({ face }) => face === event.face)?.bit;
+                if (
+                    event.face !== 'up' &&
+                    (sideBit === undefined || (stateNumber(event.block, 'vine_direction_bits') & sideBit) === 0)
+                ) {
+                    return;
+                }
+                if (!hasSupportedAttachment(world, event.block, 'vine_direction_bits', VINE_FACE_BITS)) {
+                    popWithoutSupport(world, event.block, 'up');
+                }
+                return;
+            }
+            if (hasState(event.block, 'multi_face_direction_bits')) {
+                const faceBit = MULTI_FACE_BITS.find(({ face }) => face === event.face)?.bit;
+                if (faceBit === undefined || (stateNumber(event.block, 'multi_face_direction_bits') & faceBit) === 0) {
+                    return;
+                }
+                if (!hasSupportedAttachment(world, event.block, 'multi_face_direction_bits', MULTI_FACE_BITS)) {
+                    popBlock(world, event.block);
+                }
+                return;
+            }
+            if (name === 'wildflowers') {
+                if (event.face === 'down' && !hasPlantSupport(world, event.block)) popBlock(world, event.block);
+                return;
+            }
+            if (name === 'leaf_litter') {
+                if (event.face !== 'down') return;
+                const below = world.getBlock(offset(event.block.position, 'down'));
+                const supported =
+                    below !== undefined && (world.hasSturdyTopFace?.(below) ?? isSolidSupport(world, below.position));
+                if (!supported) popBlock(world, event.block);
+                return;
+            }
             if (hasState(event.block, 'facing_direction')) {
                 const face = faceOfFacingDirection(stateNumber(event.block, 'facing_direction'));
-                if (face !== undefined && face !== 'up' && face !== 'down') {
-                    popWithoutSupport(world, event.block, opposite(face));
+                if (face !== undefined) {
+                    const supportFace = opposite(face);
+                    if (face !== 'up' && face !== 'down' && event.face === supportFace) {
+                        popWithoutSupport(world, event.block, supportFace);
+                    }
                     return;
                 }
             }
-            if (!isSolidSupport(world, offset(event.block.position, 'up'))) popWithoutSupport(world, event.block);
+            if (name === 'chain') {
+                const axis = event.block.states['pillar_axis'];
+                const supportFaces: readonly BlockFace[] =
+                    axis === 'x' ? ['west', 'east'] : axis === 'z' ? ['north', 'south'] : ['down', 'up'];
+                if (!supportFaces.includes(event.face)) return;
+                if (!supportFaces.some((face) => isSolidSupport(world, offset(event.block.position, face)))) {
+                    popBlock(world, event.block);
+                }
+                return;
+            }
+            if (name === 'hanging_roots') {
+                if (event.face === 'up') popWithoutSupport(world, event.block, 'up');
+                return;
+            }
+            if (event.face === 'up') popWithoutSupport(world, event.block, 'up');
         },
         onTick: (event, world) => {
             if (!hasState(event.block, 'stability')) return;
@@ -407,7 +554,11 @@ export const dripleafFamily = defineFamily(
             setStates(world, event.block, { big_dripleaf_tilt: 'none' });
         },
         onNeighborChanged: (event, world) => {
-            popWithoutSupport(world, event.block);
+            if (bareName(event.block.identifier) === 'spore_blossom') {
+                if (event.face === 'up') popWithoutSupport(world, event.block, 'up');
+                return;
+            }
+            if (event.face === 'down') popWithoutSupport(world, event.block);
         }
     }
 );

@@ -1,5 +1,13 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
-import { bambooFamily, bindFamily, OVERWORLD, VoxelDimension, VoxelWorld } from '@jsprismarine/block-behaviors';
+import {
+    bambooFamily,
+    bindFamily,
+    climbingFamily,
+    floraFamily,
+    OVERWORLD,
+    VoxelDimension,
+    VoxelWorld
+} from '@jsprismarine/block-behaviors';
 import type { HookBlock } from '@jsprismarine/blocks';
 import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
 import {
@@ -466,6 +474,39 @@ describeFamily(FAMILIES.integrationBlockBehaviors, [REFERENCES.bedrockBlockPalet
         const grown = harness.dimension.block(above);
         expect(grown.identifier).toBe('minecraft:bamboo');
         expect(BlockRuntimeIds.tryGetByState(grown.identifier, grown.states)).not.toBeNull();
+    });
+
+    it('keeps a vine on a jungle log when an unrelated face changes', () => {
+        const states = { vine_direction_bits: 8 };
+        const vine = loadBlockPaletteCapture().domains['minecraft:vine'];
+        expect(vine?.vine_direction_bits?.values.map(Number)).toContain(states.vine_direction_bits);
+        expect(BlockRuntimeIds.tryGetByState('minecraft:vine', states)).not.toBeNull();
+
+        const harness = bindFamily(climbingFamily, 'minecraft:vine');
+        const plant = { x: 0, y: 1, z: 0 };
+        harness.dimension.set(plant, 'minecraft:vine', states);
+        harness.dimension.set({ x: 1, y: 1, z: 0 }, 'minecraft:jungle_log');
+
+        harness.neighborChanged(plant, 'west');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:vine');
+    });
+});
+
+describeFamily(FAMILIES.integrationBlockBehaviors, REAL_STACK_REFERENCES, () => {
+    it('keeps a dead bush on sand using Java dry vegetation support data', { timeout: 180_000 }, () => {
+        const { content } = realStack();
+        const tag = 'minecraft:supports_dry_vegetation';
+        expect(content.tags.includes('block', tag, 'minecraft:sand')).toBe(true);
+
+        const harness = bindFamily(floraFamily, 'minecraft:deadbush', { world: new JavaTagWorld(content) });
+        const plant = { x: 0, y: 1, z: 0 };
+        harness.dimension.set({ x: 0, y: 0, z: 0 }, 'minecraft:sand');
+        harness.dimension.set(plant, 'minecraft:deadbush');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:deadbush');
     });
 });
 
