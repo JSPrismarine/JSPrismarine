@@ -12,6 +12,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { buildServerContent } from '../../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
 import type { Event } from '../../events/Event';
+import { fakeLevel, TEST_OVERWORLD_STEM } from '../../testing/level';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
@@ -73,6 +74,8 @@ const harness = ({
 
     const world = stub<World>({
         getTicks: () => 6000,
+        getLevel: () => fakeLevel(),
+        getStem: () => TEST_OVERWORLD_STEM,
         getDimension: () => Dimensions.Overworld,
         getGenerator: () => stub<Generator>(),
         getSpawnPosition: async () => spawn,

@@ -1,4 +1,5 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
+import { bedrockDimensionOverlay } from '@jsprismarine/mapping';
 import type { Vector3 } from '@jsprismarine/math';
 import { Generator, getGametypeId } from '@jsprismarine/minecraft';
 import {
@@ -7,6 +8,7 @@ import {
     GameRuleType
 } from '@jsprismarine/protocol/packet/StartGamePacket';
 import { writeNetworkNbt } from '@jsprismarine/protocol/payload';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type { BlockProperty, GameRule, StartGame } from '@jsprismarine/protocol/packet/StartGamePacket';
 import type Player from '../Player';
@@ -14,7 +16,7 @@ import type Server from '../Server';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import { eyePositionAt } from '../entity/Human';
 import type { World } from '../world/World';
-import { FlatGenerator } from '../world/generators/Flat';
+import { isFlatGenerator } from '../world/WorldPersistence';
 
 /** The server-owned state needed to produce a Protocol `StartGame` payload. */
 export interface StartGameDataOptions {
@@ -65,7 +67,7 @@ export const createStartGameData = ({
         spawnBiomeType: 0,
         userDefinedBiomeName: 'minecraft:plains',
         dimension: world.getDimension().bedrockId,
-        generator: world.getGenerator() instanceof FlatGenerator ? Generator.FLAT : Generator.OVERWORLD,
+        generator: startGameGenerator(world),
         worldGamemode: getGametypeId(server.getConfig().getGamemode()),
         hardcore: false,
         difficulty: server.getConfig().getDifficulty(),
@@ -142,6 +144,21 @@ export const createStartGameData = ({
         worldId: world.getName(),
         ownerId: ''
     };
+};
+
+/**
+ * The `Generator` value `StartGame` carries, read from the level's Overworld stem.
+ *
+ * The field describes the world type, not the dimension the player joins in: a player joining
+ * in the Nether is sent the Overworld stem's value, and `dimension` carries the join dimension.
+ * The rule is the one the client tells apart: a `minecraft:flat` stem is `FLAT`, and every
+ * other generator kind is the stem type's overlay value, `OVERWORLD` for the vanilla type. A
+ * level with no Overworld stem reads its join world's stem the same way.
+ */
+export const startGameGenerator = (world: World): Generator => {
+    const stem = world.getLevel().getStems().get(OVERWORLD_STEM_ID) ?? world.getStem();
+    if (isFlatGenerator(stem.generator)) return Generator.FLAT;
+    return bedrockDimensionOverlay(stem.type)?.generatorType ?? Generator.OVERWORLD;
 };
 
 /** Captured vanilla definitions and registered plugin schemas for the no-content fallback. */

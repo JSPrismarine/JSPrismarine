@@ -13,6 +13,7 @@
  * real `Level` and the next member a world reaches for is added in one place.
  */
 import type { Vector3 } from '@jsprismarine/math';
+import type { DimensionDefinitionFields } from '@jsprismarine/protocol';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
@@ -56,8 +57,12 @@ export interface FakeLevelOptions {
     readonly gameRules?: GameRuleManager;
     /** The world spawn the level already knows. */
     readonly spawn?: Vector3 | null;
+    /** The stems the double reports, by stem id. Defaults to one Overworld stem built by the test generator. */
+    readonly stems?: ReadonlyMap<string, LevelStem>;
     /** The dimension types the double resolves a stem's type to, by type id. */
     readonly dimensionTypes?: ReadonlyMap<string, DimensionType>;
+    /** What the double announces through `DimensionData`. Defaults to nothing, as a vanilla level. */
+    readonly customDimensionDefinitions?: readonly DimensionDefinitionFields[];
     /** Player records the level answers, by key. A save writes into the same map. */
     readonly playerData?: Map<string, Partial<WorldPlayerData>>;
     readonly legacyEntities?: readonly LegacyWorldEntity[];
@@ -93,7 +98,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
             if (options.provider === undefined) throw new Error('the fake level was built without a provider');
             return options.provider;
         },
-        getStems: () => new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]),
+        getStems: () => options.stems ?? new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]),
         getDimensionTypes: () => options.dimensionTypes ?? new Map(),
         getTicks: () => ticks,
         setTicks: (tick) => {
@@ -111,7 +116,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         worlds: function* () {
             yield* worlds();
         },
-        customDimensionDefinitions: () => [],
+        customDimensionDefinitions: () => [...(options.customDimensionDefinitions ?? [])],
         update: async (tick) => {
             ticks++;
             weather.tick(ticks);
