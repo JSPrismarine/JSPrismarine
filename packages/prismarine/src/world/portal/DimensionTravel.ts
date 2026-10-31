@@ -30,6 +30,7 @@ import type Server from '../../Server';
 import { Dimensions } from '../Dimension';
 import type { Level } from '../Level';
 import { Position } from '../Position';
+import { requestedSpawnPosition } from '../SpawnPlacement';
 import type { World } from '../World';
 import { createNetherPortal } from './create';
 import { portalRuleOf, travelRuleOf } from './rules';
@@ -337,11 +338,11 @@ export class DimensionTravel {
 
         const to = await this.worldOf(level, targetId);
         if (to === undefined) return undefined;
-        // One block above the stored spawn and centered, which is where a joining player's feet go too.
+        // Where a joining player's feet go before the terrain is consulted.
         const spawn = await to.getSpawnPosition();
         return {
             world: to,
-            position: new Vector3(spawn.getX() + 0.5, spawn.getY() + 1, spawn.getZ() + 0.5),
+            position: requestedSpawnPosition(spawn),
             yaw: entity.yaw,
             pitch: entity.pitch,
             createdPortal: false
