@@ -38,6 +38,8 @@ import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
 import { Dimensions, maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
+import type { SaveIdentity } from '../BaseProvider';
+import type { Level } from '../../Level';
 import Chunk from '../../chunk/Chunk';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
@@ -71,6 +73,13 @@ const DEFAULT_NETHER_SCALE = Dimensions.Nether.java.coordinateScale;
 
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
+
+/**
+ * Whether the save's owner is a whole `Level`, which knows its dimension types, rather than the
+ * name and seed `WorldManager` attaches to read a save before its level exists.
+ */
+const knowsDimensionTypes = (level: SaveIdentity): level is SaveIdentity & Pick<Level, 'getDimensionTypes'> =>
+    'getDimensionTypes' in level;
 
 interface PendingLegacyEntity extends LegacyWorldEntity {
     uniqueId: string;
@@ -209,12 +218,18 @@ export default class LevelDB extends BaseProvider {
     /** Writes the player's persistent state as Bedrock NBT under its server-side player key. */
     public async writePlayerData(identifier: string, data: WorldPlayerData): Promise<void> {
         const batch = new WriteBatch();
-        batch.put(encodePlayerServerKey(identifier), this.writeActorNbt(playerDataToNbt(data)));
+        batch.put(encodePlayerServerKey(identifier), this.writeActorNbt(playerDataToNbt(data, this.knownDimensions())));
         this.requireDatabase().write(batch);
     }
 
     private readPlayerNbt(value: Buffer): WorldPlayerData {
-        return playerDataFromNbt(this.readActorNbt(value));
+        return playerDataFromNbt(this.readActorNbt(value), this.knownDimensions());
+    }
+
+    /** The level's dimension types, which give a custom dimension its integer in a player record. */
+    private knownDimensions(): Iterable<DimensionType> {
+        const level = this.getLevel();
+        return level !== undefined && knowsDimensionTypes(level) ? level.getDimensionTypes().values() : [];
     }
 
     // ------------------------------------------------------------------ chunks

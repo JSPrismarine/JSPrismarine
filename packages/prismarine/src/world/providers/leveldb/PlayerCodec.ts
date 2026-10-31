@@ -9,9 +9,10 @@
  * all Bedrock's. The advancement progress and the enchantment seed are not, so they live under
  * {@link SAVED_TAG}.
  *
- * A dimension is written twice: Bedrock's integer, which is what the game reads and which only
- * the three vanilla dimensions have, and the Java id under {@link SAVED_TAG}, which a custom
- * dimension needs and which wins on the way back.
+ * A dimension is written twice: Bedrock's integer, which is what the game reads, and the Java id
+ * under {@link SAVED_TAG}, which wins on the way back. The vanilla three have fixed integers; a
+ * custom type's integer is whatever its `Level` handed it, so a caller that has the level's
+ * dimension types passes them in and the codec answers from those before the vanilla table.
  *
  * Item stacks go through `inventory/itemNbt.ts`, which is the one place that states Bedrock's
  * item compound; a container block entity writes its stacks through the same module.
@@ -24,6 +25,32 @@ import type { StoredInventory, StoredItemStack } from '../../../inventory/persis
 import type { StoredPlayerAttribute, WorldPlayerData } from '../../World';
 import type { StoredSpawnPoint } from '../../RespawnPoint';
 import { dimensionByBedrockId, dimensionByName } from '../../Dimension';
+import type { DimensionType } from '../../Dimension';
+
+/**
+ * The dimension types the codec resolves an id or a name against before the vanilla table:
+ * a level's `getDimensionTypes().values()`, or nothing for a codec without a level behind it.
+ * Read once per record, so a one-shot iterator is fine.
+ */
+export type KnownDimensions = Iterable<DimensionType>;
+
+/**
+ * The Bedrock integer a dimension name stands for.
+ *
+ * A stored name is spelled as `DimensionType.name` spells it, the Bedrock name for the vanilla
+ * three and the Java id for a custom type, so the level's types answer by either spelling
+ * first and the vanilla table after that.
+ */
+const bedrockIdOf = (name: string, known: readonly DimensionType[]): number | undefined => {
+    for (const type of known) if (type.name === name || type.id === name) return type.bedrockId;
+    return dimensionByName(name)?.bedrockId;
+};
+
+/** The Java id a Bedrock integer stands for, through the level's types first. */
+const javaIdOf = (bedrockId: number, known: readonly DimensionType[]): string | undefined => {
+    for (const type of known) if (type.bedrockId === bedrockId) return type.id;
+    return dimensionByBedrockId(bedrockId)?.id;
+};
 
 /** The compound holding every field Bedrock has no schema for. */
 const SAVED_TAG = 'JSPrismarine';
@@ -207,18 +234,27 @@ const DIMENSION_TAG = 'DimensionId';
 
 /**
  * The Java id a dimension tag pair names: the saved string when there is one, otherwise the
- * vanilla dimension Bedrock's integer stands for.
+ * dimension Bedrock's integer stands for.
  */
-const dimensionFromNbt = (saved: string | undefined, bedrockId: number | undefined): string | undefined => {
+const dimensionFromNbt = (
+    saved: string | undefined,
+    bedrockId: number | undefined,
+    known: readonly DimensionType[]
+): string | undefined => {
     if (saved !== undefined && saved !== '') return saved;
-    return bedrockId === undefined ? undefined : dimensionByBedrockId(bedrockId)?.id;
+    return bedrockId === undefined ? undefined : javaIdOf(bedrockId, known);
 };
 
 /** The spawn point as the record carries it, out of whichever half of it is there. */
-const spawnFromNbt = (root: NBTTagCompound, saved: NBTTagCompound | null): StoredSpawnPoint | undefined => {
+const spawnFromNbt = (
+    root: NBTTagCompound,
+    saved: NBTTagCompound | null,
+    known: readonly DimensionType[]
+): StoredSpawnPoint | undefined => {
     const dimension = dimensionFromNbt(
         saved?.getString('spawnDimension', ''),
-        root.has(SPAWN_TAGS.dimension) ? root.getNumber(SPAWN_TAGS.dimension, 0) : undefined
+        root.has(SPAWN_TAGS.dimension) ? root.getNumber(SPAWN_TAGS.dimension, 0) : undefined,
+        known
     );
     if (dimension === undefined || !root.has(SPAWN_TAGS.x)) return undefined;
 
@@ -231,8 +267,14 @@ const spawnFromNbt = (root: NBTTagCompound, saved: NBTTagCompound | null): Store
     };
 };
 
-/** A player data record as the compound stored under `player_server_<key>`. */
-export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
+/**
+ * A player data record as the compound stored under `player_server_<key>`.
+ *
+ * @param known - The level's dimension types, which give a custom dimension its integer. Left
+ *   out, only the vanilla three get one.
+ */
+export const playerDataToNbt = (data: WorldPlayerData, known: KnownDimensions = []): NBTTagCompound => {
+    const types = Array.from(known);
     const root = new NBTTagCompound('');
     root.addValue('NameTag', new Types.StringVal(data.username ?? ''));
     root.addValue('PlayerGameType', new Types.NumberVal(getGametypeId(data.gamemode)));
@@ -242,13 +284,13 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     inventoryToNbt(root, data.inventory);
 
     if (data.portalCooldown !== undefined) root.addValue('PortalCooldown', new Types.NumberVal(data.portalCooldown));
-    const dimensionId = data.dimension === undefined ? undefined : dimensionByName(data.dimension)?.bedrockId;
+    const dimensionId = data.dimension === undefined ? undefined : bedrockIdOf(data.dimension, types);
     if (dimensionId !== undefined) root.addValue(DIMENSION_TAG, new Types.NumberVal(dimensionId));
     if (data.spawn !== undefined) {
         root.addValue(SPAWN_TAGS.x, new Types.NumberVal(Math.floor(data.spawn.x)));
         root.addValue(SPAWN_TAGS.y, new Types.NumberVal(Math.floor(data.spawn.y)));
         root.addValue(SPAWN_TAGS.z, new Types.NumberVal(Math.floor(data.spawn.z)));
-        const spawnDimensionId = dimensionByName(data.spawn.dimension)?.bedrockId;
+        const spawnDimensionId = bedrockIdOf(data.spawn.dimension, types);
         if (spawnDimensionId !== undefined) root.addValue(SPAWN_TAGS.dimension, new Types.NumberVal(spawnDimensionId));
     }
 
@@ -287,8 +329,14 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     return root;
 };
 
-/** A stored compound back as a player data record. */
-export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
+/**
+ * A stored compound back as a player data record.
+ *
+ * @param known - The level's dimension types, which name a custom dimension's integer on a
+ *   record without the Java id beside it. Left out, only the vanilla three are named.
+ */
+export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = []): WorldPlayerData => {
+    const types = Array.from(known);
     const saved = nbt.getCompound(SAVED_TAG, false);
     const savedPosition = saved?.getCompound('position', false);
     const position = numbersIn(nbt, 'Pos');
@@ -299,10 +347,11 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
     const legacyAttributes = legacyAttributesFrom(attributes);
     const inventory = inventoryFromNbt(nbt);
     const advancements = saved?.getString('advancements', '') ?? '';
-    const spawn = spawnFromNbt(nbt, saved);
+    const spawn = spawnFromNbt(nbt, saved, types);
     const dimension = dimensionFromNbt(
         saved?.getString('dimension', ''),
-        nbt.has(DIMENSION_TAG) ? nbt.getNumber(DIMENSION_TAG, 0) : undefined
+        nbt.has(DIMENSION_TAG) ? nbt.getNumber(DIMENSION_TAG, 0) : undefined,
+        types
     );
 
     return {

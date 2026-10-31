@@ -2,7 +2,17 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import type { WorldPlayerData } from '../../../config/JsonConfigTypes';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../Dimension';
+import { VANILLA_DIMENSION_TYPES } from '../../vanillaDimensionTypes';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
+
+/** A level's dimension types with one custom type at the first custom id. */
+const SKY = dimensionTypeOf(
+    { ...VANILLA_DIMENSION_TYPES['minecraft:overworld'], minY: 0, height: 128 },
+    'mypack:sky',
+    FIRST_CUSTOM_DIMENSION_ID
+);
+const LEVEL_DIMENSIONS = [Dimensions.Overworld, Dimensions.Nether, SKY];
 
 const record = (extra: Partial<WorldPlayerData> = {}): WorldPlayerData => ({
     username: 'Player',
@@ -76,6 +86,34 @@ describe('world', () => {
 
                 expect(nbt.has('DimensionId')).toBe(false);
                 expect(playerDataFromNbt(nbt).dimension).toBe('mypack:sky');
+            });
+
+            it("writes a custom dimension's id from the level's types, for the player and the spawn", () => {
+                const data = record({
+                    dimension: 'mypack:sky',
+                    spawn: { x: 1, y: 2, z: 3, dimension: 'mypack:sky' }
+                });
+                const nbt = playerDataToNbt(data, LEVEL_DIMENSIONS);
+
+                expect(nbt.getNumber('DimensionId', -1)).toBe(1000);
+                expect(nbt.getNumber('SpawnDimension', -1)).toBe(1000);
+                expect(playerDataFromNbt(nbt, LEVEL_DIMENSIONS)).toEqual(data);
+            });
+
+            it("reads a custom dimension's id back through the level's types when the Java id is missing", () => {
+                const nbt = new NBTTagCompound('');
+                nbt.addValue('DimensionId', new Types.NumberVal(1000));
+                nbt.addValue('SpawnX', new Types.NumberVal(7));
+                nbt.addValue('SpawnY', new Types.NumberVal(70));
+                nbt.addValue('SpawnZ', new Types.NumberVal(-7));
+                nbt.addValue('SpawnDimension', new Types.NumberVal(1000));
+
+                const data = playerDataFromNbt(nbt, LEVEL_DIMENSIONS);
+
+                expect(data.dimension).toBe('mypack:sky');
+                expect(data.spawn).toEqual({ x: 7, y: 70, z: -7, dimension: 'mypack:sky' });
+                // Without the level's types the id names nothing, and the record says so.
+                expect(playerDataFromNbt(nbt).dimension).toBeUndefined();
             });
 
             it('still reads the legacy spawnDimension string on a record without SpawnDimension', () => {

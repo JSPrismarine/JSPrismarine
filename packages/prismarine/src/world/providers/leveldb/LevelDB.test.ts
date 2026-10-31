@@ -21,7 +21,9 @@ import {
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
 import type { DimensionType } from '../../Dimension';
-import { Dimensions } from '../../Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../Dimension';
+import { VANILLA_DIMENSION_TYPES } from '../../vanillaDimensionTypes';
+import { fakeLevel } from '../../../testing/level';
 import type { StoredItemStack } from '../../../inventory/persistence';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
@@ -815,6 +817,47 @@ describe('world', () => {
                 const nbt = reader.parse();
                 expect(nbt.getNumber('DimensionId', -1)).toBe(1);
                 expect(nbt.getNumber('SpawnDimension', -1)).toBe(2);
+                await database.close();
+            });
+
+            it("writes a custom dimension's integer from the level that owns the save", async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                const sky = dimensionTypeOf(
+                    { ...VANILLA_DIMENSION_TYPES['minecraft:overworld'], minY: 0, height: 128 },
+                    'mypack:sky',
+                    FIRST_CUSTOM_DIMENSION_ID
+                );
+                provider.setLevel(
+                    fakeLevel({
+                        dimensionTypes: new Map([
+                            [Dimensions.Overworld.id, Dimensions.Overworld],
+                            [sky.id, sky]
+                        ])
+                    })
+                );
+                const data: WorldPlayerData = {
+                    username: 'Player',
+                    gamemode: 'Survival',
+                    position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 },
+                    dimension: 'mypack:sky',
+                    spawn: { x: 10, y: 64, z: -3, dimension: 'mypack:sky' }
+                };
+
+                await provider.enable();
+                await provider.writePlayerData('player-xuid', data);
+                expect(await provider.readPlayerData('player-xuid')).toEqual(data);
+                await provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const value = database.get(encodePlayerServerKey('player-xuid'));
+                if (value === null) throw new Error('Expected player_server record');
+
+                const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+                reader.setUseVarint(false);
+                const nbt = reader.parse();
+                expect(nbt.getNumber('DimensionId', -1)).toBe(1000);
+                expect(nbt.getNumber('SpawnDimension', -1)).toBe(1000);
                 await database.close();
             });
 
