@@ -62,6 +62,7 @@ const registriesOf = (biomes: readonly string[], sets: Record<string, unknown> =
     multiNoiseParameterLists: EMPTY,
     blockTags: EMPTY,
     biomeTags: EMPTY,
+    structureTags: EMPTY,
     biomeParameters: EMPTY
 });
 

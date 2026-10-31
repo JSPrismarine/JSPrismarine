@@ -61,6 +61,7 @@ const emptyRegistries = (): JavaWorldgenRegistries => ({
     multiNoiseParameterLists: new Map(),
     blockTags: new Map(),
     biomeTags: new Map(),
+    structureTags: new Map(),
     biomeParameters: new Map()
 });
 

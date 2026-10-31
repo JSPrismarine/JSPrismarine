@@ -48,7 +48,7 @@ import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { blockFromContent } from '../block/Block';
-import type { ChunkRequestOptions, Generator, StructureSearchResult } from './Generator';
+import type { BiomeSearchResult, Generator, ChunkRequestOptions, StructureSearchResult } from './Generator';
 import { GenerationStopped } from './Generator';
 import { createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
@@ -116,6 +116,18 @@ const DEFAULT_SEA_LEVEL = 63;
  * strongholds' concentric placement; see {@link StructureSearchRequest.radius}.
  */
 const LOCATE_RADIUS = 100;
+
+/**
+ * How Java's `LocateCommand` walks for a biome: `MAX_BIOME_SEARCH_RADIUS` blocks out, one column
+ * every `BIOME_SAMPLE_RESOLUTION_HORIZONTAL` blocks and one sample every
+ * `BIOME_SAMPLE_RESOLUTION_VERTICAL` blocks of a column.
+ */
+const BIOME_SEARCH = { radius: 6400, horizontalStep: 32, verticalStep: 64 } as const;
+
+/**
+ * A registry name as Java's `ResourceLocation.read` completes it: `plains` is `minecraft:plains`.
+ */
+const namespaced = (name: string): string => (name.includes(':') ? name : `minecraft:${name}`);
 
 /**
  * Whether a structure identifier is what a player meant by a name.
@@ -1465,11 +1477,56 @@ export class World implements Service {
         const search = this.generator.locate;
         if (search === undefined) return undefined;
 
+        // A tag the generator carries is read as Java reads it, by its members. One it does
+        // not carry falls through to the name match, which is what makes Bedrock's `#village`
+        // find the village variants on a generator without Java's tags.
+        const tagged = name.startsWith('#')
+            ? this.generator.membersOfTag?.('worldgen/structure', namespaced(name.slice(1)))
+            : undefined;
+
         return search.call(this.generator, {
             x: Math.trunc(origin.x),
             z: Math.trunc(origin.z),
             radius,
-            wanted: (structure) => structureNameMatches(name, structure),
+            wanted:
+                tagged === undefined
+                    ? (structure) => structureNameMatches(name, structure)
+                    : (structure) => tagged.has(structure),
+            seed: this.level.seed
+        });
+    }
+
+    /**
+     * The nearest cell of a biome, or undefined when there is none within Java's reach.
+     *
+     * What `/locate biome` answers. Nothing is generated: the generator walks its climate
+     * sampler outward from the origin on Java's grid, 6400 blocks out at one column per 32
+     * blocks and one sample per 64 blocks of height.
+     *
+     * @param name - A biome identifier, with or without its `minecraft:` namespace, or a
+     * `#tag` such as `#minecraft:is_ocean`.
+     * @param origin - Where to search from, in blocks.
+     * @returns The sampled position, or undefined when the generator has no biome walk of its
+     * own, no biome by that name can occur here, or the radius held none.
+     */
+    public locateBiome(
+        name: string,
+        origin: { readonly x: number; readonly y: number; readonly z: number }
+    ): BiomeSearchResult | undefined {
+        const search = this.generator.locateBiome;
+        if (search === undefined) return undefined;
+
+        const tagged = name.startsWith('#')
+            ? this.generator.membersOfTag?.('worldgen/biome', namespaced(name.slice(1)))
+            : undefined;
+        const wanted = namespaced(name.toLowerCase());
+
+        return search.call(this.generator, {
+            x: Math.trunc(origin.x),
+            y: Math.trunc(origin.y),
+            z: Math.trunc(origin.z),
+            ...BIOME_SEARCH,
+            wanted: tagged === undefined ? (biome) => biome === wanted : (biome) => tagged.has(biome),
             seed: this.level.seed
         });
     }

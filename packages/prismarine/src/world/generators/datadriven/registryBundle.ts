@@ -65,6 +65,7 @@ const BUNDLED_REGISTRIES = [
     'multiNoiseParameterLists',
     'blockTags',
     'biomeTags',
+    'structureTags',
     'biomeParameters'
 ] as const satisfies ReadonlyArray<keyof JavaWorldgenRegistries>;
 
@@ -211,6 +212,7 @@ export const readRegistryBundle = (bundle: ArrayBufferLike): JavaWorldgenRegistr
         multiNoiseParameterLists: registryOf('multiNoiseParameterLists'),
         blockTags: registryOf('blockTags'),
         biomeTags: registryOf('biomeTags'),
+        structureTags: registryOf('structureTags'),
         biomeParameters: registryOf('biomeParameters')
     };
 };

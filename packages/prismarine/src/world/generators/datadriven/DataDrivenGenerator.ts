@@ -73,12 +73,16 @@ import type { DimensionType } from '../../Dimension';
 import type { WorldConfig } from '../../World';
 import { GenerationStopped } from '../../Generator';
 import type {
+    BiomeSearchRequest,
+    BiomeSearchResult,
     ChunkRequestOptions,
     Generator,
+    LocateTagRegistry,
     StructureSearchRequest,
     StructureSearchResult,
     SurfaceProbe
 } from '../../Generator';
+import { findClosestBiome } from './biomeSearch';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { GenerationRegion } from './GenerationRegion';
@@ -90,12 +94,13 @@ import { BEARD_RADIUS, createBeardifier } from './javaStructureBeard';
 import { createNoiseStructureLevel } from './javaStructureLevel';
 import { asStructureRandom } from './javaStructureRandom';
 import { chunkWriteBox, createRegionStructureWriter } from './javaStructureRegion';
+import { createTagExpander } from './javaStructurePlacement';
 import type { StructureBuilder, StructureStart } from './javaStructureStarts';
 import { StructureStartSource } from './javaStructureStarts';
 import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
-import type { JavaWorldgenRegistries } from './javaWorldgenData';
+import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
 import { shareRegistryBundle } from './registryBundle';
 import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
@@ -677,6 +682,14 @@ export class DataDrivenGenerator implements Generator {
     private readonly worldgen: WorldgenData;
     private readonly materialRules: MaterialRuleData;
     private readonly structureSpawnOverrides: ReadonlyMap<string, readonly StructureSpawnOverride[]>;
+
+    /** The tag registries a `/locate` name may draw on, each expanded on first use and kept. */
+    private readonly tagExpanders: Readonly<
+        Record<
+            LocateTagRegistry,
+            { readonly tags: JavaRegistry; readonly expand: (spec: unknown) => ReadonlySet<string> }
+        >
+    >;
     /** Compiled pipelines by {@link pipelineCacheKey}. */
     private readonly pipelines = new Map<string, SeededPipeline>();
     /** Parsed biome sources by {@link biomeSourceCacheKey}, shared by every seed of one key. */
@@ -737,6 +750,13 @@ export class DataDrivenGenerator implements Generator {
         );
         const defaultDimension = options.dimension ?? Dimensions.Overworld;
         this.chunkDimensions.set(defaultDimension.id, defaultDimension);
+        this.tagExpanders = {
+            'worldgen/structure': {
+                tags: registries.structureTags,
+                expand: createTagExpander(registries.structureTags)
+            },
+            'worldgen/biome': { tags: registries.biomeTags, expand: createTagExpander(registries.biomeTags) }
+        };
         this.defaultKey = {
             noiseSettings: options.noiseSettings ?? DEFAULT_NOISE_SETTINGS,
             biomeSource: options.biomeSource ?? DEFAULT_BIOME_SOURCE,
@@ -1020,6 +1040,9 @@ export class DataDrivenGenerator implements Generator {
             raiseUrgency: (cx, cz, urgency) => this.raiseUrgencyUnder(key, cx, cz, urgency),
             surfaceAt: (x, z, seed = 0n) => this.surfaceUnder(key, x, z, seed),
             locate: (request) => this.locateUnder(key, request),
+            locateBiome: (request) => this.locateBiomeUnder(key, request),
+            membersOfTag: (registry, tag) => this.membersOfTag(registry, tag),
+            locatableNames: (kind) => this.locatableNames(kind),
             structureSpawnOverrideAt: (identifier, at, seed = 0n) =>
                 this.structureSpawnOverrideUnder(key, identifier, at, seed),
             stopGenerating: () => this.stopGenerating()
@@ -1273,6 +1296,48 @@ export class DataDrivenGenerator implements Generator {
         if (found === undefined) return undefined;
 
         return { structure: found.structure, ...found.locatePosition, origin: found.origin };
+    }
+
+    /** @inheritDoc */
+    public locateBiome(request: BiomeSearchRequest): BiomeSearchResult | undefined {
+        return this.locateBiomeUnder(this.defaultKey, request);
+    }
+
+    /** {@link DataDrivenGenerator.locateBiome} for one key. */
+    private locateBiomeUnder(key: PipelineKey, request: BiomeSearchRequest): BiomeSearchResult | undefined {
+        const pipeline = this.pipelineFor(key, request.seed ?? 0n);
+
+        return findClosestBiome({
+            origin: { x: Math.trunc(request.x), y: Math.trunc(request.y), z: Math.trunc(request.z) },
+            radius: Math.max(0, request.radius),
+            horizontalStep: Math.max(1, Math.trunc(request.horizontalStep)),
+            verticalStep: Math.max(1, Math.trunc(request.verticalStep)),
+            minY: pipeline.dimension.minY,
+            height: pipeline.dimension.height,
+            possibleBiomes: pipeline.possibleBiomes,
+            wanted: request.wanted,
+            // The memoized cell resolver, which is Java's `createCachingResolver`: the noise
+            // biome before the manager jitters it, and a cell already resolved for a chunk is
+            // answered from the cache.
+            noiseBiome: pipeline.biomeCells
+        });
+    }
+
+    /** @inheritDoc */
+    public membersOfTag(registry: LocateTagRegistry, tag: string): ReadonlySet<string> | undefined {
+        const expander = this.tagExpanders[registry];
+        return expander.tags.has(tag) ? expander.expand(`#${tag}`) : undefined;
+    }
+
+    /** @inheritDoc */
+    public locatableNames(kind: 'structure' | 'biome'): readonly string[] {
+        const registries = this.options.registries;
+        const [ids, tags] =
+            kind === 'structure'
+                ? [registries.structures, registries.structureTags]
+                : [registries.biomes, registries.biomeTags];
+
+        return [...ids.keys(), ...[...tags.keys()].map((tag) => `#${tag}`)];
     }
 
     /** @inheritDoc */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { candidateChunksIn, chooseStructure, createBiomeExpander, loadStructureSets } from './javaStructurePlacement';
+import { candidateChunksIn, chooseStructure, createTagExpander, loadStructureSets } from './javaStructurePlacement';
 
 const spread = (overrides: Record<string, unknown> = {}) => ({
     placement: { type: 'minecraft:random_spread', spacing: 32, separation: 8, salt: 10387312, ...overrides },
@@ -138,7 +138,7 @@ describe('chooseStructure', () => {
     });
 });
 
-describe('createBiomeExpander', () => {
+describe('createTagExpander', () => {
     const tags = new Map<string, unknown>([
         ['minecraft:has_structure/village_plains', { values: ['minecraft:plains', '#minecraft:is_meadow'] }],
         ['minecraft:is_meadow', { values: [{ id: 'minecraft:meadow', required: false }, '#minecraft:loop'] }],
@@ -146,7 +146,7 @@ describe('createBiomeExpander', () => {
     ]);
 
     it('expands a tag reference through its nested references', () => {
-        const expand = createBiomeExpander(tags);
+        const expand = createTagExpander(tags);
 
         expect([...expand('#minecraft:has_structure/village_plains')].sort()).toEqual([
             'minecraft:meadow',
@@ -155,7 +155,7 @@ describe('createBiomeExpander', () => {
     });
 
     it('reads a bare identifier and a list of them', () => {
-        const expand = createBiomeExpander(tags);
+        const expand = createTagExpander(tags);
 
         expect([...expand('minecraft:plains')]).toEqual(['minecraft:plains']);
         expect([...expand(['minecraft:plains', 'minecraft:desert'])].sort()).toEqual([
@@ -165,7 +165,7 @@ describe('createBiomeExpander', () => {
     });
 
     it('answers nothing for a reference this server does not carry', () => {
-        expect([...createBiomeExpander(tags)('#minecraft:missing')]).toEqual([]);
-        expect([...createBiomeExpander(tags)(undefined)]).toEqual([]);
+        expect([...createTagExpander(tags)('#minecraft:missing')]).toEqual([]);
+        expect([...createTagExpander(tags)(undefined)]).toEqual([]);
     });
 });

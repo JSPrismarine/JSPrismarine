@@ -34,6 +34,7 @@ const tiny = (): JavaWorldgenRegistries => ({
     multiNoiseParameterLists: new Map([['minecraft:overworld', { preset: 'minecraft:overworld' }]]),
     blockTags: new Map([['minecraft:leaves', { values: ['minecraft:oak_leaves', '#minecraft:wart_blocks'] }]]),
     biomeTags: new Map(),
+    structureTags: new Map(),
     biomeParameters: new Map([
         [
             'minecraft:overworld',

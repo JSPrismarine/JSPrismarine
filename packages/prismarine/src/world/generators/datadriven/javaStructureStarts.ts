@@ -23,7 +23,7 @@ import type { NamedStructureSet } from './javaStructurePlacement';
 import {
     candidateChunksIn,
     chooseStructure,
-    createBiomeExpander,
+    createTagExpander,
     loadStructureSets,
     searchCandidatesFrom
 } from './javaStructurePlacement';
@@ -170,7 +170,7 @@ export class StructureStartSource {
     private readonly unbuilt = new Set<string>();
 
     public constructor(private readonly options: StructureStartOptions) {
-        const expand = createBiomeExpander(options.registries.biomeTags);
+        const expand = createTagExpander(options.registries.biomeTags);
         const biomeCache = new Map<string, ReadonlySet<string>>();
 
         this.biomesOf = (structure) => {

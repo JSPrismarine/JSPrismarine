@@ -206,22 +206,24 @@ export const structureRandomSeed = (seed: bigint, chunkX: number, chunkZ: number
     largeFeatureSeed(seed, chunkX, chunkZ);
 
 /**
- * Expands a structure's `biomes` field into the biomes it names.
+ * Expands a registry reference into the identifiers it names.
  *
- * The field is a biome identifier, a `#tag` reference or a list of either, and a tag's `values`
- * may hold further references. A reference this server does not carry contributes nothing, which
- * makes the structure generate in fewer biomes rather than in all of them.
+ * A reference is an identifier, a `#tag` or a list of either, and a tag's `values` may hold
+ * further references. Built over one tag registry: a structure's `biomes` field expands over
+ * `tags/worldgen/biome`, and the `#minecraft:village` a `/locate` names expands over
+ * `tags/worldgen/structure`. A reference this server does not carry contributes nothing, which
+ * makes a structure generate in fewer biomes rather than in all of them.
  */
-export const createBiomeExpander = (biomeTags: JavaRegistry): ((spec: unknown) => ReadonlySet<string>) => {
-    const tags = new Map<string, ReadonlySet<string>>();
+export const createTagExpander = (tags: JavaRegistry): ((spec: unknown) => ReadonlySet<string>) => {
+    const expanded = new Map<string, ReadonlySet<string>>();
 
     const expandTag = (tag: string, seen: Set<string>): ReadonlySet<string> => {
-        const cached = tags.get(tag);
+        const cached = expanded.get(tag);
         if (cached !== undefined) return cached;
         if (seen.has(tag)) return new Set();
 
         seen.add(tag);
-        const document = biomeTags.get(tag);
+        const document = tags.get(tag);
         const values = (document as { values?: unknown } | undefined)?.values;
         const members = new Set<string>();
         if (Array.isArray(values)) {
@@ -233,7 +235,7 @@ export const createBiomeExpander = (biomeTags: JavaRegistry): ((spec: unknown) =
             }
         }
 
-        tags.set(tag, members);
+        expanded.set(tag, members);
         return members;
     };
 

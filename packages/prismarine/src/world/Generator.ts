@@ -70,6 +70,36 @@ export interface StructureSearchResult {
     readonly origin: { readonly x: number; readonly y: number; readonly z: number };
 }
 
+/** What a biome search asks a generator; see {@link Generator.locateBiome}. */
+export interface BiomeSearchRequest {
+    /** Where to search from, in blocks. */
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    /** How far out to look, in blocks, as a square around the origin. Java's `/locate biome` uses 6400. */
+    readonly radius: number;
+    /** Blocks between two columns of the sampling grid; Java's 32. */
+    readonly horizontalStep: number;
+    /** Blocks between two samples of a column; Java's 64. */
+    readonly verticalStep: number;
+    /** Whether a biome identifier is one the caller wants, so a tag costs the same as one biome. */
+    readonly wanted: (biome: string) => boolean;
+    readonly seed?: bigint;
+}
+
+/** Where a biome search found a cell; see {@link Generator.locateBiome}. */
+export interface BiomeSearchResult {
+    /** The biome identifier, for example `minecraft:plains`. */
+    readonly biome: string;
+    /** The sampled position, in blocks. */
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/** The tag registries a `/locate` name may draw on; see {@link Generator.membersOfTag}. */
+export type LocateTagRegistry = 'worldgen/structure' | 'worldgen/biome';
+
 /** A block position in a generator's world. */
 export interface GeneratorPosition {
     readonly x: number;
@@ -161,6 +191,42 @@ export interface Generator {
      * @returns The nearest match, or undefined when the radius held none.
      */
     locate?(request: StructureSearchRequest): StructureSearchResult | undefined;
+
+    /**
+     * The nearest cell of a biome a search accepts, without generating anything.
+     *
+     * This is what `/locate biome` asks: Java's `BiomeSource.findClosestBiome3d`, a grid laid
+     * over the climate sampler and walked outward from the origin. Synchronous for the same
+     * reason {@link Generator.locate} is.
+     *
+     * Optional, because a generator with no biome source of its own has nothing to walk.
+     *
+     * @returns The first grid cell met that holds a wanted biome, or undefined when the radius
+     * held none or no wanted biome can occur in this dimension.
+     */
+    locateBiome?(request: BiomeSearchRequest): BiomeSearchResult | undefined;
+
+    /**
+     * The identifiers a `#tag` of one registry names, which is how `/locate structure
+     * #minecraft:village` and an eye of ender's `#minecraft:eye_of_ender_located` are read.
+     *
+     * Optional, because only a generator built from Java's data carries its tags.
+     *
+     * @param tag - The tag's identifier without the `#`, for example `minecraft:village`.
+     * @returns The members, or undefined when the generator knows no tag by that name.
+     */
+    membersOfTag?(registry: LocateTagRegistry, tag: string): ReadonlySet<string> | undefined;
+
+    /**
+     * Every identifier and `#tag` a `/locate` of one kind may name, for its suggestions.
+     *
+     * Registry-wide rather than per dimension, as Java's suggestions are: a Nether player is
+     * offered `minecraft:village_plains` and told it is not nearby.
+     *
+     * Optional, because a generator without Java's registries has nothing to suggest beyond
+     * Mojang's published list.
+     */
+    locatableNames?(kind: 'structure' | 'biome'): readonly string[];
 
     /**
      * Whether Java structure spawn overrides reserve an entity type at one position.

@@ -70,6 +70,8 @@ export interface JavaWorldgenRegistries {
     readonly blockTags: JavaRegistry;
     /** `tags/worldgen/biome`, which is how a structure says where it may generate. */
     readonly biomeTags: JavaRegistry;
+    /** `tags/worldgen/structure`, the groups `/locate structure #minecraft:village` and an eye of ender name. */
+    readonly structureTags: JavaRegistry;
     /** `reports/biome_parameters`, keyed by dimension identifier such as `minecraft:overworld`. */
     readonly biomeParameters: JavaRegistry;
 }
@@ -167,6 +169,7 @@ export const loadJavaWorldgenRegistriesFrom = (definitions: Definitions, reports
     multiNoiseParameterLists: worldgenKind(definitions, 'multi_noise_biome_source_parameter_list'),
     blockTags: taggedRegistry(definitions, 'block'),
     biomeTags: taggedRegistry(definitions, 'worldgen/biome'),
+    structureTags: taggedRegistry(definitions, 'worldgen/structure'),
     biomeParameters: readBiomeParameterReports(reports)
 });
 
