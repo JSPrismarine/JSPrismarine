@@ -1,6 +1,6 @@
 import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -42,6 +42,13 @@ describe('a fleet against a real server', { tags: ['real-data', 'performance'] }
     beforeAll(async () => {
         stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-fleet-'));
         vi.stubEnv('JSP_DIR', stateRoot);
+        // A flat world, as the login and dimension suites use. The default world prepares a
+        // 441-chunk start region through the worker pool before it accepts anyone, which takes
+        // about a minute and a half and is not what this measures.
+        writeFileSync(
+            path.join(stateRoot, 'config.json'),
+            JSON.stringify({ 'online-mode': false, worlds: { world: { generator: 'Flat' } } })
+        );
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
         await server.bootstrap('127.0.0.1', port);
