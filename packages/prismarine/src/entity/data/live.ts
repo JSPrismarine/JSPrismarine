@@ -433,6 +433,22 @@ export class LiveEntityRuntime {
     }
 
     /**
+     * Whether a live body rides something or carries a rider.
+     *
+     * Bedrock sends nothing with passengers through a portal (MCPE-47288), and the only riding
+     * the server models is the data-driven `minecraft:rideable` index, so a player on a mob
+     * answers through the mob's side and a written entity never rides.
+     *
+     * @param target - The client-facing body.
+     */
+    public isInRide(target: Entity): boolean {
+        const id = this.bodies.entityIdOf(target);
+        const entity = id === undefined ? undefined : this.runtime.byId(id);
+        if (entity === undefined) return false;
+        return this.runtime.vehicleOf(entity.body) !== undefined || this.runtime.ridersOf(entity.body).length > 0;
+    }
+
+    /**
      * Whether this live body is a data-driven entity that accepts a name tag.
      *
      * @param target - The client-facing body.

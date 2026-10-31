@@ -1,6 +1,8 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
+import { stub } from '../testing/stub.test.helper';
+import type { World } from '../world/World';
 import { PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
 
 const origin = new Vector3(0, 64, 0);
@@ -60,6 +62,17 @@ describe('entity', () => {
             contact.touch(moved);
 
             expect(contact.getEntryPosition()).toBe(moved);
+        });
+
+        it('keeps the portal block of the last touch that named one', () => {
+            const contact = new PortalContact(origin);
+            const portal = { world: stub<World>(), position: new Vector3(0, 64, 0), block: 'minecraft:portal' };
+
+            expect(contact.getPortal()).toBeUndefined();
+            contact.touch(origin, portal);
+            contact.touch(origin);
+
+            expect(contact.getPortal()).toBe(portal);
         });
 
         it('has nothing to say when it was just created', () => {

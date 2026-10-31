@@ -8,6 +8,7 @@ import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from './entity/PortalContact';
+import type { PortalRule } from './world/portal/rules';
 import {
     breaksAFall,
     DROWNING_DAMAGE,
@@ -1139,15 +1140,19 @@ export default class Player extends Human {
     }
 
     /**
-     * Ticks this player has to stand in a nether portal before going through.
+     * Ticks this player has to stand in a portal before going through.
      *
      * Vanilla reads `players_nether_portal_creative_delay` (0) for a creative player and
      * `players_nether_portal_default_delay` (80) for everyone else; the game rules are not
-     * modeled yet, so the defaults are the answer.
-     * @returns 0 in creative, otherwise 80.
+     * modeled yet, so the portal rule's defaults are the answer. An end portal's rule says 0
+     * for both.
+     * @param rule - The rule of the portal stood in. Without one, a nether portal is assumed.
+     * @returns 0 in creative, otherwise the rule's survival delay, 80 for a nether portal.
      */
-    public override getPortalTransitionTicks(): number {
-        return this.gamemode === Gametype.CREATIVE ? PORTAL_TRANSITION_TICKS.creative : PORTAL_TRANSITION_TICKS.player;
+    public override getPortalTransitionTicks(rule?: PortalRule): number {
+        const creative = this.gamemode === Gametype.CREATIVE;
+        if (rule !== undefined) return creative ? rule.delayTicks.creative : rule.delayTicks.survival;
+        return creative ? PORTAL_TRANSITION_TICKS.creative : PORTAL_TRANSITION_TICKS.player;
     }
 
     /**

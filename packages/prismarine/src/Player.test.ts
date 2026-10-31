@@ -20,6 +20,7 @@ import { stub } from './testing/stub.test.helper';
 import type { Block } from './block/Block';
 import { BlockState } from './block/state/BlockState';
 import { Dimensions } from './world/DimensionType';
+import { PORTALS } from './world/portal/rules';
 import type { Level } from './world/Level';
 import { Position } from './world/Position';
 import type { BlockMining } from './world/BlockMining';
@@ -602,6 +603,37 @@ describe('Player', () => {
 
             expect(stopped).toEqual([]);
             expect(player.getMining()).toBe(mining);
+        });
+    });
+
+    describe('portal delays', () => {
+        it('holds a survival player in a nether portal for 80 ticks and a creative one for none', () => {
+            const { player } = fakePlayer();
+            const nether = PORTALS['minecraft:portal']!;
+
+            expect(player.getPortalTransitionTicks(nether)).toBe(80);
+            expect(player.getPortalTransitionTicks()).toBe(80);
+
+            player.gamemode = Gametype.CREATIVE;
+            expect(player.getPortalTransitionTicks(nether)).toBe(0);
+            expect(player.getPortalTransitionTicks()).toBe(0);
+        });
+
+        it('sends a player through an end portal on the first tick in any game mode', () => {
+            const { player } = fakePlayer();
+            const end = PORTALS['minecraft:end_portal']!;
+
+            expect(player.getPortalTransitionTicks(end)).toBe(0);
+            player.gamemode = Gametype.CREATIVE;
+            expect(player.getPortalTransitionTicks(end)).toBe(0);
+        });
+
+        it('waits 10 ticks after a dimension change, not the 300 a mob does', () => {
+            const { player } = fakePlayer();
+
+            player.setPortalCooldown();
+
+            expect(player.getPortalCooldown()).toBe(10);
         });
     });
 

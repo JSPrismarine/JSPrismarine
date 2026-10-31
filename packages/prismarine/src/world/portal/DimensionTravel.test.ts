@@ -23,6 +23,7 @@ import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { fixtureContentOptions } from '../../content/testing';
 import { serverWorldSource } from '../../content/world/serverSource';
+import { EventEmitter } from '../../events/EventEmitter';
 import { Item } from '../../entity/other/Item';
 import type ClientConnection from '../../network/ClientConnection';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
@@ -45,6 +46,7 @@ import LevelDB from '../providers/leveldb/LevelDB';
 import type { World } from '../World';
 import type WorldManager from '../WorldManager';
 import { DimensionTravel, END_ARRIVAL_YAW } from './DimensionTravel';
+import type { PortalBlockRef } from './DimensionTravel';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
 const END_STEM_ID = 'minecraft:the_end';
@@ -98,11 +100,17 @@ const buildScene = async () => {
     let level: Level | undefined;
     let content: ServerContent | undefined;
 
+    // A real bus, so a test can listen for the travel events and cancel one.
+    const events = new EventEmitter();
     const server: Server = stub<Server>({
-        on: () => server,
-        post: () => 0,
-        emit: async () => {},
+        on: (id, listener) => {
+            events.on(id, listener);
+            return server;
+        },
+        post: (pair) => events.post(pair),
+        emit: (id, event) => events.emit(id, event),
         removeListener: () => server,
+        getDimensionTravel: () => travel,
         getTick: () => 0,
         getRandom: () => () => 0.5,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
@@ -172,10 +180,11 @@ const buildScene = async () => {
         })
     });
 
+    const travel = new DimensionTravel(server);
     const overworld = await level.world(OVERWORLD_STEM_ID);
     const nether = await level.world(NETHER_STEM_ID);
     const end = await level.world(END_STEM_ID);
-    return { server, level, overworld, nether, end, travel: new DimensionTravel(server) };
+    return { server, level, overworld, nether, end, travel };
 };
 
 /** A survival player standing at a feet position, wired to a session that sends nowhere. */
@@ -202,8 +211,17 @@ const playerAt = (server: Server, world: World, feet: Vector3): Player => {
         disconnect: async () => {}
     });
     createConnectedPlayer({ server, connection, player });
+    // `update` does nothing for a player who never finished joining.
+    player['connected'] = true;
     return player;
 };
+
+/** The portal block reference of a lit portal's lowest block at `minCorner`. */
+const portalAt = (world: World, minCorner: Vector3): PortalBlockRef => ({
+    world,
+    position: minCorner,
+    block: 'minecraft:portal'
+});
 
 const itemAt = (world: World, feet: Vector3): Item =>
     new Item({ position: new Position(feet.getX(), feet.getY(), feet.getZ(), world) });
@@ -408,4 +426,128 @@ describe('DimensionTravel.resolve', () => {
             await scene.level.disable();
         }, 60_000);
     });
+});
+
+describe('DimensionTravel.touch', () => {
+    it('opens a contact that remembers the portal block, and keeps it on later touches', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
+
+        scene.travel.touch(item, portal);
+        const contact = item.portalContact();
+        scene.travel.touch(item, portal);
+
+        expect(contact?.getPortal()).toBe(portal);
+        expect(item.portalContact()).toBe(contact);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('raises `entityPortalEnter` once per entry, and a canceled one opens no contact', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
+        const entered: PortalBlockRef[] = [];
+        let refuse = true;
+        scene.server.on('entityPortalEnter', (event) => {
+            entered.push(event.getPortal());
+            if (refuse) event.preventDefault();
+        });
+
+        scene.travel.touch(item, portal);
+        expect(item.portalContact()).toBeUndefined();
+
+        refuse = false;
+        scene.travel.touch(item, portal);
+        scene.travel.touch(item, portal);
+        expect(item.portalContact()).toBeDefined();
+        expect(entered).toEqual([portal, portal]);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('ignores an entity on portal cooldown', async () => {
+        const scene = await buildScene();
+        const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        item.setPortalCooldown(5);
+
+        scene.travel.touch(item, portalAt(scene.overworld, new Vector3(80, 64, 0)));
+
+        expect(item.portalContact()).toBeUndefined();
+
+        await scene.level.disable();
+    }, 60_000);
+});
+
+describe('DimensionTravel.transfer', () => {
+    it('moves an item out of one world into the other at the arrival, on a 300 tick cooldown', async () => {
+        const scene = await buildScene();
+        const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(item);
+
+        await scene.travel.transfer(item, {
+            world: scene.nether,
+            position: new Vector3(10.5, 70, 0.5),
+            yaw: 90,
+            pitch: 0
+        });
+
+        expect(item.getWorld()).toBe(scene.nether);
+        expect(item.getPosition().getX()).toBe(10.5);
+        expect(item.getPosition().getY()).toBe(70);
+        expect(item.yaw).toBe(90);
+        expect(item.getPortalCooldown()).toBe(300);
+        expect(scene.overworld.getEntities()).not.toContain(item);
+        expect(scene.nether.getEntities()).toContain(item);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('sends a player through the session, with the 10 tick cooldown and the screen pending', async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(player);
+        const seen: [World, World][] = [];
+        scene.server.on('playerChangeDimension', (event) => void seen.push([event.getFrom(), event.getTo()]));
+
+        await scene.travel.transfer(player, {
+            world: scene.nether,
+            position: new Vector3(10.5, 70, 0.5),
+            yaw: 90,
+            pitch: 0
+        });
+
+        expect(seen).toEqual([[scene.overworld, scene.nether]]);
+        expect(player.getWorld()).toBe(scene.nether);
+        expect(player.getPortalCooldown()).toBe(10);
+        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.nether);
+        expect(scene.overworld.getPlayers()).not.toContain(player);
+        expect(scene.nether.getPlayers()).toContain(player);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('leaves a player where they are when `playerChangeDimension` is canceled', async () => {
+        const scene = await buildScene();
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(player);
+        scene.server.on('playerChangeDimension', (event) => event.preventDefault());
+
+        await scene.travel.transfer(player, {
+            world: scene.nether,
+            position: new Vector3(10.5, 70, 0.5),
+            yaw: 90,
+            pitch: 0
+        });
+
+        expect(player.getWorld()).toBe(scene.overworld);
+        expect(player.getPortalCooldown()).toBe(0);
+        expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
+        expect(scene.overworld.getPlayers()).toContain(player);
+
+        await scene.level.disable();
+    }, 60_000);
 });

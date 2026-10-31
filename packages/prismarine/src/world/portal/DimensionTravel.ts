@@ -1,10 +1,13 @@
 /**
  * Where a trip through a portal lands, and what it builds on arrival.
  *
- * This is the server half of the portal note's section 6 up to, but not including, moving
- * anybody: {@link DimensionTravel.resolve} names the world, the feet position and the facing
- * a traveler arrives with, creating the arrival portal or the End platform when the rules say
- * so. Moving the entity and the client's dimension change sequence are the dispatcher's.
+ * This is the server half of the portal note's section 6. {@link DimensionTravel.touch} is
+ * what the world calls for every entity standing in a portal block, and opens the contact
+ * timer on the entity. {@link DimensionTravel.resolve} names the world, the feet position and
+ * the facing a traveler arrives with, creating the arrival portal or the End platform when the
+ * rules say so. {@link DimensionTravel.transfer} moves the entity there, players through the
+ * client's dimension change sequence on their session. `Entity.update` calls the last two once
+ * the timer runs out.
  *
  * Every rule is data from {@link PORTALS} and {@link DIMENSION_TRAVEL}; the geometry is
  * chunk 5's in `@jsprismarine/block-behaviors`, reached through the content world adapter of
@@ -16,11 +19,14 @@ import type { BlockPosition } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 
 import type { Entity } from '../../entity/Entity';
+import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
+import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensionEvent';
 import type { Arrival } from '../../network/PlayerSession';
 import Player from '../../Player';
 import type Server from '../../Server';
 import { Dimensions } from '../Dimension';
 import type { Level } from '../Level';
+import { Position } from '../Position';
 import type { World } from '../World';
 import { createNetherPortal } from './create';
 import { portalRuleOf, travelRuleOf } from './rules';
@@ -82,6 +88,68 @@ const feetOf = (entity: Entity): Vector3 => {
 /** The portal and End travel service of one server. */
 export class DimensionTravel {
     public constructor(private readonly server: Server) {}
+
+    /**
+     * Records that an entity's body overlaps a portal block on this tick.
+     *
+     * The world calls this once per tick per entity standing in a portal. The first touch
+     * raises a cancelable `EntityPortalEnterEvent` and opens the entity's contact timer; later
+     * touches keep it counting. Nothing happens for an entity on portal cooldown, as in Java's
+     * `handlePortal`, or for one that rides or carries another, which Bedrock refuses to send
+     * through (MCPE-47288).
+     */
+    public touch(entity: Entity, portal: PortalBlockRef): void {
+        if (entity.isOnPortalCooldown() || this.isInRide(entity)) return;
+
+        if (entity.portalContact() === undefined) {
+            const event = new EntityPortalEnterEvent(entity, portal);
+            this.server.post(['entityPortalEnter', event]);
+            if (event.isCanceled()) return;
+        }
+
+        entity.touchPortal(feetOf(entity), portal);
+    }
+
+    /**
+     * Moves an entity to where a trip resolved to, and starts its portal cooldown so the
+     * arrival portal does not send it straight back.
+     *
+     * A player raises a cancelable `PlayerChangeDimensionEvent` first and then goes through
+     * `PlayerSession.changeWorld`, which runs the client's dimension change sequence; the
+     * cooldown is the player's 10 ticks. Anything else leaves its world with `removeEntity`,
+     * is placed at the arrival and enters the destination with `addEntity`, with the 300 tick
+     * cooldown Bedrock writes to `PortalCooldown`.
+     */
+    public async transfer(entity: Entity, arrival: Arrival): Promise<void> {
+        const from = entity.getWorld();
+
+        if (entity instanceof Player) {
+            const event = new PlayerChangeDimensionEvent(entity, from, arrival.world, arrival);
+            await this.server.emit('playerChangeDimension', event);
+            if (event.isCanceled()) return;
+
+            entity.setPortalCooldown();
+            await entity.getNetworkSession().changeWorld(arrival);
+            return;
+        }
+
+        entity.setPortalCooldown();
+        await from.removeEntity(entity);
+        await entity.setPosition({
+            position: Position.fromVector3(arrival.position, arrival.world),
+            yaw: arrival.yaw,
+            headYaw: arrival.yaw,
+            pitch: arrival.pitch,
+            teleport: true
+        });
+        await arrival.world.addEntity(entity);
+    }
+
+    /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */
+    private isInRide(entity: Entity): boolean {
+        const live = this.server.getEntityRuntime?.(entity.getWorld().getDimension().name);
+        return live?.isInRide?.(entity) ?? false;
+    }
 
     /**
      * Resolves where a trip from a portal block lands, creating a portal or the End platform

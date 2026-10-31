@@ -41,6 +41,7 @@ import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
 import ChunkScheduler from './world/ChunkScheduler';
+import { DimensionTravel } from './world/portal/DimensionTravel';
 import WorldManager from './world/WorldManager';
 
 import type { Config } from './config/Config';
@@ -109,6 +110,8 @@ export default class Server extends EventEmitter {
      * about their connections - see {@link WorldChangeSink}.
      */
     private readonly worldReplicators = new WorldReplicators(this);
+    /** Portal and End travel for every level: what a portal contact resolves and transfers through. */
+    private readonly dimensionTravel = new DimensionTravel(this);
 
     /**
      * This server's creative menu.
@@ -587,6 +590,14 @@ export default class Server extends EventEmitter {
 
     public getWorldManager(): WorldManager {
         return this.worldManager;
+    }
+
+    /**
+     * The portal travel service: where a trip through a portal lands and how an entity moves there.
+     * @returns {DimensionTravel} The one instance shared by every world.
+     */
+    public getDimensionTravel(): DimensionTravel {
+        return this.dimensionTravel;
     }
 
     /**

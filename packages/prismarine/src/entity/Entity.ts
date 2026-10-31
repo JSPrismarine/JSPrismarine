@@ -22,6 +22,8 @@ import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/M
 import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
+import type { PortalBlockRef } from '../world/portal/DimensionTravel';
+import type { PortalRule } from '../world/portal/rules';
 import {
     bedrockMobEffectId,
     mergeStatusEffect,
@@ -488,13 +490,15 @@ export class Entity {
     }
 
     /**
-     * Ticks this entity has to stand in a nether portal before it goes through.
+     * Ticks this entity has to stand in a portal before it goes through.
      *
      * Zero for everything that is not a player, as in vanilla: an item or a mob travels on the
-     * first contact tick. `Player` answers from its game mode.
+     * first contact tick. `Player` answers from its game mode and the portal's own delays.
+     * @param _rule - The rule of the portal the entity stands in, when known. A nether portal
+     * holds a player for 80 ticks in survival and an end portal for none.
      * @returns The delay in ticks, from {@link PORTAL_TRANSITION_TICKS}.
      */
-    public getPortalTransitionTicks(): number {
+    public getPortalTransitionTicks(_rule?: PortalRule): number {
         return PORTAL_TRANSITION_TICKS.other;
     }
 
@@ -547,12 +551,14 @@ export class Entity {
      * call opens the contact; later calls refresh it. Ignored while on cooldown, so an entity
      * that has just arrived is not sent straight back.
      * @param at - Where the entity stands, kept as the contact's entry position.
+     * @param portal - The portal block overlapped, which the trip is resolved from. Without
+     * one the contact counts but never travels.
      */
-    public touchPortal(at: Vector3): void {
+    public touchPortal(at: Vector3, portal?: PortalBlockRef): void {
         if (this.isOnPortalCooldown()) return;
 
         this.portalContactState ??= new PortalContact(at);
-        this.portalContactState.touch(at);
+        this.portalContactState.touch(at, portal);
     }
 
     /**

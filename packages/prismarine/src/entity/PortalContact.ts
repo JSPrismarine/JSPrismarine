@@ -1,5 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 
+import type { PortalBlockRef } from '../world/portal/DimensionTravel';
+
 /**
  * How many consecutive ticks inside a nether portal a traveler waits before it goes through.
  *
@@ -47,6 +49,7 @@ export class PortalContact {
     private portalTime = 0;
     private insideThisTick = false;
     private entryPosition: Vector3;
+    private portal: PortalBlockRef | undefined;
 
     /**
      * @param entryPosition - Where the entity stood when it first touched the portal.
@@ -60,10 +63,14 @@ export class PortalContact {
      *
      * Several touches in one tick count once. The position is kept so the trip can be resolved
      * from where the entity stood, not from where it was when the contact began.
+     *
+     * @param portal - The portal block the entity overlaps, which the trip is resolved from
+     * once the timer runs out. A touch without one leaves the last known block in place.
      */
-    public touch(entryPosition: Vector3): void {
+    public touch(entryPosition: Vector3, portal?: PortalBlockRef): void {
         this.insideThisTick = true;
         this.entryPosition = entryPosition;
+        if (portal !== undefined) this.portal = portal;
     }
 
     /**
@@ -99,5 +106,10 @@ export class PortalContact {
     /** Where the entity most recently stood in the portal. */
     public getEntryPosition(): Vector3 {
         return this.entryPosition;
+    }
+
+    /** The portal block the entity most recently overlapped, or undefined when no touch named one. */
+    public getPortal(): PortalBlockRef | undefined {
+        return this.portal;
     }
 }
