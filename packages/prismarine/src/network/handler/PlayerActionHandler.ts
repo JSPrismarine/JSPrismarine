@@ -308,10 +308,11 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             // Accepted, and nothing done. The client has already done what each of these
-            // says, and the server keeps no swimming, gliding, crawling, spin attack
-            // or dimension change state to bring up to date; the docs' expected answers (a
-            // `SetActorDataPacket` flag for most) wait on that state existing.
-            // `DenyDestroyBlock` is EDU only.
+            // says, and the server keeps no swimming, gliding, crawling or spin attack state
+            // to bring up to date; the docs' expected answers (a `SetActorDataPacket` flag for
+            // most) wait on that state existing. `ChangeDimensionAck` is the client echoing
+            // the one the server sent in `PlayerSession.changeWorld`; the change itself ends
+            // on the `EndLoadingScreen` that follows it. `DenyDestroyBlock` is EDU only.
             case PlayerActionType.ChangeDimensionAck:
             case PlayerActionType.StartSwimming:
             case PlayerActionType.StopSwimming:

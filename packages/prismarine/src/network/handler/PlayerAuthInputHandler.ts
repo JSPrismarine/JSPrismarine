@@ -145,6 +145,11 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
         // the tick as its `PlayerInputTick`, whatever else this input turns out to do.
         session.recordInputTick(input.tick);
 
+        // Until the client closes the dimension change screen it was given, its positions are
+        // the old world's, the same rule the docs state for `HandledTeleport`. Nothing in the
+        // packet is acted on: a block action or an item use from there names the old world too.
+        if (session.pendingDimensionChange() !== undefined) return;
+
         if (!player.isOnline()) return;
 
         await applyClientMovement(server, session, {

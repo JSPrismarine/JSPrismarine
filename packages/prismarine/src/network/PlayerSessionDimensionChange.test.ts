@@ -211,6 +211,32 @@ describe('PlayerSession.changeWorld', () => {
         expect(chunks.every((p) => p.getPacketData()?.dimension === Dimensions.Nether.bedrockId)).toBe(true);
     });
 
+    it('drops the client input until the screen it was given closes, and ignores another id', async () => {
+        const { player, server, sent, logged } = fakePlayer();
+        const session = player.getNetworkSession();
+        const inputs = new PlayerAuthInputHandler();
+        const screens = new ServerboundLoadingScreenHandler();
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
+        const id = session.pendingDimensionChange()!.loadingScreenId;
+        sent.length = 0;
+
+        // The client is still reporting from the old world's coordinates.
+        await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
+        expect(player.getPosition().getX()).toBe(100.5);
+
+        await screens.handle(screenClosed(id + 7), server, session);
+        expect(session.pendingDimensionChange()?.loadingScreenId).toBe(id);
+        expect(logged.at(-1)).toContain(`closed loading screen ${id + 7}`);
+        expect(sent.filter((p) => p instanceof MovePlayerPacket)).toHaveLength(0);
+
+        await screens.handle(screenClosed(id), server, session);
+        expect(session.pendingDimensionChange()).toBeUndefined();
+
+        await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
+        expect(player.getPosition().getX()).toBe(3);
+    });
+
     it('finishes the change with a teleport to the arrival, the attributes and the inventory', async () => {
         const { player, sent } = fakePlayer();
         const session = player.getNetworkSession();

@@ -24,6 +24,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
+import type { Arrival } from '../PlayerSession';
 import Codec2193 from '../codec/Codec2193';
 import type { ServerAuthInputItemUse, ServerPlayerAuthInput } from '../PlayerAuthInputAdapter';
 import { playerAuthInputFromProtocol, playerAuthInputToProtocol } from '../PlayerAuthInputAdapter';
@@ -37,7 +38,7 @@ import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandle
  * `applyClientMovement`: the point of these tests is that an input packet reaches the same
  * code a `MovePlayerPacket` does, and the same code a `PlayerActionPacket` does.
  */
-const fake = ({ serverAuthoritativeBreaking = false } = {}) => {
+const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false } = {}) => {
     const calls: string[] = [];
     const logged: string[] = [];
     const world = stub<World>({
@@ -79,7 +80,8 @@ const fake = ({ serverAuthoritativeBreaking = false } = {}) => {
         getPlayer: () => player,
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendMove: vi.fn(),
-        recordInputTick: vi.fn()
+        recordInputTick: vi.fn(),
+        pendingDimensionChange: () => (changingDimension ? { loadingScreenId: 3, arrival: stub<Arrival>() } : undefined)
     });
     const server = stub<Server>({
         post: () => 0,
@@ -306,6 +308,23 @@ describe('PlayerAuthInputHandler', () => {
         expect(logged).toEqual([
             'Ignored the Item Use Transaction of an input from tester: the PERFORM_ITEM_INTERACTION flag is not set'
         ]);
+    });
+
+    it('drops the whole input while a dimension change is pending, after recording its tick', async () => {
+        const { calls, session, server, player } = fake({ changingDimension: true });
+
+        await new PlayerAuthInputHandler().handle(
+            input((packet) => {
+                packet.tick = 12n;
+                breaking(packet);
+            }),
+            server,
+            session
+        );
+
+        expect(session.recordInputTick).toHaveBeenCalledWith(12n);
+        expect(player.setPosition).not.toHaveBeenCalled();
+        expect(calls).toEqual([]);
     });
 
     it('does nothing for a player who has not finished joining', async () => {
