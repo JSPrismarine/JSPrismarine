@@ -10,6 +10,7 @@ import type { CommandSource } from '@jsprismarine/commands';
 import type { BlockType } from '@jsprismarine/blocks';
 import { Gametype, TitleType } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Player from '../../Player';
@@ -29,12 +30,14 @@ import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
 import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
 import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
+import type PlayerSession from '../../network/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
 import { Dimensions } from '../../world/Dimension';
 import type GameRuleManager from '../../world/GameRuleManager';
+import type { Level } from '../../world/Level';
 import type { GameRuleEntry } from '../../world/GameRuleManager';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -52,6 +55,8 @@ const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 interface Fixture {
     readonly server: Server;
     readonly world: World;
+    /** The Nether world `worldFor` answers, where a cross-dimension `/tp` lands. */
+    readonly nether: World;
     readonly blocks: BlockTable;
     readonly rules: Map<string, GameRuleEntry>;
     readonly entities: Entity[];
@@ -66,6 +71,9 @@ interface Fixture {
     /** Puts a content build behind the server, which is what `/loot` reads. */
     useContent(built: ServerContent): void;
 }
+
+/** The one generator a stem can name without settings; nothing here builds a world from it. */
+const DEBUG: GeneratorDefinition = { type: 'minecraft:debug' };
 
 const buildFixture = (): Fixture => {
     const blocks: BlockTable = new Map();
@@ -92,6 +100,9 @@ const buildFixture = (): Fixture => {
             rules.set(keyFor(name), [value, editable]);
         }
     });
+
+    /** The destination of a cross-dimension `/tp`; nothing happens in it. */
+    const nether: World = stub<World>({ getDimension: () => Dimensions.Nether, getEntities: () => [] });
 
     // Annotated, because `world` and `server` name each other: without a declared type
     // TypeScript would have to infer one from the other and gives up.
@@ -147,7 +158,26 @@ const buildFixture = (): Fixture => {
 
     const server: Server = stub<Server>({
         getLogger: () => stub({ debug: () => {}, verbose: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
-        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] }),
+        getWorldManager: () =>
+            stub<WorldManager>({
+                getDefaultWorld: () => world,
+                // Two stems, so `/execute in the_nether` parses; the Nether's world is built
+                // by `worldFor` alone, as a lazy dimension's is.
+                getDefaultLevel: () =>
+                    stub<Level>({
+                        getStems: () =>
+                            new Map<string, LevelStem>([
+                                [Dimensions.Overworld.id, { type: Dimensions.Overworld.id, generator: DEBUG }],
+                                [Dimensions.Nether.id, { type: Dimensions.Nether.id, generator: DEBUG }]
+                            ])
+                    }),
+                getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
+                worldFor: async (dimension) => {
+                    if (dimension !== Dimensions.Nether.id) throw new Error(`no ${dimension} here`);
+                    return nether;
+                },
+                getWorlds: () => [world]
+            }),
         getSessionManager: () => stub({ getAllPlayers: () => players }),
         getPermissionManager: () =>
             stub<PermissionManager>({
@@ -210,6 +240,7 @@ const buildFixture = (): Fixture => {
     return {
         server,
         world,
+        nether,
         blocks,
         rules,
         entities,
@@ -260,6 +291,15 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3): E
 
 const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): Player => {
     const inventory = new HumanInventory();
+    // One session per player, so a test can read back what the player's session was told.
+    const session = stub<PlayerSession>({
+        send: async (packet: unknown) => {
+            fixture.sent.push(packet);
+        },
+        sendInventory: async () => {},
+        sendAttributes: async () => {},
+        changeWorld: vi.fn().mockResolvedValue(undefined)
+    });
     const player = stubOf(Player, {
         getRuntimeId: () => id,
         getType: () => 'minecraft:player',
@@ -275,14 +315,7 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         sendMessage: vi.fn().mockResolvedValue(undefined),
         getInventory: () => inventory,
         attributes: new Attributes(Attributes.getPlayerDefaults()),
-        getNetworkSession: () =>
-            stub({
-                send: async (packet: unknown) => {
-                    fixture.sent.push(packet);
-                },
-                sendInventory: async () => {},
-                sendAttributes: async () => {}
-            }),
+        getNetworkSession: () => session,
         yaw: 0,
         pitch: 0,
         headYaw: 0
@@ -391,6 +424,22 @@ describe('the server command host', () => {
             expect(player.setPosition).toHaveBeenCalledWith(
                 expect.objectContaining({ position: expect.objectContaining({ x: 10, y: 70, z: 10 }) })
             );
+        });
+
+        it('moves a player into another dimension at the requested position, in one move', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('execute in the_nether run tp @a 10 70 10')).resolves.toBe(1);
+
+            // The world change carries the position, so the player does not land at the
+            // Nether's spawn first, and `setPosition` is not run in the world being left.
+            expect(player.getNetworkSession().changeWorld).toHaveBeenCalledWith({
+                world: fixture.nether,
+                position: new Vector3(10, 70, 10),
+                yaw: 0,
+                pitch: 0
+            });
+            expect(player.setPosition).not.toHaveBeenCalled();
         });
 
         it('changes a game mode', async () => {

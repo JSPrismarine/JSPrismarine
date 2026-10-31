@@ -681,7 +681,12 @@ const liveWorld = (
         // What `World.dataEntities` reads, and therefore what tells `/summon` that this
         // world runs its mobs through the data path rather than the written classes.
         getEntityRuntime: (dimension: string) => runtimes.at(dimension),
-        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] }),
+        getWorldManager: () =>
+            stub<WorldManager>({
+                getDefaultWorld: () => world,
+                getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
+                getWorlds: () => [world]
+            }),
         getContent: () => content
     });
 

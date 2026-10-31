@@ -14,7 +14,8 @@
  *   {@link resolveEntity} finds the entity back.
  * - **Java dimension ids against Bedrock's.** Java spells the Nether
  *   `minecraft:the_nether` and the client `minecraft:nether`. A world's
- *   `DimensionType` carries both, and {@link worldOf} accepts either.
+ *   `DimensionType` carries both, and {@link worldOf} accepts either through
+ *   `WorldManager.getWorldByDimension`.
  */
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
@@ -75,21 +76,37 @@ export const carryOut = <T>(work: Promise<unknown>, answer: T): T => {
 export const dimensionIdOf = (world: World): string => world.getDimension().id;
 
 /**
- * The world a dimension id names.
+ * The Java `dimension_type` id a command's dimension argument names: the Bedrock spelling of
+ * a vanilla one is translated, and anything else is taken as it is.
+ */
+export const javaDimensionIdOf = (dimension: string): string => dimensionByName(dimension)?.id ?? dimension;
+
+/**
+ * The world a dimension id names, among the default level's loaded worlds.
  *
  * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
- * @returns The first loaded world in that dimension, or the default world when
- *   none matches, which is what a single-world server wants.
+ * @returns The default level's loaded world of that dimension, or the default world when
+ *   there is none: a dimension nobody has entered yet, or one no stem names.
  */
-export const worldOf = (server: Server, dimension: string): World => {
-    const wanted = dimensionByName(dimension)?.id ?? dimension;
-    const worlds = server.getWorldManager().getWorlds();
-    return worlds.find((world) => dimensionIdOf(world) === wanted) ?? server.getWorldManager().getDefaultWorld();
-};
+export const worldOf = (server: Server, dimension: string): World =>
+    server.getWorldManager().getWorldByDimension(dimension) ?? server.getWorldManager().getDefaultWorld();
 
-/** Every dimension this server currently has a world for. */
+/**
+ * The world a dimension id names, built if the default level has its stem but nobody has
+ * entered it yet. What `/teleport` into another dimension goes through, since a lazy Nether
+ * has no world until the first arrival.
+ *
+ * @throws When no stem of the default level has that dimension.
+ */
+export const worldFor = async (server: Server, dimension: string): Promise<World> =>
+    server.getWorldManager().worldFor(dimension);
+
+/**
+ * Every dimension a command may name: the dimension type of each stem of the default level,
+ * whether or not its world is built yet.
+ */
 export const loadedDimensions = (server: Server): readonly string[] => [
-    ...new Set(server.getWorldManager().getWorlds().map(dimensionIdOf))
+    ...new Set([...server.getWorldManager().getDefaultLevel().getStems().values()].map((stem) => stem.type))
 ];
 
 /**

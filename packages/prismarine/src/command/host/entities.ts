@@ -27,7 +27,19 @@ import { itemFromContent } from '../../item/itemFromContent';
 import type { World } from '../../world/World';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
-import { carryOut, entityRefOf, refuse, resolveEntity, resolvePlayer, unsupported, vectorOf, worldOf } from './support';
+import {
+    carryOut,
+    dimensionIdOf,
+    entityRefOf,
+    javaDimensionIdOf,
+    refuse,
+    resolveEntity,
+    resolvePlayer,
+    unsupported,
+    vectorOf,
+    worldFor,
+    worldOf
+} from './support';
 
 /**
  * The Java attribute names `/attribute` and `execute store` use, mapped onto
@@ -241,8 +253,9 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const entity = resolveEntity(server, ref);
             if (entity === undefined) return false;
 
-            const destination = worldOf(server, dimension);
-            const move =
+            // A thunk rather than a promise: `setPosition` starts the moment it is
+            // called, and a cross-dimension move has to know its destination first.
+            const move = async () =>
                 entity instanceof Player
                     ? entity.setPosition({
                           position: vectorOf(position),
@@ -260,15 +273,27 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
 
             // Only a player can change world here; `Entity.setPosition` keeps
             // the world it is in, which is why `/tp` across dimensions is a
-            // player-only move on this server.
-            if (entity instanceof Player && entity.getWorld() !== destination) {
+            // player-only move on this server. The destination is built if the
+            // level has its stem and nobody has entered it yet, and the player
+            // arrives at the requested position in one move rather than at the
+            // world's spawn and then at the position.
+            if (entity instanceof Player && dimensionIdOf(entity.getWorld()) !== javaDimensionIdOf(dimension)) {
                 return carryOut(
-                    entity.setWorld(destination).then(async () => move),
+                    worldFor(server, dimension).then(async (destination) =>
+                        entity.getWorld() === destination
+                            ? move()
+                            : entity.getNetworkSession().changeWorld({
+                                  world: destination,
+                                  position: vectorOf(position),
+                                  yaw: rotation.yaw,
+                                  pitch: rotation.pitch
+                              })
+                    ),
                     true
                 );
             }
 
-            return carryOut(move, true);
+            return carryOut(move(), true);
         },
 
         ride: () => unsupported('riding'),
