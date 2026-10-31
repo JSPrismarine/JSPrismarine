@@ -207,6 +207,38 @@ describe('createApp', () => {
         expect(t.captureCharFrame()).toContain('INPUT · Esc log');
     });
 
+    it('routes a bracketed paste from the log pane into the command input', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+
+        await t.mockInput.typeText('say ');
+        await focusLog(t);
+        await t.mockInput.pasteBracketedText('hello');
+        await t.renderOnce();
+
+        expect(t.captureCharFrame()).toContain('> say hello');
+        expect(t.captureCharFrame()).toContain('INPUT · Esc log');
+    });
+
+    it('copies selected log text with Ctrl+C when the log pane has focus', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+        const copyToClipboard = vi.spyOn(t.renderer, 'copyToClipboardOSC52').mockReturnValue(true);
+
+        t.app.applyServerMessage(logMessage('copy me'));
+        await t.renderOnce();
+        const rows = t.captureCharFrame().split('\n');
+        const row = rows.findIndex((line) => line.includes('copy me'));
+        const start = rows[row]?.indexOf('copy me') ?? -1;
+        expect(row).toBeGreaterThanOrEqual(0);
+        await t.mockMouse.drag(start, row, start + 'copy me'.length, row);
+        t.mockInput.pressCtrlC();
+        await t.renderOnce();
+
+        expect(copyToClipboard).toHaveBeenCalledWith('copy me');
+        expect(t.captureCharFrame()).toContain('copied selection to clipboard');
+    });
+
     it('shows a toast when the command fails', async () => {
         const t = await setup(
             { width: 120, height: 40 },

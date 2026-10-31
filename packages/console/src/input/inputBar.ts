@@ -1,4 +1,4 @@
-import type { KeyEvent } from '@opentui/core';
+import type { KeyEvent, PasteEvent } from '@opentui/core';
 import { BoxRenderable, CliRenderEvents, InputRenderable, RenderableEvents, TextRenderable } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
@@ -80,6 +80,7 @@ export const INTERRUPT_WINDOW_MS = 2000;
  *
  * Completion is asynchronous. The newest Tab wins, and any key that edits or moves the line
  * cancels the pending request, so a late result never overwrites what was typed after Tab.
+ * Pasting also closes the completion strip before the pasted text is inserted.
  * One candidate replaces the text at once; several open a one-row strip above the prompt
  * with the first candidate applied, and Tab and Shift+Tab cycle through them. Any other key
  * closes the strip and keeps the applied candidate. The strip is re-laid out on resize.
@@ -145,6 +146,21 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         completion.close();
         strip.visible = false;
     }
+
+    function handlePaste(): void {
+        completionRequest += 1;
+        closeCompletion();
+        interruptPresses = 0;
+        showHint(undefined);
+    }
+
+    const onPaste = (event: PasteEvent): void => {
+        if (disposed) return;
+        event.preventDefault();
+        input.focus();
+        handlePaste();
+        input.handlePaste(event);
+    };
 
     function layoutStrip(): void {
         if (!completion.isOpen) return;
@@ -267,6 +283,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     }
 
     renderer.on(CliRenderEvents.RESIZE, layoutStrip);
+    renderer.keyInput.on('paste', onPaste);
 
     return {
         renderable: root,
@@ -287,6 +304,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         dispose: () => {
             disposed = true;
             renderer.off(CliRenderEvents.RESIZE, layoutStrip);
+            renderer.keyInput.off('paste', onPaste);
             input.off(RenderableEvents.FOCUSED, onFocused);
             input.off(RenderableEvents.BLURRED, onBlurred);
             root.destroyRecursively();

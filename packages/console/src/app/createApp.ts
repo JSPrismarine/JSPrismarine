@@ -845,6 +845,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             help.handleKeyPress(key);
             return;
         }
+        if (!inputFocused && key.ctrl && !key.shift && !key.meta && key.name === 'c') {
+            key.preventDefault();
+            run('log.copySelection');
+            return;
+        }
         const id = resolveCommand(key, { inputFocused });
         if (id === undefined) return;
         key.preventDefault();
