@@ -9,7 +9,7 @@ import type { ItemHooks } from '@jsprismarine/items';
 import { instrument, recipes } from '@jsprismarine/items';
 
 import type { ItemBehaviorSpec } from '../behavior';
-import { consumeOne, onCooldown, withCooldown } from '../behavior';
+import { canPerform, consumeOne, onCooldown, withCooldown } from '../behavior';
 
 /** How long a goat horn's cooldown runs, from `InstrumentItem`, in ticks. */
 export const GOAT_HORN_COOLDOWN_TICKS = 140;
@@ -50,6 +50,7 @@ export const writtenBookBehavior: ItemBehaviorSpec = {
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
             const unlocked = itemStack.params(recipes);
             if (unlocked !== undefined) {
+                if (!canPerform(context.world, 'open-screen')) return {};
                 context.world.perform({
                     kind: 'open-screen',
                     source,

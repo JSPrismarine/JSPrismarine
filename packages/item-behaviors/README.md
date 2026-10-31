@@ -108,8 +108,9 @@ identifier, which is why the banner and map rules name a pattern as well as a co
 ## The world seam
 
 Nothing here imports a server class. Every behavior reaches the world through `WorldActions`, which has
-nine required queries and one `perform`. Three optional queries let a host decline an entity action
-before the item is consumed, or answer the structure search an eye of ender makes before it flies:
+nine required queries and one `perform`. Four optional queries let a host decline an entity action
+before the item is consumed, answer the structure search an eye of ender makes before it flies, or say
+which actions it performs at all:
 
 ```typescript
 interface WorldActions {
@@ -125,6 +126,7 @@ interface WorldActions {
     canNameEntity?(target: ItemSource): boolean;
     canDyeEntity?(target: ItemSource, color: string): boolean;
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
+    supports?(action: ItemWorldActionKind): boolean;
     perform(action: ItemWorldAction): void;
 }
 ```
@@ -145,7 +147,7 @@ consume(appleStack);
 world.performed('feed'); // [{ kind: 'feed', target, nutrition: 4, saturation: 2.4 }]
 ```
 
-Three decisions about the seam are worth knowing.
+Four decisions about the seam are worth knowing.
 
 **There is no entity-interaction hook.** `ItemHooks` has `onUse` and `onUseOn`, and Mojang's
 `ItemCustomComponent` has no entity hook either. A behavior that acts on an entity, which is the name
@@ -155,6 +157,16 @@ nothing there.
 **A release is reported as `onCompleteUse`.** The bow, the crossbow and the trident fire on release
 and the hook table has no release hook. The engine calls `onCompleteUse` when a held use ends for any
 reason, and `useDuration` carries how long it was held, which is the bow's whole power curve.
+
+**A behavior asks before it spends.** `perform` returns nothing, so a host that has not written the
+system behind a variant can only log the action and drop it. A behavior that spends its item on one
+action, which is the empty map, the knowledge book, the nine throwables, a loaded crossbow, shears on
+an entity and the fishing rod, calls `supports(kind)` first through `canPerform` in `behavior.ts`.
+When the host says no, the behavior performs nothing and returns `{}`: the click is taken and the
+stack is unchanged, the same answer an eye of ender gives when `locate` finds no stronghold. A host
+without `supports` is taken to perform everything. This is what stops a right click on nothing from
+spending a map on a server that draws none. `createTestWorld({ unsupported: ['map'] })` is how a test
+plays that host.
 
 **Four behaviors are server entry points rather than hooks.** A mining speed is a number the engine
 asks for while a block breaks, a totem fires on the damage path, a gliding elytra wears out on a tick,
@@ -290,7 +302,7 @@ general behavior and return undefined, so the dispatch reaches the one that prod
 
 ## Tests
 
-`vitest run` covers 129 cases over four files. `behaviors.test.ts` builds the real vanilla registry
+`vitest run` covers 148 cases over five files. `behaviors.test.ts` builds the real vanilla registry
 with every behavior attached and dispatches through each item type's own `HookTable`, so the
 attachment rules and the dispatch order are under test and not only the handlers.
 `families.test.ts` asserts the partition is total and that every family holds the count above.

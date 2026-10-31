@@ -21,7 +21,7 @@ import { useCooldown } from '@jsprismarine/items';
 
 import { spendDurability } from './formulas';
 import type { ItemBehaviorEnvironment } from './items';
-import type { ItemSource, WorldActions } from './world';
+import type { ItemSource, ItemWorldActionKind, WorldActions } from './world';
 
 /** A behavior for the item hook table. */
 export type ItemBehavior = Behavior<ItemHooks>;
@@ -116,6 +116,18 @@ export const withCooldown = (
     world.perform({ kind: 'start-cooldown', source, group: cooldownGroupOf(stack), ticks });
     return { ...result, cooldownTicks: ticks };
 };
+
+/**
+ * Whether the host performs an action kind, which a behavior asks before it
+ * spends its item on one.
+ *
+ * A host that cannot perform the action keeps the item: the behavior answers
+ * `{}`, so the click is taken and the stack is unchanged, the way an eye of
+ * ender with no stronghold in range is. A host without `supports` performs
+ * everything.
+ */
+export const canPerform = (world: WorldActions, action: ItemWorldActionKind): boolean =>
+    world.supports?.(action) !== false;
 
 /** Whether the source is still waiting out the stack's cooldown group. */
 export const onCooldown = (world: WorldActions, stack: ItemStack, source: ItemSource): boolean =>

@@ -15,7 +15,7 @@ import type { ItemHooks, ItemStack } from '@jsprismarine/items';
 import { chargedProjectiles, fireworks } from '@jsprismarine/items';
 
 import type { ItemBehaviorSpec } from '../behavior';
-import { consumeOne, onCooldown, spendItemDurability, withCooldown } from '../behavior';
+import { canPerform, consumeOne, onCooldown, spendItemDurability, withCooldown } from '../behavior';
 import { enchantmentLevel, float } from '../formulas';
 import type { ItemSource } from '../world';
 
@@ -76,6 +76,7 @@ export const throwableBehavior: ItemBehaviorSpec = {
 
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
             if (onCooldown(context.world, itemStack, source)) return undefined;
+            if (!canPerform(context.world, 'launch-projectile')) return {};
 
             const state = context.world.stateOf(source);
             context.world.perform({
@@ -171,6 +172,7 @@ export const crossbowBehavior: ItemBehaviorSpec = {
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
             const loaded = chargedWith(itemStack);
             if (loaded.length === 0) return {};
+            if (!canPerform(context.world, 'launch-projectile')) return {};
 
             const state = context.world.stateOf(source);
             const multishot = enchantmentLevel(itemStack, 'minecraft:multishot') > 0;
@@ -267,6 +269,8 @@ export const fishingRodBehavior: ItemBehaviorSpec = {
     hooks: ['onUse'],
     create: (context) => {
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
+            if (!canPerform(context.world, 'fishing')) return {};
+
             // A cast rod is one the engine tracks; the behavior reads the
             // state back as a cooldown group so it needs no second component.
             const cast = !onCooldown(context.world, itemStack, source);

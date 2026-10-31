@@ -14,7 +14,7 @@ import type { ItemHooks } from '@jsprismarine/items';
 import { blockTransformer } from '@jsprismarine/items';
 
 import type { ItemBehaviorSpec } from '../behavior';
-import { spendItemDurability } from '../behavior';
+import { canPerform, spendItemDurability } from '../behavior';
 import { toolOf } from '../formulas';
 
 /** The sound the axe, shovel and hoe transforms play, keyed by transformer. */
@@ -103,6 +103,7 @@ export const shearsBehavior: ItemBehaviorSpec = {
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
             const target = context.world.targetOf(source);
             if (target === undefined) return undefined;
+            if (!canPerform(context.world, 'shear-entity')) return {};
 
             context.world.perform({ kind: 'shear-entity', target });
             context.world.perform({

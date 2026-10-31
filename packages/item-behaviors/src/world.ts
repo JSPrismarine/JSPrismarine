@@ -4,10 +4,10 @@
  * Everything in this package reaches the world through {@link WorldActions}
  * and nothing else, so the behavior families compile and test without the
  * server. The interface has nine required queries and one
- * {@link WorldActions.perform}; three optional queries let a host decline an
- * entity action before the item is consumed, or answer a structure search.
- * World changes remain variants of {@link ItemWorldAction} rather than new
- * methods every adapter has to grow.
+ * {@link WorldActions.perform}; four optional queries let a host decline an
+ * entity action before the item is consumed, answer a structure search, or
+ * say which actions it performs at all. World changes remain variants of
+ * {@link ItemWorldAction} rather than new methods every adapter has to grow.
  */
 import type { BlockFace, BlockPosition, BlockReference, HolderSet, ItemSource, ItemStack } from '@jsprismarine/items';
 
@@ -433,6 +433,16 @@ export interface WorldActions {
      * @returns The structure's generation point, or undefined when none is in range.
      */
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
+    /**
+     * Whether the host performs an action of this kind, when it can say.
+     *
+     * `perform` returns nothing, so a host that has not written the system
+     * behind a variant can only log and ignore it. A behavior that spends its
+     * item on one action asks this first and keeps the item when the answer is
+     * no, which is the rule `canPerform` in `behavior.ts` applies. A host that
+     * does not answer is taken to perform everything.
+     */
+    supports?(action: ItemWorldActionKind): boolean;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }

@@ -49,6 +49,8 @@ export interface TestWorldOptions {
     readonly potions?: Readonly<Record<string, readonly EffectApplication[]>>;
     /** What `locate` answers, keyed by structure tag; a tag absent here has nothing in range. */
     readonly structures?: Readonly<Record<string, BlockPosition>>;
+    /** The action kinds `supports` says no to; everything else is performed. */
+    readonly unsupported?: readonly ItemWorldActionKind[];
 }
 
 /** The double, which is a {@link WorldActions} plus the log and a few setters. */
@@ -102,6 +104,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
     const transforms = new Map<string, BlockPlacement>(Object.entries(options.transforms ?? {}));
     const potions = new Map<string, readonly EffectApplication[]>(Object.entries(options.potions ?? {}));
     const structures = new Map<string, BlockPosition>(Object.entries(options.structures ?? {}));
+    const unsupported = new Set<ItemWorldActionKind>(options.unsupported ?? []);
     const randoms = options.randoms ?? [0.5];
 
     const environment: EnvironmentState = { ...DEFAULT_ENVIRONMENT, ...options.environment };
@@ -122,6 +125,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         effectsOf: (potion) => potions.get(potion) ?? [],
         random: () => randoms[Math.min(draws++, randoms.length - 1)]!,
         locate: (destination) => structures.get(destination),
+        supports: (action) => !unsupported.has(action),
         perform: (action) => {
             actions.push(action);
         },

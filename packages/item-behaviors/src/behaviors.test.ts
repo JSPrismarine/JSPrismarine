@@ -38,6 +38,7 @@ const world: WorldActions = {
     effectsOf: (potion) => current.effectsOf(potion),
     random: () => current.random(),
     locate: (destination, origin) => current.locate?.(destination, origin),
+    supports: (action) => current.supports?.(action) ?? true,
     perform: (action) => current.perform(action)
 };
 
@@ -728,6 +729,70 @@ describe('books, horns and bundles', () => {
         const recording = withWorld();
         use(stackOf('minecraft:bundle'));
         expect(recording.performed('open-screen')[0]?.screen).toBe('minecraft:bundle');
+    });
+});
+
+describe('an action the host lacks', () => {
+    // The rule every consuming behavior follows: ask `supports` before spending the item on
+    // an action, and when the host says no, take the click and leave the stack as it was.
+    // Nothing is performed, so the host is never asked to do what it said it cannot.
+
+    it('keeps the empty map when the host has no map system', () => {
+        const recording = withWorld({ unsupported: ['map'] });
+        expect(use(stackOf('minecraft:empty_map', 2))).toEqual({});
+        expect(recording.actions).toEqual([]);
+    });
+
+    it('grants the recipes a knowledge book carries and spends it', () => {
+        const recording = withWorld();
+        const book = stackOf('minecraft:written_book', 2);
+        book.set('minecraft:recipes', ['minecraft:cake']);
+        const result = use(book);
+        expect(recording.performed('open-screen')[0]?.screen).toBe('minecraft:recipe_unlock');
+        expect(result?.stack?.count).toBe(1);
+    });
+
+    it('keeps the knowledge book when the host opens no screen', () => {
+        const recording = withWorld({ unsupported: ['open-screen'] });
+        const book = stackOf('minecraft:written_book', 2);
+        book.set('minecraft:recipes', ['minecraft:cake']);
+        expect(use(book)).toEqual({});
+        expect(recording.actions).toEqual([]);
+    });
+
+    it('keeps the snowball when the host launches no projectiles', () => {
+        const recording = withWorld({ unsupported: ['launch-projectile'] });
+        expect(use(stackOf('minecraft:snowball', 16))).toEqual({});
+        expect(recording.actions).toEqual([]);
+    });
+
+    it('keeps a crossbow loaded when the host launches no projectiles', () => {
+        withWorld();
+        const charged = completeUse(stackOf('minecraft:crossbow'), 25)?.stack;
+
+        const firing = withWorld({ unsupported: ['launch-projectile'] });
+        expect(use(charged!)).toEqual({});
+        expect(firing.actions).toEqual([]);
+    });
+
+    it('spends nothing on shears when the host cannot shear', () => {
+        const recording = withWorld({ target: testSource('minecraft:sheep', 7), unsupported: ['shear-entity'] });
+        expect(use(stackOf('minecraft:shears'))).toEqual({});
+        expect(recording.actions).toEqual([]);
+    });
+
+    it('casts no line when the host has no fishing', () => {
+        const recording = withWorld({ unsupported: ['fishing'] });
+        expect(use(stackOf('minecraft:fishing_rod'))).toEqual({});
+        expect(recording.actions).toEqual([]);
+    });
+
+    it('spends the item when the host does not say what it supports', () => {
+        // A `WorldActions` without `supports` is taken to perform everything, which is what
+        // every host before the query did.
+        const recording = withWorld();
+        expect(use(stackOf('minecraft:empty_map', 2))?.stack?.count).toBe(1);
+        expect(recording.performed('map')).toHaveLength(1);
     });
 });
 

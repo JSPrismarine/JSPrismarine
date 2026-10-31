@@ -9,7 +9,7 @@
 import type { ItemHooks, ItemStack } from '@jsprismarine/items';
 
 import type { ItemBehaviorSpec } from '../behavior';
-import { consumeOne, withCooldown } from '../behavior';
+import { canPerform, consumeOne, withCooldown } from '../behavior';
 import type { BlockPosition } from '../world';
 
 /** The component a bound lodestone compass carries, which is Java's own key. */
@@ -167,6 +167,7 @@ export const mapBehavior: ItemBehaviorSpec = {
 
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
             if (!empty) return undefined;
+            if (!canPerform(context.world, 'map')) return {};
 
             context.world.perform({ kind: 'map', operation: 'create', source, item: itemStack.copy(1) });
             return withCooldown(context.world, itemStack, source, {
