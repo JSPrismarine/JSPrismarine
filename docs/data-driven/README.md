@@ -60,6 +60,9 @@ categories; [parity.md](parity.md) explains how the claim is tested.
   Java 26.3 jar and how the server reads it.
 - [structures.md](structures.md): which of Java's 52 structures the overworld generates, how
   placement and piece writing are split, and where the generation differs from Java.
+- [dimensions.md](dimensions.md): dimension types, level stems and world presets, the
+  `worlds.<name>` config shape and its migration, the generator kinds, custom dimensions, portals
+  and the client's dimension change, with the questions a real client has yet to answer.
 - [engine-systems.md](engine-systems.md): the systems with no data form in either edition, which
   are redstone, fluids, fire, explosions, light and random ticking, with what each one simulates,
   what a tick of it costs, and where it stops.
