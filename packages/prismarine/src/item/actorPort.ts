@@ -98,17 +98,6 @@ export interface ServerItemActorPort extends ItemActorPort {
     locate(destination: string, origin: BlockPosition): BlockPosition | undefined;
 }
 
-/**
- * The one structure each structure tag an item searches names.
- *
- * Java resolves `#minecraft:eye_of_ender_located` through its tag registry, and the vanilla
- * data pack puts one structure in it. The world's search takes a structure name, so the tag is
- * read here until a tag-driven search exists; a tag absent from this table finds nothing.
- */
-const STRUCTURE_TAG_MEMBERS: Readonly<Record<string, string>> = {
-    'minecraft:eye_of_ender_located': 'minecraft:stronghold'
-};
-
 /** How far `EnderEyeItem.use` searches, in chunks: `findNearestMapStructure(..., 100, false)`. */
 const EYE_OF_ENDER_SEARCH_RADIUS_CHUNKS = 100;
 
@@ -626,12 +615,12 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             return target !== null && (canDyeEntity?.(target, color) ?? false);
         },
         interactWithEntity: useItemOnEntity,
+        // The tag goes to the world as the item spells it. `World.locateStructure` reads a
+        // `#tag` by its members off the generator, as `/locate` does, so the vanilla tag finds
+        // the stronghold and a tag the generator does not carry finds nothing.
         locate: (destination, origin) => {
-            const structure = STRUCTURE_TAG_MEMBERS[destination];
-            if (structure === undefined) return undefined;
-
             const found = world()?.locateStructure(
-                structure,
+                destination,
                 { x: origin.x, z: origin.z },
                 EYE_OF_ENDER_SEARCH_RADIUS_CHUNKS
             );

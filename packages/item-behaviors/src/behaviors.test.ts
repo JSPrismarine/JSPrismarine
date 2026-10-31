@@ -617,7 +617,7 @@ describe('navigation', () => {
     });
 
     it('throws an eye of ender toward the stronghold the world locates', () => {
-        const throwing = withWorld({ structures: { 'minecraft:eye_of_ender_located': { x: 400, y: 0, z: -96 } } });
+        const throwing = withWorld({ structures: { '#minecraft:eye_of_ender_located': { x: 400, y: 0, z: -96 } } });
         const result = use(stackOf('minecraft:ender_eye', 2));
         expect(throwing.performed('signal')[0]).toMatchObject({
             source,
@@ -636,7 +636,7 @@ describe('navigation', () => {
 
         withWorld({
             state: { creative: true },
-            structures: { 'minecraft:eye_of_ender_located': { x: 40, y: 0, z: 0 } }
+            structures: { '#minecraft:eye_of_ender_located': { x: 40, y: 0, z: 0 } }
         });
         expect(use(stackOf('minecraft:ender_eye', 2))?.stack?.count).toBe(2);
     });

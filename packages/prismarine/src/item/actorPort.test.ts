@@ -68,7 +68,11 @@ const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World
             void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),
         locateStructure: (name: string, origin: { x: number; z: number }, radius?: number) => {
             recorded.searches.push({ name, origin, radius });
-            return name === 'minecraft:stronghold' ? { structure: name, x: 400, y: 0, z: -96 } : undefined;
+            // The world resolves a `#tag` through the generator's members; this double stands in
+            // for a generator whose `eye_of_ender_located` tag holds the stronghold.
+            return name === '#minecraft:eye_of_ender_located'
+                ? { structure: 'minecraft:stronghold', x: 400, y: 0, z: -96 }
+                : undefined;
         }
     }) as unknown as World;
 
@@ -174,18 +178,22 @@ describe('the item actor port', () => {
         expect(inventory.getItemInHand().getCustomName()).toBe('Returned sword');
     });
 
-    it('finds the stronghold for an eye of ender through the world, a hundred chunks out', () => {
+    it('asks the world for the eye of ender tag itself, a hundred chunks out', () => {
         // Java's `EnderEyeItem.use` searches `#minecraft:eye_of_ender_located` with radius 100
-        // and `skipKnownStructures` false; the tag's one member is the stronghold.
+        // and `skipKnownStructures` false. The tag reaches `World.locateStructure` as written,
+        // which resolves its members through the generator, so no table here names the
+        // stronghold.
         const { port, recorded } = portUnderTest();
 
-        expect(port.locate?.('minecraft:eye_of_ender_located', { x: 10, y: 64, z: 20 })).toEqual({
+        expect(port.locate?.('#minecraft:eye_of_ender_located', { x: 10, y: 64, z: 20 })).toEqual({
             x: 400,
             y: 0,
             z: -96
         });
-        expect(recorded.searches).toEqual([{ name: 'minecraft:stronghold', origin: { x: 10, z: 20 }, radius: 100 }]);
-        expect(port.locate?.('minecraft:on_trial_chambers_maps', { x: 10, y: 64, z: 20 })).toBeUndefined();
+        expect(recorded.searches).toEqual([
+            { name: '#minecraft:eye_of_ender_located', origin: { x: 10, z: 20 }, radius: 100 }
+        ]);
+        expect(port.locate?.('#minecraft:on_trial_chambers_maps', { x: 10, y: 64, z: 20 })).toBeUndefined();
     });
 
     it('throws an eye of ender signal from the middle of the thrower and plays the launch', async () => {

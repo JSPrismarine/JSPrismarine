@@ -428,7 +428,7 @@ export interface WorldActions {
      * host decides the radius, because it belongs to the search and not to
      * the item.
      *
-     * @param destination - The structure tag, such as `minecraft:eye_of_ender_located`.
+     * @param destination - The structure tag in Java's form, such as `#minecraft:eye_of_ender_located`.
      * @param origin - Where to search from, which is where the source stands.
      * @returns The structure's generation point, or undefined when none is in range.
      */

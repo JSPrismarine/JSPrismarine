@@ -15,8 +15,13 @@ import type { BlockPosition } from '../world';
 /** The component a bound lodestone compass carries, which is Java's own key. */
 export const LODESTONE_TRACKER = 'minecraft:lodestone_tracker';
 
-/** The structure tag an eye of ender looks for. */
-export const STRONGHOLD_DESTINATION = 'minecraft:eye_of_ender_located';
+/**
+ * The structure tag an eye of ender looks for, in Java's `#` form.
+ *
+ * Passed to the world as written, so the host resolves its members the way `/locate` does
+ * rather than the item knowing that the vanilla tag holds the stronghold.
+ */
+export const STRONGHOLD_DESTINATION = '#minecraft:eye_of_ender_located';
 
 /**
  * The compass and the recovery compass.

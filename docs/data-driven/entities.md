@@ -566,8 +566,8 @@ air runs `vanilla:eye_of_ender` in `@jsprismarine/item-behaviors`, which asks th
 query for the nearest structure in `#minecraft:eye_of_ender_located` and returns an empty result
 when nothing is in range, as Java's `EnderEyeItem.use` answers `CONSUME`: the click is taken, nothing
 flies, nothing is spent. With a target it performs a `signal` action and spends one eye outside
-creative. The server's actor port answers the query through `World.locateStructure` for the tag's one
-member, the stronghold, at Java's hundred chunks, and performs the action by spawning
+creative. The server's actor port passes the tag to `World.locateStructure`, which reads its members
+off the generator as `/locate` does, at Java's hundred chunks, and performs the action by spawning
 `EyeOfEnderSignal` half a body above the thrower's feet with `LevelSoundEvent.LAUNCH`. The entity is
 Java 26.3's `EyeOfEnder`: past twelve horizontal blocks it flies toward a point twelve blocks along
 the way and eight up, within them toward the structure point itself, easing its speed toward the

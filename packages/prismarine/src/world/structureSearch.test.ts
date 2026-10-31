@@ -42,8 +42,11 @@ const worldOver = (generator: Generator): World => {
     });
 };
 
-/** The structures of the one tag the generator double carries. */
+/** The structures of the village tag the generator double carries. */
 const VILLAGES = new Set(['minecraft:village_plains', 'minecraft:village_desert']);
+
+/** The one member the vanilla data pack puts in `#minecraft:eye_of_ender_located`. */
+const STRONGHOLD = new Set(['minecraft:stronghold']);
 
 /** A generator double that answers a tag lookup and records the search it is handed. */
 const searchingGenerator = () => {
@@ -59,6 +62,7 @@ const searchingGenerator = () => {
         },
         membersOfTag: (registry, tag) => {
             if (registry === 'worldgen/structure' && tag === 'minecraft:village') return VILLAGES;
+            if (registry === 'worldgen/structure' && tag === 'minecraft:eye_of_ender_located') return STRONGHOLD;
             if (registry === 'worldgen/biome' && tag === 'minecraft:is_ocean') return new Set(['minecraft:ocean']);
             return undefined;
         }
@@ -75,6 +79,18 @@ describe('World.locateStructure', () => {
         expect(asked.structure?.wanted('minecraft:village_plains')).toBe(true);
         // A member test, not a name match: the tag says which variants count.
         expect(asked.structure?.wanted('minecraft:village_snowy')).toBe(false);
+    });
+
+    it("reads the eye of ender's tag by its member, at the item's hundred chunks", () => {
+        // The call the item actor port makes for an eye used in the air: Java's
+        // `#minecraft:eye_of_ender_located` as written, with `EnderEyeItem.use`'s radius. The
+        // tag's member comes from the generator, so nothing in the item path names the stronghold.
+        const { generator, asked } = searchingGenerator();
+        worldOver(generator).locateStructure('#minecraft:eye_of_ender_located', { x: 10, z: 20 }, 100);
+
+        expect(asked.structure).toMatchObject({ x: 10, z: 20, radius: 100 });
+        expect(asked.structure?.wanted('minecraft:stronghold')).toBe(true);
+        expect(asked.structure?.wanted('minecraft:village_plains')).toBe(false);
     });
 
     it('falls back to the name match for a tag the generator does not know', () => {
