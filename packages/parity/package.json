@@ -27,6 +27,7 @@
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/block-behaviors": "workspace:*",
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/entities": "workspace:*",

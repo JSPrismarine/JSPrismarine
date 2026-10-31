@@ -1236,6 +1236,9 @@ importers:
       '@jsprismarine/binaryutils':
         specifier: workspace:*
         version: link:../binaryutils
+      '@jsprismarine/block-behaviors':
+        specifier: workspace:*
+        version: link:../block-behaviors
       '@jsprismarine/blocks':
         specifier: workspace:*
         version: link:../blocks

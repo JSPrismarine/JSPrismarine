@@ -1,4 +1,6 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
+import { bambooFamily, bindFamily, OVERWORLD, VoxelDimension, VoxelWorld } from '@jsprismarine/block-behaviors';
+import type { HookBlock } from '@jsprismarine/blocks';
 import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
 import {
     bedrockBiomeToJava,
@@ -92,6 +94,30 @@ const realStack = (): RealStack => {
 
     return builtStack;
 };
+
+class JavaTagDimension extends VoxelDimension {
+    public constructor(private readonly content: ServerContent) {
+        super(OVERWORLD);
+    }
+
+    public hasBlockTag(block: HookBlock, tag: string): boolean {
+        return this.content.tags.includes('block', tag, block.identifier);
+    }
+}
+
+class JavaTagWorld extends VoxelWorld {
+    private readonly dimension: JavaTagDimension;
+
+    public constructor(content: ServerContent) {
+        super();
+        this.dimension = new JavaTagDimension(content);
+    }
+
+    public override at(dimension = OVERWORLD): JavaTagDimension {
+        if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
+        return this.dimension;
+    }
+}
 
 /** Whether a parsed JSON boundary is a non-array object. */
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -452,6 +478,25 @@ describeFamily(
                 );
             }
         );
+
+        it('keeps bamboo on real Java sand and gravel supports', { timeout: 180_000 }, () => {
+            const { content } = realStack();
+            const tag = 'minecraft:supports_bamboo';
+            const ground = { x: 0, y: 0, z: 0 };
+            const plant = { x: 0, y: 1, z: 0 };
+
+            for (const identifier of ['minecraft:sand', 'minecraft:gravel']) {
+                expect(content.tags.includes('block', tag, identifier)).toBe(true);
+                const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: new JavaTagWorld(content) });
+                harness.dimension.set(ground, identifier);
+                harness.dimension.set(plant, 'minecraft:bamboo');
+
+                harness.neighborChanged(plant, 'down');
+
+                expect(harness.dimension.identifierAt(plant)).toBe('minecraft:bamboo');
+                expect(harness.dimension.drops).toEqual([]);
+            }
+        });
 
         it('returns every real Bedrock biome tag through the chunk-backed world view', { timeout: 180_000 }, () => {
             const { content } = realStack();
