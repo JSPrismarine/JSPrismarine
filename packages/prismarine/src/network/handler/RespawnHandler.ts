@@ -19,6 +19,10 @@ import type PacketHandler from './PacketHandler';
  * 4. the client sends a `Respawn` player action, and the server sends the living player:
  *    see `Player.respawn`.
  *
+ * When the spawn is in another world, a Nether death with an Overworld bed, step 3 opens with
+ * a `ChangeDimension` carrying `Respawn` set, which is what the client asks for in that case
+ * (gophertunnel, `DimensionChangeRequest`), and the two answers follow in the new world.
+ *
  * Getting step 3 wrong leaves the client frozen. Answered with `ReadyToSpawn` alone, at the
  * spawn block's height rather than the eyes', and followed by the dead player's health, the
  * client sent nothing more: no movement, no input, for as long as it stayed connected.
@@ -47,6 +51,17 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
 
         if (!player.isAlive()) {
             const point = await player.getRespawnPoint();
+            // The dead body moves world first, facing as it fell; `Player.respawn` then stands
+            // it at the eyes once the client's `Respawn` action arrives, as in one world.
+            if (point.world !== player.getWorld()) {
+                await session.changeWorld({
+                    world: point.world,
+                    position: point.block,
+                    yaw: player.yaw,
+                    pitch: player.pitch,
+                    respawn: true
+                });
+            }
             await session.sendRespawn(point.block, PlayerRespawnState.SEARCHING_FOR_SPAWN);
             await session.sendRespawn(point.eyes, PlayerRespawnState.READY_TO_SPAWN);
             return;

@@ -7,6 +7,7 @@ import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import type { Arrival } from '../PlayerSession';
 import type PlayerSession from '../PlayerSession';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
@@ -20,8 +21,8 @@ import RespawnHandler from './RespawnHandler';
  * only one this handler owns, and the answer to it is what lets go of the client: answered
  * wrongly, the player cannot move.
  */
-const fakeSession = ({ alive = true } = {}) => {
-    const done: Array<{ state?: PlayerRespawnState; position?: Vector3; what?: string }> = [];
+const fakeSession = ({ alive = true, spawnWorld }: { alive?: boolean; spawnWorld?: World } = {}) => {
+    const done: Array<{ state?: PlayerRespawnState; position?: Vector3; what?: string; arrival?: Arrival }> = [];
     const dropped: string[] = [];
     const world = stub<World>({});
     const standingAt = new Position(0, 64, 0, world);
@@ -30,8 +31,10 @@ const fakeSession = ({ alive = true } = {}) => {
         done,
         dropped,
         standingAt,
+        world,
         session: stub<PlayerSession>({
             sendRespawn: async (position, state) => void done.push({ state, position }),
+            changeWorld: async (arrival) => void done.push({ what: 'changeWorld', arrival }),
             sendAttributes: async () => void done.push({ what: 'attributes' }),
             sendMetadata: async () => void done.push({ what: 'metadata' }),
             sendAbilities: async () => void done.push({ what: 'abilities' }),
@@ -43,8 +46,10 @@ const fakeSession = ({ alive = true } = {}) => {
                     isAlive: () => alive,
                     getWorld: () => world,
                     getPosition: () => standingAt,
+                    yaw: 90,
+                    pitch: -5,
                     getRespawnPoint: async () => ({
-                        world,
+                        world: spawnWorld ?? world,
                         announced: new Vector3(100.5, 71.62, 100.5),
                         block: new Vector3(100, 70, 100),
                         eyes: new Vector3(100, 71.62, 100)
@@ -82,6 +87,39 @@ describe('RespawnHandler', () => {
         expect(done).toEqual([
             { state: PlayerRespawnState.SEARCHING_FOR_SPAWN, position: new Vector3(100, 70, 100) },
             { state: PlayerRespawnState.READY_TO_SPAWN, position: new Vector3(100, 71.62, 100) }
+        ]);
+    });
+
+    it('respawns in place when the spawn is in the world the player died in', async () => {
+        const { done, session, server } = fakeSession({ alive: false });
+
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+
+        expect(done.filter((step) => step.what === 'changeWorld')).toHaveLength(0);
+    });
+
+    it('changes world first, as a respawn, when the spawn is in another one', async () => {
+        // A Nether death with an Overworld bed. The client asked for a `ChangeDimension` with
+        // `Respawn` set, as gophertunnel documents, and gets exactly one, at the spawn block,
+        // before the two `Respawn` answers that end the exchange.
+        const overworld = stub<World>({});
+        const { done, session, server } = fakeSession({ alive: false, spawnWorld: overworld });
+
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.CLIENT_READY_TO_SPAWN), server, session);
+
+        const changes = done.filter((step) => step.what === 'changeWorld');
+        expect(changes).toHaveLength(1);
+        expect(changes[0]?.arrival).toEqual({
+            world: overworld,
+            position: new Vector3(100, 70, 100),
+            yaw: 90,
+            pitch: -5,
+            respawn: true
+        });
+        expect(done.map((step) => step.what ?? step.state)).toEqual([
+            'changeWorld',
+            PlayerRespawnState.SEARCHING_FOR_SPAWN,
+            PlayerRespawnState.READY_TO_SPAWN
         ]);
     });
 
