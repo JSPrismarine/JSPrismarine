@@ -1,7 +1,6 @@
 import { Chat, ChatType } from '../../chat/Chat';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
-import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason } from '@jsprismarine/minecraft';
@@ -13,7 +12,6 @@ import type Server from '../../Server';
 import type { Level } from '../../world/Level';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import BlockPosition from '../../world/BlockPosition';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
 import DimensionDataPacket from '@jsprismarine/protocol/packet/DimensionDataPacket';
@@ -25,6 +23,7 @@ import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet
 import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
+import { playerSpawnPositionPacket } from '../spawnPosition';
 import { createStartGameData } from '../startGameData';
 import type PacketHandler from './PacketHandler';
 
@@ -223,7 +222,9 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      *    registry is empty, as a dedicated server's is for a world with no custom features.
      * 4. `PlayerList`. Added to everyone's list and sent the whole list. The client keys the
      *    list on uuids it only has after StartGame.
-     * 5. `SetTime`, `SetSpawnPosition`. World state, once there is a world to apply it to.
+     * 5. `SetTime`, `SetSpawnPosition`. World state, once there is a world to apply it to. The
+     *    spawn is the player's own point when they have one, in that point's dimension, so a
+     *    bed in another dimension shows where it is.
      * 6. `SetPlayerGameType`, `UpdateAdventureSettings`, `UpdateAbilities`, `UpdateAttributes`,
      *    `SetActorData`. The local player, which the client creates when it handles StartGame.
      * 7. `InventoryContent`. Needs the item registry from step 3 and a player from step 6.
@@ -310,19 +311,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         await session.sendTime(world.getTicks());
 
-        // The world spawn is a `Vector3` and may be fractional, while both positions in this
-        // packet are `BlockPos`. A ZigZag varint write truncates toward zero without a word,
-        // so a spawn at -0.5 would have been sent as block 0 rather than block -1.
-        const spawn = BlockPosition.fromVector3(worldSpawnPos);
-        const blockPosition = { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
-        await connection.sendDataPacket(
-            new SetSpawnPositionPacket({
-                type: SpawnPositionType.PlayerRespawn,
-                position: blockPosition,
-                dimension: world.getDimension().bedrockId,
-                blockPosition
-            })
-        );
+        await connection.sendDataPacket(playerSpawnPositionPacket(player, world, worldSpawnPos));
 
         await player.sendSettings();
         await session.sendAttributes();

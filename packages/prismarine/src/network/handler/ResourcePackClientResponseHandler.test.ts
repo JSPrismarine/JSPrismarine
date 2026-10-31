@@ -19,6 +19,7 @@ import type GameRuleManager from '../../world/GameRuleManager';
 import type { Generator } from '../../world/Generator';
 import type { Level } from '../../world/Level';
 import type { PlayerSpawn } from '../../world/SpawnPlacement';
+import type { StoredSpawnPoint } from '../../world/RespawnPoint';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../../world/Dimension';
@@ -56,7 +57,8 @@ const harness = ({
     spawn = new Vector3(0, 64, 0),
     serverAuthoritativeBreaking = true,
     codec = Codec2193,
-    level = fakeLevel()
+    level = fakeLevel(),
+    spawnPoint
 }: {
     cancelSpawn?: boolean;
     /** The content build whose registries the join burst writes from. */
@@ -71,6 +73,8 @@ const harness = ({
     codec?: ProtocolCodec;
     /** The level behind the join world. Defaults to a vanilla one with nothing to announce. */
     level?: Level;
+    /** The player's own spawn point; left out, the player comes back at the world spawn. */
+    spawnPoint?: StoredSpawnPoint;
 } = {}) => {
     const sent: string[] = [];
     /** The packets written straight to the connection, for the tests that read their fields. */
@@ -105,6 +109,7 @@ const harness = ({
         yaw: 0,
         sendSettings: record('Settings'),
         getJoinSpawn: () => joinSpawn,
+        getSpawnPoint: () => spawnPoint,
         kick
     });
 
@@ -323,6 +328,49 @@ describe('ResourcePackClientResponseHandler', () => {
             expect(at2193?.dimensionType).toBe(FIRST_CUSTOM_DIMENSION_ID);
             expect(at2193?.cloudHeight).toBe(0);
             expect(at2193?.renderClouds).toBe(false);
+        });
+    });
+
+    describe('SetSpawnPosition', () => {
+        const spawnPositionSentBy = async (options: Parameters<typeof harness>[0]) => {
+            const { packets, server, session } = harness(options);
+            await new ResourcePackClientResponseHandler().handle(
+                response(ResourcePackStatus.Completed),
+                server,
+                session
+            );
+            const packet = packets.find((sent) => sent instanceof SetSpawnPositionPacket);
+            if (!(packet instanceof SetSpawnPositionPacket)) throw new Error('no SetSpawnPosition was sent');
+            return packet.getPacketData();
+        };
+
+        it('carries the world spawn in the join dimension for a player with no point of their own', async () => {
+            const data = await spawnPositionSentBy({ spawn: new Vector3(5, 63, -6) });
+
+            expect(data?.position).toEqual({ x: 5, y: 63, z: -6 });
+            expect(data?.dimension).toBe(Dimensions.Overworld.bedrockId);
+        });
+
+        it('carries the player spawn point in its own dimension, not the join world one', async () => {
+            // A bed in the Nether: the client shows it on the compass there, and the join
+            // world is the Overworld.
+            const data = await spawnPositionSentBy({
+                spawnPoint: { x: 10, y: 70, z: -5, dimension: Dimensions.Nether.name }
+            });
+
+            expect(data?.position).toEqual({ x: 10, y: 70, z: -5 });
+            expect(data?.blockPosition).toEqual({ x: 10, y: 70, z: -5 });
+            expect(data?.dimension).toBe(Dimensions.Nether.bedrockId);
+        });
+
+        it('resolves a custom dimension to the id the level chose', async () => {
+            const sky = dimensionTypeOf(Dimensions.Overworld.java, 'mypack:sky', FIRST_CUSTOM_DIMENSION_ID);
+            const data = await spawnPositionSentBy({
+                level: fakeLevel({ dimensionTypes: new Map([[sky.id, sky]]) }),
+                spawnPoint: { x: 0, y: 100, z: 0, dimension: sky.name, forced: true }
+            });
+
+            expect(data?.dimension).toBe(FIRST_CUSTOM_DIMENSION_ID);
         });
     });
 
