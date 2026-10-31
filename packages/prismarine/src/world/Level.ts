@@ -114,7 +114,10 @@ export interface LevelOptions {
 /** A world the level has built, and the enabling that may still be running. */
 interface BuiltWorld {
     readonly world: World;
+    /** Resolves once the world has enabled; rejects, and the entry is dropped, when it failed. */
     readonly ready: Promise<void>;
+    /** Set once `ready` has resolved. Only a ready world ticks, saves and is listed. */
+    isReady: boolean;
 }
 
 /**
@@ -320,12 +323,13 @@ export class Level {
      * The first call for a dimension asks the factories for the stem's generator, builds the
      * world and enables it, which generates the start region; every later call answers the
      * same instance once that enabling has finished. Two overlapping first calls share one
-     * build.
+     * build. A world whose enabling failed is forgotten, so the call after the failure builds
+     * it again rather than answering the same rejection for the life of the level.
      *
      * @param dimensionId - The stem's key, `minecraft:the_nether` for the Nether. The vanilla
      *   stems share their dimension type's id.
      * @throws {Error} Before {@link Level.enable}, when no stem has that id, or when the stem's
-     *   generator cannot be built.
+     *   generator cannot be built or the world cannot be enabled.
      */
     public async world(dimensionId: string): Promise<World> {
         const existing = this.built.get(dimensionId);
@@ -339,29 +343,64 @@ export class Level {
             throw new Error(`Level ${this.name} is not enabled, so it cannot build ${dimensionId}`);
 
         const world = this.build(dimensionId);
-        const ready = opened.then(async () => world.enable());
-        this.built.set(dimensionId, { world, ready });
+        const entry: BuiltWorld = {
+            world,
+            isReady: false,
+            ready: opened
+                .then(async () => world.enable())
+                .then(
+                    () => {
+                        entry.isReady = true;
+                    },
+                    (error: unknown) => {
+                        if (this.built.get(dimensionId) === entry) this.built.delete(dimensionId);
+                        throw error;
+                    }
+                )
+        };
+        this.built.set(dimensionId, entry);
 
-        await ready;
+        await entry.ready;
         return world;
     }
 
     /**
      * The world of one dimension if the level has built it, whether or not its enabling has
      * finished; undefined otherwise. Nothing is built.
+     *
+     * The one accessor that answers a world mid-enable, which is how `WorldManager` names the
+     * default world while its start region generates. {@link Level.worlds} lists ready worlds
+     * only.
      */
     public loadedWorld(dimensionId: string): World | undefined {
         return this.built.get(dimensionId)?.world;
     }
 
-    /** Every world built so far, in build order. */
+    /**
+     * Every world whose enabling has finished, in build order.
+     *
+     * A world still enabling is left out: it has no players, it must not tick before its start
+     * region is settled, and `WorldManager.getWorldByDimension` promises loaded worlds only.
+     */
     public *worlds(): IterableIterator<World> {
+        for (const entry of this.built.values()) {
+            if (entry.isReady) yield entry.world;
+        }
+    }
+
+    /** Every world built so far, ready or not, which is what a shutdown has to close. */
+    private *builtWorlds(): IterableIterator<World> {
         for (const entry of this.built.values()) yield entry.world;
     }
 
-    /** The loaded world of a Bedrock dimension id, or undefined when none is. */
+    /**
+     * The built world of a Bedrock dimension id, ready or not, or undefined when none is.
+     *
+     * Ready or not, because the provider asks for a chunk's entities while writing it, and a
+     * shutdown mid-preload saves the chunks of a world that never finished enabling.
+     */
     private worldOfBedrockId(bedrockId: number): World | undefined {
-        for (const world of this.worlds()) {
+        for (const world of this.builtWorlds()) {
             if (world.getDimension().bedrockId === bedrockId) return world;
         }
         return undefined;
@@ -595,12 +634,12 @@ export class Level {
         for (const world of this.worldsInStemOrder()) await world.update(tick);
     }
 
-    /** The loaded worlds in stem order, which is the order the level ticks them in. */
+    /** The ready worlds in stem order, which is the order the level ticks them in. */
     private worldsInStemOrder(): World[] {
         const worlds: World[] = [];
         for (const id of this.stems.keys()) {
-            const world = this.loadedWorld(id);
-            if (world !== undefined) worlds.push(world);
+            const entry = this.built.get(id);
+            if (entry?.isReady) worlds.push(entry.world);
         }
         return worlds;
     }
@@ -687,7 +726,9 @@ export class Level {
     public async disable(): Promise<void> {
         this.closing = true;
 
-        await Promise.all([...this.worlds()].map(async (world) => world.disable()));
+        // Every built world, ready or not: a shutdown during a start region's generation is the
+        // ordinary case, and `World.disable` is what stops that generation and saves its chunks.
+        await Promise.all([...this.builtWorlds()].map(async (world) => world.disable()));
         await this.saveLevelData();
         await this.provider.disable();
         this.closed = true;

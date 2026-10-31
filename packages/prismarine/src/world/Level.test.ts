@@ -93,8 +93,13 @@ const emptyGenerator = (dimension: DimensionType): Generator => ({
     surfaceAt: () => ({ y: 64, name: 'minecraft:stone' })
 });
 
-/** A level over a scratch folder whose factory counts what it built, by dimension type id. */
-const buildLevel = (name: string, options: Partial<LevelOptions> = {}) => {
+/**
+ * A level over a scratch folder whose factory counts what it built, by dimension type id.
+ *
+ * @param generatorFor - What the factory builds for each dimension. Defaults to empty chunks
+ *   over dry land.
+ */
+const buildLevel = (name: string, options: Partial<LevelOptions> = {}, generatorFor = emptyGenerator) => {
     const server = testServer();
     const folder = path.join(scratch, name);
     const provider = new LevelDB(folder, server);
@@ -104,7 +109,7 @@ const buildLevel = (name: string, options: Partial<LevelOptions> = {}) => {
             kind: TEST_GENERATOR_KIND,
             build: (context) => {
                 builds.set(context.dimension.id, (builds.get(context.dimension.id) ?? 0) + 1);
-                return emptyGenerator(context.dimension);
+                return generatorFor(context.dimension);
             }
         }
     ]);
@@ -192,11 +197,42 @@ describe('Level', () => {
             // start region has generated.
             const overworld = level.loadedWorld(OVERWORLD_STEM_ID);
             expect(overworld).toBeDefined();
+            // Not yet among the worlds that tick, save and answer `getWorldByDimension`: those
+            // are the ones whose enabling has finished.
+            expect([...level.worlds()]).toEqual([]);
             await enabling;
 
+            expect([...level.worlds()]).toEqual([overworld]);
             expect(builds).toEqual(new Map([[Dimensions.Overworld.id, 1]]));
             expect(await level.world(OVERWORLD_STEM_ID)).toBe(overworld);
             expect(level.loadedWorld(NETHER_STEM_ID)).toBeUndefined();
+
+            await level.disable();
+        });
+
+        it('forgets a world whose enabling failed, so the next request builds it again', async () => {
+            // Dry land everywhere except on the first look, so the Nether's spawn search fails
+            // once while it is being enabled and succeeds when it is built again.
+            let failures = 1;
+            const { level, builds } = buildLevel(
+                'retry',
+                { load: new Map([[NETHER_STEM_ID, 'eager']]) },
+                (dimension) => ({
+                    ...emptyGenerator(dimension),
+                    surfaceAt: () => {
+                        if (dimension.id === Dimensions.Nether.id && failures-- > 0) throw new Error('no footing');
+                        return { y: 64, name: 'minecraft:stone' };
+                    }
+                })
+            );
+
+            await expect(level.enable()).rejects.toThrowError('no footing');
+            expect(level.loadedWorld(NETHER_STEM_ID)).toBeUndefined();
+            expect([...level.worlds()]).toEqual([]);
+
+            const nether = await level.world(NETHER_STEM_ID);
+            expect(builds.get(Dimensions.Nether.id)).toBe(2);
+            expect([...level.worlds()]).toEqual([nether]);
 
             await level.disable();
         });
