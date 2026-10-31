@@ -2431,8 +2431,7 @@ export class World implements Service {
      * refused, so the body scan is not worth running.
      */
     private async touchPortals(entities: readonly Entity[]): Promise<void> {
-        const travel = this.server.getDimensionTravel?.();
-        if (travel === undefined) return;
+        const travel = this.server.getDimensionTravel();
 
         // Awaited so that an asynchronous `entityPortalEnter` listener has answered before
         // the entity's own update advances the contact. An entity in no portal costs no await.

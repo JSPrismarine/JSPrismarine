@@ -32,6 +32,7 @@ import { GameRules } from './GameRuleManager';
 import type { Generator } from './Generator';
 import { GeneratorFactories } from './GeneratorFactories';
 import { Level } from './Level';
+import { DimensionTravel } from './portal/DimensionTravel';
 import type { LevelOptions } from './Level';
 import { Position } from './Position';
 import { readLevelDat } from './providers/leveldb/LevelDat';
@@ -79,14 +80,18 @@ let scratch: string;
  * @param preloadRadius - How far around spawn an enabling world generates. Zero, the default,
  *   keeps the start region out of every test but the one about it.
  */
-const testServer = (preloadRadius = 0): Server =>
-    stub<Server>({
+const testServer = (preloadRadius = 0): Server => {
+    const server: Server = stub<Server>({
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => preloadRadius, getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),
-        getEntityRuntime: () => inertEntityRuntime()
+        getEntityRuntime: () => inertEntityRuntime(),
+        // The tick asks every world for its portal contacts; nothing here stands in one.
+        getDimensionTravel: () => new DimensionTravel(server)
     });
+    return server;
+};
 
 /**
  * Empty chunks in the dimension asked for, and dry land at every column so the spawn search

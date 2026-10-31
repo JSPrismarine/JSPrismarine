@@ -18,6 +18,7 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
 import { inertEntityRuntime } from '../testing/entityServer';
+import { DimensionTravel } from './portal/DimensionTravel';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 
@@ -48,8 +49,8 @@ const AUTO_SAVE_TICK = 20 * 120;
 let scratch: string;
 let previousDirectory: string | undefined;
 
-const testServer = (): Server =>
-    stub<Server>({
+const testServer = (): Server => {
+    const server: Server = stub<Server>({
         getLogger: () =>
             stub<Logger>({
                 info: () => {},
@@ -62,8 +63,12 @@ const testServer = (): Server =>
         // interesting state is reached in milliseconds rather than in a start region.
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
         // No data-driven runtime: this world runs the written entity classes.
-        getEntityRuntime: () => inertEntityRuntime()
+        getEntityRuntime: () => inertEntityRuntime(),
+        // The tick asks every world for its portal contacts; nothing here stands in one.
+        getDimensionTravel: () => new DimensionTravel(server)
     });
+    return server;
+};
 
 /** A column of stone under a column of air, distinct per chunk so a mix-up would show. */
 const generatedChunk = (cx: number, cz: number): Chunk => {

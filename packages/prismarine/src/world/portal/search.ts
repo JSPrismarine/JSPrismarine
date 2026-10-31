@@ -8,7 +8,13 @@
  * fraction to the destination rectangle, turning 90 degrees when the two axes differ
  * (`bipush 90`). This module is those three steps over a block lookup.
  */
-import { PORTAL_MAX_HEIGHT, PORTAL_MAX_WIDTH, isNetherPortal, portalAxisOf } from '@jsprismarine/block-behaviors';
+import {
+    PORTAL_MAX_HEIGHT,
+    PORTAL_MAX_WIDTH,
+    alongPortalAxis,
+    isNetherPortal,
+    portalAxisOf
+} from '@jsprismarine/block-behaviors';
 import type { PortalAxis } from '@jsprismarine/block-behaviors';
 import type { BlockPosition, BlockStateValue } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
@@ -61,9 +67,6 @@ const isPortalAt = (blockAt: BlockLookup, at: BlockPosition): boolean => {
     return block !== undefined && isNetherPortal(block.name);
 };
 
-const along = (at: BlockPosition, axis: PortalAxis, distance: number): BlockPosition =>
-    axis === 'x' ? { ...at, x: at.x + distance } : { ...at, z: at.z + distance };
-
 /** How many portal blocks run from `at` in one direction, `at` included, up to `limit`. */
 const runLength = (
     blockAt: BlockLookup,
@@ -88,8 +91,10 @@ const axisAt = (blockAt: BlockLookup, at: BlockPosition): PortalAxis => {
     const block = blockAt(at.x, at.y, at.z);
     const declared = block === undefined ? undefined : portalAxisOf(block);
     if (declared !== undefined) return declared;
-    if (isPortalAt(blockAt, along(at, 'x', 1)) || isPortalAt(blockAt, along(at, 'x', -1))) return 'x';
-    if (isPortalAt(blockAt, along(at, 'z', 1)) || isPortalAt(blockAt, along(at, 'z', -1))) return 'z';
+    if (isPortalAt(blockAt, alongPortalAxis(at, 'x', 1)) || isPortalAt(blockAt, alongPortalAxis(at, 'x', -1)))
+        return 'x';
+    if (isPortalAt(blockAt, alongPortalAxis(at, 'z', 1)) || isPortalAt(blockAt, alongPortalAxis(at, 'z', -1)))
+        return 'z';
     return 'x';
 };
 
@@ -107,13 +112,13 @@ export const portalRectangleAround = (blockAt: BlockLookup, at: BlockPosition): 
     const up = (position: BlockPosition) => ({ ...position, y: position.y + 1 });
     const toFloor = runLength(blockAt, at, down, PORTAL_MAX_HEIGHT) - 1;
     const bottom = { ...at, y: at.y - toFloor };
-    const toEdge = runLength(blockAt, bottom, (position) => along(position, axis, -1), PORTAL_MAX_WIDTH) - 1;
-    const minCorner = along(bottom, axis, -toEdge);
+    const toEdge = runLength(blockAt, bottom, (position) => alongPortalAxis(position, axis, -1), PORTAL_MAX_WIDTH) - 1;
+    const minCorner = alongPortalAxis(bottom, axis, -toEdge);
 
     return {
         minCorner: new Vector3(minCorner.x, minCorner.y, minCorner.z),
         axis,
-        width: runLength(blockAt, minCorner, (position) => along(position, axis, 1), PORTAL_MAX_WIDTH),
+        width: runLength(blockAt, minCorner, (position) => alongPortalAxis(position, axis, 1), PORTAL_MAX_WIDTH),
         height: runLength(blockAt, minCorner, up, PORTAL_MAX_HEIGHT)
     };
 };

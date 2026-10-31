@@ -17,6 +17,8 @@ import type Chunk from '../chunk/Chunk';
 /** The side of a sub chunk, in blocks. */
 const SUB_CHUNK_SIDE = 16;
 
+// The same key `@jsprismarine/block-behaviors` writes in five of its own files; a shared
+// helper belongs beside `BlockPosition` in `@jsprismarine/blocks`, which is a change of its own.
 const keyOf = (at: BlockPosition): string => `${at.x},${at.y},${at.z}`;
 
 /** The portal blocks of one world, by position. */

@@ -24,6 +24,7 @@ import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
+import { DimensionTravel } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';
 import { contentBlockTickHandlers } from './blockTicks';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
@@ -60,8 +61,8 @@ const flatChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
-const testServer = (content: ServerContent = testContent()): Server =>
-    stub<Server>({
+const testServer = (content: ServerContent = testContent()): Server => {
+    const server: Server = stub<Server>({
         getLogger: () =>
             stub<Logger>({
                 info: () => {},
@@ -77,8 +78,12 @@ const testServer = (content: ServerContent = testContent()): Server =>
             }),
         // The fixture has no world behavior for water unless the fluid test asks for it.
         getContent: () => content,
-        getEntityRuntime: () => inertEntityRuntime()
+        getEntityRuntime: () => inertEntityRuntime(),
+        // The tick asks every world for its portal contacts; nothing here stands in one.
+        getDimensionTravel: () => new DimensionTravel(server)
     });
+    return server;
+};
 
 /** Builds the liquid behavior definitions against the world this test creates. */
 const fluidContentFor = (world: () => World | undefined): ServerContent => {

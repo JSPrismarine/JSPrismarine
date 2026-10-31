@@ -56,6 +56,8 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // fixture declares no entity, so every such question answers no.
         runtime: stub<EntityRuntime>({ content: () => testContent(), blockBroken: () => {} }),
         bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
+        // Nothing it holds rides anything, so nothing is kept out of a portal.
+        isInRide: () => false,
         tick: async () => {},
         persist: () => {},
         restore: () => undefined,

@@ -200,8 +200,7 @@ export class DimensionTravel {
 
     /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */
     private isInRide(entity: Entity): boolean {
-        const live = this.server.getEntityRuntime?.(entity.getWorld().getDimension().name);
-        return live?.isInRide?.(entity) ?? false;
+        return this.server.getEntityRuntime(entity.getWorld().getDimension().name).isInRide(entity);
     }
 
     /**

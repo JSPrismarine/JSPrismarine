@@ -100,8 +100,12 @@ const isFrameAt = (world: WorldActions, position: BlockPosition): boolean => {
     return block !== undefined && isNetherPortalFrame(block.identifier);
 };
 
-/** The position `distance` blocks along the axis. */
-const along = (position: BlockPosition, axis: PortalAxis, distance: number): BlockPosition =>
+/**
+ * The position `distance` blocks along a portal's axis, which is the direction its width runs.
+ *
+ * @param distance - In blocks; negative steps toward the axis's negative side.
+ */
+export const alongPortalAxis = (position: BlockPosition, axis: PortalAxis, distance: number): BlockPosition =>
     axis === 'x' ? { ...position, x: position.x + distance } : { ...position, z: position.z + distance };
 
 const up = (position: BlockPosition, distance: number): BlockPosition => ({ ...position, y: position.y + distance });
@@ -119,7 +123,7 @@ const distanceUntilEdgeAboveFrame = (
     sign: 1 | -1
 ): number => {
     for (let distance = 0; distance <= PORTAL_MAX_WIDTH; distance += 1) {
-        const position = along(from, axis, distance * sign);
+        const position = alongPortalAxis(from, axis, distance * sign);
         const block = world.getBlock(position);
         if (!isPortalInterior(block)) return isFrameAt(world, position) ? distance : 0;
         if (!isFrameAt(world, up(position, -1))) return 0;
@@ -138,7 +142,7 @@ const scanPortalShape = (world: WorldActions, at: BlockPosition, axis: PortalAxi
 
     const toEdge = distanceUntilEdgeAboveFrame(world, position, axis, -1) - 1;
     if (toEdge < 0) return undefined;
-    const bottomLeft = along(position, axis, -toEdge);
+    const bottomLeft = alongPortalAxis(position, axis, -toEdge);
 
     const width = distanceUntilEdgeAboveFrame(world, bottomLeft, axis, 1);
     if (width < PORTAL_MIN_WIDTH || width > PORTAL_MAX_WIDTH) return undefined;
@@ -146,14 +150,14 @@ const scanPortalShape = (world: WorldActions, at: BlockPosition, axis: PortalAxi
     let height = PORTAL_MAX_HEIGHT;
     let portalBlocks = 0;
     rows: for (let row = 0; row < PORTAL_MAX_HEIGHT; row += 1) {
-        const left = up(along(bottomLeft, axis, -1), row);
-        const right = up(along(bottomLeft, axis, width), row);
+        const left = up(alongPortalAxis(bottomLeft, axis, -1), row);
+        const right = up(alongPortalAxis(bottomLeft, axis, width), row);
         if (!isFrameAt(world, left) || !isFrameAt(world, right)) {
             height = row;
             break;
         }
         for (let column = 0; column < width; column += 1) {
-            const block = world.getBlock(up(along(bottomLeft, axis, column), row));
+            const block = world.getBlock(up(alongPortalAxis(bottomLeft, axis, column), row));
             if (!isPortalInterior(block)) {
                 height = row;
                 break rows;
@@ -163,7 +167,7 @@ const scanPortalShape = (world: WorldActions, at: BlockPosition, axis: PortalAxi
     }
     if (height < PORTAL_MIN_HEIGHT || height > PORTAL_MAX_HEIGHT) return undefined;
     for (let column = 0; column < width; column += 1) {
-        if (!isFrameAt(world, up(along(bottomLeft, axis, column), height))) return undefined;
+        if (!isFrameAt(world, up(alongPortalAxis(bottomLeft, axis, column), height))) return undefined;
     }
     if (portalBlocks > 0) return undefined;
 
@@ -188,7 +192,7 @@ export const portalInterior = (frame: PortalFrame): BlockPosition[] => {
     const positions: BlockPosition[] = [];
     for (let column = 0; column < frame.width; column += 1) {
         for (let row = 0; row < frame.height; row += 1) {
-            positions.push(up(along(frame.bottomLeft, frame.axis, column), row));
+            positions.push(up(alongPortalAxis(frame.bottomLeft, frame.axis, column), row));
         }
     }
     return positions;
@@ -253,8 +257,7 @@ export const connectedPortalBlocks = (world: WorldActions, at: BlockPosition): B
     const seen = new Set<string>([keyOf(at)]);
     const found: BlockPosition[] = [at];
     const queue: BlockPosition[] = [at];
-    while (queue.length > 0) {
-        const current = queue.pop()!;
+    for (let current = queue.pop(); current !== undefined; current = queue.pop()) {
         for (const face of faces) {
             const next = offset(current, face);
             const key = keyOf(next);
@@ -418,7 +421,7 @@ const canPortalReplace = (world: WorldActions, position: BlockPosition): boolean
 const canHostFrame = (world: WorldActions, at: BlockPosition, axis: PortalAxis, sideOffset: number): boolean => {
     for (let a = -1; a <= 2; a += 1) {
         for (let dy = -1; dy <= 3; dy += 1) {
-            const position = up(across(along(at, axis, a), axis, sideOffset), dy);
+            const position = up(across(alongPortalAxis(at, axis, a), axis, sideOffset), dy);
             if (dy < 0 ? !isSolidSupport(world, position) : !canPortalReplace(world, position)) return false;
         }
     }
@@ -487,7 +490,7 @@ export const portalCreationSite = (
     const lowest = Math.max(bounds.minY + 1, PORTAL_FORCED_MIN_Y);
     const highest = Math.max(lowest, bounds.maxY - PORTAL_FORCED_TOP_MARGIN);
     return {
-        at: { ...along(target, axis, -1), y: Math.min(highest, Math.max(lowest, target.y)) },
+        at: { ...alongPortalAxis(target, axis, -1), y: Math.min(highest, Math.max(lowest, target.y)) },
         forced: true
     };
 };
@@ -513,7 +516,7 @@ export const writeNetherPortal = (
     if (forced) {
         for (let a = -1; a <= 2; a += 1) {
             for (let side = -2; side <= 2; side += 1) {
-                const floor = up(across(along(site, axis, a), axis, side), -1);
+                const floor = up(across(alongPortalAxis(site, axis, a), axis, side), -1);
                 if (Math.abs(side) === 2) {
                     world.setBlock(floor, NETHERRACK, undefined, false);
                 } else if (a >= 0 && a <= 1) {
@@ -526,7 +529,7 @@ export const writeNetherPortal = (
     for (let a = -1; a <= 2; a += 1) {
         for (let dy = -1; dy <= 3; dy += 1) {
             const edge = a === -1 || a === 2 || dy === -1 || dy === 3;
-            const position = up(along(site, axis, a), dy);
+            const position = up(alongPortalAxis(site, axis, a), dy);
             if (edge) world.setBlock(position, OBSIDIAN, undefined, false);
             else world.setBlock(position, NETHER_PORTAL, { [PORTAL_AXIS_STATE]: axis }, false);
         }
