@@ -1452,8 +1452,15 @@ export class EntityRuntime implements EntityScene {
             if (attacker !== undefined && !canEntityAttack(attacker.instance, entity.instance)) return;
         }
 
+        let dealt = amount;
+        if (amount > 0 && entity.instance.families().includes('dragon')) {
+            const scaled = this.dragonDamageOf(entity, sourceId, cause, amount);
+            if (scaled === undefined) return;
+            dealt = scaled;
+        }
+
         const damager = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
-        const result = entity.instance.damage({ cause, amount, damager });
+        const result = entity.instance.damage({ cause, amount: dealt, damager });
         if (result.amount > 0) {
             entity.body.damage.record(sourceId, cause, result.amount);
             this.lastDamagedAt.set(entity, this.world.level.gameTime());
@@ -1466,6 +1473,32 @@ export class EntityRuntime implements EntityScene {
             if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
             else this.kill(entity);
         }
+    }
+
+    /**
+     * Java's `EnderDragon.hurt` rules, which the Bedrock pack does not carry.
+     *
+     * A dying dragon ignores damage; a hit counts only when a player dealt it or an
+     * explosion caused it, which is Java's `#always_hurts_ender_dragons` tag; and with no
+     * head part on this server every hit is a body hit, which Java lands at a quarter of
+     * the amount plus the amount capped at one. Anything below Java's 0.01 floor is dropped.
+     *
+     * @returns The amount the dragon takes, or undefined when the hit does not count.
+     */
+    private dragonDamageOf(
+        entity: DataEntity,
+        sourceId: number | undefined,
+        cause: string,
+        amount: number
+    ): number | undefined {
+        if (entity.instance.hasComponent('minecraft:behavior.dragondeath')) return undefined;
+
+        const isExplosion = cause === 'entity_explosion' || cause === 'block_explosion';
+        const fromPlayer = sourceId !== undefined && this.host.players().some((player) => player.id === sourceId);
+        if (!isExplosion && !fromPlayer) return undefined;
+
+        const scaled = amount / 4 + Math.min(amount, 1);
+        return scaled < 0.01 ? undefined : scaled;
     }
 
     /** Notifies combat-regeneration components watching the target that just died. */

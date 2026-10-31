@@ -14,9 +14,10 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
     () => {
         let runtime: EntityRuntime;
         let identifiers: readonly string[];
+        let world: TestEntityWorld;
 
         beforeAll(() => {
-            const world = new TestEntityWorld();
+            world = new TestEntityWorld();
             let content: ServerContent | undefined;
             runtime = new EntityRuntime({
                 content: () => {
@@ -75,6 +76,22 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
                 causes_fire: false,
                 fuse_length: 0
             });
+        });
+
+        it('spawns the dragon with the pack’s 200 health and lands only the hits Java counts', () => {
+            const dragon = runtime.spawn('minecraft:ender_dragon', { x: 240.5, y: 64, z: 240.5 });
+            if (dragon === undefined) throw new Error('the vanilla pack declares no minecraft:ender_dragon');
+            expect(dragon.instance.attributes.get('health')?.max).toBe(200);
+
+            world.players = [{ id: 7777, identifier: 'minecraft:player', position: { x: 240.5, y: 64, z: 242.5 } }];
+            runtime.hurt(dragon, undefined, 'entity_attack', 10);
+            expect(dragon.instance.attributes.get('health')?.current).toBe(200);
+
+            runtime.hurt(dragon, 7777, 'entity_attack', 10);
+            expect(dragon.instance.attributes.get('health')?.current).toBe(200 - (10 / 4 + 1));
+
+            world.players = [];
+            runtime.remove(dragon.id, 'vanilla dragon coverage');
         });
 
         it('spawns and restores every declared entity through its components', () => {

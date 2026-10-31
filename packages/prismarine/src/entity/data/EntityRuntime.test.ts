@@ -2306,6 +2306,93 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('the dragon damage rules', () => {
+        /**
+         * The vanilla dragon's shape, trimmed to its damage path
+         * (bedrock-samples 1.26.50, `behavior_pack/entities/ender_dragon.json`).
+         */
+        const DRAGON = {
+            components: {
+                'minecraft:health': { value: 200, max: 200 },
+                'minecraft:collision_box': { width: 13, height: 4 },
+                'minecraft:physics': { has_gravity: false, has_collision: false },
+                'minecraft:type_family': { family: ['dragon', 'mob'] },
+                'minecraft:on_death': { event: 'minecraft:start_death', target: 'self' }
+            },
+            component_groups: {
+                dragon_death: { 'minecraft:behavior.dragondeath': { priority: 0 } }
+            },
+            events: {
+                'minecraft:start_death': { add: { component_groups: ['dragon_death'] } }
+            }
+        };
+
+        const PLAYER_ID = 99;
+
+        const dragonRuntime = () => {
+            const world = new TestEntityWorld({
+                players: [{ id: PLAYER_ID, identifier: 'minecraft:player', position: GROUND }]
+            });
+            const fixture = entityFixture(world, {}, { 'minecraft:ender_dragon': DRAGON });
+            const dragon = fixture.runtime.spawn('minecraft:ender_dragon', GROUND);
+            if (dragon === undefined) throw new Error('the fixture declares no minecraft:ender_dragon');
+            return { ...fixture, dragon };
+        };
+
+        it('lands a player blow at a quarter of the amount plus one', () => {
+            const { runtime, dragon } = dragonRuntime();
+
+            runtime.hurt(dragon, PLAYER_ID, 'entity_attack', 10);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(200 - (10 / 4 + 1));
+        });
+
+        it('caps the flat part of the blow at the amount itself', () => {
+            const { runtime, dragon } = dragonRuntime();
+
+            runtime.hurt(dragon, PLAYER_ID, 'entity_attack', 0.5);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(200 - (0.5 / 4 + 0.5));
+        });
+
+        it('ignores a blow from anything that is neither a player nor an explosion', () => {
+            const { runtime, dragon } = dragonRuntime();
+            const cow = runtime.spawn('minecraft:cow', { ...GROUND, x: 2 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            runtime.hurt(dragon, undefined, 'entity_attack', 10);
+            runtime.hurt(dragon, cow.id, 'entity_attack', 10);
+            runtime.hurt(dragon, undefined, 'fire_tick', 10);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(200);
+        });
+
+        it('counts explosion damage from any source', () => {
+            const { runtime, dragon } = dragonRuntime();
+
+            runtime.hurt(dragon, undefined, 'entity_explosion', 8);
+            runtime.hurt(dragon, undefined, 'block_explosion', 8);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(200 - 2 * (8 / 4 + 1));
+        });
+
+        it('ignores damage while the death animation holds the dragon', () => {
+            const { runtime, dragon } = dragonRuntime();
+
+            runtime.hurt(dragon, PLAYER_ID, 'entity_attack', 1000);
+            runtime.tick(1);
+
+            expect(dragon.removed).toBeUndefined();
+            expect(dragon.instance.hasComponent('minecraft:behavior.dragondeath')).toBe(true);
+            const held = dragon.instance.attributes.get('health')?.current;
+
+            runtime.hurt(dragon, PLAYER_ID, 'entity_attack', 10);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(held);
+            expect(dragon.removed).toBeUndefined();
+        });
+    });
+
     describe('beam, base and invulnerable spawn state', () => {
         it('carries the beam target, base plate and invulnerable state onto the spawned body', () => {
             const { runtime } = runtimeOf();
