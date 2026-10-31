@@ -489,6 +489,44 @@ describe('end spike', () => {
         expect(spawns[0]?.options?.showBottom).toBeUndefined();
     });
 
+    // Vanilla's end_spike.json ships "spikes": [], which means "derive the ten pillars from the
+    // world seed" (EndSpikeFeature.place calling getSpikesForLevel). The expected shapes are the
+    // Java-derived literals for seed 1234 pinned in endSpikes.test.ts.
+    it('derives the pillars from the world seed when the config lists none', () => {
+        const { spawning, spawns } = recordSpawns(spikeWorld());
+        const configured = build({ type: 'minecraft:end_spike', spikes: [] });
+        const centers = [
+            [42, 0],
+            [33, 24],
+            [12, 39],
+            [-13, 39],
+            [-34, 24],
+            [-42, -1],
+            [-34, -25],
+            [-13, -40],
+            [12, -40],
+            [33, -25]
+        ] as const;
+        for (const [x, z] of centers) {
+            expect(configured.place(spawning, new WorldgenRandom(9n), { x, y: 60, z })).toBe(true);
+        }
+
+        expect(spawns.map((spawn) => spawn.type)).toEqual(Array(10).fill('minecraft:end_crystal'));
+
+        // The (42, 0) pillar draws index 7 at seed 1234: radius 4, height 97, no cage.
+        expect(spawns[0]?.position).toEqual({ x: 42, y: 98, z: 0 });
+        expect(spawning.getBlock({ x: 42, y: 96, z: 0 }).name).toBe('minecraft:obsidian');
+        expect(spawning.getBlock({ x: 46, y: 96, z: 0 }).name).toBe('minecraft:obsidian');
+        expect(spawning.getBlock({ x: 42, y: 97, z: 0 }).name).toBe('minecraft:bedrock');
+        expect(spawning.getBlock({ x: 42, y: 98, z: 0 }).name).toBe('minecraft:fire');
+        expect(spawning.getBlock({ x: 44, y: 97, z: 0 }).name).toBe('minecraft:air');
+
+        // The (12, 39) pillar draws index 2: radius 2, height 82, iron-bar cage.
+        expect(spawns[2]?.position).toEqual({ x: 12, y: 83, z: 39 });
+        expect(spawning.getBlock({ x: 14, y: 82, z: 39 }).name).toBe('minecraft:iron_bars');
+        expect(spawning.getBlock({ x: 12, y: 85, z: 39 }).name).toBe('minecraft:iron_bars');
+    });
+
     it('leaves the beam target off a worldgen crystal', () => {
         const { spawning, spawns } = recordSpawns(spikeWorld());
         build({

@@ -17,6 +17,8 @@ import type { BlockState, Direction } from '../world/BlockState';
 import { blockState, HORIZONTAL_DIRECTIONS, oppositeDirection, withProperty } from '../world/BlockState';
 import type { BlockPos, FeatureWorld, TemplateProcessors } from '../world/FeatureWorld';
 import { atY, offset } from '../world/FeatureWorld';
+import type { EndSpike } from './endSpikes';
+import { endSpikesForSeed } from './endSpikes';
 import type { ConfiguredFeature } from './Feature';
 import { feature } from './Feature';
 import { JavaHashSet } from './javaHashSet';
@@ -1038,20 +1040,19 @@ export const endGateway = (exit: BlockPos | undefined, exact: boolean): Configur
         return true;
     });
 
-/** The obsidian pillars of the end, Java's `end_spike`. */
+/**
+ * The obsidian pillars of the end, Java's `end_spike`.
+ *
+ * An empty `spikes` list means "derive the ten pillars from the world seed", which is what the
+ * vanilla configured feature ships; only the respawn animation passes explicit spikes.
+ */
 export const endSpike = (
-    spikes: readonly {
-        readonly centerX: number;
-        readonly centerZ: number;
-        readonly radius: number;
-        readonly height: number;
-        readonly guarded: boolean;
-    }[],
+    spikes: readonly EndSpike[],
     crystalInvulnerable: boolean,
     crystalBeamTarget: BlockPos | undefined
 ): ConfiguredFeature =>
     feature('end_spike', (world, random, origin) => {
-        for (const spike of spikes) {
+        for (const spike of spikes.length === 0 ? endSpikesForSeed(world.seed) : spikes) {
             if (spike.centerX >> 4 !== origin.x >> 4 || spike.centerZ >> 4 !== origin.z >> 4) continue;
             const from = { x: spike.centerX - spike.radius, y: world.minY, z: spike.centerZ - spike.radius };
             const to = { x: spike.centerX + spike.radius, y: spike.height + 10, z: spike.centerZ + spike.radius };
