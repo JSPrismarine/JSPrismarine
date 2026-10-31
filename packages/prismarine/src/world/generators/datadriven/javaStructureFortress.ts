@@ -1202,7 +1202,11 @@ const settleInsideHeights = (pieces: readonly FortressPiece[], random: RandomSou
 };
 
 /** Java's `getRandomHorizontalDirection`, which draws from north, east, south, west in that order. */
-const randomFacing = (random: RandomSource): Facing => HORIZONTAL_DIRECTIONS[random.nextInt(4)]!;
+const randomFacing = (random: RandomSource): Facing => {
+    const facing = HORIZONTAL_DIRECTIONS[random.nextInt(HORIZONTAL_DIRECTIONS.length)];
+    if (facing === undefined) throw new Error('The random source drew an index outside the four horizontal directions');
+    return facing;
+};
 
 /**
  * Lays out a nether fortress: the bridge crossing near the chunk corner and every piece that
@@ -1234,7 +1238,9 @@ const fortressPieces = (context: StructureBuildContext, x: number, z: number): r
 
     while (layout.pending.length > 0) {
         const index = random.nextInt(layout.pending.length);
-        layout.pending.splice(index, 1)[0]!.addChildren(layout, random);
+        const [piece] = layout.pending.splice(index, 1);
+        if (piece === undefined) break;
+        piece.addChildren(layout, random);
     }
 
     settleInsideHeights(layout.pieces, random);
