@@ -1267,12 +1267,12 @@ export class DataDrivenGenerator implements Generator {
         const found = starts.locate({
             originChunkX: request.x >> 4,
             originChunkZ: request.z >> 4,
-            radiusInChunks: Math.max(0, Math.trunc(request.radiusInChunks)),
+            radius: Math.max(0, Math.trunc(request.radius)),
             wanted: request.wanted
         });
         if (found === undefined) return undefined;
 
-        return { structure: found.structure, x: found.origin.x, y: found.origin.y, z: found.origin.z };
+        return { structure: found.structure, ...found.locatePosition, origin: found.origin };
     }
 
     /** @inheritDoc */

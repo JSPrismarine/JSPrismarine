@@ -38,8 +38,12 @@ export type SurfaceProbe = { readonly y: number; readonly name: string } | undef
 export interface StructureSearchRequest {
     readonly x: number;
     readonly z: number;
-    /** How far out to look, in chunks. */
-    readonly radiusInChunks: number;
+    /**
+     * How far out to look, in rings of placement regions, which is how Java's `/locate` and eye
+     * of ender count their radius of 100. A village set spaced 34 chunks apart is reached 3400
+     * chunks out; a concentric ring placement such as the strongholds' is searched whole.
+     */
+    readonly radius: number;
     /**
      * Whether a structure identifier is one the caller wants.
      *
@@ -54,10 +58,16 @@ export interface StructureSearchRequest {
 export interface StructureSearchResult {
     /** The structure identifier, for example `minecraft:village_plains`. */
     readonly structure: string;
-    /** The generation point, in blocks. */
+    /**
+     * Java's locate position, in blocks: the start chunk's corner moved by the structure set's
+     * `locate_offset`. It is what `/locate` reports and what an eye of ender flies toward, and
+     * its y is the offset's own, 0 for every vanilla set, which Java prints as `~`.
+     */
     readonly x: number;
     readonly y: number;
     readonly z: number;
+    /** The generation point, where the structure's layout started and its biome was checked. */
+    readonly origin: { readonly x: number; readonly y: number; readonly z: number };
 }
 
 /** A block position in a generator's world. */

@@ -109,12 +109,13 @@ const UNSUITABLE_SPAWN_SURFACES = new Set([
 const DEFAULT_SEA_LEVEL = 63;
 
 /**
- * How far `/locate` looks when nothing says otherwise, in chunks.
+ * How far `/locate` looks when nothing says otherwise, in rings of placement regions.
  *
- * Java's `LocateCommand` searches 100 chunks for a structure, which is 1600 blocks. Far enough
- * to find the common structures from anywhere and small enough that a miss answers quickly.
+ * Java's `LocateCommand.MAX_STRUCTURE_SEARCH_RADIUS`, which `EyeOfEnder` shares. A region is a
+ * structure set's `spacing`, so this reaches 3400 chunks for a village and every ring of the
+ * strongholds' concentric placement; see {@link StructureSearchRequest.radius}.
  */
-const DEFAULT_LOCATE_RADIUS_CHUNKS = 100;
+const LOCATE_RADIUS = 100;
 
 /**
  * Whether a structure identifier is what a player meant by a name.
@@ -1452,14 +1453,14 @@ export class World implements Service {
      * @param name - What the player typed. See {@link structureNameMatches} for how loosely it
      * is read.
      * @param origin - Where to search from, in blocks.
-     * @param radiusInChunks - How far out to look.
-     * @returns The generation point, or undefined when the generator places no structures, has
-     * no search of its own, or found nothing inside the radius.
+     * @param radius - How far out to look, in rings of placement regions; Java's 100 by default.
+     * @returns Java's locate position and the generation point, or undefined when the generator
+     * places no structures, has no search of its own, or found nothing inside the radius.
      */
     public locateStructure(
         name: string,
         origin: { readonly x: number; readonly z: number },
-        radiusInChunks: number = DEFAULT_LOCATE_RADIUS_CHUNKS
+        radius: number = LOCATE_RADIUS
     ): StructureSearchResult | undefined {
         const search = this.generator.locate;
         if (search === undefined) return undefined;
@@ -1467,7 +1468,7 @@ export class World implements Service {
         return search.call(this.generator, {
             x: Math.trunc(origin.x),
             z: Math.trunc(origin.z),
-            radiusInChunks,
+            radius,
             wanted: (structure) => structureNameMatches(name, structure),
             seed: this.level.seed
         });

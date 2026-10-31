@@ -93,6 +93,71 @@ export const candidateChunksIn = (placement: StructurePlacement, seed: bigint, r
     }
 };
 
+/**
+ * Every chunk a search from one chunk may find a structure of this set in.
+ *
+ * This is the reach of Java's `ChunkGenerator.findNearestMapStructure`, which is what `/locate`
+ * and a thrown eye of ender ask. Its radius counts placement regions rather than chunks: a
+ * random spread placement is walked one ring of regions at a time, so the command's radius of
+ * 100 reaches 3400 chunks for a village set spaced 34 apart. A concentric ring placement has no
+ * regions and Java visits all of its positions however far out they lie, which is how a
+ * stronghold on the first ring, two thousand blocks away, is found from the origin.
+ *
+ * @param origin - The chunk the search starts from.
+ * @param radius - How many rings of regions to walk, Java's `/locate` radius.
+ * @returns The candidate chunks, unordered.
+ */
+export const searchCandidatesFrom = (
+    placement: StructurePlacement,
+    seed: bigint,
+    origin: ChunkPosition,
+    radius: number
+): ChunkPosition[] => {
+    switch (placement.type) {
+        case 'minecraft:random_spread':
+            return spreadCandidatesAround(placement, seed, origin, radius);
+        case 'minecraft:dimension_origin':
+            return isStructureChunk(placement, seed, 0, 0) ? [{ x: 0, z: 0 }] : [];
+        case 'minecraft:concentric_rings':
+            return concentricRingChunks(placement, seed).filter((chunk) =>
+                isStructureChunk(placement, seed, chunk.x, chunk.z)
+            );
+    }
+};
+
+/**
+ * The one chunk each region within `radius` regions of the origin's offers.
+ *
+ * Java's `getPotentialStructureChunk(seed, x + spacing * j, z + spacing * k)` for every `j` and
+ * `k` in the radius, which is the region grid around the origin's own region. Nothing is cut
+ * at a chunk boundary: a region on the edge contributes its chunk wherever in the region it
+ * falls, as Java's does.
+ */
+const spreadCandidatesAround = (
+    placement: RandomSpreadPlacement,
+    seed: bigint,
+    origin: ChunkPosition,
+    radius: number
+): ChunkPosition[] => {
+    const candidates: ChunkPosition[] = [];
+    const originRegionX = Math.floor(origin.x / placement.spacing);
+    const originRegionZ = Math.floor(origin.z / placement.spacing);
+
+    for (let regionX = originRegionX - radius; regionX <= originRegionX + radius; regionX++) {
+        for (let regionZ = originRegionZ - radius; regionZ <= originRegionZ + radius; regionZ++) {
+            const chunk = potentialStructureChunk(
+                placement,
+                seed,
+                regionX * placement.spacing,
+                regionZ * placement.spacing
+            );
+            if (isStructureChunk(placement, seed, chunk.x, chunk.z)) candidates.push(chunk);
+        }
+    }
+
+    return candidates;
+};
+
 /** The one chunk each region overlapping the range offers, kept when it falls inside. */
 const spreadCandidates = (placement: RandomSpreadPlacement, seed: bigint, range: ChunkRange): ChunkPosition[] => {
     const candidates: ChunkPosition[] = [];

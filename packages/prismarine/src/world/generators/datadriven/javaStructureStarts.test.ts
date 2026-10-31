@@ -26,8 +26,12 @@ const ELSEWHERE = 'minecraft:desert';
 
 const EMPTY = new Map<string, unknown>();
 
-/** A registry set holding one structure, one set that offers it, and nothing else. */
-const registriesOf = (biomes: readonly string[]): JavaWorldgenRegistries => ({
+/**
+ * A registry set holding one structure, one set that offers it, and nothing else.
+ *
+ * @param sets - Further structure sets, by id, for a test about a placement the hut set is not.
+ */
+const registriesOf = (biomes: readonly string[], sets: Record<string, unknown> = {}): JavaWorldgenRegistries => ({
     densityFunctions: EMPTY,
     noises: EMPTY,
     noiseSettings: EMPTY,
@@ -47,7 +51,8 @@ const registriesOf = (biomes: readonly string[]): JavaWorldgenRegistries => ({
                 placement: { type: 'minecraft:random_spread', spacing: 4, separation: 1, salt: 7 },
                 structures: [{ structure: 'test:hut', weight: 1 }]
             }
-        ]
+        ],
+        ...Object.entries(sets)
     ]),
     templatePools: EMPTY,
     dimensionTypes: EMPTY,
@@ -133,23 +138,32 @@ const drawAll = (biomes: readonly string[], assemble: (chunkX: number, chunkZ: n
     return { kept, points, assemblies };
 };
 
-/** A source over the fake registries, with the biome accepting everywhere. */
-const sourceOf = (biomes: readonly string[] = [HERE]): StructureStartSource =>
+/** The spacing of the hut set, in chunks. */
+const SPACING = 4;
+
+/** A builder that starts at the chunk's middle and leaves one piece there. */
+const hutBuilder: StructureBuilder = (context) => ({
+    origin: { x: context.chunkX * 16 + 8, y: 64, z: context.chunkZ * 16 + 8 },
+    pieces: () => [pieceAt(context.chunkX, context.chunkZ)]
+});
+
+/**
+ * A source over the fake registries, with the biome accepting everywhere.
+ *
+ * @param extra - Further sets, by id, and the level to lay out against, for a test about a
+ *   placement or a terrain the defaults are not.
+ */
+const sourceOf = (
+    biomes: readonly string[] = [HERE],
+    extra: { sets?: Record<string, unknown>; level?: StructureLevel } = {}
+): StructureStartSource =>
     new StructureStartSource({
         seed: SEED,
-        registries: registriesOf(biomes),
-        level,
+        registries: registriesOf(biomes, extra.sets),
+        level: extra.level ?? level,
         templates,
         isPossibleBiome: (biome) => biome === HERE || biome === ELSEWHERE,
-        builders: new Map<string, StructureBuilder>([
-            [
-                'test:hut',
-                (context) => ({
-                    origin: { x: context.chunkX * 16 + 8, y: 64, z: context.chunkZ * 16 + 8 },
-                    pieces: () => [pieceAt(context.chunkX, context.chunkZ)]
-                })
-            ]
-        ])
+        builders: new Map<string, StructureBuilder>([['test:hut', hutBuilder]])
     });
 
 describe('StructureStartSource', () => {
@@ -233,22 +247,23 @@ describe('StructureStartSource', () => {
     describe('locate', () => {
         it('finds the nearest start to the origin, not whichever candidate came first', () => {
             const source = sourceOf();
-            const origin = { originChunkX: 40, originChunkZ: 40, radiusInChunks: 24 };
+            const origin = { originChunkX: 40, originChunkZ: 40, radius: 6 };
 
             const found = source.locate({ ...origin, wanted: (structure) => structure === 'test:hut' });
             expect(found).toBeDefined();
 
             // Nothing inside the radius may be closer to the origin than what was returned.
+            const reach = origin.radius * SPACING;
             const distance = (chunkX: number, chunkZ: number): number =>
                 (chunkX - origin.originChunkX) ** 2 + (chunkZ - origin.originChunkZ) ** 2;
             const nearest = source
                 .usedSets()
                 .flatMap((named) =>
                     candidateChunksIn(named.set.placement, SEED, {
-                        minChunkX: origin.originChunkX - origin.radiusInChunks,
-                        minChunkZ: origin.originChunkZ - origin.radiusInChunks,
-                        maxChunkX: origin.originChunkX + origin.radiusInChunks,
-                        maxChunkZ: origin.originChunkZ + origin.radiusInChunks
+                        minChunkX: origin.originChunkX - reach,
+                        minChunkZ: origin.originChunkZ - reach,
+                        maxChunkX: origin.originChunkX + reach,
+                        maxChunkZ: origin.originChunkZ + reach
                     })
                 )
                 .map((at) => distance(at.x, at.z))
@@ -261,7 +276,7 @@ describe('StructureStartSource', () => {
             const found = sourceOf().locate({
                 originChunkX: 0,
                 originChunkZ: 0,
-                radiusInChunks: 16,
+                radius: 4,
                 wanted: () => true
             });
 
@@ -272,7 +287,7 @@ describe('StructureStartSource', () => {
             const found = sourceOf().locate({
                 originChunkX: 0,
                 originChunkZ: 0,
-                radiusInChunks: 32,
+                radius: 8,
                 wanted: (structure) => structure === 'test:mansion'
             });
 
@@ -283,25 +298,23 @@ describe('StructureStartSource', () => {
             const found = sourceOf([ELSEWHERE]).locate({
                 originChunkX: 0,
                 originChunkZ: 0,
-                radiusInChunks: 32,
+                radius: 8,
                 wanted: () => true
             });
 
             expect(found).toBe(undefined);
         });
 
-        it('finds nothing when the radius reaches no candidate at all', () => {
-            // A spacing of four chunks guarantees a candidate within four, so a radius of zero
-            // on a chunk that is not itself one has nothing to offer.
-            const source = sourceOf();
-            const atOrigin = source.locate({
-                originChunkX: 1,
-                originChunkZ: 1,
-                radiusInChunks: 0,
-                wanted: () => true
-            });
+        it("searches the origin's own region when the radius is zero", () => {
+            // Chunk (1, 1) lies in the region of chunks 0 to 3, which offers one candidate; a
+            // radius of zero is that region and nothing beyond it.
+            const found = sourceOf().locate({ originChunkX: 1, originChunkZ: 1, radius: 0, wanted: () => true });
 
-            expect(atOrigin).toBe(undefined);
+            expect(found).toBeDefined();
+            expect(found!.chunkX).toBeGreaterThanOrEqual(0);
+            expect(found!.chunkX).toBeLessThan(SPACING);
+            expect(found!.chunkZ).toBeGreaterThanOrEqual(0);
+            expect(found!.chunkZ).toBeLessThan(SPACING);
         });
 
         it('lays out no more candidates than it has to, stopping at the first match', () => {
@@ -326,11 +339,98 @@ describe('StructureStartSource', () => {
                 ])
             });
 
-            // A radius of 40 chunks over a spacing of four covers about 400 candidates. The
-            // nearest one matches, so the scan must not walk the rest of them.
-            source.locate({ originChunkX: 0, originChunkZ: 0, radiusInChunks: 40, wanted: () => true });
+            // A radius of ten regions covers about 400 candidates. The nearest one matches, so
+            // the scan must not walk the rest of them.
+            source.locate({ originChunkX: 0, originChunkZ: 0, radius: 10, wanted: () => true });
 
             expect(assemblies).toBe(1);
+        });
+
+        it('measures the radius in placement regions, as Java does', () => {
+            // The biome refuses everything west of chunk 8, which is the origin's region and
+            // the next one. In chunks a radius of two would end at chunk 2; in regions of four
+            // it reaches chunk 11 and the first candidate the biome allows.
+            const source = sourceOf([HERE], {
+                level: { ...level, noiseBiome: (quartX) => (quartX < 8 * 4 ? ELSEWHERE : HERE) }
+            });
+            const search = (radius: number) =>
+                source.locate({ originChunkX: 0, originChunkZ: 0, radius, wanted: () => true });
+
+            expect(search(1)).toBe(undefined);
+            const found = search(2);
+            expect(found).toBeDefined();
+            expect(found!.chunkX).toBeGreaterThanOrEqual(8);
+            expect(found!.chunkX).toBeLessThan(12);
+        });
+
+        it('reaches every ring of a concentric placement whatever the radius', () => {
+            // Java's stronghold search walks all 128 ring positions, so the first ring, over a
+            // hundred chunks out, is found from the origin with no radius at all. The hut set
+            // is out of the way: at a radius of zero it offers only the origin's region, and the
+            // biome refuses everything that near.
+            const source = sourceOf([HERE], {
+                sets: {
+                    'test:rings': {
+                        placement: {
+                            type: 'minecraft:concentric_rings',
+                            distance: 32,
+                            spread: 3,
+                            count: 128,
+                            salt: 0
+                        },
+                        structures: [{ structure: 'test:hut', weight: 1 }]
+                    }
+                },
+                level: {
+                    ...level,
+                    noiseBiome: (quartX, _quartY, quartZ) => (Math.hypot(quartX, quartZ) > 64 * 4 ? HERE : ELSEWHERE)
+                }
+            });
+
+            const found = source.locate({ originChunkX: 0, originChunkZ: 0, radius: 0, wanted: () => true });
+
+            expect(found?.set).toBe('test:rings');
+            expect(Math.hypot(found!.chunkX, found!.chunkZ)).toBeGreaterThan(64);
+        });
+
+        it("answers Java's locate position: the chunk corner moved by the set's locate offset", () => {
+            const source = sourceOf([HERE], {
+                sets: {
+                    'test:treasure': {
+                        placement: {
+                            type: 'minecraft:random_spread',
+                            spacing: 4,
+                            separation: 1,
+                            salt: 11,
+                            locate_offset: [9, 0, 9]
+                        },
+                        structures: [{ structure: 'test:hut', weight: 1 }]
+                    }
+                }
+            });
+            const firstStartOf = (id: string) =>
+                source
+                    .usedSets()
+                    .filter((named) => named.id === id)
+                    .flatMap((named) =>
+                        candidateChunksIn(named.set.placement, SEED, {
+                            minChunkX: -8,
+                            minChunkZ: -8,
+                            maxChunkX: 8,
+                            maxChunkZ: 8
+                        }).map((at) => source.startAt(named, at.x, at.z))
+                    )
+                    .find((start) => start !== null);
+
+            const hut = firstStartOf('test:huts');
+            const treasure = firstStartOf('test:treasure');
+
+            expect(hut?.locatePosition).toEqual({ x: hut!.chunkX * 16, y: 0, z: hut!.chunkZ * 16 });
+            expect(treasure?.locatePosition).toEqual({
+                x: treasure!.chunkX * 16 + 9,
+                y: 0,
+                z: treasure!.chunkZ * 16 + 9
+            });
         });
     });
 });

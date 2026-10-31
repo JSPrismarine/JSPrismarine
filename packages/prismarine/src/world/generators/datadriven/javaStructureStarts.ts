@@ -19,8 +19,14 @@ import { createLegacyRandom, parseTemplatePool } from '@jsprismarine/structures'
 
 import type { TerrainAdaptation } from './javaStructureBeard';
 import { terrainAdaptationOf } from './javaStructureBeard';
-import type { ChunkRange, NamedStructureSet } from './javaStructurePlacement';
-import { candidateChunksIn, chooseStructure, createBiomeExpander, loadStructureSets } from './javaStructurePlacement';
+import type { NamedStructureSet } from './javaStructurePlacement';
+import {
+    candidateChunksIn,
+    chooseStructure,
+    createBiomeExpander,
+    loadStructureSets,
+    searchCandidatesFrom
+} from './javaStructurePlacement';
 import { structureRandomSeed } from './javaStructurePlacement';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructurePiece } from './javaStructureWorld';
@@ -98,6 +104,13 @@ export interface StructureStart {
     readonly pieces: readonly StructurePiece[];
     /** Java's generation point. */
     readonly origin: { readonly x: number; readonly y: number; readonly z: number };
+    /**
+     * Java's `StructurePlacement.getLocatePos`: the start chunk's corner moved by the set's
+     * `locate_offset`, which is the position `/locate` reports and an eye of ender flies to.
+     *
+     * The y is the offset's own, 0 for every vanilla set; Java prints it as `~`.
+     */
+    readonly locatePosition: { readonly x: number; readonly y: number; readonly z: number };
 }
 
 /** What {@link StructureStartSource.locate} is asked to find. */
@@ -105,8 +118,11 @@ export interface StructureSearchOptions {
     /** The chunk the search radiates out from. */
     readonly originChunkX: number;
     readonly originChunkZ: number;
-    /** How far out to look, in chunks, as a square around the origin. */
-    readonly radiusInChunks: number;
+    /**
+     * How far out to look, in rings of placement regions, which is how Java's `/locate` counts
+     * its radius of 100. See {@link searchCandidatesFrom} for what that reaches per placement.
+     */
+    readonly radius: number;
     /**
      * Whether a structure identifier is one the caller is looking for.
      *
@@ -203,8 +219,8 @@ export class StructureStartSource {
      *
      * This is Java's `ChunkGenerator.findNearestMapStructure`, which is what `/locate` is. The
      * scan runs over candidate chunks rather than over chunks: a random spread placement offers
-     * one chunk per region, so a 6400-block search asks about a few hundred positions instead
-     * of the 160 thousand chunks it covers.
+     * one chunk per region, so the command's hundred rings of regions ask about forty thousand
+     * positions instead of the millions of chunks they cover.
      *
      * Candidates are laid out nearest first and the first accepted one wins, so the expensive
      * half - {@link StructureStartSource.startAt}, which draws the structure and assembles its
@@ -218,13 +234,8 @@ export class StructureStartSource {
      * @returns The start, or undefined when nothing matched inside the radius.
      */
     public locate(options: StructureSearchOptions): StructureStart | undefined {
-        const { originChunkX, originChunkZ, radiusInChunks } = options;
-        const range: ChunkRange = {
-            minChunkX: originChunkX - radiusInChunks,
-            minChunkZ: originChunkZ - radiusInChunks,
-            maxChunkX: originChunkX + radiusInChunks,
-            maxChunkZ: originChunkZ + radiusInChunks
-        };
+        const { originChunkX, originChunkZ, radius } = options;
+        const origin = { x: originChunkX, z: originChunkZ };
 
         const candidates: Array<{ named: NamedStructureSet; x: number; z: number; distance: number }> = [];
         for (const named of this.sets) {
@@ -232,7 +243,7 @@ export class StructureStartSource {
             // what keeps the scan to the one or two sets a `/locate` names.
             if (!named.set.structures.some((entry) => options.wanted(entry.structure))) continue;
 
-            for (const chunk of candidateChunksIn(named.set.placement, this.options.seed, range)) {
+            for (const chunk of searchCandidatesFrom(named.set.placement, this.options.seed, origin, radius)) {
                 const dx = chunk.x - originChunkX;
                 const dz = chunk.z - originChunkZ;
                 candidates.push({ named, x: chunk.x, z: chunk.z, distance: dx * dx + dz * dz });
@@ -336,7 +347,12 @@ export class StructureStartSource {
             terrainAdaptation: terrainAdaptationOf(definition.terrain_adaptation),
             boundingBox: unionOf(pieces),
             pieces,
-            origin: layout.origin
+            origin: layout.origin,
+            locatePosition: {
+                x: chunkX * 16 + named.set.placement.locateOffset[0],
+                y: named.set.placement.locateOffset[1],
+                z: chunkZ * 16 + named.set.placement.locateOffset[2]
+            }
         };
     }
 
