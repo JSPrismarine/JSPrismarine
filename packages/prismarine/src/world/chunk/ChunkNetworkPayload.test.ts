@@ -6,7 +6,8 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
 import Chunk from './Chunk';
 import SubChunk from './SubChunk';
-import { Dimensions, minSubChunk, subChunkCount } from '../Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf, minSubChunk, subChunkCount } from '../Dimension';
+import { VANILLA_DIMENSION_TYPES } from '../vanillaDimensionTypes';
 
 const stone = () => BlockRuntimeIds.getByName('minecraft:stone');
 const dirt = () => BlockRuntimeIds.getByName('minecraft:dirt');
@@ -116,6 +117,28 @@ describe('world', () => {
                 Chunk.networkDeserialize(stream, 0, 0, 1, dimension);
                 expect(payload.byteLength - stream.getReadIndex()).toBe(sections * 2 + 1);
             }
+        });
+
+        it('pads and counts biomes for the bounds a custom dimension declared, not the Overworld', () => {
+            // `DimensionData` told the client this type runs from 0 to 128, so the payload has to
+            // match: no padding down to -64 and 8 biome sections, not 24. The client reads any
+            // extra section as the next sub chunk.
+            const sky = dimensionTypeOf(
+                { ...VANILLA_DIMENSION_TYPES['minecraft:overworld'], minY: 0, height: 128 },
+                'mypack:sky',
+                FIRST_CUSTOM_DIMENSION_ID
+            );
+            const chunk = new Chunk(0, 0, new Map(), sky);
+            chunk.setBlockRuntimeId(1, 1, 1, stone());
+            const payload = chunk.networkSerialize();
+
+            expect(chunk.getNetworkSubChunkCount()).toBe(1);
+            expect(payload[0]).toBe(8);
+
+            const stream = new BinaryStream(payload);
+            const restored = Chunk.networkDeserialize(stream, 0, 0, 1, sky);
+            expect(payload.byteLength - stream.getReadIndex()).toBe(subChunkCount(sky) * 2 + 1);
+            expect(restored.getBlockRuntimeId(1, 1, 1)).toBe(stone());
         });
 
         it('reads a version 9 sub chunk past its index byte', () => {
