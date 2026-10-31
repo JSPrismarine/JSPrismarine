@@ -20,6 +20,7 @@ import {
     v2225
 } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
+import Credits, { ShowCreditsPacket } from './Credits';
 import DimensionChange from './DimensionChange';
 import LoginSequence from './login/LoginSequence';
 import ClientPacketRegistry from './net/ClientPacketRegistry';
@@ -27,7 +28,7 @@ import ClientSession from './net/ClientSession';
 import RakNetTransport from './net/RakNetTransport';
 
 import type { IAuthProvider } from '@jsprismarine/auth';
-import type { StartGame } from '@jsprismarine/protocol';
+import type { ShowCreditsPayload, StartGame } from '@jsprismarine/protocol';
 import type { ITransport, TransportStats } from './net/ITransport';
 import type { PendingDimensionChange } from './DimensionChange';
 
@@ -98,6 +99,7 @@ export default class Client extends EventEmitter {
     private readonly transport: ITransport;
     private readonly session: ClientSession;
     private readonly dimensionChange: DimensionChange;
+    private readonly credits: Credits;
 
     /** The protocol this client speaks, resolved from the options. */
     private readonly protocolVersion: number;
@@ -147,7 +149,9 @@ export default class Client extends EventEmitter {
             NetworkChunkPublisherUpdatePacket,
             PlayerActionPacket,
             LevelChunkPacket,
-            MovePlayerPacket
+            MovePlayerPacket,
+            // The end credits a first exit through the End's portal starts.
+            ShowCreditsPacket
         ]);
 
         this.transport =
@@ -176,6 +180,12 @@ export default class Client extends EventEmitter {
             () => this.startGame?.runtimeEntityId ?? 0n
         );
         this.dimensionChange.on('end', (change: PendingDimensionChange) => this.emit('dimensionChange', change));
+
+        // Answers the server's `ShowCredits Start`, which arrives once per save on the first
+        // exit through the End's portal; the `ChangeDimension` it releases goes through the
+        // responder above.
+        this.credits = new Credits(this.session, this.logger, () => this.startGame?.runtimeEntityId ?? 0n);
+        this.credits.on('finished', (credits: ShowCreditsPayload) => this.emit('credits', credits));
     }
 
     /**
@@ -237,6 +247,11 @@ export default class Client extends EventEmitter {
     /** The dimension change responder, which also knows whether one is in progress. */
     public getDimensionChange(): DimensionChange {
         return this.dimensionChange;
+    }
+
+    /** The end credits responder, which answers the server's `ShowCredits Start`. */
+    public getCredits(): Credits {
+        return this.credits;
     }
 
     public getStats(): TransportStats {

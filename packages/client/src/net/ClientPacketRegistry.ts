@@ -11,6 +11,7 @@ import type {
     PlayStatusData,
     PlayerActionData,
     ServerToClientHandshake,
+    ShowCreditsPayload,
     StartGame,
     Text
 } from '@jsprismarine/protocol';
@@ -46,6 +47,7 @@ export interface ClientboundPacketData {
     [PacketIdentifier.PLAYER_ACTION]: PlayerActionData;
     [PacketIdentifier.LEVEL_CHUNK]: LevelChunk;
     [PacketIdentifier.MOVE_PLAYER]: MovePlayer;
+    [PacketIdentifier.SHOW_CREDITS]: ShowCreditsPayload;
 }
 
 /**
