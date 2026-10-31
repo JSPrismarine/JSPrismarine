@@ -114,4 +114,34 @@ describe('createEntitySpawn', () => {
     it('drops an entity type Bedrock has no counterpart for', () => {
         expect(createEntitySpawn({ type: 'minecraft:not_a_mob', x: 0, y: 0, z: 0, yaw: 0 })).toBeUndefined();
     });
+
+    it('carries the crystal beam, base plate and invulnerability onto the spawn', () => {
+        const spawn = createEntitySpawn({
+            type: 'minecraft:end_crystal',
+            x: 42.5,
+            y: 98,
+            z: 0.5,
+            yaw: 0,
+            beamTarget: { x: 0, y: 128, z: 0 },
+            showBottom: false,
+            invulnerable: true
+        });
+
+        expect(spawn).toEqual({
+            type: 'minecraft:ender_crystal',
+            x: 42.5,
+            y: 98,
+            z: 0.5,
+            yaw: 0,
+            beamTarget: { x: 0, y: 128, z: 0 },
+            showBottom: false,
+            invulnerable: true
+        });
+    });
+
+    it('leaves the crystal options off a spawn that never carried them', () => {
+        const spawn = createEntitySpawn({ type: 'minecraft:end_crystal', x: 42.5, y: 98, z: 0.5, yaw: 0 });
+
+        expect(spawn).toEqual({ type: 'minecraft:ender_crystal', x: 42.5, y: 98, z: 0.5, yaw: 0 });
+    });
 });

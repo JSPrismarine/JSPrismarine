@@ -34,6 +34,9 @@ interface Asked {
     readonly identifier: string;
     readonly at: EntityPosition;
     readonly yaw: number | undefined;
+    readonly beamTarget: EntityPosition | undefined;
+    readonly showBottom: boolean | undefined;
+    readonly invulnerable: boolean | undefined;
 }
 
 /** A world reduced to what loading a chunk touches: no disk, no network, no generator. */
@@ -49,7 +52,14 @@ const worldLoading = (
         runtime: stub<EntityRuntime>({
             content: () => content,
             spawn: (identifier, at, options) => {
-                asked.push({ identifier, at, yaw: options?.yaw });
+                asked.push({
+                    identifier,
+                    at,
+                    yaw: options?.yaw,
+                    beamTarget: options?.beamTarget,
+                    showBottom: options?.showBottom,
+                    invulnerable: options?.invulnerable
+                });
                 return undefined;
             }
         })
@@ -94,6 +104,42 @@ describe('mobs left by world generation', () => {
         // At the coordinates generation asked for, facing the way it asked.
         expect(asked[0]!.at).toEqual({ x: 8.5, y: 70, z: 8.5 });
         expect(asked[0]!.yaw).toBe(90);
+    });
+
+    it('carry a generated crystal spawn with its beam, base plate and invulnerability', async () => {
+        const chunk = new Chunk(0, 0);
+        chunk.getEntitySpawns().push({
+            type: 'minecraft:ender_crystal',
+            x: 42.5,
+            y: 98,
+            z: 0.5,
+            beamTarget: { x: 0, y: 128, z: 0 },
+            showBottom: false,
+            invulnerable: true
+        });
+
+        const { world, asked } = worldLoading(chunk, ['minecraft:ender_crystal']);
+        await world.loadChunk(0, 0);
+
+        expect(asked).toHaveLength(1);
+        expect(asked[0]).toMatchObject({
+            identifier: 'minecraft:ender_crystal',
+            beamTarget: { x: 0, y: 128, z: 0 },
+            showBottom: false,
+            invulnerable: true
+        });
+    });
+
+    it('leave the crystal options unset for a spawn that never carried them', async () => {
+        const chunk = new Chunk(0, 0);
+        chunk.getEntitySpawns().push({ type: 'minecraft:villager_v2', x: 8.5, y: 70, z: 8.5 });
+
+        const { world, asked } = worldLoading(chunk);
+        await world.loadChunk(0, 0);
+
+        expect(asked[0]!.beamTarget).toBeUndefined();
+        expect(asked[0]!.showBottom).toBeUndefined();
+        expect(asked[0]!.invulnerable).toBeUndefined();
     });
 
     it('are created once however often the chunk is loaded', async () => {

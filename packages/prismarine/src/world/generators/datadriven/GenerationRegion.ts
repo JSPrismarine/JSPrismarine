@@ -15,6 +15,7 @@ import type {
     BlockOracle,
     BlockPos,
     BlockState,
+    EntitySpawnOptions,
     FeatureWorld,
     HeightmapType,
     TemplateRequest
@@ -95,6 +96,12 @@ export interface RegionEntitySpawn {
     readonly z: number;
     /** Which way it faces, in degrees. */
     readonly yaw: number;
+    /** The block an end crystal's beam points at, Java's `crystal_beam_target`. */
+    readonly beamTarget?: BlockPos;
+    /** Whether an end crystal renders its base plate; absent keeps the client default, true. */
+    readonly showBottom?: boolean;
+    /** Whether the entity ignores damage, Java's `crystal_invulnerable`. */
+    readonly invulnerable?: boolean;
 }
 
 /**
@@ -598,7 +605,7 @@ export class GenerationRegion {
             getHeight: (heightmap, x, z) => this.heightAt(heightmap, x, z),
             getBiome: (position) => this.options.biomeAt(position.x, position.y, position.z),
             setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
-            spawnEntity: (type, position, options) => this.recordEntity(type, position, options?.yaw ?? 0),
+            spawnEntity: (type, position, options) => this.recordEntity(type, position, options),
             placeTemplate: (request) => this.stampTemplate(request),
             ...(this.options.isColdEnoughToSnow
                 ? {
@@ -706,8 +713,8 @@ export class GenerationRegion {
      * The feature names a block position, and an entity stands in the middle of its block, which
      * is where Java's `end_spike` puts the crystal it summons.
      */
-    private recordEntity(type: string, position: BlockPos, yaw: number): void {
-        this.spawnEntityAt(type, position.x + 0.5, position.y, position.z + 0.5, yaw);
+    private recordEntity(type: string, position: BlockPos, options: EntitySpawnOptions | undefined): void {
+        this.spawnEntityAt(type, position.x + 0.5, position.y, position.z + 0.5, options?.yaw ?? 0, options);
     }
 
     /**
@@ -716,11 +723,30 @@ export class GenerationRegion {
      * A template's entities sit between blocks: a cushion is saved at y 0.9375 and a villager
      * in the middle of its block, so the coordinates are taken as given rather than snapped to
      * the block the entity happens to be over.
+     *
+     * @param options - What the spawn carries beyond its yaw: an end crystal's beam target, its
+     * base plate flag and its invulnerability.
      */
-    public spawnEntityAt(type: string, x: number, y: number, z: number, yaw: number): void {
+    public spawnEntityAt(
+        type: string,
+        x: number,
+        y: number,
+        z: number,
+        yaw: number,
+        options?: Omit<EntitySpawnOptions, 'yaw'>
+    ): void {
         if (this.indexOf(Math.floor(x), Math.floor(y), Math.floor(z)) === -1) return;
 
-        const spawn = { type, x, y, z, yaw };
+        const spawn: RegionEntitySpawn = {
+            type,
+            x,
+            y,
+            z,
+            yaw,
+            ...(options?.beamTarget === undefined ? {} : { beamTarget: options.beamTarget }),
+            ...(options?.showBottom === undefined ? {} : { showBottom: options.showBottom }),
+            ...(options?.invulnerable === undefined ? {} : { invulnerable: options.invulnerable })
+        };
         this.entitySpawns.push(spawn);
         if (this.trackingWrites) this.trackedEntitySpawns.push(spawn);
     }

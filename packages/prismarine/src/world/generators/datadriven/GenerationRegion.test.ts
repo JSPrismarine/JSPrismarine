@@ -155,6 +155,42 @@ describe('spawnEntity', () => {
         expect(createEntitySpawn(spawns[0]!)).toMatchObject({ type: 'minecraft:ender_crystal', x: 8.5, z: 8.5 });
     });
 
+    it('keeps the crystal options the spike configuration asked for', () => {
+        const built = region();
+        const spikes = [{ centerX: 8, centerZ: 8, radius: 2, height: 70, guarded: false }];
+
+        // The respawn animation's configuration: invulnerable crystals beaming at the podium.
+        endSpike(spikes, true, { x: 0, y: 128, z: 0 }).place(built.featureWorld(), new WorldgenRandom(SEED), {
+            x: 8,
+            y: 0,
+            z: 8
+        });
+
+        const spawns = built.centerEntitySpawns();
+        expect(spawns[0]).toMatchObject({ beamTarget: { x: 0, y: 128, z: 0 }, invulnerable: true });
+        expect(spawns[0]!.showBottom).toBeUndefined();
+        expect(createEntitySpawn(spawns[0]!)).toMatchObject({
+            beamTarget: { x: 0, y: 128, z: 0 },
+            invulnerable: true
+        });
+    });
+
+    it('records worldgen crystals vulnerable, with no beam and the default base plate', () => {
+        const built = region();
+        const spikes = [{ centerX: 8, centerZ: 8, radius: 2, height: 70, guarded: false }];
+
+        endSpike(spikes, false, undefined).place(built.featureWorld(), new WorldgenRandom(SEED), {
+            x: 8,
+            y: 0,
+            z: 8
+        });
+
+        const spawns = built.centerEntitySpawns();
+        expect(spawns[0]!.invulnerable).toBe(false);
+        expect(spawns[0]!.beamTarget).toBeUndefined();
+        expect(spawns[0]!.showBottom).toBeUndefined();
+    });
+
     it('keeps nothing for a position outside the region', () => {
         const built = region();
         built.featureWorld().spawnEntity?.('minecraft:end_crystal', { x: 500, y: 64, z: 500 }, { yaw: 0 });
@@ -196,7 +232,7 @@ describe('neighbor chunk data', () => {
         built.beginWriteTracking();
         world.setBlock({ x: 16, y: 64, z: 8 }, { name: 'minecraft:chest', properties: {} });
         world.setBlockEntity?.({ x: 16, y: 64, z: 8 }, { id: 'minecraft:chest' });
-        world.spawnEntity?.('minecraft:end_crystal', { x: 16, y: 65, z: 8 }, { yaw: 90 });
+        world.spawnEntity?.('minecraft:end_crystal', { x: 16, y: 65, z: 8 }, { yaw: 90, invulnerable: false });
 
         const [patch] = built.takeTrackedPatches();
         if (patch === undefined) throw new Error('Cross-chunk writes did not produce a patch');
@@ -204,6 +240,7 @@ describe('neighbor chunk data', () => {
         expect(patch?.blocks).toHaveLength(1);
         expect(patch?.blockEntities).toHaveLength(1);
         expect(patch?.entitySpawns).toHaveLength(1);
+        expect(patch?.entitySpawns[0]).toMatchObject({ yaw: 90, invulnerable: false });
 
         const destination = terrainTile(1, 0);
         destination.applyPatch(patch);
@@ -327,7 +364,10 @@ describe('transfer', () => {
         built.write(20, 70, -30, { name: 'minecraft:oak_log', properties: { axis: 'y' } });
         built.writeBedrock(21, 70, -31, { name: 'minecraft:bone_block', states: { pillar_axis: 'y' } });
         built.featureWorld().setBlockEntity?.({ x: 20, y: 64, z: -30 }, { id: 'minecraft:chest' });
-        built.spawnEntityAt('minecraft:end_crystal', 20.5, 65, -29.5, 90);
+        built.spawnEntityAt('minecraft:end_crystal', 20.5, 65, -29.5, 90, {
+            beamTarget: { x: 0, y: 128, z: 0 },
+            invulnerable: true
+        });
         built.freezeSurfaceHeights();
 
         const before = {
@@ -356,6 +396,10 @@ describe('transfer', () => {
         expect(landed.surfaceChunk().surfaceHeight(4, 2)).toBe(before.surface);
         expect(landed.centerBlockEntities()).toEqual(before.blockEntities);
         expect(landed.centerEntitySpawns()).toEqual(before.spawns);
+        expect(landed.centerEntitySpawns()[0]).toMatchObject({
+            beamTarget: { x: 0, y: 128, z: 0 },
+            invulnerable: true
+        });
         expect([...landed.centerBlockSlots().slots]).toEqual(before.slots);
     });
 

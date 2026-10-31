@@ -107,7 +107,16 @@ export const createEntitySpawn = (spawn: RegionEntitySpawn): EntitySpawn | undef
     const type = bedrockEntityTypeOf(spawn.type);
     if (type === undefined) return undefined;
 
-    return { type, x: spawn.x, y: spawn.y, z: spawn.z, yaw: spawn.yaw };
+    return {
+        type,
+        x: spawn.x,
+        y: spawn.y,
+        z: spawn.z,
+        yaw: spawn.yaw,
+        ...(spawn.beamTarget === undefined ? {} : { beamTarget: spawn.beamTarget }),
+        ...(spawn.showBottom === undefined ? {} : { showBottom: spawn.showBottom }),
+        ...(spawn.invulnerable === undefined ? {} : { invulnerable: spawn.invulnerable })
+    };
 };
 
 /** The Bedrock identifier for a Java entity type, taking a reviewed loss's substitute. */

@@ -1185,7 +1185,13 @@ export class World implements Service {
             // A generated mob gets its components, brain and trades from the data runtime.
             const live = this.dataEntities();
             if (live.runtime.content().entities.registry.has(spawn.type)) {
-                live.runtime.spawn(spawn.type, at, { yaw: spawn.yaw ?? 0, pitch: 0 });
+                live.runtime.spawn(spawn.type, at, {
+                    yaw: spawn.yaw ?? 0,
+                    pitch: 0,
+                    ...(spawn.beamTarget === undefined ? {} : { beamTarget: spawn.beamTarget }),
+                    ...(spawn.showBottom === undefined ? {} : { showBottom: spawn.showBottom }),
+                    ...(spawn.invulnerable === undefined ? {} : { invulnerable: spawn.invulnerable })
+                });
                 continue;
             }
 
