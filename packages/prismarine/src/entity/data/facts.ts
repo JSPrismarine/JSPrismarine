@@ -58,7 +58,8 @@ export const DEFAULT_BOX: EntityBox = { width: 1, height: 1 };
  * content no longer owns, so the table is meant to stay one row long.
  */
 const UNDECLARED_BOXES: Readonly<Record<string, EntityBox>> = {
-    'minecraft:item': { width: 0.25, height: 0.25 }
+    'minecraft:item': { width: 0.25, height: 0.25 },
+    'minecraft:eye_of_ender_signal': { width: 0.25, height: 0.25 }
 };
 
 /**
