@@ -44,6 +44,38 @@ describe('world', () => {
             expect(playerDataFromNbt(nbt)).toEqual(data);
         });
 
+        describe('seenCredits', () => {
+            it("writes the flag under Bedrock's HasSeenCredits tag", () => {
+                const nbt = playerDataToNbt(record({ seenCredits: true }));
+
+                expect(nbt.getByte('HasSeenCredits', -1)).toBe(1);
+                expect(nbt.getCompound('JSPrismarine', false)?.has('HasSeenCredits')).toBe(false);
+            });
+
+            it('round-trips the flag, seen and not seen', () => {
+                for (const seenCredits of [true, false]) {
+                    const data = record({ seenCredits });
+
+                    expect(playerDataFromNbt(playerDataToNbt(data))).toEqual(data);
+                }
+            });
+
+            it("reads Java's seenCredits tag on a record without Bedrock's", () => {
+                const nbt = playerDataToNbt(record());
+                nbt.addValue('seenCredits', new Types.ByteVal(1));
+
+                expect(playerDataFromNbt(nbt).seenCredits).toBe(true);
+            });
+
+            it('leaves the flag out of a record that has none, both ways', () => {
+                const data = record();
+                const nbt = playerDataToNbt(data);
+
+                expect(nbt.has('HasSeenCredits')).toBe(false);
+                expect(playerDataFromNbt(nbt)).toEqual(data);
+            });
+        });
+
         describe('dimension', () => {
             it("writes the player's dimension as Bedrock's DimensionId and the Java id beside it", () => {
                 const nbt = playerDataToNbt(record({ dimension: 'minecraft:the_nether' }));

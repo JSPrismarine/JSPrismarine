@@ -3018,6 +3018,7 @@ export class World implements Service {
             // keep a bed this player no longer has.
             ...(player.getSpawnPoint() === undefined ? {} : { spawn: player.getSpawnPoint() }),
             portalCooldown: player.getPortalCooldown(),
+            seenCredits: player.hasSeenCredits(),
             savedAt: Date.now()
         } satisfies WorldPlayerData;
 

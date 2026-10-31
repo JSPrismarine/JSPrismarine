@@ -367,6 +367,14 @@ export interface WorldPlayerData {
      */
     portalCooldown?: number;
     /**
+     * Whether this player has watched the end credits, Bedrock's `HasSeenCredits`.
+     *
+     * Set when the credits start rolling on a first exit through the End's portal, so a later
+     * exit transfers at once. Absent on a record written before this field existed, which
+     * reads as not seen.
+     */
+    seenCredits?: boolean;
+    /**
      * When this record was written, in milliseconds since the epoch.
      *
      * Written so a tool or a later migration can tell two copies of a record apart. Absent on a

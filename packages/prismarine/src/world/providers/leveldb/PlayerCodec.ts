@@ -232,6 +232,18 @@ const SPAWN_TAGS = { x: 'SpawnX', y: 'SpawnY', z: 'SpawnZ', dimension: 'SpawnDim
 /** Bedrock's tag for the dimension the player is in. */
 const DIMENSION_TAG = 'DimensionId';
 
+/** Bedrock's tag for whether the player has watched the end credits. */
+const SEEN_CREDITS_TAG = 'HasSeenCredits';
+
+/**
+ * Whether the record says the credits were seen: Bedrock's own tag when it is there, Java's
+ * `seenCredits` for a record another writer filed, and undefined for a record naming neither.
+ */
+const seenCreditsFromNbt = (nbt: NBTTagCompound): boolean | undefined => {
+    if (nbt.has(SEEN_CREDITS_TAG)) return nbt.getByte(SEEN_CREDITS_TAG, 0) === 1;
+    return nbt.has('seenCredits') ? nbt.getByte('seenCredits', 0) === 1 : undefined;
+};
+
 /**
  * The Java id a dimension tag pair names: the saved string when there is one, otherwise the
  * dimension Bedrock's integer stands for.
@@ -284,6 +296,7 @@ export const playerDataToNbt = (data: WorldPlayerData, known: KnownDimensions = 
     inventoryToNbt(root, data.inventory);
 
     if (data.portalCooldown !== undefined) root.addValue('PortalCooldown', new Types.NumberVal(data.portalCooldown));
+    if (data.seenCredits !== undefined) root.addValue(SEEN_CREDITS_TAG, new Types.ByteVal(data.seenCredits ? 1 : 0));
     const dimensionId = data.dimension === undefined ? undefined : bedrockIdOf(data.dimension, types);
     if (dimensionId !== undefined) root.addValue(DIMENSION_TAG, new Types.NumberVal(dimensionId));
     if (data.spawn !== undefined) {
@@ -353,6 +366,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
         nbt.has(DIMENSION_TAG) ? nbt.getNumber(DIMENSION_TAG, 0) : undefined,
         types
     );
+    const seenCredits = seenCreditsFromNbt(nbt);
 
     return {
         ...(saved?.has('uuid') ? { uuid: saved.getString('uuid', '') } : {}),
@@ -375,6 +389,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
         ...(advancements === '' ? {} : { advancements: parseAdvancements(advancements) }),
         ...(spawn === undefined ? {} : { spawn }),
         ...(nbt.has('PortalCooldown') ? { portalCooldown: nbt.getNumber('PortalCooldown', 0) } : {}),
+        ...(seenCredits === undefined ? {} : { seenCredits }),
         ...(saved?.has('savedAt') ? { savedAt: saved.getDouble('savedAt', 0) } : {}),
         ...(inventory === undefined ? {} : { inventory }),
         ...(legacyAttributes.health === undefined ? {} : { health: legacyAttributes.health }),

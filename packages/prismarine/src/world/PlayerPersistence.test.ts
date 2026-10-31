@@ -173,6 +173,7 @@ const logOutAndIn = async () => {
     leaving.setSaturation(4);
     leaving.attributes.setValue(AttributeIds.PlayerLevel, 27);
     leaving.attributes.setValue(AttributeIds.PlayerExperience, 0.5);
+    leaving.setSeenCredits(true);
     await leaving.setPosition({ position: new Vector3(12.5, 70, -8.5) }, false);
 
     await world.savePlayerData(leaving);
@@ -266,6 +267,10 @@ describe('a player logging out and back in', () => {
         expect(returning.getSaturation()).toBe(4);
         expect(returning.attributes.getValue(AttributeIds.PlayerLevel)).toBe(27);
         expect(returning.attributes.getValue(AttributeIds.PlayerExperience)).toBeCloseTo(0.5, 5);
+    });
+
+    it('keeps that the end credits were seen', () => {
+        expect(returning.hasSeenCredits()).toBe(true);
     });
 
     it('comes back where it left, rather than at the spawn point', () => {

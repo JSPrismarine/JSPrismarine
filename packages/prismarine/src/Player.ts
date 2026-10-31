@@ -239,6 +239,15 @@ export default class Player extends Human {
      */
     private spawnPoint: StoredSpawnPoint | undefined;
 
+    /**
+     * Whether this player has watched the end credits, Java's `seenCredits` and Bedrock's
+     * `HasSeenCredits`.
+     *
+     * Set when the credits start on a first exit through the End's portal and kept on the
+     * player record, so every later exit transfers at once.
+     */
+    private seenCredits = false;
+
     public platformChatId = ''; // TODO: read this value from Login
     public device: Device | null = null;
 
@@ -403,6 +412,7 @@ export default class Player extends Human {
         this.flying =
             data.flying === true && (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR);
         this.spawnPoint = data.spawn;
+        this.seenCredits = data.seenCredits === true;
         if (data.portalCooldown !== undefined) this.setPortalCooldown(data.portalCooldown);
     }
 
@@ -975,6 +985,23 @@ export default class Player extends Human {
      */
     public setSpawnPoint(spawn: StoredSpawnPoint | undefined): void {
         this.spawnPoint = spawn;
+    }
+
+    /** Whether this player has watched the end credits, so a later End exit skips them. */
+    public hasSeenCredits(): boolean {
+        return this.seenCredits;
+    }
+
+    /**
+     * Records whether this player has watched the end credits.
+     *
+     * Set when the credits start rather than when they finish, as Java's `showEndCredits`
+     * does: a client that disconnects mid-credits comes back in the End with the flag kept,
+     * and its next exit transfers without a replay.
+     * @param seen - False puts the credits back on the next End exit.
+     */
+    public setSeenCredits(seen: boolean): void {
+        this.seenCredits = seen;
     }
 
     /**
