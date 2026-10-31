@@ -6,7 +6,7 @@
 import type { BlockPosition } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
-import { HORIZONTAL_FACES, offset } from '../geometry';
+import { HORIZONTAL_FACES, offset, opposite } from '../geometry';
 import { placementFacing } from '../rules/placement';
 import { isWater } from '../identifiers';
 import { emptyContainer, slotsOf, spillContainer } from '../rules/container';
@@ -66,8 +66,15 @@ export const containerFamily = defineFamily(
     {
         onPlace: (event, world) => {
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
+                // Java's `ChestBlock.getStateForPlacement` opposes the placer's horizontal
+                // direction, so the chest faces the player, and the identity state mapping
+                // keeps that value in Bedrock's `minecraft:cardinal_direction`. The chests
+                // are the family's only blocks with the state; the boxes, the barrel and
+                // the decorated pot spell their rotation in other states.
                 const facing = placementFacing(event);
-                if (facing !== undefined) setStates(world, event.block, { 'minecraft:cardinal_direction': facing });
+                if (facing !== undefined) {
+                    setStates(world, event.block, { 'minecraft:cardinal_direction': opposite(facing) });
+                }
             }
             world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
             if (!bareName(event.block.identifier).endsWith('chest')) return;
@@ -132,7 +139,14 @@ export const furnaceFamily = defineFamily(
         onPlace: (event, world) => {
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
                 const facing = placementFacing(event);
-                if (facing !== undefined) setStates(world, event.block, { 'minecraft:cardinal_direction': facing });
+                if (facing !== undefined) {
+                    // Java's `AbstractFurnaceBlock.getStateForPlacement` opposes the placer's
+                    // horizontal direction, so the mouth faces the player. A campfire keeps
+                    // the placer's own: `CampfireBlock` writes it unopposed, which lays the
+                    // logs the way the placer looks.
+                    const cardinal = bareName(event.block.identifier).endsWith('campfire') ? facing : opposite(facing);
+                    setStates(world, event.block, { 'minecraft:cardinal_direction': cardinal });
+                }
             }
             world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
         },

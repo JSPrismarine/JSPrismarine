@@ -18,14 +18,18 @@ import {
 const origin = { x: 0, y: 0, z: 0 };
 
 describe('containerFamily', () => {
-    it('gives a chest its slots and faces it away from the placer', () => {
+    it('gives a chest its slots and faces it toward the placer', () => {
+        // Java's `ChestBlock.getStateForPlacement` takes the placer's horizontal direction
+        // opposed, so the lid faces the player, and the identity state mapping keeps that
+        // value in Bedrock's `minecraft:cardinal_direction`. This placer stands north of
+        // the chest looking south, so the chest faces north.
         const harness = bindFamily(containerFamily, 'minecraft:chest');
         harness.dimension.set(origin, 'minecraft:chest', { 'minecraft:cardinal_direction': 'south' });
 
         harness.place(origin, { placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 0, z: -4 } } });
 
         expect(harness.dimension.getBlockData(origin)?.capacity).toBe(27);
-        expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('south');
+        expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('north');
     });
 
     it('pairs with the chest beside it, both ways', () => {
@@ -87,6 +91,32 @@ describe('furnaceFamily', () => {
             'minecraft:coal',
             'minecraft:furnace'
         ]);
+    });
+
+    it('faces a placed furnace toward the placer', () => {
+        // Java's `AbstractFurnaceBlock.getStateForPlacement` opposes the placer's horizontal
+        // direction, so the mouth faces the player who placed it.
+        const harness = bindFamily(furnaceFamily, 'minecraft:furnace');
+        harness.dimension.set(origin, 'minecraft:furnace', { 'minecraft:cardinal_direction': 'south' });
+
+        harness.place(origin, { placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 0, z: -4 } } });
+
+        expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('north');
+    });
+
+    it('turns a placed campfire with the placer rather than against them', () => {
+        // Campfires share the family with furnaces but not the rule: Java's
+        // `CampfireBlock.getStateForPlacement` keeps the placer's own horizontal direction,
+        // so the logs lie the way the placer looks.
+        const harness = bindFamily(furnaceFamily, 'minecraft:campfire');
+        harness.dimension.set(origin, 'minecraft:campfire', {
+            extinguished: false,
+            'minecraft:cardinal_direction': 'west'
+        });
+
+        harness.place(origin, { placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 0, z: -4 } } });
+
+        expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('south');
     });
 
     it('puts a campfire out when water sits on it', () => {
