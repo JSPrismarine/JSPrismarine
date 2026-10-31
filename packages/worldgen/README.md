@@ -145,9 +145,8 @@ server's `size`. `parseBiomeSource` builds a `FixedBiomeSource`, `CheckerboardBi
 `MultiNoiseBiomeSource` or `TheEndBiomeSource` from a stem's `biome_source`; a `multi_noise`
 `preset` resolves through the parameter lists the caller passes, keyed by
 `multi_noise_biome_source_parameter_list` id, because the datapack's two list files only name
-the preset and the climate boxes live in the data generator's `reports/biome_parameters`. A flat
-generator's `settings` must be the object itself; a `flat_level_generator_preset` id in its place
-is not resolved. Nothing here decides what a dimension type means to a Bedrock client; the
+the preset and the climate boxes live in the data generator's `reports/biome_parameters`.
+Nothing here decides what a dimension type means to a Bedrock client; the
 server joins the parsed type with `@jsprismarine/mapping`'s overlay, as
 [docs/data-driven/dimensions.md](../../docs/data-driven/dimensions.md) describes.
 
