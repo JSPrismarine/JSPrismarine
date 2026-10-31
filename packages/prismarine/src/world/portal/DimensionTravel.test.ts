@@ -21,9 +21,11 @@ import type { Config } from '../../config/Config';
 import type { ConsoleSender } from '../../command/ConsoleSender';
 import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
-import { fixtureContentOptions } from '../../content/testing';
+import { definitionOf, definitionsOf } from '../../content/ContentOptions';
+import { fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
 import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
+import { EntityRuntimes } from '../../entity/data/live';
 import { Entity } from '../../entity/Entity';
 import { eyePositionAt } from '../../entity/Human';
 import { Item } from '../../entity/other/Item';
@@ -96,11 +98,18 @@ const lightPortal = async (world: World, minCorner: Vector3, axis: 'x' | 'z'): P
 
 let scratch: string;
 
+/** What a scene runs its mobs through: the written classes, or a data runtime per dimension. */
+interface SceneOptions {
+    /** Entity definitions for a data-driven runtime in every dimension; left out, there is none. */
+    readonly entities?: ReturnType<typeof definitionsOf>['entities'];
+}
+
 /** A level with its three vanilla dimensions over a scratch LevelDB, and the server around it. */
-const buildScene = async () => {
+const buildScene = async ({ entities }: SceneOptions = {}) => {
     const folder = path.join(scratch, 'level');
     let level: Level | undefined;
     let content: ServerContent | undefined;
+    const runtimes = entities === undefined ? undefined : new EntityRuntimes();
 
     // A real bus, so a test can listen for the travel events and cancel one.
     const events = new EventEmitter();
@@ -125,7 +134,15 @@ const buildScene = async () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;
         },
-        getEntityRuntime: () => inertEntityRuntime(),
+        // Opening the dimension's content adapter is what builds its runtime, as `Server` does.
+        getEntityRuntime: (dimension) => {
+            if (runtimes === undefined) return inertEntityRuntime();
+            if (content === undefined) throw new Error('the entity runtime was read before the content was built');
+            content.world.blockWorld.at(dimension);
+            const live = runtimes.at(dimension);
+            if (live === undefined) throw new Error(`no entity runtime opened for ${dimension}`);
+            return live;
+        },
         getWorldManager: () =>
             stub<WorldManager>({
                 getWorlds: () => [...(level?.worlds() ?? [])],
@@ -170,7 +187,16 @@ const buildScene = async () => {
     // server's resolves one to the default level's.
     const built = level;
     content = buildServerContent({
-        ...fixtureContentOptions(),
+        ...fixtureContentOptions(
+            entities === undefined
+                ? {}
+                : {
+                      load: () => ({
+                          definitions: definitionsOf({ ...fixtureDefinitions(), entities }),
+                          diagnostics: []
+                      })
+                  }
+        ),
         world: serverWorldSource({
             worldFor: (dimension) => built.loadedWorld(dimensionByName(dimension)?.id ?? dimension),
             content: () => {
@@ -178,7 +204,8 @@ const buildScene = async () => {
                 return content;
             },
             seed: 1234n,
-            difficulty: () => 2
+            difficulty: () => 2,
+            ...(runtimes === undefined ? {} : { entityRuntimes: runtimes })
         })
     });
 
@@ -594,6 +621,71 @@ describe('DimensionTravel.transfer', () => {
         expect(player.getPortalCooldown()).toBe(0);
         expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
         expect(scene.overworld.getPlayers()).toContain(player);
+
+        await scene.level.disable();
+    }, 60_000);
+});
+
+/** A mob no written class answers to, with a component group only an event adds. */
+const TRAVELER = 'jsprismarine:traveler';
+
+const TRAVELER_ENTITIES = new Map([
+    [
+        TRAVELER,
+        definitionOf('entities', TRAVELER, {
+            format_version: '1.21.0',
+            'minecraft:entity': {
+                description: { identifier: TRAVELER, is_spawnable: true, is_summonable: true },
+                components: {
+                    'minecraft:health': { value: 10, max: 10 },
+                    'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                    'minecraft:physics': {},
+                    'minecraft:type_family': { family: ['traveler', 'mob'] }
+                },
+                component_groups: { marked: { 'minecraft:mark_variant': { value: 7 } } },
+                events: { 'jsprismarine:mark': { add: { component_groups: ['marked'] } } }
+            }
+        })
+    ]
+]);
+
+describe('DimensionTravel.transfer of a data-driven mob', () => {
+    it('moves the mob once, with its runtime record and cooldown, into the destination runtime', async () => {
+        const scene = await buildScene({ entities: TRAVELER_ENTITIES });
+        const overworldLive = scene.server.getEntityRuntime(Dimensions.Overworld.name);
+        const netherLive = scene.server.getEntityRuntime(Dimensions.Nether.name);
+        const spawned = overworldLive.runtime.spawn(TRAVELER, { x: 80.5, y: 64, z: 0.5 });
+        if (spawned === undefined) throw new Error('the fixture declares the traveler');
+        // State the record carries and a fresh spawn would not have. `fire` queues the event
+        // for the next runtime tick, which never comes here, so it is applied by hand.
+        spawned.instance.fire('jsprismarine:mark');
+        spawned.instance.applyQueuedEvents();
+        expect(spawned.instance.activeComponentGroups()).toContain('marked');
+        const body = overworldLive.bodies.bodyOf(spawned.id);
+        if (body === undefined) throw new Error('the runtime gave the traveler no body');
+        const travelersIn = (world: World) => world.getEntities().filter((each) => each.getType() === TRAVELER);
+        expect(travelersIn(scene.overworld)).toEqual([body]);
+
+        await scene.travel.transfer(body, {
+            world: scene.nether,
+            position: new Vector3(10.5, 70, 0.5),
+            yaw: 90,
+            pitch: 0
+        });
+
+        expect(travelersIn(scene.overworld)).toEqual([]);
+        expect(overworldLive.runtime.all()).toEqual([]);
+        const arrived = travelersIn(scene.nether);
+        expect(arrived).toHaveLength(1);
+        const id = netherLive.bodies.entityIdOf(arrived[0]!);
+        expect(id).toBeDefined();
+        const restored = id === undefined ? undefined : netherLive.runtime.byId(id);
+        expect(restored?.persistentIdentity).toBe(spawned.persistentIdentity);
+        expect(restored?.instance.activeComponentGroups()).toContain('marked');
+        expect(arrived[0]!.getPosition().getX()).toBe(10.5);
+        expect(arrived[0]!.getPosition().getY()).toBe(70);
+        expect(arrived[0]!.yaw).toBe(90);
+        expect(arrived[0]!.getPortalCooldown()).toBe(300);
 
         await scene.level.disable();
     }, 60_000);

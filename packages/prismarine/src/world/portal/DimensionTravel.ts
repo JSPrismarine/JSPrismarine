@@ -17,7 +17,10 @@ import { PORTAL_CREATION_RADIUS, portalAxisOf, writeEndPlatform } from '@jsprism
 import type { PortalAxis } from '@jsprismarine/block-behaviors';
 import type { BlockPosition } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 
+import { dataEntityRecordOf, writeDataEntityRecord } from '../../entity/data/persistence';
+import type { DataEntityRecord } from '../../entity/data/persistence';
 import type { Entity } from '../../entity/Entity';
 import EntityPortalEnterEvent from '../../events/entity/EntityPortalEnterEvent';
 import PlayerChangeDimensionEvent from '../../events/player/PlayerChangeDimensionEvent';
@@ -131,6 +134,11 @@ export class DimensionTravel {
      * cooldown is the player's 10 ticks. Anything else leaves its world with `removeEntity`,
      * is placed at the arrival and enters the destination with `addEntity`, with the 300 tick
      * cooldown Bedrock writes to `PortalCooldown`.
+     *
+     * A data-driven mob's state lives in its dimension's runtime, which `removeEntity` drops
+     * it from. Its record is written onto the body first, as a save would, so the destination
+     * runtime restores the same entity, component groups and all, under its own new body;
+     * that body then takes the cooldown.
      */
     public async transfer(entity: Entity, arrival: Arrival): Promise<void> {
         const from = entity.getWorld();
@@ -146,6 +154,7 @@ export class DimensionTravel {
         }
 
         entity.setPortalCooldown();
+        const record = this.writeDataRecord(from, entity, arrival);
         await from.removeEntity(entity);
         await entity.setPosition({
             position: Position.fromVector3(arrival.position, arrival.world),
@@ -155,6 +164,38 @@ export class DimensionTravel {
             teleport: true
         });
         await arrival.world.addEntity(entity);
+
+        if (record !== undefined) {
+            this.restoredBodyOf(arrival.world, record)?.setPortalCooldown(entity.getPortalCooldown());
+        }
+    }
+
+    /**
+     * Writes a data-driven mob's runtime record onto its body, facing the way it arrives.
+     *
+     * @returns The record, or undefined when the body is no data-driven mob of its world.
+     */
+    private writeDataRecord(from: World, body: Entity, arrival: Arrival): DataEntityRecord | undefined {
+        const live = this.server.getEntityRuntime(from.getDimension().name);
+        const id = live.bodies.entityIdOf(body);
+        const entity = id === undefined ? undefined : live.runtime.byId(id);
+        if (id === undefined || entity === undefined) return undefined;
+
+        const record: DataEntityRecord = {
+            ...dataEntityRecordOf(entity, live.runtime.poolOf(id), live.runtime.leashHolderIdentityOf(id)),
+            yaw: arrival.yaw,
+            pitch: arrival.pitch
+        };
+        body.persistentNbt ??= new NBTTagCompound('');
+        writeDataEntityRecord(body.persistentNbt, record);
+        return record;
+    }
+
+    /** The body the destination runtime gave a restored record, found by the entity's stable identity. */
+    private restoredBodyOf(to: World, record: DataEntityRecord): Entity | undefined {
+        const live = this.server.getEntityRuntime(to.getDimension().name);
+        const restored = live.runtime.all().find((each) => each.persistentIdentity === record.persistentIdentity);
+        return restored === undefined ? undefined : live.bodies.bodyOf(restored.id);
     }
 
     /** Whether the entity rides or is ridden, as far as the data-driven runtime of its world knows. */
