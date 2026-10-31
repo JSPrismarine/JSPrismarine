@@ -101,6 +101,8 @@ jobs:
               run: |
                   git checkout master
                   pnpm run version:unstable
+                  # Rebuild Prismarine after the snapshot version change so its schema URLs match the published package.
+                  pnpm --filter @jsprismarine/prismarine run build
                   pnpm run release:unstable
 
     aot-data:

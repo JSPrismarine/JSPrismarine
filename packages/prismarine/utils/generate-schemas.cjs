@@ -17,7 +17,7 @@ const schemaFiles = [
 const DRAFT_07 = 'http://json-schema.org/draft-07/schema#';
 const SCHEMA_PROPERTY = {
     type: 'string',
-    description: 'The versioned schema URL for the JSPrismarine version that last wrote this file.'
+    description: 'The schema URL for the JSPrismarine build that last wrote this file.'
 };
 
 /** Generate the package's Draft 7 schemas from its JSON file types. */

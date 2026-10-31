@@ -1,11 +1,11 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { ConfigSyntaxError, parseConfigDocument } from './ConfigDocument';
-import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from './JsonFile';
+import { readJsonFile, removeListEntries, toJsonFileContents, upsertListEntry, writeJsonFile } from './JsonFile';
 
 const hasName = (name: string) => (entry: unknown) =>
     typeof entry === 'object' && entry !== null && 'name' in entry && entry.name === name;
@@ -28,6 +28,7 @@ describe('config', () => {
         });
 
         afterEach(() => {
+            vi.unstubAllGlobals();
             rmSync(directory, { recursive: true, force: true });
         });
 
@@ -89,6 +90,28 @@ describe('config', () => {
             } else {
                 expect(document.get(['$schema'])).toBe(schemaUrl);
             }
+        });
+
+        it('uses the release build version for schema URLs', () => {
+            vi.stubGlobal('BUILD_TYPE', 'release');
+            vi.stubGlobal('BUILD_VERSION', '0.16.0');
+
+            const text = toJsonFileContents(path.join(directory, 'config.json'), parseConfigDocument('{}'));
+
+            expect(parseConfigDocument(text).get(['$schema'])).toBe(
+                'https://unpkg.com/@jsprismarine/prismarine@0.16.0/schemas/config.schema.json'
+            );
+        });
+
+        it('uses the unstable dist-tag for nightly schema URLs', () => {
+            vi.stubGlobal('BUILD_TYPE', 'nightly');
+            vi.stubGlobal('BUILD_VERSION', '0.16.0-nightly.20261031.1');
+
+            const text = toJsonFileContents(path.join(directory, 'config.json'), parseConfigDocument('{}'));
+
+            expect(parseConfigDocument(text).get(['$schema'])).toBe(
+                'https://unpkg.com/@jsprismarine/prismarine@unstable/schemas/config.schema.json'
+            );
         });
 
         it('replaces a matching entry in place and appends a new one with its comment', () => {

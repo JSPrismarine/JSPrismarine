@@ -31,9 +31,11 @@ The server uses `config.json` for its settings.
 
 Draft 7 schemas for the package's JSON configuration and data files are
 included in the published package under `schemas/`. JSON object files receive
-a `$schema` URL pinned to the package version that writes them. The files
-`ops.json` and `banned-players.json` contain arrays at the root and carry their
-pinned schema URL in a leading comment. These URLs use UNPKG, so standalone
+a `$schema` URL for the build that last wrote them. Package builds and release
+executables use their exact version. Standalone nightly executables use the
+`unstable` npm dist-tag, which resolves to the latest unstable package. The
+files `ops.json` and `banned-players.json` contain arrays at the root and carry
+their schema URL in a leading comment. These URLs use UNPKG, so standalone
 server users do not need to install an npm package to access the schemas.
 
 `Block.getJavaTags()` and `Item.getJavaTags()` expose Java datapack tag membership after the
