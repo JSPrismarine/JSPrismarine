@@ -239,8 +239,7 @@ generator for one dimension. The four built-in kinds:
 
 A plugin adds a kind through `GeneratorFactories.register({ kind, build(context) })`; the context
 carries the stem, the `DimensionType`, the seed, the loaded content, a lazy loader for Java's
-worldgen registries and a logger. The older `registerClassGenerator` still works for a class that
-cannot read a stem, and is deprecated.
+worldgen registries and a logger.
 
 Without the Java data cache only the two built-in presets exist: `minecraft:flat` builds its
 Overworld, and `minecraft:normal` fails at the noise stem. With the cache every datapack preset

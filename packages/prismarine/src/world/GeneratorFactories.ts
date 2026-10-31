@@ -92,22 +92,6 @@ export class GeneratorFactories {
     }
 
     /**
-     * Registers a generator class under a kind, the way `GeneratorManager` took one.
-     *
-     * The class is built with the context's content source and logger and knows nothing of
-     * the stem, so it can only generate what it always generated.
-     *
-     * @deprecated Register a {@link GeneratorFactory} that reads the stem. Removed in the next
-     *   release.
-     */
-    public registerClassGenerator(
-        kind: string,
-        generator: new (contentSource: () => ServerContent, logger: GeneratorLogger) => Generator
-    ): void {
-        this.register({ kind, build: (context) => new generator(context.content, context.logger) });
-    }
-
-    /**
      * Builds the generator a stem asks for.
      *
      * @throws {Error} When no factory answers the stem's kind. The message lists the kinds that

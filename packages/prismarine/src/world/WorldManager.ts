@@ -491,11 +491,4 @@ export default class WorldManager implements Service {
     public getGeneratorFactories(): GeneratorFactories {
         return this.generatorFactories;
     }
-
-    /**
-     * @deprecated Use {@link WorldManager.getGeneratorFactories}. Removed in the next release.
-     */
-    public getGeneratorManager(): GeneratorFactories {
-        return this.generatorFactories;
-    }
 }

@@ -26,7 +26,9 @@ import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
-import Overworld from '../Overworld';
+import type { JavaWorldgenRegistries } from './javaWorldgenData';
+import { GeneratorFactories } from '../../GeneratorFactories';
+import { OVERWORLD_NOISE_STEM } from '../factories/noise';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
@@ -96,10 +98,11 @@ const FORTRESS_CHEST_CHUNK_DIGEST = 'f9a1caaf981adaa4f54acc3806aaa2beb1357584f29
 
 describe.skipIf(!enabled)('the structures the data-driven overworld generates', { tags: ['real-data'] }, () => {
     let generator: DataDrivenGenerator;
+    let registries: JavaWorldgenRegistries;
     const chunks = new Map<string, Chunk>();
 
     beforeAll(() => {
-        const registries = loadJavaWorldgenRegistries(sources!);
+        registries = loadJavaWorldgenRegistries(sources!);
         generator = new DataDrivenGenerator({
             registries,
             templates: findJavaTemplateSource(cacheRoot(), registries.processorLists)
@@ -343,7 +346,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     );
 
     it(
-        'forwards guardian spawn overrides through the default overworld generator',
+        'forwards guardian spawn overrides through the generator the Overworld stem builds',
         () => {
             const monument = generator
                 .structureStartsAt(-80, -73, SEED)
@@ -356,8 +359,17 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
                 z: Math.floor((monument.boundingBox.minZ + monument.boundingBox.maxZ) / 2)
             };
             const outside = { ...inside, x: monument.boundingBox.minX - 1 };
-            const overworld: Generator = new Overworld(() => {
-                throw new Error('spawn override lookup does not read server content');
+            const overworld: Generator = new GeneratorFactories().build({
+                stem: OVERWORLD_NOISE_STEM,
+                dimension: Dimensions.Overworld,
+                seed: SEED,
+                content: () => {
+                    throw new Error('spawn override lookup does not read server content');
+                },
+                worldgen: () => registries,
+                logger: { info: () => {}, warn: () => {} },
+                // Workers cannot import a `.ts` pipeline under vitest's loader.
+                workers: 0
             });
 
             expect(overworld.structureSpawnOverrideAt?.('minecraft:guardian', inside, SEED)).toBe(true);

@@ -10,8 +10,7 @@ import type { GeneratorBuildContext } from '../../GeneratorFactories';
 import { GeneratorFactories } from '../../GeneratorFactories';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
-import { FLAT_SEA_LEVEL, FlatGenerator } from '../Flat';
-import { DEFAULT_FLAT_SETTINGS, flatGeneratorFactory, flatStem } from './flat';
+import { DEFAULT_FLAT_SETTINGS, FLAT_SEA_LEVEL, FlatGenerator, flatGeneratorFactory, flatStem } from './flat';
 
 const contextFor = (
     dimension: DimensionType,

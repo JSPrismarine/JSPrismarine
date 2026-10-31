@@ -102,22 +102,4 @@ describe('GeneratorFactories', () => {
         expect(built.map((generator) => generator.stopped)).toEqual([1, 1]);
         expect(loose.stopped).toBe(0);
     });
-
-    it('builds a legacy generator class from the context content and logger', () => {
-        const factories = new GeneratorFactories([]);
-        const received: unknown[] = [];
-
-        class Legacy extends Stoppable {
-            public constructor(contentSource: () => unknown, logger: unknown) {
-                super();
-                received.push(contentSource, logger);
-            }
-        }
-
-        factories.registerClassGenerator('Legacy', Legacy);
-        const generator = factories.build(contextFor(stemOf('Legacy')));
-
-        expect(generator).toBeInstanceOf(Legacy);
-        expect(received).toEqual([testContent, quiet]);
-    });
 });

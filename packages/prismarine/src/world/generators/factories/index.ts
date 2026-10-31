@@ -11,7 +11,15 @@ import { createNoiseGeneratorFactory } from './noise';
 import { voidGeneratorFactory } from './void';
 
 export { DEBUG_GENERATOR_KIND, debugGeneratorFactory } from './debug';
-export { DEFAULT_FLAT_SETTINGS, FLAT_GENERATOR_KIND, flatGeneratorFactory, flatStem } from './flat';
+export {
+    DEFAULT_FLAT_SETTINGS,
+    FLAT_GENERATOR_KIND,
+    FLAT_SEA_LEVEL,
+    FlatGenerator,
+    type FlatGeneratorOptions,
+    flatGeneratorFactory,
+    flatStem
+} from './flat';
 export { NOISE_GENERATOR_KIND, OVERWORLD_NOISE_STEM, createNoiseGeneratorFactory } from './noise';
 export { VOID_GENERATOR_KIND, voidGeneratorFactory, voidStem } from './void';
 
