@@ -3,7 +3,7 @@ import type { LevelStem, NoiseGeneratorDefinition } from '@jsprismarine/worldgen
 import type { GeneratorLogger } from '../../BaseGenerator';
 import type { GeneratorBuildContext, GeneratorFactory } from '../../GeneratorFactories';
 import { chunkWorkerCount } from '../chunkConcurrency';
-import type { PipelineKey, StagePoolOptions } from '../datadriven/DataDrivenGenerator';
+import type { PipelineKey, StagePoolOptions, StemKey } from '../datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from '../datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../datadriven/javaStructureTemplates';
 import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
@@ -64,7 +64,7 @@ export const createNoiseGeneratorFactory = (): GeneratorFactory => {
                 ...settings,
                 biomeSource: generator.biomeSource,
                 dimension: context.dimension
-            } satisfies PipelineKey);
+            } satisfies StemKey);
         }
     };
 };

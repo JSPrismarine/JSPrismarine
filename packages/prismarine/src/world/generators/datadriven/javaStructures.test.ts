@@ -21,7 +21,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type Chunk from '../../chunk/Chunk';
 import type { Generator } from '../../Generator';
 import { Dimensions } from '../../Dimension';
-import type { PipelineKey } from './DataDrivenGenerator';
+import type { StemKey } from './DataDrivenGenerator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
@@ -56,7 +56,7 @@ const TRAIL_RUINS_CHUNK = { x: -113, z: 50 };
 const DESERT_WELL_CHUNK = { x: -691, z: -239 };
 
 /** The End's level stem, which the end city is the one structure of. */
-const END_STEM: PipelineKey = {
+const END_STEM: StemKey = {
     noiseSettings: 'minecraft:end',
     biomeSource: { type: 'minecraft:the_end' },
     dimension: Dimensions.TheEnd
@@ -74,7 +74,7 @@ const END_CITY_CHUNK = { x: -77, z: -37 };
 const END_CITY_CHUNK_DIGEST = 'dabf486203e5f5147adcfc30f7ab52eaafdf3c00b2b8d9501f042a4f27701d0d';
 
 /** The stem the Nether runs on, which is what `forStem` and `structureStartsAt` take. */
-const NETHER_STEM: PipelineKey = {
+const NETHER_STEM: StemKey = {
     noiseSettings: 'minecraft:nether',
     biomeSource: { type: 'minecraft:multi_noise', preset: 'minecraft:nether' },
     dimension: Dimensions.Nether

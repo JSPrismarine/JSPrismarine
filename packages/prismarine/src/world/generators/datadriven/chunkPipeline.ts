@@ -52,6 +52,9 @@ export interface ChunkPipelineSetup {
 /**
  * What every chunk task carries: the key the worker compiles its pipeline from and the seed, as
  * a string because a bigint does not clone.
+ *
+ * The key's dimension is the bounds and ids record, not the whole type, so a task clones a
+ * few numbers rather than the Java definition behind the dimension.
  */
 export interface ChunkTaskInput extends PipelineKey {
     /** The world seed as a decimal string, because a `bigint` does not survive every clone. */

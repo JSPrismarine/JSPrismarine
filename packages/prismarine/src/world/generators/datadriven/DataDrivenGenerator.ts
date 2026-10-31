@@ -305,6 +305,33 @@ export interface TerrainTaskInput extends ChunkTaskInput {
 }
 
 /**
+ * The dimension as a chunk task carries it: the bounds every chunk takes and the two ids the
+ * pool and the cache key read.
+ *
+ * A {@link DimensionType} also holds its Java definition, attributes map included, and a task
+ * is structured-cloned into a worker per chunk, so the key carries this record instead.
+ * {@link pipelineDimensionOf} makes one from a type.
+ */
+export interface PipelineDimension {
+    /** The Java `dimension_type` id, which keys the compiled pipeline. */
+    readonly id: string;
+    /** The Bedrock dimension id, which the pool shards tasks by. */
+    readonly bedrockId: number;
+    /** The lowest block y. */
+    readonly minY: number;
+    /** How many blocks tall the dimension is. */
+    readonly height: number;
+}
+
+/** The record a task carries for a dimension type. */
+export const pipelineDimensionOf = (dimension: DimensionType): PipelineDimension => ({
+    id: dimension.id,
+    bedrockId: dimension.bedrockId,
+    minY: dimension.minY,
+    height: dimension.height
+});
+
+/**
  * What picks one compiled pipeline out of a generator shared between dimensions: the settings a
  * level stem names and the dimension it fills. The seed is the other half of the cache key and
  * travels separately, because one key serves every world on the server that uses that stem.
@@ -328,8 +355,26 @@ export interface PipelineKey {
     /** The biome layout, as the stem's `biome_source` describes it. */
     readonly biomeSource: BiomeSourceDefinition;
     /** The dimension whose bounds every chunk of this key takes. */
+    readonly dimension: PipelineDimension;
+}
+
+/**
+ * What {@link DataDrivenGenerator.forStem} takes: a {@link PipelineKey} whose dimension is the
+ * whole type. The generator slims it for the tasks it sends and keeps the type for the chunks it
+ * hands back, which carry it as `Chunk.getDimension()`.
+ */
+export interface StemKey extends Omit<PipelineKey, 'dimension'> {
+    /** The dimension the stem fills. */
     readonly dimension: DimensionType;
 }
+
+/** The task-borne key of a stem key. */
+const pipelineKeyOf = (stem: StemKey): PipelineKey => ({
+    noiseSettings: stem.noiseSettings,
+    ...(stem.inlineNoiseSettings === undefined ? {} : { inlineNoiseSettings: stem.inlineNoiseSettings }),
+    biomeSource: stem.biomeSource,
+    dimension: pipelineDimensionOf(stem.dimension)
+});
 
 /** Whether a value cloned across the worker boundary has every field of a {@link PipelineKey}. */
 export const isPipelineKey = (value: unknown): value is PipelineKey =>
@@ -374,7 +419,7 @@ interface SeededPipeline {
     /** The settings and dimension this pipeline was compiled for. */
     readonly key: PipelineKey;
     /** The dimension of {@link SeededPipeline.key}, whose bounds every chunk takes. */
-    readonly dimension: DimensionType;
+    readonly dimension: PipelineDimension;
     /** The biome layout of {@link SeededPipeline.key}, parsed once per key. */
     readonly biomeSource: BiomeSource;
     readonly randomState: RandomState;
@@ -623,6 +668,12 @@ const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] =
 export class DataDrivenGenerator implements Generator {
     /** The key the instance's own `Generator` methods generate under. */
     private readonly defaultKey: PipelineKey;
+    /**
+     * The dimension types behind the keys this thread built views for, by Java id. A chunk is
+     * handed back with the type its stem was built with, so a key that arrived in a worker task
+     * has no entry and a worker never builds a `Chunk`.
+     */
+    private readonly chunkDimensions = new Map<string, DimensionType>();
     private readonly worldgen: WorldgenData;
     private readonly materialRules: MaterialRuleData;
     private readonly structureSpawnOverrides: ReadonlyMap<string, readonly StructureSpawnOverride[]>;
@@ -684,10 +735,12 @@ export class DataDrivenGenerator implements Generator {
             registries.structures,
             naturalSpawnTypesOf(registries.biomes)
         );
+        const defaultDimension = options.dimension ?? Dimensions.Overworld;
+        this.chunkDimensions.set(defaultDimension.id, defaultDimension);
         this.defaultKey = {
             noiseSettings: options.noiseSettings ?? DEFAULT_NOISE_SETTINGS,
             biomeSource: options.biomeSource ?? DEFAULT_BIOME_SOURCE,
-            dimension: options.dimension ?? Dimensions.Overworld
+            dimension: pipelineDimensionOf(defaultDimension)
         };
         this.noiseSettingsDocuments = new Map(registries.noiseSettings);
         this.worldgen = new WorldgenData({
@@ -951,7 +1004,9 @@ export class DataDrivenGenerator implements Generator {
      *   stem should fail rather than at its first chunk. The noise settings id is checked when
      *   the first pipeline compiles; a factory that wants it checked earlier looks it up first.
      */
-    public forStem(key: PipelineKey): Generator {
+    public forStem(stem: StemKey): Generator {
+        this.chunkDimensions.set(stem.dimension.id, stem.dimension);
+        const key = pipelineKeyOf(stem);
         this.biomeSourceFor(key);
         const settingsOf = () => this.settingsFor(key);
 
@@ -1650,7 +1705,7 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** Where a chunk's band is kept: by the dimension's Bedrock id and the position. */
-    private urgencyKey(pipeline: { readonly dimension: DimensionType }, chunkX: number, chunkZ: number): string {
+    private urgencyKey(pipeline: { readonly dimension: PipelineDimension }, chunkX: number, chunkZ: number): string {
         return `${pipeline.dimension.bedrockId}:${chunkX},${chunkZ}`;
     }
 
@@ -1826,7 +1881,7 @@ export class DataDrivenGenerator implements Generator {
      * hands a chunk back and therefore the work that caps the pool.
      */
     private toChunk(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): Chunk {
-        const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), pipeline.dimension);
+        const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), this.chunkDimensionOf(pipeline));
         // The constructor is a load rather than a write, so nothing has told the chunk it is
         // unsaved. A generated chunk is exactly the thing that has never been written to disk.
         chunk.markChanged();
@@ -2001,6 +2056,20 @@ export class DataDrivenGenerator implements Generator {
             }
             biomes.setSection(floor + section, packed);
         }
+    }
+
+    /**
+     * The type a chunk of the pipeline's dimension is built with.
+     *
+     * @throws {Error} When no view for the dimension was built on this thread, which is a bug
+     *   in this class: a worker hands back a region, never a chunk.
+     */
+    private chunkDimensionOf(pipeline: SeededPipeline): DimensionType {
+        const dimension = this.chunkDimensions.get(pipeline.dimension.id);
+        if (dimension === undefined) {
+            throw new Error(`No view of ${pipeline.dimension.id} was built on this thread, so its chunks have no type`);
+        }
+        return dimension;
     }
 
     /** The compiled pipeline for one key and seed, built on first use and kept. */

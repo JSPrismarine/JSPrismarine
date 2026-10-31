@@ -4,7 +4,7 @@ import { Generator } from '@jsprismarine/minecraft';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import type { DimensionType } from '@jsprismarine/prismarine/world/Dimension';
 import { dimensionTypeOf, maxSubChunk, minSubChunk, subChunkCount } from '@jsprismarine/prismarine/world/Dimension';
-import type { PipelineKey } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import type { StemKey } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
 import { bedrockBiomeIdOf } from '@jsprismarine/prismarine/world/generators/datadriven/javaTranslation';
 import type {
@@ -252,7 +252,7 @@ interface VanillaDimension {
     readonly stemId: string;
     readonly stem: LevelStem;
     readonly dimension: DimensionType;
-    readonly key: PipelineKey;
+    readonly key: StemKey;
     /** The Bedrock biome ids the stem's biome source can produce. */
     readonly biomeIds: ReadonlySet<number>;
 }

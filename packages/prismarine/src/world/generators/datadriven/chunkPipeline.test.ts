@@ -26,7 +26,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import { Dimensions } from '../../Dimension';
 import type { ChunkPipelineSetup, ChunkTaskInput } from './chunkPipeline';
 import { createGenerationPipeline } from './chunkPipeline';
-import { defaultChunkPipeline } from './DataDrivenGenerator';
+import { defaultChunkPipeline, isPipelineKey, pipelineDimensionOf } from './DataDrivenGenerator';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { findJavaWorldgenSources } from './javaWorldgenData';
 import { shareRegistryBundle } from './registryBundle';
@@ -76,6 +76,23 @@ describe('what a worker is handed', () => {
         expectTypeOf<ChunkTaskInput>().toHaveProperty('biomeSource');
     });
 
+    it('carries the dimension as its bounds and ids, not the whole type', () => {
+        // Every task is structured-cloned into a worker. The Java definition behind a type,
+        // its attributes map included, is nothing a worker reads and would ride along per chunk.
+        expectTypeOf<ChunkTaskInput['dimension']>().not.toHaveProperty('java');
+        expectTypeOf<ChunkTaskInput['dimension']>().not.toHaveProperty('custom');
+
+        const slim = pipelineDimensionOf(Dimensions.Nether);
+        expect(slim).toEqual({ id: 'minecraft:the_nether', bedrockId: 1, minY: 0, height: 128 });
+        expect(
+            isPipelineKey({
+                noiseSettings: 'minecraft:nether',
+                biomeSource: { type: 'minecraft:fixed' },
+                dimension: slim
+            })
+        ).toBe(true);
+    });
+
     it('refuses a task that names a seed but no pipeline key', async () => {
         const pipeline = createGenerationPipeline({
             registryBundle: shareRegistryBundle(emptyRegistries()),
@@ -107,7 +124,7 @@ describe('what a worker is handed', () => {
             seed: '1',
             noiseSettings: 'minecraft:end',
             biomeSource: { type: 'minecraft:the_end' },
-            dimension: Dimensions.TheEnd
+            dimension: pipelineDimensionOf(Dimensions.TheEnd)
         };
 
         // Past the boundary check and into the generator, which with empty registries fails on
@@ -145,7 +162,7 @@ describe('the pipeline module in a worker thread', () => {
             seed: '1',
             noiseSettings: 'minecraft:end',
             biomeSource: { type: 'minecraft:the_end' },
-            dimension: Dimensions.TheEnd
+            dimension: pipelineDimensionOf(Dimensions.TheEnd)
         };
 
         try {
