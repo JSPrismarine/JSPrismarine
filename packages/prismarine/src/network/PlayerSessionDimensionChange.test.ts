@@ -27,6 +27,7 @@ import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttribut
 import { describe, expect, it } from 'vitest';
 
 import type { Entity } from '../entity/Entity';
+import { EYE_HEIGHT } from '../entity/Human';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/DimensionType';
@@ -172,9 +173,31 @@ describe('PlayerSession.changeWorld', () => {
         const data = changes[0]!.getPacketData();
         expect(data?.dimension).toBe(Dimensions.Nether.bedrockId);
         expect(data?.respawn).toBe(false);
-        expect(data?.position).toEqual({ x: 100.5, y: 70, z: -20.5 });
+        expect(data?.position).toEqual({ x: 100.5, y: 70 + EYE_HEIGHT, z: -20.5 });
         expect(data?.loadingScreenId).toBe(session.pendingDimensionChange()?.loadingScreenId);
         expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+    });
+
+    it('stands the player with their feet at the arrival, and sends the eyes above it to the client', async () => {
+        // Every producer of an arrival hands over feet: a portal's exit, the End platform, a
+        // spawn block. The player's own position is their eyes, as the client reports it, so
+        // the arrival is raised once and the packet and the closing teleport carry the same
+        // eyes. Written straight in, the feet would sink 1.62 blocks into the arrival floor.
+        const { player, sent, level } = fakePlayer();
+        const session = player.getNetworkSession();
+
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, [], level)));
+
+        expect(player.getFeetY()).toBeCloseTo(70);
+        expect(player.getPosition().getY()).toBeCloseTo(70 + EYE_HEIGHT);
+        const change = sent.find((p) => p instanceof ChangeDimensionPacket);
+        expect(change?.getPacketData()?.position.getY()).toBeCloseTo(70 + EYE_HEIGHT);
+
+        sent.length = 0;
+        await session.completeDimensionChange(session.pendingDimensionChange()!.loadingScreenId);
+        const move = sent.find((p) => p instanceof MovePlayerPacket);
+        expect(move?.getPacketData()?.mode).toBe(PositionMode.Teleport);
+        expect(move?.getPacketData()?.position.y).toBe(change?.getPacketData()?.position.getY());
     });
 
     it('detours through another dimension only when the two worlds share a Bedrock id', async () => {
@@ -244,6 +267,9 @@ describe('PlayerSession.changeWorld', () => {
 
         const change = sent.find((p) => p instanceof ChangeDimensionPacket);
         expect(change?.getPacketData()?.respawn).toBe(true);
+        // `RespawnHandler` passes the spawn block, whose height is the feet's, so the body
+        // stands where `Player.respawn` will put the eyes once the client asks to live again.
+        expect(player.getPosition().getY()).toBeCloseTo(70 + EYE_HEIGHT);
     });
 
     it('sends the arrival chunks with the target dimension id', async () => {

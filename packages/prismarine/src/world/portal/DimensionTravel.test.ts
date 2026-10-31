@@ -27,7 +27,6 @@ import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
 import { EntityRuntimes } from '../../entity/data/live';
 import { Entity } from '../../entity/Entity';
-import { eyePositionAt } from '../../entity/Human';
 import { Item } from '../../entity/other/Item';
 import type ClientConnection from '../../network/ClientConnection';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
@@ -596,6 +595,8 @@ describe('DimensionTravel.transfer', () => {
 
         expect(seen).toEqual([[scene.overworld, scene.nether]]);
         expect(player.getWorld()).toBe(scene.nether);
+        // The arrival is feet, like a mob's; a player stores their eyes, so the two differ.
+        expect(player.getFeetY()).toBeCloseTo(70);
         expect(player.getPortalCooldown()).toBe(10);
         expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.nether);
         expect(scene.overworld.getPlayers()).not.toContain(player);
@@ -785,13 +786,7 @@ describe('DimensionTravel through the tick', () => {
 
         // The bot stands in the portal the trip built. Its 10 tick cooldown runs out while the
         // client has still not closed the screen, and the Nether keeps ticking it.
-        // Stood in the portal by hand: `changeWorld` writes the arrival, which is a feet
-        // position, as the player's eye position, so the bot would otherwise arrive 1.62
-        // blocks down in the obsidian floor. That is a separate defect from the one here.
-        await bot.setPosition(
-            { position: Position.fromVector3(eyePositionAt(new Vector3(9.5, 70, 0.5)), scene.nether) },
-            false
-        );
+        expect(bot.getFeetY()).toBeCloseTo(70);
         for (let tick = 81; tick <= 180; tick += 1) await scene.nether.update(tick);
 
         // The world never dispatched a touch for the bot, so no contact and no event.

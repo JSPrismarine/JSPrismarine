@@ -688,10 +688,13 @@ describe('Player', () => {
 
             await player.setWorld(nether());
 
+            // The stored spawn is the block under a joining player's feet, so the feet go one
+            // block up, centered, and the eyes the client is told about are 1.62 above that.
             const change = sent.find((packet) => packet instanceof ChangeDimensionPacket);
-            expect(change?.getPacketData()?.position).toEqual({ x: 8.5, y: 70, z: -3.5 });
+            expect(change?.getPacketData()?.position).toEqual({ x: 8.5, y: 71 + EYE_HEIGHT, z: -3.5 });
             expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
             expect(player.getPosition().getX()).toBe(8.5);
+            expect(player.getFeetY()).toBeCloseTo(71);
             expect(player.yaw).toBe(45);
             expect(player.pitch).toBe(-10);
             expect(player.getNetworkSession().pendingDimensionChange()).toBeDefined();

@@ -205,8 +205,21 @@ describe('traveling through a nether portal on a real server', () => {
         expect(move.data.mode).toBe(PositionMode.Teleport);
         expect(move.data.runtimeEntityId).toBe(client.getStartGame()!.runtimeEntityId);
         expect(move.data.position.x).toBeCloseTo(change.data.position.getX());
+        expect(move.data.position.y).toBeCloseTo(change.data.position.getY());
         expect(move.data.position.z).toBeCloseTo(change.data.position.getZ());
         expect(indexOf(PacketIdentifier.MOVE_PLAYER)).toBeGreaterThan(firstNetherChunk);
+
+        // Both carry the eyes the server holds, and the feet below them stand in the portal
+        // the trip built rather than in its obsidian floor.
+        expect(move.data.position.y).toBeCloseTo(player.getPosition().getY());
+        const underfoot = await player
+            .getWorld()
+            .getBlock(
+                Math.floor(player.getPosition().getX()),
+                Math.floor(player.getFeetY()),
+                Math.floor(player.getPosition().getZ())
+            );
+        expect(underfoot.getName()).toBe('minecraft:portal');
 
         // The sequence is read whole: nothing in it reached the client without a codec.
         for (const id of [

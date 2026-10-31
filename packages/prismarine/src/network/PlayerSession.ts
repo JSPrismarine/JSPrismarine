@@ -34,6 +34,7 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { bedrockMobEffectId } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import type Human from '../entity/Human';
+import { eyePositionAt } from '../entity/Human';
 import type { Item as ItemEntity } from '../entity/other/Item';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import { blockContainerOf } from '../inventory/blockContainers';
@@ -145,13 +146,16 @@ const argumentNamesOf = (node: CommandTreeNode): Map<CommandArgumentType, string
 /**
  * Where a player lands when {@link PlayerSession.changeWorld} moves them.
  *
- * The position is the feet position in `world`, which is what `ChangeDimensionPacket` carries
- * and what the `MovePlayer` teleport at the end of the change repeats.
+ * The position is the feet position in `world`, as a portal's exit, the End platform, a spawn
+ * block and `/tp` all produce it. A player's own position is their eyes (see
+ * {@link import('../entity/Human').EYE_HEIGHT}), so `changeWorld` raises the arrival once, and
+ * `ChangeDimensionPacket` and the `MovePlayer` teleport at the end of the change both carry
+ * those eyes.
  */
 export interface Arrival {
     /** The world the player arrives in. */
     world: World;
-    /** Feet position in `world`. */
+    /** Feet position in `world`, never the eyes. */
     position: Vector3;
     yaw: number;
     pitch: number;
@@ -1495,7 +1499,7 @@ export default class PlayerSession {
      * dimension type is logged as an error and dropped: a `ChangeDimension` with an id of
      * {@link import('../world/DimensionType').FIRST_CUSTOM_DIMENSION_ID} or more has not been
      * verified against a real client, so this stays on the vanilla three until one is.
-     * @param arrival - The world, position and rotation the player lands at.
+     * @param arrival - The world, feet position and rotation the player lands at.
      */
     public async changeWorld(arrival: Arrival): Promise<void> {
         const player = this.player;
@@ -1539,11 +1543,17 @@ export default class PlayerSession {
         await this.despawnAllTrackedEntities();
         await this.clearChunks();
 
+        // The arrival is feet; the position a player holds is their eyes, like everything their
+        // client reports. Raised here and nowhere else, so the stored position, the packet and
+        // the teleport that closes the change agree. Written in as feet, the player would
+        // stand 1.62 blocks down in the arrival floor.
+        const eyes = eyePositionAt(arrival.position);
+
         // Not broadcast: nobody in the new world sees the player yet, and the client's own
         // teleport waits for the screen to close.
         await player.setPosition(
             {
-                position: Position.fromVector3(arrival.position, world),
+                position: Position.fromVector3(eyes, world),
                 type: PositionMode.Teleport,
                 pitch: arrival.pitch,
                 yaw: arrival.yaw,
@@ -1553,14 +1563,14 @@ export default class PlayerSession {
         );
         await world.addEntity(player);
 
-        if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, arrival.position);
+        if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, eyes);
 
         const loadingScreenId = this.beginLoadingScreen();
         this.pendingChange = { loadingScreenId, arrival, left: left.name };
         await this.send(
             new ChangeDimensionPacket({
                 dimension: target.bedrockId,
-                position: arrival.position,
+                position: eyes,
                 respawn: arrival.respawn ?? false,
                 loadingScreenId
             })
@@ -1594,6 +1604,7 @@ export default class PlayerSession {
      * status, ahead of the real `ChangeDimension`. It is what `Player.setWorld` sent for every
      * change before dimensions existed, kept for the one case where the client would
      * otherwise never close the screen.
+     * @param position - The eyes the real `ChangeDimension` carries.
      */
     private async detourFrom(bedrockId: number, position: Vector3): Promise<void> {
         const away = bedrockId === Dimension.NETHER ? Dimension.OVERWORLD : Dimension.NETHER;

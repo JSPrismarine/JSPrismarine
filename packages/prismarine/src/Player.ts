@@ -39,7 +39,7 @@ import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
 import type { World, WorldPlayerData } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
-import { respawnPoint } from './world/SpawnPlacement';
+import { requestedSpawnPosition, respawnPoint } from './world/SpawnPlacement';
 import { resolveRespawn } from './world/RespawnPoint';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
 import { dimensionByName } from './world/DimensionType';
@@ -522,15 +522,17 @@ export default class Player extends Human {
     /**
      * Moves the player to another world, arriving at that world's spawn.
      *
-     * The sequence lives in {@link PlayerSession.changeWorld}; this is the entry point for
-     * callers that have a world and no arrival of their own, such as a teleport between
-     * worlds, which moves the player again once the change completes.
+     * The stored spawn is the block under a joining player's feet, so the feet go one block
+     * above it, centered, as {@link requestedSpawnPosition} says before the terrain is
+     * consulted. The sequence lives in {@link PlayerSession.changeWorld}; this is the entry
+     * point for callers that have a world and no arrival of their own, such as a teleport
+     * between worlds, which moves the player again once the change completes.
      * @param {World} world - the new world
      */
     public async setWorld(world: World): Promise<void> {
         return this.getNetworkSession().changeWorld({
             world,
-            position: await world.getSpawnPosition(),
+            position: requestedSpawnPosition(await world.getSpawnPosition()),
             yaw: this.yaw,
             pitch: this.pitch
         });
