@@ -25,7 +25,7 @@ const blockWorld = () => {
         }
     };
 
-    const blockAt: BlockLookup = (x, y, z) => blocks.get(key(x, y, z)) ?? { name: 'minecraft:air', states: {} };
+    const blockAt: BlockLookup = (at) => blocks.get(key(at.x, at.y, at.z)) ?? { name: 'minecraft:air', states: {} };
     return { portal, blockAt, index };
 };
 

@@ -259,7 +259,7 @@ export class DimensionTravel {
         const relative = relativePosition(source, feet, size);
         const target = scalePosition(from.getDimension(), to.getDimension(), feet);
 
-        const lookup: BlockLookup = (x, y, z) => to.loadedBlockAt(x, y, z);
+        const lookup: BlockLookup = (at) => to.loadedBlockAt(at.x, at.y, at.z);
         let destination = findExitPortal(to.getPortalIndex(), lookup, target, travel.portalSearchRadius);
         if (destination === undefined) {
             // The chunks a portal would be created in, which also brings any portal already
@@ -292,7 +292,7 @@ export class DimensionTravel {
      */
     private sourceRectangle(from: World, portal: PortalBlockRef): PortalRectangle {
         const at = blockOf(portal.position);
-        const read = portalRectangleAround((x, y, z) => from.loadedBlockAt(x, y, z), at);
+        const read = portalRectangleAround((position) => from.loadedBlockAt(position.x, position.y, position.z), at);
         if (read !== undefined) return read;
 
         const block = from.loadedBlockAt(at.x, at.y, at.z);

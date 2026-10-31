@@ -28,7 +28,7 @@ export interface IndexedBlock {
 }
 
 /** The block at a position, or undefined where the chunk is not in memory. */
-export type BlockLookup = (x: number, y: number, z: number) => IndexedBlock | undefined;
+export type BlockLookup = (at: BlockPosition) => IndexedBlock | undefined;
 
 /**
  * The interior of one lit portal, Java's `BlockUtil.FoundRectangle`.
@@ -63,7 +63,7 @@ export interface RelativePortalPosition {
 export const PORTAL_AXIS_TURN_DEGREES = 90;
 
 const isPortalAt = (blockAt: BlockLookup, at: BlockPosition): boolean => {
-    const block = blockAt(at.x, at.y, at.z);
+    const block = blockAt(at);
     return block !== undefined && isNetherPortal(block.name);
 };
 
@@ -88,7 +88,7 @@ const runLength = (
  * wrote, the axis a neighboring portal block lies on, x when it stands alone.
  */
 const axisAt = (blockAt: BlockLookup, at: BlockPosition): PortalAxis => {
-    const block = blockAt(at.x, at.y, at.z);
+    const block = blockAt(at);
     const declared = block === undefined ? undefined : portalAxisOf(block);
     if (declared !== undefined) return declared;
     if (isPortalAt(blockAt, alongPortalAxis(at, 'x', 1)) || isPortalAt(blockAt, alongPortalAxis(at, 'x', -1)))
