@@ -251,5 +251,5 @@ the block.
   dimension type or a noise setting. No field of `ServerContent` holds that projection; the
   manager builds and caches it, and the biome parameter reports it joins in come from the Java
   data cache rather than from any pack. The deprecated `Overworld` class in
-  `world/generators/Generators.ts` still reads a one-member stack of the vanilla datapack, as
-  it has no server to ask.
+  `world/generators/Overworld.ts` still reads the vanilla datapack alone, as it has no server to
+  ask.
