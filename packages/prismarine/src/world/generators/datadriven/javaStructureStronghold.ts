@@ -1,5 +1,6 @@
 /**
- * The stronghold, the one structure whose rooms Java still grows piece by piece in code.
+ * The stronghold, one of the two structures Java still grows room by room in code. The nether
+ * fortress is the other, and it shares the box, state turn and chest helpers exported here.
  *
  * `StrongholdStructure.findGenerationPoint` starts a stairwell at the chunk's corner facing a
  * drawn direction, then grows a graph: each room opens one to five doors, each door draws a room
@@ -228,7 +229,7 @@ const isFacing = (value: string): value is Facing =>
  * A `facing` moves, the four connection sides of a fence or a pane move with it, and a door
  * hinge swaps whenever the turn includes the mirror.
  */
-const orientedState = (state: BlockState, orientation: Facing): BlockState => {
+export const orientedState = (state: BlockState, orientation: Facing): BlockState => {
     if (orientation === 'north') return state;
 
     const properties = state.properties;
@@ -262,7 +263,7 @@ const orientedState = (state: BlockState, orientation: Facing): BlockState => {
 // ---------------------------------------------------------------------------
 
 /** Java's `BoundingBox.orientBox`: a box of a given extent laid out from a door, facing a way. */
-const orientBox = (
+export const orientBox = (
     footX: number,
     footY: number,
     footZ: number,
@@ -314,8 +315,8 @@ const orientBox = (
     }
 };
 
-/** Java's `StructurePiece.makeBoundingBox`, which only the start stairwell uses. */
-const makeBoundingBox = (
+/** Java's `StructurePiece.makeBoundingBox`, which only a structure's start piece uses. */
+export const makeBoundingBox = (
     x: number,
     y: number,
     z: number,
@@ -645,7 +646,7 @@ abstract class StrongholdPiece implements StructurePiece {
  * With no solid neighbor, or with more than one, it keeps its default north and then turns away
  * from whatever it would be facing into.
  */
-const chestFacing = (writer: StructureWriter, x: number, y: number, z: number): Facing => {
+export const chestFacing = (writer: StructureWriter, x: number, y: number, z: number): Facing => {
     const solidAt = (facing: Facing): boolean => {
         const [dx, dy, dz] = DIRECTION_STEPS[facing];
         return isFullBlock(writer.blockAt(x + dx, y + dy, z + dz));
