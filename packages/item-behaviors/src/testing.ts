@@ -47,6 +47,8 @@ export interface TestWorldOptions {
     readonly randoms?: readonly number[];
     /** What `effectsOf` answers, keyed by potion identifier. */
     readonly potions?: Readonly<Record<string, readonly EffectApplication[]>>;
+    /** What `locate` answers, keyed by structure tag; a tag absent here has nothing in range. */
+    readonly structures?: Readonly<Record<string, BlockPosition>>;
 }
 
 /** The double, which is a {@link WorldActions} plus the log and a few setters. */
@@ -99,6 +101,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
     );
     const transforms = new Map<string, BlockPlacement>(Object.entries(options.transforms ?? {}));
     const potions = new Map<string, readonly EffectApplication[]>(Object.entries(options.potions ?? {}));
+    const structures = new Map<string, BlockPosition>(Object.entries(options.structures ?? {}));
     const randoms = options.randoms ?? [0.5];
 
     const environment: EnvironmentState = { ...DEFAULT_ENVIRONMENT, ...options.environment };
@@ -118,6 +121,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         transform: (transformer, block) => transforms.get(`${transformer}|${block.identifier}`),
         effectsOf: (potion) => potions.get(potion) ?? [],
         random: () => randoms[Math.min(draws++, randoms.length - 1)]!,
+        locate: (destination) => structures.get(destination),
         perform: (action) => {
             actions.push(action);
         },

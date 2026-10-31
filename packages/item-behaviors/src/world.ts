@@ -4,10 +4,10 @@
  * Everything in this package reaches the world through {@link WorldActions}
  * and nothing else, so the behavior families compile and test without the
  * server. The interface has nine required queries and one
- * {@link WorldActions.perform}; two optional capability queries let a host
- * decline an entity action before the item is consumed. World changes remain
- * variants of {@link ItemWorldAction} rather than new methods every adapter
- * has to grow.
+ * {@link WorldActions.perform}; three optional queries let a host decline an
+ * entity action before the item is consumed, or answer a structure search.
+ * World changes remain variants of {@link ItemWorldAction} rather than new
+ * methods every adapter has to grow.
  */
 import type { BlockFace, BlockPosition, BlockReference, HolderSet, ItemSource, ItemStack } from '@jsprismarine/items';
 
@@ -288,12 +288,20 @@ export interface MapAction {
     readonly item: ItemStack;
 }
 
-/** Find a structure, which is the eye of ender and an explorer map. */
-export interface LocateAction {
-    readonly kind: 'locate';
+/**
+ * Throw a signal that flies toward a position, which is the eye of ender.
+ *
+ * The behavior has already asked {@link WorldActions.locate} where to send
+ * it: a signal with nowhere to go is never thrown, because Java throws
+ * nothing when no stronghold is in range.
+ */
+export interface SignalAction {
+    readonly kind: 'signal';
     readonly source: ItemSource;
-    /** The structure tag to search, such as `minecraft:eye_of_ender_located`. */
-    readonly destination: string;
+    /** What the signal drops when it survives its flight, which is the stack it was thrown as. */
+    readonly item: ItemStack;
+    /** Where it flies toward, which is the located structure's generation point. */
+    readonly target: BlockPosition;
 }
 
 /** Open a screen for the source, which is the book editor and the lectern. */
@@ -331,7 +339,6 @@ export type ItemWorldAction =
     | GrantExperienceAction
     | IgniteAction
     | LaunchProjectileAction
-    | LocateAction
     | MapAction
     | NameEntityAction
     | OpenScreenAction
@@ -339,6 +346,7 @@ export type ItemWorldAction =
     | PlaySoundAction
     | RemoveEffectsAction
     | ShearEntityAction
+    | SignalAction
     | SpawnEntityAction
     | StartCooldownAction
     | TeleportRandomlyAction;
@@ -411,6 +419,20 @@ export interface WorldActions {
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a target entity accepts this dye, when the host can answer. */
     canDyeEntity?(target: ItemSource, color: string): boolean;
+    /**
+     * The nearest structure in a structure tag, when the host has a structure
+     * search.
+     *
+     * Java's `ServerLevel.findNearestMapStructure`, which the eye of ender
+     * calls with `#minecraft:eye_of_ender_located` and a hundred chunks. The
+     * host decides the radius, because it belongs to the search and not to
+     * the item.
+     *
+     * @param destination - The structure tag, such as `minecraft:eye_of_ender_located`.
+     * @param origin - Where to search from, which is where the source stands.
+     * @returns The structure's generation point, or undefined when none is in range.
+     */
+    locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }

@@ -30,6 +30,7 @@ import type { SpawnSiteFlag } from '@jsprismarine/spawning';
 
 import type {
     BlockPlacement,
+    BlockPosition,
     EffectApplication,
     EnvironmentState,
     HolderSet,
@@ -277,6 +278,8 @@ export interface ContentItemAccess {
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a target entity accepts this dye, when the actor port can answer. */
     canDyeEntity?(target: ItemSource, color: string): boolean;
+    /** The nearest structure in a structure tag, when the world has a structure search. */
+    locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }

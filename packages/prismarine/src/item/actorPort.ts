@@ -27,6 +27,7 @@ import { normalizeStatusEffectId } from '../entity/StatusEffect';
 import { Item } from './Item';
 import { itemFromContent } from './itemFromContent';
 import Player from '../Player';
+import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
 import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
@@ -35,10 +36,12 @@ import type { EntityItemInteraction } from '../entity/data/itemInteraction';
 import type { ContentTags } from '../content/tags';
 import type { ItemStack } from '@jsprismarine/items';
 import type {
+    BlockPosition,
     EquipmentSlot,
     HolderSet,
     ItemSource,
     LaunchProjectileAction,
+    SignalAction,
     SourceState
 } from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
@@ -91,7 +94,23 @@ export interface ServerItemActorPort extends ItemActorPort {
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a live data-driven entity accepts the requested dye. */
     canDyeEntity?(target: ItemSource, color: string): boolean;
+    /** The nearest structure in a structure tag, through the live world's generator. */
+    locate(destination: string, origin: BlockPosition): BlockPosition | undefined;
 }
+
+/**
+ * The one structure each structure tag an item searches names.
+ *
+ * Java resolves `#minecraft:eye_of_ender_located` through its tag registry, and the vanilla
+ * data pack puts one structure in it. The world's search takes a structure name, so the tag is
+ * read here until a tag-driven search exists; a tag absent from this table finds nothing.
+ */
+const STRUCTURE_TAG_MEMBERS: Readonly<Record<string, string>> = {
+    'minecraft:eye_of_ender_located': 'minecraft:stronghold'
+};
+
+/** How far `EnderEyeItem.use` searches, in chunks: `findNearestMapStructure(..., 100, false)`. */
+const EYE_OF_ENDER_SEARCH_RADIUS_CHUNKS = 100;
 
 /** The armor inventory index each `minecraft:equippable` slot name writes into. */
 const ARMOR_INDEX: Partial<Record<EquipmentSlot, number>> = {
@@ -382,6 +401,34 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         advancementDurabilityChanged(entity, held, held.durability, amount);
     };
 
+    /**
+     * Throws an eye of ender.
+     *
+     * Java's `EnderEyeItem.use` after the search: the eye starts at `player.getY(0.5)`, half the
+     * body up from the feet, is signaled at the point, and the launch sound plays. The sound
+     * goes with the throw rather than as a `play-sound` of its own because Bedrock keys it on
+     * the actor: `LevelSoundEvent.LAUNCH` for an `eye_of_ender_signal` is the eye's own sound.
+     */
+    const signal = (action: SignalAction): void => {
+        const thrower = entityOf(action.source);
+        const loaded = world();
+        const item = itemOf(action.item);
+        if (thrower === null || loaded === undefined || item === null) return;
+
+        const at = thrower.getPosition();
+        const eye = new EyeOfEnderSignal({
+            item,
+            random: loaded.getServer().getRandom(),
+            position: new Position(at.getX(), thrower.getFeetY() + thrower.getBox().height / 2, at.getZ(), loaded)
+        });
+        eye.signalTo(new Vector3(action.target.x, action.target.y, action.target.z));
+
+        void loaded
+            .addEntity(eye)
+            .then(() => loaded.sendActorSound(eye, LevelSoundEvent.LAUNCH))
+            .catch((error: unknown) => loaded.getServer().getLogger().error(error));
+    };
+
     const teleportRandomly = (source: ItemSource, radius: number): void => {
         const entity = entityOf(source);
         const loaded = world();
@@ -521,9 +568,11 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             case 'blocking':
             case 'disable-shield':
                 return missing(action, 'shield blocking');
+            case 'signal':
+                signal(action);
+                return;
             case 'brush':
             case 'fishing':
-            case 'locate':
             case 'map':
             case 'open-screen':
                 return missing(action, `the ${action.kind} system`);
@@ -577,6 +626,17 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             return target !== null && (canDyeEntity?.(target, color) ?? false);
         },
         interactWithEntity: useItemOnEntity,
+        locate: (destination, origin) => {
+            const structure = STRUCTURE_TAG_MEMBERS[destination];
+            if (structure === undefined) return undefined;
+
+            const found = world()?.locateStructure(
+                structure,
+                { x: origin.x, z: origin.z },
+                EYE_OF_ENDER_SEARCH_RADIUS_CHUNKS
+            );
+            return found === undefined ? undefined : { x: found.x, y: found.y, z: found.z };
+        },
         perform,
         duringInteraction: (source, target, body) => {
             const previous = targets.get(source.runtimeId);

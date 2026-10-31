@@ -114,6 +114,12 @@ export const spyglassBehavior: ItemBehaviorSpec = {
 /**
  * The eye of ender, thrown toward the nearest stronghold.
  *
+ * Java's `EnderEyeItem.use` asks the level for the nearest structure in
+ * `#minecraft:eye_of_ender_located` within a hundred chunks before anything
+ * else happens. Nothing found means nothing thrown and nothing spent, which is
+ * why the search is a query here and the throw is the action: the world
+ * spawns the signal, flies it and plays its sounds, and the item only decides.
+ *
  * Filling a portal frame is the portal block family's job: its
  * `onPlayerInteract` takes the click for a held eye before any item hook
  * runs, writes `end_portal_eye_bit` and activates a completed ring, so an
@@ -124,13 +130,13 @@ export const eyeOfEnderBehavior: ItemBehaviorSpec = {
     hooks: ['onUse'],
     create: (context) => {
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
-            context.world.perform({ kind: 'locate', source, destination: STRONGHOLD_DESTINATION });
-            context.world.perform({
-                kind: 'spawn-entity',
-                identifier: 'minecraft:eye_of_ender',
-                position: context.world.stateOf(source).position
-            });
-            return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
+            const state = context.world.stateOf(source);
+            const target = context.world.locate?.(STRONGHOLD_DESTINATION, state.position);
+            // Java answers CONSUME: the click is taken and the eye stays in the hand.
+            if (target === undefined) return {};
+
+            context.world.perform({ kind: 'signal', source, item: itemStack.copy(1), target });
+            return { stack: consumeOne(itemStack, state.creative) };
         };
 
         return { onUse };

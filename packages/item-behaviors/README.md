@@ -108,8 +108,8 @@ identifier, which is why the banner and map rules name a pattern as well as a co
 ## The world seam
 
 Nothing here imports a server class. Every behavior reaches the world through `WorldActions`, which has
-nine required queries and one `perform`. Two optional capability queries let a host decline an
-entity action before the item is consumed:
+nine required queries and one `perform`. Three optional queries let a host decline an entity action
+before the item is consumed, or answer the structure search an eye of ender makes before it flies:
 
 ```typescript
 interface WorldActions {
@@ -124,6 +124,7 @@ interface WorldActions {
     random(): number;
     canNameEntity?(target: ItemSource): boolean;
     canDyeEntity?(target: ItemSource, color: string): boolean;
+    locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     perform(action: ItemWorldAction): void;
 }
 ```
@@ -132,7 +133,7 @@ Effects go through one tagged union of 28 variants rather than 28 methods, so ad
 new variant and not a change every adapter has to grow. The variants cover placing and breaking a
 block, spawning an entity, launching a projectile, sounds, effects, damage, teleports, experience,
 cooldowns, durability, giving and equipping items, naming, leashing, dyeing, shearing, fertilizing,
-igniting, brushing, blocking, maps, locating and opening a screen.
+igniting, brushing, blocking, maps, a signal toward a structure and opening a screen.
 
 `createTestWorld` is the typed double, exported rather than kept in the test folder because this is
 the only interface a behavior has to the world. Every query is a value a test sets, every action lands

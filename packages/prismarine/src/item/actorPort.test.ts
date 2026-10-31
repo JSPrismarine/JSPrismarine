@@ -1,9 +1,12 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
+import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
+import { Item } from './Item';
+import { contentStackOf } from './contentStack';
 import { testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { createItemActorPort } from './actorPort';
@@ -19,12 +22,23 @@ const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };
 interface Recorded {
     readonly fed: { nutrition: number; saturation: number }[];
     readonly logged: string[];
+    /** Every entity the world was asked to add. */
+    readonly added: Entity[];
+    /** Every actor sound the world was asked to play, by runtime id. */
+    readonly actorSounds: { runtimeId: bigint; sound: number }[];
+    /** Every structure search the world was asked for. */
+    readonly searches: { name: string; origin: { x: number; z: number }; radius: number | undefined }[];
 }
+
+const recording = (): Recorded => ({ fed: [], logged: [], added: [], actorSounds: [], searches: [] });
 
 /** A player reduced to what the port reads and writes, still a `Player` to `instanceof`. */
 const playerDouble = (recorded: Recorded): Player =>
     Object.assign(Object.create(Player.prototype), {
         getPosition: () => new Vector3(1.5, 65, 1.5),
+        // A player reports its eyes; the body starts 1.62 below and stands 1.8 tall.
+        getFeetY: () => 65 - 1.62,
+        getBox: () => ({ width: 0.6, height: 1.8 }),
         getFallDistance: () => 3,
         getFood: () => 11,
         getStatusEffects: () => [],
@@ -37,15 +51,25 @@ const playerDouble = (recorded: Recorded): Player =>
         getServer: () => ({ getContent: () => testContent() })
     });
 
-/** A world reduced to the entity lookup, the block read and the logger. */
+/** A world reduced to the entity lookup, the block read, the logger, and what a thrown eye needs. */
 const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World =>
     ({
         getEntity: (runtimeId: bigint) =>
             runtimeId === 7n ? (player as unknown as Entity) : runtimeId === 9n ? (target ?? null) : null,
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }),
         getServer: () => ({
-            getLogger: () => ({ debug: (message: string) => void recorded.logged.push(message) })
-        })
+            getLogger: () => ({ debug: (message: string) => void recorded.logged.push(message) }),
+            getContent: () => testContent(),
+            getRandom: () => () => 0.5
+        }),
+        addEntity: async (entity: Entity) => void recorded.added.push(entity),
+        broadcastMove: async () => {},
+        sendActorSound: async (entity: Entity, sound: number) =>
+            void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),
+        locateStructure: (name: string, origin: { x: number; z: number }, radius?: number) => {
+            recorded.searches.push({ name, origin, radius });
+            return name === 'minecraft:stronghold' ? { structure: name, x: 400, y: 0, z: -96 } : undefined;
+        }
     }) as unknown as World;
 
 /**
@@ -66,7 +90,7 @@ const entityAccess = (): ContentEntityAccess =>
     }) as unknown as ContentEntityAccess;
 
 const portUnderTest = () => {
-    const recorded: Recorded = { fed: [], logged: [] };
+    const recorded = recording();
     const player = playerDouble(recorded);
     const level = clock();
     const port = createItemActorPort({ world: () => worldDouble(player, recorded), entities: entityAccess(), level });
@@ -113,7 +137,7 @@ describe('the item actor port', () => {
     });
 
     it('moves an entity item into an empty selected hand', () => {
-        const recorded: Recorded = { fed: [], logged: [] };
+        const recorded = recording();
         const inventory = new HumanInventory();
         const player = Object.assign(Object.create(Player.prototype), {
             getPosition: () => new Vector3(1.5, 65, 1.5),
@@ -148,6 +172,43 @@ describe('the item actor port', () => {
         ]);
         expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
         expect(inventory.getItemInHand().getCustomName()).toBe('Returned sword');
+    });
+
+    it('finds the stronghold for an eye of ender through the world, a hundred chunks out', () => {
+        // Java's `EnderEyeItem.use` searches `#minecraft:eye_of_ender_located` with radius 100
+        // and `skipKnownStructures` false; the tag's one member is the stronghold.
+        const { port, recorded } = portUnderTest();
+
+        expect(port.locate?.('minecraft:eye_of_ender_located', { x: 10, y: 64, z: 20 })).toEqual({
+            x: 400,
+            y: 0,
+            z: -96
+        });
+        expect(recorded.searches).toEqual([{ name: 'minecraft:stronghold', origin: { x: 10, z: 20 }, radius: 100 }]);
+        expect(port.locate?.('minecraft:on_trial_chambers_maps', { x: 10, y: 64, z: 20 })).toBeUndefined();
+    });
+
+    it('throws an eye of ender signal from the middle of the thrower and plays the launch', async () => {
+        const { port, recorded } = portUnderTest();
+        // The fixture content carries no eye of ender; the port does not care what flies, only
+        // that the content has an item for it to drop.
+        const item = contentStackOf(testContent(), new Item({ name: 'minecraft:diamond_pickaxe', runtimeId: 1 }))!;
+
+        port.perform({ kind: 'signal', source: SOURCE, item, target: { x: 100, y: 0, z: 1.5 } });
+        await Promise.resolve();
+
+        const [eye] = recorded.added;
+        expect(eye).toBeInstanceOf(EyeOfEnderSignal);
+        // Java spawns at `player.getY(0.5)`: half the body height above the feet.
+        expect(eye?.getPosition().getX()).toBe(1.5);
+        expect(eye?.getPosition().getY()).toBeCloseTo(65 - 1.62 + 0.9);
+        expect(eye?.getPosition().getZ()).toBe(1.5);
+        expect(recorded.actorSounds).toEqual([{ runtimeId: eye?.getRuntimeId(), sound: LevelSoundEvent.LAUNCH }]);
+
+        // Signaled: the first tick after a signal sets the eye off toward its target.
+        await eye?.update(1);
+        await eye?.update(2);
+        expect(eye?.getVelocity().getX()).toBeGreaterThan(0);
     });
 
     it('reports an action whose system this server has not written, once', () => {

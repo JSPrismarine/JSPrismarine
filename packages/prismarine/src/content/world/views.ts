@@ -266,6 +266,7 @@ const itemActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Ite
         targetOf: (source) => items().targetOf(source),
         canNameEntity: (target) => items().canNameEntity?.(target) ?? true,
         canDyeEntity: (target, color) => items().canDyeEntity?.(target, color) ?? true,
+        locate: (destination, origin) => items().locate?.(destination, origin),
         includes: (set, member) => items().includes(set, member),
         transform: (transformer, block) => items().transform(transformer, block),
         effectsOf: (potion) => items().effectsOf(potion),

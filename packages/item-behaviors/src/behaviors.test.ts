@@ -37,6 +37,7 @@ const world: WorldActions = {
     transform: (transformer, block) => current.transform(transformer, block),
     effectsOf: (potion) => current.effectsOf(potion),
     random: () => current.random(),
+    locate: (destination, origin) => current.locate?.(destination, origin),
     perform: (action) => current.perform(action)
 };
 
@@ -615,11 +616,32 @@ describe('navigation', () => {
         expect(recording.performed('play-sound')[0]?.sound).toBe('minecraft:item.spyglass.use');
     });
 
-    it('throws an eye of ender toward a stronghold, and leaves a frame to the block family', () => {
-        const throwing = withWorld();
-        use(stackOf('minecraft:ender_eye', 2));
-        expect(throwing.performed('locate')[0]?.destination).toBe('minecraft:eye_of_ender_located');
+    it('throws an eye of ender toward the stronghold the world locates', () => {
+        const throwing = withWorld({ structures: { 'minecraft:eye_of_ender_located': { x: 400, y: 0, z: -96 } } });
+        const result = use(stackOf('minecraft:ender_eye', 2));
+        expect(throwing.performed('signal')[0]).toMatchObject({
+            source,
+            target: { x: 400, y: 0, z: -96 },
+            item: { identifier: 'minecraft:ender_eye', count: 1 }
+        });
+        expect(result?.stack?.count).toBe(1);
+    });
 
+    it('keeps the eye when no stronghold is in range, and spends none in creative', () => {
+        // Java's `EnderEyeItem.use` answers CONSUME when `findNearestMapStructure` finds
+        // nothing: the click is taken, nothing flies, nothing is spent.
+        const nowhere = withWorld();
+        expect(use(stackOf('minecraft:ender_eye', 2))).toEqual({});
+        expect(nowhere.did('signal')).toBe(false);
+
+        withWorld({
+            state: { creative: true },
+            structures: { 'minecraft:eye_of_ender_located': { x: 40, y: 0, z: 0 } }
+        });
+        expect(use(stackOf('minecraft:ender_eye', 2))?.stack?.count).toBe(2);
+    });
+
+    it('leaves a frame to the block family', () => {
         // The portal block family's `onPlayerInteract` takes the click on a frame before any
         // item hook runs, so the item declines a frame rather than filling it a second way.
         const filling = withWorld();

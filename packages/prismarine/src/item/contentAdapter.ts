@@ -20,6 +20,7 @@
 import { relative } from '@jsprismarine/engine-systems';
 import type {
     BlockPlacement,
+    BlockPosition,
     EffectApplication,
     EnvironmentState,
     ItemSource,
@@ -87,6 +88,8 @@ export interface ItemActorPort {
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a target entity accepts this dye, when the host can answer. */
     canDyeEntity?(target: ItemSource, color: string): boolean;
+    /** The nearest structure in a structure tag, when the host has a structure search. */
+    locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     /** Does one thing to an entity, an inventory or a screen. */
     perform(action: ActorItemAction): void;
 }
@@ -215,6 +218,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
         targetOf: (source) => actors.targetOf(source),
         canDyeEntity: (target, color) => actors.canDyeEntity?.(target, color) ?? true,
         canNameEntity: (target) => actors.canNameEntity?.(target) ?? true,
+        locate: (destination, origin) => actors.locate?.(destination, origin),
         environment: (): EnvironmentState => ({
             dimension: level.dimension,
             timeOfDay: level.dayTime(),
