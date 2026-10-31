@@ -158,18 +158,3 @@ export const dimensionByName = (name: string): DimensionType | undefined => {
  */
 export const dimensionByBedrockId = (bedrockId: number): DimensionType | undefined =>
     [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find((dimension) => dimension.bedrockId === bedrockId);
-
-/**
- * The sea level of each vanilla dimension, keyed by Java id, from the `sea_level` of Java 26.3's
- * three noise settings.
- *
- * Interim: a dimension's sea level belongs to the generator settings of its level stem, not to
- * its type, and moves there when `Level` lands and `World` knows its stem. Until then this is
- * where `contentAdapter` reads it from. Worldgen's `relative_to_sea_level` anchors resolve
- * against it, and the Overworld's 63 is also the water line every surface rule is written around.
- */
-export const SEA_LEVELS: Readonly<Record<string, number>> = {
-    'minecraft:overworld': 63,
-    'minecraft:the_nether': 32,
-    'minecraft:the_end': 0
-};

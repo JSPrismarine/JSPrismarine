@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { FIRST_CUSTOM_DIMENSION_ID, SEA_LEVELS, dimensionByName, dimensionTypeOf } from './DimensionType';
+import { FIRST_CUSTOM_DIMENSION_ID, dimensionByName, dimensionTypeOf } from './DimensionType';
 import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from './Dimension';
 import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 
@@ -111,13 +111,5 @@ describe('dimensionByName', () => {
     it('answers undefined for a name no vanilla dimension has', () => {
         expect(dimensionByName('mypack:sky')).toBeUndefined();
         expect(dimensionByName('minecraft:end')).toBeUndefined();
-    });
-});
-
-describe('SEA_LEVELS', () => {
-    it('is keyed by the Java id of each vanilla dimension', () => {
-        expect(SEA_LEVELS[Dimensions.Overworld.id]).toBe(63);
-        expect(SEA_LEVELS[Dimensions.Nether.id]).toBe(32);
-        expect(SEA_LEVELS[Dimensions.TheEnd.id]).toBe(0);
     });
 });

@@ -17,7 +17,6 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { definitionOf } from '../content/ContentOptions';
 import type Server from '../Server';
-import { fakeLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import type { WorldContentBiomes } from './contentAdapter';
@@ -28,6 +27,7 @@ import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator
 import { bedrockBiomeIdOf } from './generators/datadriven/javaTranslation';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { World } from './World';
+import { fakeLevel } from '../testing/level';
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -202,11 +202,15 @@ describe('the game rules a world carries', () => {
 });
 
 describe('the level facts a dimension answers', () => {
-    /** The level group for a dimension name, over a world with no chunks behind it. */
-    const levelOf = (dimension: string) => {
+    /**
+     * The level group for a dimension name, over a world with no chunks behind it whose
+     * generator floods to `seaLevel`, or to nothing in particular when left out.
+     */
+    const levelOf = (dimension: string, seaLevel?: number) => {
         const world: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
-            dimension: Dimensions.Overworld
+            dimension: Dimensions.Overworld,
+            generator: seaLevel === undefined ? {} : { seaLevel }
         });
 
         return worldContentGroups({
@@ -219,10 +223,23 @@ describe('the level facts a dimension answers', () => {
         }).level;
     };
 
-    it('reads the bounds, sky light and sea level of the dimension it was named', () => {
-        expect(levelOf('minecraft:overworld')).toMatchObject({ minY: -64, maxY: 320, hasSkyLight: true, seaLevel: 63 });
-        expect(levelOf('minecraft:nether')).toMatchObject({ minY: 0, maxY: 128, hasSkyLight: false, seaLevel: 32 });
-        expect(levelOf('minecraft:the_end')).toMatchObject({ minY: 0, maxY: 256, seaLevel: 0 });
+    it('reads the bounds and sky light of the dimension it was named', () => {
+        expect(levelOf('minecraft:overworld')).toMatchObject({ minY: -64, maxY: 320, hasSkyLight: true });
+        expect(levelOf('minecraft:nether')).toMatchObject({ minY: 0, maxY: 128, hasSkyLight: false });
+        expect(levelOf('minecraft:the_end')).toMatchObject({ minY: 0, maxY: 256 });
+    });
+
+    it('reads the sea level from the live world, whose generator knows its water line', () => {
+        // The three vanilla `noise_settings` values, which the generator reports rather than
+        // a table keyed by dimension: a custom stem over the Nether type floods wherever its
+        // settings say.
+        expect(levelOf('minecraft:overworld', 63).seaLevel).toBe(63);
+        expect(levelOf('minecraft:nether', 32).seaLevel).toBe(32);
+        expect(levelOf('minecraft:the_end', 0).seaLevel).toBe(0);
+    });
+
+    it('assumes the Overworld water line for a generator that reports none', () => {
+        expect(levelOf('minecraft:nether').seaLevel).toBe(63);
     });
 
     it('answers for the Overworld when the name is not a vanilla dimension', () => {

@@ -107,6 +107,9 @@ const UNSUITABLE_SPAWN_SURFACES = new Set([
     'minecraft:deadbush'
 ]);
 
+/** The sea level of Java's Overworld `noise_settings`, assumed for a generator that reports none. */
+const DEFAULT_SEA_LEVEL = 63;
+
 /**
  * How far `/locate` looks when nothing says otherwise, in chunks.
  *
@@ -614,6 +617,18 @@ export class World implements Service {
 
     public getGenerator(): Generator {
         return this.generator;
+    }
+
+    /**
+     * The y this world's generator floods to, which worldgen's `relative_to_sea_level` anchors
+     * and the content rules that ask about the water line resolve against.
+     *
+     * The generator's own answer when it has one, which the noise generator reads from its
+     * stem's `noise_settings` and the flat generator fixes at Java's -63. A generator without
+     * one gets the Overworld's 63.
+     */
+    public getSeaLevel(): number {
+        return this.generator.seaLevel ?? DEFAULT_SEA_LEVEL;
     }
 
     /**

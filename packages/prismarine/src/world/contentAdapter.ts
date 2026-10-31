@@ -36,7 +36,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { destroyBlock } from './blockDestroy';
 import { takeBlockEntity } from './blockMove';
 import { timeOfDay } from './DayCycle';
-import { Dimensions, SEA_LEVELS, dimensionByName, maxY } from './Dimension';
+import { Dimensions, dimensionByName, maxY } from './Dimension';
 import type { World } from './World';
 
 /** The six members of `ContentBlockAccess` the world subsystem implements. */
@@ -137,7 +137,12 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         // One past the highest block y, which is how every content package bounds a column.
         maxY: maxY(definition) + 1,
         hasSkyLight: definition.java.hasSkylight,
-        seaLevel: SEA_LEVELS[definition.id] ?? SEA_LEVELS[Dimensions.Overworld.id]!,
+        // A property rather than a method, because the adapter interface spells it as one;
+        // an accessor so it is read from the live world, whose stem says what the water line
+        // is, rather than fixed before any world exists.
+        get seaLevel() {
+            return live().getSeaLevel();
+        },
         seed,
         gameTime: () => live().getTicks(),
         dayTime: () => timeOfDay(live().getTicks()),

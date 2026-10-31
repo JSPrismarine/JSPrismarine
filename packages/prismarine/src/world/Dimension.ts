@@ -9,7 +9,6 @@ import type { DimensionType } from './DimensionType';
 export {
     Dimensions,
     FIRST_CUSTOM_DIMENSION_ID,
-    SEA_LEVELS,
     dimensionByBedrockId,
     dimensionByName,
     dimensionTypeOf,
