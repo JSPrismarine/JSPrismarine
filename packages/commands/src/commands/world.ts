@@ -35,18 +35,68 @@ const CHEATS = {
     requiresCheats: true
 } as const;
 
-const LOCATE_KINDS = ['structure', 'biome', 'poi'] as const;
-type LocateKind = (typeof LOCATE_KINDS)[number];
+/** What `/locate` looks for, which is also the literal and the argument name of each form. */
+type LocateKind = 'structure' | 'biome' | 'poi';
 
+/** Mojang's published registry for each kind, the part of the suggestions the host does not add. */
 const LOCATE_REGISTRIES = {
     structure: 'worldgen/structure',
     biome: 'worldgen/biome',
     poi: 'point_of_interest_type'
 } as const satisfies Record<LocateKind, string>;
 
-const locateNameSuggestions = suggestFromData<CommandSource>(
-    (context) => javaIdentifiersTable.registries[LOCATE_REGISTRIES[value<LocateKind>(context, 'kind')]] ?? []
-);
+/** Java's `commands.locate.<kind>.not_found` lines. A structure is "nearby"; the other two are "within a reasonable distance". */
+const LOCATE_NOT_FOUND = {
+    structure: (name: string) => `Could not find a structure of type "${name}" nearby`,
+    biome: (name: string) => `Could not find a biome of type "${name}" within a reasonable distance`,
+    poi: (name: string) => `Could not find a point of interest of type "${name}" within a reasonable distance`
+} as const satisfies Record<LocateKind, (name: string) => string>;
+
+/**
+ * Mojang's list for the kind plus whatever the host's generator knows, tags included.
+ *
+ * Mojang publishes no biome enum, so a biome's suggestions are the host's alone.
+ */
+const locateNameSuggestions = (kind: LocateKind) =>
+    suggestFromData<CommandSource>((context) => [
+        ...(javaIdentifiersTable.registries[LOCATE_REGISTRIES[kind]] ?? []),
+        ...source(context).host.world.locateNames(kind, source(context).dimension)
+    ]);
+
+/**
+ * Runs one `/locate` form and reports the answer the way Java's `showLocateResult` does.
+ *
+ * A structure has no height of its own: Java prints its y as `~` and measures the distance flat,
+ * which is also what Bedrock does with its `(y?)`. A biome or a point of interest is a cell with
+ * a height, printed and measured through all three axes. The distance is the command's result,
+ * so `execute store result` captures it.
+ */
+const locate = (context: Context, kind: LocateKind): number => {
+    const current = source(context);
+    const name = value<string>(context, kind);
+    const found = current.host.world.locate(kind, name, current.position, current.dimension);
+    if (found === undefined) return report(current, 0, LOCATE_NOT_FOUND[kind](name));
+
+    // Java measures from `BlockPos.containing(source.getPosition())`, the block the source is in.
+    const dx = found.x - Math.floor(current.position.x);
+    const dy = found.y - Math.floor(current.position.y);
+    const dz = found.z - Math.floor(current.position.z);
+    const flat = kind === 'structure';
+    const distance = Math.floor(flat ? Math.hypot(dx, dz) : Math.hypot(dx, dy, dz));
+
+    current.sendFeedback(
+        `The nearest ${name} is at [${found.x}, ${flat ? '~' : found.y}, ${found.z}] (${distance} blocks away)`
+    );
+    return distance;
+};
+
+/** One `/locate <kind> <name>` branch, named the way Java's and Bedrock's trees name it. */
+const locateForm = (kind: LocateKind) =>
+    lit(kind).then(
+        arg(kind, stringArgument())
+            .suggests(locateNameSuggestions(kind))
+            .executes(command((context) => locate(context, kind)))
+    );
 
 /** Reads Bedrock's `["facing"="north"]` block state list into a record. */
 export const parseBlockStates = (text: string): Record<string, string> => {
@@ -324,29 +374,10 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
         { description: 'Moves a player spawn point.', ...CHEATS }
     );
 
-    registry.register(
-        lit('locate').then(
-            arg('kind', enumArgument('LocateKind', LOCATE_KINDS)).then(
-                arg('name', stringArgument())
-                    .suggests(locateNameSuggestions)
-                    .executes(
-                        command((context) => {
-                            const current = source(context);
-                            const found = current.host.world.locate(
-                                value(context, 'kind'),
-                                value(context, 'name'),
-                                current.position,
-                                current.dimension
-                            );
-                            if (found === undefined) return report(current, 0, 'Nothing was found');
-                            current.sendFeedback(`Found it at ${found.x}, ${found.y}, ${found.z}`);
-                            return 1;
-                        })
-                    )
-            )
-        ),
-        { description: 'Finds the nearest structure, biome or point of interest.', ...CHEATS }
-    );
+    registry.register(lit('locate').then(locateForm('structure')).then(locateForm('biome')).then(locateForm('poi')), {
+        description: 'Finds the nearest structure, biome or point of interest.',
+        ...CHEATS
+    });
 
     registry.register(
         lit('place').then(

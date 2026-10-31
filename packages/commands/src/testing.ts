@@ -72,6 +72,7 @@ const world = (): WorldCommandHost => ({
     setWorldSpawn: () => false,
     setSpawnPoint: () => false,
     locate: () => undefined,
+    locateNames: () => [],
     place: () => false,
     particle: () => false,
     playSound: () => 0,

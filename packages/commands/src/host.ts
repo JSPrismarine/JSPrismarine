@@ -192,8 +192,19 @@ export interface WorldCommandHost {
     setDifficulty(difficulty: string): boolean;
     setWorldSpawn(dimension: string, position: Vector3, angle: number): boolean;
     setSpawnPoint(player: EntityRef, dimension: string, position: Vector3, angle: number): boolean;
-    /** @returns The nearest match, or undefined when the search found none. */
+    /**
+     * The nearest structure, biome or point of interest by name, for `/locate`.
+     *
+     * @param name - What was typed: an id with or without its namespace, or a `#tag`.
+     * @returns The nearest match, or undefined when the search found none. A structure's y is
+     * not a height; Java prints it as `~`.
+     */
     locate(kind: 'structure' | 'biome' | 'poi', name: string, origin: Vector3, dimension: string): Vector3 | undefined;
+    /**
+     * Every id and `#tag` a `/locate <kind>` may name here, offered as suggestions on top of
+     * Mojang's published list. Empty for a host with no registry of its own behind the kind.
+     */
+    locateNames(kind: 'structure' | 'biome' | 'poi', dimension: string): readonly string[];
     /** @returns Whether the feature, jigsaw, structure or template was placed. */
     place(kind: string, name: string, position: Vector3, dimension: string): boolean;
     particle(name: string, position: Vector3, dimension: string, parameters?: string): boolean;

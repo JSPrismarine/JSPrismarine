@@ -364,6 +364,141 @@ describe('the world commands', () => {
     });
 });
 
+describe('/locate', () => {
+    /** A source standing at a block position in the Overworld, as a player's would be. */
+    const standing = testEntity({ id: 'p', name: 'Steve', position: { x: 0.5, y: 64, z: 0.5 } });
+
+    it('reports a structure the way Java does: the corner, a hidden height and a flat distance', () => {
+        const asked: unknown[] = [];
+        const feedback: string[] = [];
+        const { results } = run(
+            'locate structure minecraft:stronghold',
+            {
+                world: {
+                    locate: (kind, name, origin, dimension) => {
+                        asked.push({ kind, name, origin, dimension });
+                        return { x: -768, y: 0, z: 1840 };
+                    }
+                }
+            },
+            { entity: standing, feedback }
+        );
+
+        expect(asked).toEqual([
+            {
+                kind: 'structure',
+                name: 'minecraft:stronghold',
+                origin: { x: 0.5, y: 64, z: 0.5 },
+                dimension: 'minecraft:overworld'
+            }
+        ]);
+        expect(feedback).toEqual(['The nearest minecraft:stronghold is at [-768, ~, 1840] (1993 blocks away)']);
+        // Java's result is the distance, which is what `execute store result` captures.
+        expect(results).toEqual([1993]);
+    });
+
+    it('accepts a tag and a bare name, handing the host what was typed', () => {
+        const names: string[] = [];
+        const locate = (_kind: string, name: string) => {
+            names.push(name);
+            return { x: 0, y: 0, z: 0 };
+        };
+        run('locate structure #minecraft:village', { world: { locate } });
+        run('locate structure stronghold', { world: { locate } });
+
+        expect(names).toEqual(['#minecraft:village', 'stronghold']);
+    });
+
+    it('reports a biome with its height and a distance through all three axes', () => {
+        const feedback: string[] = [];
+        const { results } = run(
+            'locate biome plains',
+            { world: { locate: () => ({ x: 32, y: 70, z: 0 }) } },
+            { entity: standing, feedback }
+        );
+
+        expect(feedback).toEqual(['The nearest plains is at [32, 70, 0] (32 blocks away)']);
+        expect(results).toEqual([32]);
+    });
+
+    it("says what was not found in Java's words for each kind", () => {
+        const errors: Record<string, string[]> = {};
+        for (const line of [
+            'locate structure minecraft:end_city',
+            'locate biome minecraft:the_end',
+            'locate poi minecraft:home'
+        ]) {
+            const host = testCommandHost();
+            const captured: string[] = [];
+            const registry = registerVanillaCommands();
+            const source = createCommandSource({
+                host,
+                permissionLevel: 4,
+                onError: (message) => captured.push(message)
+            });
+            const results = registry.getDispatcher().execute(line, source);
+            expect(results).toEqual([0]);
+            errors[line] = captured;
+        }
+
+        expect(errors).toEqual({
+            'locate structure minecraft:end_city': ['Could not find a structure of type "minecraft:end_city" nearby'],
+            'locate biome minecraft:the_end': [
+                'Could not find a biome of type "minecraft:the_end" within a reasonable distance'
+            ],
+            'locate poi minecraft:home': [
+                'Could not find a point of interest of type "minecraft:home" within a reasonable distance'
+            ]
+        });
+    });
+
+    it("suggests Mojang's structure list and whatever the host adds, tags included", async () => {
+        const host = testCommandHost({
+            world: { locateNames: (kind) => (kind === 'structure' ? ['mypack:keep', '#minecraft:village'] : []) }
+        });
+        const dispatcher = registerVanillaCommands().getDispatcher();
+        const source = createCommandSource({ host, permissionLevel: 4 });
+
+        const ids = await dispatcher.getCompletionSuggestions(
+            dispatcher.parse('locate structure minecraft:vill', source)
+        );
+        expect(
+            ids
+                .getList()
+                .map((suggestion) => suggestion.getText())
+                .sort()
+        ).toEqual([
+            'minecraft:village_desert',
+            'minecraft:village_plains',
+            'minecraft:village_savanna',
+            'minecraft:village_snowy',
+            'minecraft:village_taiga'
+        ]);
+
+        const tags = await dispatcher.getCompletionSuggestions(dispatcher.parse('locate structure #', source));
+        expect(tags.getList().map((suggestion) => suggestion.getText())).toEqual(['#minecraft:village']);
+
+        const custom = await dispatcher.getCompletionSuggestions(dispatcher.parse('locate structure mypack', source));
+        expect(custom.getList().map((suggestion) => suggestion.getText())).toEqual(['mypack:keep']);
+    });
+
+    it('suggests the biomes the host knows, since Mojang publishes no biome enum', async () => {
+        const host = testCommandHost({
+            world: { locateNames: (kind) => (kind === 'biome' ? ['minecraft:plains', '#minecraft:is_ocean'] : []) }
+        });
+        const dispatcher = registerVanillaCommands().getDispatcher();
+        const source = createCommandSource({ host, permissionLevel: 4 });
+
+        const suggestions = await dispatcher.getCompletionSuggestions(dispatcher.parse('locate biome ', source));
+        expect(
+            suggestions
+                .getList()
+                .map((suggestion) => suggestion.getText())
+                .sort()
+        ).toEqual(['#minecraft:is_ocean', 'minecraft:plains']);
+    });
+});
+
 describe('the data-driven commands', () => {
     it('/data get reads the path and prints what it found', () => {
         const feedback: string[] = [];
