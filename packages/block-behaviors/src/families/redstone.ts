@@ -25,6 +25,7 @@ import {
     weightedPlateSignal,
     wireSignal
 } from '../rules/redstone';
+import { placementFacing } from '../rules/placement';
 import { isSolidSupport, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
 import type { BlockWorld, WorldActions } from '../world';
@@ -515,6 +516,17 @@ export const redstoneFamily = defineFamily(
                 const support = leverSupportFace(block);
                 if (popWithoutSupport(world, block, support)) return;
                 world.notifyNeighbors(offset(block.position, support));
+                return;
+            }
+            if (name === 'lectern') {
+                // Java's `LecternBlock.getStateForPlacement` opposes the placer's horizontal
+                // direction, so the reading face turns toward the player, and the identity
+                // state mapping keeps that value in Bedrock's `minecraft:cardinal_direction`.
+                if (event.placedBy === undefined || !hasState(block, 'minecraft:cardinal_direction')) return;
+                const facing = placementFacing(event);
+                if (facing !== undefined) {
+                    setStates(world, block, { 'minecraft:cardinal_direction': opposite(facing) });
+                }
                 return;
             }
             if (isRepeater(block.identifier) || isComparator(block.identifier)) {

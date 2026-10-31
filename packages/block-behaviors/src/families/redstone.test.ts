@@ -231,6 +231,23 @@ describe('redstoneFamily: the rest of the components', () => {
         expect(harness.dimension.notified).toContainEqual(origin);
     });
 
+    it('faces a placed lectern toward the placer', () => {
+        // Java's `LecternBlock.getStateForPlacement` opposes the placer's horizontal
+        // direction, and the Geyser-derived table carries a lectern's Java `facing` into
+        // Bedrock's `minecraft:cardinal_direction` unchanged. Nothing wrote the state, so
+        // every placed lectern kept the palette default. This placer stands north of the
+        // lectern looking south, so the lectern faces north.
+        const harness = bindFamily(redstoneFamily, 'minecraft:lectern');
+        harness.dimension.set(origin, 'minecraft:lectern', {
+            powered_bit: false,
+            'minecraft:cardinal_direction': 'south'
+        });
+
+        harness.place(origin, { placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 0, z: -4 } } });
+
+        expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('north');
+    });
+
     it('cycles a repeater delay through its four values', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:unpowered_repeater');
         harness.dimension.set(origin, 'minecraft:unpowered_repeater', {
