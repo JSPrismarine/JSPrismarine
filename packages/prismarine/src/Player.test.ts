@@ -1,23 +1,12 @@
-import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
-import { InetAddress } from '@jsprismarine/raknet';
-import type { RakNetSession } from '@jsprismarine/raknet';
 import { PositionMode } from '@jsprismarine/protocol';
-import { describe, expect, it, vi } from 'vitest';
-
-import type { ConsoleSender } from './command/ConsoleSender';
-import Player from './Player';
-import type Server from './Server';
-import type WorldManager from './world/WorldManager';
-import type { Block } from './block/Block';
-import type { Config } from './config/Config';
+import { describe, expect, it } from 'vitest';
+import type Player from './Player';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from './entity/Entity';
 import { EYE_HEIGHT } from './entity/Human';
-import type { PermissionManager } from './permission/PermissionManager';
 import { MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/packet/DeathInfoPacket';
@@ -26,121 +15,11 @@ import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
-import { createConnectedPlayer } from './network/createConnectedPlayer';
+import { fakePlayer } from './testing/fakePlayer.test.helper';
 import { stub } from './testing/stub.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import type { ChunkScheduler } from './world/ChunkScheduler';
-import type GameRuleManager from './world/GameRuleManager';
 import { Position } from './world/Position';
-import type SessionManager from './SessionManager';
 import type { BlockMining } from './world/BlockMining';
 import type { World } from './world/World';
-import { testContent } from './testing/entityServer';
-
-/**
- * A player with just enough of a server, world and connection around it to move and tick.
- *
- * The world is either dry or entirely water, which is all the block detail breath needs.
- */
-const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
-    const sent: any[] = [];
-    /** Every tick of crack animation the player asked the world for. */
-    const cracked: BlockMining[] = [];
-    /** Every block whose cracks the player asked the world to stop. */
-    const stopped: Vector3[] = [];
-    /** Whether the mined block is still the one being mined, as the world answers each tick. */
-    const mined = { stays: true };
-    const events: any[] = [];
-    const actorEvents: number[] = [];
-    const actorSounds: number[] = [];
-    const disconnects: Parameters<ClientConnection['disconnect']>[] = [];
-    const isOp = vi.fn(() => false);
-
-    const server: Server = stub<Server>({
-        on: () => server,
-        post: () => 0,
-        emit: async (name: string, event: unknown) => void events.push([name, event]),
-        getTick: () => 0,
-        getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
-        getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
-        // What leaving and a change of game mode tell everyone else.
-        getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
-        broadcastPacket: async () => {},
-        removeListener: () => server,
-        getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
-        // A login looks for the player's record in every loaded world, each world keeping its
-        // own: see `lastPlayerRecord`.
-        getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world] }),
-        // No pack stack, so there are no advancements to raise and no
-        // enchantment definitions to run.
-        getContent: () => testContent(),
-        getConfig: () =>
-            stub<Config>({
-                getGamemode: () => 'survival',
-                getProximityBroadcast: () => true,
-                getEntityTrackingHysteresis: () => 2,
-                getEntityTrackingInterval: () => 4
-            })
-    });
-
-    const world = stub<World>({
-        getName: () => 'test',
-        getServer: () => server,
-        getPlayerData: async () => ({}),
-        // Named so a dimension change can say which one the player left.
-        getDimension: () => ({ name: 'minecraft:overworld' }) as never,
-        broadcastMove: async () => {},
-        removeEntity: async () => {},
-        getPlayers: () => [],
-        getSpawnPosition: async () => new Vector3(0, 64, 0),
-        // Feet one block above the stored spawn, centered, as a Bedrock server places them.
-        placePlayerSpawn: async () => ({
-            requested: new Vector3(0.5, 65, 0.5),
-            position: new Vector3(0.5, 65, 0.5),
-            relocated: false
-        }),
-        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
-        getBlock: async () => stub<Block>({ getName: () => (underwater ? 'minecraft:water' : 'minecraft:air') }),
-        sendActorEvent: async (_entity, event) => void actorEvents.push(event),
-        sendActorSound: async (_entity, sound) => void actorSounds.push(sound),
-        savePlayerData: async () => {},
-        updateBlockCracking: async (mining) => {
-            cracked.push(mining);
-            return mined.stays;
-        },
-        stopBlockCracking: async (position) => void stopped.push(position)
-    });
-
-    const connection = stub<ClientConnection>({
-        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
-        sendDataPacket: async (packet) => void sent.push(packet),
-        attachPlayerSession: () => {},
-        closePlayerSession: async () => {},
-        disconnect: async (...args) => void disconnects.push(args)
-    });
-
-    const player = new Player({
-        position: new Position(0, 64, 0, world),
-        address: new InetAddress('127.0.0.1', 19132),
-        identity: {
-            uuid: UUID.fromRandom(),
-            name: 'Tester',
-            xuid: '',
-            randomId: 0,
-            locale: 'en_US',
-            skin: null,
-            device: null
-        }
-    });
-
-    createConnectedPlayer({ server, connection, player });
-
-    // `update` does nothing for a player who never finished joining.
-    player['connected'] = true;
-
-    return { player, sent, events, actorEvents, actorSounds, disconnects, isOp, cracked, stopped, mined };
-};
 
 /** Runs `n` ticks, the way the world does. */
 const tick = async (player: Player, n: number, from = 1) => {
