@@ -40,28 +40,23 @@ export interface DimensionTravelRule {
      * false.
      */
     readonly allowsNetherPortal: boolean;
-    /** The block that holds a player's spawn here. Java's `bed_works` and `respawn_anchor_works`. */
-    readonly respawnBlock?: 'bed' | 'respawn_anchor';
 }
 
 /**
  * The travel rule of each vanilla dimension type, keyed by Java `dimension_type` id.
  *
  * The coordinate scale is not here: it is `DimensionType.java.coordinateScale`, read from
- * the dimension's own document.
+ * the dimension's own document. Nor is which block holds a spawn: `RespawnPoint.ts` reads
+ * Java's `bed_works` and `respawn_anchor_works` attributes off the same document.
  */
 export const DIMENSION_TRAVEL: Readonly<Record<string, DimensionTravelRule>> = {
     [Dimensions.Overworld.id]: {
         portalSearchRadius: PORTAL_SEARCH_RADIUS,
-        allowsNetherPortal: true,
-        // Java's `bed_works: true` for the Overworld.
-        respawnBlock: 'bed'
+        allowsNetherPortal: true
     },
     [Dimensions.Nether.id]: {
         portalSearchRadius: PORTAL_SEARCH_RADIUS,
-        allowsNetherPortal: true,
-        // Java's `respawn_anchor_works: true` for the Nether.
-        respawnBlock: 'respawn_anchor'
+        allowsNetherPortal: true
     },
     [Dimensions.TheEnd.id]: {
         // No nether portal is searched for in the End: none can be lit there.

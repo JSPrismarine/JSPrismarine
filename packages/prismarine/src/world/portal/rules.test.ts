@@ -21,12 +21,6 @@ describe('DIMENSION_TRAVEL', () => {
         expect(travelRuleOf(Dimensions.TheEnd)?.allowsNetherPortal).toBe(false);
     });
 
-    it('names the bed for the Overworld and the respawn anchor for the Nether', () => {
-        expect(travelRuleOf(Dimensions.Overworld)?.respawnBlock).toBe('bed');
-        expect(travelRuleOf(Dimensions.Nether)?.respawnBlock).toBe('respawn_anchor');
-        expect(travelRuleOf(Dimensions.TheEnd)?.respawnBlock).toBeUndefined();
-    });
-
     it('is keyed by the Java dimension type id', () => {
         expect(Object.keys(DIMENSION_TRAVEL).sort()).toEqual(
             [Dimensions.Overworld.id, Dimensions.Nether.id, Dimensions.TheEnd.id].sort()
