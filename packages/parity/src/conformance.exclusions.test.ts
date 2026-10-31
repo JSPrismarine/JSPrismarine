@@ -59,13 +59,14 @@ describe(FAMILIES.conformanceExclusions, () => {
         expect(sweepingEdge).not.toHaveProperty('bedrockFallback');
     });
 
-    it("does not claim the spawn and cap model: the table says the numbers are this project's", () => {
-        // Claiming the category would mean asserting Java's cap and rate values. The table says
-        // the opposite in its own provenance field: Mojang publishes none and these are choices.
+    it('does not claim the spawn and cap model: the table separates the Java radius from project choices', () => {
+        // Claiming the category would mean asserting Java's cap and rate values. The table
+        // distinguishes the Java minimum distance from the values this project chose.
         const table = readRepoFile('packages/spawning/src/tables/spawnConstants.json');
 
         expect(table).toContain('Mojang publishes no spawn attempt rate');
-        expect(table).toContain("Every number below is therefore this project's choice");
+        expect(table).toContain('"minimumSpawnDistance": 24');
+        expect(table).toContain("The other values are this project's choices");
     });
 
     it('does not claim bit parity, which world generation past the first draw would need', () => {

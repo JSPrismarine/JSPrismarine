@@ -39,6 +39,7 @@
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/recipes": "workspace:*",
+        "@jsprismarine/spawning": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
         "@types/node": "24.19.2",
         "rimraf": "6.1.3",

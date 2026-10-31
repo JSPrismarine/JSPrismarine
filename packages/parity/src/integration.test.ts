@@ -18,6 +18,8 @@ import { worldContentGroups } from '@jsprismarine/prismarine/world/contentAdapte
 import { Dimensions } from '@jsprismarine/prismarine/world/Dimension';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { World } from '@jsprismarine/prismarine/world/World';
+import { SPAWN_CONSTANTS, Spawner } from '@jsprismarine/spawning';
+import type { SpawnWorld } from '@jsprismarine/spawning';
 import { expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
@@ -484,6 +486,62 @@ describeFamily(
             expect(cube.body.velocity.y).toBeGreaterThan(0);
             runtime.remove(cube.id, 'parity runtime check complete');
         });
+    },
+    { tags: ['real-data'] }
+);
+
+describeFamily(
+    FAMILIES.integrationSpawning,
+    REAL_STACK_REFERENCES,
+    () => {
+        it(
+            'keeps a vanilla cow rule from spawning inside the shared world-spawn exclusion radius',
+            { timeout: 180_000 },
+            () => {
+                const { content } = realStack();
+                const cowRules = content.spawnRules.filter(
+                    (rule) => rule.identifier === 'minecraft:cow' && rule.populationControl === 'animal'
+                );
+                const world = {
+                    site: (flag, at) => (flag === 'surface' ? at.y >= 64 : flag === 'underground' && at.y < 64),
+                    block: (at) => (at.y <= 63 ? 'minecraft:grass_block' : 'minecraft:air'),
+                    solid: () => false,
+                    light: () => 15,
+                    biomeTags: () => ['animal', 'plains', 'overworld'],
+                    biome: () => 'minecraft:plains',
+                    surfaceY: () => 64,
+                    minY: () => -64,
+                    players: () => [{ position: { x: 72.5, y: 64, z: 72.5 } }],
+                    worldSpawn: () => ({ x: 0, y: 64, z: 0 }),
+                    poolCount: () => 0,
+                    typeCount: () => 0,
+                    difficulty: () => 'normal' as const,
+                    weather: () => 'clear' as const,
+                    age: () => 100_000,
+                    mobEventActive: () => true,
+                    villageBorderDistance: () => 4
+                } satisfies SpawnWorld;
+                const constants = {
+                    ...SPAWN_CONSTANTS,
+                    spawnRadiusChunks: 4,
+                    chunksPerCycle: 1,
+                    positionsPerChunk: 1,
+                    herdRadius: 0
+                };
+                const runWithDistance = (minimumSpawnDistance: number) =>
+                    new Spawner({
+                        rules: cowRules,
+                        world,
+                        random: { nextFloat: () => 0, nextInt: () => 0 },
+                        constants: { ...constants, minimumSpawnDistance },
+                        engineRules: new Map()
+                    }).cycle('animal', 0);
+
+                expect(cowRules.length).toBeGreaterThan(0);
+                expect(runWithDistance(0).length).toBeGreaterThan(0);
+                expect(runWithDistance(SPAWN_CONSTANTS.minimumSpawnDistance)).toEqual([]);
+            }
+        );
     },
     { tags: ['real-data'] }
 );

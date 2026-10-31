@@ -18,13 +18,15 @@ const LIT_LAMP: ContentBlock = { identifier: 'minecraft:redstone_lamp', states: 
  * the core can answer works, and every member that needs a group nobody has
  * supplied throws.
  */
-const stubWorld = (): { adapter: ServerWorldAdapter; writes: ContentPosition[]; sounds: string[] } => {
+const stubWorld = (
+    dimension = 'minecraft:nether'
+): { adapter: ServerWorldAdapter; writes: ContentPosition[]; sounds: string[] } => {
     const writes: ContentPosition[] = [];
     const sounds: string[] = [];
 
     const adapter: ServerWorldAdapter = {
         level: {
-            dimension: 'minecraft:nether',
+            dimension,
             minY: 0,
             maxY: 128,
             hasSkyLight: false,
@@ -132,15 +134,23 @@ describe('the content world views', () => {
     });
 
     it('answers the spawn queries the core covers', () => {
-        const { adapter } = stubWorld();
+        const { adapter } = stubWorld('minecraft:overworld');
         const spawn = contentFor(adapter).world.spawnWorld;
 
         expect(spawn.block({ x: 0, y: 0, z: 0 })).toBe('minecraft:redstone_lamp');
         expect(spawn.light({ x: 0, y: 0, z: 0 })).toBe(11);
         expect(spawn.surfaceY(0, 0)).toBe(70);
         expect(spawn.players()).toEqual([{ position: { x: 0, y: 64, z: 0 } }]);
+        expect(spawn.worldSpawn?.()).toEqual({ x: 0, y: 64, z: 0 });
         expect(spawn.typeCount('minecraft:cow', { x: 0, y: 0, z: 0 }, 32)).toBe(2);
         expect(spawn.age()).toBe(1200);
+    });
+
+    it('omits the shared world spawn outside the overworld', () => {
+        const { adapter } = stubWorld();
+        const spawn = contentFor(adapter).world.spawnWorld;
+
+        expect(spawn.worldSpawn?.()).toBeUndefined();
     });
 
     it('names the subsystem that owes a group nobody has supplied', () => {

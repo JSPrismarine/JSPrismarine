@@ -97,7 +97,9 @@ One cycle of one pool:
 4. At each position, collect every condition of every rule in the pool that passes, draw one
    weighted by `minecraft:weight.default`, then apply its `rarity` roll.
 5. Draw a herd size inside the chosen `minecraft:herd` alternative, place the first member at the
-   position and the rest within `herdRadius`, following the terrain on the surface pass.
+   position and the rest within `herdRadius`, following the terrain on the surface pass. Reject
+   each member within `minimumSpawnDistance` of any player or inside that distance from the current
+   world spawn.
 6. Give each member its entity type and spawn event. `minecraft:permute_type` swaps the type, taking
    its `min_guaranteed` members first and drawing the rest by weight, and the
    `minecraft:pillager<minecraft:spawn_as_patrol_follower>` form splits into a type and an event.
@@ -119,8 +121,8 @@ algorithm with a typed double and a server implements it once.
   reads it: `surface`, `underground`, `underwater`, `lava`, `bubble_column` and `snow_covered`.
 - `block(at)`, `light(at)`, `biomeTags(at)` and `biome(at)` answer one position.
 - `surfaceY(x, z)` and `minY()` give the two passes their Y.
-- `players()`, `poolCount(pool)` and `typeCount(identifier, at, radius)` answer the caps and the
-  density limit.
+- `players()` and `worldSpawn()` answer the player and world-spawn distances. `poolCount(pool)` and
+  `typeCount(identifier, at, radius)` answer the caps and the density limit.
 - `difficulty()`, `weather()`, `age()`, `mobEventActive(event)` and `villageBorderDistance(at)`
   answer the rest.
 
@@ -130,10 +132,10 @@ caller can persist it across a restart. `SpawnConstants` replaces the numbers be
 
 ## Which numbers Mojang publishes
 
-**None of the ones the algorithm needs.** Mojang documents the pool names and every component's
-parameters. Mojang publishes no spawn attempt rate, no cap value, no spawn radius, no herd placement
-rule, no density radius, and no statement of which light value `minecraft:brightness_filter`
-compares or what `adjust_for_weather` does to it. The research note
+Mojang documents the pool names and every component's parameters, but the spawn-rule data has no
+field for the algorithm's attempt rate, population caps, sampling radius, herd placement, or density
+radius. It also does not state which light value `minecraft:brightness_filter` compares or what
+`adjust_for_weather` does to it. The research note
 [`docs/research/bedrock-entities-spawning-loot-trading.md`](../../docs/research/bedrock-entities-spawning-loot-trading.md)
 section 4 lists the gaps one by one.
 
@@ -142,10 +144,15 @@ entry there is hedged with a tilde: `animal` "~10 per player", `monster` "~70 in
 `water_animal` "~5 per water body", `water_ambient` "~20 per water body", `ambient` "~15 in caves",
 `pillager` "Limited by patrols".
 
-So every number this package uses is this project's choice. They live in
+Most numbers this package uses are this project's choices. They live in
 [`src/tables/spawnConstants.json`](src/tables/spawnConstants.json) rather than in code, each with a
 `source` string, so a reader can judge them and a host can replace the whole table through
 `SpawnerOptions.constants`.
+
+The minimum spawn distance is the exception. Java 26.3's `NaturalSpawner` rejects spawn positions
+at or within 24 blocks of a player and inside 24 blocks of the shared world spawn in its dimension.
+The spawner reads this radius from the same JSON table and checks every herd member as well as the
+initial position. Mojang's Bedrock spawn-rule files do not carry this distance.
 
 | Constant | Value | Where it came from |
 | --- | --- | --- |
@@ -158,6 +165,7 @@ So every number this package uses is this project's choice. They live in
 | `pools.pillager.cap` | none | "Limited by patrols", so `minecraft:delay_filter` and `minecraft:mob_event_filter` gate it instead. |
 | `pools.*.cycleTicks` | 400 for the calm pools, 20 for monsters and pillagers, 1200 for cats | Mojang publishes no rate. Java's animal pass runs every 400 ticks and its monster pass every tick; 20 is this project's cheaper monster cadence. |
 | `spawnRadiusChunks` | 4 | Bedrock's documented default simulation distance, because the ticking area documentation says spawning happens "in a radius centered on a player". |
+| `minimumSpawnDistance` | 24 blocks | Java 26.3's `NaturalSpawner.isRightDistanceToPlayerAndSpawnPoint`; excludes near-player and near-world-spawn positions. |
 | `chunksPerCycle`, `positionsPerChunk` | 8 and 3 | This project's budget, picked so one player in an empty plains biome reaches the animal cap within a few cycles. |
 | `herdRadius` | 5 blocks | Java's horizontal pack spread. |
 | `densityRadius` | 16 blocks | One chunk's width, as this project's reading of the "certain locations" the density limit talks about. |

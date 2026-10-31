@@ -88,6 +88,11 @@ export interface SpawnWorld {
     minY(): number;
     /** The players the spawner spawns around, which is every player in the spawn region. */
     players(): readonly SpawnPlayer[];
+    /**
+     * The shared world spawn in this dimension, when one applies. Java's
+     * exclusion only applies in the dimension that owns this spawn point.
+     */
+    worldSpawn?(): SpawnPosition | undefined;
     /** How many entities of one population pool stand in the spawn region now. */
     poolCount(pool: string): number;
     /** How many entities of one type stand within `radius` blocks of a position. */

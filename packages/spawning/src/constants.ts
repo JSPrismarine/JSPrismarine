@@ -2,16 +2,14 @@ import table from './tables/spawnConstants.json';
 import type { PopulationPool } from './rules';
 
 /**
- * The numbers the spawning algorithm needs and Mojang does not publish.
+ * Defaults the spawning algorithm reads from one replaceable table.
  *
- * Mojang documents the pool names and every spawn rule component's
- * parameters, and publishes no spawn attempt rate, no cap value, no spawn
- * radius and no light algorithm. The only numbers in print are the
- * tilde-hedged "Typical Cap" column of `EntitySpawningDeepDive.md`. Every
- * number here is therefore this project's choice, it lives in
- * `src/tables/spawnConstants.json` rather than in code so it is visible and
- * replaceable, and each one carries a `source` string saying where it came
- * from.
+ * Mojang documents the pool names and spawn-rule component parameters, but
+ * Bedrock publishes no spawn attempt rate, cap, sampling radius, or light
+ * algorithm. Java's 24-block minimum spawn distance comes from
+ * `NaturalSpawner.isRightDistanceToPlayerAndSpawnPoint`. The other values are
+ * this project's choices. They live in `src/tables/spawnConstants.json`, and
+ * each carries a `source` string that records where it came from.
  */
 
 /** Whether a pool's cap covers the whole spawn region or scales with the players in it. */
@@ -30,12 +28,16 @@ export interface PoolConstants {
 
 /** The whole constants table. */
 export interface SpawnConstants {
-    /** Why none of these numbers are Mojang's. */
+    /** Where the table's values came from. */
     readonly provenance: string;
     readonly pools: Readonly<Record<string, PoolConstants>>;
     /** How far from a player, in chunks, the spawner looks for a position. */
     readonly spawnRadiusChunks: number;
     readonly spawnRadiusSource: string;
+    /** Minimum natural spawn distance in blocks from players and the world spawn. */
+    readonly minimumSpawnDistance?: number;
+    /** Where the minimum spawn distance came from. Optional for older custom tables. */
+    readonly minimumSpawnDistanceSource?: string;
     /** How many chunks one cycle samples per player. */
     readonly chunksPerCycle: number;
     /** How many positions one cycle tries in each sampled chunk. */
@@ -60,13 +62,12 @@ export interface SpawnConstants {
 }
 
 /**
- * The numbers this project chose, read from
- * `src/tables/spawnConstants.json`. A host replaces the whole table through
+ * The default spawning values, read from `src/tables/spawnConstants.json`. A host replaces the table through
  * `SpawnerOptions.constants`.
  */
 // The table is hand-maintained JSON in this package; its literal types are too
 // narrow to describe a host's replacement, so the shape is asserted once here.
-export const SPAWN_CONSTANTS = table as SpawnConstants;
+export const SPAWN_CONSTANTS = table as Required<SpawnConstants>;
 
 /**
  * The cap one pool is allowed in the spawn region right now.

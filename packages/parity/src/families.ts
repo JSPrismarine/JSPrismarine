@@ -58,6 +58,8 @@ export const FAMILIES = {
     integrationTags: 'integration.tags',
     /** A representative vanilla data-driven entity through an event, tick, and physics step. */
     integrationEntityRuntime: 'integration.entity-runtime',
+    /** The composed vanilla spawn rules through the natural spawn loop. */
+    integrationSpawning: 'integration.spawning',
     /** Every Bedrock entity declaration resolved and exercised by the data-driven runtime. */
     integrationEntityCoverage: 'integration.entity-coverage',
     /** Registry, creative, and crafting payloads built for a joining Bedrock client. */

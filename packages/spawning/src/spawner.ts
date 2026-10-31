@@ -8,7 +8,8 @@ import { SPAWN_CONSTANTS, poolCapFor } from './constants';
 import type { EngineSpawnRule } from './engineRules';
 import { VANILLA_ENGINE_SPAWN_RULES } from './engineRules';
 import type { HerdRule, SpawnCondition, SpawnPermutation, SpawnRule } from './rules';
-import type { SpawnPass, SpawnPosition, SpawnWorld } from './world';
+import { distanceSquared } from './world';
+import type { SpawnPass, SpawnPlayer, SpawnPosition, SpawnWorld } from './world';
 
 /**
  * The spawn loop.
@@ -138,6 +139,7 @@ export class Spawner {
     private readonly world: SpawnWorld;
     private readonly random: RandomSource;
     private readonly constants: SpawnConstants;
+    private readonly minimumSpawnDistance: number;
     private readonly delays: SpawnDelays;
     private readonly engineRules: ReadonlyMap<string, EngineSpawnRule>;
     private readonly onUnanswered: EvaluateFilterOptions['onUnanswered'] | undefined;
@@ -146,6 +148,7 @@ export class Spawner {
         this.world = options.world;
         this.random = options.random;
         this.constants = options.constants ?? SPAWN_CONSTANTS;
+        this.minimumSpawnDistance = this.constants.minimumSpawnDistance ?? SPAWN_CONSTANTS.minimumSpawnDistance;
         this.delays = options.delays ?? new SpawnDelays();
         this.engineRules = options.engineRules ?? VANILLA_ENGINE_SPAWN_RULES;
         this.onUnanswered = options.onUnanswered;
@@ -197,6 +200,7 @@ export class Spawner {
 
         const requests: SpawnRequest[] = [];
         const { spawnRadiusChunks, chunksPerCycle, positionsPerChunk } = this.constants;
+        const worldSpawn = this.world.worldSpawn?.();
 
         for (const player of players) {
             const playerChunkX = Math.floor(player.position.x / 16);
@@ -211,7 +215,17 @@ export class Spawner {
                         if (remaining <= 0) break;
                         const position = this.positionIn(chunkX, chunkZ, pass);
                         if (position === undefined) continue;
-                        const spawned = this.attemptAt(pool, rules, position, pass, tick, remaining);
+                        if (!this.outsideSpawnExclusion(position, players, worldSpawn)) continue;
+                        const spawned = this.attemptAt(
+                            pool,
+                            rules,
+                            position,
+                            pass,
+                            tick,
+                            remaining,
+                            players,
+                            worldSpawn
+                        );
                         remaining -= spawned.length;
                         requests.push(...spawned);
                     }
@@ -267,6 +281,25 @@ export class Spawner {
         return !this.world.solid(at) && !this.world.solid({ ...at, y: at.y + 1 });
     }
 
+    /** Whether the block center clears Java's player and same-dimension world-spawn exclusions. */
+    private outsideSpawnExclusion(
+        at: SpawnPosition,
+        players: readonly SpawnPlayer[],
+        worldSpawn: SpawnPosition | undefined
+    ): boolean {
+        const blockPosition = { x: at.x + 0.5, y: at.y, z: at.z + 0.5 };
+        const radiusSquared = this.minimumSpawnDistance * this.minimumSpawnDistance;
+
+        // NaturalSpawner rejects player distances at or below 24 blocks.
+        if (players.some((player) => distanceSquared(blockPosition, player.position) <= radiusSquared)) return false;
+
+        if (worldSpawn === undefined) return true;
+
+        // Java's BlockPos.closerToCenterThan excludes positions strictly inside the radius.
+        const spawnCenter = { x: worldSpawn.x + 0.5, y: worldSpawn.y + 0.5, z: worldSpawn.z + 0.5 };
+        return distanceSquared(blockPosition, spawnCenter) >= radiusSquared;
+    }
+
     /**
      * Runs one attempt: collect the rules that pass here, draw one, and build
      * its herd.
@@ -283,7 +316,9 @@ export class Spawner {
         position: SpawnPosition,
         pass: SpawnPass,
         tick: number,
-        remaining: number
+        remaining: number,
+        players: readonly SpawnPlayer[],
+        worldSpawn: SpawnPosition | undefined
     ): readonly SpawnRequest[] {
         const candidates: Candidate[] = [];
         let totalWeight = 0;
@@ -321,7 +356,7 @@ export class Spawner {
 
         if (chosen.condition.delay !== undefined) this.delays.scheduleFrom(chosen.condition.delay, tick, this.random);
 
-        return this.herdAt(pool, chosen, position, pass, remaining);
+        return this.herdAt(pool, chosen, position, pass, remaining, players, worldSpawn);
     }
 
     /** Builds one herd around an anchor position. */
@@ -330,7 +365,9 @@ export class Spawner {
         candidate: Candidate,
         anchor: SpawnPosition,
         pass: SpawnPass,
-        remaining: number
+        remaining: number,
+        players: readonly SpawnPlayer[],
+        worldSpawn: SpawnPosition | undefined
     ): readonly SpawnRequest[] {
         const { condition, rule } = candidate;
         const herd =
@@ -349,6 +386,7 @@ export class Spawner {
             const permutation = permutations?.[index];
             const swapped = permutation?.entityType === undefined ? undefined : splitSpawnType(permutation.entityType);
             const position = index === 0 ? anchor : this.herdMemberPosition(anchor, pass);
+            if (!this.outsideSpawnExclusion(position, players, worldSpawn)) continue;
             const identifier = swapped?.identifier ?? rule.identifier;
             if (this.world.structureSpawnOverrideAt?.(identifier, position) === false) continue;
             const event = eventForMember(index, herd, swapped?.event, condition);
