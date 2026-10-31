@@ -33,7 +33,7 @@ export interface LegacyWorldData extends WorldData {
 }
 
 /**
- * What the old `generator` names stand for, keyed lowercase because `GeneratorManager`
+ * What the old `generator` names stand for, keyed lowercase because the old generator manager
  * matched them that way.
  */
 const LEGACY_GENERATOR_PRESETS: Readonly<Record<string, string>> = {
@@ -92,7 +92,7 @@ const flatGeneratorOf = (layers: readonly FlatLayer[]): GeneratorDefinitionJson 
  * @param knownKinds - The generator kinds a `dimensions.<id>.generator.type` may name, for
  *   the error message.
  * @throws When `generator` is a string other than `Overworld` or `Flat`, in any case, which is
- *   what `GeneratorManager` refused before this.
+ *   what the old generator manager refused before this.
  */
 export const normalizeWorldData = (data: LegacyWorldData, knownKinds: readonly string[]): NormalizedWorldData => {
     const { seed, provider, generator, layers } = data;
