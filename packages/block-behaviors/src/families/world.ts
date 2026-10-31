@@ -3,14 +3,16 @@
  * sculk blocks, and copper weathering.
  */
 import { defineFamily } from '../family';
-import { offset } from '../geometry';
+import { offset, opposite } from '../geometry';
 import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
 import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
+import { placementFacing } from '../rules/placement';
 import {
     activateEndPortal,
     collapseNetherPortal,
+    END_PORTAL_FACING_STATE,
     isNetherPortal,
     lightNetherPortal,
     spawnPiglinFromPortal
@@ -89,10 +91,22 @@ export const PORTAL_DELAY_TICKS = 80;
 /** The portal blocks, the portal frames and the two fires. */
 export const portalFamily = defineFamily(
     'jsprismarine:portal',
-    'Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, spreads and burns with fire, and ages soul fire. Travel across dimensions is left to the server, which owns the dimension list.',
+    'Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, turns a placed end portal frame opposite its placer, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, spreads and burns with fire, and ages soul fire. Travel across dimensions is left to the server, which owns the dimension list.',
     {
         onPlace: (event, world) => {
             const name = bareName(event.block.identifier);
+            if (name === 'end_portal_frame') {
+                // Java's `EndPortalFrameBlock.getStateForPlacement` faces the frame opposite
+                // the placer's horizontal direction, so a player standing inside the ring and
+                // looking outward leaves every frame facing the center, which is the facing
+                // `findEndPortalRing` requires of all twelve.
+                if (event.placedBy === undefined) return;
+                const facing = placementFacing(event);
+                if (facing !== undefined) {
+                    setStates(world, event.block, { [END_PORTAL_FACING_STATE]: opposite(facing) });
+                }
+                return;
+            }
             if (name !== 'fire' && name !== 'soul_fire') return;
             world.scheduleTick(event.block.position, fireTickDelay(world));
             // The fire's source does not matter: flint and steel, a fire

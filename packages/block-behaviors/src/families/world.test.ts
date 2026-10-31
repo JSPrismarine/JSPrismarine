@@ -141,6 +141,44 @@ describe('portalFamily', () => {
         expect(fire.dimension.identifierAt(origin)).toBe(AIR);
     });
 
+    it('turns a placed frame opposite its placer, so each direction gives its own facing', () => {
+        // Java's `EndPortalFrameBlock.getStateForPlacement` faces the frame opposite the
+        // player's horizontal direction, and the identity state mapping keeps that value in
+        // Bedrock's `minecraft:cardinal_direction`. Without it every frame keeps the default
+        // `south` and no ring can ever complete.
+        const harness = bindFamily(portalFamily, 'minecraft:end_portal_frame');
+        const placements = [
+            { position: { x: 0, y: 1, z: 0 }, yaw: 180, facing: 'south' },
+            { position: { x: 2, y: 1, z: 0 }, yaw: 0, facing: 'north' },
+            { position: { x: 4, y: 1, z: 0 }, yaw: 90, facing: 'east' },
+            { position: { x: 6, y: 1, z: 0 }, yaw: 270, facing: 'west' }
+        ] as const;
+
+        for (const { position, yaw, facing } of placements) {
+            harness.dimension.set(position, 'minecraft:end_portal_frame', {
+                end_portal_eye_bit: false,
+                'minecraft:cardinal_direction': 'south'
+            });
+            harness.place(position, {
+                placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 0, z: 0 }, yaw }
+            });
+
+            expect(harness.dimension.stateAt(position, 'minecraft:cardinal_direction')).toBe(facing);
+        }
+    });
+
+    it('leaves a frame the world wrote on its default facing', () => {
+        const harness = bindFamily(portalFamily, 'minecraft:end_portal_frame');
+        harness.dimension.set(origin, 'minecraft:end_portal_frame', {
+            end_portal_eye_bit: false,
+            'minecraft:cardinal_direction': 'south'
+        });
+
+        harness.place(origin, { placedBy: undefined });
+
+        expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('south');
+    });
+
     it('takes an eye of ender into an empty frame once', () => {
         const harness = bindFamily(portalFamily, 'minecraft:end_portal_frame');
         harness.dimension.set(origin, 'minecraft:end_portal_frame', {
