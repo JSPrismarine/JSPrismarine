@@ -39,6 +39,7 @@ const world: WorldActions = {
     random: () => current.random(),
     locate: (destination, origin) => current.locate?.(destination, origin),
     supports: (action) => current.supports?.(action) ?? true,
+    placeEndCrystal: (base) => current.placeEndCrystal?.(base) ?? false,
     perform: (action) => current.perform(action)
 };
 
@@ -682,14 +683,30 @@ describe('placement', () => {
         });
     });
 
-    it('spawns the entity a minecart, crystal or stand names outright', () => {
+    it('spawns the entity a minecart or stand names outright', () => {
         const recording = withWorld();
         useOn(stackOf('minecraft:hopper_minecart'));
-        useOn(stackOf('minecraft:end_crystal'));
-        expect(recording.performed('spawn-entity').map((action) => action.identifier)).toEqual([
-            'minecraft:minecart',
-            'minecraft:end_crystal'
-        ]);
+        expect(recording.performed('spawn-entity').map((action) => action.identifier)).toEqual(['minecraft:minecart']);
+    });
+
+    it('lets the host validate end crystal placement before consuming the stack', () => {
+        const bases: BlockPosition[] = [];
+        withWorld({
+            placeEndCrystal: (base) => {
+                bases.push(base);
+                return true;
+            }
+        });
+        const result = useOn(
+            stackOf('minecraft:end_crystal', 3),
+            testBlock('minecraft:obsidian', { x: 4, y: 63, z: -2 })
+        );
+
+        expect(bases).toEqual([{ x: 4, y: 63, z: -2 }]);
+        expect(result?.stack?.count).toBe(2);
+
+        withWorld({ placeEndCrystal: () => false });
+        expect(useOn(stackOf('minecraft:end_crystal'))).toBeUndefined();
     });
 
     it('places a standing banner on a top face and a wall banner on a side', () => {

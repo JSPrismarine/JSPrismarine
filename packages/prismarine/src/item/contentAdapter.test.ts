@@ -48,7 +48,7 @@ const idle: SourceState = {
  * recorded rather than stubbed out, so an assertion names the call the
  * adapter actually made.
  */
-const harness = (initial: Record<string, ContentBlock> = {}) => {
+const harness = (initial: Record<string, ContentBlock> = {}, placeEndCrystal?: (base: ContentPosition) => boolean) => {
     const stored = new Map(Object.entries(initial));
     const storage: BlockStorageAccess = {
         at: (position) => stored.get(key(position)),
@@ -86,7 +86,8 @@ const harness = (initial: Record<string, ContentBlock> = {}) => {
         effects,
         level: unwired.level,
         actors,
-        content: () => content!
+        content: () => content!,
+        ...(placeEndCrystal === undefined ? {} : { placeEndCrystal })
     });
 
     const adapter: ServerWorldAdapter = {
@@ -193,6 +194,19 @@ describe('item', () => {
 
             expect(items.transform('minecraft:axe', { identifier: 'minecraft:oak_log', states: {} })).toBeUndefined();
             expect(items.effectsOf('minecraft:swiftness')).toEqual([]);
+        });
+
+        it('forwards end crystal placement to the host and returns its decision', () => {
+            const bases: ContentPosition[] = [];
+            const { items } = harness({}, (base) => {
+                bases.push(base);
+                return true;
+            });
+            const base = { x: 2, y: 64, z: -3 };
+
+            expect(items.placeEndCrystal?.(base)).toBe(true);
+            expect(bases).toEqual([base]);
+            expect(harness().items.placeEndCrystal?.(base)).toBe(false);
         });
 
         it('answers a transformer and a potion out of the tables it is given', () => {

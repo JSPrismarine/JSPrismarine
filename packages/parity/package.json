@@ -31,6 +31,7 @@
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/entities": "workspace:*",
+        "@jsprismarine/features": "workspace:*",
         "@jsprismarine/items": "workspace:*",
         "@jsprismarine/loot": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",

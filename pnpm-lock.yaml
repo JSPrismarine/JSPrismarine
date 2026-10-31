@@ -1249,6 +1249,9 @@ importers:
       '@jsprismarine/entities':
         specifier: workspace:*
         version: link:../entities
+      '@jsprismarine/features':
+        specifier: workspace:*
+        version: link:../features
       '@jsprismarine/items':
         specifier: workspace:*
         version: link:../items

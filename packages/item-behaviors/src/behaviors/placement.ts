@@ -115,6 +115,15 @@ export const entityPlacementBehavior: ItemBehaviorSpec = {
     create: (context) => {
         const placed = placedEntityOf(context.identifier);
 
+        if (context.identifier === 'minecraft:end_crystal') {
+            const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block }) => {
+                if (context.world.placeEndCrystal?.(block.position) !== true) return undefined;
+                return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
+            };
+
+            return { onUseOn };
+        }
+
         const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
             context.world.perform({
                 kind: 'spawn-entity',

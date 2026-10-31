@@ -17,7 +17,13 @@
 import type { SpawnWorld } from '@jsprismarine/spawning';
 import { Vector3 } from '@jsprismarine/math';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
-import type { EntityPosition, EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type {
+    EntityInstance,
+    EntityPosition,
+    EquipmentSlot,
+    FilterEntityView,
+    FilterItemView
+} from '@jsprismarine/entities';
 import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { singleDimension } from '../../content/world/adapter';
@@ -749,6 +755,15 @@ export class EntityRuntimes {
     /** The runtime of one dimension, or undefined when nothing opened one. */
     public at(dimension: string): LiveEntityRuntime | undefined {
         return this.byDimension.get(dimension);
+    }
+
+    /** Resolves the goal world from whichever dimension owns this instance. */
+    public goalWorldFor(instance: EntityInstance) {
+        for (const runtime of this.byDimension.values()) {
+            const goalWorld = runtime.runtime.goalWorldFor(instance);
+            if (goalWorld !== undefined) return goalWorld;
+        }
+        return undefined;
     }
 
     /** Forgets one dimension's runtime, which is what closing its world does. */

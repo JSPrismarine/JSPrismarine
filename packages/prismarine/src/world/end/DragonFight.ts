@@ -5,18 +5,22 @@
  * (whether the dragon is alive, where the exit portal stands, which gateways remain), spawns
  * the dragon when one should exist, runs the boss bar for the players in the arena, and takes
  * the dragon's death: the exit portal opens, the egg lands on a world's first kill, a gateway
- * is spent and the experience is paid. A later slice adds the four-crystal respawn.
+ * is spent and the experience is paid. Four crystals can start the pillar-reset sequence that
+ * summons the dragon again.
  */
-import { blockState, endGateway, endPodium, shuffledCopy } from '@jsprismarine/features';
+import { blockState, endGateway, endPodium, endSpike, endSpikesForSeed, shuffledCopy } from '@jsprismarine/features';
+import type { EndSpike } from '@jsprismarine/features';
+import { Vector3 } from '@jsprismarine/math';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { LegacyRandomSource } from '@jsprismarine/worldgen';
 
 import type { DataEntity } from '../../entity/data/DataEntity';
+import { explode } from '../../entity/Explosion';
 import { addExperiencePoints } from '../../entity/Experience';
 import { BossBar } from '../../network/BossBar';
 import type Player from '../../Player';
 import type { World } from '../World';
-import type { DragonFightState } from '../WorldPersistence';
+import type { DragonFightState, DragonRespawnStage } from '../WorldPersistence';
 import { fightFeatureWorld } from './worldFeatureAdapter';
 
 export type { DragonFightState } from '../WorldPersistence';
@@ -57,6 +61,21 @@ const CRYSTAL_HEAL_INTERVAL = 10;
 /** How close a crystal must be to heal the dragon, Java's `nearestCrystal` search radius. */
 const CRYSTAL_HEAL_RADIUS = 32;
 
+/** The four crystals sit three blocks from the podium center, Java's respawn portal shape. */
+const RESPAWN_CRYSTAL_OFFSETS = [
+    { x: 3, z: 0 },
+    { x: -3, z: 0 },
+    { x: 0, z: 3 },
+    { x: 0, z: -3 }
+] as const;
+
+/** Java waits 100 ticks before the pillars start moving. */
+const RESPAWN_PREPARE_TICKS = 100;
+/** Each pillar takes 40 ticks to reset, Java's `SPIKE_TICKS`. */
+const RESPAWN_PILLAR_TICKS = 40;
+/** Java waits 100 ticks while the dragon is summoned. */
+const RESPAWN_SUMMON_TICKS = 100;
+
 const DRAGON_IDENTIFIER = 'minecraft:ender_dragon';
 const CRYSTAL_IDENTIFIER = 'minecraft:ender_crystal';
 const XP_ORB_IDENTIFIER = 'minecraft:xp_orb';
@@ -94,6 +113,8 @@ export class DragonFight {
     private lastBarPercent: number | undefined;
     /** Whether the missing dragon type has been reported, so the log says it once. */
     private reportedMissingDragonType = false;
+    /** A saved respawn first loads its portal chunks before checking the crystal identities. */
+    private respawnChunksLoaded: boolean;
     /**
      * A death's world consequences still in flight.
      *
@@ -110,6 +131,7 @@ export class DragonFight {
     public constructor(world: World, state: DragonFightState | undefined, seed: bigint) {
         this.world = world;
         this.fight = state ?? freshState();
+        this.respawnChunksLoaded = this.fight.respawnStage === undefined;
         if (this.fight.gateways.length === 0) {
             this.fight.gateways = shuffledCopy(
                 Array.from({ length: GATEWAY_COUNT }, (_, index) => index),
@@ -140,6 +162,10 @@ export class DragonFight {
         if (!this.playerNear) return;
 
         if (this.fight.needsStateScanning) await this.scanState();
+        if (this.fight.respawnStage !== undefined) {
+            await this.tickRespawn();
+            return;
+        }
         if (this.fight.dragonKilled) return;
 
         await this.resolveDragon();
@@ -186,8 +212,40 @@ export class DragonFight {
         return this.fight;
     }
 
+    /**
+     * Starts Java's four-crystal respawn sequence when the crystals occupy the exit portal's
+     * four edge cells. Crystal placement remains valid in worlds without an End fight; this
+     * method is the only place that consumes the four-crystal arrangement.
+     *
+     * @returns Whether the fight accepted the four crystals and started its saved stage machine.
+     */
+    public tryRespawn(): boolean {
+        if (!this.fight.dragonKilled || this.fight.respawnStage !== undefined) return false;
+        const origin = this.fight.exitPortalLocation;
+        if (origin === undefined) return false;
+
+        const crystals = RESPAWN_CRYSTAL_OFFSETS.map(({ x, z }) =>
+            this.findCrystalAt({ x: origin.x + x, y: origin.y + 2, z: origin.z + z })
+        ).filter((crystal) => crystal !== undefined);
+        if (crystals.length !== RESPAWN_CRYSTAL_OFFSETS.length) return false;
+
+        this.fight.respawnCrystalIds = crystals.map((crystal) => crystal.persistentIdentity);
+        this.fight.respawnStage = 'start';
+        this.fight.respawnTime = 0;
+        this.respawnChunksLoaded = true;
+        this.placeExitPortal(false);
+        return true;
+    }
+
+    /** Aborts when a driving crystal is destroyed; chunk unloads remain resumable. */
+    public onCrystalDestroyed(crystal: DataEntity, reason: string): void {
+        if (!this.fight.respawnCrystalIds.includes(crystal.persistentIdentity)) return;
+        if (reason === 'death' || reason === 'death_behavior' || reason === 'explosion') this.abortRespawn();
+    }
+
     /** Reacts to the runtime letting go of the tracked dragon, however that happened. */
     private entityRemoved(entity: DataEntity, reason: string): void {
+        if (entity.identifier === CRYSTAL_IDENTIFIER) this.onCrystalDestroyed(entity, reason);
         if (entity.persistentIdentity !== this.fight.dragonUniqueId) return;
 
         this.dragon = undefined;
@@ -197,6 +255,202 @@ export class DragonFight {
             // Gone without dying or being saved - forget it, so the 1200-tick check spawns anew.
             this.fight.dragonUniqueId = undefined;
         }
+    }
+
+    /** Advances the saved 1 + 100 + 10×40 + 100 tick respawn sequence. */
+    private async tickRespawn(): Promise<void> {
+        const stage = this.fight.respawnStage;
+        if (stage === undefined) return;
+
+        if (!this.respawnChunksLoaded) {
+            await this.loadArenaCenter();
+            this.respawnChunksLoaded = true;
+        }
+        if (!this.respawnCrystalIdsAreLive()) {
+            this.abortRespawn();
+            return;
+        }
+
+        switch (stage) {
+            case 'start':
+                this.setRespawnCrystalBeam(DRAGON_SPAWN);
+                this.setRespawnStage('preparing_to_summon_pillars');
+                return;
+            case 'preparing_to_summon_pillars':
+                this.fight.respawnTime += 1;
+                if (this.fight.respawnTime >= RESPAWN_PREPARE_TICKS) this.setRespawnStage('summoning_pillars');
+                return;
+            case 'summoning_pillars': {
+                const spikes = endSpikesForSeed(this.world.getSeed());
+                const time = this.fight.respawnTime;
+                const spike = spikes[Math.floor(time / RESPAWN_PILLAR_TICKS)];
+                if (spike === undefined) {
+                    this.setRespawnStage('summoning_dragon');
+                    return;
+                }
+
+                if (time % RESPAWN_PILLAR_TICKS === 0) {
+                    this.setRespawnCrystalBeam({ x: spike.centerX, y: spike.height + 1, z: spike.centerZ });
+                }
+                if (time % RESPAWN_PILLAR_TICKS === RESPAWN_PILLAR_TICKS - 1) await this.resetSpike(spike);
+
+                this.fight.respawnTime += 1;
+                if (this.fight.respawnTime >= spikes.length * RESPAWN_PILLAR_TICKS) {
+                    this.setRespawnCrystalBeam(DRAGON_SPAWN);
+                    this.setRespawnStage('summoning_dragon');
+                }
+                return;
+            }
+            case 'summoning_dragon':
+                this.setRespawnCrystalBeam(DRAGON_SPAWN);
+                this.fight.respawnTime += 1;
+                if (this.fight.respawnTime >= RESPAWN_SUMMON_TICKS) await this.finishRespawn();
+                return;
+        }
+    }
+
+    /** Saves the next phase and resets its phase-local clock. */
+    private setRespawnStage(stage: DragonRespawnStage): void {
+        this.fight.respawnStage = stage;
+        this.fight.respawnTime = 0;
+    }
+
+    /** Finds a crystal whose feet occupy one exact block cell. */
+    private findCrystalAt(at: { x: number; y: number; z: number }): DataEntity | undefined {
+        return this.world
+            .dataEntities()
+            .runtime.all()
+            .find(
+                (entity) =>
+                    entity.identifier === CRYSTAL_IDENTIFIER &&
+                    Math.floor(entity.position.x) === at.x &&
+                    entity.position.y === at.y &&
+                    Math.floor(entity.position.z) === at.z
+            );
+    }
+
+    /** Whether every saved crystal is present in the loaded entity runtime. */
+    private respawnCrystalIdsAreLive(): boolean {
+        const liveIds = new Set(
+            this.world
+                .dataEntities()
+                .runtime.all()
+                .filter((entity) => entity.identifier === CRYSTAL_IDENTIFIER)
+                .map((entity) => entity.persistentIdentity)
+        );
+        return (
+            this.fight.respawnCrystalIds.length === RESPAWN_CRYSTAL_OFFSETS.length &&
+            this.fight.respawnCrystalIds.every((id) => liveIds.has(id))
+        );
+    }
+
+    /** Points the four driving crystals at one position. */
+    private setRespawnCrystalBeam(target: { x: number; y: number; z: number }): void {
+        const ids = new Set(this.fight.respawnCrystalIds);
+        for (const crystal of this.world.dataEntities().runtime.all()) {
+            if (ids.has(crystal.persistentIdentity)) crystal.body.beamTarget = { ...target };
+        }
+    }
+
+    /** Clears pillar-crystal protection and beams on both completion and abort. */
+    private resetPillarCrystalOptions(): void {
+        for (const crystal of this.world.dataEntities().runtime.all()) {
+            if (crystal.identifier !== CRYSTAL_IDENTIFIER) continue;
+            crystal.body.invulnerable = false;
+            crystal.body.beamTarget = undefined;
+        }
+    }
+
+    /** Restores the active portal and makes partially reset pillar crystals vulnerable. */
+    private abortRespawn(): void {
+        delete this.fight.respawnStage;
+        this.fight.respawnTime = 0;
+        this.fight.respawnCrystalIds = [];
+        this.respawnChunksLoaded = false;
+        this.resetPillarCrystalOptions();
+        this.placeExitPortal(true);
+    }
+
+    /** Clears one pillar, emits its power-five blast, and rebuilds it with a protected crystal. */
+    private async resetSpike(spike: EndSpike): Promise<void> {
+        const minX = spike.centerX - 10;
+        const maxX = spike.centerX + 10;
+        const minZ = spike.centerZ - 10;
+        const maxZ = spike.centerZ + 10;
+        const minChunkX = minX >> 4;
+        const maxChunkX = maxX >> 4;
+        const minChunkZ = minZ >> 4;
+        const maxChunkZ = maxZ >> 4;
+        const chunks = [];
+        for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += 1) {
+            for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += 1) {
+                chunks.push(this.world.getChunkAt(chunkX * 16, chunkZ * 16));
+            }
+        }
+        await Promise.all(chunks);
+
+        const runtime = this.world.dataEntities().runtime;
+        for (const crystal of runtime.all()) {
+            if (
+                crystal.identifier === CRYSTAL_IDENTIFIER &&
+                Math.abs(crystal.position.x - spike.centerX) <= 10 &&
+                Math.abs(crystal.position.z - spike.centerZ) <= 10
+            ) {
+                runtime.remove(crystal.id, 'pillar reset');
+            }
+        }
+
+        const features = fightFeatureWorld(this.world);
+        const maxY = spike.height + 10;
+        for (let x = minX; x <= maxX; x += 1) {
+            for (let z = minZ; z <= maxZ; z += 1) {
+                for (let y = this.world.getDimension().minY; y <= maxY; y += 1) {
+                    if (this.world.loadedBlockAt(x, y, z)?.name === 'minecraft:air') continue;
+                    features.setBlock({ x, y, z }, blockState('minecraft:air'));
+                }
+            }
+        }
+
+        await explode(this.world, new Vector3(spike.centerX + 0.5, spike.height + 1, spike.centerZ + 0.5), {
+            power: 5
+        });
+        endSpike([spike], true, DRAGON_SPAWN).place(features, new LegacyRandomSource(this.world.getSeed()), {
+            x: spike.centerX,
+            y: 0,
+            z: spike.centerZ
+        });
+    }
+
+    /** Explodes the four driving crystals without block damage and spawns the next dragon. */
+    private async finishRespawn(): Promise<void> {
+        const ids = new Set(this.fight.respawnCrystalIds);
+        const crystals = this.world
+            .dataEntities()
+            .runtime.all()
+            .filter((entity) => ids.has(entity.persistentIdentity));
+        const positions = crystals.map((crystal) => ({ ...crystal.position }));
+        for (const crystal of crystals) this.world.dataEntities().runtime.remove(crystal.id, 'respawn complete');
+
+        this.fight.respawnCrystalIds = [];
+        delete this.fight.respawnStage;
+        this.fight.respawnTime = 0;
+        this.respawnChunksLoaded = false;
+        this.resetPillarCrystalOptions();
+
+        await Promise.all(
+            positions.map(({ x, y, z }) => explode(this.world, new Vector3(x, y, z), { power: 6, breaksBlocks: false }))
+        );
+
+        const dragon = this.world.dataEntities().runtime.spawn(DRAGON_IDENTIFIER, { ...DRAGON_SPAWN });
+        this.fight.dragonKilled = false;
+        if (dragon === undefined) {
+            if (!this.reportedMissingDragonType) {
+                this.reportedMissingDragonType = true;
+                this.report(`no loaded pack declares ${DRAGON_IDENTIFIER}, so the fight has no dragon`);
+            }
+            return;
+        }
+        await this.adopt(dragon);
     }
 
     /** Puts the bar on the players in the arena and takes it off everyone else. */

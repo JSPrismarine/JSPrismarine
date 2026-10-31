@@ -132,6 +132,8 @@ export interface ContentItemGroupOptions {
     readonly actors: ItemActorPort;
     /** The built content, read at call time; see {@link ContentLookup}. */
     readonly content: ContentLookup;
+    /** Places an end crystal after the host validates its support and spawn volume. */
+    readonly placeEndCrystal?: (base: BlockPosition) => boolean;
     readonly transformers?: BlockTransformers;
     readonly potions?: PotionEffects;
 }
@@ -237,6 +239,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
         includes: (set, member) => holderSetIncludes(content().tags, set, member),
         transform: (transformer, block) => transformers(transformer, block),
         effectsOf: (potion) => potions(potion),
+        placeEndCrystal: (base) => options.placeEndCrystal?.(base) ?? false,
         perform
     };
 };

@@ -434,6 +434,16 @@ export interface WorldActions {
      */
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     /**
+     * Places an end crystal when the clicked block and the three-block spawn box are clear.
+     *
+     * The host owns the block and entity indexes needed to check Java's placement rules. It
+     * also starts the dragon respawn sequence when this completes a set of four crystals.
+     *
+     * @param base - The block the crystal is placed on.
+     * @returns Whether the host placed the crystal. A false answer leaves the item stack alone.
+     */
+    placeEndCrystal?(base: BlockPosition): boolean;
+    /**
      * Whether the host performs an action of this kind, when it can say.
      *
      * `perform` returns nothing, so a host that has not written the system

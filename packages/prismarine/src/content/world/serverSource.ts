@@ -172,7 +172,40 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
             effects,
             level,
             actors,
-            content
+            content,
+            placeEndCrystal: (base) => {
+                const loaded = world();
+                if (loaded === undefined || live === undefined) return false;
+
+                const support = loaded.loadedBlockAt(base.x, base.y, base.z)?.name;
+                if (support !== 'minecraft:obsidian' && support !== 'minecraft:bedrock') return false;
+                if (loaded.loadedBlockAt(base.x, base.y + 1, base.z)?.name !== 'minecraft:air') return false;
+
+                const overlapsSpawnVolume = loaded.getEntities().some((entity) => {
+                    const position = entity.getPosition();
+                    const box = entity.getBox();
+                    const left = position.getX() - box.width / 2;
+                    const right = position.getX() + box.width / 2;
+                    const bottom = entity.getFeetY();
+                    const top = bottom + box.height;
+                    const nearX = right > base.x && left < base.x + 1;
+                    const nearY = top > base.y + 1 && bottom < base.y + 3;
+                    const nearZ =
+                        position.getZ() + box.width / 2 > base.z && position.getZ() - box.width / 2 < base.z + 1;
+                    return nearX && nearY && nearZ;
+                });
+                if (overlapsSpawnVolume) return false;
+
+                const crystal = live.runtime.spawn(
+                    'minecraft:ender_crystal',
+                    { x: base.x + 0.5, y: base.y + 1, z: base.z + 0.5 },
+                    { showBottom: false }
+                );
+                if (crystal === undefined) return false;
+
+                loaded.getDragonFight()?.tryRespawn();
+                return true;
+            }
         }),
         // `generation` is left out rather than filled with throwing members: the adapter
         // declares it optional so that the projection in `views.ts` reports the subsystem
@@ -212,6 +245,7 @@ export interface ServerWorldHandle extends ServerWorldSource {
  */
 export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorldHandle => {
     const wirings = new Map<string, DimensionWiring>();
+    const entityRuntimes = options.entityRuntimes;
 
     const wiringAt = (dimension: string): DimensionWiring => {
         const existing = wirings.get(dimension);
@@ -224,6 +258,7 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
 
     return {
         at: (dimension) => wiringAt(dimension).adapter,
-        actorsAt: (dimension) => wiringAt(dimension).actors
+        actorsAt: (dimension) => wiringAt(dimension).actors,
+        ...(entityRuntimes === undefined ? {} : { goalWorld: (entity) => entityRuntimes.goalWorldFor(entity) })
     };
 };

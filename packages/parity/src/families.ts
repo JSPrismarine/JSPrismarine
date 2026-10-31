@@ -87,6 +87,9 @@ export const FAMILIES = {
     /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
     commandsTree: 'commands.tree',
 
+    /** The End crystal, dragon, spike, and podium data the respawn fight reads. */
+    gameplayEndFight: 'gameplay.end-fight',
+
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',
     /** Declarative wire layouts re-encode a real server's bytes exactly, per protocol version. */

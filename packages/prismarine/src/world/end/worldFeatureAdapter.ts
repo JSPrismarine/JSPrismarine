@@ -13,6 +13,7 @@ import { bedrockBlockStateToJava } from '@jsprismarine/mapping';
 import { UNKNOWN_RUNTIME_ID } from '@jsprismarine/protocol';
 
 import { JavaStateTranslator } from '../generators/datadriven/javaTranslation';
+import { bedrockEntityIdentifierOf } from '../../entity/identifierMapping';
 import type { World } from '../World';
 
 const JAVA_AIR: JavaBlockState = blockState('minecraft:air');
@@ -74,6 +75,15 @@ export const fightFeatureWorld = (world: World): FeatureWorld => {
             if (runtimeId === UNKNOWN_RUNTIME_ID) return false;
 
             return world.setLoadedBlockRuntimeId(position.x, position.y, position.z, runtimeId);
+        },
+        spawnEntity: (identifier, position, options) => {
+            const content = world.getServer().getContent();
+            const bedrockIdentifier = bedrockEntityIdentifierOf(identifier, (candidate) =>
+                content.entities.registry.has(candidate)
+            );
+            if (bedrockIdentifier === undefined) return;
+
+            world.dataEntities().runtime.spawn(bedrockIdentifier, position, options);
         },
         getHeight: (_heightmap, x, z) => firstFreeYAbove(world, x, z),
         getBiome: () => 'minecraft:the_end'

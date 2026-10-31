@@ -92,7 +92,8 @@ export const contentWorldViews = (
         lightView: lightViewOf(main(), content),
         engineWorld: engineWorldOf(main()),
         spawnWorld: spawnWorldOf(main(), content),
-        goalWorld: (entity) => aiOf(main()).goalWorld(entity),
+        goalWorld: (entity) =>
+            world.goalWorld === undefined ? aiOf(main()).goalWorld(entity) : world.goalWorld(entity),
         actuator: (entity) => aiOf(main()).actuator(entity),
         brainWorld: () => aiOf(main()).brainWorld(),
         featureWorld: (chunkX, chunkZ) => generationOf(main()).featureWorld(chunkX, chunkZ)
@@ -266,6 +267,7 @@ const itemActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Ite
         targetOf: (source) => items().targetOf(source),
         canNameEntity: (target) => items().canNameEntity?.(target) ?? true,
         canDyeEntity: (target, color) => items().canDyeEntity?.(target, color) ?? true,
+        placeEndCrystal: (base) => items().placeEndCrystal?.(base) ?? false,
         locate: (destination, origin) => items().locate?.(destination, origin),
         supports: (action) => items().supports?.(action) ?? true,
         includes: (set, member) => items().includes(set, member),

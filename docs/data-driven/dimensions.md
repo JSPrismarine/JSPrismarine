@@ -377,9 +377,11 @@ Java's End spawn point, writes the 5 by 5 obsidian platform at y 48 with three r
 
 A trip out of the End lands a player at their respawn point, which is the next section's rule, and
 spends no respawn anchor charge, which matches Java although charging is not modeled here anyway.
-Anything else lands one block above the Overworld spawn. The end credits are not shown; the
-server logs the client's credits state and never starts them. End gateways are claimed by the
-`portal` block family and have no hook, so stepping into one does nothing yet.
+Anything else lands one block above the Overworld spawn. On the first exit, the server starts the
+credits and waits for the client's reply before transferring the player; later exits skip them.
+The End dragon fight opens the exit portal on death, drops an egg on the world's first kill, and
+places a gateway block. Gateway teleporting is not implemented yet; see
+[end-fight.md](end-fight.md) for the fight and respawn sequence.
 
 ### Where a player comes back
 

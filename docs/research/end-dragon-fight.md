@@ -88,7 +88,7 @@ places `END_PODIUM_ACTIVE` or `END_PODIUM_INACTIVE` there.
 CORNER_ROUNDING 0.5) loops the box (ox - 4, oy - 1, oz - 4) to (ox + 4, oy + 32, oz + 4) and only
 touches positions with squared distance under 12.25 from the origin (closerThan 3.5). Below the
 origin layer (y = oy - 1): bedrock inside squared distance 6.25 (closerThan 2.5), end stone on the
-ring outside it. Above: air. On the origin layer: the ring outside 2.5 is bedrock (the 12 rim
+ring outside it. Above: air. On the origin layer: the ring outside 2.5 is bedrock (the 16 rim
 cells) and the inside is `END_PORTAL` when active and `AIR` when inactive (20 portal cells once
 the center is replaced). Then a bedrock pillar at origin.above(0..3) and a wall torch facing each
 cardinal at origin.above(2).relative(dir). Active placement destroys replaced blocks with drops

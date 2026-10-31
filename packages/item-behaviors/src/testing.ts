@@ -49,6 +49,8 @@ export interface TestWorldOptions {
     readonly potions?: Readonly<Record<string, readonly EffectApplication[]>>;
     /** What `locate` answers, keyed by structure tag; a tag absent here has nothing in range. */
     readonly structures?: Readonly<Record<string, BlockPosition>>;
+    /** Whether the host accepts an end crystal on one base block. */
+    readonly placeEndCrystal?: (base: BlockPosition) => boolean;
     /** The action kinds `supports` says no to; everything else is performed. */
     readonly unsupported?: readonly ItemWorldActionKind[];
 }
@@ -125,6 +127,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         effectsOf: (potion) => potions.get(potion) ?? [],
         random: () => randoms[Math.min(draws++, randoms.length - 1)]!,
         locate: (destination) => structures.get(destination),
+        ...(options.placeEndCrystal === undefined ? {} : { placeEndCrystal: options.placeEndCrystal }),
         supports: (action) => !unsupported.has(action),
         perform: (action) => {
             actions.push(action);

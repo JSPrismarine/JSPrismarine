@@ -63,6 +63,8 @@ categories; [parity.md](parity.md) explains how the claim is tested.
 - [dimensions.md](dimensions.md): dimension types, level stems and world presets, the
   `worlds.<name>` config shape and its migration, the generator kinds, custom dimensions, portals
   and the client's dimension change, with the questions a real client has yet to answer.
+- [end-fight.md](end-fight.md): End dragon combat, the exit portal and credits, four-crystal
+  respawn, and the server-side light values used by gameplay rules.
 - [engine-systems.md](engine-systems.md): the systems with no data form in either edition, which
   are redstone, fluids, fire, explosions, light and random ticking, with what each one simulates,
   what a tick of it costs, and where it stops.

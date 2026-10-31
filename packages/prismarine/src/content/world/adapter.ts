@@ -217,6 +217,10 @@ export interface ContentLevelFacts {
     readonly maxY: number;
     /** Whether the dimension has a sky, which the nether and the end do not. */
     readonly hasSkyLight: boolean;
+    /** The dimension's minimum ambient brightness, from its Java `ambient_light` value. */
+    readonly ambientLight?: number;
+    /** The visual contribution of sky light, when the dimension type defines one. */
+    readonly skyLightFactor?: number;
     /** The sea level, which worldgen's `relative_to_sea_level` anchors resolve against. */
     readonly seaLevel: number;
     /** The world seed. */
@@ -279,6 +283,8 @@ export interface ContentItemAccess {
     canNameEntity?(target: ItemSource): boolean;
     /** Whether a target entity accepts this dye, when the actor port can answer. */
     canDyeEntity?(target: ItemSource, color: string): boolean;
+    /** Places an end crystal when its support and spawn box are valid. */
+    placeEndCrystal?(base: BlockPosition): boolean;
     /** The nearest structure in a structure tag, when the world has a structure search. */
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
     /** Whether an action of this kind is performed, so a behavior can keep its item when not. */
@@ -373,6 +379,12 @@ export interface ServerWorldAdapter {
 export interface ServerWorldSource {
     /** The adapter for one dimension, such as `minecraft:overworld`. */
     at(dimension: string): ServerWorldAdapter;
+    /**
+     * Resolves a goal world from the runtime that owns this entity, when the source can see
+     * every dimension. This avoids binding entities in secondary dimensions to `at()`'s
+     * default adapter.
+     */
+    goalWorld?(entity: EntityInstance): GoalWorld | undefined;
 }
 
 /** Presents one adapter as a {@link ServerWorldSource} with a single dimension. */

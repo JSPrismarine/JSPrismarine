@@ -39,6 +39,8 @@ import { fakeLevel } from '../../testing/level';
 const BLOCKS = [
     'minecraft:air',
     'minecraft:stone',
+    'minecraft:obsidian',
+    'minecraft:bedrock',
     'minecraft:dirt',
     'minecraft:farmland',
     'minecraft:wheat',
@@ -80,6 +82,18 @@ const BLOCK_ENTITY = definitionOf('entities', 'fixture:block_entity', {
         components: {
             'minecraft:health': { value: 10 },
             'jsprismarine:falling_block': {}
+        }
+    }
+});
+
+const END_CRYSTAL = definitionOf('entities', 'minecraft:ender_crystal', {
+    format_version: '1.26.0',
+    'minecraft:entity': {
+        description: { identifier: 'minecraft:ender_crystal' },
+        components: {
+            'minecraft:health': { value: 1, max: 1 },
+            'minecraft:collision_box': { width: 2, height: 2 },
+            'minecraft:physics': {}
         }
     }
 });
@@ -206,7 +220,8 @@ describe('serverWorldSource', () => {
                     entities: new Map([
                         ['fixture:robot', ROBOT],
                         ['fixture:fuse_entity', FUSE_ENTITY],
-                        ['fixture:block_entity', BLOCK_ENTITY]
+                        ['fixture:block_entity', BLOCK_ENTITY],
+                        ['minecraft:ender_crystal', END_CRYSTAL]
                     ]),
                     biomes: BIOMES
                 }),
@@ -376,6 +391,44 @@ describe('serverWorldSource', () => {
                 ? undefined
                 : dataEntityRecordIn(body.persistentNbt);
         expect(saved?.spawnData).toEqual({ fuse: 80 });
+    });
+
+    it('places end crystals only on obsidian or bedrock with a clear spawn volume', () => {
+        const items = content.world.itemActions;
+        const base = { x: 8, y: 64, z: 8 };
+        place(chunk, base, 'minecraft:obsidian');
+
+        expect(items.placeEndCrystal?.(base)).toBe(true);
+        const crystal = entityRuntimes
+            .at(DIMENSION)
+            ?.runtime.all()
+            .find((entity) => entity.identifier === 'minecraft:ender_crystal');
+        expect(crystal?.position).toEqual({ x: 8.5, y: 65, z: 8.5 });
+        expect(crystal?.body.showBottom).toBe(false);
+
+        expect(items.placeEndCrystal?.(base)).toBe(false);
+        const unsupported = { x: 10, y: 64, z: 8 };
+        place(chunk, unsupported, 'minecraft:stone');
+        expect(items.placeEndCrystal?.(unsupported)).toBe(false);
+
+        const bedrockBase = { x: 14, y: 64, z: 8 };
+        place(chunk, bedrockBase, 'minecraft:bedrock');
+        expect(items.placeEndCrystal?.(bedrockBase)).toBe(true);
+
+        const obstructed = { x: 12, y: 64, z: 8 };
+        place(chunk, obstructed, 'minecraft:bedrock');
+        place(chunk, { ...obstructed, y: obstructed.y + 1 }, 'minecraft:stone');
+        expect(items.placeEndCrystal?.(obstructed)).toBe(false);
+
+        const occupied = { x: 0, y: 64, z: 0 };
+        place(chunk, occupied, 'minecraft:obsidian');
+        entityRuntimes.at(DIMENSION)?.runtime.spawn('fixture:robot', { x: 0.5, y: 66, z: 0.5 });
+        expect(items.placeEndCrystal?.(occupied)).toBe(false);
+
+        const clearAbove = { x: 2, y: 64, z: 0 };
+        place(chunk, clearAbove, 'minecraft:obsidian');
+        entityRuntimes.at(DIMENSION)?.runtime.spawn('fixture:robot', { x: 2.5, y: 67.1, z: 0.5 });
+        expect(items.placeEndCrystal?.(clearAbove)).toBe(true);
     });
 
     it('forgets every runtime and its bodies on closeAll, which is what shutdown does', () => {

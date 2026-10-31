@@ -3,6 +3,7 @@ import os from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { endSpikesForSeed } from '@jsprismarine/features';
 import { Vector3 } from '@jsprismarine/math';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
@@ -75,6 +76,9 @@ const BLOCKS = [
     'minecraft:air',
     'minecraft:end_stone',
     'minecraft:bedrock',
+    'minecraft:obsidian',
+    'minecraft:iron_bars',
+    'minecraft:fire',
     'minecraft:torch',
     'minecraft:end_portal'
 ] as const;
@@ -160,6 +164,13 @@ const liveEndWorld = (): {
     for (let x = -LOADED_RADIUS; x <= LOADED_RADIUS; x += 1)
         for (let z = -LOADED_RADIUS; z <= LOADED_RADIUS; z += 1) chunks.set(Chunk.packXZ(x, z), endChunk(x, z));
     for (const [x, z] of GATEWAY_CHUNKS) chunks.set(Chunk.packXZ(x, z), endChunk(x, z));
+    for (const spike of endSpikesForSeed(1234n)) {
+        for (let chunkX = (spike.centerX - 10) >> 4; chunkX <= (spike.centerX + 10) >> 4; chunkX += 1) {
+            for (let chunkZ = (spike.centerZ - 10) >> 4; chunkZ <= (spike.centerZ + 10) >> 4; chunkZ += 1) {
+                chunks.set(Chunk.packXZ(chunkX, chunkZ), endChunk(chunkX, chunkZ));
+            }
+        }
+    }
 
     const players = new Map<bigint, Player>();
     const runtimes = new EntityRuntimes();
@@ -195,7 +206,7 @@ const liveEndWorld = (): {
         loading: new Map(),
         level: fakeLevel({ server, seed: 1234n, spawn: new Vector3(0, FLOOR_Y + 1, 0) }),
         dimension: END,
-        generator: stub<Generator>({}),
+        generator: stub<Generator>({ generateChunk: async (x, z) => endChunk(x, z) }),
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
         entityChunkIndices: new Map(),
@@ -626,6 +637,125 @@ describe('the dragon fight over a live End world', () => {
 
             expect(orbValues()).toEqual([...Array.from({ length: 10 }, () => 960), 2400]);
             expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(0);
+        });
+    });
+
+    describe('respawning the dragon', () => {
+        const addRespawnCrystal = (x: number, z: number): DataEntity | undefined => {
+            world.setLoadedBlockRuntimeId(x, FLOOR_Y + 1, z, idOf('minecraft:bedrock'));
+            return live.runtime.spawn('minecraft:ender_crystal', {
+                x: x + 0.5,
+                y: FLOOR_Y + 2,
+                z: z + 0.5
+            });
+        };
+
+        const addFourRespawnCrystals = (): DataEntity[] => {
+            const crystals = [
+                addRespawnCrystal(3, 0),
+                addRespawnCrystal(-3, 0),
+                addRespawnCrystal(0, 3),
+                addRespawnCrystal(0, -3)
+            ];
+            return crystals.filter((crystal) => crystal !== undefined);
+        };
+
+        it('requires four edge crystals and runs the complete saved stage timeline', async () => {
+            enterArena(world, players, 0, 70, 0);
+            const fight = freshFight(killedState());
+            const firstThree = [addRespawnCrystal(3, 0), addRespawnCrystal(-3, 0), addRespawnCrystal(0, 3)].filter(
+                (crystal) => crystal !== undefined
+            );
+            expect(firstThree).toHaveLength(3);
+            expect(fight.tryRespawn()).toBe(false);
+            const last = addRespawnCrystal(0, -3);
+            if (last === undefined) throw new Error('the fourth respawn crystal did not spawn');
+            const crystals = [...firstThree, last];
+
+            expect(crystals).toHaveLength(4);
+            expect(fight.tryRespawn()).toBe(true);
+            expect(fight.state().respawnStage).toBe('start');
+            expect(fight.state().respawnCrystalIds).toEqual(crystals.map((crystal) => crystal.persistentIdentity));
+            expect(fight.tryRespawn()).toBe(false);
+
+            await run(fight, 1);
+            expect(fight.state().respawnStage).toBe('preparing_to_summon_pillars');
+            expect(crystals[0]?.body.beamTarget).toEqual({ x: 0, y: 128, z: 0 });
+            await run(fight, 99);
+            expect(fight.state().respawnTime).toBe(99);
+            await run(fight, 1);
+            expect(fight.state().respawnStage).toBe('summoning_pillars');
+
+            await run(fight, 40);
+            expect(fight.state().respawnTime).toBe(40);
+            const firstSpike = endSpikesForSeed(world.getSeed())[0];
+            if (firstSpike === undefined) throw new Error('the End spike list was empty');
+            const firstPillarCrystal = live.runtime
+                .all()
+                .find(
+                    (entity) =>
+                        entity.identifier === 'minecraft:ender_crystal' &&
+                        Math.floor(entity.position.x) === firstSpike.centerX &&
+                        Math.floor(entity.position.z) === firstSpike.centerZ
+                );
+            expect(firstPillarCrystal?.body.invulnerable).toBe(true);
+            expect(firstPillarCrystal?.body.beamTarget).toEqual({ x: 0, y: 128, z: 0 });
+
+            await run(fight, 360);
+            expect(fight.state().respawnStage).toBe('summoning_dragon');
+            expect(fight.state().dragonKilled).toBe(true);
+            await run(fight, 99);
+            expect(dragons()).toHaveLength(0);
+            await run(fight, 1);
+
+            expect(fight.state().respawnStage).toBeUndefined();
+            expect(fight.state().respawnTime).toBe(0);
+            expect(fight.state().respawnCrystalIds).toEqual([]);
+            expect(fight.state().dragonKilled).toBe(false);
+            expect(dragons()).toHaveLength(1);
+            expect(crystals.every((crystal) => crystal.removed === 'respawn complete')).toBe(true);
+            expect(
+                live.runtime
+                    .all()
+                    .filter((entity) => entity.identifier === 'minecraft:ender_crystal')
+                    .every((crystal) => !crystal.body.invulnerable && crystal.body.beamTarget === undefined)
+            ).toBe(true);
+        });
+
+        it('aborts when one of the four driving crystals dies and restores the active podium', async () => {
+            enterArena(world, players, 0, 70, 0);
+            const fight = freshFight(killedState());
+            const crystals = addFourRespawnCrystals();
+            expect(fight.tryRespawn()).toBe(true);
+            await run(fight, 1);
+
+            const destroyed = crystals[0];
+            if (destroyed === undefined) throw new Error('no respawn crystals were created');
+            live.runtime.remove(destroyed.id, 'death');
+
+            expect(fight.state().respawnStage).toBeUndefined();
+            expect(fight.state().respawnCrystalIds).toEqual([]);
+            expect(blockNameAt(world, 1, FLOOR_Y, 0)).toBe('minecraft:end_portal');
+            expect(crystals.slice(1).every((crystal) => crystal.body.beamTarget === undefined)).toBe(true);
+        });
+
+        it('aborts a saved sequence when a driving crystal is missing after reload', async () => {
+            enterArena(world, players, 0, 70, 0);
+            const fight = freshFight(killedState());
+            const crystals = addFourRespawnCrystals();
+            expect(fight.tryRespawn()).toBe(true);
+            await run(fight, 2);
+            const saved = { ...fight.state(), respawnCrystalIds: [...fight.state().respawnCrystalIds] };
+            const missing = crystals[0];
+            if (missing === undefined) throw new Error('no respawn crystals were created');
+            live.runtime.remove(missing.id, 'chunk unload');
+
+            const reloaded = freshFight(saved);
+            await run(reloaded, 1);
+
+            expect(reloaded.state().respawnStage).toBeUndefined();
+            expect(reloaded.state().respawnCrystalIds).toEqual([]);
+            expect(blockNameAt(world, 1, FLOOR_Y, 0)).toBe('minecraft:end_portal');
         });
     });
 });

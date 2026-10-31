@@ -83,7 +83,7 @@ worldgen package has the LCG); otherwise implement the 48-bit LCG locally with a
 **Tests.** The ten positions match the fight note's list for any seed; radius, height and
 guarded per shuffled index; one pinned seed's full spike list asserted (compute once, cite the
 derivation); empty `spikes` in the config produces the seed list; crystal options reach
-`spawnEntity`; the podium test covers the 12 rim cells, 20 portal cells when active and air when
+`spawnEntity`; the podium test covers the 16 rim cells, 20 portal cells when active and air when
 inactive, the 4-high pillar and the 4 torches.
 
 **Changeset.** `@jsprismarine/features` patch.
@@ -418,9 +418,9 @@ written with the human-docs and unslop skills; `docs/research/README.md` and
 **Tests.** Parity, through real data fixtures: the vanilla pack's crystal explode power (6) and
 health (1), the dragon's health (200) and `boss.hud_range` (125), the item and entity id
 mappings (851/852, 71, 53, `end_crystal` to `ender_crystal`), the spike table for one pinned
-seed against the fight note's formulas, and the podium cell counts (12 rim, 20 portal). Client
-integration: spawn the dragon in a void End, kill it with repeated attacks (creative player),
-assert the boss bar packets, the portal blocks, the egg, then walk the credits round trip from
+seed against the fight note's formulas, and the podium cell counts (16 rim, 20 portal). Client
+integration: spawn the dragon in a void End, damage it through the normal entity hurt path, assert
+the boss bar packets, the portal blocks, and the egg, then complete the credits exchange from
 chunk 4's test and land in the Overworld.
 
 **Changeset.** `@jsprismarine/client` patch; parity is private. Docs ride with the code they
