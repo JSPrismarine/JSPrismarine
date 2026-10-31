@@ -7,7 +7,7 @@ import { offset, opposite } from '../geometry';
 import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { fluidNeighborChanged, fluidTick, spreadTicks } from '../rules/fluid';
 import { canFireSurvive, fireTick, fireTickDelay } from '../rules/fire';
-import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
+import { bucketOf, heldName, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
 import { placementFacing } from '../rules/placement';
 import {
     activateEndPortal,
@@ -158,6 +158,12 @@ export const portalFamily = defineFamily(
         onPlayerInteract: (event, world) => {
             if (bareName(event.block.identifier) !== 'end_portal_frame') return undefined;
             if (event.block.states['end_portal_eye_bit'] === true) return undefined;
+            // Only a held eye of ender goes into the frame; a bare hand or any other item
+            // leaves the click to the next handler.
+            // TODO: vanilla also takes one eye off the stack outside creative, but this hook
+            // answers with a boolean and `WorldActions` reaches no inventory, so the eye is
+            // not consumed yet.
+            if (heldName(event.itemStack) !== 'ender_eye') return undefined;
             setStates(world, event.block, { end_portal_eye_bit: true });
             world.playSound(event.block.position, 'block.end_portal_frame.fill');
             activateEndPortal(world, event.block.position);

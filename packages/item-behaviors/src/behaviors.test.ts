@@ -615,16 +615,17 @@ describe('navigation', () => {
         expect(recording.performed('play-sound')[0]?.sound).toBe('minecraft:item.spyglass.use');
     });
 
-    it('throws an eye of ender toward a stronghold, and fills a frame instead', () => {
+    it('throws an eye of ender toward a stronghold, and leaves a frame to the block family', () => {
         const throwing = withWorld();
         use(stackOf('minecraft:ender_eye', 2));
         expect(throwing.performed('locate')[0]?.destination).toBe('minecraft:eye_of_ender_located');
 
+        // The portal block family's `onPlayerInteract` takes the click on a frame before any
+        // item hook runs, so the item declines a frame rather than filling it a second way.
         const filling = withWorld();
         const frame = testBlock('minecraft:end_portal_frame', { x: 1, y: 64, z: 1 }, { end_portal_eye_bit: false });
-        const result = useOn(stackOf('minecraft:ender_eye', 2), frame);
-        expect(filling.performed('place-block')[0]?.placement.states).toMatchObject({ end_portal_eye_bit: true });
-        expect(result?.stack?.count).toBe(1);
+        expect(useOn(stackOf('minecraft:ender_eye', 2), frame)).toBeUndefined();
+        expect(filling.performed('place-block')).toHaveLength(0);
     });
 
     it('creates a map from an empty one and leaves a filled one alone', () => {

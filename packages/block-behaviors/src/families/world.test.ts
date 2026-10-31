@@ -179,16 +179,31 @@ describe('portalFamily', () => {
         expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('south');
     });
 
-    it('takes an eye of ender into an empty frame once', () => {
+    it('takes a held eye of ender into an empty frame once', () => {
         const harness = bindFamily(portalFamily, 'minecraft:end_portal_frame');
         harness.dimension.set(origin, 'minecraft:end_portal_frame', {
             end_portal_eye_bit: false,
             'minecraft:cardinal_direction': 'south'
         });
 
-        expect(harness.interact(origin)).toBe(true);
+        const eye = heldItem('minecraft:ender_eye');
+        expect(harness.interact(origin, { itemStack: eye })).toBe(true);
         expect(harness.dimension.stateAt(origin, 'end_portal_eye_bit')).toBe(true);
+        expect(harness.interact(origin, { itemStack: eye })).toBeUndefined();
+    });
+
+    it('leaves a frame empty for a bare hand or anything but an eye', () => {
+        // Vanilla fills a frame only from a held eye of ender. Before the check, any click
+        // filled it, a bare hand included.
+        const harness = bindFamily(portalFamily, 'minecraft:end_portal_frame');
+        harness.dimension.set(origin, 'minecraft:end_portal_frame', {
+            end_portal_eye_bit: false,
+            'minecraft:cardinal_direction': 'south'
+        });
+
         expect(harness.interact(origin)).toBeUndefined();
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:stick') })).toBeUndefined();
+        expect(harness.dimension.stateAt(origin, 'end_portal_eye_bit')).toBe(false);
     });
 });
 

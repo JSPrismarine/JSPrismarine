@@ -112,25 +112,17 @@ export const spyglassBehavior: ItemBehaviorSpec = {
 };
 
 /**
- * The eye of ender: thrown toward the nearest stronghold, or used on a portal
- * frame to fill it.
+ * The eye of ender, thrown toward the nearest stronghold.
+ *
+ * Filling a portal frame is the portal block family's job: its
+ * `onPlayerInteract` takes the click for a held eye before any item hook
+ * runs, writes `end_portal_eye_bit` and activates a completed ring, so an
+ * `onUseOn` here would never fire for a frame.
  */
 export const eyeOfEnderBehavior: ItemBehaviorSpec = {
     name: 'vanilla:eye_of_ender',
-    hooks: ['onUse', 'onUseOn'],
+    hooks: ['onUse'],
     create: (context) => {
-        const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block }) => {
-            if (block.identifier !== 'minecraft:end_portal_frame') return undefined;
-            if (block.states.eye_slot === true || block.states.end_portal_eye_bit === true) return undefined;
-
-            context.world.perform({
-                kind: 'place-block',
-                position: block.position,
-                placement: { identifier: block.identifier, states: { ...block.states, end_portal_eye_bit: true } }
-            });
-            return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
-        };
-
         const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
             context.world.perform({ kind: 'locate', source, destination: STRONGHOLD_DESTINATION });
             context.world.perform({
@@ -141,7 +133,7 @@ export const eyeOfEnderBehavior: ItemBehaviorSpec = {
             return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
         };
 
-        return { onUse, onUseOn };
+        return { onUse };
     }
 };
 

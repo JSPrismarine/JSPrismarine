@@ -825,8 +825,10 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(5, 64, 7)?.states['minecraft:cardinal_direction']).toBe('east');
             expect(world.loadedBlockAt(9, 64, 7)?.states['minecraft:cardinal_direction']).toBe('west');
 
-            const filler = playerHolding(world, 'minecraft:ender_eye', false, Gametype.CREATIVE);
+            // One held eye of ender per click, which is what lets the frame take it; the
+            // portal family refuses a bare hand.
             for (const frame of ring) {
+                const filler = playerHolding(world, 'minecraft:ender_eye', false, Gametype.CREATIVE);
                 expect(click(filler, frame.at)).toBe('handled');
                 expect(world.loadedBlockAt(frame.at.x, frame.at.y, frame.at.z)?.states['end_portal_eye_bit']).toBe(1);
             }
@@ -837,6 +839,19 @@ describe('useItemOnBlock', () => {
                 }
             }
             expect(sounds).toContain('block.end_portal.spawn');
+        });
+
+        it('leaves an end portal frame empty for a bare-hand click', () => {
+            // Vanilla fills a frame only from a held eye of ender. The hand here holds air,
+            // which the content has no item stack for, so the block hook sees a bare hand.
+            place(chunk, { x: 3, y: 64, z: 3 }, 'minecraft:end_portal_frame', {
+                end_portal_eye_bit: false,
+                'minecraft:cardinal_direction': 'south'
+            });
+
+            const bare = playerHolding(world, 'minecraft:air');
+            expect(click(bare, { x: 3, y: 64, z: 3 })).toBe('declined');
+            expect(world.loadedBlockAt(3, 64, 3)?.states['end_portal_eye_bit']).toBe(0);
         });
 
         it('refuses a placement above the top of the world', () => {
