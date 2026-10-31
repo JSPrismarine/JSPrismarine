@@ -8,6 +8,7 @@ import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
 import { Types } from '@jsprismarine/nbt';
+import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
@@ -251,6 +252,35 @@ const ENTITIES = new Map([
             },
             component_groups: { baby: { 'minecraft:is_baby': {} } },
             events: { 'minecraft:entity_born': { add: { component_groups: ['baby'] } } }
+        })
+    ],
+    [
+        // The vanilla crystal's shape, trimmed to what the runtime reads: one health,
+        // `on_hurt` adding the `crystal_exploding` group whose zero fuse carries power 6
+        // and no fire (bedrock-samples 1.26.50, `behavior_pack/entities/ender_crystal.json`).
+        'minecraft:ender_crystal',
+        entityFile('minecraft:ender_crystal', {
+            components: {
+                'minecraft:collision_box': { width: 2, height: 2 },
+                'minecraft:fire_immune': {},
+                'minecraft:health': { value: 1, max: 1 },
+                'minecraft:on_hurt': { event: 'minecraft:crystal_explode', target: 'self' },
+                'minecraft:physics': {}
+            },
+            component_groups: {
+                crystal_exploding: {
+                    'minecraft:explode': {
+                        causes_fire: false,
+                        fuse_lit: true,
+                        power: 6,
+                        destroy_affected_by_griefing: true,
+                        fuse_length: 0
+                    }
+                }
+            },
+            events: {
+                'minecraft:crystal_explode': { add: { component_groups: ['crystal_exploding'] } }
+            }
         })
     ],
     [
@@ -650,6 +680,8 @@ interface Broadcasts {
     readonly moved: string[];
     readonly actorSounds: Array<{ identifier: string; entityId: bigint; sound: LevelSoundEvent }>;
     readonly actorEffects: Array<{ identifier: string; entityId: bigint; effect: ActorEvent }>;
+    /** The entities whose changed metadata the world fanned out, which is a `SetActorData` each. */
+    readonly metadataChanged: string[];
 }
 
 /**
@@ -666,7 +698,7 @@ const liveWorld = (
     runtimes: EntityRuntimes;
     hold(content: ServerContent): void;
 } => {
-    const broadcasts: Broadcasts = { moved: [], actorSounds: [], actorEffects: [] };
+    const broadcasts: Broadcasts = { moved: [], actorSounds: [], actorEffects: [], metadataChanged: [] };
     let content: ServerContent | undefined;
     // Keyed the way `World` keys its own map. A bigint here is not a type error, because
     // `pnpm typecheck` skips test files, and `getLoadedChunk` would answer null for every
@@ -722,6 +754,9 @@ const liveWorld = (
                 entityId: entity.getRuntimeId(),
                 effect
             });
+        },
+        entityMetadataChanged: async (entity) => {
+            broadcasts.metadataChanged.push(entity.getType());
         }
     });
 
@@ -2201,6 +2236,44 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(second.live.runtime.all()).toEqual([]);
             expect(typesIn(second.world)).toContain('minecraft:item');
+        });
+    });
+
+    describe('the end crystal', () => {
+        it('announces its beam target and base plate in the actor metadata a client is sent', () => {
+            const crystal = live.runtime.spawn(
+                'minecraft:ender_crystal',
+                { x: 0.5, y: GROUND_Y, z: 0.5 },
+                { beamTarget: { x: 0, y: 128, z: 0 }, showBottom: false }
+            );
+            if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
+            const body = live.bodies.bodyOf(crystal.id);
+            if (body === undefined) throw new Error('the crystal has no client-facing body');
+
+            expect(body.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
+            expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(false);
+
+            const bare = live.runtime.spawn('minecraft:ender_crystal', { x: 4.5, y: GROUND_Y, z: 0.5 });
+            if (bare === undefined) throw new Error('the fixture declares no second crystal');
+            const bareBody = live.bodies.bodyOf(bare.id);
+            if (bareBody === undefined) throw new Error('the second crystal has no client-facing body');
+
+            expect(bareBody.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toBeNull();
+            expect(bareBody.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(true);
+        });
+
+        it('sends new actor metadata when the beam target moves at runtime', async () => {
+            const crystal = live.runtime.spawn('minecraft:ender_crystal', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
+            await run(1);
+            broadcasts.metadataChanged.length = 0;
+
+            crystal.body.beamTarget = { x: 0, y: 128, z: 0 };
+            await live.tick(2);
+
+            expect(broadcasts.metadataChanged).toContain('minecraft:ender_crystal');
+            const body = live.bodies.bodyOf(crystal.id);
+            expect(body?.metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
         });
     });
 

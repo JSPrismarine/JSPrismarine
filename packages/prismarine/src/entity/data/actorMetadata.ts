@@ -7,6 +7,8 @@
  */
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import { isRecord } from '@jsprismarine/entities';
+import type { EntityPosition } from '@jsprismarine/entities';
+import { Vector3 } from '@jsprismarine/math';
 import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 
@@ -21,12 +23,13 @@ interface ActorFlagProjection {
     readonly value: boolean;
 }
 
-/** One scalar actor property and its wire type. */
+/** One actor property and its wire type. */
 type ActorPropertyProjection =
     | { readonly kind: 'byte'; readonly id: number; readonly value: number }
     | { readonly kind: 'float'; readonly id: number; readonly value: number }
     | { readonly kind: 'int'; readonly id: number; readonly value: number }
     | { readonly kind: 'long'; readonly id: number; readonly value: bigint }
+    | { readonly kind: 'position'; readonly id: number; readonly value: EntityPosition }
     | { readonly kind: 'string'; readonly id: number; readonly value: string };
 
 /** The first interaction prompt the data type makes available to a touch-screen client. */
@@ -142,7 +145,10 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
             value: body.owner !== undefined || instance.hasComponent('minecraft:is_tamed')
         },
         { flag: ActorFlags.BABY, value: instance.hasComponent('minecraft:is_baby') },
-        { flag: ActorFlags.SHEARED, value: instance.hasComponent('minecraft:is_sheared') }
+        { flag: ActorFlags.SHEARED, value: instance.hasComponent('minecraft:is_sheared') },
+        // Java's DATA_SHOW_BOTTOM defaults to true, so an unset record keeps the end
+        // crystal's base plate; only the crystal's render controller reads the flag.
+        { flag: ActorFlags.SHOW_BOTTOM, value: body.showBottom !== false }
     ];
     const properties: ActorPropertyProjection[] = [
         { kind: 'float', id: MetadataFlag.SCALE, value: typeof scale === 'number' ? scale : 1 },
@@ -151,6 +157,20 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         { kind: 'string', id: MetadataFlag.NAMETAG, value: body.nameTag ?? '' },
         { kind: 'string', id: ActorDataID.INTERACT_TEXT, value: interactTextOf(entity) }
     ];
+
+    // The client draws an end crystal's beam at the BLOCK_TARGET block and treats the zero
+    // position as no beam, so the key only goes out while a target is set.
+    if (body.beamTarget !== undefined) {
+        properties.push({
+            kind: 'position',
+            id: ActorDataID.BLOCK_TARGET,
+            value: {
+                x: Math.floor(body.beamTarget.x),
+                y: Math.floor(body.beamTarget.y),
+                z: Math.floor(body.beamTarget.z)
+            }
+        });
+    }
 
     if (typeof color === 'number') properties.push({ kind: 'byte', id: MetadataFlag.COLOR, value: color });
     if (typeof color2 === 'number') properties.push({ kind: 'byte', id: ActorDataID.COLOR_2_INDEX, value: color2 });
@@ -176,6 +196,12 @@ export const applyActorMetadataProjection = (body: Entity, projection: ActorMeta
         else if (property.kind === 'float') body.metadata.setFloat(property.id, property.value);
         else if (property.kind === 'int') body.metadata.setInt(property.id, property.value);
         else if (property.kind === 'long') body.metadata.setLong(property.id, property.value);
+        else if (property.kind === 'position')
+            body.metadata.setPropertyValue(
+                property.id,
+                FlagType.POSITION,
+                new Vector3(property.value.x, property.value.y, property.value.z)
+            );
         else body.metadata.setString(property.id, property.value);
     }
 };
@@ -199,7 +225,12 @@ export const sameActorMetadataProjection = (
         }) &&
         left.properties.every((entry, index) => {
             const next = right.properties[index];
-            return next !== undefined && entry.kind === next.kind && entry.id === next.id && entry.value === next.value;
+            if (next === undefined || entry.kind !== next.kind || entry.id !== next.id) return false;
+            if (entry.kind === 'position' && next.kind === 'position')
+                return (
+                    entry.value.x === next.value.x && entry.value.y === next.value.y && entry.value.z === next.value.z
+                );
+            return entry.value === next.value;
         })
     );
 };

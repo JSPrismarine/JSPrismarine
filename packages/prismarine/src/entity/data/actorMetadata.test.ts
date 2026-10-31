@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
+import { Vector3 } from '@jsprismarine/math';
 
 import type { Entity } from '../Entity';
 import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { stub } from '../../testing/stub.test.helper';
-import { applyActorMetadataProjection, actorMetadataProjection } from './actorMetadata';
+import { applyActorMetadataProjection, actorMetadataProjection, sameActorMetadataProjection } from './actorMetadata';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
 describe('actor metadata from entity components', () => {
@@ -81,6 +83,52 @@ describe('actor metadata from entity components', () => {
         expect(tnt.instance.hasComponent('minecraft:is_ignited')).toBe(true);
         applyActorMetadataProjection(body, actorMetadataProjection(tnt));
         expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.IGNITED))).toBe(true);
+    });
+
+    it('projects the beam target and base plate onto the crystal wire data', () => {
+        const fixture = entityFixture();
+        const crystal = fixture.runtime.spawn(
+            'minecraft:cow',
+            { x: 0.5, y: FLOOR_Y + 1, z: 0.5 },
+            { beamTarget: { x: 0, y: 128, z: 0 }, showBottom: false }
+        );
+        if (crystal === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+        const metadata = new Metadata();
+        const body = stub<Entity>({ metadata });
+        applyActorMetadataProjection(body, actorMetadataProjection(crystal));
+
+        expect(metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toEqual(new Vector3(0, 128, 0));
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(false);
+    });
+
+    it('shows the base plate and sends no beam key by default', () => {
+        const fixture = entityFixture();
+        const crystal = fixture.runtime.spawn('minecraft:cow', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 });
+        if (crystal === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+        const metadata = new Metadata();
+        const body = stub<Entity>({ metadata });
+        applyActorMetadataProjection(body, actorMetadataProjection(crystal));
+
+        expect(metadata.getPropertyValue(ActorDataID.BLOCK_TARGET)).toBeNull();
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(true);
+    });
+
+    it('reads a moved beam target as a changed projection', () => {
+        const fixture = entityFixture();
+        const crystal = fixture.runtime.spawn(
+            'minecraft:cow',
+            { x: 0.5, y: FLOOR_Y + 1, z: 0.5 },
+            { beamTarget: { x: 0, y: 128, z: 0 } }
+        );
+        if (crystal === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+        const before = actorMetadataProjection(crystal);
+        expect(sameActorMetadataProjection(before, actorMetadataProjection(crystal))).toBe(true);
+
+        crystal.body.beamTarget = { x: 42, y: 77, z: 0 };
+        expect(sameActorMetadataProjection(before, actorMetadataProjection(crystal))).toBe(false);
     });
 
     it('projects vanilla entity marker components to actor flags', () => {
