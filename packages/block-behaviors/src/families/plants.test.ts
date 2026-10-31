@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { BlockPosition, HookBlock } from '@jsprismarine/blocks';
 
 import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
@@ -33,6 +33,47 @@ class BambooSupportWorld extends VoxelWorld {
     public override at(dimension = OVERWORLD): BambooSupportDimension {
         if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
         return this.bambooDimension;
+    }
+}
+
+class VegetationSupportDimension extends VoxelDimension {
+    public hasBlockTag(block: HookBlock, tag: string): boolean {
+        return (
+            (tag === 'minecraft:supports_dry_vegetation' && block.identifier === 'minecraft:sand') ||
+            (tag === 'minecraft:supports_vegetation' && block.identifier === 'minecraft:dirt') ||
+            (tag === 'minecraft:supports_cactus' && block.identifier === 'minecraft:sand') ||
+            (tag === 'minecraft:supports_sugar_cane' && block.identifier === 'minecraft:sand') ||
+            (tag === 'minecraft:supports_lily_pad' && block.identifier === 'minecraft:water') ||
+            (tag === 'minecraft:supports_azalea' && block.identifier === 'minecraft:rooted_dirt') ||
+            (tag === 'minecraft:supports_mangrove_propagule' &&
+                block.identifier === 'minecraft:muddy_mangrove_roots') ||
+            (tag === 'minecraft:supports_wither_rose' && block.identifier === 'minecraft:netherrack')
+        );
+    }
+}
+
+class VegetationSupportWorld extends VoxelWorld {
+    private readonly vegetationDimension = new VegetationSupportDimension(OVERWORLD);
+
+    public override at(dimension = OVERWORLD): VegetationSupportDimension {
+        if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
+        return this.vegetationDimension;
+    }
+}
+
+class MissingGroundDimension extends VoxelDimension {
+    public override getBlock(position: BlockPosition): HookBlock | undefined {
+        if (position.x === ground.x && position.y === ground.y && position.z === ground.z) return undefined;
+        return super.getBlock(position);
+    }
+}
+
+class MissingGroundWorld extends VoxelWorld {
+    private readonly missingGroundDimension = new MissingGroundDimension(OVERWORLD);
+
+    public override at(dimension = OVERWORLD): MissingGroundDimension {
+        if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
+        return this.missingGroundDimension;
     }
 }
 
@@ -81,6 +122,47 @@ describe('cropFamily', () => {
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:wheat']);
     });
 
+    it('keeps a crop when an unrelated side block changes', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:wheat');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:wheat', { growth: 3 });
+
+        harness.neighborChanged(plant, 'north');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:wheat');
+    });
+
+    it('ignores side changes to cave vines and keeps them joined to the vine above', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:cave_vines');
+        harness.dimension.set(plant, 'minecraft:cave_vines', { growing_plant_age: 0 });
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:cave_vines_body_with_berries');
+
+        harness.neighborChanged(plant, 'west');
+        harness.neighborChanged(plant, 'up');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:cave_vines');
+    });
+
+    it('does not pop cocoa when its neighbor changes below', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:cocoa');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:cocoa', { age: 0, facing_direction: 2 });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:cocoa');
+    });
+
+    it('ignores the rooted lower face of an upper pitcher plant', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:pitcher_plant');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:pitcher_plant', { upper_block_bit: true });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:pitcher_plant');
+    });
+
     it('harvests a ripe berry bush back to its first stage', () => {
         const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush');
         harness.dimension.set(plant, 'minecraft:sweet_berry_bush', { growth: 3 });
@@ -90,6 +172,27 @@ describe('cropFamily', () => {
             { identifier: 'minecraft:sweet_berries', count: 3 }
         ]);
         expect(harness.dimension.stateAt(plant, 'growth')).toBe(1);
+    });
+
+    it('keeps a berry bush on tagged vegetation support when its ground updates', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush', { world: new VegetationSupportWorld() });
+        harness.dimension.set(ground, 'minecraft:dirt');
+        harness.dimension.set(plant, 'minecraft:sweet_berry_bush', { growth: 1 });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:sweet_berry_bush');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('pops a berry bush when its support tag rejects the ground', () => {
+        const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush', { world: new VegetationSupportWorld() });
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:sweet_berry_bush', { growth: 1 });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
     });
 });
 
@@ -131,6 +234,29 @@ describe('saplingFamily', () => {
         harness.neighborChanged(plant, 'down');
 
         expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('keeps a sapling when an unrelated side block changes', () => {
+        const harness = bindFamily(saplingFamily, 'minecraft:oak_sapling');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:oak_sapling', { age_bit: false });
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:oak_sapling');
+    });
+
+    it('keeps a propagule on its tagged mangrove support when the ground updates', () => {
+        const harness = bindFamily(saplingFamily, 'minecraft:mangrove_propagule', {
+            world: new VegetationSupportWorld()
+        });
+        harness.dimension.set(ground, 'minecraft:muddy_mangrove_roots');
+        harness.dimension.set(plant, 'minecraft:mangrove_propagule');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_propagule');
+        expect(harness.dimension.drops).toEqual([]);
     });
 });
 
@@ -261,10 +387,138 @@ describe('floraFamily', () => {
         expect(harness.dimension.identifierAt(plant)).toBe(AIR);
     });
 
+    it('keeps a dead bush on sand when a nearby block changes', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:deadbush');
+        harness.dimension.set(ground, 'minecraft:sand');
+        harness.dimension.set(plant, 'minecraft:deadbush');
+
+        harness.neighborChanged(plant, 'north');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:deadbush');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('keeps a dead bush when its tagged sand support updates', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:deadbush', { world: new VegetationSupportWorld() });
+        harness.dimension.set(ground, 'minecraft:sand');
+        harness.dimension.set(plant, 'minecraft:deadbush');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:deadbush');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it.each([
+        ['cactus', 'sand'],
+        ['sugar_cane', 'sand'],
+        ['lily_pad', 'water'],
+        ['azalea', 'rooted_dirt'],
+        ['wither_rose', 'netherrack']
+    ])('keeps %s on its tagged %s support when the ground updates', (name, support) => {
+        const harness = bindFamily(floraFamily, `minecraft:${name}`, { world: new VegetationSupportWorld() });
+        harness.dimension.set(ground, `minecraft:${support}`);
+        harness.dimension.set(plant, `minecraft:${name}`);
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(`minecraft:${name}`);
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it.each([
+        { name: 'deadbush', support: 'red_sand', family: floraFamily },
+        { name: 'deadbush', support: 'orange_terracotta', family: floraFamily },
+        { name: 'cactus', support: 'sand', family: floraFamily },
+        { name: 'sugar_cane', support: 'sand', family: floraFamily },
+        { name: 'lily_pad', support: 'water', family: floraFamily },
+        { name: 'azalea', support: 'rooted_dirt', family: floraFamily },
+        { name: 'mangrove_propagule', support: 'muddy_mangrove_roots', family: saplingFamily },
+        { name: 'wither_rose', support: 'netherrack', family: floraFamily }
+    ])('keeps $name on $support without a block-tag API', ({ name, support, family }) => {
+        const harness = bindFamily(family, `minecraft:${name}`);
+        harness.dimension.set(ground, `minecraft:${support}`);
+        harness.dimension.set(plant, `minecraft:${name}`);
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(`minecraft:${name}`);
+    });
+
+    it('pops a dead bush from glazed terracotta', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:deadbush');
+        harness.dimension.set(ground, 'minecraft:orange_glazed_terracotta');
+        harness.dimension.set(plant, 'minecraft:deadbush');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('pops a plant when its support position cannot be read', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:deadbush', { world: new MissingGroundWorld() });
+        harness.dimension.set(plant, 'minecraft:deadbush');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
     it('takes the upper half of a tall plant with the lower one', () => {
         const harness = bindFamily(floraFamily, 'minecraft:tall_grass');
         harness.dimension.set(ground, 'minecraft:dirt');
         harness.dimension.set(plant, 'minecraft:tall_grass', { upper_block_bit: true });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('keeps the upper half when a side neighbor changes', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:tall_grass');
+        harness.dimension.set(ground, 'minecraft:tall_grass', { upper_block_bit: false });
+        harness.dimension.set(plant, 'minecraft:tall_grass', { upper_block_bit: true });
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:tall_grass');
+    });
+
+    it('keeps the lower half joined to its upper half', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:tall_grass');
+        harness.dimension.set(ground, 'minecraft:dirt');
+        harness.dimension.set(plant, 'minecraft:tall_grass', { upper_block_bit: false });
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:tall_grass', { upper_block_bit: true });
+
+        harness.neighborChanged(plant, 'up');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:tall_grass');
+    });
+
+    it('pops the lower half when its ground loses support', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:tall_grass');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:tall_grass', { upper_block_bit: false });
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:tall_grass', { upper_block_bit: true });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('pops wildflowers when their support is outside the vegetation fallback', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:wildflowers');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:wildflowers');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('pops leaf litter when its supporting top face goes', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:leaf_litter');
+        harness.dimension.set(plant, 'minecraft:leaf_litter');
 
         harness.neighborChanged(plant, 'down');
 
@@ -344,9 +598,167 @@ describe('bambooFamily', () => {
         expect(harness.dimension.identifierAt(plant)).toBe(AIR);
         expect(harness.dimension.drops).toHaveLength(1);
     });
+
+    it('keeps a stalk when an unrelated side block changes', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:bamboo');
+
+        harness.neighborChanged(plant, 'north');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:bamboo');
+    });
+
+    it('only schedules coral when its upper neighbor changes', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:brain_coral');
+        harness.dimension.set(plant, 'minecraft:brain_coral');
+
+        harness.neighborChanged(plant, 'west');
+        expect(harness.dimension.scheduled).toEqual([]);
+
+        harness.neighborChanged(plant, 'up');
+        expect(harness.dimension.scheduled.map((tick) => tick.position)).toEqual([plant]);
+    });
 });
 
 describe('climbingFamily', () => {
+    it('keeps a vine attached to a tree when a nearby block changes', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:vine');
+        const tree = { x: 1, y: 1, z: 0 };
+        harness.dimension.set(plant, 'minecraft:vine', { vine_direction_bits: 8 });
+        harness.dimension.set(tree, 'minecraft:jungle_log');
+
+        harness.neighborChanged(plant, 'west');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:vine');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('pops a vine when its last attached face loses support', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:vine');
+        const support = { x: 1, y: 1, z: 0 };
+        harness.dimension.set(plant, 'minecraft:vine', { vine_direction_bits: 8 });
+        harness.dimension.set(support, 'minecraft:jungle_log');
+        harness.dimension.set(support, AIR);
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('keeps a vine when one of two attached faces loses support', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:vine');
+        const east = { x: 1, y: 1, z: 0 };
+        const west = { x: -1, y: 1, z: 0 };
+        harness.dimension.set(plant, 'minecraft:vine', { vine_direction_bits: 10 });
+        harness.dimension.set(east, 'minecraft:jungle_log');
+        harness.dimension.set(west, 'minecraft:jungle_log');
+        harness.dimension.set(east, AIR);
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:vine');
+    });
+
+    it('keeps lichen on a side attachment when a different face changes', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:glow_lichen');
+        harness.dimension.set(plant, 'minecraft:glow_lichen', { multi_face_direction_bits: 32 });
+        harness.dimension.set({ x: 1, y: 1, z: 0 }, 'minecraft:jungle_log');
+
+        harness.neighborChanged(plant, 'west');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:glow_lichen');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('keeps lichen when one of two attached faces loses support', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:glow_lichen');
+        const east = { x: 1, y: 1, z: 0 };
+        const west = { x: -1, y: 1, z: 0 };
+        harness.dimension.set(plant, 'minecraft:glow_lichen', { multi_face_direction_bits: 48 });
+        harness.dimension.set(east, 'minecraft:jungle_log');
+        harness.dimension.set(west, 'minecraft:jungle_log');
+        harness.dimension.set(east, AIR);
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:glow_lichen');
+    });
+
+    it('pops lichen when its last attached face loses support', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:glow_lichen');
+        const east = { x: 1, y: 1, z: 0 };
+        harness.dimension.set(plant, 'minecraft:glow_lichen', { multi_face_direction_bits: 32 });
+        harness.dimension.set(east, AIR);
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('checks the ground face for wildflowers', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:wildflowers');
+        harness.dimension.set(ground, 'minecraft:dirt');
+        harness.dimension.set(plant, 'minecraft:wildflowers');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:wildflowers');
+    });
+
+    it('keeps leaf litter on a sturdy top face', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:leaf_litter');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:leaf_litter');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:leaf_litter');
+    });
+
+    it('keeps a vertical chain when its upper support remains', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:chain');
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:chain', { pillar_axis: 'y' });
+
+        harness.neighborChanged(plant, 'up');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:chain');
+    });
+
+    it('pops a vertical chain when its last support goes', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:chain');
+        harness.dimension.set(plant, 'minecraft:chain', { pillar_axis: 'y' });
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('ignores side changes to hanging roots and pops them when the ceiling goes', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:hanging_roots');
+        const ceiling = { x: 0, y: 2, z: 0 };
+        harness.dimension.set(ceiling, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:hanging_roots');
+
+        harness.neighborChanged(plant, 'east');
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:hanging_roots');
+
+        harness.dimension.set(ceiling, AIR);
+        harness.neighborChanged(plant, 'up');
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('keeps a hanging vine attached above through an up-face update', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:weeping_vines');
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:weeping_vines', { weeping_vines_age: 0 });
+
+        harness.neighborChanged(plant, 'up');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:weeping_vines');
+    });
+
     it('gives scaffolding a stability distance from the supported block', () => {
         const harness = bindFamily(climbingFamily, 'minecraft:scaffolding');
         harness.dimension.set(ground, 'minecraft:stone');
@@ -395,9 +807,53 @@ describe('climbingFamily', () => {
 
         expect(harness.dimension.identifierAt(plant)).toBe(AIR);
     });
+
+    it('ignores changes on a ladder face away from its support', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:ladder');
+        harness.dimension.set({ x: 0, y: 1, z: -1 }, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:ladder', { facing_direction: 3 });
+
+        harness.neighborChanged(plant, 'east');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:ladder');
+    });
 });
 
 describe('dripleafFamily', () => {
+    it('keeps a ceiling-attached spore blossom when a side block changes', () => {
+        const harness = bindFamily(dripleafFamily, 'minecraft:spore_blossom');
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:oak_leaves');
+        harness.dimension.set(plant, 'minecraft:spore_blossom');
+
+        harness.neighborChanged(plant, 'west');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:spore_blossom');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('pops a spore blossom when its ceiling support goes', () => {
+        const harness = bindFamily(dripleafFamily, 'minecraft:spore_blossom');
+        const ceiling = { x: 0, y: 2, z: 0 };
+        harness.dimension.set(ceiling, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:spore_blossom');
+        harness.dimension.set(ceiling, AIR);
+
+        harness.neighborChanged(plant, 'up');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('ignores side changes to dripleaf and checks its lower support face', () => {
+        const harness = bindFamily(dripleafFamily, 'minecraft:big_dripleaf');
+        harness.dimension.set(plant, 'minecraft:big_dripleaf', { big_dripleaf_tilt: 'none' });
+
+        harness.neighborChanged(plant, 'west');
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:big_dripleaf');
+
+        harness.neighborChanged(plant, 'down');
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
     it('tilts a stage per scheduled tick and then resets', () => {
         const harness = bindFamily(dripleafFamily, 'minecraft:big_dripleaf');
         harness.dimension.set(ground, 'minecraft:stone');
