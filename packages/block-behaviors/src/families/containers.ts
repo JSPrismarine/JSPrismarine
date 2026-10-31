@@ -6,7 +6,7 @@
 import type { BlockPosition } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
-import { HORIZONTAL_FACES, offset, opposite } from '../geometry';
+import { compassDirectionOf, HORIZONTAL_FACES, offset, opposite } from '../geometry';
 import { placementFacing } from '../rules/placement';
 import { isWater } from '../identifiers';
 import { emptyContainer, slotsOf, spillContainer } from '../rules/container';
@@ -74,6 +74,16 @@ export const containerFamily = defineFamily(
                 const facing = placementFacing(event);
                 if (facing !== undefined) {
                     setStates(world, event.block, { 'minecraft:cardinal_direction': opposite(facing) });
+                }
+            }
+            if (event.placedBy !== undefined && hasState(event.block, 'direction')) {
+                // Java's `DecoratedPotBlock.getStateForPlacement` keeps the placer's
+                // horizontal direction unopposed, and the Geyser-derived table spells it in
+                // the pot's numeric `direction` on the compass order. The pot is the
+                // family's only block with the state.
+                const facing = placementFacing(event);
+                if (facing !== undefined) {
+                    setStates(world, event.block, { direction: compassDirectionOf(facing) });
                 }
             }
             world.setBlockData(event.block.position, emptyContainer(event.block.identifier));

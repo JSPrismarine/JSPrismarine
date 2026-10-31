@@ -32,6 +32,27 @@ describe('containerFamily', () => {
         expect(harness.dimension.stateAt(origin, 'minecraft:cardinal_direction')).toBe('north');
     });
 
+    it('turns a placed decorated pot with the placer', () => {
+        // Java's `DecoratedPotBlock.getStateForPlacement` keeps the placer's horizontal
+        // direction unopposed, and the Geyser-derived table spells it in the pot's
+        // numeric `direction` on the compass order: north 0, east 1, south 2, west 3.
+        const placements = [
+            { yaw: 180, direction: 0 }, // looking north
+            { yaw: 270, direction: 1 }, // looking east
+            { yaw: 0, direction: 2 }, // looking south
+            { yaw: 90, direction: 3 } // looking west
+        ] as const;
+
+        for (const { yaw, direction } of placements) {
+            const harness = bindFamily(containerFamily, 'minecraft:decorated_pot');
+            harness.dimension.set(origin, 'minecraft:decorated_pot', { direction: 2 });
+
+            harness.place(origin, { placedBy: { identifier: 'minecraft:player', position: origin, yaw } });
+
+            expect(harness.dimension.stateAt(origin, 'direction')).toBe(direction);
+        }
+    });
+
     it('pairs with the chest beside it, both ways', () => {
         const harness = bindFamily(containerFamily, 'minecraft:chest');
         const partner = { x: 1, y: 0, z: 0 };

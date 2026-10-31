@@ -130,6 +130,16 @@ export const facingFromYaw = (yaw: number): HorizontalFace => {
  */
 export const WEIRDO_DIRECTIONS = ['east', 'west', 'south', 'north'] as const satisfies readonly HorizontalFace[];
 
+/**
+ * The compass-order domain a decorated pot's numeric `direction` uses: north
+ * 0, east 1, south 2, west 3. It is a separate table from
+ * {@link WEIRDO_DIRECTIONS} because that legacy order starts at east.
+ */
+export const COMPASS_DIRECTIONS = ['north', 'east', 'south', 'west'] as const satisfies readonly HorizontalFace[];
+
+/** The compass-order numeric `direction` value for a horizontal face. */
+export const compassDirectionOf = (face: HorizontalFace): number => COMPASS_DIRECTIONS.indexOf(face);
+
 /** The `torch_facing_direction` domain, which names the face the torch stands on. */
 export const TORCH_FACING = ['unknown', 'west', 'east', 'north', 'south', 'top'] as const;
 
