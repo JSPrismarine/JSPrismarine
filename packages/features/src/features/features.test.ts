@@ -539,6 +539,82 @@ describe('end spike', () => {
     });
 });
 
+describe('end podium', () => {
+    // Java's EndPodiumFeature.place touches the box (-4, -1, -4)..(4, 32, 4) around the origin
+    // where the integer 3D distance to the origin is under 3.5. On the origin layer the cells
+    // outside 2.5 are bedrock (squared distances 8, 9 and 10: sixteen cells) and the cells inside
+    // are end portal when active, air when inactive (twenty cells once the pillar takes the
+    // center). Below sits bedrock inside 2.5 and end stone outside; above is air. A four-high
+    // bedrock pillar rises at the origin with a wall torch on each side two blocks up.
+    const ORIGIN = { x: 0, y: 62, z: 0 };
+    const RING = { inner: [0, 1, 2, 4, 5], rim: [8, 9, 10] };
+    const cellsAt = (world: TestFeatureWorld, name: string, y: number) =>
+        world.positionsOf(name).filter((position) => position.y === y);
+    const placePodium = (active: boolean) => {
+        const world = new TestFeatureWorld({ minY: 0, height: 256, blocks: oracle() });
+        build({ type: 'minecraft:end_podium', active }).place(world, new WorldgenRandom(9n), ORIGIN);
+        return world;
+    };
+
+    it('builds the rim, the floor, the pillar and the torches', () => {
+        const world = placePodium(false);
+
+        const rim = cellsAt(world, 'minecraft:bedrock', ORIGIN.y).filter(({ x, z }) => x !== 0 || z !== 0);
+        expect(rim).toHaveLength(16);
+        for (const { x, z } of rim) expect(RING.rim).toContain(x * x + z * z);
+
+        const floor = cellsAt(world, 'minecraft:bedrock', ORIGIN.y - 1);
+        expect(floor).toHaveLength(21);
+        for (const { x, z } of floor) expect(RING.inner).toContain(x * x + z * z);
+        const apron = cellsAt(world, 'minecraft:end_stone', ORIGIN.y - 1);
+        expect(apron).toHaveLength(16);
+        for (const { x, z } of apron) expect(RING.rim).toContain(x * x + z * z);
+
+        for (let dy = 0; dy < 4; dy++) {
+            expect(world.getBlock({ x: 0, y: ORIGIN.y + dy, z: 0 }).name).toBe('minecraft:bedrock');
+        }
+        expect(world.getBlock({ x: 0, y: ORIGIN.y + 4, z: 0 }).name).toBe('minecraft:air');
+
+        const torchY = ORIGIN.y + 2;
+        expect(world.getBlock({ x: 0, y: torchY, z: -1 })).toEqual(
+            blockState('minecraft:wall_torch', { facing: 'north' })
+        );
+        expect(world.getBlock({ x: 1, y: torchY, z: 0 })).toEqual(
+            blockState('minecraft:wall_torch', { facing: 'east' })
+        );
+        expect(world.getBlock({ x: 0, y: torchY, z: 1 })).toEqual(
+            blockState('minecraft:wall_torch', { facing: 'south' })
+        );
+        expect(world.getBlock({ x: -1, y: torchY, z: 0 })).toEqual(
+            blockState('minecraft:wall_torch', { facing: 'west' })
+        );
+        expect(world.count('minecraft:wall_torch')).toBe(4);
+    });
+
+    it('fills the active podium with twenty portal cells', () => {
+        const world = placePodium(true);
+
+        const portal = cellsAt(world, 'minecraft:end_portal', ORIGIN.y);
+        expect(portal).toHaveLength(20);
+        for (const { x, z } of portal) expect(RING.inner).toContain(x * x + z * z);
+        expect(world.getBlock(ORIGIN).name).toBe('minecraft:bedrock');
+        expect(world.count('minecraft:end_portal')).toBe(20);
+    });
+
+    it('opens the inactive podium and clears the box above', () => {
+        const world = new TestFeatureWorld({ minY: 0, height: 256, blocks: oracle() });
+        world.fill({ x: -4, y: ORIGIN.y, z: -4 }, { x: 4, y: ORIGIN.y + 4, z: 4 }, blockState('minecraft:end_stone'));
+        build({ type: 'minecraft:end_podium', active: false }).place(world, new WorldgenRandom(9n), ORIGIN);
+
+        expect(world.count('minecraft:end_portal')).toBe(0);
+        expect(world.getBlock({ x: 1, y: ORIGIN.y, z: 0 }).name).toBe('minecraft:air');
+        // Above the origin layer everything closer than 3.5 becomes air; (1, +3, 0) squares to
+        // 10 and is cleared, (2, +3, 0) squares to 13 and stays.
+        expect(world.getBlock({ x: 1, y: ORIGIN.y + 3, z: 0 }).name).toBe('minecraft:air');
+        expect(world.getBlock({ x: 2, y: ORIGIN.y + 3, z: 0 }).name).toBe('minecraft:end_stone');
+    });
+});
+
 describe('the world seam', () => {
     it('writes nothing outside the dimension', () => {
         const world = new TestFeatureWorld({ minY: 0, height: 16, blocks: oracle() });
