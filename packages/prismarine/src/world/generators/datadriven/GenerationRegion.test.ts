@@ -157,7 +157,7 @@ describe('spawnEntity', () => {
 
     it('keeps nothing for a position outside the region', () => {
         const built = region();
-        built.featureWorld().spawnEntity?.('minecraft:end_crystal', { x: 500, y: 64, z: 500 }, 0);
+        built.featureWorld().spawnEntity?.('minecraft:end_crystal', { x: 500, y: 64, z: 500 }, { yaw: 0 });
 
         expect(built.centerEntitySpawns()).toHaveLength(0);
     });
@@ -196,7 +196,7 @@ describe('neighbor chunk data', () => {
         built.beginWriteTracking();
         world.setBlock({ x: 16, y: 64, z: 8 }, { name: 'minecraft:chest', properties: {} });
         world.setBlockEntity?.({ x: 16, y: 64, z: 8 }, { id: 'minecraft:chest' });
-        world.spawnEntity?.('minecraft:end_crystal', { x: 16, y: 65, z: 8 }, 90);
+        world.spawnEntity?.('minecraft:end_crystal', { x: 16, y: 65, z: 8 }, { yaw: 90 });
 
         const [patch] = built.takeTrackedPatches();
         if (patch === undefined) throw new Error('Cross-chunk writes did not produce a patch');

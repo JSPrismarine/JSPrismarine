@@ -598,7 +598,7 @@ export class GenerationRegion {
             getHeight: (heightmap, x, z) => this.heightAt(heightmap, x, z),
             getBiome: (position) => this.options.biomeAt(position.x, position.y, position.z),
             setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
-            spawnEntity: (type, position, yaw) => this.recordEntity(type, position, yaw),
+            spawnEntity: (type, position, options) => this.recordEntity(type, position, options?.yaw ?? 0),
             placeTemplate: (request) => this.stampTemplate(request),
             ...(this.options.isColdEnoughToSnow
                 ? {

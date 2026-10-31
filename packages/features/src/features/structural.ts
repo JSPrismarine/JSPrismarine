@@ -1089,9 +1089,11 @@ export const endSpike = (
             }
 
             const crystalPos = { x: spike.centerX, y: spike.height + 1, z: spike.centerZ };
-            world.spawnEntity?.('minecraft:end_crystal', crystalPos, f32(random.nextFloat() * 360));
-            void crystalInvulnerable;
-            void crystalBeamTarget;
+            world.spawnEntity?.('minecraft:end_crystal', crystalPos, {
+                yaw: f32(random.nextFloat() * 360),
+                ...(crystalBeamTarget === undefined ? {} : { beamTarget: crystalBeamTarget }),
+                invulnerable: crystalInvulnerable
+            });
             world.setBlock(below(crystalPos), BEDROCK);
             world.setBlock(crystalPos, blockState('minecraft:fire'));
         }

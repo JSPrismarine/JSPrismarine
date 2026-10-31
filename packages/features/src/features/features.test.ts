@@ -3,7 +3,7 @@ import { reportProgress } from '../../../../.test/reportProgress';
 
 import { WorldgenRandom } from '../placement/WorldgenRandom';
 import { blockState } from '../world/BlockState';
-import type { BlockPos, TemplateRequest } from '../world/FeatureWorld';
+import type { BlockPos, EntitySpawnOptions, TemplateRequest } from '../world/FeatureWorld';
 import { createTestOracle, TestFeatureWorld } from '../world/TestFeatureWorld';
 import type { ConfiguredFeature } from './Feature';
 import { FEATURE_TYPES } from './Feature';
@@ -451,6 +451,53 @@ describe('template', () => {
         });
 
         expect(request?.processors).toBeUndefined();
+    });
+});
+
+describe('end spike', () => {
+    const spikeWorld = () => new TestFeatureWorld({ minY: 0, height: 256, seed: 1234n, blocks: oracle() });
+
+    /** Attaches a recording `spawnEntity` to a test world. */
+    const recordSpawns = (world: TestFeatureWorld) => {
+        const spawns: { type: string; position: BlockPos; options?: EntitySpawnOptions }[] = [];
+        const spawning = Object.assign(world, {
+            spawnEntity: (type: string, position: BlockPos, options?: EntitySpawnOptions) => {
+                spawns.push(options === undefined ? { type, position } : { type, position, options });
+            }
+        });
+        return { spawning, spawns };
+    };
+
+    it('forwards the crystal options to spawnEntity', () => {
+        const { spawning, spawns } = recordSpawns(spikeWorld());
+        const placed = build({
+            type: 'minecraft:end_spike',
+            spikes: [{ centerX: 5, centerZ: 5, radius: 2, height: 70, guarded: false }],
+            crystal_invulnerable: true,
+            crystal_beam_target: [0, 128, 0]
+        }).place(spawning, new WorldgenRandom(9n), { x: 5, y: 60, z: 5 });
+
+        expect(placed).toBe(true);
+        expect(spawns).toHaveLength(1);
+        expect(spawns[0]).toMatchObject({
+            type: 'minecraft:end_crystal',
+            position: { x: 5, y: 71, z: 5 },
+            options: { beamTarget: { x: 0, y: 128, z: 0 }, invulnerable: true }
+        });
+        expect(spawns[0]?.options?.yaw).toBeGreaterThanOrEqual(0);
+        expect(spawns[0]?.options?.yaw).toBeLessThan(360);
+        expect(spawns[0]?.options?.showBottom).toBeUndefined();
+    });
+
+    it('leaves the beam target off a worldgen crystal', () => {
+        const { spawning, spawns } = recordSpawns(spikeWorld());
+        build({
+            type: 'minecraft:end_spike',
+            spikes: [{ centerX: 5, centerZ: 5, radius: 2, height: 70, guarded: false }]
+        }).place(spawning, new WorldgenRandom(9n), { x: 5, y: 60, z: 5 });
+
+        expect(spawns[0]?.options).toMatchObject({ invulnerable: false });
+        expect(spawns[0]?.options?.beamTarget).toBeUndefined();
     });
 });
 

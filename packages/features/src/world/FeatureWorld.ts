@@ -144,7 +144,24 @@ export interface FeatureWorld {
      *
      * Optional, because entities belong to the server rather than to world generation.
      */
-    spawnEntity?(type: string, position: BlockPos, yaw: number): void;
+    spawnEntity?(identifier: string, position: BlockPos, options?: EntitySpawnOptions): void;
+}
+
+/**
+ * What a feature declares about an entity it spawns beyond its type and position.
+ *
+ * The three crystal fields carry Java's `EndSpikeFeature` configuration and the end crystal's
+ * synced data to the server, which projects them onto the spawned entity.
+ */
+export interface EntitySpawnOptions {
+    /** The spawn yaw in degrees. Defaults to 0. */
+    readonly yaw?: number;
+    /** The block an end crystal's beam points at, Java's `crystal_beam_target`. */
+    readonly beamTarget?: BlockPos;
+    /** Whether an end crystal renders its bedrock base plate. Java's default is true. */
+    readonly showBottom?: boolean;
+    /** Whether the entity ignores damage, Java's `crystal_invulnerable`. */
+    readonly invulnerable?: boolean;
 }
 
 /** What a feature asks a world to record on a block it just placed. */
