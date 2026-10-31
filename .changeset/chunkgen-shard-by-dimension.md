@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/chunkgen': patch
+'@jsprismarine/chunkgen': minor
 ---
 
 `GenerationTask` gains a required `dimension`, the Bedrock id of the dimension the chunk is in,
