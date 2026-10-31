@@ -6,6 +6,7 @@ import BlockPickRequestHandler from './handler/BlockPickRequestHandler';
 import BookEditHandler from './handler/BookEditHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
+import ClientCameraAimAssistHandler from './handler/ClientCameraAimAssistHandler';
 import ClientMovementPredictionSyncHandler from './handler/ClientMovementPredictionSyncHandler';
 import CommandBlockUpdateHandler from './handler/CommandBlockUpdateHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
@@ -77,6 +78,7 @@ export {
     BookEditHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
+    ClientCameraAimAssistHandler,
     ClientMovementPredictionSyncHandler,
     CommandBlockUpdateHandler,
     CommandRequestHandler,
