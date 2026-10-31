@@ -219,6 +219,25 @@ describe('the item actor port', () => {
         expect(eye?.getVelocity().getX()).toBeGreaterThan(0);
     });
 
+    it('says which actions this server performs, so a behavior can keep its item', () => {
+        const { port } = portUnderTest();
+        expect(port.supports('feed')).toBe(true);
+        expect(port.supports('map')).toBe(false);
+        expect(port.supports('open-screen')).toBe(false);
+        // A projectile needs the live entity runtime, which this port was built without.
+        expect(port.supports('launch-projectile')).toBe(false);
+
+        const recorded = recording();
+        const player = playerDouble(recorded);
+        const launching = createItemActorPort({
+            world: () => worldDouble(player, recorded),
+            entities: entityAccess(),
+            level: clock(),
+            launchProjectile: () => true
+        });
+        expect(launching.supports('launch-projectile')).toBe(true);
+    });
+
     it('reports an action whose system this server has not written, once', () => {
         const { port, recorded } = portUnderTest();
         const action = {

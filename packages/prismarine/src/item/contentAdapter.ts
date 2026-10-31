@@ -25,6 +25,7 @@ import type {
     EnvironmentState,
     ItemSource,
     ItemWorldAction,
+    ItemWorldActionKind,
     ItemWorldActionOf,
     SourceState
 } from '@jsprismarine/item-behaviors';
@@ -58,6 +59,9 @@ export const WORLD_ITEM_ACTION_KINDS = [
     'spawn-entity'
 ] as const satisfies readonly ItemWorldAction['kind'][];
 
+/** The same kinds as a set, which is what `supports` asks. */
+const WORLD_ITEM_ACTION_KIND_SET: ReadonlySet<ItemWorldActionKind> = new Set(WORLD_ITEM_ACTION_KINDS);
+
 /** An action this subsystem performs itself, over the block, entity and effect groups. */
 export type WorldItemAction = ItemWorldActionOf<(typeof WORLD_ITEM_ACTION_KINDS)[number]>;
 
@@ -77,7 +81,8 @@ export type ActorItemAction = Exclude<ItemWorldAction, WorldItemAction>;
  * Three required members rather than one per action: the half of the union
  * this port owns stays a union, so adding an effect is a new case in its
  * switch. Optional capability queries let a behavior check whether an entity
- * accepts a name tag or dye before it consumes the item.
+ * accepts a name tag or dye, or whether the port performs an action kind at
+ * all, before it consumes the item.
  */
 export interface ItemActorPort {
     /** Everything a behavior reads about the entity using the item. */
@@ -90,6 +95,8 @@ export interface ItemActorPort {
     canDyeEntity?(target: ItemSource, color: string): boolean;
     /** The nearest structure in a structure tag, when the host has a structure search. */
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
+    /** Whether the port performs an action of this kind, when it can say. */
+    supports?(action: ItemWorldActionKind): boolean;
     /** Does one thing to an entity, an inventory or a screen. */
     perform(action: ActorItemAction): void;
 }
@@ -219,6 +226,9 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
         canDyeEntity: (target, color) => actors.canDyeEntity?.(target, color) ?? true,
         canNameEntity: (target) => actors.canNameEntity?.(target) ?? true,
         locate: (destination, origin) => actors.locate?.(destination, origin),
+        // The six world kinds are performed here, so the only kinds in question are the
+        // port's; a port that cannot say is taken to perform them all.
+        supports: (action) => WORLD_ITEM_ACTION_KIND_SET.has(action) || (actors.supports?.(action) ?? true),
         environment: (): EnvironmentState => ({
             dimension: level.dimension,
             timeOfDay: level.dayTime(),

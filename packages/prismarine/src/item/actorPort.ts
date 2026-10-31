@@ -10,9 +10,10 @@
  * eating, a blow, a stack into the inventory, durability, armor, a name tag, dyeing, a teleport,
  * an item cooldown - are performed against that system. The ones whose system this server has not written
  * are reported once per kind and ignored, naming what is missing, because `perform` returns
- * nothing and there is no value to guess; what would be dishonest is reporting success. The item
- * cooldowns are the one piece of state the port keeps, because `minecraft:use_cooldown` is the
- * only one whose state nothing else on the server holds.
+ * nothing and there is no value to guess; what would be dishonest is reporting success. `supports`
+ * says the same thing ahead of time, so a behavior that would spend its item on one of them asks
+ * first and keeps the item. The item cooldowns are the one piece of state the port keeps, because
+ * `minecraft:use_cooldown` is the only one whose state nothing else on the server holds.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -40,6 +41,7 @@ import type {
     EquipmentSlot,
     HolderSet,
     ItemSource,
+    ItemWorldActionKind,
     LaunchProjectileAction,
     SignalAction,
     SourceState
@@ -96,10 +98,34 @@ export interface ServerItemActorPort extends ItemActorPort {
     canDyeEntity?(target: ItemSource, color: string): boolean;
     /** The nearest structure in a structure tag, through the live world's generator. */
     locate(destination: string, origin: BlockPosition): BlockPosition | undefined;
+    /** Whether this server performs an action of the kind, read off the same table `perform` reports from. */
+    supports(action: ItemWorldActionKind): boolean;
 }
 
 /** How far `EnderEyeItem.use` searches, in chunks: `findNearestMapStructure(..., 100, false)`. */
 const EYE_OF_ENDER_SEARCH_RADIUS_CHUNKS = 100;
+
+/**
+ * The kinds this server has no system for, and what each one needs.
+ *
+ * One table serves both `perform`, which reports from it, and `supports`, which answers from it,
+ * so a kind cannot be refused in one and promised in the other. A kind performed only when an
+ * optional runtime is attached is not here: `supports` reads the runtime for those.
+ */
+const UNWRITTEN_SYSTEMS = {
+    'grant-experience': 'a player experience bar',
+    'shear-entity': 'the entity components that hold it',
+    blocking: 'shield blocking',
+    'disable-shield': 'shield blocking',
+    brush: 'the brush system',
+    fishing: 'the fishing system',
+    map: 'the map system',
+    'open-screen': 'the open-screen system'
+} as const satisfies Partial<Record<ActorItemAction['kind'], string>>;
+
+/** Whether a kind is in {@link UNWRITTEN_SYSTEMS}, narrowing it to the table's keys. */
+const isUnwritten = (kind: ItemWorldActionKind): kind is keyof typeof UNWRITTEN_SYSTEMS =>
+    Object.hasOwn(UNWRITTEN_SYSTEMS, kind);
 
 /** The armor inventory index each `minecraft:equippable` slot name writes into. */
 const ARMOR_INDEX: Partial<Record<EquipmentSlot, number>> = {
@@ -525,8 +551,6 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 }
                 return;
             }
-            case 'grant-experience':
-                return missing(action, 'a player experience bar');
             case 'attach-lead': {
                 if (attachLead === undefined) {
                     missing(action, 'a live data-driven leash runtime');
@@ -552,19 +576,39 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 dyeEntity(target, action.color);
                 return;
             }
-            case 'shear-entity':
-                return missing(action, 'the entity components that hold it');
-            case 'blocking':
-            case 'disable-shield':
-                return missing(action, 'shield blocking');
             case 'signal':
                 signal(action);
                 return;
+            case 'grant-experience':
+            case 'shear-entity':
+            case 'blocking':
+            case 'disable-shield':
             case 'brush':
             case 'fishing':
             case 'map':
             case 'open-screen':
-                return missing(action, `the ${action.kind} system`);
+                return missing(action, UNWRITTEN_SYSTEMS[action.kind]);
+        }
+    };
+
+    /**
+     * What `perform` would do with a kind, before it is asked to. The four kinds that need the
+     * live entity runtime are performed only when it was attached, which is what the optional
+     * members say.
+     */
+    const supports = (kind: ItemWorldActionKind): boolean => {
+        if (isUnwritten(kind)) return false;
+        switch (kind) {
+            case 'launch-projectile':
+                return launchProjectile !== undefined;
+            case 'attach-lead':
+                return attachLead !== undefined;
+            case 'name-entity':
+                return nameEntity !== undefined;
+            case 'dye-entity':
+                return dyeEntity !== undefined;
+            default:
+                return true;
         }
     };
 
@@ -626,6 +670,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             );
             return found === undefined ? undefined : { x: found.x, y: found.y, z: found.z };
         },
+        supports,
         perform,
         duringInteraction: (source, target, body) => {
             const previous = targets.get(source.runtimeId);

@@ -94,7 +94,9 @@ const ITEMS = [
     'minecraft:repeater',
     'minecraft:comparator',
     'minecraft:flint_and_steel',
-    'minecraft:ender_eye'
+    'minecraft:ender_eye',
+    'minecraft:empty_map',
+    'minecraft:snowball'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -648,6 +650,26 @@ describe('useItemOnBlock', () => {
             expect(await thrown()).toHaveLength(0);
             expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
             // The client took one out of its own hand the moment it clicked.
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('keeps an empty map, since this server draws no maps, and tells the client', () => {
+            // The behavior asks `supports('map')` before it spends the map. The client took one
+            // out of its own hand the moment it clicked, so the inventory goes back as it is.
+            const player = playerHolding(world, new Item({ name: 'minecraft:empty_map', count: 2, content }));
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+
+            expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('keeps a snowball while no projectile runtime is attached, and tells the client', () => {
+            const player = playerHolding(world, new Item({ name: 'minecraft:snowball', count: 16, content }));
+
+            expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+
+            expect(player.getInventory().getItemInHand().getAmount()).toBe(16);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 

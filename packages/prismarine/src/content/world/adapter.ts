@@ -36,6 +36,7 @@ import type {
     HolderSet,
     ItemSource,
     ItemWorldAction,
+    ItemWorldActionKind,
     SourceState
 } from '@jsprismarine/item-behaviors';
 
@@ -280,6 +281,8 @@ export interface ContentItemAccess {
     canDyeEntity?(target: ItemSource, color: string): boolean;
     /** The nearest structure in a structure tag, when the world has a structure search. */
     locate?(destination: string, origin: BlockPosition): BlockPosition | undefined;
+    /** Whether an action of this kind is performed, so a behavior can keep its item when not. */
+    supports?(action: ItemWorldActionKind): boolean;
     /** Does one thing to the world. */
     perform(action: ItemWorldAction): void;
 }
