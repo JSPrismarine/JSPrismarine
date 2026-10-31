@@ -53,11 +53,11 @@ export default class DebugCommand extends Command {
                                         const worldData = source.getServer().getConfig().getWorlds()[value];
                                         if (!worldData) throw new Error(`No world ${value} in config`);
 
-                                        const world = await source
+                                        const level = await source
                                             .getServer()
                                             .getWorldManager()
-                                            .loadWorld(worldData, value);
-                                        return `Loaded world ${world.getName()}`;
+                                            .loadLevel(worldData, value);
+                                        return `Loaded level ${level.name} with ${[...level.getStems().keys()].join(', ')}`;
                                     }
                                     case 'changeWorld': {
                                         if (!(source instanceof Player))

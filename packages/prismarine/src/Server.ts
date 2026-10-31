@@ -292,8 +292,9 @@ export default class Server extends EventEmitter {
         const seed = this.worldSeed();
         const timer = new Timer();
         this.contentWorld = serverWorldSource({
-            // By dimension rather than by name: the content packages address a world
-            // as `minecraft:overworld`, and this server loads one world per dimension.
+            // By dimension rather than by name: the content packages address a world as
+            // `minecraft:overworld`, and the default level has one world per dimension. A
+            // dimension still lazy answers undefined, as one nobody has entered holds nothing.
             worldFor: (dimension) => this.worldManager.getWorldByDimension(dimension),
             content: () => {
                 if (!this.content) throw new Error('the content world was read before the content was built');

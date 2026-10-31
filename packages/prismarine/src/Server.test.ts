@@ -64,7 +64,7 @@ describe('Server', () => {
 
             public override getWorlds() {
                 return {
-                    [levelName]: { generator: 'Flat', provider: 'LevelDB', seed: 1 }
+                    [levelName]: { preset: 'minecraft:flat', provider: 'LevelDB', seed: 1 }
                 };
             }
 

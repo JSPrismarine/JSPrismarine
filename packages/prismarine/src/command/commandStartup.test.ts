@@ -49,7 +49,7 @@ const debugConfig = (levelName: string) =>
             return levelName;
         }
         public override getWorlds() {
-            return { [levelName]: { generator: 'Flat', provider: 'LevelDB', seed: 1 } };
+            return { [levelName]: { preset: 'minecraft:flat', provider: 'LevelDB', seed: 1 } };
         }
         public override getPreloadRadius() {
             return 0;

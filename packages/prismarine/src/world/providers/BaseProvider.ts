@@ -16,6 +16,9 @@ import path from 'node:path';
 import type { WorldPersistenceData } from '../WorldPersistence';
 import { parseWorldPersistenceData, worldPersistenceJsonOf } from '../WorldPersistence';
 
+/** What a format needs to know about its save to open it: the name and the seed of the level. */
+export type SaveIdentity = Pick<Level, 'name' | 'seed'>;
+
 const WORLD_DATA_FILE_NAME = 'jsprismarine-world.dat';
 
 /**
@@ -34,7 +37,7 @@ export default abstract class BaseProvider implements Provider {
     protected path: string;
     protected server: Server;
     protected world!: World;
-    private level: Level | undefined;
+    private level: SaveIdentity | undefined;
     private entitySource: EntitySource | null = null;
 
     public constructor(path: string, server: Server) {
@@ -63,13 +66,17 @@ export default abstract class BaseProvider implements Provider {
      * Attaches the level whose save this provider is, which is where the save's name and seed
      * come from once a level owns it. A level has no world until one is asked for, so the
      * metadata a format writes on open cannot wait for one.
+     *
+     * The name and seed are all a format reads, so a caller that has to open the save before
+     * its level exists, as `WorldManager` does to read the stems the save was generated with,
+     * may attach just those two.
      */
-    public setLevel(level: Level): void {
+    public setLevel(level: SaveIdentity): void {
         this.level = level;
     }
 
-    /** The level this provider serves, or undefined before {@link BaseProvider.setLevel}. */
-    public getLevel(): Level | undefined {
+    /** The save this provider serves, or undefined before {@link BaseProvider.setLevel}. */
+    public getLevel(): SaveIdentity | undefined {
         return this.level;
     }
 
