@@ -66,7 +66,10 @@ export interface FakeLevelOptions {
     /** Player records the level answers, by key. A save writes into the same map. */
     readonly playerData?: Map<string, Partial<WorldPlayerData>>;
     readonly legacyEntities?: readonly LegacyWorldEntity[];
-    /** The worlds the double reports as loaded, for a test that ticks through the level. */
+    /**
+     * The worlds the double reports as loaded, for a test that ticks through the level or asks
+     * it for one dimension's world. `world(id)` answers the one whose dimension type has that id.
+     */
     readonly worlds?: () => readonly World[];
 }
 
@@ -115,6 +118,11 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         loadedWorld: () => undefined,
         worlds: function* () {
             yield* worlds();
+        },
+        world: async (dimensionId) => {
+            const found = worlds().find((world) => world.getDimension().id === dimensionId);
+            if (found === undefined) throw new Error(`the fake level has no ${dimensionId} world`);
+            return found;
         },
         customDimensionDefinitions: () => [...(options.customDimensionDefinitions ?? [])],
         update: async (tick) => {

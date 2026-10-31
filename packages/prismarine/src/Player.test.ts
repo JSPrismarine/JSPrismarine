@@ -17,7 +17,10 @@ import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
 import { fakePlayer } from './testing/fakePlayer.test.helper';
 import { stub } from './testing/stub.test.helper';
+import type { Block } from './block/Block';
+import { BlockState } from './block/state/BlockState';
 import { Dimensions } from './world/DimensionType';
+import type { Level } from './world/Level';
 import { Position } from './world/Position';
 import type { BlockMining } from './world/BlockMining';
 import type { World } from './world/World';
@@ -472,6 +475,71 @@ describe('Player', () => {
             await player.respawn();
 
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
+        });
+    });
+
+    describe('respawn point across dimensions', () => {
+        /** A Nether world of named blocks, everything else air, in the same level as the player's. */
+        const netherOf = (blocks: Readonly<Record<string, string>>, level: () => Level) => {
+            const nameAt = (x: number, y: number, z: number) => blocks[`${x},${y},${z}`] ?? 'minecraft:air';
+            return stub<World>({
+                getName: () => 'nether',
+                getLevel: level,
+                getDimension: () => Dimensions.Nether,
+                getSpawnPosition: async () => new Vector3(8, 70, -3),
+                addEntity: async () => {},
+                broadcastMove: async () => {},
+                getBlock: async (x, y, z) => stub<Block>({ isSolid: () => nameAt(x, y, z) !== 'minecraft:air' }),
+                getBlockState: async (x, y, z) => new BlockState(nameAt(x, y, z))
+            });
+        };
+
+        it('resolves the point in the world it was set in, through the level, rather than refusing it', async () => {
+            // Java's `findRespawnPositionAndUseSpawnBlock` looks the level up by the spawn's
+            // dimension and resolves there. The old rule, "only the world the player died in",
+            // sent a Nether death with an Overworld bed to the Nether's world spawn.
+            let level: Level | undefined;
+            const nether = netherOf({ '10,64,10': 'minecraft:respawn_anchor' }, () => level!);
+            const fake = fakePlayer({ worlds: [nether] });
+            level = fake.level;
+            fake.player.setSpawnPoint({ x: 10, y: 64, z: 10, dimension: 'minecraft:nether' });
+
+            const point = await fake.player.getRespawnPoint();
+
+            expect(point.world).toBe(nether);
+            // Beside the anchor, in the first free column around it, as in one world.
+            expect(point.block).toEqual(new Vector3(10, 64, 11));
+            expect(point.eyes).toEqual(new Vector3(10, 64 + EYE_HEIGHT, 11));
+        });
+
+        it("falls back to the default level's Overworld spawn when the bed in another dimension is gone", async () => {
+            let level: Level | undefined;
+            const nether = netherOf({}, () => level!);
+            const fake = fakePlayer({ worlds: [nether] });
+            level = fake.level;
+            await fake.player.setWorld(nether);
+            // The fake Overworld is all air, so nothing stands where the bed was.
+            fake.player.setSpawnPoint({ x: 10, y: 64, z: 10, dimension: 'minecraft:overworld' });
+
+            const point = await fake.player.getRespawnPoint();
+
+            expect(point.world).toBe(fake.world);
+            expect(point.block).toEqual(new Vector3(0, 64, 0));
+            // Cleared, so the next death goes straight there.
+            expect(fake.player.getSpawnPoint()).toBeUndefined();
+        });
+
+        it("comes back at the default level's Overworld spawn after a Nether death with no point of its own", async () => {
+            let level: Level | undefined;
+            const nether = netherOf({}, () => level!);
+            const fake = fakePlayer({ worlds: [nether] });
+            level = fake.level;
+            await fake.player.setWorld(nether);
+
+            const point = await fake.player.getRespawnPoint();
+
+            expect(point.world).toBe(fake.world);
+            expect(point.block).toEqual(new Vector3(0, 64, 0));
         });
     });
 

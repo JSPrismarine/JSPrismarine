@@ -44,6 +44,7 @@ const fakeSession = ({ alive = true } = {}) => {
                     getWorld: () => world,
                     getPosition: () => standingAt,
                     getRespawnPoint: async () => ({
+                        world,
                         announced: new Vector3(100.5, 71.62, 100.5),
                         block: new Vector3(100, 70, 100),
                         eyes: new Vector3(100, 71.62, 100)

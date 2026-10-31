@@ -41,6 +41,7 @@ import type { Position } from './world/Position';
 import { respawnPoint } from './world/SpawnPlacement';
 import { resolveRespawn } from './world/RespawnPoint';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
+import { dimensionByName } from './world/DimensionType';
 import { lastPlayerRecord } from './world/PlayerRecords';
 import type { PlayerSpawn } from './world/SpawnPlacement';
 import type { BlockMining } from './world/BlockMining';
@@ -122,6 +123,12 @@ export interface PlayerIdentity {
     skin: Skin | null;
     device: Device | null;
 }
+
+/**
+ * Where a player comes back after a death: the world, and the three positions the respawn
+ * exchange needs in it. See {@link respawnPoint} for what each position is.
+ */
+export type RespawnDestination = ReturnType<typeof respawnPoint> & { readonly world: World };
 
 export default class Player extends Human {
     private readonly address: InetAddress;
@@ -969,38 +976,49 @@ export default class Player extends Human {
     /**
      * Where this player comes back after a death, given as a Bedrock Dedicated Server gives it.
      *
-     * Their own spawn point when they have one that still holds, and the world spawn otherwise.
+     * Their own spawn point when they have one that still holds, in the world it was set in,
+     * which need not be the one they died in: a player who dies in the Nether with an Overworld
+     * bed comes back in the Overworld, as Java's `findRespawnPositionAndUseSpawnBlock` has it.
+     * Otherwise the Overworld spawn of the default level, which is Java's `server.overworld()`.
      * A bed or a respawn anchor only holds a spawn while the block is still there with somewhere
      * free to stand beside it, which is Java's rule and is what {@link resolveRespawn} decides;
      * a point `/spawnpoint` set is used whatever is standing there. A spawn that stopped holding
      * is cleared here, so the player is told once rather than on every death.
      *
+     * The caller compares `world` with the player's own and changes world first when they
+     * differ: see `RespawnHandler`.
+     *
      * @see {@link respawnPoint} for the three positions the exchange needs.
      */
-    public async getRespawnPoint(): Promise<ReturnType<typeof respawnPoint>> {
+    public async getRespawnPoint(): Promise<RespawnDestination> {
         const own = await this.resolveOwnSpawn();
-        return respawnPoint(own ?? (await this.getWorld().getSpawnPosition()), EYE_HEIGHT);
+        if (own !== undefined) return { world: own.world, ...respawnPoint(own.position, EYE_HEIGHT) };
+
+        const overworld = this.server.getWorldManager().getDefaultWorld();
+        return { world: overworld, ...respawnPoint(await overworld.getSpawnPosition(), EYE_HEIGHT) };
     }
 
-    /** This player's own spawn point as a position, or undefined when it no longer holds. */
-    private async resolveOwnSpawn(): Promise<Vector3 | undefined> {
+    /**
+     * This player's own spawn point as a position in the world it names, or undefined when it
+     * no longer holds.
+     *
+     * The world comes from the player's level, built if the level has not built that dimension
+     * yet: the bed is still there whether or not anybody has been near it since the save opened.
+     * A point naming a dimension the level has no stem for is treated as a bed that is gone.
+     */
+    private async resolveOwnSpawn(): Promise<{ world: World; position: Vector3 } | undefined> {
         const spawn = this.spawnPoint;
         if (spawn === undefined) return undefined;
 
-        // Only the world the point was set in. This server loads one world per dimension, and a
-        // bed in the nether is not a spawn point for the overworld.
-        const world = this.getWorld();
-        if (spawn.dimension !== world.getDimension().name) return undefined;
-
-        const { minY, height } = world.getDimension();
-        const resolved = await resolveRespawn(spawn, {
-            minY,
-            maxY: minY + height,
-            isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid(),
-            getBlockName: async (x, y, z) => (await world.getBlockState(x, y, z)).name
-        });
-
-        if (resolved.kind === 'honored') return resolved.position;
+        const level = this.getWorld().getLevel();
+        // The record keeps the client's spelling, `minecraft:nether`; the level keys its stems
+        // by the Java one. A custom dimension spells both the same.
+        const stemId = dimensionByName(spawn.dimension)?.id ?? spawn.dimension;
+        const world = level.getStems().has(stemId) ? await level.world(stemId) : undefined;
+        if (world !== undefined) {
+            const resolved = await this.resolveSpawnIn(spawn, world);
+            if (resolved !== undefined) return { world, position: resolved };
+        }
 
         // Java's "Your home bed was missing or obstructed", which is a message this server has
         // no translation path for yet. Cleared so the next death goes straight to the world
@@ -1013,6 +1031,19 @@ export default class Player extends Human {
         });
 
         return undefined;
+    }
+
+    /** Where a spawn point stands a player in the world it names, or undefined when it no longer holds there. */
+    private async resolveSpawnIn(spawn: StoredSpawnPoint, world: World): Promise<Vector3 | undefined> {
+        const { minY, height } = world.getDimension();
+        const resolved = await resolveRespawn(spawn, {
+            minY,
+            maxY: minY + height,
+            isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid(),
+            getBlockName: async (x, y, z) => (await world.getBlockState(x, y, z)).name
+        });
+
+        return resolved.kind === 'honored' ? resolved.position : undefined;
     }
 
     /**

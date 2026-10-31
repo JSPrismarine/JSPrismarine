@@ -9,6 +9,7 @@ import Player from '../Player';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import type { Block } from '../block/Block';
+import { BlockState } from '../block/state/BlockState';
 import type { ConsoleSender } from '../command/ConsoleSender';
 import type { Config } from '../config/Config';
 import type ClientConnection from '../network/ClientConnection';
@@ -24,16 +25,29 @@ import type WorldManager from '../world/WorldManager';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/DimensionType';
 import { testContent } from './entityServer';
+import { fakeLevel } from './level';
 import { stub } from './stub.test.helper';
+
+/** What a test says about the player's surroundings. */
+export interface FakePlayerOptions {
+    /** Whether the world is entirely water rather than air. */
+    readonly underwater?: boolean;
+    /**
+     * Other worlds of the same level, by their own dimension type, which the level answers
+     * `world(id)` with. A world the test wants the player to reach needs `getLevel` of its own.
+     */
+    readonly worlds?: readonly World[];
+}
 
 /**
  * A player with just enough of a server, world and connection around it to move, tick and
  * change world.
  *
  * The world is either dry or entirely water, which is all the block detail breath needs. Its
- * chunks are empty Overworld chunks, enough for the session's chunk batching to run.
+ * chunks are empty Overworld chunks, enough for the session's chunk batching to run. It is the
+ * Overworld of a level that also holds `worlds`, and the server's default world.
  */
-export const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
+export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlayerOptions = {}) => {
     const sent: any[] = [];
     /** Every tick of crack animation the player asked the world for. */
     const cracked: BlockMining[] = [];
@@ -67,7 +81,7 @@ export const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
         // A login looks for the player's record in every loaded world, each world keeping its
         // own: see `lastPlayerRecord`.
-        getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world] }),
+        getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world], getDefaultWorld: () => world }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
         getContent: () => testContent(),
@@ -81,9 +95,11 @@ export const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}
             })
     });
 
+    const blockName = underwater ? 'minecraft:water' : 'minecraft:air';
     const world = stub<World>({
         getName: () => 'test',
         getServer: () => server,
+        getLevel: () => level,
         getPlayerData: async () => ({}),
         getDimension: () => Dimensions.Overworld,
         broadcastMove: async () => {},
@@ -98,7 +114,8 @@ export const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}
             relocated: false
         }),
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
-        getBlock: async () => stub<Block>({ getName: () => (underwater ? 'minecraft:water' : 'minecraft:air') }),
+        getBlock: async () => stub<Block>({ getName: () => blockName, isSolid: () => false }),
+        getBlockState: async () => new BlockState(blockName),
         getChunk: async (x, z) => new Chunk(x, z),
         sendActorEvent: async (_entity, event) => void actorEvents.push(event),
         sendActorSound: async (_entity, sound) => void actorSounds.push(sound),
@@ -108,6 +125,17 @@ export const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}
             return mined.stays;
         },
         stopBlockCracking: async (position) => void stopped.push(position)
+    });
+
+    const level = fakeLevel({
+        server,
+        worlds: () => [world, ...others],
+        stems: new Map(
+            [world, ...others].map((each) => {
+                const { id } = each.getDimension();
+                return [id, { type: id, generator: { type: 'jsprismarine:test', settings: undefined } }];
+            })
+        )
     });
 
     const connection = stub<ClientConnection>({
@@ -143,6 +171,7 @@ export const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}
         player,
         server,
         world,
+        level,
         connection,
         sent,
         events,
