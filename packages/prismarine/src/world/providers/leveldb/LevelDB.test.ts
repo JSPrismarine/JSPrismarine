@@ -309,6 +309,33 @@ describe('world', () => {
             await reopened.provider.disable();
         });
 
+        it('keeps the dragon fight in the world data record', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const data = {
+                dragonFight: {
+                    dragonKilled: true,
+                    previouslyKilled: true,
+                    needsStateScanning: false,
+                    dragonUniqueId: '9f4a1c2e-3b5d-4e6f-8a7b-0c1d2e3f4a5b',
+                    exitPortalLocation: { x: 0, y: 64, z: 0 },
+                    gateways: [17, 3, 0],
+                    respawnTime: 0,
+                    respawnCrystalIds: []
+                }
+            } satisfies WorldPersistenceData;
+
+            await provider.enable();
+            await provider.writeWorldData(data);
+            expect(await provider.readWorldData()).toEqual(data);
+            await provider.disable();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect(await reopened.provider.readWorldData()).toEqual(data);
+            await reopened.provider.disable();
+        });
+
         describe('level.dat', () => {
             const levelDat = (worldPath: string) =>
                 decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat'))).root;

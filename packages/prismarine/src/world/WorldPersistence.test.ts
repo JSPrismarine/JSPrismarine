@@ -206,6 +206,72 @@ describe('persisted stems', () => {
     });
 });
 
+describe('persisted dragon fight', () => {
+    it('reads a full fight state back equal through JSON', () => {
+        const data: WorldPersistenceData = {
+            dragonFight: {
+                dragonKilled: true,
+                previouslyKilled: true,
+                needsStateScanning: false,
+                dragonUniqueId: '9f4a1c2e-3b5d-4e6f-8a7b-0c1d2e3f4a5b',
+                exitPortalLocation: { x: 0, y: 64, z: 0 },
+                gateways: [17, 3, 0],
+                respawnStage: 'summoning_pillars',
+                respawnTime: 141,
+                respawnCrystalIds: ['c1', 'c2', 'c3', 'c4']
+            }
+        };
+
+        const text = JSON.stringify(worldPersistenceJsonOf(data));
+        expect(parseWorldPersistenceData(text)).toEqual(data);
+    });
+
+    it('reads a fight state without the optional fields back equal', () => {
+        const data: WorldPersistenceData = {
+            dragonFight: {
+                dragonKilled: false,
+                previouslyKilled: false,
+                needsStateScanning: true,
+                gateways: [],
+                respawnTime: 0,
+                respawnCrystalIds: []
+            }
+        };
+
+        const text = JSON.stringify(worldPersistenceJsonOf(data));
+        expect(parseWorldPersistenceData(text)).toEqual(data);
+    });
+
+    it('drops a malformed fight whole rather than loading half of one', () => {
+        const half = (dragonFight: unknown): WorldPersistenceData =>
+            parseWorldPersistenceData(JSON.stringify({ dragonFight }));
+
+        expect(half('not a fight')).toEqual({});
+        expect(half({ dragonKilled: 'yes', previouslyKilled: false, needsStateScanning: false })).toEqual({});
+        expect(
+            half({
+                dragonKilled: false,
+                previouslyKilled: false,
+                needsStateScanning: true,
+                gateways: 'none',
+                respawnTime: 0,
+                respawnCrystalIds: []
+            })
+        ).toEqual({});
+        expect(
+            half({
+                dragonKilled: false,
+                previouslyKilled: false,
+                needsStateScanning: true,
+                gateways: [],
+                respawnStage: 'warming_up',
+                respawnTime: 0,
+                respawnCrystalIds: []
+            })
+        ).toEqual({});
+    });
+});
+
 describe('world persistence', () => {
     it('does not count legacy level.json item snapshots against the live drop limit', async () => {
         const name = 'legacy-items';

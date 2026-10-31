@@ -39,6 +39,47 @@ export interface WorldGenSettings {
     readonly dimensions: Readonly<Record<string, LevelStem>>;
 }
 
+/** The four phases of the dragon respawn sequence, Java's `DragonRespawnStage` short of `end`. */
+export const DRAGON_RESPAWN_STAGES = [
+    'start',
+    'preparing_to_summon_pillars',
+    'summoning_pillars',
+    'summoning_dragon'
+] as const;
+
+/** One phase of the dragon respawn sequence. */
+export type DragonRespawnStage = (typeof DRAGON_RESPAWN_STAGES)[number];
+
+/**
+ * The End's dragon fight, as the save stores it.
+ *
+ * The fields mirror Java's `minecraft:ender_dragon_fight` SavedData: `dragon_killed`,
+ * `previously_killed`, `needs_state_scanning`, `dragon_uuid`, `exit_portal_location`,
+ * `gateways`, `respawn_stage`, `respawn_time` and `respawn_crystals`. The entity references
+ * are the data-driven runtime's persistent identities, the stable UUID an actor keeps across
+ * saves, because runtime ids are drawn fresh every boot.
+ */
+export interface DragonFightState {
+    /** Whether the dragon is dead right now, so none should be spawned. */
+    dragonKilled: boolean;
+    /** Whether a dragon has ever been killed in this world, which gates the egg. */
+    previouslyKilled: boolean;
+    /** Whether the fight still has to scan the world for a podium and a dragon. */
+    needsStateScanning: boolean;
+    /** The live dragon's persistent identity, when one has been spawned or adopted. */
+    dragonUniqueId?: string;
+    /** Where the exit portal's podium stands, once found or placed. */
+    exitPortalLocation?: { x: number; y: number; z: number };
+    /** The gateway indices not yet spent, seed-shuffled on first init and popped per kill. */
+    gateways: number[];
+    /** The respawn phase in progress, or absent when no respawn sequence runs. */
+    respawnStage?: DragonRespawnStage;
+    /** Ticks spent in the current respawn phase. */
+    respawnTime: number;
+    /** The persistent identities of the four crystals driving a respawn in progress. */
+    respawnCrystalIds: string[];
+}
+
 /** World state a provider stores outside the chunk data. */
 export interface WorldPersistenceData {
     spawn?: { x: number; y: number; z: number };
@@ -48,6 +89,8 @@ export interface WorldPersistenceData {
     entities?: LegacyWorldEntity[];
     /** The seed and stems the save was generated with. */
     worldGenSettings?: WorldGenSettings;
+    /** The End's dragon fight, present once a world with one has saved. */
+    dragonFight?: DragonFightState;
 }
 
 /**
@@ -67,13 +110,15 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const weather = savedWeatherOf(value['weather']);
     const entities = entitiesOf(value['entities']);
     const worldGenSettings = worldGenSettingsOf(value['worldGenSettings']);
+    const dragonFight = dragonFightOf(value['dragonFight']);
 
     return {
         ...(spawn === undefined ? {} : { spawn }),
         ...(gameRules === undefined ? {} : { gameRules }),
         ...(weather === undefined ? {} : { weather }),
         ...(entities === undefined ? {} : { entities }),
-        ...(worldGenSettings === undefined ? {} : { worldGenSettings })
+        ...(worldGenSettings === undefined ? {} : { worldGenSettings }),
+        ...(dragonFight === undefined ? {} : { dragonFight })
     };
 };
 
@@ -236,6 +281,47 @@ const spawnOf = (value: unknown): WorldPersistenceData['spawn'] | undefined => {
 
     return { x, y, z };
 };
+
+/**
+ * A fight state is taken whole or not at all: loading half of one - say, the podium location
+ * without `previouslyKilled` - would make the fight rebuild or respawn things the save already
+ * settled, so a malformed record falls back to a fresh scan instead.
+ */
+const dragonFightOf = (value: unknown): DragonFightState | undefined => {
+    if (!isRecord(value)) return undefined;
+
+    const { dragonKilled, previouslyKilled, needsStateScanning, respawnTime } = value;
+    if (typeof dragonKilled !== 'boolean' || typeof previouslyKilled !== 'boolean') return undefined;
+    if (typeof needsStateScanning !== 'boolean' || !isFiniteNumber(respawnTime)) return undefined;
+
+    const gateways = value['gateways'];
+    const respawnCrystalIds = value['respawnCrystalIds'];
+    if (!Array.isArray(gateways) || !gateways.every(isFiniteNumber)) return undefined;
+    if (!Array.isArray(respawnCrystalIds) || !respawnCrystalIds.every((id) => typeof id === 'string')) return undefined;
+
+    const dragonUniqueId = value['dragonUniqueId'];
+    if (dragonUniqueId !== undefined && typeof dragonUniqueId !== 'string') return undefined;
+    const exitPortalLocation = spawnOf(value['exitPortalLocation']);
+    if (exitPortalLocation === undefined && value['exitPortalLocation'] !== undefined) return undefined;
+    const rawStage = value['respawnStage'];
+    const respawnStage = isRespawnStage(rawStage) ? rawStage : undefined;
+    if (respawnStage === undefined && rawStage !== undefined) return undefined;
+
+    return {
+        dragonKilled,
+        previouslyKilled,
+        needsStateScanning,
+        ...(dragonUniqueId === undefined ? {} : { dragonUniqueId }),
+        ...(exitPortalLocation === undefined ? {} : { exitPortalLocation }),
+        gateways,
+        ...(respawnStage === undefined ? {} : { respawnStage }),
+        respawnTime,
+        respawnCrystalIds
+    };
+};
+
+const isRespawnStage = (value: unknown): value is DragonRespawnStage =>
+    DRAGON_RESPAWN_STAGES.some((stage) => stage === value);
 
 const gameRulesOf = (value: unknown): WorldPersistenceData['gameRules'] | undefined => {
     if (!Array.isArray(value)) return undefined;

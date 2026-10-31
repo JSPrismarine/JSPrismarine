@@ -188,7 +188,8 @@ export default class LevelDB extends BaseProvider {
             ...(data.spawn === undefined ? {} : { spawn: data.spawn }),
             ...(data.gameRules === undefined ? {} : { gameRules: data.gameRules }),
             ...(data.weather === undefined ? {} : { weather: data.weather }),
-            ...(data.worldGenSettings === undefined ? {} : { worldGenSettings: data.worldGenSettings })
+            ...(data.worldGenSettings === undefined ? {} : { worldGenSettings: data.worldGenSettings }),
+            ...(data.dragonFight === undefined ? {} : { dragonFight: data.dragonFight })
         };
         const root = new NBTTagCompound('');
         root.addValue('Data', new Types.StringVal(JSON.stringify(worldPersistenceJsonOf(metadata))));
