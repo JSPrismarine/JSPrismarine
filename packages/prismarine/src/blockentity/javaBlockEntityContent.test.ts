@@ -335,6 +335,39 @@ describe('a container', () => {
     });
 });
 
+describe('an item frame', () => {
+    // The frame an end city ship hangs its elytra in. Java saves an entity; Bedrock keeps a block
+    // entity on its frame block, with the stack under `Item` and two floats beside it.
+    const java = compound('', {
+        id: str('minecraft:item_frame'),
+        Item: compound('Item', { id: str('minecraft:elytra'), count: int(1) }),
+        ItemRotation: byte(0)
+    });
+
+    it('writes the held stack as a Bedrock stack with no slot', () => {
+        const item = translated(java).getCompound('Item', false);
+
+        expect(item?.getString('Name', '')).toBe('minecraft:elytra');
+        expect(item?.children.get('Count')).toEqual(byte(1));
+        expect(item?.children.get('Slot')).toBeUndefined();
+    });
+
+    it('writes the rotation and the drop chance as the floats Bedrock reads', () => {
+        const bedrock = translated(java);
+
+        expect(bedrock.children.get('ItemRotation')).toBeInstanceOf(Types.FloatVal);
+        expect(bedrock.children.get('ItemRotation')?.getValue()).toBe(0);
+        expect(bedrock.children.get('ItemDropChance')).toBeInstanceOf(Types.FloatVal);
+        expect(bedrock.children.get('ItemDropChance')?.getValue()).toBe(1);
+    });
+
+    it('leaves an empty frame empty', () => {
+        const bedrock = translated(compound('', { id: str('minecraft:item_frame') }));
+
+        expect(bedrock.getCompound('Item', false)).toBeNull();
+    });
+});
+
 describe('a vault', () => {
     /** The ominous vault of a trial chamber, which is one of the two the templates declare. */
     const ominousVault = (): NBTTagCompound =>

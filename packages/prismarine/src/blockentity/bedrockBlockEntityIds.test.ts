@@ -104,6 +104,13 @@ describe('bedrockBlockEntityIdForJavaType', () => {
         );
     });
 
+    it('files an item frame under the block entity Bedrock keeps where Java keeps an entity', () => {
+        // An end city hangs its elytra in one. Java's is an entity and therefore not in the
+        // block entity registry, so it is answered here and left out of the registry list above.
+        expect(bedrockBlockEntityIdForJavaType('minecraft:item_frame')).toBe('ItemFrame');
+        expect(javaBlockEntityTypesWithBedrockIds()).not.toContain('minecraft:item_frame');
+    });
+
     it('has no answer for a Java type Bedrock does not have', () => {
         expect(bedrockBlockEntityIdForJavaType('minecraft:potent_sulfur')).toBeUndefined();
         expect(bedrockBlockEntityIdForJavaType('minecraft:test_block')).toBeUndefined();

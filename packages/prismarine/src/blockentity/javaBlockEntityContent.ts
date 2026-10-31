@@ -390,6 +390,27 @@ const translateVault = (bedrock: NBTTagCompound, java: NBTTagCompound): void => 
 };
 
 /**
+ * An item frame's held stack, as Bedrock's `ItemFrame` block entity keeps it.
+ *
+ * Java saves the frame as an entity, so the compound here is the entity's: the stack under
+ * `Item`, a byte `ItemRotation` and a float `ItemDropChance`. Bedrock keeps the same three names
+ * on the block entity and reads the last two as floats. The drop chance is written whether or
+ * not Java states it, because Java's default is 1 and an absent float reads as 0, which is a
+ * frame that drops nothing when broken.
+ */
+const translateItemFrame = (bedrock: NBTTagCompound, java: NBTTagCompound): void => {
+    const item = compoundAt(java, 'Item');
+    const stack = item === undefined ? undefined : stackToNbt(item);
+    if (stack !== undefined) {
+        stack.setName('Item');
+        bedrock.addChild(stack);
+    }
+
+    bedrock.addValue('ItemRotation', new Types.FloatVal(numberAt(java, 'ItemRotation') ?? 0));
+    bedrock.addValue('ItemDropChance', new Types.FloatVal(numberAt(java, 'ItemDropChance') ?? 1));
+};
+
+/**
  * One trial spawner configuration, inline.
  *
  * The field names survive; the widths and the loot table spellings do not. `ticks_between_spawn`
@@ -514,6 +535,7 @@ const TRANSLATORS: Readonly<
     'minecraft:banner': translateBanner,
     'minecraft:decorated_pot': (bedrock, java) => translateDecoratedPot(bedrock, java),
     'minecraft:hanging_sign': (bedrock, java) => translateSign(bedrock, java),
+    'minecraft:item_frame': (bedrock, java) => translateItemFrame(bedrock, java),
     'minecraft:mob_spawner': (bedrock, java) => translateMobSpawner(bedrock, java),
     'minecraft:sign': (bedrock, java) => translateSign(bedrock, java),
     'minecraft:trial_spawner': translateTrialSpawner,

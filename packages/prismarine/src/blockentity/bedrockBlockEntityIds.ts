@@ -189,13 +189,27 @@ const JAVA_TYPE_BY_ID: Readonly<Record<string, string>> = ((): Record<string, st
 })();
 
 /**
+ * Java entity types Bedrock keeps as a block with a block entity.
+ *
+ * An item frame is the one a generated structure meets: Java hangs an entity and Bedrock places
+ * a `frame` block whose `ItemFrame` block entity holds the item. It is kept apart from
+ * {@link BY_JAVA_TYPE} because it is not in Java's block entity registry, and the coverage check
+ * over that table should stay a check against the registry.
+ */
+const BY_JAVA_ENTITY: Readonly<Record<string, string>> = {
+    'minecraft:item_frame': 'ItemFrame'
+};
+
+/**
  * The block entity id Bedrock files a Java block entity type under.
  *
- * @param javaType - A `minecraft:block_entity_type` identifier, for example `minecraft:vault`.
+ * @param javaType - A `minecraft:block_entity_type` identifier, for example `minecraft:vault`,
+ *   or the entity type of an item frame, which Bedrock keeps as a block entity.
  * @returns The id, or undefined for a type Bedrock has no counterpart for, which in Java 26.3
  *   is `potent_sulfur` and the two test blocks.
  */
-export const bedrockBlockEntityIdForJavaType = (javaType: string): string | undefined => BY_JAVA_TYPE[javaType];
+export const bedrockBlockEntityIdForJavaType = (javaType: string): string | undefined =>
+    BY_JAVA_TYPE[javaType] ?? BY_JAVA_ENTITY[javaType];
 
 /**
  * The Java block entity type a block carries one of, for a compound that names none.
