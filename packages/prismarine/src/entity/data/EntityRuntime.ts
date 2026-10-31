@@ -920,6 +920,7 @@ export class EntityRuntime implements EntityScene {
                 entity.instance.applyQueuedEvents();
                 if (entity.removed !== undefined) continue;
                 if (!entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
+                    if (this.explodeOnDeath(entity)) continue;
                     this.kill(entity);
                     continue;
                 }
@@ -948,6 +949,32 @@ export class EntityRuntime implements EntityScene {
         }
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
+    }
+
+    /**
+     * Runs a zero-fuse `minecraft:explode` the killing hit queued, before the removal.
+     *
+     * The end crystal is the case: its `on_hurt` event adds a group whose fuse is zero,
+     * and the death used to remove the entity before the fuse ever ticked, so a hit
+     * crystal vanished without exploding. Only a fuse that resolves to zero runs here; a
+     * fuse with time on it still dies unexploded, which is what killing a swelling
+     * creeper does. A crystal an explosion destroyed does not explode again, matching
+     * Java's `EndCrystal.hurtServer` skipping sources already in `#is_explosion`.
+     *
+     * @returns Whether the entity exploded, which also removed it.
+     */
+    private explodeOnDeath(entity: DataEntity): boolean {
+        const params = entity.instance.componentParams('minecraft:explode');
+        if (!isRecord(params) || params.fuse_lit !== true) return false;
+
+        const cause = entity.body.damage.last()?.cause;
+        if (cause === 'entity_explosion' || cause === 'block_explosion') return false;
+
+        this.startFuse(entity);
+        if (entity.body.fuseTicks !== 0) return false;
+
+        this.explode(entity.body);
+        return true;
     }
 
     /** Invalidates block reads cached by the point-of-interest and navigation views. */

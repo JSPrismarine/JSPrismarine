@@ -2204,6 +2204,108 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('the explosion a killing hit queues', () => {
+        /**
+         * The vanilla crystal's shape, trimmed to what the runtime reads
+         * (bedrock-samples 1.26.50, `behavior_pack/entities/ender_crystal.json`).
+         */
+        const CRYSTAL = {
+            components: {
+                'minecraft:collision_box': { width: 2, height: 2 },
+                'minecraft:fire_immune': {},
+                'minecraft:health': { value: 1, max: 1 },
+                'minecraft:on_hurt': { event: 'minecraft:crystal_explode', target: 'self' },
+                'minecraft:physics': {}
+            },
+            component_groups: {
+                crystal_exploding: {
+                    'minecraft:explode': {
+                        causes_fire: false,
+                        fuse_lit: true,
+                        power: 6,
+                        destroy_affected_by_griefing: true,
+                        fuse_length: 0
+                    }
+                }
+            },
+            events: {
+                'minecraft:crystal_explode': { add: { component_groups: ['crystal_exploding'] } }
+            }
+        };
+
+        it('explodes a killed crystal once before it is removed', () => {
+            const world = new TestEntityWorld();
+            const { runtime, removed } = entityFixture(world, {}, { 'minecraft:ender_crystal': CRYSTAL });
+            const crystal = runtime.spawn('minecraft:ender_crystal', GROUND);
+            const bystander = runtime.spawn('minecraft:cow', { ...GROUND, x: 3 });
+            if (crystal === undefined || bystander === undefined)
+                throw new Error('the fixture declares no crystal and cow');
+
+            runtime.hurt(crystal, undefined, 'entity_attack', 1);
+            expect(runtime.all()).toContain(crystal);
+            runtime.tick(1);
+
+            expect(removed.map((entry) => [entry.entity.identifier, entry.reason])).toContainEqual([
+                'minecraft:ender_crystal',
+                'explosion'
+            ]);
+            expect(world.sounds.filter((sound) => sound === 'random.explode')).toHaveLength(1);
+            expect(bystander.instance.attributes.get('health')?.current).toBeLessThan(10);
+        });
+
+        it('does not explode a crystal an explosion already destroyed', () => {
+            const world = new TestEntityWorld();
+            const { runtime, removed } = entityFixture(world, {}, { 'minecraft:ender_crystal': CRYSTAL });
+            const first = runtime.spawn('minecraft:ender_crystal', GROUND);
+            const second = runtime.spawn('minecraft:ender_crystal', { ...GROUND, x: 3 });
+            if (first === undefined || second === undefined) throw new Error('the fixture declares no crystals');
+
+            runtime.hurt(first, undefined, 'entity_attack', 1);
+            runtime.tick(1);
+            runtime.tick(2);
+
+            expect(first.removed).toBe('explosion');
+            expect(second.removed).toBe('death');
+            expect(world.sounds.filter((sound) => sound === 'random.explode')).toHaveLength(1);
+            expect(removed.map((entry) => entry.entity.identifier)).toEqual([
+                'minecraft:ender_crystal',
+                'minecraft:ender_crystal'
+            ]);
+        });
+
+        it('leaves a lit fuse with time on it to die unexploded, as a swelling creeper does', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:sweller': {
+                        components: {
+                            'minecraft:health': { value: 1, max: 1 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:on_hurt': { event: 'jsprismarine:prime', target: 'self' }
+                        },
+                        component_groups: {
+                            primed: {
+                                'minecraft:explode': { fuse_lit: true, fuse_length: 1.5, power: 3 }
+                            }
+                        },
+                        events: { 'jsprismarine:prime': { add: { component_groups: ['primed'] } } }
+                    }
+                }
+            );
+            const sweller = runtime.spawn('jsprismarine:sweller', GROUND);
+            if (sweller === undefined) throw new Error('the fixture declares no sweller');
+
+            runtime.hurt(sweller, undefined, 'entity_attack', 1);
+            runtime.tick(1);
+
+            expect(sweller.removed).toBe('death');
+            expect(world.sounds).not.toContain('random.explode');
+        });
+    });
+
     describe('beam, base and invulnerable spawn state', () => {
         it('carries the beam target, base plate and invulnerable state onto the spawned body', () => {
             const { runtime } = runtimeOf();

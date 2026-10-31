@@ -61,6 +61,22 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
             runtime.remove(cube.id, 'vanilla physics coverage');
         });
 
+        it('explodes a hit end crystal through the pack’s crystal_exploding group', () => {
+            const crystal = runtime.spawn('minecraft:ender_crystal', { x: 200.5, y: 64, z: 200.5 });
+            if (crystal === undefined) throw new Error('the vanilla pack declares no minecraft:ender_crystal');
+            expect(crystal.instance.attributes.get('health')?.max).toBe(1);
+
+            runtime.hurt(crystal, undefined, 'entity_attack', 1);
+            runtime.tick(1);
+
+            expect(crystal.removed).toBe('explosion');
+            expect(crystal.instance.componentParams('minecraft:explode')).toMatchObject({
+                power: 6,
+                causes_fire: false,
+                fuse_length: 0
+            });
+        });
+
         it('spawns and restores every declared entity through its components', () => {
             for (const [index, identifier] of identifiers.entries()) {
                 const position = {

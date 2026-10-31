@@ -2262,6 +2262,31 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(bareBody.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHOW_BOTTOM))).toBe(true);
         });
 
+        it('explodes when a hit kills it, and an invulnerable one survives the blast', async () => {
+            const crystal = live.runtime.spawn('minecraft:ender_crystal', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            const guarded = live.runtime.spawn(
+                'minecraft:ender_crystal',
+                { x: 3.5, y: GROUND_Y, z: 0.5 },
+                { invulnerable: true }
+            );
+            if (crystal === undefined || guarded === undefined)
+                throw new Error('the fixture declares no minecraft:ender_crystal');
+
+            live.runtime.hurt(crystal, undefined, 'entity_attack', 1);
+            await run(2);
+
+            expect(crystal.removed).toBe('explosion');
+            expect(guarded.removed).toBeUndefined();
+            expect(guarded.instance.attributes.get('health')?.current).toBe(1);
+            expect(typesIn(world).filter((type) => type === 'minecraft:ender_crystal')).toHaveLength(1);
+
+            live.runtime.hurt(guarded, undefined, 'entity_attack', 1);
+            await run(2);
+
+            expect(guarded.removed).toBeUndefined();
+            expect(guarded.instance.attributes.get('health')?.current).toBe(1);
+        });
+
         it('sends new actor metadata when the beam target moves at runtime', async () => {
             const crystal = live.runtime.spawn('minecraft:ender_crystal', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
