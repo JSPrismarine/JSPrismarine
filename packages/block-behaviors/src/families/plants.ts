@@ -49,7 +49,7 @@ const growthOf = (identifier: string): { readonly state: string; readonly max: n
 export const MAX_STALK_HEIGHT: Readonly<Record<string, number>> = { reeds: 3, cactus: 3, bamboo: 16 };
 
 /** Grows a stalk upward by one when its counter wraps, which is how reeds and cactus work. */
-const growStalk = (world: WorldActions, block: HookBlock, maxHeight: number): boolean => {
+const growStalk = (world: WorldActions, block: HookBlock, maxHeight: number, growthState: string): boolean => {
     let height = 1;
     while (height < maxHeight) {
         const below = world.getBlock(offset(block.position, 'down', height));
@@ -62,7 +62,7 @@ const growStalk = (world: WorldActions, block: HookBlock, maxHeight: number): bo
     const target = world.getBlock(above);
     if (target === undefined || target.identifier !== AIR) return false;
 
-    world.setBlock(above, block.identifier, { ...block.states, age: 0 });
+    world.setBlock(above, block.identifier, { ...block.states, [growthState]: 0 });
     world.notifyNeighbors(above);
     return true;
 };
@@ -265,13 +265,13 @@ export const bambooFamily = defineFamily(
     {
         onRandomTick: (event, world) => {
             const name = bareName(event.block.identifier);
+            const growth = growthOf(event.block.identifier);
             const limit = MAX_STALK_HEIGHT[name];
             if (limit !== undefined) {
                 if (world.random() >= 1 / 16) return;
-                growStalk(world, event.block, limit);
+                growStalk(world, event.block, limit, growth.state);
                 return;
             }
-            const growth = growthOf(event.block.identifier);
             advanceCounter(world, event.block, growth.state, growth.max, 1 / 7);
         },
         onNeighborChanged: (event, world) => {

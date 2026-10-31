@@ -284,6 +284,24 @@ describe('bambooFamily', () => {
         expect(harness.dimension.identifierAt({ x: 0, y: 2, z: 0 })).toBe('minecraft:reeds');
     });
 
+    it('writes the bamboo growth counter without adding an unsupported state', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo');
+        const states = {
+            age_bit: 0,
+            bamboo_leaf_size: 'large_leaves',
+            bamboo_stalk_thickness: 'thick'
+        };
+        const above = { x: 0, y: 2, z: 0 };
+        harness.dimension.set(plant, 'minecraft:bamboo', states);
+        harness.dimension.queueRandom(0.01);
+
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt(above)).toBe('minecraft:bamboo');
+        expect(harness.dimension.block(above).states).toEqual(states);
+        expect(harness.dimension.block(above).states.age).toBeUndefined();
+    });
+
     it('takes every block above it when it breaks', () => {
         const harness = bindFamily(bambooFamily, 'minecraft:bamboo');
         harness.dimension.fill({ x: 0, y: 1, z: 0 }, { x: 0, y: 4, z: 0 }, 'minecraft:bamboo', { age_bit: false });

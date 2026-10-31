@@ -22,12 +22,13 @@ import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { World } from '@jsprismarine/prismarine/world/World';
 import { SPAWN_CONSTANTS, Spawner } from '@jsprismarine/spawning';
 import type { SpawnWorld } from '@jsprismarine/spawning';
+import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
 import { describeFamily } from './measure.ts';
-import { loadRequiredItemList } from './goldens.ts';
+import { loadBlockPaletteCapture, loadRequiredItemList } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import {
@@ -439,6 +440,34 @@ const clientPayloadComparison = (content: ServerContent): { gaps: string[]; meas
 };
 
 const REAL_STACK_REFERENCES = [REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData] as const;
+
+describeFamily(FAMILIES.integrationBlockBehaviors, [REFERENCES.bedrockBlockPalette], () => {
+    it('writes grown bamboo states that the captured Bedrock catalog accepts', () => {
+        const capture = loadBlockPaletteCapture();
+        const states = {
+            age_bit: 0,
+            bamboo_leaf_size: 'large_leaves',
+            bamboo_stalk_thickness: 'thick'
+        };
+        const bamboo = capture.domains['minecraft:bamboo'];
+        expect(bamboo?.age_bit?.values.map(Number)).toContain(states.age_bit);
+        expect(bamboo?.bamboo_leaf_size?.values).toContain(states.bamboo_leaf_size);
+        expect(bamboo?.bamboo_stalk_thickness?.values).toContain(states.bamboo_stalk_thickness);
+        expect(BlockRuntimeIds.tryGetByState('minecraft:bamboo', states)).not.toBeNull();
+
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo');
+        const plant = { x: 0, y: 1, z: 0 };
+        const above = { x: 0, y: 2, z: 0 };
+        harness.dimension.set(plant, 'minecraft:bamboo', states);
+        harness.dimension.queueRandom(0.01);
+
+        harness.randomTick(plant);
+
+        const grown = harness.dimension.block(above);
+        expect(grown.identifier).toBe('minecraft:bamboo');
+        expect(BlockRuntimeIds.tryGetByState(grown.identifier, grown.states)).not.toBeNull();
+    });
+});
 
 describeFamily(
     FAMILIES.integrationTags,
