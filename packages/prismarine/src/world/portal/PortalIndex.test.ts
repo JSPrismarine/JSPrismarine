@@ -42,13 +42,25 @@ describe('PortalIndex', () => {
         expect(index.closest(new Vector3(0, 65, 0), 128)?.getY()).toBe(60);
     });
 
-    it('ignores a block outside the radius on any axis, and accepts one on the edge', () => {
+    it('ignores a block outside the radius on x or z, and accepts one on the edge', () => {
         const index = new PortalIndex();
         index.add({ x: 129, y: 64, z: 0 });
         expect(index.closest(new Vector3(0, 64, 0), 128)).toBeUndefined();
 
         index.add({ x: 0, y: 64, z: 128 });
         expect(index.closest(new Vector3(0, 64, 0), 128)).toEqual(new Vector3(0, 64, 128));
+    });
+
+    it('does not bound y, as `PoiManager.getInSquare` walks a square of columns', () => {
+        const index = new PortalIndex();
+        // Farther up than the radius: an Overworld portal at build height for a Nether trip
+        // that scaled to a low y. Java still finds it, since the square bounds x and z only.
+        index.add({ x: 3, y: 200, z: 0 });
+        expect(index.closest(new Vector3(0, 10, 0), 16)).toEqual(new Vector3(3, 200, 0));
+
+        // The y distance still counts toward which candidate is nearest.
+        index.add({ x: 10, y: 10, z: 0 });
+        expect(index.closest(new Vector3(0, 10, 0), 16)).toEqual(new Vector3(10, 10, 0));
     });
 
     it('tracks a block write: a portal arriving is added, one leaving is removed, anything else is ignored', () => {

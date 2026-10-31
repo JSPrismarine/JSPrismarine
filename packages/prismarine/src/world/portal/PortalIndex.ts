@@ -47,11 +47,13 @@ export class PortalIndex {
      * The portal block nearest a position, as Java's `PortalForcer.findClosestPortalPosition`
      * picks one.
      *
-     * Candidates lie within `radius` on every axis, which is the square `PoiManager.getInSquare`
-     * walks; the winner is the least squared Euclidean distance including y, and the lower
-     * block when two tie, which is Java's `thenComparingInt(Vec3i::getY)`.
+     * Candidates lie within `radius` on x and z, which is the square of columns
+     * `PoiManager.getInSquare` walks; y is unbounded, since Java reads whole columns. The
+     * winner is the least squared Euclidean distance including y, and the lower block when
+     * two tie, which is Java's `thenComparingInt(Vec3i::getY)`.
      *
-     * @param radius - In blocks, inclusive. Zero finds a portal block at `to` and nothing else.
+     * @param radius - In blocks, inclusive. Zero finds a portal block in the column of `to`
+     *   and nothing else.
      * @returns The nearest portal block, or undefined when none is within the radius.
      */
     public closest(to: Vector3, radius: number): Vector3 | undefined {
@@ -61,7 +63,7 @@ export class PortalIndex {
             const dx = candidate.getX() - to.getX();
             const dy = candidate.getY() - to.getY();
             const dz = candidate.getZ() - to.getZ();
-            if (Math.abs(dx) > radius || Math.abs(dy) > radius || Math.abs(dz) > radius) continue;
+            if (Math.abs(dx) > radius || Math.abs(dz) > radius) continue;
 
             const distance = dx * dx + dy * dy + dz * dz;
             if (distance < bestDistance || (distance === bestDistance && best && candidate.getY() < best.getY())) {
