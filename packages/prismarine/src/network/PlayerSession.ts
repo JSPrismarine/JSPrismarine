@@ -50,6 +50,7 @@ import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
+import { playerSpawnPositionPacket } from './spawnPosition';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
 import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
@@ -1594,8 +1595,9 @@ export default class PlayerSession {
      * Finishes a pending world change once the client reports its loading screen closed.
      *
      * Teleports the client to the exact arrival position, re-sends the attributes and the
-     * inventory, which a dimension change is not known to keep, and raises the changed
-     * dimension advancement hook. Called by `ServerboundLoadingScreenHandler`.
+     * inventory, which a dimension change is not known to keep, tells the client where its
+     * spawn point is from the new dimension, and raises the changed dimension advancement
+     * hook. Called by `ServerboundLoadingScreenHandler`.
      * @param loadingScreenId - The id the client's `EndLoadingScreen` carried.
      * @returns Whether a change was pending under that id. Any other id changes nothing.
      */
@@ -1604,10 +1606,14 @@ export default class PlayerSession {
         if (pending === undefined || pending.loadingScreenId !== loadingScreenId) return false;
         this.pendingChange = undefined;
 
+        const { world } = pending.arrival;
         await this.sendMove(this.player, PositionMode.Teleport);
         await this.sendAttributes();
         await this.sendInventory();
-        advancementChangedDimension(this.player, pending.left, pending.arrival.world.getDimension().name);
+        // The compass and the map point at the spawn across dimensions, so the client needs
+        // the spawn's dimension again now that its own has changed.
+        await this.send(playerSpawnPositionPacket(this.player, world, await world.getSpawnPosition()));
+        advancementChangedDimension(this.player, pending.left, world.getDimension().name);
         return true;
     }
 

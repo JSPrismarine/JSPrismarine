@@ -17,6 +17,7 @@ import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket
 import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
 import { PlayStatusPacket } from '@jsprismarine/protocol';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
+import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
 import ServerboundLoadingScreenPacket, {
     ServerboundLoadingScreenPacketType
 } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
@@ -237,7 +238,7 @@ describe('PlayerSession.changeWorld', () => {
         expect(player.getPosition().getX()).toBe(3);
     });
 
-    it('finishes the change with a teleport to the arrival, the attributes and the inventory', async () => {
+    it('finishes the change with a teleport to the arrival, the attributes, the inventory and the spawn', async () => {
         const { player, sent } = fakePlayer();
         const session = player.getNetworkSession();
 
@@ -256,9 +257,19 @@ describe('PlayerSession.changeWorld', () => {
         );
         const attributes = indexOf(sent, (p) => p instanceof UpdateAttributesPacket);
         const inventory = indexOf(sent, (p) => p instanceof InventoryContentPacket);
+        const spawn = indexOf(sent, (p) => p instanceof SetSpawnPositionPacket);
         expect(move).toBeGreaterThanOrEqual(0);
         expect(attributes).toBeGreaterThan(move);
         expect(inventory).toBeGreaterThan(attributes);
+        expect(spawn).toBeGreaterThan(inventory);
+
+        // No spawn point of their own, so the new world's spawn in the new dimension.
+        expect(sent[spawn]?.getPacketData()).toEqual({
+            type: SpawnPositionType.PlayerRespawn,
+            position: { x: 8, y: 70, z: 8 },
+            dimension: Dimensions.Nether.bedrockId,
+            blockPosition: { x: 8, y: 70, z: 8 }
+        });
 
         // Closed once. The client reporting the same id again is not a second change.
         expect(await session.completeDimensionChange(id)).toBe(false);
