@@ -79,6 +79,22 @@ describe('createInputBar', () => {
         expect(t.bar.getValue()).toBe('');
     });
 
+    it('inserts pasted text at the cursor and closes the completion strip', async () => {
+        const t = await setup({
+            onComplete: async (line) => ({ completions: ['list', 'login'], replace: line })
+        });
+        dispose = t.dispose;
+
+        await t.mockInput.typeText('l');
+        t.mockInput.pressTab();
+        await t.waitForFrame((frame) => frame.includes('[list]'));
+        await t.mockInput.pasteBracketedText(' now');
+        await t.renderOnce();
+
+        expect(t.bar.getValue()).toBe('list now');
+        expect(t.captureCharFrame()).not.toContain('[list]');
+    });
+
     it('ignores Enter on an empty line', async () => {
         const t = await setup();
         dispose = t.dispose;

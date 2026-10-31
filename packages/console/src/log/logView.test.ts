@@ -126,6 +126,28 @@ describe('createLogView', () => {
         }
     });
 
+    it('collapses adjacent identical log and raw records and preserves each stored record', async () => {
+        const t = await setup();
+        try {
+            t.store.append(entry('repeated'));
+            t.store.append(entry('repeated'));
+            t.store.append(entry('between'));
+            t.store.append(entry('repeated'));
+            t.store.appendRaw('stdout', 'child output', 1);
+            t.store.appendRaw('stdout', 'child output', 1);
+
+            const rows = await t.frame();
+            const output = rows.join('\n');
+            expect(output.match(/repeated \(x2\)/g)).toHaveLength(1);
+            expect(output).toContain('between');
+            expect(output).toContain('repeated\n');
+            expect(output).toContain('child output (x2)');
+            expect(t.store.visible()).toHaveLength(6);
+        } finally {
+            await t.dispose();
+        }
+    });
+
     it('pauses follow when scrolling up and shows the new lines badge', async () => {
         const t = await setup();
         try {
@@ -142,6 +164,24 @@ describe('createLogView', () => {
             const resumed = await t.frame();
             expect(resumed.join('\n')).not.toContain('new lines');
             expect(resumed[19]).toContain('line 53');
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it('counts newly visible groups instead of repeated records while follow is paused', async () => {
+        const t = await setup();
+        try {
+            for (let i = 1; i <= 30; i += 1) t.store.append(entry(`line ${i}`));
+            await t.frame();
+            t.view.scrollBy(-2);
+
+            t.store.append(entry('line 30'));
+            const repeated = await t.frame();
+            expect(repeated.join('\n')).not.toContain('new lines');
+
+            t.store.append(entry('line 31'));
+            expect((await t.frame()).join('\n')).toContain('1 new lines');
         } finally {
             await t.dispose();
         }
@@ -250,6 +290,24 @@ describe('createLogView', () => {
             const rows = await t.frame();
             expect(rows[0]).toContain('after clear');
             expect(rows.join('\n')).not.toContain('line 50');
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it('shows a repeated record again when it arrives after clearing the view', async () => {
+        const t = await setup();
+        try {
+            t.store.append(entry('same'));
+            t.store.append(entry('same'));
+            await t.frame();
+            t.view.clearView();
+            await t.frame();
+
+            t.store.append(entry('same'));
+            const rows = await t.frame();
+            expect(rows.join('\n')).toContain('same');
+            expect(rows.join('\n')).not.toContain('same (x3)');
         } finally {
             await t.dispose();
         }

@@ -72,6 +72,16 @@ describe('formatLogLine', () => {
         expect(message?.fg?.equals(parseColor(defaultTheme.text))).toBe(true);
     });
 
+    it('adds a muted repeat count without including it in the source text', () => {
+        const [row] = formatLogLine(record(), options({ repeatCount: 3 }));
+        const count = row!.chunks.find((chunk) => chunk.text === ' (x3)');
+
+        expect(text([row!])).toEqual(['12:05:33 INFO    Server       Server started (x3)']);
+        expect(count?.fg?.equals(parseColor(defaultTheme.textMuted))).toBe(true);
+        expect(row!.sourceText).toBe('12:05:33 INFO    Server       Server started');
+        expect(row!.sourceEnd).toBe([...row!.sourceText].length);
+    });
+
     it('uses one-letter level tokens in the short style and can hide the namespace column', () => {
         const short = (level: LogLevel) =>
             text(formatLogLine(record({ level }), options({ levelStyle: 'short', showNamespace: false })))[0];

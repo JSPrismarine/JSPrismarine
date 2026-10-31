@@ -25,6 +25,8 @@ export interface LogLineOptions {
     theme: Theme;
     /** Search query to mark inside the message, matched without regard to case. */
     highlight?: string;
+    /** Number of adjacent identical records represented by this row. */
+    repeatCount?: number;
 }
 
 /** A displayed row and its mapping to the original, unwrapped text, measured in code points. */
@@ -59,7 +61,8 @@ export function formatTime(at: number): string {
  * across the width with the generation appended to the reason; raw child output is muted and
  * prefixed by its stream; dropped notices show the store's message in the warning color. With
  * `wrap` off a long message ends in an ellipsis and the result is one row; with it on,
- * continuation rows are indented to the message column. Widths are measured in code points.
+ * continuation rows are indented to the message column. Repeated log and raw records can add a
+ * muted count after the message. Widths are measured in code points.
  */
 export function formatLogLine(record: StoredRecord, options: LogLineOptions): FormattedLogLine[] {
     const width = Math.max(1, options.width);
@@ -74,7 +77,8 @@ export function formatLogLine(record: StoredRecord, options: LogLineOptions): Fo
                 ],
                 [plainChunk(record.message, options.theme, 'textMuted')],
                 width,
-                options
+                options,
+                repeatSuffix(options)
             );
         case 'dropped':
             return layout(
@@ -90,13 +94,18 @@ export function formatLogLine(record: StoredRecord, options: LogLineOptions): Fo
                 { ...token, text: `${levelText(record.level, options)} ` }
             ];
             if (options.showNamespace) {
-                prefix.push(plainChunk(`${fit(record.namespace, NAMESPACE_WIDTH)} `, options.theme, 'textMuted'));
+                prefix.push(plainChunk(`${fitText(record.namespace, NAMESPACE_WIDTH)} `, options.theme, 'textMuted'));
             }
             let message = styleMinecraftText(record.message, options.theme).chunks;
             if (options.highlight) message = highlightChunks(message, options.highlight, options.theme);
-            return layout(prefix, message, width, options);
+            return layout(prefix, message, width, options, repeatSuffix(options));
         }
     }
+}
+
+function repeatSuffix(options: LogLineOptions): TextChunk[] {
+    const count = options.repeatCount;
+    return count !== undefined && count > 1 ? [plainChunk(` (x${count})`, options.theme, 'textMuted')] : [];
 }
 
 function levelWidth(options: LogLineOptions): number {
@@ -108,7 +117,7 @@ function levelText(level: LogLevel, options: LogLineOptions): string {
     return options.levelStyle === 'full' ? upper.padEnd(LEVEL_TOKEN_WIDTH) : upper.charAt(0);
 }
 
-function fit(text: string, width: number): string {
+function fitText(text: string, width: number): string {
     const used = columns(text);
     if (used <= width) return text + ' '.repeat(width - used);
     return `${sliceColumns(text, 0, Math.max(0, width - 1))}${ELLIPSIS}`;
@@ -118,32 +127,62 @@ function separatorRow(record: StoredRecord, width: number, theme: Theme): Styled
     const label = ` ${formatTime(record.at)} ${record.message} (generation ${record.generation}) `;
     const lead = RULE.repeat(3);
     const tail = RULE.repeat(Math.max(3, width - columns(lead) - columns(label)));
-    const row = fit(`${lead}${label}${tail}`, width);
+    const row = fitText(`${lead}${label}${tail}`, width);
     return new StyledText([plainChunk(row, theme, 'textMuted')]);
 }
 
-function layout(prefix: TextChunk[], message: TextChunk[], width: number, options: LogLineOptions): FormattedLogLine[] {
-    message = linkChunks(message);
+function layout(
+    prefix: TextChunk[],
+    message: TextChunk[],
+    width: number,
+    options: LogLineOptions,
+    suffix: TextChunk[] = []
+): FormattedLogLine[] {
+    message = [...linkChunks(message), ...suffix];
     const prefixWidth = chunkColumns(prefix);
     const available = width - prefixWidth;
     if (available < 1) {
         return [mappedRow(new StyledText(sliceChunks(prefix, 0, width)))];
     }
     const plain = message.map((chunk) => chunk.text).join('');
+    const suffixWidth = chunkColumns(suffix);
     if (!options.wrap) {
         const body =
             columns(plain) <= available
                 ? message
                 : [...sliceChunks(message, 0, available - 1), plainChunk(ELLIPSIS, options.theme, 'textMuted')];
-        return [mappedRow(new StyledText([...prefix, ...body]))];
+        const row = new StyledText([...prefix, ...body]);
+        if (suffixWidth === 0) return [mappedRow(row)];
+        const sourceText =
+            prefix.map((chunk) => chunk.text).join('') +
+            message
+                .map((chunk) => chunk.text)
+                .slice(0, -suffix.length)
+                .join('');
+        const visibleMessageWidth = Math.min(
+            columns(sourceText) - prefixWidth,
+            columns(plain) <= available ? columns(plain) - suffixWidth : available - 1
+        );
+        return [
+            Object.assign(row, {
+                sourceText,
+                sourceStart: 0,
+                sourceEnd: prefixWidth + Math.max(0, visibleMessageWidth),
+                contentStart: 0
+            })
+        ];
     }
-    const sourceText = prefix.map((chunk) => chunk.text).join('') + plain;
+    const sourceMessage = (suffix.length > 0 ? message.slice(0, -suffix.length) : message)
+        .map((chunk) => chunk.text)
+        .join('');
+    const sourceText = prefix.map((chunk) => chunk.text).join('') + sourceMessage;
+    const sourceMessageWidth = columns(sourceMessage);
     const indent = plainChunk(' '.repeat(prefixWidth), options.theme);
     return wrapRanges([...plain], available).map(([start, end], index) =>
         Object.assign(new StyledText([index === 0 ? prefix : [indent], sliceChunks(message, start, end)].flat()), {
             sourceText,
-            sourceStart: index === 0 ? 0 : prefixWidth + start,
-            sourceEnd: prefixWidth + end,
+            sourceStart: index === 0 ? 0 : prefixWidth + Math.min(start, sourceMessageWidth),
+            sourceEnd: prefixWidth + Math.min(end, sourceMessageWidth),
             contentStart: index === 0 ? 0 : prefixWidth
         })
     );

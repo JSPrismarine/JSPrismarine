@@ -29,7 +29,8 @@ export interface LogViewProps {
 }
 
 /**
- * The log pane. Scrolling toward older rows pauses follow; `toBottom` resumes it.
+ * The log pane. Adjacent identical log and raw records collapse into one row with a repeat count.
+ * Scrolling toward older rows pauses follow; `toBottom` resumes it.
  */
 export interface LogView {
     renderable: BoxRenderable;
@@ -56,10 +57,56 @@ export interface LogView {
 
 const WHEEL_ROWS = 3;
 
+interface DisplayGroup {
+    record: StoredRecord;
+    records: StoredRecord[];
+    start: number;
+    end: number;
+}
+
+function canRepeat(record: StoredRecord): boolean {
+    return record.kind === 'log' || record.kind === 'raw';
+}
+
+function sameRepeatedLine(left: StoredRecord, right: StoredRecord): boolean {
+    if (left.kind === 'log' && right.kind === 'log') {
+        return (
+            left.generation === right.generation &&
+            left.level === right.level &&
+            left.namespace === right.namespace &&
+            left.message === right.message
+        );
+    }
+    if (left.kind === 'raw' && right.kind === 'raw') {
+        return left.generation === right.generation && left.stream === right.stream && left.message === right.message;
+    }
+    return false;
+}
+
+function groupRecords(records: readonly StoredRecord[], repeatBoundary: number): DisplayGroup[] {
+    const groups: DisplayGroup[] = [];
+    records.forEach((record, index) => {
+        const previous = groups.at(-1);
+        if (
+            previous !== undefined &&
+            index !== repeatBoundary &&
+            canRepeat(record) &&
+            sameRepeatedLine(previous.record, record)
+        ) {
+            previous.record = record;
+            previous.records.push(record);
+            previous.end = index + 1;
+            return;
+        }
+        groups.push({ record, records: [record], start: index, end: index + 1 });
+    });
+    return groups;
+}
+
 /**
- * Creates a windowed log view: a box holding one row per visible record plus a badge, regardless
- * of how many records the store holds. Rows are repainted from the store's visible list on
- * change and on resize, coalesced into one repaint per animation frame.
+ * Creates a windowed log view: a box holding one row per visible record group plus a badge,
+ * regardless of how many records the store holds. Rows are repainted from the store's visible
+ * list on change and on resize, coalesced into one repaint per animation frame.
  */
 export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: LogViewProps): LogView {
     const { renderer, theme } = ctx;
@@ -68,10 +115,15 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
     let showNamespace = props.showNamespace ?? true;
     let levelStyle = props.levelStyle ?? 'full';
     let highlight: string | undefined;
+    let repeatBoundary = 0;
+    let dataChanged = false;
+    let listReset = false;
+    let visibleEvictions = 0;
+    let displayGroups = groupRecords(store.visible(), repeatBoundary);
     let paintedRows: { record: StoredRecord; line: FormattedLogLine; text: string }[] = [];
 
     const window = new LogWindow(1);
-    window.onReset(store.visible().length);
+    window.onReset(displayGroups.length);
     const rows: { box: BoxRenderable; text: TextRenderable }[] = [];
     let scheduledFrame: number | undefined;
 
@@ -154,11 +206,35 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         });
     }
 
+    function updateDisplayGroups(): void {
+        if (!dataChanged) return;
+        const visible = store.visible();
+        if (listReset) {
+            repeatBoundary = 0;
+            displayGroups = groupRecords(visible, repeatBoundary);
+            window.onReset(displayGroups.length);
+        } else {
+            repeatBoundary = Math.max(0, repeatBoundary - visibleEvictions);
+            const nextGroups = groupRecords(visible, repeatBoundary);
+            const surviving = new Set(visible);
+            const evictedGroups = displayGroups.filter(
+                (group) => !group.records.some((record) => surviving.has(record))
+            ).length;
+            const appendedGroups = Math.max(0, nextGroups.length - (displayGroups.length - evictedGroups));
+            window.onAppended(appendedGroups, evictedGroups);
+            displayGroups = nextGroups;
+        }
+        dataChanged = false;
+        listReset = false;
+        visibleEvictions = 0;
+    }
+
     function paint(): void {
         if (rows.length === 0) return;
+        updateDisplayGroups();
         const options = { width: Math.max(1, paneWidth() - 1), wrap, showNamespace, levelStyle, theme, highlight };
-        const lines = window.slice(store.visible()).flatMap((record) =>
-            formatLogLine(record, options).map((line) => ({
+        const lines = window.slice(displayGroups).flatMap(({ record, records }) =>
+            formatLogLine(record, { ...options, repeatCount: records.length }).map((line) => ({
                 record,
                 line,
                 text: line.chunks.map((chunk) => chunk.text).join('')
@@ -187,8 +263,9 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
     }
 
     const unsubscribe = store.onChange((change) => {
-        if (change.type === 'append') window.onAppended(change.count, change.evicted);
-        else window.onReset(store.visible().length);
+        dataChanged = true;
+        if (change.type === 'append') visibleEvictions += change.evicted;
+        else listReset = true;
         schedule();
     });
 
@@ -250,10 +327,13 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
             schedule();
         },
         scrollTo(index) {
-            window.scrollTo(index);
+            const groupIndex = displayGroups.findIndex((group) => index >= group.start && index < group.end);
+            window.scrollTo(groupIndex < 0 ? index : groupIndex);
             schedule();
         },
         clearView() {
+            updateDisplayGroups();
+            repeatBoundary = store.visible().length;
             window.clear();
             schedule();
         },
