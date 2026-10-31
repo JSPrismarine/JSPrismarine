@@ -6,7 +6,11 @@ import { withCwd } from '../utils/cwd';
 import { worldSeedOf } from '../utils/Seed';
 import { GeneratorFactories } from './GeneratorFactories';
 import { dimensionByName } from './Dimension';
-import { findJavaWorldgenSources, requireJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
+import {
+    findJavaWorldgenSources,
+    loadJavaWorldgenRegistriesFrom,
+    requireJavaWorldgenSources
+} from './generators/datadriven/javaWorldgenData';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { normalizeWorldData, worldDataOf } from '../config/normalizeWorldData';
 import { BUILT_IN_WORLD_PRESETS, dimensionTypesOf, loadOf, resolveStems, worldPresetsOf } from './resolveStems';
@@ -334,18 +338,34 @@ export default class WorldManager implements Service {
         }
     }
 
-    /** Java's worldgen registries, read from the pack stack the first time a level needs them. */
+    /**
+     * Java's worldgen registries, projected from the server's pack stack the first time a level
+     * needs them.
+     *
+     * The stack is what `ServerContent` composed: the vanilla datapack and every world and
+     * plugin datapack after it, so a `dimension_type` or `noise_settings` document a datapack
+     * adds reaches the stems and the noise factory. The biome parameter reports are no
+     * datapack's content and come from the Java data cache.
+     *
+     * @throws {Error} When the Java data cache is cold, naming what to fetch.
+     */
     private registries(): JavaWorldgenRegistries {
-        return (this.worldgenRegistries ??= requireJavaWorldgenRegistries());
+        return (this.worldgenRegistries ??= loadJavaWorldgenRegistriesFrom(
+            this.server.getContent().definitions,
+            requireJavaWorldgenSources().reports
+        ));
     }
 
     /**
-     * The presets a `preset` may name: the datapack's seven when the Java data cache is warm,
-     * and the two built-in Overworld-only ones when it is not.
+     * The presets a `preset` may name: the two built-in Overworld-only ones, with every
+     * `worldgen/world_preset` the pack stack carries over them. The vanilla datapack's seven
+     * replace both built-ins when the Java data cache is warm.
      */
     private presets(): ReadonlyMap<string, WorldPreset> {
         return (this.worldPresets ??=
-            findJavaWorldgenSources() === undefined ? BUILT_IN_WORLD_PRESETS : worldPresetsOf(this.registries()));
+            findJavaWorldgenSources() === undefined
+                ? BUILT_IN_WORLD_PRESETS
+                : new Map([...BUILT_IN_WORLD_PRESETS, ...worldPresetsOf(this.registries())]));
     }
 
     /** Gives a world somewhere to report its changes. */

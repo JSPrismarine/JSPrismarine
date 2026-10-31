@@ -21,6 +21,12 @@ import { OVERWORLD_NOISE_STEM } from './factories/noise';
  * that registers this generator and then shuts down before its first chunk should not pay for
  * them.
  *
+ * This class owns a `GeneratorFactories` registry of its own and reads the vanilla datapack
+ * for itself, because `registerClassGenerator` hands it a content source and a logger and
+ * nothing else. On a server whose levels build through the server's registry, its first chunk
+ * therefore opens a second worker pool and ignores any datapack the server's pack stack
+ * carries.
+ *
  * @deprecated Build through `GeneratorFactories` with a `minecraft:noise` stem; see
  *   `OVERWORLD_NOISE_STEM`. Removed in the next release.
  */

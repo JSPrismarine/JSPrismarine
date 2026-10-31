@@ -245,8 +245,11 @@ the block.
   matching a biome the server guessed.
 - Worldgen's registries are not projected here. `@jsprismarine/packs` loads Java's
   `dimension_type`, `dimension` and `worldgen/*` registries into `definitions`, and
+  `WorldManager` turns them into what the stems and the data-driven generator read through
   `loadJavaWorldgenRegistriesFrom(definitions, reports)` in
-  `world/generators/datadriven/javaWorldgenData.ts` turns them into what the data-driven
-  generator reads, but no field of `ServerContent` holds the result and the Overworld generator
-  still loads a one-member stack of the vanilla datapack for itself, so a world's own datapacks
-  reach every registry except the terrain's.
+  `world/generators/datadriven/javaWorldgenData.ts`, so a datapack in the stack adds a
+  dimension type or a noise setting. No field of `ServerContent` holds that projection; the
+  manager builds and caches it, and the biome parameter reports it joins in come from the Java
+  data cache rather than from any pack. The deprecated `Overworld` class in
+  `world/generators/Generators.ts` still reads a one-member stack of the vanilla datapack, as
+  it has no server to ask.

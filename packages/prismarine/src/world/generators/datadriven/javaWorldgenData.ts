@@ -183,12 +183,12 @@ export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWo
     loadJavaWorldgenRegistriesFrom(load([{ kind: 'datapack', path: sources.datapack }]).definitions, sources.reports);
 
 /**
- * Reads every registry the generator needs, or explains what to fetch.
+ * Where the Java data sits, or an explanation of what to fetch.
  *
  * @throws {Error} When the datapack or the reports are not on disk, naming the commands and
  *   the environment variables that put them there.
  */
-export const requireJavaWorldgenRegistries = (): JavaWorldgenRegistries => {
+export const requireJavaWorldgenSources = (): JavaWorldgenSources => {
     const sources = findJavaWorldgenSources();
     if (sources === undefined) {
         throw new Error(
@@ -198,5 +198,18 @@ export const requireJavaWorldgenRegistries = (): JavaWorldgenRegistries => {
                 `${JAVA_WORLDGEN_ENV.datapack} and ${JAVA_WORLDGEN_ENV.reports}.`
         );
     }
-    return loadJavaWorldgenRegistries(sources);
+    return sources;
 };
+
+/**
+ * Reads every registry the generator needs out of the vanilla data alone, or explains what to
+ * fetch.
+ *
+ * For a caller with no server behind it. `WorldManager` projects the server's composed pack
+ * stack instead, so a world's own datapacks reach the terrain.
+ *
+ * @throws {Error} When the datapack or the reports are not on disk; see
+ *   {@link requireJavaWorldgenSources}.
+ */
+export const requireJavaWorldgenRegistries = (): JavaWorldgenRegistries =>
+    loadJavaWorldgenRegistries(requireJavaWorldgenSources());

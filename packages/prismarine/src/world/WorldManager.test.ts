@@ -8,11 +8,16 @@ import os from 'node:os';
 import path from 'node:path';
 
 import type { Logger } from '@jsprismarine/logger';
+import { load } from '@jsprismarine/packs';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type { WorldData } from '../config/JsonConfigTypes';
+import { definitionsOf } from '../content/ContentOptions';
+import type { ServerContent } from '../content/ServerContent';
+import { buildServerContent } from '../content/ServerContent';
+import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import type { NetworkWorldReplicator, WorldReplicators } from '../network/NetworkWorldReplicator';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
@@ -28,8 +33,12 @@ import WorldManager from './WorldManager';
 const TEST_KIND = 'jsprismarine:test';
 const OTHER_KIND = 'jsprismarine:other';
 
-/** Whether the Java data cache is warm, which is what reading the datapack's presets needs. */
-const JAVA_DATA = findJavaWorldgenSources() !== undefined;
+/**
+ * The Java data cache, when it is warm. The manager reads the biome parameter reports from it,
+ * and a test that wants the vanilla datapack's presets stacks its datapack on the fixture content.
+ */
+const JAVA_SOURCES = findJavaWorldgenSources();
+const JAVA_DATA = JAVA_SOURCES !== undefined;
 
 /** An entry whose Overworld builds through {@link TEST_KIND}, on the flat preset. */
 const entryOf = (dimensions: WorldData['dimensions'] = {}): WorldData => ({
@@ -64,8 +73,57 @@ afterEach(() => {
     fs.rmSync(scratch, { recursive: true, force: true });
 });
 
+/**
+ * The fixture content with one datapack stacked on it, the way a world's own datapack joins
+ * the server's pack stack. Only the registries the terrain reads are taken from it.
+ */
+const contentWithDatapack = (datapack: string): ServerContent => {
+    const pack = load([{ kind: 'datapack', path: datapack }]).definitions;
+    return buildServerContent(
+        fixtureContentOptions({
+            load: () => ({
+                definitions: definitionsOf({
+                    ...fixtureDefinitions(),
+                    dimensionTypes: pack.dimensionTypes,
+                    worldgen: pack.worldgen
+                }),
+                diagnostics: []
+            })
+        })
+    );
+};
+
+/** Writes a datapack of a few JSON files under the scratch folder and returns its root. */
+const writeDatapack = (files: Readonly<Record<string, unknown>>): string => {
+    const root = path.join(scratch, 'datapack');
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(
+        path.join(root, 'pack.mcmeta'),
+        JSON.stringify({ pack: { pack_format: 121, description: 'test' } })
+    );
+    for (const [file, document] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+        fs.writeFileSync(path.join(root, file), JSON.stringify(document));
+    }
+    return root;
+};
+
+/** A `dimension_type` document with every field Java requires: a 256-block sky with daylight. */
+const SKY_DIMENSION_TYPE = {
+    min_y: 0,
+    height: 256,
+    logical_height: 256,
+    coordinate_scale: 1,
+    has_skylight: true,
+    has_ceiling: false,
+    ambient_light: 0,
+    monster_spawn_light_level: 0,
+    monster_spawn_block_light_limit: 0,
+    infiniburn: '#minecraft:infiniburn_overworld'
+};
+
 /** A manager over a server double whose config names the given entries. */
-const buildManager = (levelName: string, worlds: Record<string, WorldData>) => {
+const buildManager = (levelName: string, worlds: Record<string, WorldData>, content: ServerContent = testContent()) => {
     const logged: string[] = [];
     const setWorld = vi.fn<Config['setWorld']>();
     const logger = stub<Logger>({
@@ -86,7 +144,7 @@ const buildManager = (levelName: string, worlds: Record<string, WorldData>) => {
                 getPreloadRadius: () => 0,
                 getEntityTrackingInterval: () => 20
             }),
-        getContent: () => testContent(),
+        getContent: () => content,
         getEntityRuntime: () => inertEntityRuntime(),
         getWorldReplicators: () =>
             stub<WorldReplicators>({ for: () => stub<NetworkWorldReplicator>({ worldChanged: () => {} }) }),
@@ -96,18 +154,23 @@ const buildManager = (levelName: string, worlds: Record<string, WorldData>) => {
     const manager = new WorldManager(server);
     /** How many generators each kind built, by dimension type id. */
     const builds = new Map<string, number>();
+    /** The noise settings ids the registries carried when each dimension type's generator was built. */
+    const noiseSettingsSeen = new Map<string, readonly string[]>();
     for (const kind of [TEST_KIND, OTHER_KIND]) {
         manager.getGeneratorFactories().register({
             kind,
             build: (context) => {
                 const key = `${kind} ${context.dimension.id}`;
                 builds.set(key, (builds.get(key) ?? 0) + 1);
+                if (context.dimension.custom) {
+                    noiseSettingsSeen.set(context.dimension.id, [...context.worldgen().noiseSettings.keys()]);
+                }
                 return emptyGenerator(context.dimension);
             }
         });
     }
 
-    return { manager, logged, setWorld, builds };
+    return { manager, logged, setWorld, builds, noiseSettingsSeen };
 };
 
 describe('WorldManager', () => {
@@ -149,10 +212,14 @@ describe('WorldManager', () => {
         'boots the default entry with three stems, the Overworld eager and the rest lazy',
         async () => {
             // No `preset`, so `minecraft:normal`; the Overworld alone is overridden so the test
-            // never builds the noise generator.
-            const { manager } = buildManager('main', {
-                main: { seed: 1, dimensions: { [OVERWORLD_STEM_ID]: { generator: { type: TEST_KIND } } } }
-            });
+            // never builds the noise generator. The preset's three stems come from the vanilla
+            // datapack, which reaches the manager through the server's pack stack.
+            if (JAVA_SOURCES === undefined) throw new Error('skipped above');
+            const { manager } = buildManager(
+                'main',
+                { main: { seed: 1, dimensions: { [OVERWORLD_STEM_ID]: { generator: { type: TEST_KIND } } } } },
+                contentWithDatapack(JAVA_SOURCES.datapack)
+            );
             await manager.enable();
 
             const level = manager.getDefaultLevel();
@@ -165,6 +232,28 @@ describe('WorldManager', () => {
             await manager.disable();
         }
     );
+
+    it.skipIf(!JAVA_DATA)('reads a dimension type and a noise setting a stacked datapack adds', async () => {
+        const datapack = writeDatapack({
+            'data/test/dimension_type/sky.json': SKY_DIMENSION_TYPE,
+            'data/test/worldgen/noise_settings/sky.json': { sea_level: 0 }
+        });
+        const { manager, noiseSettingsSeen } = buildManager(
+            'main',
+            { main: entryOf({ 'test:sky': { type: 'test:sky', generator: { type: TEST_KIND } } }) },
+            contentWithDatapack(datapack)
+        );
+        await manager.enable();
+
+        const sky = manager.getDefaultLevel().getDimensionTypes().get('test:sky');
+        expect(sky).toMatchObject({ id: 'test:sky', minY: 0, height: 256, custom: true });
+
+        const world = await manager.worldFor('test:sky');
+        expect(world.getDimension()).toBe(sky);
+        expect(noiseSettingsSeen.get('test:sky')).toContain('test:sky');
+
+        await manager.disable();
+    });
 
     it('unloads one level and leaves the others running', async () => {
         const { manager } = buildManager('main', { main: entryOf(), other: entryOf() });

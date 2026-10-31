@@ -1,12 +1,18 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { load } from '@jsprismarine/packs';
 import type { LevelStem, WorldPreset } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { normalizeWorldData } from '../config/normalizeWorldData';
 import { Dimensions } from './Dimension';
 import { DEFAULT_FLAT_SETTINGS, flatStem } from './generators/factories/flat';
 import { OVERWORLD_NOISE_STEM } from './generators/factories/noise';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
+import { loadJavaWorldgenRegistriesFrom } from './generators/datadriven/javaWorldgenData';
 import { stub } from '../testing/stub.test.helper';
 import { BUILT_IN_WORLD_PRESETS, dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import { THE_END_DIMENSION_TYPE_JSON, VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
@@ -280,5 +286,41 @@ describe('dimensionTypesOf', () => {
         expect(() =>
             dimensionTypesOf(stems, () => stub<JavaWorldgenRegistries>({ dimensionTypes: new Map() }))
         ).toThrowError('The mypack:sky dimension names the dimension type mypack:sky_type, which no pack defines');
+    });
+
+    describe('over a datapack loaded through the pack stack', () => {
+        const roots: string[] = [];
+        afterAll(() => {
+            for (const root of roots) rmSync(root, { recursive: true, force: true });
+        });
+
+        it('reaches a dimension type the datapack adds', () => {
+            const root = mkdtempSync(join(tmpdir(), 'jsp-resolve-stems-datapack-'));
+            roots.push(root);
+            writeFileSync(
+                join(root, 'pack.mcmeta'),
+                JSON.stringify({ pack: { pack_format: 121, description: 'test' } })
+            );
+            mkdirSync(join(root, 'data', 'mypack', 'dimension_type'), { recursive: true });
+            writeFileSync(
+                join(root, 'data', 'mypack', 'dimension_type', 'sky_type.json'),
+                JSON.stringify({ ...THE_END_DIMENSION_TYPE_JSON, min_y: 0, height: 512, logical_height: 512 })
+            );
+
+            const registries = loadJavaWorldgenRegistriesFrom(
+                load([{ kind: 'datapack', path: root }]).definitions,
+                join(root, 'no-reports')
+            );
+            const stems = new Map([
+                [OVERWORLD_STEM_ID, OVERWORLD_NOISE_STEM],
+                ['mypack:sky', skyStem]
+            ]);
+
+            expect(dimensionTypesOf(stems, () => registries).get('mypack:sky_type')).toMatchObject({
+                minY: 0,
+                height: 512,
+                skybox: 'end'
+            });
+        });
     });
 });
