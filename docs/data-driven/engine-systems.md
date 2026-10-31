@@ -294,6 +294,11 @@ chunk. A block change is patched rather than rebuilt. The daylight cycle is not 
 `getSkyLight` returns the geometric level, and the three consumers scale it for time and weather
 themselves.
 
+The `blocks.light` value those rules read also applies the dimension's visual sky-light factor and
+ambient light. The End's ambient light sets a minimum of 3, while the Nether's sets a minimum of 1;
+both dimensions suppress sky light. These are server-side rule values. They do not change what the
+client renders, because the packets this server sends carry no light arrays.
+
 The package follows Bedrock on one visible point. Java's lighting has directional opacity and reads
 the shape of slabs, stairs, farmland and a dozen other blocks, so light passes through them only in
 some directions. Bedrock has one `minecraft:light_dampening` scalar per block state and applies it

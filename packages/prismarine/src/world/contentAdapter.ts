@@ -154,6 +154,13 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         get hasSkyLight() {
             return type().java.hasSkylight;
         },
+        get ambientLight() {
+            return type().java.ambientLight;
+        },
+        get skyLightFactor() {
+            const factor = type().java.attributes.get('minecraft:visual/sky_light_factor');
+            return typeof factor === 'number' ? factor : type().java.hasSkylight ? 1 : 0;
+        },
         // A property rather than a method, because the adapter interface spells it as one;
         // an accessor so it is read from the live world, whose stem says what the water line
         // is, rather than fixed before any world exists.
@@ -175,11 +182,16 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
     };
 
     const blocks: WorldBlockGroup = {
-        // Java's `getRawBrightness`, less the sky darkening this server does not track: the
-        // growth, melt and spawn rules read whichever of the two is brighter.
+        // Preserve dimension ambient light and the visual sky-light factor when the data-driven
+        // rules ask for brightness. The End and Nether suppress sky light, but their ambient
+        // floors keep the dimension from reading as pitch black.
         light: (at) => {
             const lighting = live().getSystems().lighting;
-            return Math.max(lighting.getBlockLight(at.x, at.y, at.z), lighting.getSkyLight(at.x, at.y, at.z));
+            const ambientLight = Math.floor((level.ambientLight ?? 0) * 15);
+            const skyLight = Math.floor(
+                lighting.getSkyLight(at.x, at.y, at.z) * (level.skyLightFactor ?? (level.hasSkyLight ? 1 : 0))
+            );
+            return Math.max(lighting.getBlockLight(at.x, at.y, at.z), skyLight, ambientLight);
         },
         skyLight: (at) => live().getSystems().lighting.getSkyLight(at.x, at.y, at.z),
         isLoaded: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) !== null,

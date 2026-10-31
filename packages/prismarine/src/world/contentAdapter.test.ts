@@ -104,6 +104,36 @@ describe('the biome a chunk stores', () => {
     });
 });
 
+describe('dimension brightness', () => {
+    it('keeps the End and Nether ambient light floors in rule-facing brightness', () => {
+        const lightAt = (dimension: (typeof Dimensions)[keyof typeof Dimensions]) => {
+            const world: World = Object.assign(Object.create(World.prototype), {
+                dimension,
+                systems: {
+                    lighting: {
+                        getBlockLight: () => 0,
+                        getSkyLight: () => 15
+                    }
+                }
+            });
+            const groups = worldContentGroups({
+                dimension: dimension.id,
+                world: () => world,
+                seed: 0n,
+                difficulty: () => 2,
+                random: constantRandom(0),
+                content: () => contentWith({})
+            });
+
+            return groups.blocks.light({ x: 0, y: 80, z: 0 });
+        };
+
+        expect(lightAt(Dimensions.TheEnd)).toBe(3);
+        expect(lightAt(Dimensions.Nether)).toBe(1);
+        expect(lightAt(Dimensions.Overworld)).toBe(15);
+    });
+});
+
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
 
