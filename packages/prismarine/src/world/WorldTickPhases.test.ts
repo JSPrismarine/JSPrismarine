@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { Vector3 } from '@jsprismarine/math';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Attributes, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
-import { stub } from '../testing/stub.test.helper';
+import Player from '../Player';
+import { stub, stubOf } from '../testing/stub.test.helper';
+import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
+import type { SystemBlock } from './WorldSystems';
 import { Dimensions } from './Dimension';
 import EntityGrid from './EntityGrid';
 import { Position } from './Position';
@@ -27,12 +31,18 @@ const worldTicking = ({
     trackingInterval = 1,
     currentTick = 20,
     entities = [],
-    entityAttributesChanged
+    entityAttributesChanged,
+    blockAt = () => ({ name: 'minecraft:air', states: {} }),
+    travel
 }: {
     trackingInterval?: number;
     currentTick?: number;
     entities?: Entity[];
     entityAttributesChanged?: WorldChangeSink['entityAttributesChanged'];
+    /** What stands at a block, for the portal check; air everywhere by default. */
+    blockAt?: (x: number, y: number, z: number) => SystemBlock | undefined;
+    /** The travel service the world reports portal contacts to. */
+    travel?: DimensionTravel;
 } = {}) => {
     const calls: string[] = [];
 
@@ -85,6 +95,7 @@ const worldTicking = ({
         dimension: Dimensions.Overworld,
         getEntities: () => entities,
         getPlayers: () => [],
+        loadedBlockAt: blockAt,
         runBlockUpdates: async () => void calls.push('blockUpdates'),
         systems: { tick: () => void calls.push('systems') },
         save: async () => {},
@@ -93,7 +104,8 @@ const worldTicking = ({
             getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} }),
             // Inert: this file is about the order of the phases, not about what a mob does
             // inside one, and the data runtime's own tick is covered by `live.test.ts`.
-            getEntityRuntime: () => inertEntityRuntime()
+            getEntityRuntime: () => inertEntityRuntime(),
+            getDimensionTravel: () => travel
         }
     });
 
@@ -202,5 +214,83 @@ describe('world', () => {
             expect(sent).toEqual([first.entity, second.entity, third.entity]);
             expect([first, second, third].map(({ attributes }) => attributes.getDirty())).toEqual([[], [], []]);
         });
+    });
+});
+
+describe('world portal contacts', () => {
+    /** A standing player, 0.6 wide and 1.8 tall, whose feet are at `feet`. */
+    const standingAt = (feet: Vector3, onCooldown = false): Entity => {
+        const position = new Position(feet.getX(), feet.getY() + 1.62, feet.getZ(), stub<World>());
+        return stubOf(Player, {
+            attributes: new Attributes(),
+            getPosition: () => position,
+            getFeetY: () => feet.getY(),
+            getBox: () => ({ width: 0.6, height: 1.8 }),
+            isOnPortalCooldown: () => onCooldown,
+            getType: () => 'minecraft:player',
+            update: async () => {}
+        });
+    };
+
+    /** A world whose only non-air block is a portal at `portal`. */
+    const portalOnlyAt =
+        (portal: Vector3) =>
+        (x: number, y: number, z: number): SystemBlock =>
+            x === portal.getX() && y === portal.getY() && z === portal.getZ()
+                ? { name: 'minecraft:portal', states: { portal_axis: 'x' } }
+                : { name: 'minecraft:air', states: {} };
+
+    it('touches the travel service for a body overlapping a portal block at head height only', async () => {
+        const touch = vi.fn<DimensionTravel['touch']>();
+        const player = standingAt(new Vector3(10.5, 64, 10.5));
+        const { world } = worldTicking({
+            entities: [player],
+            blockAt: portalOnlyAt(new Vector3(10, 65, 10)),
+            travel: stub<DimensionTravel>({ touch })
+        });
+
+        await world.update(1);
+
+        expect(touch).toHaveBeenCalledTimes(1);
+        const [touched, portal] = touch.mock.calls[0]!;
+        expect(touched).toBe(player);
+        expect(portal).toMatchObject<Partial<PortalBlockRef>>({
+            world,
+            position: new Vector3(10, 65, 10),
+            block: 'minecraft:portal'
+        });
+    });
+
+    it('does not count the block a body only rests on the boundary of', async () => {
+        const touch = vi.fn<DimensionTravel['touch']>();
+        // Feet at exactly 64: the body spans 64 and 65, not 66, and across x spans 10 only.
+        const player = standingAt(new Vector3(10.5, 64, 10.5));
+        const { world } = worldTicking({
+            entities: [player],
+            blockAt: (x, y, z) =>
+                portalOnlyAt(new Vector3(10, 66, 10))(x, y, z).name === 'minecraft:portal' ||
+                portalOnlyAt(new Vector3(11, 64, 10))(x, y, z).name === 'minecraft:portal'
+                    ? { name: 'minecraft:portal', states: {} }
+                    : { name: 'minecraft:air', states: {} },
+            travel: stub<DimensionTravel>({ touch })
+        });
+
+        await world.update(1);
+
+        expect(touch).not.toHaveBeenCalled();
+    });
+
+    it('leaves an entity on portal cooldown alone', async () => {
+        const touch = vi.fn<DimensionTravel['touch']>();
+        const player = standingAt(new Vector3(10.5, 64, 10.5), true);
+        const { world } = worldTicking({
+            entities: [player],
+            blockAt: portalOnlyAt(new Vector3(10, 64, 10)),
+            travel: stub<DimensionTravel>({ touch })
+        });
+
+        await world.update(1);
+
+        expect(touch).not.toHaveBeenCalled();
     });
 });

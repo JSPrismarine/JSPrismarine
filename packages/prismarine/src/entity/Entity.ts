@@ -23,6 +23,7 @@ import type { ViewableEquipment } from './predicateView';
 import type { StatusEffect, StatusEffectChange, StatusEffectInput } from './StatusEffect';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact } from './PortalContact';
 import type { PortalBlockRef } from '../world/portal/DimensionTravel';
+import { portalRuleOf } from '../world/portal/rules';
 import type { PortalRule } from '../world/portal/rules';
 import {
     bedrockMobEffectId,
@@ -480,10 +481,18 @@ export class Entity {
 
         const contact = this.portalContactState;
         if (contact !== undefined) {
-            // The trip itself is not dispatched from here yet; a contact that reaches its
-            // delay stays in place and keeps counting until the world's portal travel takes it.
-            const ready = contact.tick(this.getPortalTransitionTicks());
-            if (!ready && contact.hasExpired()) this.portalContactState = undefined;
+            const portal = contact.getPortal();
+            const rule = portal === undefined ? undefined : portalRuleOf(portal.block);
+            const ready = contact.tick(this.getPortalTransitionTicks(rule));
+            if (ready && portal !== undefined) {
+                // Spent either way: a trip that goes nowhere, an item with no portal on the
+                // other side, starts over from the world's next touch rather than retrying
+                // every tick from here.
+                this.portalContactState = undefined;
+                const travel = this.server.getDimensionTravel();
+                const arrival = await travel.resolve(this, portal);
+                if (arrival !== undefined) await travel.transfer(this, arrival);
+            } else if (!ready && contact.hasExpired()) this.portalContactState = undefined;
         }
 
         this.tickStatusEffects();

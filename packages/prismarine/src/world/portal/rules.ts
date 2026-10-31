@@ -130,3 +130,9 @@ export const PORTALS: Readonly<Record<string, PortalRule>> = {
 /** The rule of a portal block by any of its identifiers, or undefined for a block that is no portal. */
 export const portalRuleOf = (block: string): PortalRule | undefined =>
     PORTALS[block] ?? Object.values(PORTALS).find((rule) => rule.portal.includes(block));
+
+/** Every identifier {@link PORTALS} names, for the per-tick check of what an entity stands in. */
+const PORTAL_BLOCKS: ReadonlySet<string> = new Set(Object.values(PORTALS).flatMap((rule) => rule.portal));
+
+/** Whether a block identifier is one of the portal blocks in {@link PORTALS}. */
+export const isPortalBlock = (block: string): boolean => PORTAL_BLOCKS.has(block);

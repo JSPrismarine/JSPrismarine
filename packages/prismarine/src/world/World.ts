@@ -59,7 +59,9 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
 import { startProfileSpan } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
+import { isPortalBlock } from './portal/rules';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
@@ -171,6 +173,12 @@ const CHUNK_UNLOAD_BATCH_SIZE = 8;
  * server costs nothing to run.
  */
 export const SIMULATION_DISTANCE = 10;
+
+/**
+ * How much a body is shrunk before the blocks it overlaps are listed: Java's
+ * `Entity.checkInsideBlocks` deflates the bounding box by `1.0E-6`.
+ */
+const BODY_SHRINK = 1e-6;
 
 interface PlayerChunkCoverage {
     readonly x: number;
@@ -702,13 +710,24 @@ export class World implements Service {
             endEntityGridProfile();
         }
 
+        const tickingEntities = entities.filter((entity) => {
+            if (entity instanceof Player) return true;
+            const position = entity.getPosition();
+            return isPositionTicking(position.getX(), position.getZ());
+        });
+
+        // Before the updates, so the contact an entity's own update advances this tick already
+        // knows whether it stood in a portal, as Java's `checkInsideBlocks` runs inside `tick`
+        // before `handlePortal`.
+        const endPortalContactsProfile = startProfileSpan(this.server, `World.portalContacts:${this.name}`);
+        try {
+            this.touchPortals(tickingEntities);
+        } finally {
+            endPortalContactsProfile();
+        }
+
         const endEntityUpdatesProfile = startProfileSpan(this.server, `World.entityUpdates:${this.name}`);
         try {
-            const tickingEntities = entities.filter((entity) => {
-                if (entity instanceof Player) return true;
-                const position = entity.getPosition();
-                return isPositionTicking(position.getX(), position.getZ());
-            });
             await Promise.all(tickingEntities.map((entity) => entity.update(tick)));
         } finally {
             endEntityUpdatesProfile();
@@ -2380,6 +2399,54 @@ export class World implements Service {
             })
         );
         return true;
+    }
+
+    /**
+     * Tells the travel service about every entity whose body overlaps a portal block this tick.
+     *
+     * One touch per entity, for the first portal block found walking the body's cells from the
+     * feet up: a body in two portal blocks at once is in one portal.
+     */
+    private touchPortals(entities: readonly Entity[]): void {
+        const travel = this.server.getDimensionTravel?.();
+        if (travel === undefined) return;
+
+        for (const entity of entities) {
+            if (entity.isOnPortalCooldown()) continue;
+            const portal = this.portalOverlapping(entity);
+            if (portal !== undefined) travel.touch(entity, portal);
+        }
+    }
+
+    /**
+     * The first portal block an entity's body overlaps, or undefined when it stands in none.
+     *
+     * Java's `Entity.checkInsideBlocks` walks the blocks of the bounding box shrunk by
+     * `1.0E-6`, so a body resting on a block boundary does not count the block beyond it, and a
+     * portal at head height alone still counts.
+     */
+    private portalOverlapping(entity: Entity): PortalBlockRef | undefined {
+        const at = entity.getPosition();
+        const { width, height } = entity.getBox();
+        const half = Math.max(width / 2 - BODY_SHRINK, 0);
+        const feet = entity.getFeetY();
+        const minX = Math.floor(at.getX() - half);
+        const maxX = Math.floor(at.getX() + half);
+        const minZ = Math.floor(at.getZ() - half);
+        const maxZ = Math.floor(at.getZ() + half);
+        const minY = Math.floor(feet + BODY_SHRINK);
+        const maxY = Math.floor(Math.max(feet + height - BODY_SHRINK, feet + BODY_SHRINK));
+
+        for (let y = minY; y <= maxY; y += 1) {
+            for (let x = minX; x <= maxX; x += 1) {
+                for (let z = minZ; z <= maxZ; z += 1) {
+                    const block = this.loadedBlockAt(x, y, z);
+                    if (block === undefined || !isPortalBlock(block.name)) continue;
+                    return { world: this, position: new Vector3(x, y, z), block: block.name };
+                }
+            }
+        }
+        return undefined;
     }
 
     private chunkNeededByPlayers(chunk: Chunk): boolean {

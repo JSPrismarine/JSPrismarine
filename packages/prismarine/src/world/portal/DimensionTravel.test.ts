@@ -24,6 +24,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { fixtureContentOptions } from '../../content/testing';
 import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
+import { Entity } from '../../entity/Entity';
 import { Item } from '../../entity/other/Item';
 import type ClientConnection from '../../network/ClientConnection';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
@@ -225,6 +226,13 @@ const portalAt = (world: World, minCorner: Vector3): PortalBlockRef => ({
 
 const itemAt = (world: World, feet: Vector3): Item =>
     new Item({ position: new Position(feet.getX(), feet.getY(), feet.getZ(), world) });
+
+/**
+ * A written entity that is no player, for the tick-driven tests: its own update has no
+ * physics, where an `Item`'s reads blocks the fixture content does not define.
+ */
+const mobAt = (world: World, feet: Vector3): Entity =>
+    new Entity({ position: new Position(feet.getX(), feet.getY(), feet.getZ(), world) });
 
 const nameAt = (world: World, x: number, y: number, z: number): string | undefined =>
     world.loadedBlockAt(x, y, z)?.name;
@@ -547,6 +555,87 @@ describe('DimensionTravel.transfer', () => {
         expect(player.getPortalCooldown()).toBe(0);
         expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
         expect(scene.overworld.getPlayers()).toContain(player);
+
+        await scene.level.disable();
+    }, 60_000);
+});
+
+/** One world tick for an entity standing in a portal: the world's touch, then the entity's own update. */
+const tickInPortal = async (travel: DimensionTravel, entity: Entity, portal: PortalBlockRef, tick: number) => {
+    travel.touch(entity, portal);
+    await entity.update(tick);
+};
+
+describe('DimensionTravel through the tick', () => {
+    it('sends anything but a player through on its first tick in a lit portal, arriving in the Nether on cooldown', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
+        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(mob);
+
+        await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), 1);
+
+        expect(mob.getWorld()).toBe(scene.nether);
+        expect(mob.getPosition().getY()).toBe(70);
+        expect(mob.getPortalCooldown()).toBe(300);
+        expect(mob.portalContact()).toBeUndefined();
+        expect(scene.nether.getEntities()).toContain(mob);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('holds a survival player for 80 ticks, then sends them through the session', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(player);
+        const portal = portalAt(scene.overworld, new Vector3(80, 64, 0));
+
+        for (let tick = 1; tick <= 79; tick += 1) await tickInPortal(scene.travel, player, portal, tick);
+        expect(player.getWorld()).toBe(scene.overworld);
+        expect(player.portalContact()?.getPortalTime()).toBe(79);
+
+        await tickInPortal(scene.travel, player, portal, 80);
+
+        expect(player.getWorld()).toBe(scene.nether);
+        expect(player.getPortalCooldown()).toBe(10);
+        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.nether);
+        // Bedrock creates the portal for a player: the trip built one to arrive in.
+        expect(scene.nether.getPortalIndex().size).toBe(6);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('leaves an entity where it is when its `entityPortalEnter` is canceled, tick after tick', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
+        const mob = mobAt(scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(mob);
+        scene.server.on('entityPortalEnter', (event) => event.preventDefault());
+
+        for (let tick = 1; tick <= 3; tick += 1)
+            await tickInPortal(scene.travel, mob, portalAt(scene.overworld, new Vector3(80, 64, 0)), tick);
+
+        expect(mob.getWorld()).toBe(scene.overworld);
+        expect(mob.getPortalCooldown()).toBe(0);
+        expect(scene.overworld.getEntities()).toContain(mob);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('takes a bot standing in a hand-built portal to the Nether world through `World.update` alone', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(bot);
+
+        for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
+
+        expect(bot.getWorld()).toBe(scene.nether);
+        expect(scene.overworld.getPlayers()).not.toContain(bot);
+        expect(scene.nether.getPlayers()).toContain(bot);
 
         await scene.level.disable();
     }, 60_000);
