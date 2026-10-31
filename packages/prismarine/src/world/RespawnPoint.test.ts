@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { isRespawnBlock, resolveRespawn } from './RespawnPoint';
+import { Dimensions } from './DimensionType';
+import { isRespawnBlock, resolveRespawn, respawnBlockWorksIn } from './RespawnPoint';
 import type { RespawnTerrain } from './RespawnPoint';
 
 /** A world of named blocks, with everything not named here being air. */
@@ -20,6 +21,29 @@ describe('a per-player spawn point', () => {
         expect(isRespawnBlock('minecraft:respawn_anchor')).toBe(true);
         expect(isRespawnBlock('minecraft:chest')).toBe(false);
         expect(isRespawnBlock('minecraft:bedrock')).toBe(false);
+    });
+
+    it('lets a bed set a spawn only where the dimension type allows one, and an anchor only where it works', () => {
+        // Java's `bed_rule.can_set_spawn` and `respawn_anchor_works` environment attributes, as
+        // the 26.3 `dimension_type` documents set them: a bed in the Overworld, an anchor in the
+        // Nether, neither in the End.
+        const attributesOf = (dimension: keyof typeof Dimensions) => Dimensions[dimension].java.attributes;
+
+        expect(respawnBlockWorksIn('minecraft:red_bed', attributesOf('Overworld'))).toBe(true);
+        expect(respawnBlockWorksIn('minecraft:bed', attributesOf('Nether'))).toBe(false);
+        expect(respawnBlockWorksIn('minecraft:bed', attributesOf('TheEnd'))).toBe(false);
+
+        expect(respawnBlockWorksIn('minecraft:respawn_anchor', attributesOf('Overworld'))).toBe(false);
+        expect(respawnBlockWorksIn('minecraft:respawn_anchor', attributesOf('Nether'))).toBe(true);
+        expect(respawnBlockWorksIn('minecraft:respawn_anchor', attributesOf('TheEnd'))).toBe(false);
+
+        expect(respawnBlockWorksIn('minecraft:chest', attributesOf('Overworld'))).toBe(false);
+    });
+
+    it('reads a custom dimension type with no bed rule as the Overworld, and one with no anchor flag as refusing it', () => {
+        // Java's defaults for the two attributes, which a datapack type that leaves them out gets.
+        expect(respawnBlockWorksIn('minecraft:bed', new Map())).toBe(true);
+        expect(respawnBlockWorksIn('minecraft:respawn_anchor', new Map())).toBe(false);
     });
 
     it('stands the player beside the bed rather than in it', async () => {

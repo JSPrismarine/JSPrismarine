@@ -32,7 +32,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
 import ContainerEntry from '../inventory/ContainerEntry';
-import { isRespawnBlock } from '../world/RespawnPoint';
+import { isRespawnBlock, respawnBlockWorksIn } from '../world/RespawnPoint';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { fillContainerLoot } from '../inventory/containerLoot';
 import { openContainerContents, restorePlacedContents } from '../inventory/containerStore';
@@ -334,14 +334,22 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
  * Vanilla moves the point on use, day or night, and says so. Sleeping itself is not modeled, so
  * nothing here waits for morning.
  *
+ * A bed sets a spawn only where the dimension type's bed rule allows it, and an anchor only
+ * where `respawn_anchor_works` is set: the Overworld and the Nether respectively for the
+ * vanilla types. Elsewhere Java explodes the block. The explosion is not modeled yet, so the
+ * click is taken and nothing moves.
+ *
  * @returns Whether the block was one that holds a spawn.
  */
 const claimRespawnBlock = (interaction: BlockInteraction, block: HookBlock): boolean => {
     if (!isRespawnBlock(block.identifier)) return false;
 
     const { player, position } = interaction;
+    const type = player.getWorld().getDimension();
+    if (!respawnBlockWorksIn(block.identifier, type.java.attributes)) return true;
+
     const already = player.getSpawnPoint();
-    const dimension = player.getWorld().getDimension().name;
+    const dimension = type.name;
     player.setSpawnPoint({ x: position.x, y: position.y, z: position.z, dimension });
 
     // Only when it moved. Vanilla says it once, and a player clicking the same bed twice is the

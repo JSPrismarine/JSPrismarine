@@ -69,15 +69,58 @@ const AROUND: readonly (readonly [number, number])[] = [
 /** The bare name of a namespaced identifier: `minecraft:red_bed` is `red_bed`. */
 const bareName = (identifier: string): string => identifier.replace(/^[^:]*:/, '');
 
+/** The two kinds of block that hold a player's spawn point. */
+export type RespawnBlockKind = 'bed' | 'respawn_anchor';
+
 /**
- * Whether a block holds a player's spawn point when they use it.
+ * Which kind of spawn-holding block an identifier names, or undefined for any other block.
  *
  * The beds, whose identifiers are `bed` on Bedrock and `<color>_bed` on Java, and the respawn
  * anchor. Charging the anchor is not modeled, so an anchor holds a spawn the way a bed does.
  */
-export const isRespawnBlock = (identifier: string): boolean => {
+export const respawnBlockKind = (identifier: string): RespawnBlockKind | undefined => {
     const name = bareName(identifier);
-    return name === 'bed' || name.endsWith('_bed') || name === 'respawn_anchor';
+    if (name === 'bed' || name.endsWith('_bed')) return 'bed';
+    if (name === 'respawn_anchor') return 'respawn_anchor';
+    return undefined;
+};
+
+/** Whether a block holds a player's spawn point when they use it: see {@link respawnBlockKind}. */
+export const isRespawnBlock = (identifier: string): boolean => respawnBlockKind(identifier) !== undefined;
+
+/** The `dimension_type` environment attribute that says whether a bed can set a spawn there. */
+const BED_RULE_ATTRIBUTE = 'minecraft:gameplay/bed_rule';
+/** The `dimension_type` environment attribute that says whether a respawn anchor works there. */
+const RESPAWN_ANCHOR_WORKS_ATTRIBUTE = 'minecraft:gameplay/respawn_anchor_works';
+
+/**
+ * Whether a bed or a respawn anchor sets a spawn in a dimension, by that dimension type's
+ * environment attributes.
+ *
+ * Java reads `minecraft:gameplay/bed_rule` with `can_set_spawn` for a bed and
+ * `minecraft:gameplay/respawn_anchor_works` for an anchor. The 26.3 documents let a bed set a
+ * spawn in the Overworld only and an anchor work in the Nether only. A type that leaves the
+ * bed rule out gets Java's default, which allows it; one that leaves the anchor flag out gets
+ * Java's default, which does not. A block that is neither answers false.
+ *
+ * Where the answer is false, Java explodes the block. That explosion is not modeled yet, so the
+ * caller only declines to move the spawn.
+ *
+ * @param identifier - The block clicked, such as `minecraft:red_bed`.
+ * @param attributes - The dimension type's `attributes`, as `DimensionTypeDefinition` carries them.
+ */
+export const respawnBlockWorksIn = (identifier: string, attributes: ReadonlyMap<string, unknown>): boolean => {
+    switch (respawnBlockKind(identifier)) {
+        case 'bed': {
+            const rule = attributes.get(BED_RULE_ATTRIBUTE);
+            if (typeof rule !== 'object' || rule === null || !('can_set_spawn' in rule)) return true;
+            return rule.can_set_spawn !== 'never';
+        }
+        case 'respawn_anchor':
+            return attributes.get(RESPAWN_ANCHOR_WORKS_ATTRIBUTE) === true;
+        default:
+            return false;
+    }
 };
 
 /** Whether a player's feet and head both fit in a column. */
