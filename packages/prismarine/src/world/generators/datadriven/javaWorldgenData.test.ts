@@ -110,7 +110,9 @@ describe('the Java world generation registries', () => {
 
         it('includes the structure types used by the generator', () => {
             const types = new Set(
-                [...registries!.structures.values()].map((document) => (document as { type?: unknown }).type)
+                [...registries!.structures.values()].map((document) =>
+                    typeof document === 'object' && document !== null && 'type' in document ? document.type : undefined
+                )
             );
 
             expect(types.has('minecraft:jigsaw')).toBe(true);

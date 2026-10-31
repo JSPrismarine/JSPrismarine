@@ -539,8 +539,8 @@ describe('buildEndCity', () => {
             expect(items.length).toBe(1);
             expect([items[0]!.x, items[0]!.y, items[0]!.z]).toEqual([frames[0]!.x, frames[0]!.y, frames[0]!.z]);
             const saved = items[0]!.request.saved;
-            expect(saved).toBeInstanceOf(NBTTagCompound);
-            expect((saved as NBTTagCompound).getCompound('Item', false)?.getString('id', '')).toBe('minecraft:elytra');
+            if (!(saved instanceof NBTTagCompound)) throw new Error(`seed ${seed}: the elytra frame saved no compound`);
+            expect(saved.getCompound('Item', false)?.getString('id', '')).toBe('minecraft:elytra');
         }
     });
 });

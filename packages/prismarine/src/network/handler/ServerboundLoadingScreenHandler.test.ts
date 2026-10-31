@@ -11,7 +11,7 @@ import ServerboundLoadingScreenPacket, {
 } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
 import ServerboundLoadingScreenHandler from './ServerboundLoadingScreenHandler';
 
-const fakeSession = ({ open = [] as number[], pending = undefined as number | undefined } = {}) => {
+const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number } = {}) => {
     const logged: string[] = [];
     const ended: number[] = [];
     /** Every id the handler asked the session to finish a dimension change under. */
