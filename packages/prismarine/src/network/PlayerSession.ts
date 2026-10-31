@@ -8,15 +8,17 @@ import {
 } from '@jsprismarine/brigadier';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
-import { CraftingDataPacket, CreativeContentPacket, PositionMode } from '@jsprismarine/protocol';
+import { CraftingDataPacket, CreativeContentPacket, PlayerActionType, PositionMode } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import {
     BuildPlatform,
     CommandPermissionLevel,
     ContainerUiId,
+    Dimension,
     Gametype,
     PlayerPermissionLevel
 } from '@jsprismarine/minecraft';
+import { advancementChangedDimension } from '../advancement/triggers';
 import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
@@ -39,6 +41,8 @@ import { WindowIds } from '../inventory/WindowIds';
 import { WindowTypes } from '../inventory/WindowTypes';
 import { Item } from '../item/Item';
 import BlockPosition from '../world/BlockPosition';
+import { Position } from '../world/Position';
+import type { World } from '../world/World';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import Chunk from '../world/chunk/Chunk';
@@ -51,6 +55,7 @@ import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket
 import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
+import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
@@ -64,6 +69,7 @@ import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 import type { ChunkCoord } from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
+import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
 import PlayerListPacket from '@jsprismarine/protocol/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
@@ -73,6 +79,7 @@ import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/Acto
 import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
 import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
 import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/packet/GameRulesChangedPacket';
@@ -133,6 +140,33 @@ const argumentNamesOf = (node: CommandTreeNode): Map<CommandArgumentType, string
     walk(node);
     return names;
 };
+
+/**
+ * Where a player lands when {@link PlayerSession.changeWorld} moves them.
+ *
+ * The position is the feet position in `world`, which is what `ChangeDimensionPacket` carries
+ * and what the `MovePlayer` teleport at the end of the change repeats.
+ */
+export interface Arrival {
+    /** The world the player arrives in. */
+    world: World;
+    /** Feet position in `world`. */
+    position: Vector3;
+    yaw: number;
+    pitch: number;
+    /** Whether the change follows a death rather than a portal or a teleport. Defaults to false. */
+    respawn?: boolean;
+}
+
+/** A dimension change the client has not yet closed the loading screen for. */
+export interface PendingDimensionChange {
+    /** The `Loading Screen Id` the client has to report `EndLoadingScreen` with. */
+    loadingScreenId: number;
+    arrival: Arrival;
+}
+
+/** The block position a `PlayerActionPacket` carries when the action has no block. */
+const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
 /** A screen a block opened for one player, as the session remembers it. */
 export interface OpenBlockContainer {
@@ -258,6 +292,19 @@ export default class PlayerSession {
 
     /** Ids from {@link PlayerSession.beginLoadingScreen} whose end the client has not reported. */
     private readonly openLoadingScreens = new Set<number>();
+
+    /**
+     * The world change the client is still loading into, with the dimension name it left for
+     * the advancement hook. See {@link PlayerSession.changeWorld}.
+     */
+    private pendingChange: (PendingDimensionChange & { left: string }) | undefined;
+
+    /**
+     * Bumped by {@link PlayerSession.clearChunks}. A chunk batch compares the value it started
+     * with against this once its send completes, so a batch that was on the wire while the
+     * player changed world does not record the old world's coordinates as loaded in the new.
+     */
+    private chunkEpoch = 0;
 
     public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
@@ -480,6 +527,7 @@ export default class PlayerSession {
     private async flushQueuedChunks(): Promise<void> {
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
+        const epoch = this.chunkEpoch;
 
         // The publisher update has to come first, and has to be current.
         //
@@ -523,6 +571,10 @@ export default class PlayerSession {
             for (const chunk of chunksToSend) this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
             throw error;
         }
+
+        // A world change happened while the batch was compressing. These were the old world's
+        // chunks; the sets were cleared for the new one and the hashes must not come back.
+        if (epoch !== this.chunkEpoch) return;
 
         // Loaded only once it is actually on the wire.
         for (const chunk of chunksToSend) {
@@ -743,6 +795,7 @@ export default class PlayerSession {
      * leftover coordinates against a world where they mean somewhere else entirely.
      */
     public async clearChunks() {
+        this.chunkEpoch += 1;
         this.loadedChunks.clear();
         this.loadingChunks.clear();
         this.chunkSender.clear();
@@ -1415,6 +1468,147 @@ export default class PlayerSession {
      */
     public endLoadingScreen(id: number): boolean {
         return this.openLoadingScreens.delete(id);
+    }
+
+    /**
+     * Moves the player to another world and walks the client through the dimension change.
+     *
+     * Server side first: the record is saved to the world being left, stamped with that
+     * world's dimension, the player leaves its roster, the old world's entities come off the
+     * client, the chunk bookkeeping is cleared, the position moves, and the player joins the
+     * new roster. Then the wire sequence Dragonfly, Geyser and Nukkit agree on: one
+     * `ChangeDimension` with the target's Bedrock id, `StopSound` for everything playing,
+     * `NetworkChunkPublisherUpdate` at the arrival, the server-sent `PlayerAction
+     * ChangeDimensionAck`, the arrival chunks, and `PlayStatus PlayerSpawn`. The change stays
+     * pending, and the client's `PlayerAuthInput` is dropped, until the client closes the
+     * screen with the id this handed out: see {@link PlayerSession.completeDimensionChange}.
+     *
+     * A client sent `ChangeDimension` to the dimension it is already in never closes the
+     * screen, so a move between two worlds of the same Bedrock id detours through another
+     * dimension first.
+     * @param arrival - The world, position and rotation the player lands at.
+     */
+    public async changeWorld(arrival: Arrival): Promise<void> {
+        const player = this.player;
+        const { world } = arrival;
+        const from = player.getWorld();
+        const left = from.getDimension();
+        const target = world.getDimension();
+
+        // The cracks belong to a block in the world being left.
+        await player.stopMining();
+
+        // The record goes to the level being left while the player is still in it, so it
+        // carries that world's dimension and the next login finds them where they were should
+        // nothing save them again.
+        await from.savePlayerData(player);
+
+        // Out of the old world first, so it stops broadcasting to us and its players are told
+        // we left. Then the old world's entities come off this client, before `addEntity`
+        // below fills the tracker with the new world's.
+        await from.removeEntity(player);
+        await this.despawnAllTrackedEntities();
+        await this.clearChunks();
+
+        // Not broadcast: nobody in the new world sees the player yet, and the client's own
+        // teleport waits for the screen to close.
+        await player.setPosition(
+            {
+                position: Position.fromVector3(arrival.position, world),
+                type: PositionMode.Teleport,
+                pitch: arrival.pitch,
+                yaw: arrival.yaw,
+                headYaw: arrival.yaw
+            },
+            false
+        );
+        await world.addEntity(player);
+
+        if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, arrival.position);
+
+        const loadingScreenId = this.beginLoadingScreen();
+        this.pendingChange = { loadingScreenId, arrival, left: left.name };
+        await this.send(
+            new ChangeDimensionPacket({
+                dimension: target.bedrockId,
+                position: arrival.position,
+                respawn: arrival.respawn ?? false,
+                loadingScreenId
+            })
+        );
+
+        const stopSound = new StopSoundPacket();
+        stopSound.stopAllSounds = true;
+        await this.send(stopSound);
+
+        await this.sendNetworkChunkPublisher(effectiveViewDistance(player.viewDistance), []);
+
+        // Since 1.19.50 the server sends the acknowledgement that used to be the client's, and
+        // sends it before any chunk; the client still answers with its own copy afterwards.
+        await this.send(
+            new PlayerActionPacket({
+                runtimeEntityId: player.getRuntimeId(),
+                action: PlayerActionType.ChangeDimensionAck,
+                blockPosition: NO_BLOCK,
+                resultPosition: NO_BLOCK,
+                blockFace: 0
+            })
+        );
+
+        await player.sendInitialSpawnChunks();
+        await this.sendPlayStatus(PlayStatus.PlayerSpawn);
+    }
+
+    /**
+     * The four-step detour for a change between two worlds of the same Bedrock id: the
+     * current id, another, that other again, and back, each with its own screen and spawn
+     * status, ahead of the real `ChangeDimension`. It is what `Player.setWorld` sent for every
+     * change before dimensions existed, kept for the one case where the client would
+     * otherwise never close the screen.
+     */
+    private async detourFrom(bedrockId: number, position: Vector3): Promise<void> {
+        const away = bedrockId === Dimension.NETHER ? Dimension.OVERWORLD : Dimension.NETHER;
+        for (const dimension of [bedrockId, away, away]) {
+            await this.send(
+                new ChangeDimensionPacket({
+                    dimension,
+                    position,
+                    respawn: false,
+                    loadingScreenId: this.beginLoadingScreen()
+                })
+            );
+            await this.sendPlayStatus(PlayStatus.PlayerSpawn);
+        }
+    }
+
+    /**
+     * The world change the client has not yet finished loading into, or undefined when the
+     * player is settled. While one is pending, the client's positions are still the old
+     * world's and `PlayerAuthInputHandler` drops them.
+     */
+    public pendingDimensionChange(): PendingDimensionChange | undefined {
+        return this.pendingChange;
+    }
+
+    /**
+     * Finishes a pending world change once the client reports its loading screen closed.
+     *
+     * Teleports the client to the exact arrival position, re-sends the attributes and the
+     * inventory, which a dimension change is not known to keep, and raises the changed
+     * dimension advancement hook. Called by `ServerboundLoadingScreenHandler`.
+     * @param loadingScreenId - The id the client's `EndLoadingScreen` carried.
+     * @returns Whether a change was pending under that id. Any other id changes nothing.
+     */
+    public async completeDimensionChange(loadingScreenId: number): Promise<boolean> {
+        const pending = this.pendingChange;
+        if (pending === undefined || pending.loadingScreenId !== loadingScreenId) return false;
+        this.pendingChange = undefined;
+
+        await this.sendMove(this.player, PositionMode.Teleport);
+        await this.sendAttributes();
+        await this.sendInventory();
+        advancementChangedDimension(this.player, pending.left, pending.arrival.world.getDimension().name);
+        return true;
     }
 
     /**
