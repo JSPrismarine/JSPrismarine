@@ -424,6 +424,8 @@ describe('Level', () => {
             const reopened = buildLevel('saved');
             await reopened.level.enable();
             expect(reopened.level.getSpawn()).toEqual(new Vector3(12, 70, -8));
+            // The clock carries on from `Time` rather than starting the day over.
+            expect(reopened.level.getTicks()).toBe(777);
             expect(reopened.level.getGameRuleManager().getGameRule(GameRules.DoFireTick)).toEqual([false, true]);
             // The spawn is known, so the Overworld opens without a search.
             const back = await reopened.level.world(OVERWORLD_STEM_ID);

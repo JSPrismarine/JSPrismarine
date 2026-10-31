@@ -603,6 +603,11 @@ export class Level {
             this.gameRuleManager.setGameRule(name, value, editable);
         }
         if (stored.entities && this.provider.supportsChunkUnload !== true) this.legacy = stored.entities;
+
+        // The clock is written to `level.dat` alone, so it is read back from there; without it
+        // every boot started the day over at tick zero.
+        const time = this.provider.readLevelData()?.time;
+        if (time !== undefined) this.currentTick = time;
     }
 
     private async readLegacyLevelData(): Promise<WorldPersistenceData | null> {

@@ -82,6 +82,13 @@ export default interface Provider extends Service {
     /** Persists provider-specific level metadata: the spawn, the clock, the generator and its layers. */
     saveLevelData?(level: LevelDatInputs): void;
 
+    /**
+     * Reads back the level metadata {@link Provider.saveLevelData} wrote, or null when the format
+     * keeps none. The clock is the field the level needs from here: the spawn, the rules and the
+     * stems reach it through {@link Provider.readWorldData}.
+     */
+    readLevelData?(): LevelDatInputs | null;
+
     /** Reads player data from provider-specific storage, if the format supports it. */
     readPlayerData?(key: string): Promise<Partial<WorldPlayerData> | null>;
 

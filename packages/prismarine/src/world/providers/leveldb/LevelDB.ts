@@ -808,6 +808,20 @@ export default class LevelDB extends BaseProvider {
         writeLevelDat(this.getPath(), { storageVersion: LEVEL_DAT_STORAGE_VERSION, root });
     }
 
+    /**
+     * The clock `level.dat` holds, which {@link LevelDB.saveLevelData} writes as `Time`.
+     *
+     * Null before the file exists. A file without the tag, which this server never writes but
+     * another might, answers no clock, so the level starts its own at zero.
+     */
+    public override readLevelData(): LevelDatInputs | null {
+        const level = readLevelDat(this.getPath());
+        if (level === null) return null;
+
+        const time = level.root.getLong('Time', -1n);
+        return time < 0n ? {} : { time: Number(time) };
+    }
+
     /** Every chunk coordinate the database holds for one dimension, for tools that walk a world. */
     public *listChunks(dimension: DimensionType): IterableIterator<{ x: number; z: number }> {
         const seen = new Set<string>();

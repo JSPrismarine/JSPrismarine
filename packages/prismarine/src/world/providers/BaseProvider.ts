@@ -191,4 +191,9 @@ export default abstract class BaseProvider implements Provider {
 
     /** Persists provider-specific level metadata when the format supports it. */
     public saveLevelData(_level: LevelDatInputs): void {}
+
+    /** Reads provider-specific level metadata back; null for a format that keeps none. */
+    public readLevelData(): LevelDatInputs | null {
+        return null;
+    }
 }
