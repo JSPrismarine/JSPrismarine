@@ -9,28 +9,45 @@ import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/S
 import ShowCreditsHandler from './ShowCreditsHandler';
 
 describe('ShowCreditsHandler', () => {
-    const run = (creditsState: CreditsState): string[] => {
+    const run = async (creditsState: CreditsState, { pending = false } = {}) => {
         const logged: string[] = [];
+        /** How many times the handler asked the session to finish the credits. */
+        let completions = 0;
         const server = stub<Server>({
             getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
         });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
+        const session = stub<PlayerSession>({
+            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            completeCredits: async () => {
+                completions += 1;
+                return pending;
+            }
+        });
         const packet = Object.assign(new ShowCreditsPacket(), { creditsState });
 
-        new ShowCreditsHandler().handle(packet, server, session);
-        return logged;
+        await new ShowCreditsHandler().handle(packet, server, session);
+        return { logged, completions };
     };
 
-    it('logs that the credits finished', () => {
-        expect(run(CreditsState.Finished)).toEqual([
-            'Steve reported the end credits finished. The server never starts them'
-        ]);
+    it('finishes the pending credits when the client reports them over, without a log', async () => {
+        const { logged, completions } = await run(CreditsState.Finished, { pending: true });
+
+        expect(completions).toBe(1);
+        expect(logged).toEqual([]);
     });
 
-    it('logs the start state as started', () => {
-        expect(run(CreditsState.Start)).toEqual([
-            'Steve reported the end credits started. The server never starts them'
-        ]);
+    it('logs a finish that no pending credits were waiting for, and drops it', async () => {
+        const { logged, completions } = await run(CreditsState.Finished);
+
+        expect(completions).toBe(1);
+        expect(logged).toEqual(['Steve reported the end credits finished with none pending']);
+    });
+
+    it('logs a client-sent start and drops it', async () => {
+        const { logged, completions } = await run(CreditsState.Start);
+
+        expect(completions).toBe(0);
+        expect(logged).toEqual(['Steve reported the end credits started, which only the server may say']);
     });
 
     it('is registered for packet 0x4b', () => {

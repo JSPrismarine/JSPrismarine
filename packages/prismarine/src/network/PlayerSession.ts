@@ -58,6 +58,7 @@ import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
 import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
 import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
@@ -303,6 +304,12 @@ export default class PlayerSession {
      * the advancement hook. See {@link PlayerSession.changeWorld}.
      */
     private pendingChange: (PendingDimensionChange & { left: string }) | undefined;
+
+    /**
+     * The arrival held back while the end credits roll on the client, or undefined when no
+     * credits are pending. See {@link PlayerSession.startCredits}.
+     */
+    private pendingCredits: Arrival | undefined;
 
     /**
      * Bumped by {@link PlayerSession.clearChunks}. A chunk batch compares the value it started
@@ -1628,6 +1635,65 @@ export default class PlayerSession {
      */
     public pendingDimensionChange(): PendingDimensionChange | undefined {
         return this.pendingChange;
+    }
+
+    /**
+     * Rolls the end credits on the client and holds the arrival until they finish.
+     *
+     * Sent on a player's first exit through the End's portal. The world change waits for the
+     * client's `ShowCredits Finished` rather than going out under the credits screen, because
+     * a `ChangeDimension` during the credits has not been verified against a retail client
+     * (open question 4 of the End dragon fight plan); Java holds its transfer the same way,
+     * on the `PERFORM_RESPAWN` exchange. While the arrival is held, the client's
+     * `PlayerAuthInput` is dropped, as during a pending dimension change. The held change is
+     * completed by {@link PlayerSession.completeCredits}. A disconnect in between strands
+     * nobody: the player record already carries `seenCredits`, so the next join finds the
+     * player still in the End, standing in the portal, and transfers them at once.
+     *
+     * A second start while one is pending is logged at debug and dropped, like a second
+     * `changeWorld`.
+     * @param arrival - Where the player lands once the credits are over.
+     */
+    public async startCredits(arrival: Arrival): Promise<void> {
+        if (this.pendingCredits !== undefined) {
+            this.server
+                .getLogger()
+                .debug(
+                    `Refused to roll the credits for ${this.player.getName()}: they are already rolling`,
+                    'PlayerSession/startCredits'
+                );
+            return;
+        }
+
+        this.pendingCredits = arrival;
+        const packet = new ShowCreditsPacket();
+        packet.playerRuntimeId = this.player.getRuntimeId();
+        packet.creditsState = CreditsState.Start;
+        await this.send(packet);
+    }
+
+    /**
+     * Finishes held credits: the full dimension change sequence to the held arrival, sent as
+     * a respawn, which is how Java's `PlayerList.respawn(player, true, ...)` answers the
+     * credits. Called by `ShowCreditsHandler` when the client reports the credits finished.
+     * @returns Whether credits were pending. A finish with none pending changes nothing.
+     */
+    public async completeCredits(): Promise<boolean> {
+        const arrival = this.pendingCredits;
+        if (arrival === undefined) return false;
+
+        this.pendingCredits = undefined;
+        await this.changeWorld({ ...arrival, respawn: true });
+        return true;
+    }
+
+    /**
+     * The arrival held while the credits roll on the client, or undefined when none are.
+     * While one is held, the client's `PlayerAuthInput` is dropped, as it is during a pending
+     * dimension change.
+     */
+    public pendingCreditsArrival(): Arrival | undefined {
+        return this.pendingCredits;
     }
 
     /**

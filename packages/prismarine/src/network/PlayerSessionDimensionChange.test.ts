@@ -19,6 +19,7 @@ import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInput
 import { PlayStatusPacket } from '@jsprismarine/protocol';
 import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import ServerboundLoadingScreenPacket, {
     ServerboundLoadingScreenPacketType
 } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
@@ -347,6 +348,58 @@ describe('PlayerSession.changeWorld', () => {
 
         // Closed once. The client reporting the same id again is not a second change.
         expect(await session.completeDimensionChange(id)).toBe(false);
+    });
+
+    it('rolls the credits once and holds the arrival instead of changing world', async () => {
+        const { player, sent, logged } = fakePlayer();
+        const session = player.getNetworkSession();
+        const arrival = arrivalIn(worldOf(Dimensions.Nether));
+        sent.length = 0;
+
+        await session.startCredits(arrival);
+
+        const credits = sent.filter((p): p is ShowCreditsPacket => p instanceof ShowCreditsPacket);
+        expect(credits).toHaveLength(1);
+        expect(credits[0]!.creditsState).toBe(CreditsState.Start);
+        expect(credits[0]!.playerRuntimeId).toBe(player.getRuntimeId());
+        expect(sent.some((p) => p instanceof ChangeDimensionPacket)).toBe(false);
+        expect(session.pendingCreditsArrival()).toBe(arrival);
+        expect(session.pendingDimensionChange()).toBeUndefined();
+
+        // A second start while one is pending is refused, like a second `changeWorld`.
+        sent.length = 0;
+        await session.startCredits(arrival);
+        expect(sent).toHaveLength(0);
+        expect(logged.at(-1)).toContain('credits');
+    });
+
+    it('drops the client input while the credits roll, as a pending change does', async () => {
+        const { player, server } = fakePlayer();
+        const session = player.getNetworkSession();
+        const inputs = new PlayerAuthInputHandler();
+        await session.startCredits(arrivalIn(worldOf(Dimensions.Nether)));
+
+        await inputs.handle(inputAt(new Vector3(3, 70, -4)), server, session);
+
+        expect(player.getPosition().getX()).toBe(0);
+    });
+
+    it('finishes the held arrival as a respawn change when the credits are over', async () => {
+        const { player, sent } = fakePlayer();
+        const session = player.getNetworkSession();
+        await session.startCredits(arrivalIn(worldOf(Dimensions.Nether)));
+        sent.length = 0;
+
+        expect(await session.completeCredits()).toBe(true);
+
+        const change = sent.find((p): p is ChangeDimensionPacket => p instanceof ChangeDimensionPacket);
+        expect(change?.getPacketData()?.dimension).toBe(Dimensions.Nether.bedrockId);
+        expect(change?.getPacketData()?.respawn).toBe(true);
+        expect(session.pendingCreditsArrival()).toBeUndefined();
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
+
+        // The client repeating the finish is not a second change.
+        expect(await session.completeCredits()).toBe(false);
     });
 
     it('does not record a batch that was on the wire during the change as loaded', async () => {

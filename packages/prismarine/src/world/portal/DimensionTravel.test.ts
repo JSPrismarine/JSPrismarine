@@ -12,6 +12,8 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
+import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
@@ -216,8 +218,8 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
     return { server, level, overworld, nether, end, travel };
 };
 
-/** A survival player standing at a feet position, wired to a session that sends nowhere. */
-const playerAt = (server: Server, world: World, feet: Vector3): Player => {
+/** A survival player standing at a feet position, whose session records what it sends into `sent`. */
+const playerAt = (server: Server, world: World, feet: Vector3, sent: unknown[] = []): Player => {
     const player = new Player({
         position: new Position(feet.getX(), feet.getY() + 1.62, feet.getZ(), world),
         address: new InetAddress('127.0.0.1', 19132),
@@ -234,8 +236,8 @@ const playerAt = (server: Server, world: World, feet: Vector3): Player => {
     const connection = stub<ClientConnection>({
         codec: Codec2193,
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
-        sendDataPacket: async () => {},
-        sendPacketsAsync: async () => {},
+        sendDataPacket: async (packet) => void sent.push(packet),
+        sendPacketsAsync: async (packets) => void sent.push(...packets),
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},
         disconnect: async () => {}
@@ -630,6 +632,81 @@ describe('DimensionTravel.transfer', () => {
         expect(player.getPortalCooldown()).toBe(0);
         expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
         expect(scene.overworld.getPlayers()).toContain(player);
+
+        await scene.level.disable();
+    }, 60_000);
+});
+
+describe('DimensionTravel.transfer out of the End', () => {
+    /** The End-exit arrival of `player`, resolved from an exit portal block under them. */
+    const exitArrival = async (scene: Awaited<ReturnType<typeof buildScene>>, player: Player) => {
+        const arrival = await scene.travel.resolve(player, {
+            world: scene.end,
+            position: new Vector3(0, 60, 0),
+            block: 'minecraft:end_portal'
+        });
+        if (arrival === undefined) throw new Error('the End exit resolved to nowhere');
+        return arrival;
+    };
+
+    it('holds a first exit on the credits: one ShowCredits Start, the flag set, and no change yet', async () => {
+        const scene = await buildScene();
+        const sent: unknown[] = [];
+        const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
+        await scene.end.addEntity(player);
+        const arrival = await exitArrival(scene, player);
+        sent.length = 0;
+
+        await scene.travel.transfer(player, arrival);
+
+        const credits = sent.filter((packet): packet is ShowCreditsPacket => packet instanceof ShowCreditsPacket);
+        expect(credits).toHaveLength(1);
+        expect(credits[0]!.creditsState).toBe(CreditsState.Start);
+        expect(credits[0]!.playerRuntimeId).toBe(player.getRuntimeId());
+        expect(sent.some((packet) => packet instanceof ChangeDimensionPacket)).toBe(false);
+        expect(player.hasSeenCredits()).toBe(true);
+        expect(player.getWorld()).toBe(scene.end);
+        expect(player.getNetworkSession().pendingCreditsArrival()).toBe(arrival);
+        expect(player.getNetworkSession().pendingDimensionChange()).toBeUndefined();
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('moves the player to their respawn point as a respawn once the credits finish', async () => {
+        const scene = await buildScene();
+        const sent: unknown[] = [];
+        const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
+        await scene.end.addEntity(player);
+        await scene.travel.transfer(player, await exitArrival(scene, player));
+        sent.length = 0;
+
+        expect(await player.getNetworkSession().completeCredits()).toBe(true);
+
+        const change = sent.find((packet): packet is ChangeDimensionPacket => packet instanceof ChangeDimensionPacket);
+        expect(change?.getPacketData()?.respawn).toBe(true);
+        expect(player.getWorld()).toBe(scene.overworld);
+        expect(player.getFeetY()).toBeCloseTo(WORLD_SPAWN.getY());
+        expect(player.getNetworkSession().pendingCreditsArrival()).toBeUndefined();
+        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.overworld);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('skips the credits for a player who has seen them, changing world at once', async () => {
+        const scene = await buildScene();
+        const sent: unknown[] = [];
+        const player = playerAt(scene.server, scene.end, new Vector3(0.5, 60, 0.5), sent);
+        await scene.end.addEntity(player);
+        player.setSeenCredits(true);
+        const arrival = await exitArrival(scene, player);
+        sent.length = 0;
+
+        await scene.travel.transfer(player, arrival);
+
+        expect(sent.some((packet) => packet instanceof ShowCreditsPacket)).toBe(false);
+        expect(player.getWorld()).toBe(scene.overworld);
+        expect(player.getNetworkSession().pendingCreditsArrival()).toBeUndefined();
+        expect(player.getNetworkSession().pendingDimensionChange()?.arrival.world).toBe(scene.overworld);
 
         await scene.level.disable();
     }, 60_000);

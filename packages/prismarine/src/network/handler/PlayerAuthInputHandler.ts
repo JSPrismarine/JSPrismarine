@@ -148,7 +148,9 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
         // Until the client closes the dimension change screen it was given, its positions are
         // the old world's, the same rule the docs state for `HandledTeleport`. Nothing in the
         // packet is acted on: a block action or an item use from there names the old world too.
-        if (session.pendingDimensionChange() !== undefined) return;
+        // The end credits hold the player the same way: the world change they end in has not
+        // been sent yet, so acting on input would move a player the server is about to move.
+        if (session.pendingDimensionChange() !== undefined || session.pendingCreditsArrival() !== undefined) return;
 
         if (!player.isOnline()) return;
 

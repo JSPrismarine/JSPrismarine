@@ -81,7 +81,9 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),
         sendMove: vi.fn(),
         recordInputTick: vi.fn(),
-        pendingDimensionChange: () => (changingDimension ? { loadingScreenId: 3, arrival: stub<Arrival>() } : undefined)
+        pendingDimensionChange: () =>
+            changingDimension ? { loadingScreenId: 3, arrival: stub<Arrival>() } : undefined,
+        pendingCreditsArrival: () => undefined
     });
     const server = stub<Server>({
         post: () => 0,

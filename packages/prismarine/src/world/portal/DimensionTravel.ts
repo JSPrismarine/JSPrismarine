@@ -134,7 +134,9 @@ export class DimensionTravel {
      *
      * A player raises a cancelable `PlayerChangeDimensionEvent` first and then goes through
      * `PlayerSession.changeWorld`, which runs the client's dimension change sequence; the
-     * cooldown is the player's 10 ticks. Anything else leaves its world with `removeEntity`,
+     * cooldown is the player's 10 ticks. A player leaving the End who has not seen the end
+     * credits is held instead: `PlayerSession.startCredits` rolls them and keeps the arrival
+     * until the client reports them finished. Anything else leaves its world with `removeEntity`,
      * is placed at the arrival and enters the destination with `addEntity`, with the 300 tick
      * cooldown Bedrock writes to `PortalCooldown`.
      *
@@ -152,6 +154,18 @@ export class DimensionTravel {
             if (event.isCanceled()) return;
 
             entity.setPortalCooldown();
+
+            // Java's `EndPortalBlock.entityInside`: a first exit through the End's portal
+            // rolls the credits and holds the change until the client reports them over. The
+            // flag is set as the credits start, Java's `showEndCredits` rule, so a player who
+            // disconnects mid-credits comes back in the End and their next exit transfers at
+            // once instead of replaying them.
+            if (from.getDimension().id === Dimensions.TheEnd.id && !entity.hasSeenCredits()) {
+                entity.setSeenCredits(true);
+                await entity.getNetworkSession().startCredits(arrival);
+                return;
+            }
+
             await entity.getNetworkSession().changeWorld(arrival);
             return;
         }
