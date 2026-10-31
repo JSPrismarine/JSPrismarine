@@ -91,6 +91,8 @@ export const FAMILIES = {
     protocolNegotiation: 'protocol.negotiation',
     /** Declarative wire layouts re-encode a real server's bytes exactly, per protocol version. */
     protocolWireRoundtrip: 'protocol.wire-roundtrip',
+    /** The packet sequence a world change sends round-trips through every registered codec. */
+    protocolDimensionChange: 'protocol.dimension-change',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',
