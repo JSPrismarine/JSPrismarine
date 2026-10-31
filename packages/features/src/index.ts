@@ -13,6 +13,7 @@ export * from './world/BlockState';
 export * from './world/FeatureWorld';
 export * from './world/TestFeatureWorld';
 export * from './features/caves';
+export * from './features/endSpikes';
 export * from './features/javaHashSet';
 export * from './features/ore';
 export * from './features/parse';
