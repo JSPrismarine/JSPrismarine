@@ -15,6 +15,7 @@ import type { BedrockDescribedType, Coordinate, CoordinateTriple, ScoreHolderMod
 import { enumArgument, stringArgument } from '../argumentTypes';
 import type { CommandSource, EntityRef, Rotation, Vector3 } from '../host';
 import type { SelectorModel } from '../selector';
+import type { SuggestionProvider } from '../suggestions';
 import { suggestFromData } from '../suggestions';
 
 /** The command result Brigadier treats as "did nothing". */
@@ -194,7 +195,7 @@ export const dimensionArgument = (): BedrockDescribedType<string> => ({
 });
 
 /** Suggests the dimensions the host has, Java ids included. */
-export const dimensionSuggestions = suggestFromData<CommandSource>((context) =>
+export const dimensionSuggestions: SuggestionProvider<CommandSource> = suggestFromData((context) =>
     context.getSource().host.world.dimensions()
 );
 

@@ -1,6 +1,7 @@
 import type { CommandContext, RequiredArgumentBuilder } from '@jsprismarine/brigadier';
 
-type SuggestionProvider<S> = Parameters<RequiredArgumentBuilder<S, unknown>['suggests']>[0];
+/** The provider shape `RequiredArgumentBuilder.suggests` accepts, named so exported providers can carry it. */
+export type SuggestionProvider<S> = Parameters<RequiredArgumentBuilder<S, unknown>['suggests']>[0];
 
 /**
  * Builds a suggestion provider from a fixed list or values selected from the parsed command.
