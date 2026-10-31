@@ -21,7 +21,8 @@ import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import type { WorldContentBiomes } from './contentAdapter';
 import { worldContentGroups } from './contentAdapter';
-import { Dimensions } from './Dimension';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionByName, dimensionTypeOf } from './Dimension';
+import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 import GameRuleManager, { GameRules } from './GameRuleManager';
 import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './generators/datadriven/javaTranslation';
@@ -203,13 +204,13 @@ describe('the game rules a world carries', () => {
 
 describe('the level facts a dimension answers', () => {
     /**
-     * The level group for a dimension name, over a world with no chunks behind it whose
-     * generator floods to `seaLevel`, or to nothing in particular when left out.
+     * The level group for a dimension name, over a world of that dimension with no chunks
+     * behind it whose generator floods to `seaLevel`, or to nothing in particular when left out.
      */
     const levelOf = (dimension: string, seaLevel?: number) => {
         const world: World = Object.assign(Object.create(World.prototype), {
             chunks: new Map(),
-            dimension: Dimensions.Overworld,
+            dimension: dimensionByName(dimension) ?? Dimensions.Overworld,
             generator: seaLevel === undefined ? {} : { seaLevel }
         });
 
@@ -242,7 +243,42 @@ describe('the level facts a dimension answers', () => {
         expect(levelOf('minecraft:nether').seaLevel).toBe(63);
     });
 
-    it('answers for the Overworld when the name is not a vanilla dimension', () => {
-        expect(levelOf('mypack:sky')).toMatchObject({ minY: -64, maxY: 320, hasSkyLight: true, seaLevel: 63 });
+    it('answers for the Overworld when the name is not a vanilla dimension and no world is loaded', () => {
+        const level = worldContentGroups({
+            dimension: 'mypack:sky',
+            world: () => undefined,
+            seed: 0n,
+            difficulty: () => 2,
+            random: constantRandom(0),
+            content: () => contentWith({})
+        }).level;
+
+        expect(level).toMatchObject({ minY: -64, maxY: 320, hasSkyLight: true });
+    });
+
+    it("reads a custom dimension's bounds and sky light from the type the level resolved", () => {
+        // The level gave this type its id and clamped its bounds; the Overworld's -64 and sky
+        // would put every content rule's column and light check in the wrong place.
+        const sky = dimensionTypeOf(
+            { ...VANILLA_DIMENSION_TYPES['minecraft:overworld'], minY: 0, height: 128, hasSkylight: false },
+            'mypack:sky',
+            FIRST_CUSTOM_DIMENSION_ID
+        );
+        const world: World = Object.assign(Object.create(World.prototype), {
+            chunks: new Map(),
+            dimension: sky,
+            generator: {}
+        });
+
+        const level = worldContentGroups({
+            dimension: 'mypack:sky',
+            world: () => world,
+            seed: 0n,
+            difficulty: () => 2,
+            random: constantRandom(0),
+            content: () => contentWith({})
+        }).level;
+
+        expect(level).toMatchObject({ minY: 0, maxY: 128, hasSkyLight: false });
     });
 });

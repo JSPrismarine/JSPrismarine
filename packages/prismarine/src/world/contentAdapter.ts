@@ -9,10 +9,11 @@
  *
  * Every member resolves the world at call time rather than holding one. The content is built
  * before the first world loads, so an adapter that captured a world could not be built at
- * all, and a world unloaded at runtime would leave the adapter pointing at a dead one. The
- * handful of facts that cannot be deferred - a dimension's bounds and its seed - come from
- * the dimension identifier and the configured seed instead, which is where the world would
- * have got them.
+ * all, and a world unloaded at runtime would leave the adapter pointing at a dead one. A
+ * dimension's bounds and sky light come from the live world's type, which its `Level`
+ * resolved and which is the only place a custom type's bounds and id exist; before a world
+ * loads they fall back to the vanilla table by name, and to the Overworld after that. The
+ * seed comes from the configuration, which is where the world would have got it.
  */
 import { DIFFICULTIES } from '@jsprismarine/engine-systems';
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
@@ -37,6 +38,7 @@ import { destroyBlock } from './blockDestroy';
 import { takeBlockEntity } from './blockMove';
 import { timeOfDay } from './DayCycle';
 import { Dimensions, dimensionByName, maxY } from './Dimension';
+import type { DimensionType } from './Dimension';
 import type { World } from './World';
 
 /** The six members of `ContentBlockAccess` the world subsystem implements. */
@@ -96,13 +98,20 @@ export const contentDifficulty = (difficulty: number): Difficulty => DIFFICULTIE
  */
 export const worldContentGroups = (options: WorldContentGroupOptions): WorldContentGroups => {
     const { dimension, seed, random } = options;
-    const definition = dimensionByName(dimension) ?? Dimensions.Overworld;
 
     const live = (): World => {
         const world = options.world();
         if (world === undefined) throw new Error(`no ${dimension} world is loaded, so it cannot be read or written`);
         return world;
     };
+
+    /**
+     * The dimension type behind the bounds and the sky light. The live world's, because the
+     * level resolved it and a custom type is known nowhere else; the vanilla table answers a
+     * vanilla name before that world loads, and the Overworld answers anything else.
+     */
+    const type = (): DimensionType =>
+        options.world()?.getDimension() ?? dimensionByName(dimension) ?? Dimensions.Overworld;
 
     /**
      * The Bedrock biome at a position, or undefined when its chunk is not loaded.
@@ -133,10 +142,18 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
 
     const level: ContentLevelFacts = {
         dimension,
-        minY: definition.minY,
+        // Accessors, like `seaLevel` below: the interface spells them as properties, and the
+        // type they read is the live world's.
+        get minY() {
+            return type().minY;
+        },
         // One past the highest block y, which is how every content package bounds a column.
-        maxY: maxY(definition) + 1,
-        hasSkyLight: definition.java.hasSkylight,
+        get maxY() {
+            return maxY(type()) + 1;
+        },
+        get hasSkyLight() {
+            return type().java.hasSkylight;
+        },
         // A property rather than a method, because the adapter interface spells it as one;
         // an accessor so it is read from the live world, whose stem says what the water line
         // is, rather than fixed before any world exists.
