@@ -33,7 +33,9 @@ const NAMED_IN_WARNING = 5;
 
 /** One cell of the grid: a block identifier and the values of every property it carries. */
 export interface DebugGridState {
+    /** The block identifier, `minecraft:oak_log`. */
     readonly name: string;
+    /** The value of every property the state carries, keyed by property name. */
     readonly values: Readonly<Record<string, BlockStateValue>>;
 }
 
@@ -59,6 +61,7 @@ export interface DebugGeneratorOptions {
     readonly states: () => readonly DebugGridState[];
     /** The dimension the chunks belong to. The floor and the grid must fit inside its bounds. */
     readonly dimension: DimensionType;
+    /** Where the generator says, once, which states it could not place. */
     readonly logger?: GeneratorLogger;
 }
 
@@ -135,8 +138,9 @@ export class DebugGenerator implements Generator {
     public surfaceAt(x: number, z: number): SurfaceProbe {
         const grid = this.gridOf();
         const index = stateIndexAt(grid, x, z);
-        if (index !== undefined && grid.ids[index] !== null) {
-            return { y: DEBUG_GRID_Y, name: grid.states[index]!.name };
+        const state = index === undefined ? undefined : grid.states[index];
+        if (index !== undefined && state !== undefined && grid.ids[index] !== null) {
+            return { y: DEBUG_GRID_Y, name: state.name };
         }
 
         return { y: DEBUG_FLOOR_Y, name: FLOOR_BLOCK };
