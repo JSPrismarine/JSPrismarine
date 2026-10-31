@@ -1,10 +1,15 @@
 import { NetworkBinaryStream, PacketIdentifier, v2193 } from '@jsprismarine/protocol';
 
 import type {
+    ChangeDimensionPayload,
     Disconnect,
+    LevelChunk,
+    MovePlayer,
+    NetworkChunkPublisherUpdatePayload,
     NetworkPacket,
     NetworkSettings,
     PlayStatusData,
+    PlayerActionData,
     ServerToClientHandshake,
     StartGame,
     Text
@@ -36,6 +41,11 @@ export interface ClientboundPacketData {
     [PacketIdentifier.START_GAME]: StartGame;
     [PacketIdentifier.DISCONNECT]: Disconnect;
     [PacketIdentifier.TEXT]: Text;
+    [PacketIdentifier.CHANGE_DIMENSION]: ChangeDimensionPayload;
+    [PacketIdentifier.NETWORK_CHUNK_PUBLISHER_UPDATE]: NetworkChunkPublisherUpdatePayload;
+    [PacketIdentifier.PLAYER_ACTION]: PlayerActionData;
+    [PacketIdentifier.LEVEL_CHUNK]: LevelChunk;
+    [PacketIdentifier.MOVE_PLAYER]: MovePlayer;
 }
 
 /**

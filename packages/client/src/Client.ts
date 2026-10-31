@@ -1,14 +1,20 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import {
+    ChangeDimensionPacket,
     DisconnectPacket,
     ItemRegistryPacket,
+    LevelChunkPacket,
+    MovePlayerPacket,
+    NetworkChunkPublisherUpdatePacket,
     NetworkSettingsPacket,
     PlayStatusPacket,
+    PlayerActionPacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
     ServerToClientHandshakePacket,
     StartGamePacket,
+    StopSoundPacket,
     TextPacket,
     v2193,
     v2225
@@ -130,7 +136,15 @@ export default class Client extends EventEmitter {
             ResourcePacksInfoPacket,
             ResourcePackStackPacket,
             StartGamePacket,
-            TextPacket
+            TextPacket,
+            // The dimension change sequence, in the order the server sends it, and the
+            // teleport that ends it.
+            ChangeDimensionPacket,
+            StopSoundPacket,
+            NetworkChunkPublisherUpdatePacket,
+            PlayerActionPacket,
+            LevelChunkPacket,
+            MovePlayerPacket
         ]);
 
         this.transport =
