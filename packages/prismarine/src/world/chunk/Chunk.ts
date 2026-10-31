@@ -370,15 +370,22 @@ export default class Chunk {
     }
 
     /**
-     * Sets a block into the chunk by its runtime Id.
+     * Sets a block into the chunk, in the state the block carries.
      * @param {number} x - block x
      * @param {number} y - block y
      * @param {number} z - block z
      * @param {Block} block - block to set
      * @param {number} [layer=0] - block storage layer (0 for blocks, 1 for liquids)
+     * @throws when this server has no such block, or the block carries a state its schema rejects.
      */
     public setBlock(x: number, y: number, z: number, block: Block, layer = 0): void {
-        this.setBlockRuntimeId(x, y, z, BlockRuntimeIds.getByName(block.getStateName()), layer);
+        const name = block.getStateName();
+        const runtimeId = BlockRuntimeIds.tryGetByState(name, block.states);
+        if (runtimeId === null) {
+            throw new Error(`No block state registered for ${name} with ${JSON.stringify(block.states)}`);
+        }
+
+        this.setBlockRuntimeId(x, y, z, runtimeId, layer);
     }
 
     /**

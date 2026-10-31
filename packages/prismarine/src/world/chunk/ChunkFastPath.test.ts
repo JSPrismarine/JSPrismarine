@@ -56,6 +56,20 @@ describe('world', () => {
             expect(viaId.getBlock(7, 64, 7).name).toBe(viaBlock.getBlock(7, 64, 7).name);
         });
 
+        it('setBlock places the state the block carries, not the default', () => {
+            // A log lying along x is a different runtime id from one standing up. Resolving
+            // the block by name alone would quietly place the default and lose the axis.
+            const sideways = new Block({ name: 'minecraft:oak_log', states: { pillar_axis: 'x' } });
+
+            const chunk = new Chunk(0, 0);
+            chunk.setBlock(7, 64, 7, sideways);
+
+            expect(chunk.getBlockRuntimeId(7, 64, 7)).toBe(
+                BlockRuntimeIds.tryGetByState('minecraft:oak_log', { pillar_axis: 'x' })
+            );
+            expect(chunk.getBlock(7, 64, 7).properties).toEqual({ pillar_axis: 'x' });
+        });
+
         it('keeps the palette in the order blocks were first seen', () => {
             // The palette is written to the wire in order, so the index a block gets must
             // still be the position of its first appearance.
