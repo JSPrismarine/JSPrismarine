@@ -137,9 +137,11 @@ export const entityRefOf = (entity: Entity): EntityRef => ({
  * @returns The entity, or undefined when it has since despawned.
  */
 export const resolveEntity = (server: Server, ref: EntityRef): Entity | undefined => {
-    for (const world of server.getWorldManager().getWorlds()) {
-        for (const entity of world.getEntities()) {
-            if (entity.getRuntimeId().toString() === ref.id) return entity;
+    for (const level of server.getWorldManager().getLevels()) {
+        for (const world of level.worlds()) {
+            for (const entity of world.getEntities()) {
+                if (entity.getRuntimeId().toString() === ref.id) return entity;
+            }
         }
     }
     return undefined;

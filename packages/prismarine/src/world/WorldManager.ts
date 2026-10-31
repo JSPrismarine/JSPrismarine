@@ -197,15 +197,6 @@ export default class WorldManager implements Service {
         return prepared.level;
     }
 
-    /**
-     * Loads a level and answers its Overworld, built if the entry marks it lazy.
-     * @deprecated Use {@link WorldManager.loadLevel}. Removed in the next release.
-     */
-    public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
-        const level = await this.loadLevel(worldData, folderName);
-        return level.world(OVERWORLD_STEM_ID);
-    }
-
     /** Waits for a level's enabling, then writes the stems into a save that had none. */
     private async finishLoading({ level, firstLoad }: PreparedLevel, enabling: Promise<void>): Promise<void> {
         await enabling;
@@ -425,15 +416,6 @@ export default class WorldManager implements Service {
      */
     public getWorldByName(folderName: string): World | null {
         return this.getLevel(folderName)?.loadedWorld(OVERWORLD_STEM_ID) ?? null;
-    }
-
-    /**
-     * Every loaded world of every loaded level.
-     * @deprecated Ask a {@link Level} for its worlds, or the manager for
-     *   {@link WorldManager.getWorldByDimension}. Removed in the next release.
-     */
-    public getWorlds(): World[] {
-        return this.getLevels().flatMap((level) => [...level.worlds()]);
     }
 
     /**

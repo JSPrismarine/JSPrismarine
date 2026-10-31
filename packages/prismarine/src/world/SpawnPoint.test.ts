@@ -51,6 +51,7 @@ import type WorldManager from './WorldManager';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
+import type { Level } from './Level';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };
@@ -111,6 +112,7 @@ const generator = (): Generator => ({
 const buildScene = async (name: string) => {
     const folder = path.join(scratch, 'worlds', name);
     let world: World | undefined;
+    let level: Level | undefined;
     let content: ServerContent | undefined;
 
     const server: Server = stub<Server>({
@@ -131,7 +133,7 @@ const buildScene = async (name: string) => {
         getEntityRuntime: () => inertEntityRuntime(),
         getWorldManager: () =>
             stub<WorldManager>({
-                getWorlds: () => (world === undefined ? [] : [world]),
+                getLevels: () => (level === undefined ? [] : [level]),
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 getDefaultWorld: () => world!
             }),
@@ -148,7 +150,7 @@ const buildScene = async (name: string) => {
     });
 
     // The spawn is known before the world opens, so enabling it searches for nothing.
-    const level = testLevel({
+    level = testLevel({
         name,
         path: folder,
         server,

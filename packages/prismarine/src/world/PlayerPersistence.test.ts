@@ -53,9 +53,9 @@ const BOX_SLOT = 8;
 let scratch: string;
 let previousDirectory: string | undefined;
 
-const testServer = (worlds: () => World[] = () => []): Server => {
+const testServer = (): Server => {
     const server: Server = stub<Server>({
-        getWorldManager: () => stub<WorldManager>({ getWorlds: () => worlds() }),
+        getWorldManager: () => stub<WorldManager>({}),
         on: () => server,
         post: () => 0,
         emit: async () => {},
@@ -143,13 +143,10 @@ const pickaxe = (): Item => {
 
 /** Logs a player out of a world and brings a fresh one back into it. */
 const logOutAndIn = async () => {
-    let built: World | undefined;
-    const server = testServer(() => (built === undefined ? [] : [built]));
+    const server = testServer();
     const level = buildLevel(server);
     await level.enable();
     const world = await level.world(OVERWORLD_STEM_ID);
-    built = world;
-
     const uuid = UUID.fromRandom();
     const leaving = buildPlayer(world, server, uuid);
     const inventory = leaving.getInventory();
@@ -186,7 +183,6 @@ const logOutAndIn = async () => {
     const reopened = buildLevel(server);
     await reopened.enable();
     const back = await reopened.world(OVERWORLD_STEM_ID);
-    built = back;
 
     const returning = buildPlayer(back, server, uuid);
     await returning.enable();

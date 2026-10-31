@@ -79,7 +79,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         removeListener: () => server,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
-        getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world], getDefaultWorld: () => world }),
+        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
         getContent: () => testContent(),

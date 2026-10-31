@@ -19,6 +19,7 @@ import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
 import { Dimensions } from '../world/Dimension';
 import { Position } from '../world/Position';
+import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { CommandParameterFlags } from '@jsprismarine/protocol/wire/structures/CommandParameter';
@@ -98,7 +99,7 @@ describe('command', () => {
                 }
             });
             const world = stub<World>({ getGameRuleManager: () => gameRules });
-            const worldManager = stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] });
+            const worldManager = stub<WorldManager>({ getDefaultWorld: () => world });
 
             return {
                 can,
@@ -380,7 +381,16 @@ describe('command', () => {
                     getConsoleSender: () => console,
                     getChatManager: () => stub<ChatManager>({ send: async () => {} }),
                     getWorldManager: () =>
-                        stub<WorldManager>({ getWorlds: () => [world], getDefaultWorld: () => world })
+                        stub<WorldManager>({
+                            getDefaultWorld: () => world,
+                            getLevels: () => [
+                                stub<Level>({
+                                    worlds: function* () {
+                                        yield world;
+                                    }
+                                })
+                            ]
+                        })
                 });
                 const permissionOwner = stub<Player>({
                     getName: () => 'Filfat',

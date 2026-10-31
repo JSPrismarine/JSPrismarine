@@ -121,7 +121,12 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
             enumerable: true,
             value: Object.freeze({
                 server,
-                worlds: () => server.getWorldManager().getWorlds(),
+                levels: () => server.getWorldManager().getLevels(),
+                worlds: () =>
+                    server
+                        .getWorldManager()
+                        .getLevels()
+                        .flatMap((level) => [...level.worlds()]),
                 world: (name: string) => server.getWorldManager().getWorldByName(name),
                 entities: (name: string) => server.getWorldManager().getWorldByName(name)?.getEntities() ?? [],
                 entityRuntime: (dimension: string) => server.getEntityRuntime(dimension)

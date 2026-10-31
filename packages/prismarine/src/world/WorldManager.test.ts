@@ -182,7 +182,7 @@ describe('WorldManager', () => {
         expect(manager.getDefaultLevel().name).toBe('main');
         expect(manager.getDefaultWorld()).toBe(manager.getDefaultLevel().loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getWorldByName('other')).toBe(manager.getLevel('other')?.loadedWorld(OVERWORLD_STEM_ID));
-        expect(manager.getWorlds()).toHaveLength(2);
+        expect(manager.getLevels().flatMap((level) => [...level.worlds()])).toHaveLength(2);
 
         await manager.disable();
         expect(manager.getLevels()).toEqual([]);

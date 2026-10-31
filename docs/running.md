@@ -141,6 +141,7 @@ The DevTools Console exposes a `jsprismarine` handle to live server objects:
 
 ```javascript
 jsprismarine.server.getTick()
+jsprismarine.levels()
 jsprismarine.worlds()
 jsprismarine.entities('world')
 jsprismarine.entityRuntime('minecraft:overworld').runtime

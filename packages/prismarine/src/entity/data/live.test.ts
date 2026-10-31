@@ -684,8 +684,7 @@ const liveWorld = (
         getWorldManager: () =>
             stub<WorldManager>({
                 getDefaultWorld: () => world,
-                getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
-                getWorlds: () => [world]
+                getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined)
             }),
         getContent: () => content
     });

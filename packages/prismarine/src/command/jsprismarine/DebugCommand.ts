@@ -88,11 +88,12 @@ export default class DebugCommand extends Command {
                     asyncCommand(async (context) => {
                         const source = context.getSource();
 
-                        const worlds = source.getServer().getWorldManager().getWorlds();
-                        await source.sendMessage(`§dWorlds Loaded§r (${worlds.length}):`);
+                        const levels = source.getServer().getWorldManager().getLevels();
+                        const worlds = levels.flatMap((level) => [...level.worlds()]);
+                        await source.sendMessage(`§dWorlds Loaded§r (${worlds.length}, in ${levels.length} levels):`);
                         for (const world of worlds) {
                             await source.sendMessage(
-                                `- uuid: §a${world.getUUID()}§r, name: §b${world.getName()}§r, ticks: §b${world.getTicks()}§r`
+                                `- uuid: §a${world.getUUID()}§r, name: §b${world.getName()}§r, level: §b${world.getLevel().getName()}§r, ticks: §b${world.getTicks()}§r`
                             );
 
                             const gameRules = Array.from(world.getGameRuleManager()?.getGameRules() || []);

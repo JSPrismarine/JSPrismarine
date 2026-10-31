@@ -156,27 +156,31 @@ const buildFixture = (): Fixture => {
     });
     let ticks = 0;
 
+    // Two stems, so `/execute in the_nether` parses; the Nether's world is built by `worldFor`
+    // alone, as a lazy dimension's is, so only the Overworld is among the loaded worlds.
+    const level = stub<Level>({
+        getStems: () =>
+            new Map<string, LevelStem>([
+                [Dimensions.Overworld.id, { type: Dimensions.Overworld.id, generator: DEBUG }],
+                [Dimensions.Nether.id, { type: Dimensions.Nether.id, generator: DEBUG }]
+            ]),
+        worlds: function* () {
+            yield world;
+        }
+    });
+
     const server: Server = stub<Server>({
         getLogger: () => stub({ debug: () => {}, verbose: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         getWorldManager: () =>
             stub<WorldManager>({
                 getDefaultWorld: () => world,
-                // Two stems, so `/execute in the_nether` parses; the Nether's world is built
-                // by `worldFor` alone, as a lazy dimension's is.
-                getDefaultLevel: () =>
-                    stub<Level>({
-                        getStems: () =>
-                            new Map<string, LevelStem>([
-                                [Dimensions.Overworld.id, { type: Dimensions.Overworld.id, generator: DEBUG }],
-                                [Dimensions.Nether.id, { type: Dimensions.Nether.id, generator: DEBUG }]
-                            ])
-                    }),
+                getDefaultLevel: () => level,
+                getLevels: () => [level],
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 worldFor: async (dimension) => {
                     if (dimension !== Dimensions.Nether.id) throw new Error(`no ${dimension} here`);
                     return nether;
-                },
-                getWorlds: () => [world]
+                }
             }),
         getSessionManager: () => stub({ getAllPlayers: () => players }),
         getPermissionManager: () =>
