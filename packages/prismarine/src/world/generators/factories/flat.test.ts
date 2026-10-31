@@ -3,24 +3,41 @@ import { describe, expect, it } from 'vitest';
 import type { FlatGeneratorSettings } from '@jsprismarine/worldgen';
 
 import { testContent } from '../../../testing/entityServer';
+import { stub } from '../../../testing/stub.test.helper';
 import { Dimensions } from '../../Dimension';
 import type { DimensionType } from '../../Dimension';
 import type { GeneratorBuildContext } from '../../GeneratorFactories';
 import { GeneratorFactories } from '../../GeneratorFactories';
+import type { JavaWorldgenRegistries } from '../datadriven/javaWorldgenData';
 import { bedrockBiomeIdOf } from '../datadriven/javaTranslation';
 import { FLAT_SEA_LEVEL, FlatGenerator } from '../Flat';
 import { DEFAULT_FLAT_SETTINGS, flatGeneratorFactory, flatStem } from './flat';
 
-const contextFor = (dimension: DimensionType, settings: FlatGeneratorSettings): GeneratorBuildContext => ({
+const contextFor = (
+    dimension: DimensionType,
+    settings: FlatGeneratorSettings | string,
+    worldgen: () => JavaWorldgenRegistries = () => {
+        throw new Error('A flat world with its own layers never reads the Java registries');
+    }
+): GeneratorBuildContext => ({
     stem: flatStem(dimension.id, settings),
     dimension,
     seed: 1n,
     content: testContent,
-    worldgen: () => {
-        throw new Error('A flat world never reads the Java registries');
-    },
+    worldgen,
     logger: { info: () => {}, warn: () => {} }
 });
+
+/**
+ * Registries carrying one `worldgen/flat_level_generator_preset`, in the datapack's shape: the
+ * settings object under `settings`, beside the `display` item the preset picker shows.
+ */
+const registriesWithPreset = (id: string, settings: Record<string, unknown>): (() => JavaWorldgenRegistries) => {
+    const registries = stub<JavaWorldgenRegistries>({
+        flatLevelGeneratorPresets: new Map([[id, { display: 'minecraft:stone', settings }]])
+    });
+    return () => registries;
+};
 
 /**
  * Layers out of the two blocks the fixture content knows. A real Nether preset would say
@@ -100,6 +117,46 @@ describe('the minecraft:flat factory', () => {
         expect(chunk.getBlock(0, -63, 0).name).toBe('minecraft:stone');
         expect(warnings).toEqual(['Flat layer block minecraft:not_a_block is unknown and generates as air']);
         expect(generator.surfaceAt()).toEqual({ y: -63, name: 'minecraft:stone' });
+    });
+
+    it('resolves a flat_level_generator_preset id through the pack stack', async () => {
+        const generator = flatGeneratorFactory.build(
+            contextFor(
+                Dimensions.Nether,
+                'test:nether_flat',
+                registriesWithPreset('test:nether_flat', {
+                    biome: 'minecraft:crimson_forest',
+                    layers: [
+                        { block: 'minecraft:redstone_lamp', height: 1 },
+                        { block: 'minecraft:stone', height: 3 }
+                    ]
+                })
+            )
+        );
+        const chunk = await generator.generateChunk(0, 0, 1n);
+
+        expect(chunk.getBlock(0, 0, 0).name).toBe('minecraft:redstone_lamp');
+        expect(chunk.getBlock(7, 3, 7).name).toBe('minecraft:stone');
+        expect(chunk.getBlock(7, 4, 7).name).toBe('minecraft:air');
+        expect(chunk.getBiome(0, 0, 0)).toBe(bedrockBiomeIdOf('minecraft:crimson_forest'));
+    });
+
+    it('refuses a preset id no pack defines, naming the registry', () => {
+        expect(() =>
+            flatGeneratorFactory.build(
+                contextFor(Dimensions.Nether, 'test:missing', registriesWithPreset('test:other', { layers: [] }))
+            )
+        ).toThrowError(
+            'The minecraft:the_nether stem names the flat preset test:missing, which no worldgen/flat_level_generator_preset document defines'
+        );
+    });
+
+    it('refuses a preset whose settings do not parse, naming the document', () => {
+        expect(() =>
+            flatGeneratorFactory.build(
+                contextFor(Dimensions.Nether, 'test:broken', registriesWithPreset('test:broken', { layers: 'none' }))
+            )
+        ).toThrowError('worldgen/flat_level_generator_preset/test:broken.settings.layers');
     });
 
     it('floods to nothing: its sea level is one above the Overworld floor, as in Java', () => {

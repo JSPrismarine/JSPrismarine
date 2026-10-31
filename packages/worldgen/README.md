@@ -135,8 +135,9 @@ path-qualified errors. `parseDimensionType` reads a `dimension_type` file in its
 (`has_fixed_time`, `skybox`, `cardinal_light`, `attributes`), applies the wiki's defaults for the
 absent fields and keeps `attributes` as a map of raw JSON. `parseLevelStem` reads a stem's
 `type` and `generator`; a `minecraft:noise` generator keeps its `settings` id and parses its
-`biome_source`, a `minecraft:flat` generator parses its layers, `minecraft:debug` has no fields,
-and an unknown kind keeps `{ type, settings }` for a generator factory to read.
+`biome_source`, a `minecraft:flat` generator parses its layers or keeps the
+`flat_level_generator_preset` id it names for a generator factory to resolve, `minecraft:debug`
+has no fields, and an unknown kind keeps `{ type, settings }` for a generator factory to read.
 `parseWorldPreset` reads a `worldgen/world_preset` file into a map of stems and requires
 `minecraft:overworld`. `parseFlatGeneratorSettings` reads the `settings` object of a flat
 generator or a `flat_level_generator_preset`, with Java's `height` per layer rather than this

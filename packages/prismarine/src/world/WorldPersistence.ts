@@ -107,9 +107,13 @@ export const worldPersistenceJsonOf = (data: WorldPersistenceData): Record<strin
 export const isNoiseGenerator = (generator: GeneratorDefinition): generator is NoiseGeneratorDefinition =>
     generator.type === 'minecraft:noise';
 
-/** Whether a stem's generator is `minecraft:flat`, narrowing it to its layers. */
+/**
+ * Whether a stem's generator is `minecraft:flat` with its layers in the stem, narrowing it to
+ * them. A flat stem that names a `flat_level_generator_preset` instead is not one: its layers
+ * live in the pack stack, and the stem is written back as the id it was read with.
+ */
 export const isFlatGenerator = (generator: GeneratorDefinition): generator is FlatGeneratorDefinition =>
-    generator.type === 'minecraft:flat';
+    generator.type === 'minecraft:flat' && 'settings' in generator && typeof generator.settings === 'object';
 
 /** A parsed level stem as the Java `dimension` document it came from. */
 export const levelStemJsonOf = (stem: LevelStem): Record<string, unknown> => ({

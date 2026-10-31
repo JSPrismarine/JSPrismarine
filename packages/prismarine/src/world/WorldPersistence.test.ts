@@ -138,6 +138,10 @@ describe('persisted stems', () => {
                 }
             }
         },
+        'mypack:preset_flat': {
+            type: 'minecraft:overworld',
+            generator: { type: 'minecraft:flat', settings: 'minecraft:classic_flat' }
+        },
         'mypack:debug': { type: 'minecraft:overworld', generator: { type: 'minecraft:debug' } },
         'mypack:void': {
             type: 'minecraft:overworld',
@@ -165,6 +169,7 @@ describe('persisted stems', () => {
                     'minecraft:the_end': stems['minecraft:the_end'],
                     'mypack:checker': stems['mypack:checker'],
                     'mypack:one': stems['mypack:one'],
+                    'mypack:preset_flat': stems['mypack:preset_flat'],
                     'mypack:debug': stems['mypack:debug'],
                     'mypack:void': stems['mypack:void'],
                     'mypack:flat': {

@@ -28,6 +28,20 @@ export interface FlatGeneratorDefinition {
     readonly settings: FlatGeneratorSettings;
 }
 
+/**
+ * A `minecraft:flat` generator that names a `worldgen/flat_level_generator_preset` instead of
+ * carrying its settings, as Java's `world_gen_settings` allows.
+ *
+ * The preset registry belongs to whoever loaded the pack stack, so the id is kept for the
+ * generator factory to resolve; the preset document's `settings` object is what
+ * `parseFlatGeneratorSettings` then reads.
+ */
+export interface FlatPresetGeneratorDefinition {
+    readonly type: 'minecraft:flat';
+    /** The `worldgen/flat_level_generator_preset` id, namespaced. */
+    readonly settings: string;
+}
+
 /** The `minecraft:debug` generator, which has no fields. */
 export interface DebugGeneratorDefinition {
     readonly type: 'minecraft:debug';
@@ -42,7 +56,11 @@ export interface UnknownGeneratorDefinition {
 
 /** The `generator` object of a level stem, a tagged union on `type`. */
 export type GeneratorDefinition =
-    NoiseGeneratorDefinition | FlatGeneratorDefinition | DebugGeneratorDefinition | UnknownGeneratorDefinition;
+    | NoiseGeneratorDefinition
+    | FlatGeneratorDefinition
+    | FlatPresetGeneratorDefinition
+    | DebugGeneratorDefinition
+    | UnknownGeneratorDefinition;
 
 /** One dimension of a world: a `dimension_type` id bound to a generator. */
 export interface LevelStem {
@@ -54,6 +72,9 @@ export interface LevelStem {
 
 /**
  * Reads the `generator` object of a level stem.
+ *
+ * A `minecraft:flat` generator's `settings` is either the settings object or a
+ * `flat_level_generator_preset` id; the id is normalized and kept as a string.
  *
  * @param path - Where the document came from, for error messages.
  * @throws When `type` is missing, or a known kind lacks its fields.
@@ -73,8 +94,12 @@ export const parseGeneratorDefinition = (json: unknown, path = '<generator>'): G
                 biomeSource: parseBiomeSourceDefinition(raw['biome_source'], `${path}.biome_source`)
             };
         }
-        case 'minecraft:flat':
-            return { type, settings: parseFlatGeneratorSettings(raw['settings'], `${path}.settings`) };
+        case 'minecraft:flat': {
+            const settings = raw['settings'];
+            return typeof settings === 'string'
+                ? { type, settings: normalizeIdentifier(settings) }
+                : { type, settings: parseFlatGeneratorSettings(settings, `${path}.settings`) };
+        }
         case 'minecraft:debug':
             return { type };
         default:

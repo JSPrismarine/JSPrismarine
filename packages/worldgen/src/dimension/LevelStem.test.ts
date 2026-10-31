@@ -53,6 +53,15 @@ describe('parseLevelStem', () => {
         });
     });
 
+    it('keeps a flat_level_generator_preset id for the generator factory to resolve', () => {
+        // Java's `world_gen_settings` allows the id in place of the settings object; the
+        // registry that resolves it belongs to the server, so the parser passes it on.
+        expect(parseGeneratorDefinition({ type: 'minecraft:flat', settings: 'classic_flat' })).toEqual({
+            type: 'minecraft:flat',
+            settings: 'minecraft:classic_flat'
+        });
+    });
+
     it('reads the debug generator and expands a bare type', () => {
         expect(parseLevelStem({ type: 'overworld', generator: { type: 'debug' } })).toEqual({
             type: 'minecraft:overworld',
