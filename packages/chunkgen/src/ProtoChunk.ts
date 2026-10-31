@@ -51,6 +51,12 @@ export interface ProtoEntitySpawn {
     readonly z: number;
     /** Which way it faces, in degrees. */
     readonly yaw: number;
+    /** The block an end crystal's beam points at, Java's `crystal_beam_target`. */
+    readonly beamTarget?: { readonly x: number; readonly y: number; readonly z: number };
+    /** Whether an end crystal renders its base plate; absent keeps the client default, true. */
+    readonly showBottom?: boolean;
+    /** Whether the entity ignores damage, Java's `crystal_invulnerable`. */
+    readonly invulnerable?: boolean;
 }
 
 /** Where a proto chunk sits and how tall it is. */

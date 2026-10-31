@@ -46,7 +46,16 @@ const populated = (): ProtoChunk => {
         id: 'minecraft:chest',
         lootTable: 'minecraft:chests/village/village_plains_house'
     });
-    chunk.addEntitySpawn({ type: 'minecraft:end_crystal', x: originX + 8.5, y: 41, z: originZ + 8.5, yaw: 90 });
+    chunk.addEntitySpawn({
+        type: 'minecraft:end_crystal',
+        x: originX + 8.5,
+        y: 41,
+        z: originZ + 8.5,
+        yaw: 90,
+        beamTarget: { x: 0, y: 128, z: 0 },
+        showBottom: false,
+        invulnerable: true
+    });
     return chunk;
 };
 
@@ -188,7 +197,16 @@ describe('crossing a thread boundary', () => {
             }
         ]);
         expect(rebuilt.recordedEntitySpawns).toHaveLength(1);
-        expect(rebuilt.recordedEntitySpawns[0]?.type).toBe('minecraft:end_crystal');
+        expect(rebuilt.recordedEntitySpawns[0]).toEqual({
+            type: 'minecraft:end_crystal',
+            x: originX + 8.5,
+            y: 41,
+            z: originZ + 8.5,
+            yaw: 90,
+            beamTarget: { x: 0, y: 128, z: 0 },
+            showBottom: false,
+            invulnerable: true
+        });
     });
 
     it('detaches the source buffers, so the bytes moved rather than being copied', () => {
