@@ -1,3 +1,4 @@
+import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Dimension } from '@jsprismarine/minecraft';
 import {
@@ -28,7 +29,7 @@ import { describe, expect, it } from 'vitest';
 import type { Entity } from '../entity/Entity';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { Dimensions } from '../world/DimensionType';
+import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../world/DimensionType';
 import type { DimensionType } from '../world/DimensionType';
 import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
@@ -193,6 +194,47 @@ describe('PlayerSession.changeWorld', () => {
         expect(new Set(ids).size).toBe(4);
         expect(ids.at(-1)).toBe(session.pendingDimensionChange()?.loadingScreenId);
         for (const id of ids) expect(session.endLoadingScreen(id!)).toBe(true);
+    });
+
+    it('refuses a second change while the first is still pending, leaving every roster alone', async () => {
+        const { player, roster, sent, logged } = fakePlayer();
+        const session = player.getNetworkSession();
+        const first = worldOf(Dimensions.Nether, roster);
+        const second = worldOf(Dimensions.TheEnd, roster);
+
+        await session.changeWorld(arrivalIn(first));
+        const pending = session.pendingDimensionChange();
+        sent.length = 0;
+
+        // A player who arrived inside the exit portal is ticked while the client still shows
+        // the loading screen, and is in the portal again once the cooldown runs out.
+        await session.changeWorld(arrivalIn(second));
+
+        expect(roster).toEqual(['save', 'remove', 'add']);
+        expect(sent).toHaveLength(0);
+        expect(player.getWorld()).toBe(first);
+        expect(session.pendingDimensionChange()).toBe(pending);
+        expect(logged.at(-1)).toContain('pending');
+    });
+
+    it('refuses a target of a custom dimension type, which no client has been seen to accept', async () => {
+        const { player, server, roster, sent } = fakePlayer();
+        const session = player.getNetworkSession();
+        const errors: string[] = [];
+        server.getLogger = () =>
+            stub<Logger>({ debug: () => {}, verbose: () => {}, error: (message) => void errors.push(String(message)) });
+        const sky = dimensionTypeOf(Dimensions.Overworld.java, 'mypack:sky', FIRST_CUSTOM_DIMENSION_ID);
+        const origin = player.getWorld();
+        sent.length = 0;
+
+        await session.changeWorld(arrivalIn(worldOf(sky, roster)));
+
+        expect(roster).toEqual([]);
+        expect(sent).toHaveLength(0);
+        expect(player.getWorld()).toBe(origin);
+        expect(session.pendingDimensionChange()).toBeUndefined();
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toContain('mypack:sky');
     });
 
     it('passes a respawn through to the client', async () => {

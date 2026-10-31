@@ -25,6 +25,7 @@ import { fixtureContentOptions } from '../../content/testing';
 import { serverWorldSource } from '../../content/world/serverSource';
 import { EventEmitter } from '../../events/EventEmitter';
 import { Entity } from '../../entity/Entity';
+import { eyePositionAt } from '../../entity/Human';
 import { Item } from '../../entity/other/Item';
 import type ClientConnection from '../../network/ClientConnection';
 import { createConnectedPlayer } from '../../network/createConnectedPlayer';
@@ -477,6 +478,27 @@ describe('DimensionTravel.touch', () => {
         await scene.level.disable();
     }, 60_000);
 
+    it('ignores a player whose client is still on the loading screen of the last change', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.nether, new Vector3(12, 70, 0), 'z');
+        const player = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(player);
+        await scene.travel.transfer(player, {
+            world: scene.nether,
+            position: new Vector3(12.5, 70, 0.5),
+            yaw: 0,
+            pitch: 0
+        });
+        // Past the 10 tick cooldown, with the screen never closed.
+        player.setPortalCooldown(0);
+
+        scene.travel.touch(player, portalAt(scene.nether, new Vector3(12, 70, 0)));
+
+        expect(player.portalContact()).toBeUndefined();
+
+        await scene.level.disable();
+    }, 60_000);
+
     it('ignores an entity on portal cooldown', async () => {
         const scene = await buildScene();
         const item = itemAt(scene.overworld, new Vector3(80.5, 64, 0.5));
@@ -635,6 +657,39 @@ describe('DimensionTravel through the tick', () => {
 
         expect(bot.getWorld()).toBe(scene.nether);
         expect(scene.overworld.getPlayers()).not.toContain(bot);
+        expect(scene.nether.getPlayers()).toContain(bot);
+
+        await scene.level.disable();
+    }, 60_000);
+
+    it('does not start a second trip for a bot that sits on the loading screen inside the arrival portal', async () => {
+        const scene = await buildScene();
+        await lightPortal(scene.overworld, new Vector3(80, 64, 0), 'x');
+        const bot = playerAt(scene.server, scene.overworld, new Vector3(80.5, 64, 0.5));
+        await scene.overworld.addEntity(bot);
+        for (let tick = 1; tick <= 80; tick += 1) await scene.overworld.update(tick);
+        const pending = bot.getNetworkSession().pendingDimensionChange();
+        expect(pending?.arrival.world).toBe(scene.nether);
+        expect(scene.nether.getPortalIndex().has({ x: 9, y: 70, z: 0 })).toBe(true);
+        const entered: Entity[] = [];
+        scene.server.on('entityPortalEnter', (event) => void entered.push(event.getEntity()));
+
+        // The bot stands in the portal the trip built. Its 10 tick cooldown runs out while the
+        // client has still not closed the screen, and the Nether keeps ticking it.
+        // Stood in the portal by hand: `changeWorld` writes the arrival, which is a feet
+        // position, as the player's eye position, so the bot would otherwise arrive 1.62
+        // blocks down in the obsidian floor. That is a separate defect from the one here.
+        await bot.setPosition(
+            { position: Position.fromVector3(eyePositionAt(new Vector3(9.5, 70, 0.5)), scene.nether) },
+            false
+        );
+        for (let tick = 81; tick <= 180; tick += 1) await scene.nether.update(tick);
+
+        // The world never dispatched a touch for the bot, so no contact and no event.
+        expect(entered).toEqual([]);
+        expect(bot.getWorld()).toBe(scene.nether);
+        expect(bot.portalContact()).toBeUndefined();
+        expect(bot.getNetworkSession().pendingDimensionChange()).toBe(pending);
         expect(scene.nether.getPlayers()).toContain(bot);
 
         await scene.level.disable();

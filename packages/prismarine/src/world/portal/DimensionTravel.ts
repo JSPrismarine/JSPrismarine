@@ -85,6 +85,16 @@ const feetOf = (entity: Entity): Vector3 => {
     return new Vector3(at.getX(), entity.getFeetY(), at.getZ());
 };
 
+/**
+ * Whether an entity is a player whose client has not yet closed the loading screen of its
+ * last world change.
+ *
+ * Such a player is still ticked, standing in the arrival portal, and must not start another
+ * trip: `PlayerSession.changeWorld` would refuse it, after the contact had already run.
+ */
+export const isMidDimensionChange = (entity: Entity): boolean =>
+    entity instanceof Player && entity.getNetworkSession().pendingDimensionChange() !== undefined;
+
 /** The portal and End travel service of one server. */
 export class DimensionTravel {
     public constructor(private readonly server: Server) {}
@@ -95,11 +105,12 @@ export class DimensionTravel {
      * The world calls this once per tick per entity standing in a portal. The first touch
      * raises a cancelable `EntityPortalEnterEvent` and opens the entity's contact timer; later
      * touches keep it counting. Nothing happens for an entity on portal cooldown, as in Java's
-     * `handlePortal`, or for one that rides or carries another, which Bedrock refuses to send
-     * through (MCPE-47288).
+     * `handlePortal`, for one that rides or carries another, which Bedrock refuses to send
+     * through (MCPE-47288), or for a player whose client is still on the loading screen of
+     * the last change.
      */
     public touch(entity: Entity, portal: PortalBlockRef): void {
-        if (entity.isOnPortalCooldown() || this.isInRide(entity)) return;
+        if (entity.isOnPortalCooldown() || isMidDimensionChange(entity) || this.isInRide(entity)) return;
 
         if (entity.portalContact() === undefined) {
             const event = new EntityPortalEnterEvent(entity, portal);

@@ -59,6 +59,7 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
 import { startProfileSpan } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
 import { isPortalBlock } from './portal/rules';
@@ -2425,14 +2426,16 @@ export class World implements Service {
      * Tells the travel service about every entity whose body overlaps a portal block this tick.
      *
      * One touch per entity, for the first portal block found walking the body's cells from the
-     * feet up: a body in two portal blocks at once is in one portal.
+     * feet up: a body in two portal blocks at once is in one portal. A player whose client is
+     * still on the loading screen of the last change is skipped: another change would be
+     * refused, so the body scan is not worth running.
      */
     private touchPortals(entities: readonly Entity[]): void {
         const travel = this.server.getDimensionTravel?.();
         if (travel === undefined) return;
 
         for (const entity of entities) {
-            if (entity.isOnPortalCooldown()) continue;
+            if (entity.isOnPortalCooldown() || isMidDimensionChange(entity)) continue;
             const portal = this.portalOverlapping(entity);
             if (portal !== undefined) travel.touch(entity, portal);
         }

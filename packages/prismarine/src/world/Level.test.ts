@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
+import type PlayerSession from '../network/PlayerSession';
 import Player from '../Player';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
@@ -335,6 +336,8 @@ describe('Level', () => {
                 getFeetY: () => position.getY() - 1.62,
                 getBox: () => ({ width: 0.6, height: 1.8 }),
                 isOnPortalCooldown: () => false,
+                // A settled client: the portal pass asks whether a change is still pending.
+                getNetworkSession: () => stub<PlayerSession>({ pendingDimensionChange: () => undefined }),
                 update: async (tick) => {
                     updates.push(tick);
                     if (position.getWorld() !== from) return;

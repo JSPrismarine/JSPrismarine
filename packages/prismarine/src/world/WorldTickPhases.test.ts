@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { Attributes, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from '../entity/Entity';
+import type PlayerSession from '../network/PlayerSession';
 import Player from '../Player';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
@@ -227,6 +228,8 @@ describe('world portal contacts', () => {
             getFeetY: () => feet.getY(),
             getBox: () => ({ width: 0.6, height: 1.8 }),
             isOnPortalCooldown: () => onCooldown,
+            // A settled client: no world change is waiting on its loading screen.
+            getNetworkSession: () => stub<PlayerSession>({ pendingDimensionChange: () => undefined }),
             getType: () => 'minecraft:player',
             update: async () => {}
         });
