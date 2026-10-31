@@ -67,17 +67,24 @@ export const doorFamily = defineFamily(
             if (!hasState(event.block, 'upper_block_bit')) return;
             if (stateBoolean(event.block, 'upper_block_bit')) return;
 
-            const facing = placementFacing(event) ?? cardinalFacing(event.block);
+            // Java's `DoorBlock.getStateForPlacement` keeps the placer's horizontal
+            // direction, but Bedrock spells a door's `minecraft:cardinal_direction` a
+            // quarter turn clockwise of Java's `facing` (the Geyser-derived table maps Java
+            // `north` to Bedrock `east`), so the state rotates while the hinge geometry
+            // keeps the real facing. A placement the world performed reads the facing back
+            // out of the already-Bedrock state.
+            const facing = placementFacing(event) ?? rotateCounterClockwise(cardinalFacing(event.block));
             const hinge = doorHinge(world, event.block, facing);
+            const stored = rotateClockwise(facing);
 
             setStates(world, event.block, {
-                'minecraft:cardinal_direction': facing,
+                'minecraft:cardinal_direction': stored,
                 door_hinge_bit: hinge,
                 upper_block_bit: false
             });
             world.setBlock(offset(event.block.position, 'up'), event.block.identifier, {
                 ...event.block.states,
-                'minecraft:cardinal_direction': facing,
+                'minecraft:cardinal_direction': stored,
                 door_hinge_bit: hinge,
                 upper_block_bit: true
             });

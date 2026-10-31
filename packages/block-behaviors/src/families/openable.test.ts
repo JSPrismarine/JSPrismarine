@@ -53,12 +53,39 @@ describe('doorFamily', () => {
     it('places the upper half with the same facing and hinge', () => {
         const harness = doorHarness();
 
+        // The placer stands north of the door looking south, which the mapping stores as
+        // Bedrock `west`; see the placement test below for the convention.
         harness.place(lower, { placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: -4 } } });
 
         expect(harness.dimension.identifierAt(upper)).toBe('minecraft:wooden_door');
         expect(harness.dimension.stateAt(upper, 'upper_block_bit')).toBe(true);
-        expect(harness.dimension.stateAt(upper, 'minecraft:cardinal_direction')).toBe('south');
-        expect(harness.dimension.stateAt(lower, 'minecraft:cardinal_direction')).toBe('south');
+        expect(harness.dimension.stateAt(upper, 'minecraft:cardinal_direction')).toBe('west');
+        expect(harness.dimension.stateAt(lower, 'minecraft:cardinal_direction')).toBe('west');
+    });
+
+    it('stores the cardinal a quarter turn clockwise of the look direction', () => {
+        // Java's `DoorBlock.getStateForPlacement` keeps the placer's horizontal direction
+        // unopposed, and the Geyser-derived table turns a door's Java `facing` a quarter turn
+        // clockwise into Bedrock's `minecraft:cardinal_direction`: Java `north` is Bedrock
+        // `east`. Writing the look direction unrotated left every placed door a quarter turn
+        // off vanilla.
+        const placements = [
+            { yaw: 180, stored: 'east' }, // looking north
+            { yaw: 270, stored: 'south' }, // looking east
+            { yaw: 0, stored: 'west' }, // looking south
+            { yaw: 90, stored: 'north' } // looking west
+        ] as const;
+
+        for (const { yaw, stored } of placements) {
+            const harness = doorHarness();
+
+            harness.place(lower, {
+                placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 1, z: 0 }, yaw }
+            });
+
+            expect(harness.dimension.stateAt(lower, 'minecraft:cardinal_direction')).toBe(stored);
+            expect(harness.dimension.stateAt(upper, 'minecraft:cardinal_direction')).toBe(stored);
+        }
     });
 
     it('toggles both halves on interact', () => {
