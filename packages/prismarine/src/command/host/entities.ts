@@ -21,6 +21,7 @@ import { DamageSource } from '../../entity/DamageSource';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
 import type { Entity } from '../../entity/Entity';
 import type { ExperienceHolder } from '../../entity/Experience';
+import { eyePositionAt } from '../../entity/Human';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
@@ -255,10 +256,14 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
 
             // A thunk rather than a promise: `setPosition` starts the moment it is
             // called, and a cross-dimension move has to know its destination first.
+            //
+            // The coordinates are feet, as Java reads them. A player's position is their
+            // eyes, so it is raised here the way `changeWorld` raises its arrival; every
+            // other entity's position is already its feet.
             const move = async () =>
                 entity instanceof Player
                     ? entity.setPosition({
-                          position: vectorOf(position),
+                          position: eyePositionAt(vectorOf(position)),
                           type: PositionMode.Teleport,
                           yaw: rotation.yaw,
                           pitch: rotation.pitch,

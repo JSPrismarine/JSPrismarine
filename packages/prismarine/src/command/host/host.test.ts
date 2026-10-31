@@ -417,11 +417,23 @@ describe('the server command host', () => {
             expect(fixture.entities.includes(item)).toBe(false);
         });
 
-        it('teleports a player to a position', async () => {
+        it('stands a player with their feet at the position a same-world `/tp` names', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('tp @a 10 70 10')).resolves.toBe(1);
+            // Java reads `/tp` coordinates as feet; a player's stored position is their eyes,
+            // 1.62 up, like the world change below. Written in raw, the player would stand
+            // 1.62 blocks down in the floor.
             expect(player.setPosition).toHaveBeenCalledWith(
+                expect.objectContaining({ position: expect.objectContaining({ x: 10, y: 71.62, z: 10 }) })
+            );
+        });
+
+        it('puts any other entity at the raw position a `/tp` names', async () => {
+            const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('tp @e 10 70 10')).resolves.toBe(1);
+            expect(pig.setPosition).toHaveBeenCalledWith(
                 expect.objectContaining({ position: expect.objectContaining({ x: 10, y: 70, z: 10 }) })
             );
         });
