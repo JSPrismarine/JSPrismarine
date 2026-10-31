@@ -2,7 +2,9 @@ import ChatEvent from './chat/ChatEvent';
 import CommandRegisterEvent from './command/CommandRegisterEvent';
 import EntityDamageEvent from './entity/EntityDamageEvent';
 import EntityDeathEvent from './entity/EntityDeathEvent';
+import EntityPortalEnterEvent from './entity/EntityPortalEnterEvent';
 import { Event } from './Event';
+import PlayerChangeDimensionEvent from './player/PlayerChangeDimensionEvent';
 import PlayerConnectEvent from './player/PlayerConnectEvent';
 import PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
@@ -22,7 +24,9 @@ export {
     CommandRegisterEvent,
     EntityDamageEvent,
     EntityDeathEvent,
+    EntityPortalEnterEvent,
     Event,
+    PlayerChangeDimensionEvent,
     PlayerConnectEvent,
     PlayerDespawnEvent,
     PlayerDisconnectEvent,

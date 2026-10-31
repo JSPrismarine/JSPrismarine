@@ -3,6 +3,8 @@ import type CommandRegisterEvent from './command/CommandRegisterEvent';
 import type RecipeRegisterEvent from './crafting/RecipeRegisterEvent';
 import type EntityDamageEvent from './entity/EntityDamageEvent';
 import type EntityDeathEvent from './entity/EntityDeathEvent';
+import type EntityPortalEnterEvent from './entity/EntityPortalEnterEvent';
+import type PlayerChangeDimensionEvent from './player/PlayerChangeDimensionEvent';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
 import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
@@ -24,6 +26,8 @@ export type EventTypes =
     | ['tick', TickEvent]
     | ['entityDamage', EntityDamageEvent]
     | ['entityDeath', EntityDeathEvent]
+    | ['entityPortalEnter', EntityPortalEnterEvent]
+    | ['playerChangeDimension', PlayerChangeDimensionEvent]
     | ['playerConnect', PlayerConnectEvent]
     | ['playerDisconnect', PlayerDisconnectEvent]
     | ['playerSpawn', PlayerSpawnEvent]
