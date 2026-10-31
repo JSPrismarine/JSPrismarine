@@ -1,5 +1,5 @@
 {
-    "provenance": "Mojang publishes no spawn attempt rate, no cap value, no spawn radius and no light algorithm for Bedrock Edition. The only published numbers are the tilde-hedged 'Typical Cap' column of EntitySpawningDeepDive.md. Every number below is therefore this project's choice; the `source` string on each one says where it came from, and a host may replace the whole table.",
+    "provenance": "Mojang publishes no spawn attempt rate and no cap value, sampling radius, or light algorithm for Bedrock Edition. Java's 24-block minimum spawn distance comes from NaturalSpawner.isRightDistanceToPlayerAndSpawnPoint in the pinned 26.3 server. The other values are this project's choices; each source string records its origin, and a host may replace the whole table.",
     "pools": {
         "animal": {
             "cap": 10,
@@ -52,6 +52,8 @@
     },
     "spawnRadiusChunks": 4,
     "spawnRadiusSource": "Bedrock's documented default simulation distance is 4 chunks, and the ticking area documentation says 'all forms of mob spawning attempts are done in a radius centered on a player'. Mojang publishes no spawn radius, so this project uses the simulation distance.",
+    "minimumSpawnDistance": 24,
+    "minimumSpawnDistanceSource": "Java 26.3's NaturalSpawner.isRightDistanceToPlayerAndSpawnPoint rejects natural spawn positions at or within 24 blocks of any player, and positions inside 24 blocks of the shared world spawn in its dimension.",
     "chunksPerCycle": 8,
     "positionsPerChunk": 3,
     "attemptSource": "Mojang publishes no attempt rate. Eight chunks per player per cycle with three positions in each is this project's budget, picked so one player standing in an empty plains biome reaches the animal cap of 10 within a few animal cycles.",

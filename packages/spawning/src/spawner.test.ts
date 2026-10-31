@@ -51,6 +51,17 @@ const COW = ruleOf('minecraft:cow', 'animal', [
     }
 ]);
 
+const SINGLE_COW = ruleOf('minecraft:cow', 'animal', [
+    { 'minecraft:spawns_on_surface': {}, 'minecraft:weight': { default: 1 } }
+]);
+const HERD_COW = ruleOf('minecraft:cow', 'animal', [
+    {
+        'minecraft:spawns_on_surface': {},
+        'minecraft:weight': { default: 1 },
+        'minecraft:herd': { min_size: 2, max_size: 2 }
+    }
+]);
+
 describe('one spawn cycle', () => {
     it('spawns a herd of the rule whose condition passes', () => {
         const spawner = new Spawner({ rules: [COW], world: baseWorld, random: seededRandom(7) });
@@ -112,7 +123,8 @@ describe('one spawn cycle', () => {
                 spawnRadiusChunks: 0,
                 chunksPerCycle: 1,
                 positionsPerChunk: 1,
-                herdRadius: 0
+                herdRadius: 0,
+                minimumSpawnDistance: 0
             }
         });
 
@@ -120,6 +132,71 @@ describe('one spawn cycle', () => {
 
         expect(spawned).toHaveLength(1);
         expect(spawned[0]?.position.y).toBe(63);
+    });
+});
+
+describe('the minimum natural spawn distance', () => {
+    const onePositionConstants = {
+        ...SPAWN_CONSTANTS,
+        spawnRadiusChunks: 0,
+        chunksPerCycle: 1,
+        positionsPerChunk: 1,
+        herdRadius: 5
+    };
+
+    it('rejects positions inside the player-centered 24-block sphere', () => {
+        const spawner = new Spawner({
+            rules: [SINGLE_COW],
+            world: baseWorld,
+            random: seededRandom(4),
+            constants: onePositionConstants
+        });
+
+        expect(spawner.cycle('animal', 0)).toEqual([]);
+    });
+
+    it('rejects a position exactly 24 blocks from a player', () => {
+        const world = worldWith({ players: () => [{ position: { x: 0.5, y: 64, z: 0.5 } }] });
+        const spawner = new Spawner({
+            rules: [SINGLE_COW],
+            world,
+            random: scriptedRandom([0.99, 0.5, 0.5, 0, 0.5]),
+            constants: { ...onePositionConstants, spawnRadiusChunks: 1 }
+        });
+
+        expect(spawner.cycle('animal', 0)).toEqual([]);
+    });
+
+    it('allows a position beyond 24 blocks but rejects herd members that fall inside it', () => {
+        const world = worldWith({ players: () => [{ position: { x: 0.5, y: 64, z: 0.5 } }] });
+        const spawner = new Spawner({
+            rules: [HERD_COW],
+            world,
+            random: scriptedRandom([0.99, 0.5, 0.5625, 0, 0.5, 0, 0, 0.5]),
+            constants: { ...onePositionConstants, spawnRadiusChunks: 1 }
+        });
+
+        const spawned = spawner.cycle('animal', 0);
+
+        expect(spawned).toHaveLength(1);
+        expect(spawned[0]?.position).toEqual({ x: 25, y: 64, z: 0 });
+    });
+
+    it('rejects positions inside 24 blocks of the current world spawn when the player is far away', () => {
+        const world = worldWith({
+            players: () => [{ position: { x: 100.5, y: 64, z: 100.5 } }],
+            worldSpawn: () => ({ x: 0, y: 64, z: 0 })
+        });
+        const spawnWithDistance = (minimumSpawnDistance: number) =>
+            new Spawner({
+                rules: [SINGLE_COW],
+                world,
+                random: scriptedRandom([0]),
+                constants: { ...onePositionConstants, spawnRadiusChunks: 6, minimumSpawnDistance }
+            }).cycle('animal', 0);
+
+        expect(spawnWithDistance(0)).toHaveLength(1);
+        expect(spawnWithDistance(SPAWN_CONSTANTS.minimumSpawnDistance)).toEqual([]);
     });
 });
 

@@ -344,6 +344,8 @@ const spawnWorldOf = (adapter: ServerWorldAdapter, content: ContentLookup): Spaw
         surfaceY: (x, z) => adapter.blocks.surfaceY(x, z),
         minY: () => adapter.level.minY,
         players: () => adapter.entities.players().map((player) => ({ position: player.position })),
+        worldSpawn: () =>
+            adapter.level.dimension === 'minecraft:overworld' ? adapter.level.spawnPosition() : undefined,
         poolCount: (pool) => spawning().poolCount(pool),
         typeCount: (identifier, at, radius) => adapter.entities.countOfType(identifier, at, radius),
         difficulty: () => adapter.level.difficulty(),

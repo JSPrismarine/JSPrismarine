@@ -210,7 +210,8 @@ describe.runIf(enabled)('the vanilla spawn rules', { tags: ['real-data'] }, () =
                 spawnRadiusChunks: 0,
                 chunksPerCycle: 1,
                 positionsPerChunk: 100,
-                herdRadius: 0
+                herdRadius: 0,
+                minimumSpawnDistance: 0
             }
         });
 

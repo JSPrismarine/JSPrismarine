@@ -1272,6 +1272,9 @@ importers:
       '@jsprismarine/recipes':
         specifier: workspace:*
         version: link:../recipes
+      '@jsprismarine/spawning':
+        specifier: workspace:*
+        version: link:../spawning
       '@jsprismarine/worldgen':
         specifier: workspace:*
         version: link:../worldgen
