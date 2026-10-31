@@ -60,6 +60,8 @@ const BLOCKS = [
     'minecraft:wooden_door',
     'minecraft:chest',
     'minecraft:black_shulker_box',
+    'minecraft:end_portal',
+    'minecraft:end_portal_frame',
     'minecraft:oak_stairs',
     'minecraft:crafting_table',
     'minecraft:leaf_litter',
@@ -80,6 +82,8 @@ const ITEMS = [
     'minecraft:stick',
     'minecraft:black_shulker_box',
     'minecraft:diamond_pickaxe',
+    'minecraft:end_portal_frame',
+    'minecraft:ender_eye',
     'minecraft:oak_stairs',
     'minecraft:crafting_table',
     'minecraft:piston',
@@ -790,6 +794,49 @@ describe('useItemOnBlock', () => {
             expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
             expect(sessionOf(player).inventoriesSent).toBe(1);
             expect(earned(player, 'test:placed')).toBe(false);
+        });
+
+        it('builds an end portal: frames placed facing inward activate when the eyes go in', () => {
+            // Vanilla's ring: the player stands inside the 3 by 3 and looks outward at each
+            // placement, and the frame faces opposite the look direction, toward the center.
+            // Before the portal family set the facing, every frame kept the default `south`
+            // and the ring could never complete.
+            const center = { x: 7, y: 64, z: 7 };
+            const ring: { at: ContentPosition; yaw: number }[] = [];
+            for (let k = -1; k <= 1; k += 1) {
+                ring.push({ at: { x: center.x + k, y: center.y, z: center.z - 2 }, yaw: 180 }); // looking north
+                ring.push({ at: { x: center.x + k, y: center.y, z: center.z + 2 }, yaw: 0 }); // looking south
+                ring.push({ at: { x: center.x - 2, y: center.y, z: center.z + k }, yaw: 90 }); // looking west
+                ring.push({ at: { x: center.x + 2, y: center.y, z: center.z + k }, yaw: 270 }); // looking east
+            }
+            for (const frame of ring) place(chunk, { ...frame.at, y: 63 }, 'minecraft:stone');
+
+            const builder = playerHolding(world, 'minecraft:end_portal_frame', false, Gametype.CREATIVE);
+            for (const frame of ring) {
+                expect(click(builder, { ...frame.at, y: 63 }, 1, { pitch: 0, yaw: frame.yaw })).toBe('handled');
+                expect(world.loadedBlockAt(frame.at.x, frame.at.y, frame.at.z)?.name).toBe(
+                    'minecraft:end_portal_frame'
+                );
+            }
+
+            // One facing per side, each toward the center.
+            expect(world.loadedBlockAt(7, 64, 5)?.states['minecraft:cardinal_direction']).toBe('south');
+            expect(world.loadedBlockAt(7, 64, 9)?.states['minecraft:cardinal_direction']).toBe('north');
+            expect(world.loadedBlockAt(5, 64, 7)?.states['minecraft:cardinal_direction']).toBe('east');
+            expect(world.loadedBlockAt(9, 64, 7)?.states['minecraft:cardinal_direction']).toBe('west');
+
+            const filler = playerHolding(world, 'minecraft:ender_eye', false, Gametype.CREATIVE);
+            for (const frame of ring) {
+                expect(click(filler, frame.at)).toBe('handled');
+                expect(world.loadedBlockAt(frame.at.x, frame.at.y, frame.at.z)?.states['end_portal_eye_bit']).toBe(1);
+            }
+
+            for (let dx = -1; dx <= 1; dx += 1) {
+                for (let dz = -1; dz <= 1; dz += 1) {
+                    expect(world.loadedBlockAt(center.x + dx, 64, center.z + dz)?.name).toBe('minecraft:end_portal');
+                }
+            }
+            expect(sounds).toContain('block.end_portal.spawn');
         });
 
         it('refuses a placement above the top of the world', () => {
