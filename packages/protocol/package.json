@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/protocol",
-    "version": "0.15.2",
+    "version": "0.16.0",
     "description": "Protocol package used by JSPrismarine packages",
     "sideEffects": false,
     "publishConfig": {

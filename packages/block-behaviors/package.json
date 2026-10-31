@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/block-behaviors",
-    "version": "0.0.0",
+    "version": "0.16.0",
     "description": "The vanilla block behavior families, written against the BlockHooks seam and a WorldActions world interface",
     "sideEffects": false,
     "publishConfig": {

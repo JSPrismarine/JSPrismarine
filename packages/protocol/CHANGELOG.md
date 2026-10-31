@@ -1,5 +1,320 @@
 # @jsprismarine/protocol
 
+## 0.16.0
+
+### Minor Changes
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`01d95b3`](https://github.com/JSPrismarine/JSPrismarine/commit/01d95b3a07c6924cf90386536e6d4a69deaa407c) Thanks [@filiphsps](https://github.com/filiphsps)! - Implement the eight packets protocol 2225 added.
+  
+  Their ids have been in the 2225 table since the delta codec landed, as protocol surface a codec
+  knew about but could not build, so a 1.26.60 session decoded each to `null`. All eight now have
+  a declarative layout and a packet class: the two matchmaking packets, the two stonecutter ones,
+  `SetPassengerOfBlock`, `ServerboundCursorItemDrag`, and the two audio content packets.
+  
+  Every layout is read off Mojang's v1.26.60 release schemas, the `metadata.zip` this repository
+  already pins, using the ordinals and serialization options those schemas declare. That decides
+  two things a careless reading gets wrong: an integer marked `Compression` is a ZigZag varint
+  rather than a fixed-width little-endian value, which is what `Recipe Index` is, and a property
+  the schema leaves out of `required` travels behind a presence byte. No capture exercises these
+  packets, because a vanilla login sends none of them, so each definition carries its ordinals and
+  a round-trip test instead; `docs/research/protocol-2225-added-packets.md` records the provenance.
+  
+  Registering a packet now resolves its id against the newest registered codec rather than 2193,
+  since a packet a later protocol added has no id at the older one.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`ef12ef8`](https://github.com/JSPrismarine/JSPrismarine/commit/ef12ef8dee0fb445a80811306d20c44aabeb237d) Thanks [@filiphsps](https://github.com/filiphsps)! - Four fixes the `@jsprismarine/protocol` payload builders found by comparing generated payloads against
+  a captured Bedrock Dedicated Server 1.26.51.1 session.
+  
+  `@jsprismarine/nbt` now types an empty list `TAG_End`, which is what a Bedrock Dedicated Server
+  writes, instead of `TAG_Byte`. That was the only byte of disagreement across the 98 captured block
+  definitions: `minecraft:red_shrub` turns its collision box off with no boxes in it, and the writer
+  gave the resulting empty list an element type the server never writes. All 98 now read and rewrite
+  byte for byte, and the generated definitions match the capture byte for byte too. The reader
+  already accepted both forms and still does, so worlds this server has already written load
+  unchanged. A behavior fix, so `patch` under
+  [the versioning policy](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/versioning.md)
+  below `1.0.0`.
+  
+  `@jsprismarine/protocol` gains four things. `CreativeContentPacket` and `CraftingDataPacket` moved
+  here from `@jsprismarine/prismarine` and take plain payload types rather than the server's `Item`
+  and `Recipe` classes, so any package that builds those payloads can now be checked against them.
+  `CraftingDataPacket` carries a `potionMixes` list, where the old one wrote a literal zero and the
+  brewing recipes could not be sent at all. `BlockRuntimeId` holds the FNV-1a 32 hash and the little
+  endian state serialization that decide a block's runtime id, which `@jsprismarine/prismarine` had
+  one copy of and the protocol package another; it reproduces all 1065 `network_id` values the
+  captured creative catalog carries. The packet index exports every member type a `StartGame` payload
+  is built from, so a consumer no longer deep imports `@jsprismarine/protocol/packet/StartGamePacket`
+  to name a `BlockProperty` or a `GameRule`. Moving public API in is a feature, which the versioning
+  policy maps to `minor` below `1.0.0`.
+  
+  `@jsprismarine/prismarine` keeps `CreativeContentPacket`, `CraftingDataPacket` and `BlockRuntimeIds`
+  with the same public interfaces and the same bytes on the wire; each now builds the payload and
+  hands it to the protocol package rather than carrying its own copy of the format.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f0294ef`](https://github.com/JSPrismarine/JSPrismarine/commit/f0294ef0b8e358f4fda308d7c8f1c901bf1bf3e7) Thanks [@filiphsps](https://github.com/filiphsps)! - Move protocol codec construction, packet lookup, version metadata, and handshake filtering into
+  `@jsprismarine/protocol`. Prismarine now passes captured item, block, and world data through
+  `ProtocolContext`, and no longer re-exports the Protocol namespace, packet barrel, or identifier
+  compatibility API. Server packet dispatch is held by `PacketHandlerRegistry`, and Prismarine
+  declares the Brigadier dependency its command source and public declarations import.
+  
+  `ServerName` now receives protocol metadata directly instead of reading `getIdentifiers()` from
+  the Prismarine server object.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`c3277be`](https://github.com/JSPrismarine/JSPrismarine/commit/c3277be5928541348011c503daaf74c671050d20) Thanks [@filiphsps](https://github.com/filiphsps)! - Unify StartGame protocol layouts under one version-stamped packet.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`d5056d3`](https://github.com/JSPrismarine/JSPrismarine/commit/d5056d3fe5f8d2be49f42d3d03edab591bedf55a) Thanks [@filiphsps](https://github.com/filiphsps)! - Every packet wire layout now lives in `@jsprismarine/protocol`, so a third party can speak the
+  Bedrock protocol without the server package. The eight layouts the server still defined -
+  AddActor, AddPlayer, GameRulesChanged, InventoryTransaction, PlayerList, PlayerSkin,
+  SetActorData and UpdateAttributes - join the protocol package's registry, together with the
+  structures they carry: `NetworkUtil`, `Attribute`, `Metadata`, `SyncedProperties`, `GameRule`,
+  `PassengerOfBlock`, `UUID`, `Skin`, `PlayerListEntry`, the inventory transaction's bodies and a
+  `NetworkItemStackDescriptor` codec. The protocol package gains a dependency on
+  `@jsprismarine/math` for the positions those structures carry.
+  
+  The server re-exports each moved structure from its old path, so existing imports keep working.
+  `network/codec/prismarineWireDefinitions` and `network/wire/fieldTypes` are gone - the one
+  registry is `wireDefinitions` - and `AddPlayerPacket.carriedItem` is the stack descriptor the
+  layout carries rather than an `Item`; the packet's own `item` property is unchanged.
+
+### Patch Changes
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`30c3b75`](https://github.com/JSPrismarine/JSPrismarine/commit/30c3b757659005a41f24948cb22c1aad2d7c0a8d) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the painting spawn packet and its typed payload into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`94378af`](https://github.com/JSPrismarine/JSPrismarine/commit/94378afa7703ea12239c4837f8b18fbc4b5974cc) Thanks [@filiphsps](https://github.com/filiphsps)! - Move diagnostics and telemetry packet codecs into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`d4d0080`](https://github.com/JSPrismarine/JSPrismarine/commit/d4d00808c51e69517519dd35cc4071952387c88b) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the animate entity packet codec into the protocol package.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`d5dc760`](https://github.com/JSPrismarine/JSPrismarine/commit/d5dc760107a1dbc9c5ba9eb5fc9fb544d725c02d) Thanks [@filiphsps](https://github.com/filiphsps)! - Project explicit Bedrock item display names into item registry component data.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`c140ef6`](https://github.com/JSPrismarine/JSPrismarine/commit/c140ef6e3072eb97c7a8b123876ea08726ed9910) Thanks [@filiphsps](https://github.com/filiphsps)! - Use scalar Bedrock item components when projecting item registry properties.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`e0b6601`](https://github.com/JSPrismarine/JSPrismarine/commit/e0b6601c7d15192bf5067a4b6c0dd7aa6741e2f9) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the block actor data packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`09979cd`](https://github.com/JSPrismarine/JSPrismarine/commit/09979cd9e3d6e3971f7d3e3d370f9a32473b8bf4) Thanks [@filiphsps](https://github.com/filiphsps)! - Move UpdatePlayerGameTypePacket into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`ff19749`](https://github.com/JSPrismarine/JSPrismarine/commit/ff19749df1f7e776064bd80a13547dcc9c421ac1) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the book edit packet and its typed operation data into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`c9d1849`](https://github.com/JSPrismarine/JSPrismarine/commit/c9d1849bc559d8222140b20852f7af89074660d6) Thanks [@filiphsps](https://github.com/filiphsps)! - Move Education, photo, warning, settings, and store-offer packets into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`14ff23a`](https://github.com/JSPrismarine/JSPrismarine/commit/14ff23ad9b2df838457f98d58fcef567d7242d68) Thanks [@filiphsps](https://github.com/filiphsps)! - Move `SetSpawnPositionPacket` into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`153ef65`](https://github.com/JSPrismarine/JSPrismarine/commit/153ef650f6a99338115fac97ce4face3a59ededf) Thanks [@filiphsps](https://github.com/filiphsps)! - Move SetPlayerGameTypePacket into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`0dac56a`](https://github.com/JSPrismarine/JSPrismarine/commit/0dac56a679dfcb3b0a2953e1bb451592833ec2a4) Thanks [@filiphsps](https://github.com/filiphsps)! - Let the client speak protocol 2225, so a 1.26.60 server can be captured.
+  
+  `Client` hardcoded protocol 2193, and a Bedrock Dedicated Server refuses a login at any version
+  but its own — pointing the capture at the pinned 1.26.60.6 server got "this client is out of
+  date" before a byte of data arrived. `ClientOptions` now takes a `protocolVersion`, the offline
+  identity reports the `GameVersion` that goes with it, and an unsupported version is refused in
+  the constructor rather than at the socket.
+  
+  `StartGamePacket` is the one packet the client decodes whose layout moved at 2225: `Editor Level
+  Migration Version`, an int8 inserted into the level settings between `Is Exported From Editor`
+  and `Day Cycle Stop Time`. `@jsprismarine/protocol` gains `StartGamePacket2225`, a subclass over
+  two hooks on the 2193 class, with both wire directions and round-trip coverage. A 2193 reader on
+  2225 bytes is one byte out from the insert on, so the block properties a capture is run for come
+  back wrong; whether the rest resynchronizes is luck, which the tests say in those terms.
+  
+  `capture-server-data.mjs` takes `--protocol`, and the `packets` pass of `dump:bedrock` passes the
+  version it staged.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`9ec832e`](https://github.com/JSPrismarine/JSPrismarine/commit/9ec832e9cb80462b10f2f9584af2e73bc327a498) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the command block update packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`5a0b34b`](https://github.com/JSPrismarine/JSPrismarine/commit/5a0b34b3da74e8c0d4d1e83ddab701563c9505ce) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the movement prediction correction packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3d31eca`](https://github.com/JSPrismarine/JSPrismarine/commit/3d31ecaa4cb2b13394deacdfc3b95ae4eb0de51e) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the clientbound debug renderer packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`eee1692`](https://github.com/JSPrismarine/JSPrismarine/commit/eee1692f9692eb172a6ba6abbb64e46daa060a9c) Thanks [@filiphsps](https://github.com/filiphsps)! - Move ability, permission, and inventory option packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`2244da2`](https://github.com/JSPrismarine/JSPrismarine/commit/2244da2ab1a8f6b1f46d42a68de40af4e8023e2d) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the server player position packet codec into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`2f86764`](https://github.com/JSPrismarine/JSPrismarine/commit/2f86764d56a7e9ae5038854c27dd8fc9b3dfd0de) Thanks [@filiphsps](https://github.com/filiphsps)! - Move LevelChunkPacket into Protocol with versioned fields
+
+- [#2656](https://github.com/JSPrismarine/JSPrismarine/pull/2656) [`1606252`](https://github.com/JSPrismarine/JSPrismarine/commit/16062522d82a4d15282a6bdf4bb027394cacd3e6) Thanks [@filiphsps](https://github.com/filiphsps)! - Carry `Cloud Height` and `Render Clouds` in `DimensionDefinition` at protocol 2225. The structure is now a declarative field list gated by `SINCE_2225`, and `DimensionDataPacket` writes and reads each definition in the layout of the connection's protocol version. The `DimensionDefinition` constructor gains `cloudHeight` and `renderClouds` after `defaultBiome`, both defaulted, and `serialize`/`deserialize` accept an optional protocol version that defaults to 2193.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`2c459cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2c459cd2ab8822f0364c1ce8e473cf0487b294a8) Thanks [@filiphsps](https://github.com/filiphsps)! - Project Java tool rules to Bedrock digger data
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`c776757`](https://github.com/JSPrismarine/JSPrismarine/commit/c77675747b1bb4ef14e48c28dda0865bdd232ad2) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the packet stream base into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`38422a0`](https://github.com/JSPrismarine/JSPrismarine/commit/38422a034cfdd5efd8956bbd4552830a103a8a18) Thanks [@filiphsps](https://github.com/filiphsps)! - Move resource pack chunk transfer packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`5a0d8e1`](https://github.com/JSPrismarine/JSPrismarine/commit/5a0d8e1cc55a81414223aa2089fce8301776f8f7) Thanks [@filiphsps](https://github.com/filiphsps)! - Move UpdateAdventureSettingsPacket into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`56487c6`](https://github.com/JSPrismarine/JSPrismarine/commit/56487c6347873aedbc3c828b2e532ea13a10fb00) Thanks [@filiphsps](https://github.com/filiphsps)! - Move command packet codecs into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`7af8680`](https://github.com/JSPrismarine/JSPrismarine/commit/7af86809e55ed550b22a4d04118e1532d729262d) Thanks [@filiphsps](https://github.com/filiphsps)! - Move cache and session state packet codecs into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`0627e9b`](https://github.com/JSPrismarine/JSPrismarine/commit/0627e9be0fbf1813ed28999742165c4ed9ca3a4d) Thanks [@filiphsps](https://github.com/filiphsps)! - Move NetworkChunkPublisherUpdatePacket into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`d1a241c`](https://github.com/JSPrismarine/JSPrismarine/commit/d1a241c40329c0cb5a1c7ad49c2896d89bdae2a1) Thanks [@filiphsps](https://github.com/filiphsps)! - Move actor and world state packet codecs into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`b6b916f`](https://github.com/JSPrismarine/JSPrismarine/commit/b6b916fa7328a12b7467f9112791d3281cd43cfb) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Protocol's TextPacket for chat messages
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8687de7`](https://github.com/JSPrismarine/JSPrismarine/commit/8687de7e31ac990b5b0b79c0b9059db2c127d106) Thanks [@filiphsps](https://github.com/filiphsps)! - Move container open, close, and property packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`ccfb982`](https://github.com/JSPrismarine/JSPrismarine/commit/ccfb982275c8bcfa98de89f61048daeff811819c) Thanks [@filiphsps](https://github.com/filiphsps)! - Move matchmaking and audio content packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`1150058`](https://github.com/JSPrismarine/JSPrismarine/commit/1150058a0dad77ee54871f7c4ba234ef3d8c79b8) Thanks [@filiphsps](https://github.com/filiphsps)! - Move MovePlayerPacket and PositionMode into Protocol
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`fb2eeaa`](https://github.com/JSPrismarine/JSPrismarine/commit/fb2eeaa6c76b546d45742c3cca1800c512a04e63) Thanks [@filiphsps](https://github.com/filiphsps)! - Move scoreboard packet codecs into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`91bdbee`](https://github.com/JSPrismarine/JSPrismarine/commit/91bdbee54178fda1cfa835e4eda6a51f8ffa0c59) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Inventory Transaction to Protocol and resolve server item stacks at the Prismarine boundary.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`86526cc`](https://github.com/JSPrismarine/JSPrismarine/commit/86526cc6d8e3422b6154963f75715fc3f7fba376) Thanks [@filiphsps](https://github.com/filiphsps)! - Move map, world-event, sound, position-tracking, and sub-chunk request packets into protocol.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`f198a15`](https://github.com/JSPrismarine/JSPrismarine/commit/f198a156a8c307c941efd01a4bd4604eba0f5626) Thanks [@filiphsps](https://github.com/filiphsps)! - Send Bedrock item tag memberships and declared icon textures in the item registry component data.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`4c88047`](https://github.com/JSPrismarine/JSPrismarine/commit/4c88047abd9a979343d8f0ab9393dacd1a037275) Thanks [@filiphsps](https://github.com/filiphsps)! - Send the four join payloads from the content registries. `StartGamePacket`'s block properties,
+  `ItemRegistryPacket`, `CreativeContentPacket` and `CraftingDataPacket` are written from
+  `ServerContent` when `content-packs` is on, and from the captured tables when it is off, which is
+  still the default. `joinContentPayloads` builds them once at startup, logs what the build sends and
+  warns about what it had to invent, and returns nothing rather than throwing, so a build whose
+  payloads cannot be produced leaves every packet on the path it used before.
+  
+  Measured against the captures for the vanilla pack stack: all 98 block definitions come out byte
+  identical and the whole `StartGamePacket` matches the captured path; all 1606 items both sides name
+  take the capture's number, component flag and version; and the creative menu is the same 1980
+  entries in the same order with the same ids, metas, block ids and groups, 175 of which now carry
+  the NBT the old path dropped. Creative picks are read against the menu that went out, so the two
+  cannot disagree about which entry a position names.
+  
+  Two gaps are recorded rather than hidden. Mojang's vanilla behavior pack files seven items under
+  pre-flattening names (`minecraft:fish`, `minecraft:muttonRaw` and five more) that a dedicated
+  server renames before writing its table, so those seven travel with ids of this server's own; all
+  seven modern names are in the registry as well. And the item component compounds come from Java's
+  components rather than Mojang's tables, so none of the 78 captured compounds is reproduced byte for
+  byte; `@jsprismarine/protocol` measures that gap field by field.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3204465`](https://github.com/JSPrismarine/JSPrismarine/commit/320446537230cbe4830ff9ca0bffa05133cf0592) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the lab table packet codec and its wire enums into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`88db8cd`](https://github.com/JSPrismarine/JSPrismarine/commit/88db8cdc94238bbdec632ca8451d8f36bf4b2416) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the lectern update packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`9611f5d`](https://github.com/JSPrismarine/JSPrismarine/commit/9611f5d1588935528a0fa5dbd95b8ab08498739a) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the level event packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`e3a0042`](https://github.com/JSPrismarine/JSPrismarine/commit/e3a0042b06e7493219bd869523775a0f10423440) Thanks [@filiphsps](https://github.com/filiphsps)! - Move inventory content and slot encoding into Protocol
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`934b5d2`](https://github.com/JSPrismarine/JSPrismarine/commit/934b5d22e8c158cde43c80ea9df8d7589e8bcafa) Thanks [@filiphsps](https://github.com/filiphsps)! - Move purchase receipt packet serialization into Protocol and adapt the server handler to its typed payload.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`88c985e`](https://github.com/JSPrismarine/JSPrismarine/commit/88c985edcb1666f9e15c79eb4c3ee2ee1f134e62) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the map item data packet codec and marker types into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`ab2abdd`](https://github.com/JSPrismarine/JSPrismarine/commit/ab2abddd4567a51630e851566dc55a226d0cbccd) Thanks [@filiphsps](https://github.com/filiphsps)! - Move gameplay status packet codecs into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`b786016`](https://github.com/JSPrismarine/JSPrismarine/commit/b78601670a934710ae604a88a33e47aaaff408ab) Thanks [@filiphsps](https://github.com/filiphsps)! - Move dropped-item and player-spawn packet codecs into Protocol and pass their typed payload data from the server.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`7a20ad8`](https://github.com/JSPrismarine/JSPrismarine/commit/7a20ad80c99ab96a461e1a37c363cf1d64904d8e) Thanks [@filiphsps](https://github.com/filiphsps)! - Move AvailableCommands packet encoding and its command wire structures into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`fec76ec`](https://github.com/JSPrismarine/JSPrismarine/commit/fec76ec7039ebf9543a62cc4167732f16754927c) Thanks [@filiphsps](https://github.com/filiphsps)! - Move entity equipment packet codecs into the protocol package and resolve item descriptors with the receiving connection's protocol context.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`6b0d00b`](https://github.com/JSPrismarine/JSPrismarine/commit/6b0d00bd2876ba30c45e45aa8e1d31b535050f27) Thanks [@filiphsps](https://github.com/filiphsps)! - Move sound packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`57e3422`](https://github.com/JSPrismarine/JSPrismarine/commit/57e34226bd0f570548282994e088db7213f7fdc8) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the network settings handshake packets and compression threshold values into Protocol, and send typed payloads from the server handler.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`1427d68`](https://github.com/JSPrismarine/JSPrismarine/commit/1427d68b60d21a54c1a077792f71be0eccdac36e) Thanks [@filiphsps](https://github.com/filiphsps)! - Move actor, player, and emote packet codecs into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`b46c7f5`](https://github.com/JSPrismarine/JSPrismarine/commit/b46c7f5886ad6ce3aa0468630995743af6dc4cfd) Thanks [@filiphsps](https://github.com/filiphsps)! - Move 2225 stonecutter and cursor drag packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f3f9fc3`](https://github.com/JSPrismarine/JSPrismarine/commit/f3f9fc3e9918a58054715f1923ad7e88b1804d91) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the serverbound pack setting change packet into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`537865c`](https://github.com/JSPrismarine/JSPrismarine/commit/537865cfe62a996b4f17872021d86ae87373b786) Thanks [@filiphsps](https://github.com/filiphsps)! - Route field-based packet codecs through the shared protocol NetworkPacket base.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`a7192d2`](https://github.com/JSPrismarine/JSPrismarine/commit/a7192d24a34fc313bb255d8ff083a81515e567fb) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the player enchant options packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3f5537f`](https://github.com/JSPrismarine/JSPrismarine/commit/3f5537fb7ff52b79b5a5211c96c1e38545e32f98) Thanks [@filiphsps](https://github.com/filiphsps)! - Move player location and motion prediction packet codecs into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`c889ff9`](https://github.com/JSPrismarine/JSPrismarine/commit/c889ff93e1ab889d16fe0b6ddf401693e1ef2837) Thanks [@filiphsps](https://github.com/filiphsps)! - Move registry packet codecs into protocol and read captured actor, biome, and jigsaw data from ProtocolContext.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f82703f`](https://github.com/JSPrismarine/JSPrismarine/commit/f82703f58e970ee0dcfbcc71bf7070b43247cc93) Thanks [@filiphsps](https://github.com/filiphsps)! - Move registry-to-payload builders and injected protocol data into `@jsprismarine/protocol`, and
+  update Prismarine to use the protocol payload API directly.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`5ada190`](https://github.com/JSPrismarine/JSPrismarine/commit/5ada190f45738827cd2b67328404ce49226aea56) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the pick-block popup packet codec into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`220290c`](https://github.com/JSPrismarine/JSPrismarine/commit/220290cf27e6ffeea04c6e0fc2e4d2e124ab4341) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the automation behavior-tree packet codec into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`7bbe9d6`](https://github.com/JSPrismarine/JSPrismarine/commit/7bbe9d66c3bc2f032f0fbc98f4c10c1cfaabfc35) Thanks [@filiphsps](https://github.com/filiphsps)! - Use Protocol's typed party change packet and party id limit.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`b6cdccf`](https://github.com/JSPrismarine/JSPrismarine/commit/b6cdccf53598c32a024a774033b6cc4b06fd3da8) Thanks [@filiphsps](https://github.com/filiphsps)! - Use protocol NetworkPacket across server networking.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`703bf42`](https://github.com/JSPrismarine/JSPrismarine/commit/703bf42237b001abcacbbdfbd67d3a8ed9de555e) Thanks [@filiphsps](https://github.com/filiphsps)! - Move `RespawnPacket` into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`cf0908c`](https://github.com/JSPrismarine/JSPrismarine/commit/cf0908cb644c07241cb0cef6c8f4acf4282e7d59) Thanks [@filiphsps](https://github.com/filiphsps)! - Decode protocol 2225 item stack request actions.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`4855bcc`](https://github.com/JSPrismarine/JSPrismarine/commit/4855bcc3a5fffef4b6a2e362415caa6f672126dd) Thanks [@filiphsps](https://github.com/filiphsps)! - Move PlayerFogPacket into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`1825a4c`](https://github.com/JSPrismarine/JSPrismarine/commit/1825a4cf5443453bf306e6282c31c80446fd59e5) Thanks [@filiphsps](https://github.com/filiphsps)! - Move PlayerHotbarPacket into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`587b01a`](https://github.com/JSPrismarine/JSPrismarine/commit/587b01a9e42381394bfc195c5a5597315145a1e8) Thanks [@filiphsps](https://github.com/filiphsps)! - Move anvil damage and block pick packet codecs into Protocol and use its typed block positions in the server handlers.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f3501ba`](https://github.com/JSPrismarine/JSPrismarine/commit/f3501ba313b497cbd28fd465a962867a08738e32) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the serverbound loading screen packet into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`5f838b2`](https://github.com/JSPrismarine/JSPrismarine/commit/5f838b2c01ab875611fefd411c05a18f3172f26a) Thanks [@filiphsps](https://github.com/filiphsps)! - Move LoginPacket framing into Protocol and leave identity parsing in the server.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f5c7d59`](https://github.com/JSPrismarine/JSPrismarine/commit/f5c7d591d3fe46e95c5058c2114c382ecc61784a) Thanks [@filiphsps](https://github.com/filiphsps)! - Move block event packet serialization into Protocol and use its block-position structure.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8086b8c`](https://github.com/JSPrismarine/JSPrismarine/commit/8086b8c5b689736084844b4ed11587df9d432fbf) Thanks [@filiphsps](https://github.com/filiphsps)! - Move ChangeDimensionPacket into the protocol package.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`62c83dd`](https://github.com/JSPrismarine/JSPrismarine/commit/62c83dda69b32e25c7d21207b30c3a07fde22609) Thanks [@filiphsps](https://github.com/filiphsps)! - Lowercase command registry enum values and send atlas keys for vanilla items that need explicit icons.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`e2fcf7a`](https://github.com/JSPrismarine/JSPrismarine/commit/e2fcf7afa78e58a5a768d0f42abc035e50389a33) Thanks [@filiphsps](https://github.com/filiphsps)! - Move settings-command serialization into Protocol and adapt the server handler to its typed payload.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`61c3417`](https://github.com/JSPrismarine/JSPrismarine/commit/61c3417ea32f651a7add6275c6ef81fbbfda3611) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the structure editor packet codecs and settings structure into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`18b2fa6`](https://github.com/JSPrismarine/JSPrismarine/commit/18b2fa6dfe248dc201e6d9a232413831dcaf7060) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the sub-client login packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`a0d4b3f`](https://github.com/JSPrismarine/JSPrismarine/commit/a0d4b3fc39cc6ad3637e7b81ad535ae5afd869fd) Thanks [@filiphsps](https://github.com/filiphsps)! - Move resource pack exchange packets into Protocol
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3cb7c4d`](https://github.com/JSPrismarine/JSPrismarine/commit/3cb7c4d773526e3bc45a7cb786a37b199cde00ad) Thanks [@filiphsps](https://github.com/filiphsps)! - Move world-time and health packet codecs into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`168bbb6`](https://github.com/JSPrismarine/JSPrismarine/commit/168bbb6c45890879074549cab88cf987a5fef829) Thanks [@filiphsps](https://github.com/filiphsps)! - Move PlayerActionPacket wire codec and action types into Protocol
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`ef39583`](https://github.com/JSPrismarine/JSPrismarine/commit/ef395830d28b1b242b20a7246c8bb6ec781f5f4c) Thanks [@filiphsps](https://github.com/filiphsps)! - Project Bedrock block placer components
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`3549805`](https://github.com/JSPrismarine/JSPrismarine/commit/354980555c096e06c6a54c8d06a3710fa247a6b2) Thanks [@filiphsps](https://github.com/filiphsps)! - Pass per-connection ProtocolContext data through packet encode and decode paths.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`152ff12`](https://github.com/JSPrismarine/JSPrismarine/commit/152ff1277534718f1c46827040b5f9e18fd806d8) Thanks [@filiphsps](https://github.com/filiphsps)! - Move modal form request and response packets into protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`9847149`](https://github.com/JSPrismarine/JSPrismarine/commit/9847149ce4428d5a4c166f9ec4d87c78f7406d83) Thanks [@filiphsps](https://github.com/filiphsps)! - Move `PlayerAuthInputPacket` and its wire structures into Protocol. Prismarine now resolves item descriptors and block positions at the handler boundary, and Protocol can read and write item stack requests carried by player input.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`0e208a5`](https://github.com/JSPrismarine/JSPrismarine/commit/0e208a5c1b79d9d568083e6cc6f473c6df89b33b) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the transfer packet and its wire codec into the protocol package.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`439eb59`](https://github.com/JSPrismarine/JSPrismarine/commit/439eb59cfd5c5bea9050c4945b8a57f0038ecd66) Thanks [@filiphsps](https://github.com/filiphsps)! - Preserve captured Bedrock components for vanilla items
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`1e7a45b`](https://github.com/JSPrismarine/JSPrismarine/commit/1e7a45b8f9209c7844a76693b019ddb040bdd475) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the synchronized block update packet codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`eb85543`](https://github.com/JSPrismarine/JSPrismarine/commit/eb85543638be38c53b604d70e11358ba72c9f61f) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the soft enum update packet and its codec into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`25fcdf8`](https://github.com/JSPrismarine/JSPrismarine/commit/25fcdf8b3d3835ecb66c0d4effe0da1a80b95368) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the trade update packet codec into the protocol package.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`cd01052`](https://github.com/JSPrismarine/JSPrismarine/commit/cd01052548178421cd323b316d77d87374cee9dc) Thanks [@filiphsps](https://github.com/filiphsps)! - Project Java repair materials into Bedrock item components
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`912f83e`](https://github.com/JSPrismarine/JSPrismarine/commit/912f83eb3dd233d756506e1d6a309ed780fde00a) Thanks [@filiphsps](https://github.com/filiphsps)! - Move server-authoritative inventory request codecs into Protocol
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8128a63`](https://github.com/JSPrismarine/JSPrismarine/commit/8128a6344645e6798453b7c7eae77a69594e848c) Thanks [@filiphsps](https://github.com/filiphsps)! - Hold declarative wire layouts to a real server's bytes.
+  
+  The capture client gains `--wire`: one raw payload per packet kind the Bedrock Dedicated Server
+  sent during the login, written per protocol version as `src/jsp/v<protocol>/wire/<id>.bin` by the
+  `packets` pass. A new parity family, `protocol.wire-roundtrip`, decodes each captured payload
+  through its declarative layout and re-encodes it, and the bytes must come back exactly - the
+  layout our client decoded a real server's bytes through is the same frozen record our server
+  encodes with, so one round trip proves both directions and both roles. Coverage over the capture
+  is reported, not gated, and grows as packets gain definitions; the suite also holds every
+  captured id to having a name in the codec tables, which all 41 already do. The fixtures are a
+  committed snapshot: a re-capture may rewrite the recipe payload, whose net ids are per-session.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8a368eb`](https://github.com/JSPrismarine/JSPrismarine/commit/8a368ebb1f02d851ba3f8585a37639b4a418d9c8) Thanks [@filiphsps](https://github.com/filiphsps)! - Move Education automation and NPC request packets into Protocol.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`1b92d98`](https://github.com/JSPrismarine/JSPrismarine/commit/1b92d984399f419962640740bfd8f689a3c5c5d3) Thanks [@filiphsps](https://github.com/filiphsps)! - Move the spawn experience orb packet implementation into the protocol package.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`20a16d1`](https://github.com/JSPrismarine/JSPrismarine/commit/20a16d1aec16579eaf25b61f7eeffd261408ef3b) Thanks [@filiphsps](https://github.com/filiphsps)! - Move command permission and difficulty packet codecs into the protocol package.
+- Updated dependencies [[`f5ea701`](https://github.com/JSPrismarine/JSPrismarine/commit/f5ea701bd7297d63eb524be1d4b76c07cf204569), [`d5dc760`](https://github.com/JSPrismarine/JSPrismarine/commit/d5dc760107a1dbc9c5ba9eb5fc9fb544d725c02d), [`c140ef6`](https://github.com/JSPrismarine/JSPrismarine/commit/c140ef6e3072eb97c7a8b123876ea08726ed9910), [`91a7a0b`](https://github.com/JSPrismarine/JSPrismarine/commit/91a7a0bfac2eac8c81961d5263e54b53dc0c3fc5), [`ea083fb`](https://github.com/JSPrismarine/JSPrismarine/commit/ea083fb8d67d0c285724b73bf94b41947afc4013), [`f33a57c`](https://github.com/JSPrismarine/JSPrismarine/commit/f33a57c3750488f1ed77a441ab26b7c1086eff68), [`f3fa1c6`](https://github.com/JSPrismarine/JSPrismarine/commit/f3fa1c6bf9096223ac9d2b0396bcc71cd04e244e), [`57f252b`](https://github.com/JSPrismarine/JSPrismarine/commit/57f252b2781508290fac2e842cf37fb652467d66), [`d4afedd`](https://github.com/JSPrismarine/JSPrismarine/commit/d4afeddfc1a6016173261b800813e9f248208db8), [`89a02c8`](https://github.com/JSPrismarine/JSPrismarine/commit/89a02c81dd66293ab2b303851aad61c891535081), [`bfb9a31`](https://github.com/JSPrismarine/JSPrismarine/commit/bfb9a31a40c8173f1b811ee63b2308f357c47fd0), [`b3a2a6f`](https://github.com/JSPrismarine/JSPrismarine/commit/b3a2a6f2d8baca370c541439257bfb4dc4786902), [`b6eccf4`](https://github.com/JSPrismarine/JSPrismarine/commit/b6eccf49493ed702c5c13eb831ad9fa54258a47d), [`e17199e`](https://github.com/JSPrismarine/JSPrismarine/commit/e17199e28be25659495b398dc05d6a48baa2b593), [`18f0d0c`](https://github.com/JSPrismarine/JSPrismarine/commit/18f0d0ca7bfb691c75d2d2453eb21b0126e4a4e3), [`d4a2a0b`](https://github.com/JSPrismarine/JSPrismarine/commit/d4a2a0b2787e171583e6db0aec1b750e8aeb1e95), [`9f58b70`](https://github.com/JSPrismarine/JSPrismarine/commit/9f58b7012e39f08ef869149252312f3617c5d057), [`440e164`](https://github.com/JSPrismarine/JSPrismarine/commit/440e164b88f43548c9c4fe8ae896387157f21701), [`2c459cd`](https://github.com/JSPrismarine/JSPrismarine/commit/2c459cd2ab8822f0364c1ce8e473cf0487b294a8), [`d220519`](https://github.com/JSPrismarine/JSPrismarine/commit/d220519e2e460148a90cbde9d643033e27bf8f5e), [`e678a6a`](https://github.com/JSPrismarine/JSPrismarine/commit/e678a6a48dd00568f1186f37f2d460b1c898f059), [`28b5c00`](https://github.com/JSPrismarine/JSPrismarine/commit/28b5c00af0d5377e7030e82d409b6def544619ba), [`a540a4c`](https://github.com/JSPrismarine/JSPrismarine/commit/a540a4cc5879f62d5d3b39d59100200af8e3d313), [`a4abb61`](https://github.com/JSPrismarine/JSPrismarine/commit/a4abb61b7a03101b4f22ebab35da281066530430), [`2d20fee`](https://github.com/JSPrismarine/JSPrismarine/commit/2d20fee23b5fd58cf78dfa12b266f074dab110b8), [`bbda9ea`](https://github.com/JSPrismarine/JSPrismarine/commit/bbda9ea5c0ed57fe60e93c25d6131234a7e8e049), [`f198a15`](https://github.com/JSPrismarine/JSPrismarine/commit/f198a156a8c307c941efd01a4bd4604eba0f5626), [`c1591b1`](https://github.com/JSPrismarine/JSPrismarine/commit/c1591b1e567a51dc80ecbbdfdbdc8e7c7f4f6c42), [`08de1ba`](https://github.com/JSPrismarine/JSPrismarine/commit/08de1bac21f3c5785a02649e4faa11d9a11f82b0), [`ef12ef8`](https://github.com/JSPrismarine/JSPrismarine/commit/ef12ef8dee0fb445a80811306d20c44aabeb237d), [`5e47439`](https://github.com/JSPrismarine/JSPrismarine/commit/5e474396321b54f696760962ceb9d24b85917640), [`fc10888`](https://github.com/JSPrismarine/JSPrismarine/commit/fc10888391866037519afbf8e057d4ecece48757), [`6bac6b1`](https://github.com/JSPrismarine/JSPrismarine/commit/6bac6b173e5e283b4e6e3d106268319caa51ed40), [`9d93172`](https://github.com/JSPrismarine/JSPrismarine/commit/9d931725e8d48fab773c2fe9f659b2f3e1d26325), [`f0584a3`](https://github.com/JSPrismarine/JSPrismarine/commit/f0584a381c6bab5c61e5aa2cd3782218bc8d74e7), [`0d1512e`](https://github.com/JSPrismarine/JSPrismarine/commit/0d1512e0d028a2644883407b03ff20fe7c224633), [`4ab02e5`](https://github.com/JSPrismarine/JSPrismarine/commit/4ab02e5cf76b88f09ba19106e971337c1da2d1b9), [`b96ce93`](https://github.com/JSPrismarine/JSPrismarine/commit/b96ce93238f3efd66c709f213cd8d5d42fc8f425), [`a3db50e`](https://github.com/JSPrismarine/JSPrismarine/commit/a3db50eef709e1d2e3848d71383d6801d5f69773), [`cc8b110`](https://github.com/JSPrismarine/JSPrismarine/commit/cc8b1109b9c174940cdd4549615a05affb459b9a), [`ef39583`](https://github.com/JSPrismarine/JSPrismarine/commit/ef395830d28b1b242b20a7246c8bb6ec781f5f4c), [`35e7df5`](https://github.com/JSPrismarine/JSPrismarine/commit/35e7df54b5bba03f65c9e3a972bac32b01ba4fe4), [`13792da`](https://github.com/JSPrismarine/JSPrismarine/commit/13792daea4f024f559c9392e93328694db22e164), [`8b1bf1b`](https://github.com/JSPrismarine/JSPrismarine/commit/8b1bf1b337e7cb9e1d8f61d8df8b42e2b2badcb6), [`a645006`](https://github.com/JSPrismarine/JSPrismarine/commit/a645006caa290b45c728b7ad87435249091cbd56), [`bffe7a8`](https://github.com/JSPrismarine/JSPrismarine/commit/bffe7a89abe4151001fe7a8c323f5ce31ad55d1c), [`23450ee`](https://github.com/JSPrismarine/JSPrismarine/commit/23450ee6e61092c05e2cebeca492c95b28e8da0d), [`cd01052`](https://github.com/JSPrismarine/JSPrismarine/commit/cd01052548178421cd323b316d77d87374cee9dc)]:
+  - @jsprismarine/minecraft@0.16.0
+  - @jsprismarine/items@0.16.0
+  - @jsprismarine/blocks@0.16.0
+  - @jsprismarine/content@0.16.0
+  - @jsprismarine/nbt@0.16.0
+  - @jsprismarine/recipes@0.16.0
+  - @jsprismarine/binaryutils@0.16.0
+  - @jsprismarine/math@0.16.0
+
 ## 0.15.2
 
 ### Patch Changes

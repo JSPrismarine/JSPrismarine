@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/loot",
-    "version": "0.0.0",
+    "version": "0.16.0",
     "description": "Java Edition loot table evaluator: 9 entry types, weighted selection, random sequences and Bedrock translation.",
     "sideEffects": false,
     "publishConfig": {

@@ -1,5 +1,30 @@
 # @jsprismarine/leveldb
 
+## 0.16.0
+
+### Patch Changes
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`3d3a422`](https://github.com/JSPrismarine/JSPrismarine/commit/3d3a422dff9605ff66b7e1fb336440996c0a3330) Thanks [@filiphsps](https://github.com/filiphsps)! - Delete the write-ahead logs an open leaves behind. Recovery replays the old logs, flushes
+  whatever they held into a table and starts a fresh log, but never removed the ones it had
+  finished with - so every open leaked a file. A world a developer restarts all day had 132 empty
+  logs in it, which recovery then reads past on each open. Stale manifests were already cleaned up
+  this way; logs now are too.
+
+- [#2628](https://github.com/JSPrismarine/JSPrismarine/pull/2628) [`5051888`](https://github.com/JSPrismarine/JSPrismarine/commit/505188860d3c261bdce0cb97562f4e71e7055554) Thanks [@filiphsps](https://github.com/filiphsps)! - Make a LevelDB point lookup a point lookup. `TableReader.seekFrom` found the right data block by
+  binary search and then threw the answer away: it re-scanned the index block entry by entry to find
+  the block again, and read that block from its first entry rather than from the target. Every
+  `Database.get` therefore decoded, and allocated a key and a value Buffer for, every index entry in
+  the table plus half a data block.
+  
+  On a 441 chunk world - two tables, 3 MiB - one lookup cost 700 microseconds. A chunk read asks for
+  about 29 records, so loading a saved world spent most of its time here, and reading a chunk back
+  was slower than generating it from scratch.
+  
+  `TableReader.seek` is the new point lookup: one index entry, one data block, and the block's own
+  restart-point binary search inside it. `seekFrom` keeps its range semantics and now seeks within
+  the first block instead of replaying it. Measured over the same world, best of five interleaved
+  rounds in one process: 700 microseconds per lookup before, 16.8 after, 41.8 times faster.
+
 ## 0.15.2
 
 No changes in this release.

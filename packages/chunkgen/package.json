@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/chunkgen",
-    "version": "0.0.0",
+    "version": "0.16.0",
     "description": "Java Edition's chunk generation ladder: the ten statuses, the step table that declares what each one may read and write, and the proto chunk that crosses a thread boundary",
     "sideEffects": false,
     "publishConfig": {

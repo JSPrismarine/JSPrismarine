@@ -1,5 +1,139 @@
 # @jsprismarine/minecraft
 
+## 0.16.0
+
+### Patch Changes
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f5ea701`](https://github.com/JSPrismarine/JSPrismarine/commit/f5ea701bd7297d63eb524be1d4b76c07cf204569) Thanks [@filiphsps](https://github.com/filiphsps)! - Publish the Bedrock 1.26.60 (protocol 2225) data this repository can now capture.
+  
+  The `packets` pass was run twice against the pinned BDS 1.26.60.6. `required_item_list.json`,
+  `block_definitions.json` and `biome_definitions_network.nbt` reproduced byte for byte and are
+  committed under `src/jsp/v2225/`. `jigsaw_structure_data.nbt` is deliberately not: the engine
+  iterates its template pools out of an unordered container, so two runs agreeing is not the order
+  being fixed, and the same goes for the block palette — `datagen/manifest.json`'s 2225 entry still
+  declares no `blocks` for that reason, and 2193 stays `defaultProtocolVersion`.
+  
+  What the capture says is that the item registry is the only one of the three that moved. Against
+  2193 it adds four names, removes none, and **moves 82 runtime ids**; the block definitions and
+  the biome definitions came back identical. `utils/build.js` now builds an item table and the
+  binary payload conversions for every captured version, not only the default one, joining each
+  with its own version's CloudburstMC dump for the `Item Version` column the capture does not
+  record. The default version's generated files are byte-identical to what the previous generator
+  produced, which was checked by running both.
+  
+  The result is a new entry point, `@jsprismarine/bedrock-data/v2225`, exporting `item_table`,
+  `block_definitions` and `biome_definitions_network` for that protocol. It is published beside
+  the unversioned exports rather than in place of them: picking a table per session is a later
+  slice, and nothing that imports the unversioned names changes. A `registry.items-2225` parity
+  family compares the published table against the capture it was built from, which is the way this
+  goes wrong quietly — a 2225 table rebuilt from the 2193 capture looks right and is 82 items out.
+  
+  `packages/minecraft`'s 2225 entry also declares `recipes` now. The output is 2193's recipe set
+  exactly apart from its `minecraftVersion` header, because `vanilla_1.26.60` ships structures and
+  a manifest and no recipe layer at all: 1.26.60 revised no recipe.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`91a7a0b`](https://github.com/JSPrismarine/JSPrismarine/commit/91a7a0bfac2eac8c81961d5263e54b53dc0c3fc5) Thanks [@filiphsps](https://github.com/filiphsps)! - Resolve the unpacked Bedrock Dedicated Server from one place. `fetch:sources` writes the
+  cache path, and the Bedrock capture and the datagen generators now read it back from the
+  fetch instead of each building it themselves, so the writer and its readers cannot drift
+  apart over how the directory is keyed.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`28b5c00`](https://github.com/JSPrismarine/JSPrismarine/commit/28b5c00af0d5377e7030e82d409b6def544619ba) Thanks [@filiphsps](https://github.com/filiphsps)! - Generate `EnchantType`, `ArmorSlot` and `PlayerRespawnState` into `@jsprismarine/minecraft` from
+  the pinned bedrock-protocol-docs schemas, the way `ActorEvent` already is. All three are defined
+  in the v1.26.51 release schemas - `Enchant::Type`, `SharedTypes::Legacy::ArmorSlot` and
+  `PlayerRespawnState` - and the generated values match the hand-written ones exactly. `EnchantType`
+  also gains the upstream sentinels `NUM_ENCHANTMENTS` (42) and `INVALID_ENCHANTMENT` (43).
+  
+  The prismarine packet files (`PlayerEnchantOptionsPacket`, `PlayerArmorDamagePacket`,
+  `RespawnPacket`) now import the generated enums and keep deprecated re-exports, so existing import
+  paths still resolve. Member names follow the generated convention, which renames them from
+  PascalCase to SCREAMING_SNAKE (`EnchantType.Protection` is now `EnchantType.PROTECTION`,
+  `ArmorSlot.Head` is `ArmorSlot.HEAD`, `PlayerRespawnState.ReadyToSpawn` is
+  `PlayerRespawnState.READY_TO_SPAWN`); the wire values are unchanged.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`08de1ba`](https://github.com/JSPrismarine/JSPrismarine/commit/08de1bac21f3c5785a02649e4faa11d9a11f82b0) Thanks [@filiphsps](https://github.com/filiphsps)! - Make the Bedrock capture pipeline multi-version and remove the last manual step.
+  
+  `sources.json` pinned exactly one Bedrock Dedicated Server, so a capture could only ever target
+  one Bedrock version while `packages/minecraft` was already keyed per protocol. The `bds` entry
+  now carries a `versions` map, the same shape `cloudburstData` uses, and `fetch:sources` and
+  `dump:bedrock` take `--protocol <n>`. Protocol 2225 is pinned to BDS 1.26.60.6, whose sha256 was
+  measured from the download and whose sha1 and byte count match Bedrock-OSS/BDS-Versions. Each
+  version caches under `bds/v<protocol>/`, so two servers coexist, and only the selected one is
+  downloaded, because the zips are ~95 MB each.
+  
+  The captures themselves move to `src/jsp/v<protocol>/`, mirroring `src/generated/v<protocol>/`.
+  Generated re-export modules keep `jsp/block_definitions` and `jsp/required_item_list` resolving
+  at the paths they already had, so a consumer deep-importing either is unaffected and the
+  published surface only gains the versioned entries. `src/jsp/java/` stays unversioned: it tracks
+  Java Edition releases, which have no Bedrock protocol version.
+  
+  The block palette was the one artifact a human still had to make, through two server runs with
+  two hand edits between them. It is now the `palette` pass of the same job, reusing the manifest
+  writer the other passes already had, so
+  `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette` produces
+  `snapshot/v<protocol>/block-palette.json` with no manual step. `generate-recipes.js` defaults to
+  the server `fetch:sources` already unpacks instead of needing a hand-set path, keeping
+  `BEDROCK_SERVER` as the escape hatch.
+  
+  Also fixes four readers in `@jsprismarine/mapping` that still used the pre-versioning
+  `datagen/snapshot/block-palette.json`; two were tests that had been failing with ENOENT.
+  
+  Two unreferenced files, `src/jsp/block_id_map.json` and `src/jsp/runtime_block_states.dat`, are
+  deleted. No code read either, and nothing in the pipeline regenerated them.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`9d93172`](https://github.com/JSPrismarine/JSPrismarine/commit/9d931725e8d48fab773c2fe9f659b2f3e1d26325) Thanks [@filiphsps](https://github.com/filiphsps)! - Generate the protocol 2225 enums. The datagen manifest declares Minecraft 1.26.60 alongside
+  1.26.51, pinned to the v1.26.60 `metadata.zip` release asset, and the 31 public enums for that
+  release are exported from `generated/v2225/`. That asset carries `x-enum-binary-value` itself, so
+  it is its own values release rather than needing a later one.
+  
+  Five enums differ from the 2193 copies. `ItemStackRequestActionType` gains
+  `CRAFT_RESERVED_ACTION = 18` and renumbers `CRAFTING_NON_IMPLEMENTED_DEPRECATED` and
+  `CRAFTING_RESULTS_DEPRECATED` to 19 and 20; `ContainerUiId` gains `RESERVED_CONTAINER_A` through
+  `D` at 67-70; `WindowTypes` gains `RESERVED_CONTAINER_TYPE = 38`; `DisconnectReason` gains
+  `SUB_CLIENT_LOGIN_NOT_BOUND = 150`; and `LevelSoundEvent` gains `ICE_BALL_BREAK`, moving
+  `UNDEFINED` to 615.
+  
+  Nothing existing moved. 2193 stays the default version, the unversioned exports are unchanged, and
+  no code reads the 2225 enums yet.
+  
+  The 2225 entry carries enums only: its block palette and recipes are captured from a Bedrock
+  Dedicated Server of that version, and no such capture exists yet. The block and recipe generators
+  now skip a non-default version in that state, naming the commands that populate it, rather than
+  failing the whole run.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`f0584a3`](https://github.com/JSPrismarine/JSPrismarine/commit/f0584a381c6bab5c61e5aa2cd3782218bc8d74e7) Thanks [@filiphsps](https://github.com/filiphsps)! - Apply the datagen recipe ID aliases again. They were matched against the recipe's source
+  ID while their keys carry the crafting station, so every one of them missed and
+  `recipes.json` could not be regenerated from the server it was built from. The published
+  recipe book is unchanged; regenerating now reproduces it.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`8b1bf1b`](https://github.com/JSPrismarine/JSPrismarine/commit/8b1bf1b337e7cb9e1d8f61d8df8b42e2b2badcb6) Thanks [@filiphsps](https://github.com/filiphsps)! - Stop presenting six frozen enums as per-version data. `LevelEvent`, `ActorDataID`, `ActorFlags`,
+  `ServerAuthMovementMode`, `AbilityLayerFlag` and `RecipeEntryType` have no schema in any
+  `bedrock-protocol-docs` release — a schema exists only for a type a packet field is declared with,
+  and these travel as plain integers — so every protocol fell back to the same frozen 1.26.40
+  `enums.html`. Each version directory then held a copy that differed from the others only in its
+  `Source:` line, which reads as a value checked against that release.
+  
+  They are now generated once, to `generated/unversioned/`, headed `NOT VERSIONED` with the
+  protocols that read them, the 1.26.40 commit they come from, and whatever `datagen/manifest.json`
+  records under `legacy.knownGaps` about how they have drifted since. `generated/v2193/`,
+  `generated/v2225/` and the default exports re-export that one copy, so every existing import keeps
+  working and no value changed. An enum is treated this way only while *every* declared version
+  reports it absent; the first release that describes one makes it versioned again with no manifest
+  change, and two versions that disagreed about a shared enum would fail the run rather than let one
+  copy win.
+  
+  The gap recorded for `LevelEvent`: it is missing `ParticleCreakingHeartTrail = 9816`, added after
+  1.26.40, and its last three members carry the list positions 3617-3619 that the dump printed
+  rather than values. Nothing in this repository sends any of them.
+
+- [#2633](https://github.com/JSPrismarine/JSPrismarine/pull/2633) [`23450ee`](https://github.com/JSPrismarine/JSPrismarine/commit/23450ee6e61092c05e2cebeca492c95b28e8da0d) Thanks [@filiphsps](https://github.com/filiphsps)! - Generated protocol data is now namespaced per protocol version. `datagen/manifest.json`
+  declares releases under `versions`, each generator writes to `src/generated/v<protocol>/`
+  (`@jsprismarine/minecraft/generated/v2193/*` today), and the version named by
+  `defaultProtocolVersion` is re-exported at the unversioned `generated/*` paths, so existing
+  imports keep working.
+- Updated dependencies [[`ef12ef8`](https://github.com/JSPrismarine/JSPrismarine/commit/ef12ef8dee0fb445a80811306d20c44aabeb237d)]:
+  - @jsprismarine/nbt@0.16.0
+  - @jsprismarine/errors@0.16.0
+
 ## 0.15.2
 
 ### Patch Changes
