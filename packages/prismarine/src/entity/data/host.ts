@@ -128,6 +128,12 @@ export interface EntityHostFacts {
      * @param id - The data-driven entity's runtime id.
      */
     hurtFeedback?(id: number): void;
+    /**
+     * Announces that an entity's data-defined death hold began, so clients play the long
+     * death animation. Only the ender dragon's `minecraft:behavior.dragondeath` starts one.
+     * @param id - The data-driven entity's runtime id.
+     */
+    startDeathAnimation?(id: number): void;
     /** Applies projectile knockback to an entity outside the data-driven index. */
     knockback?(id: number, directionX: number, directionZ: number, strength: number): void;
     /** Whether a named mob event, such as `minecraft:pillager_patrols_event`, is running. */

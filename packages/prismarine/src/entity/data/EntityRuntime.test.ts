@@ -2376,6 +2376,28 @@ describe('EntityRuntime', () => {
             expect(dragon.instance.attributes.get('health')?.current).toBe(200 - 2 * (8 / 4 + 1));
         });
 
+        it('announces the death animation to the host once, when the hold begins', () => {
+            const { runtime, world, dragon } = dragonRuntime();
+
+            runtime.hurt(dragon, PLAYER_ID, 'entity_attack', 1000);
+            runtime.tick(1);
+            runtime.tick(2);
+
+            expect(world.deathAnimations).toEqual([dragon.id]);
+        });
+
+        it('announces no death animation for a mob that dies outright', () => {
+            const { runtime, world } = dragonRuntime();
+            const cow = runtime.spawn('minecraft:cow', { ...GROUND, x: 2 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            runtime.hurt(cow, PLAYER_ID, 'entity_attack', 100);
+            runtime.tick(1);
+
+            expect(cow.removed).toBe('death');
+            expect(world.deathAnimations).toEqual([]);
+        });
+
         it('ignores damage while the death animation holds the dragon', () => {
             const { runtime, dragon } = dragonRuntime();
 

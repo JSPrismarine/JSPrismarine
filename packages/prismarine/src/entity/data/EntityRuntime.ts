@@ -924,6 +924,8 @@ export class EntityRuntime implements EntityScene {
                     this.kill(entity);
                     continue;
                 }
+                // The killing hit added the death-hold goal, so the hold begins this tick.
+                this.host.startDeathAnimation?.(entity.id);
             }
             this.updateMedium(entity);
             this.tickTimers(entity.body);

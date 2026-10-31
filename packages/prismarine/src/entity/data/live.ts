@@ -304,6 +304,17 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
             world.sendActorSound(target, LevelSoundEvent.HURT)
         ]).catch((error: unknown) => options.report(String(error)));
     },
+    startDeathAnimation: (id) => {
+        const world = options.liveWorld();
+        const target = bodies.bodyOf(id);
+        if (world === undefined || target === undefined) return;
+
+        // `DRAGON_START_DEATH_ANIM` is the unverified Bedrock candidate for Java's dragon death
+        // start (docs/plans/end-dragon-fight.md, open question 2); a retail client run decides.
+        void world
+            .sendActorEvent(target, ActorEvent.DRAGON_START_DEATH_ANIM)
+            .catch((error: unknown) => options.report(String(error)));
+    },
     knockback: (id, directionX, directionZ, strength) => {
         const target = options.liveWorld()?.getEntity(BigInt(id));
         target?.applyKnockback(directionX, directionZ, strength);

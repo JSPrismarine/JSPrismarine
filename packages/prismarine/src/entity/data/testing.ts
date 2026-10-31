@@ -369,6 +369,9 @@ export class TestEntityWorld {
     /** Data-driven entities asked to play their attack sound. */
     public readonly attackSounds: number[] = [];
 
+    /** Entities whose death animation the host was asked to announce. */
+    public readonly deathAnimations: number[] = [];
+
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
 
@@ -466,6 +469,7 @@ export class TestEntityWorld {
                     ...(deathMessageOverride === undefined ? {} : { deathMessageOverride })
                 }),
             attackSound: (id) => this.attackSounds.push(id),
+            startDeathAnimation: (id) => this.deathAnimations.push(id),
             mobEventActive: () => false
         };
     }

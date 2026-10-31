@@ -1745,6 +1745,12 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(dragon.instance.hasComponent('minecraft:behavior.dragondeath')).toBe(true);
             expect(live.runtime.all()).toContain(dragon);
+            // The clients hear the hold begin, so they play the 200-tick death their packs define.
+            expect(broadcasts.actorEffects).toContainEqual({
+                identifier: 'jsprismarine:dragon_death_fixture',
+                entityId: live.bodies.bodyOf(dragon.id)!.getRuntimeId(),
+                effect: ActorEvent.DRAGON_START_DEATH_ANIM
+            });
 
             await run(198);
             expect(live.runtime.all()).toContain(dragon);
