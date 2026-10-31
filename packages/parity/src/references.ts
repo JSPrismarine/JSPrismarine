@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 
 // The generator's own loader decides where the datapack and the data generator reports are,
 // including the two environment overrides it documents. Asking it is the only way a row that
