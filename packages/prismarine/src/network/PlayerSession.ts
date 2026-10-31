@@ -50,7 +50,7 @@ import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
-import { playerSpawnPositionPacket } from './spawnPosition';
+import { overworldSpawnOf, playerSpawnPositionPacket } from './spawnPosition';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
 import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
@@ -1612,7 +1612,7 @@ export default class PlayerSession {
         await this.sendInventory();
         // The compass and the map point at the spawn across dimensions, so the client needs
         // the spawn's dimension again now that its own has changed.
-        await this.send(playerSpawnPositionPacket(this.player, world, await world.getSpawnPosition()));
+        await this.send(playerSpawnPositionPacket(this.player, world, await overworldSpawnOf(world)));
         advancementChangedDimension(this.player, pending.left, world.getDimension().name);
         return true;
     }

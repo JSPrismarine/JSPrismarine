@@ -23,7 +23,7 @@ import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet
 import ResourcePackStackPacket from '@jsprismarine/protocol/packet/ResourcePackStackPacket';
 import { ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
-import { playerSpawnPositionPacket } from '../spawnPosition';
+import { overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { createStartGameData } from '../startGameData';
 import type PacketHandler from './PacketHandler';
 
@@ -311,7 +311,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         await session.sendTime(world.getTicks());
 
-        await connection.sendDataPacket(playerSpawnPositionPacket(player, world, worldSpawnPos));
+        await connection.sendDataPacket(playerSpawnPositionPacket(player, world, await overworldSpawnOf(world)));
 
         await player.sendSettings();
         await session.sendAttributes();

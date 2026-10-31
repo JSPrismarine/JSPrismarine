@@ -4,15 +4,17 @@
  * The client shows the point on its compass and its map, so the packet carries the player's
  * own spawn point when they have one, in the dimension the block stands in, which need not be
  * the dimension the player is standing in. A player with no point of their own is told the
- * world spawn of the world they are in. Both positions in the packet are `BlockPos`, and a
- * ZigZag varint write truncates toward zero without a word, so a fractional spawn is floored
- * here rather than sent as the wrong block.
+ * level's Overworld spawn in the Overworld, which is where `Player.getRespawnPoint` lands them
+ * without a bed, whatever world they are standing in. Both positions in the packet are
+ * `BlockPos`, and a ZigZag varint write truncates toward zero without a word, so a fractional
+ * spawn is floored here rather than sent as the wrong block.
  */
 import type { Vector3 } from '@jsprismarine/math';
 import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type Player from '../Player';
-import { dimensionByName } from '../world/Dimension';
+import { Dimensions, dimensionByName } from '../world/Dimension';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 
@@ -35,26 +37,52 @@ export const spawnDimensionIdOf = (level: Level, dimensionName: string, fallback
 };
 
 /**
+ * The Overworld spawn of the level a world belongs to, which is where a player with no spawn
+ * of their own comes back.
+ *
+ * The Overworld's own spawn is the level's, so a world of that dimension is asked directly.
+ * From any other world, the level answers once its Overworld has found the spawn; before
+ * that, the Overworld is asked, which builds that world when nothing has yet.
+ *
+ * @param world - The world the player is in.
+ */
+export const overworldSpawnOf = async (world: World): Promise<Vector3> => {
+    if (world.getDimension().bedrockId === Dimensions.Overworld.bedrockId) return world.getSpawnPosition();
+
+    const level = world.getLevel();
+    const known = level.getSpawn();
+    if (known !== null) return known;
+    const overworld = await level.world(OVERWORLD_STEM_ID);
+    return overworld.getSpawnPosition();
+};
+
+/**
  * The `SetSpawnPosition` for a player in a world, as a `PlayerRespawn` point.
  *
- * @param world - The world the player is in, whose dimension and spawn answer for a player
- *   with no spawn point of their own.
- * @param worldSpawn - The world's spawn, which the caller has already asked the world for.
+ * @param world - The world the player is in, whose level resolves the dimension of a spawn
+ *   point of the player's own.
+ * @param overworldSpawn - The level's Overworld spawn, from {@link overworldSpawnOf}, which
+ *   answers for a player with no spawn point of their own.
  */
 export const playerSpawnPositionPacket = (
     player: Player,
     world: World,
-    worldSpawn: Vector3
+    overworldSpawn: Vector3
 ): SetSpawnPositionPacket => {
     const own = player.getSpawnPoint();
-    const joinDimension = world.getDimension().bedrockId;
 
     const position =
         own === undefined
-            ? { x: Math.floor(worldSpawn.getX()), y: Math.floor(worldSpawn.getY()), z: Math.floor(worldSpawn.getZ()) }
+            ? {
+                  x: Math.floor(overworldSpawn.getX()),
+                  y: Math.floor(overworldSpawn.getY()),
+                  z: Math.floor(overworldSpawn.getZ())
+              }
             : { x: Math.floor(own.x), y: Math.floor(own.y), z: Math.floor(own.z) };
     const dimension =
-        own === undefined ? joinDimension : spawnDimensionIdOf(world.getLevel(), own.dimension, joinDimension);
+        own === undefined
+            ? Dimensions.Overworld.bedrockId
+            : spawnDimensionIdOf(world.getLevel(), own.dimension, world.getDimension().bedrockId);
 
     return new SetSpawnPositionPacket({
         type: SpawnPositionType.PlayerRespawn,

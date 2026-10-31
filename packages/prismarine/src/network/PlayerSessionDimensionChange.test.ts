@@ -31,6 +31,7 @@ import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/DimensionType';
 import type { DimensionType } from '../world/DimensionType';
 import { Position } from '../world/Position';
+import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import Chunk from '../world/chunk/Chunk';
 import Codec2193 from './codec/Codec2193';
@@ -40,10 +41,14 @@ import { playerAuthInputToProtocol } from './PlayerAuthInputAdapter';
 import type { Arrival } from './PlayerSession';
 
 /** A destination world of one dimension, whose chunks are empty and carry that dimension. */
-const worldOf = (dimension: DimensionType, roster: string[] = []) =>
+const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level) =>
     stub<World>({
         getName: () => `${dimension.name} world`,
         getDimension: () => dimension,
+        getLevel: () => {
+            if (level === undefined) throw new Error('this world was built without a level');
+            return level;
+        },
         addEntity: async () => void roster.push('add'),
         broadcastMove: async () => {},
         getPlayers: () => [],
@@ -213,12 +218,12 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('drops the client input until the screen it was given closes, and ignores another id', async () => {
-        const { player, server, sent, logged } = fakePlayer();
+        const { player, server, sent, logged, level } = fakePlayer();
         const session = player.getNetworkSession();
         const inputs = new PlayerAuthInputHandler();
         const screens = new ServerboundLoadingScreenHandler();
 
-        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, [], level)));
         const id = session.pendingDimensionChange()!.loadingScreenId;
         sent.length = 0;
 
@@ -239,10 +244,10 @@ describe('PlayerSession.changeWorld', () => {
     });
 
     it('finishes the change with a teleport to the arrival, the attributes, the inventory and the spawn', async () => {
-        const { player, sent } = fakePlayer();
+        const { player, sent, level } = fakePlayer();
         const session = player.getNetworkSession();
 
-        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether)));
+        await session.changeWorld(arrivalIn(worldOf(Dimensions.Nether, [], level)));
         const id = session.pendingDimensionChange()!.loadingScreenId;
         sent.length = 0;
 
@@ -263,12 +268,13 @@ describe('PlayerSession.changeWorld', () => {
         expect(inventory).toBeGreaterThan(attributes);
         expect(spawn).toBeGreaterThan(inventory);
 
-        // No spawn point of their own, so the new world's spawn in the new dimension.
+        // No spawn point of their own, so the level's Overworld spawn in the Overworld, which
+        // is where `Player.getRespawnPoint` sends them. The Nether world's own spawn is not it.
         expect(sent[spawn]?.getPacketData()).toEqual({
             type: SpawnPositionType.PlayerRespawn,
-            position: { x: 8, y: 70, z: 8 },
-            dimension: Dimensions.Nether.bedrockId,
-            blockPosition: { x: 8, y: 70, z: 8 }
+            position: { x: 0, y: 64, z: 0 },
+            dimension: Dimensions.Overworld.bedrockId,
+            blockPosition: { x: 0, y: 64, z: 0 }
         });
 
         // Closed once. The client reporting the same id again is not a second change.
