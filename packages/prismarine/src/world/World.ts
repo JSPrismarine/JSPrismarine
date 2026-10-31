@@ -59,6 +59,7 @@ import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
 import { startProfileSpan } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import { PortalIndex } from './portal/PortalIndex';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
@@ -437,6 +438,13 @@ export class World implements Service {
 
     /** Positions waiting to react to a nearby change, and what they do about it. */
     private readonly blockUpdates = new BlockUpdateScheduler();
+
+    /**
+     * Every lit nether portal block in memory, which is what a trip into this world searches.
+     * Built on first use, as {@link playerChunkRefCounts} is, so a world double assembled from
+     * the prototype has one too.
+     */
+    private portalIndex: PortalIndex | undefined;
     private readonly physics: BlockPhysics;
 
     /**
@@ -1011,6 +1019,7 @@ export class World implements Service {
             options
         );
         this.chunks.set(index, chunk);
+        this.getPortalIndex().chunkLoaded(chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         // The only thing that changes what `getLoadedChunk` should answer.
         this.lastChunkIndex = -1;
@@ -1762,6 +1771,7 @@ export class World implements Service {
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         const state = chunk.getBlock(x, y, z);
+        this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
         const next: SystemBlock = { name: state.name, states: state.properties };
         this.systems.onBlockChanged({ x, y, z }, { name: previous.name, states: previous.properties }, next);
 
@@ -1808,6 +1818,11 @@ export class World implements Service {
     /** The queue of positions waiting to react to a change - see {@link BlockUpdateScheduler}. */
     public getBlockUpdates(): BlockUpdateScheduler {
         return this.blockUpdates;
+    }
+
+    /** The lit nether portal blocks of this world, kept in step with its block writes and chunk loads. */
+    public getPortalIndex(): PortalIndex {
+        return (this.portalIndex ??= new PortalIndex());
     }
 
     /** The light engine and the two scheduled tick lists - see {@link WorldSystems}. */
