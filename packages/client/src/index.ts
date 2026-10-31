@@ -1,4 +1,5 @@
 import Client, { MINECRAFT_VERSION, PROTOCOL_VERSION } from './Client';
+import DimensionChange from './DimensionChange';
 import Bot, { TICK_INTERVAL_MS } from './bot/Bot';
 import Fleet from './bot/Fleet';
 import { Samples, formatReport } from './bot/Metrics';
@@ -23,6 +24,7 @@ export {
     Client,
     ClientPacketRegistry,
     ClientSession,
+    DimensionChange,
     Fleet,
     LoginSequence,
     LoginStage,
@@ -42,6 +44,7 @@ export {
 export default Client;
 
 export type { ClientOptions } from './Client';
+export type { PendingDimensionChange } from './DimensionChange';
 export type { LoginResult, LoginSequenceOptions } from './login/LoginSequence';
 export type { DecodedPacket, PacketConstructor } from './net/ClientPacketRegistry';
 export type { ITransport, TransportEvents, TransportStats } from './net/ITransport';

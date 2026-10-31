@@ -20,6 +20,7 @@ import {
     v2225
 } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
+import DimensionChange from './DimensionChange';
 import LoginSequence from './login/LoginSequence';
 import ClientPacketRegistry from './net/ClientPacketRegistry';
 import ClientSession from './net/ClientSession';
@@ -28,6 +29,7 @@ import RakNetTransport from './net/RakNetTransport';
 import type { IAuthProvider } from '@jsprismarine/auth';
 import type { StartGame } from '@jsprismarine/protocol';
 import type { ITransport, TransportStats } from './net/ITransport';
+import type { PendingDimensionChange } from './DimensionChange';
 
 /**
  * The protocol version this client speaks unless it is told otherwise.
@@ -95,6 +97,7 @@ export default class Client extends EventEmitter {
     private readonly registry: ClientPacketRegistry;
     private readonly transport: ITransport;
     private readonly session: ClientSession;
+    private readonly dimensionChange: DimensionChange;
 
     /** The protocol this client speaks, resolved from the options. */
     private readonly protocolVersion: number;
@@ -164,6 +167,15 @@ export default class Client extends EventEmitter {
         });
 
         this.session.on('packet', (packet) => this.emit('packet', packet));
+
+        // Answers the server's `ChangeDimension` for the life of the connection; the login
+        // never sees one, so this is not part of `LoginSequence`.
+        this.dimensionChange = new DimensionChange(
+            this.session,
+            this.logger,
+            () => this.startGame?.runtimeEntityId ?? 0n
+        );
+        this.dimensionChange.on('end', (change: PendingDimensionChange) => this.emit('dimensionChange', change));
     }
 
     /**
@@ -220,6 +232,11 @@ export default class Client extends EventEmitter {
 
     public getRegistry(): ClientPacketRegistry {
         return this.registry;
+    }
+
+    /** The dimension change responder, which also knows whether one is in progress. */
+    public getDimensionChange(): DimensionChange {
+        return this.dimensionChange;
     }
 
     public getStats(): TransportStats {
