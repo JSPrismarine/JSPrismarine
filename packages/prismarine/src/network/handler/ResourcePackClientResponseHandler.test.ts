@@ -17,10 +17,11 @@ import { stub } from '../../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
 import type { Generator } from '../../world/Generator';
+import type { Level } from '../../world/Level';
 import type { PlayerSpawn } from '../../world/SpawnPlacement';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { Dimensions } from '../../world/Dimension';
+import { Dimensions, dimensionTypeOf, FIRST_CUSTOM_DIMENSION_ID } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
 import Codec2193 from '../codec/Codec2193';
 import { registeredCodecs } from '../codec/CodecRegistry';
@@ -29,6 +30,9 @@ import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type PlayerSession from '../PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
+import DimensionDataPacket from '@jsprismarine/protocol/packet/DimensionDataPacket';
+import PackId from '@jsprismarine/protocol/structure/UUID';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '@jsprismarine/protocol/packet/ResourcePackClientResponsePacket';
@@ -51,7 +55,8 @@ const harness = ({
     joinSpawn = null,
     spawn = new Vector3(0, 64, 0),
     serverAuthoritativeBreaking = true,
-    codec = Codec2193
+    codec = Codec2193,
+    level = fakeLevel()
 }: {
     cancelSpawn?: boolean;
     /** The content build whose registries the join burst writes from. */
@@ -64,6 +69,8 @@ const harness = ({
     serverAuthoritativeBreaking?: boolean;
     /** The protocol codec the connection negotiated, which fixes the item numbering. */
     codec?: ProtocolCodec;
+    /** The level behind the join world. Defaults to a vanilla one with nothing to announce. */
+    level?: Level;
 } = {}) => {
     const sent: string[] = [];
     /** The packets written straight to the connection, for the tests that read their fields. */
@@ -74,7 +81,7 @@ const harness = ({
 
     const world = stub<World>({
         getTicks: () => 6000,
-        getLevel: () => fakeLevel(),
+        getLevel: () => level,
         getStem: () => TEST_OVERWORLD_STEM,
         getDimension: () => Dimensions.Overworld,
         getGenerator: () => stub<Generator>(),
@@ -236,6 +243,87 @@ describe('ResourcePackClientResponseHandler', () => {
         const data = packet.getPacketData();
         expect(data?.position).toEqual({ x: 0, y: 64, z: -1 });
         expect(data?.blockPosition).toEqual({ x: 0, y: 64, z: -1 });
+    });
+
+    it('announces no dimension for a level of vanilla dimensions', async () => {
+        const { sent, server, session } = harness();
+
+        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatus.Completed), server, session);
+
+        expect(sent).not.toContain('DimensionDataPacket');
+    });
+
+    describe('with a custom dimension type', () => {
+        /** The Overworld's type under a pack's id, with the one attribute the announcement reads. */
+        const sky = dimensionTypeOf(
+            { ...Dimensions.Overworld.java, attributes: new Map([['minecraft:visual/cloud_height', 192]]) },
+            'mypack:sky',
+            FIRST_CUSTOM_DIMENSION_ID
+        );
+        const level = () =>
+            fakeLevel({
+                dimensionTypes: new Map([
+                    [Dimensions.Overworld.id, Dimensions.Overworld],
+                    [sky.id, sky]
+                ]),
+                customDimensionDefinitions: [
+                    {
+                        minimumY: sky.minY,
+                        heightRange: sky.height,
+                        generatorType: 5,
+                        dimensionType: sky.bedrockId,
+                        packId: new PackId(0n, 0n),
+                        defaultBiome: 'minecraft:plains',
+                        cloudHeight: 192,
+                        renderClouds: true
+                    }
+                ]
+            });
+
+        const dimensionDataSentTo = async (codec: ProtocolCodec) => {
+            const { sent, packets, server, session } = harness({ codec, level: level() });
+            await new ResourcePackClientResponseHandler().handle(
+                response(ResourcePackStatus.Completed),
+                server,
+                session
+            );
+            const packet = packets.find((sent) => sent instanceof DimensionDataPacket);
+            if (!(packet instanceof DimensionDataPacket)) throw new Error('no DimensionData was sent');
+            return { sent, packet };
+        };
+
+        it('announces it once, between StartGame and the registries', async () => {
+            const { sent, packet } = await dimensionDataSentTo(Codec2193);
+
+            expect(sent.indexOf('DimensionDataPacket')).toBe(sent.indexOf('StartGamePacket') + 1);
+            expect(sent.filter((name) => name === 'DimensionDataPacket')).toHaveLength(1);
+
+            const definitions = packet.getPacketData()?.definitions ?? [];
+            expect(definitions.map((entry) => entry.id)).toEqual(['mypack:sky']);
+            expect(definitions[0]?.definition.dimensionType).toBe(FIRST_CUSTOM_DIMENSION_ID);
+            expect(definitions[0]?.definition.minimumY).toBe(-64);
+            expect(definitions[0]?.definition.heightRange).toBe(384);
+        });
+
+        it('puts the cloud fields on the wire for a 2225 session and not for a 2193 one', async () => {
+            // The packet picks its layout from the context the connection encodes it with, so
+            // the same handler output carries `Cloud Height` and `Render Clouds` only at 2225.
+            const roundTrip = async (codec: ProtocolCodec) => {
+                const { packet } = await dimensionDataSentTo(codec);
+                const bytes = packet.serialize(new NetworkBinaryStream(), codec.context);
+                const read = new DimensionDataPacket().deserialize(new NetworkBinaryStream(bytes), codec.context);
+                return read.definitions[0]?.definition;
+            };
+
+            const at2225 = await roundTrip(Codec2225);
+            expect(at2225?.cloudHeight).toBe(192);
+            expect(at2225?.renderClouds).toBe(true);
+
+            const at2193 = await roundTrip(Codec2193);
+            expect(at2193?.dimensionType).toBe(FIRST_CUSTOM_DIMENSION_ID);
+            expect(at2193?.cloudHeight).toBe(0);
+            expect(at2193?.renderClouds).toBe(false);
+        });
     });
 
     it('sends no Respawn when the player returns to a saved position', async () => {

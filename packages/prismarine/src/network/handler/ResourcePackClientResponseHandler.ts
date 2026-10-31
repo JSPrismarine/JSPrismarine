@@ -10,11 +10,14 @@ import type { Player, PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/Human';
 import { syncActorPropertyPacket } from '../actorProperties';
 import type Server from '../../Server';
+import type { Level } from '../../world/Level';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import BlockPosition from '../../world/BlockPosition';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/packet/BiomeDefinitionListPacket';
+import DimensionDataPacket from '@jsprismarine/protocol/packet/DimensionDataPacket';
+import DimensionDefinition from '@jsprismarine/protocol/structure/DimensionDefinition';
 import FeatureRegistryPacket from '@jsprismarine/protocol/packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/packet/JigsawStructureDataPacket';
@@ -54,6 +57,48 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
             [joinSpawn.requested, PlayerRespawnState.SEARCHING_FOR_SPAWN, 0n],
             [eyePositionAt(joinSpawn.position), PlayerRespawnState.READY_TO_SPAWN, 0n]
         ];
+    }
+
+    /**
+     * The `DimensionData` that tells the client about the level's custom dimension types, or
+     * undefined for a level of vanilla dimensions, which the client knows without it.
+     *
+     * One entry per custom type, keyed by the type's name, with the bounds and the id from
+     * 1000 up that the level chose. The cloud fields go on the wire only when the connection
+     * encodes the packet at protocol 2225 or later; the definition carries them either way.
+     * Sent before the chunks so the client has the bounds when the first `LevelChunk` with
+     * that dimension id arrives. Whether a client accepts an id of 1000 or more has not been
+     * checked against a real client.
+     */
+    private static customDimensionData(level: Level): DimensionDataPacket | undefined {
+        const definitions = level.customDimensionDefinitions();
+        if (definitions.length === 0) return undefined;
+
+        const types = [...level.getDimensionTypes().values()];
+        return new DimensionDataPacket({
+            definitions: definitions.map((fields) => {
+                const type = types.find((candidate) => candidate.bedrockId === fields.dimensionType);
+                if (type === undefined) {
+                    throw new Error(
+                        `Level ${level.getName()} announces dimension ${fields.dimensionType} without a type`
+                    );
+                }
+
+                return {
+                    id: type.name,
+                    definition: new DimensionDefinition(
+                        fields.minimumY,
+                        fields.heightRange,
+                        fields.generatorType,
+                        fields.dimensionType,
+                        fields.packId,
+                        fields.defaultBiome,
+                        fields.cloudHeight,
+                        fields.renderClouds
+                    )
+                };
+            })
+        });
     }
 
     /**
@@ -168,7 +213,9 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * 1. `JigsawStructureData`. The one exception to "StartGame first": a client that reaches
      *    StartGame without the jigsaw rules disconnects with `MissingStructureData`.
      * 2. `StartGame`. Nothing game-related may precede it. A client still in its login state
-     *    treats game packets as malformed and drops with `InitialConnection-90`.
+     *    treats game packets as malformed and drops with `InitialConnection-90`. Then
+     *    `DimensionData`, only for a level with a dimension type the client has no built-in
+     *    dimension for: see {@link customDimensionData}.
      * 3. `ItemRegistry` (our `ItemRegistryPacket`), `AvailableActorIdentifiers`,
      *    `BiomeDefinitionList`, `FeatureRegistry`, `CreativeContent`, `CraftingData`,
      *    `AvailableCommands`. The registries the client builds its world from; it needs them
@@ -234,6 +281,9 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
                 })
             )
         );
+
+        const dimensionData = ResourcePackClientResponseHandler.customDimensionData(world.getLevel());
+        if (dimensionData !== undefined) await connection.sendDataPacket(dimensionData);
 
         // Every item the content build resolved, with the numbers the
         // captured table gives them. Without it a pack's own item has no row
