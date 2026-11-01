@@ -48,6 +48,7 @@ import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import Chunk from '../world/chunk/Chunk';
+import type { DimensionTravel } from '../world/portal/DimensionTravel';
 import { Dimensions } from '../world/Dimension';
 import type { Generator } from '../world/Generator';
 import { Position } from '../world/Position';
@@ -65,13 +66,21 @@ const CHEST_PARTNER = { x: 5, y: 64, z: 4 };
 const FURNACE = { x: 8, y: 64, z: 8 };
 const HELD_SLOT = 0;
 
-/** The three blocks this file places, which the fixture content has to declare. */
-const BLOCKS = ['minecraft:chest', 'minecraft:furnace', 'minecraft:black_shulker_box', 'minecraft:stone'] as const;
+/** The blocks this file places, which the fixture content has to declare. */
+const BLOCKS = [
+    'minecraft:chest',
+    'minecraft:furnace',
+    'minecraft:lit_furnace',
+    'minecraft:black_shulker_box',
+    'minecraft:stone'
+] as const;
 
 /** The items it moves between them. */
 const ITEMS = [
     'minecraft:diamond',
     'minecraft:coal',
+    'minecraft:iron_ore',
+    'minecraft:iron_ingot',
     'minecraft:chest',
     'minecraft:black_shulker_box',
     'minecraft:stone',
@@ -83,6 +92,7 @@ const ITEMS = [
 const BLOCK_BEHAVIORS: ReadonlyMap<string, string> = new Map([
     ['minecraft:chest', 'jsprismarine:container'],
     ['minecraft:furnace', 'jsprismarine:furnace'],
+    ['minecraft:lit_furnace', 'jsprismarine:furnace'],
     ['minecraft:black_shulker_box', 'jsprismarine:container']
 ]);
 
@@ -103,6 +113,14 @@ const STATES_OF: Readonly<Record<string, readonly BlockStateDefinition[]>> = {
         }
     ],
     'minecraft:furnace': [
+        {
+            name: 'minecraft:cardinal_direction',
+            type: 'string',
+            values: ['north', 'south', 'east', 'west'],
+            defaultValue: 'north'
+        }
+    ],
+    'minecraft:lit_furnace': [
         {
             name: 'minecraft:cardinal_direction',
             type: 'string',
@@ -169,6 +187,7 @@ const buildScene = async (name: string) => {
             return content;
         },
         getEntityRuntime: () => inertEntityRuntime(),
+        getDimensionTravel: () => stub<DimensionTravel>({ touch: async () => {} }),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',
@@ -206,7 +225,19 @@ const buildScene = async (name: string) => {
         world: contentWorld,
         load: () => ({
             definitions: definitionsOf({
-                blocks: new Map(BLOCKS.map((id) => [id, definitionOf('blocks', id, blockFile(id))]))
+                blocks: new Map(BLOCKS.map((id) => [id, definitionOf('blocks', id, blockFile(id))])),
+                recipesJava: new Map([
+                    [
+                        'minecraft:iron_ingot_from_smelting',
+                        definitionOf('recipesJava', 'minecraft:iron_ingot_from_smelting', {
+                            type: 'minecraft:smelting',
+                            ingredient: 'minecraft:iron_ore',
+                            result: { id: 'minecraft:iron_ingot' },
+                            experience: 0.7,
+                            cookingtime: 200
+                        })
+                    ]
+                ])
             }),
             diagnostics: []
         }),
@@ -402,6 +433,38 @@ describe('a block container a player can put things in', () => {
             move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 0), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 3), 1)
         ]);
         expect(player.getInventory().getItem(3).getName()).toBe('minecraft:stone');
+
+        await level.disable();
+    }, 120_000);
+
+    it('smelts an input in a lit furnace over world ticks', async () => {
+        const scene = await buildScene('smelting');
+        const { server, world, level, blocks } = scene;
+        await world.addEntity(buildPlayer(world, server, 'Smelter'));
+
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [
+                { identifier: 'minecraft:iron_ore', count: 1 },
+                { identifier: 'minecraft:coal', count: 1 },
+                undefined
+            ],
+            capacity: 3
+        });
+
+        for (let tick = 1; tick < 200; tick++) {
+            level.setTicks(tick);
+            await world.update(tick);
+        }
+
+        expect(storedItems(blocks, FURNACE)[2]).toBeUndefined();
+
+        level.setTicks(200);
+        await world.update(200);
+
+        expect(blocks.getBlock(FURNACE)?.identifier).toBe('minecraft:lit_furnace');
+        expect(storedItems(blocks, FURNACE)[0]).toBeUndefined();
+        expect(storedItems(blocks, FURNACE)[2]).toEqual({ identifier: 'minecraft:iron_ingot', count: 1 });
 
         await level.disable();
     }, 120_000);

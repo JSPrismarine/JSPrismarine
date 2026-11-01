@@ -33,6 +33,23 @@ export const pairedPosition = (data: BlockEntityData | undefined): BlockPosition
 /** The blocks that keep their contents when they are broken. */
 const KEEPS_CONTENTS = (identifier: string): boolean => bareName(identifier).endsWith('shulker_box');
 
+/** The inventory family whose lit variant keeps the same block entity. */
+const furnaceVariant = (identifier: string): string | undefined => {
+    switch (bareName(identifier)) {
+        case 'furnace':
+        case 'lit_furnace':
+            return 'furnace';
+        case 'blast_furnace':
+        case 'lit_blast_furnace':
+            return 'blast_furnace';
+        case 'smoker':
+        case 'lit_smoker':
+            return 'smoker';
+        default:
+            return undefined;
+    }
+};
+
 /** How many layers a composter takes before it makes bone meal. */
 export const COMPOSTER_FULL = 7;
 
@@ -158,7 +175,12 @@ export const furnaceFamily = defineFamily(
                     setStates(world, event.block, { 'minecraft:cardinal_direction': cardinal });
                 }
             }
-            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
+            const previousVariant =
+                event.previous === undefined ? undefined : furnaceVariant(event.previous.identifier);
+            const nextVariant = furnaceVariant(event.block.identifier);
+            if (nextVariant === undefined || previousVariant !== nextVariant) {
+                world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
+            }
         },
         onNeighborChanged: (event, world) => {
             if (!hasState(event.block, 'extinguished')) return;

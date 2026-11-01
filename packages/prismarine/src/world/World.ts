@@ -4,6 +4,7 @@ import { GameRules } from './GameRuleManager';
 import { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import type { Block, Server, Service } from '../';
@@ -65,6 +66,7 @@ import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
 import { isPortalBlock } from './portal/rules';
+import { tickFurnace } from './cooking';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
@@ -675,6 +677,39 @@ export class World implements Service {
         return this.generator.seaLevel ?? DEFAULT_SEA_LEVEL;
     }
 
+    /** Advances cooking block entities in chunks that are currently simulated. */
+    private tickCookingStations(playerChunkRefCounts: PlayerChunkRefCounts): void {
+        const content = this.server.getContent?.();
+        if (content === undefined) return;
+
+        for (const chunk of this.chunks.values()) {
+            if (!playerChunkRefCounts.simulates(chunk.getX(), chunk.getZ())) continue;
+
+            for (const blockEntity of [...chunk.getBlockEntities()]) {
+                const position = blockEntity.getPosition();
+                const x = position.getX();
+                const y = position.getY();
+                const z = position.getZ();
+                const state = chunk.getBlock(x, y, z);
+                const ticked = tickFurnace(content, blockEntity, state.name);
+                if (ticked === undefined) continue;
+
+                const blockChanged = state.name !== ticked.blockIdentifier;
+                if (blockChanged) {
+                    this.setLoadedBlockState(
+                        x,
+                        y,
+                        z,
+                        { name: ticked.blockIdentifier, states: state.properties },
+                        false
+                    );
+                }
+                writeBlockEntity(this, ticked.tags);
+                if (blockChanged || ticked.inventoryChanged) notifyContentNeighbors(this, { x, y, z });
+            }
+        }
+    }
+
     /**
      * Called every tick.
      *
@@ -723,6 +758,7 @@ export class World implements Service {
 
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
+        this.tickCookingStations(playerChunkRefCounts);
         const isPositionTicking = (x: number, z: number): boolean =>
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
         const entities = this.getEntities();
