@@ -61,6 +61,6 @@
     },
     "dependencies": {
         "@jsprismarine/minecraft": "workspace:*",
-        "fast-jwt": "6.3.5"
+        "fast-jwt": "6.3.6"
     }
 }
