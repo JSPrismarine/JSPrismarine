@@ -185,11 +185,11 @@ export interface OpenBlockContainer {
     /** The `Container Type` the client is drawing. */
     readonly screen: WindowTypes;
     /**
-     * The workstation's own input slots: the item and the material, in that order.
+     * The workstation's own input slots, in the order that station's recipe declares them.
      *
-     * An enchanting table's item and lapis, or an anvil's base and addition. They live on the
-     * window rather than on the block because they are the player's: closing the screen is
-     * what gives them back, and a second player at the same table has their own pair.
+     * They live on the window rather than on the block because they are the player's: closing
+     * the screen is what gives them back, and a second player at the same table has their own
+     * inputs.
      */
     readonly inputs: (Item | null)[];
     /**
@@ -969,7 +969,7 @@ export default class PlayerSession {
             position: at,
             identifier,
             screen: container.screen,
-            inputs: [null, null],
+            inputs: [null, null, null],
             bookshelfPower: 0
         };
         this.blockContainer = opened;

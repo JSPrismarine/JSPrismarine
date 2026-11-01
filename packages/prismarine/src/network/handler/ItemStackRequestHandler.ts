@@ -2,7 +2,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { itemTypesTable } from '@jsprismarine/items';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
 import type { ItemStackData } from '@jsprismarine/protocol';
-import type { RecipeItemStack } from '@jsprismarine/recipes';
+import type { RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
@@ -380,6 +380,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // What a craft still owes the grid, by grid index, while its `CRAFTING_CONSUME_INPUT`
         // steps are paying it.
         let owed: Map<number, number> | null = null;
+        let owedStore: number | null = null;
         const unpaid = (): boolean => owed !== null && [...owed.values()].some((due) => due > 0);
 
         /**
@@ -647,12 +648,15 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         let recipeId: string;
                         let output: Item;
                         let cost: Map<number, number>;
+                        let costStore: number = ContainerUiId.CRAFTING_INPUT;
                         const ingredients: Item[] = [];
 
                         if (payloads !== undefined) {
-                            const advertised = [...payloads.crafting.shaped, ...payloads.crafting.shapeless].find(
-                                (candidate) => candidate.netId === recipeNetId
-                            );
+                            const advertised = [
+                                ...payloads.crafting.shaped,
+                                ...payloads.crafting.shapeless,
+                                ...payloads.crafting.smithingTransform
+                            ].find((candidate) => candidate.netId === recipeNetId);
                             if (advertised === undefined)
                                 return deny(`no advertised recipe with net id ${recipeNetId}`);
 
@@ -662,34 +666,63 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                                 return deny(`no Java recipe for advertised net id ${recipeNetId}`);
                             }
 
-                            const grid = craftingInput.toGrid(craftingInput.gridSize());
-                            const slots: (RecipeItemStack | null)[] = [];
-                            for (let y = 0; y < grid.height; y++) {
-                                for (let x = 0; x < grid.width; x++) {
-                                    const stack = grid.at(x, y);
-                                    if (stack === null || stack.getName() === 'minecraft:air') {
-                                        slots.push(null);
-                                        continue;
-                                    }
-
-                                    const javaStack = javaStackOf(stack);
+                            let inputItems: (Item | null)[] = [];
+                            let recipeInput: RecipeInput;
+                            if (recipe.station === 'crafting') {
+                                const grid = craftingInput.toGrid(craftingInput.gridSize());
+                                inputItems = Array.from({ length: grid.width * grid.height }, (_, slot) => {
+                                    const item = grid.at(slot % grid.width, Math.floor(slot / grid.width));
+                                    return item?.getName() === 'minecraft:air' ? null : item;
+                                });
+                                const slots: (RecipeItemStack | null)[] = [];
+                                for (const [slot, item] of inputItems.entries()) {
+                                    const javaStack = item === null ? null : javaStackOf(item);
                                     if (javaStack === undefined) {
-                                        return deny(`crafting slot ${y * grid.width + x} has no Java item mapping`);
+                                        return deny(`crafting slot ${slot} has no Java item mapping`);
                                     }
                                     slots.push(javaStack);
                                 }
+                                recipeInput = {
+                                    station: 'crafting',
+                                    grid: { width: grid.width, height: grid.height, slots }
+                                };
+                            } else if (recipe.station === 'stonecutting' && open?.screen === WindowTypes.STONECUTTER) {
+                                costStore = WORKSTATION;
+                                const input = open.inputs[0];
+                                inputItems = [input ?? null];
+                                const stack = input == null ? null : javaStackOf(input);
+                                if (stack === undefined) return deny('the stonecutter input has no Java item mapping');
+                                recipeInput = { station: 'stonecutting', item: stack };
+                            } else if (recipe.station === 'smithing' && open?.screen === WindowTypes.SMITHING_TABLE) {
+                                costStore = WORKSTATION;
+                                inputItems = [open.inputs[0] ?? null, open.inputs[1] ?? null, open.inputs[2] ?? null];
+                                const slots: (RecipeItemStack | null)[] = [];
+                                for (const [slot, item] of inputItems.entries()) {
+                                    const javaStack = item === null ? null : javaStackOf(item);
+                                    if (javaStack === undefined) {
+                                        return deny(`smithing slot ${slot} has no Java item mapping`);
+                                    }
+                                    slots.push(javaStack);
+                                }
+                                recipeInput = {
+                                    station: 'smithing',
+                                    template: slots[0] ?? null,
+                                    base: slots[1] ?? null,
+                                    addition: slots[2] ?? null
+                                };
+                            } else {
+                                return deny(`recipe ${recipe.id} requires an open ${recipe.station} station`);
                             }
 
                             const matched = content.recipes
-                                .matchAll({
-                                    station: 'crafting',
-                                    grid: { width: grid.width, height: grid.height, slots }
-                                })
+                                .matchAll(recipeInput)
                                 .find((candidate) => candidate.recipe.id === recipe.id);
-                            if (matched === undefined)
-                                return deny(`the grid does not make advertised recipe ${recipe.id}`);
+                            if (matched === undefined) {
+                                return deny(`the open station inputs do not make advertised recipe ${recipe.id}`);
+                            }
 
-                            const advertisedOutput = advertised.outputs[0];
+                            const advertisedOutput =
+                                'outputs' in advertised ? advertised.outputs[0] : advertised.output;
                             if (advertisedOutput === undefined)
                                 return deny(`the advertised recipe ${recipe.id} has no output`);
                             const recipeOutput = bedrockRecipeResult(matched.result.id, advertisedOutput, server);
@@ -703,12 +736,10 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                                 if (count > 0) cost.set(slot, count * crafts);
                             });
                             for (const [slot, amount] of cost) {
-                                const stack = craftingInput.get(slot);
-                                if (stack === null) return deny(`crafting slot ${slot} is empty`);
+                                const stack = inputItems[slot];
+                                if (stack === null || stack === undefined) return deny(`input slot ${slot} is empty`);
                                 if (stack.getAmount() < amount) {
-                                    return deny(
-                                        `crafting slot ${craftingInput.wireSlotOf(slot)} holds fewer than ${amount}`
-                                    );
+                                    return deny(`input slot ${slot} holds fewer than ${amount}`);
                                 }
                                 ingredients.push(stack);
                             }
@@ -754,15 +785,19 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             // Spent by the `CRAFTING_CONSUME_INPUT` steps that follow, and checked
                             // against this once they have run.
                             owed = cost;
+                            owedStore = costStore;
                         } else {
                             for (const [slot, amount] of cost) {
-                                const at: Located = [
-                                    ContainerUiId.CRAFTING_INPUT,
-                                    slot,
-                                    ContainerUiId.CRAFTING_INPUT,
-                                    craftingInput.wireSlotOf(slot)
-                                ];
-                                if (!take(at, amount)) return deny(`crafting slot ${at[3]} holds fewer than ${amount}`);
+                                const at: Located =
+                                    costStore === ContainerUiId.CRAFTING_INPUT
+                                        ? [
+                                              ContainerUiId.CRAFTING_INPUT,
+                                              slot,
+                                              ContainerUiId.CRAFTING_INPUT,
+                                              craftingInput.wireSlotOf(slot)
+                                          ]
+                                        : [WORKSTATION, slot, workstationContainerId(open!, slot), 0];
+                                if (!take(at, amount)) return deny(`input slot ${slot} holds fewer than ${amount}`);
                             }
                         }
 
@@ -779,9 +814,9 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         // than the recipe asks, and a request whose steps spend less is refused
                         // once they have all run.
                         const from = locate(action.source!);
-                        if (from === null || from[0] !== ContainerUiId.CRAFTING_INPUT)
+                        if (from === null || owedStore === null || from[0] !== owedStore)
                             return deny(
-                                `not a crafting slot: ${action.source!.container.containerId}/${action.source!.slotId}`
+                                `not an input slot for this recipe: ${action.source!.container.containerId}/${action.source!.slotId}`
                             );
                         if (owed === null) return deny(`crafting slot ${from[3]} spent with nothing being crafted`);
 

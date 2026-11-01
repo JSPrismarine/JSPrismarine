@@ -112,7 +112,7 @@ const openScreen = (screen: WindowTypes): OpenBlockContainer => ({
     position: new Vector3(0, 64, 0),
     identifier: screen === WindowTypes.ANVIL ? 'minecraft:anvil' : 'minecraft:enchanting_table',
     screen,
-    inputs: [null, null],
+    inputs: [null, null, null],
     // Fifteen bookshelves' worth, which is what gives the table rows worth taking. The real
     // path fills this from `refreshEnchantOptions`, which counts them.
     bookshelfPower: 15

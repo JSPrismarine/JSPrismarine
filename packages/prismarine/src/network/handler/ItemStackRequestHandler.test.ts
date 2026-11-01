@@ -1,5 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
+import { Vector3 } from '@jsprismarine/math';
+import { WindowTypes } from '@jsprismarine/minecraft';
 import { item_table as ItemTable, item_tags as ItemTags } from '@jsprismarine/bedrock-data';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
@@ -8,7 +10,12 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import { buildServerContent } from '../../content/ServerContent';
-import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
+import {
+    fixtureBlockPalette,
+    fixtureContentOptions,
+    fixtureDefinitions,
+    fixtureItemDefinitions
+} from '../../content/testing';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import { StationRegistry } from '../../crafting/CraftingStation';
@@ -502,6 +509,164 @@ describe('network', () => {
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
             expect(inventory.getItem(0).getName()).toBe('minecraft:redstone_lamp');
             expect(inventory.getItem(0).getBlockRuntimeId()).toBe(output.blockRuntimeId);
+        });
+
+        it('crafts a stonecutting recipe from the stonecutter input slot', async () => {
+            const base = fixtureDefinitions();
+            const id = 'minecraft:redstone_lamp_from_stonecutting';
+            const content = buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: definitionsOf({
+                            ...base,
+                            recipesJava: new Map([
+                                ...base.recipesJava,
+                                [
+                                    id,
+                                    definitionOf('recipesJava', id, {
+                                        type: 'minecraft:stonecutting',
+                                        ingredient: 'minecraft:stone',
+                                        result: { id: 'minecraft:redstone_lamp' }
+                                    })
+                                ]
+                            ])
+                        }),
+                        diagnostics: []
+                    })
+                })
+            );
+            const server = fakeServer([], { getContent: () => content });
+            const advertised = joinContentPayloads(content, server.getLogger(), {
+                clientPalette: fixtureBlockPalette()
+            })?.crafting.shapeless.find((recipe) => recipe.id === id);
+            if (advertised === undefined) throw new Error('the stonecutting recipe was not advertised');
+
+            const open: OpenBlockContainer = {
+                windowId: 1,
+                position: new Vector3(0, 64, 0),
+                identifier: 'minecraft:stonecutter_block',
+                screen: WindowTypes.STONECUTTER,
+                inputs: [new Item({ name: 'minecraft:stone' }), null, null],
+                bookshelfPower: 0
+            };
+            const inventory = new HumanInventory();
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: advertised.netId,
+                                repetitions: 1
+                            },
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                count: 1,
+                                source: slot(0, ContainerUiId.STONECUTTER_INPUT_CONTAINER)
+                            },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { open }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.getItem(0).getName()).toBe('minecraft:redstone_lamp');
+            expect(open.inputs[0]).toBeNull();
+        });
+
+        it('crafts a smithing recipe from the smithing table base slot', async () => {
+            const base = fixtureDefinitions();
+            const id = 'minecraft:diamond_sword_from_smithing';
+            const content = buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: definitionsOf({
+                            ...base,
+                            recipesJava: new Map([
+                                ...base.recipesJava,
+                                [
+                                    id,
+                                    definitionOf('recipesJava', id, {
+                                        type: 'minecraft:smithing_transform',
+                                        base: 'minecraft:diamond_pickaxe',
+                                        result: { id: 'minecraft:diamond_sword' }
+                                    })
+                                ]
+                            ])
+                        }),
+                        diagnostics: []
+                    }),
+                    itemDefinitions: [
+                        ...fixtureItemDefinitions(),
+                        ...vanillaItemDefinitions().filter(
+                            (definition) => definition.identifier === 'minecraft:diamond_sword'
+                        )
+                    ]
+                })
+            );
+            const server = fakeServer([], { getContent: () => content });
+            const advertised = joinContentPayloads(content, server.getLogger(), {
+                clientPalette: fixtureBlockPalette()
+            })?.crafting.smithingTransform.find((recipe) => recipe.id === id);
+            if (advertised === undefined) throw new Error('the smithing recipe was not advertised');
+
+            const open: OpenBlockContainer = {
+                windowId: 1,
+                position: new Vector3(0, 64, 0),
+                identifier: 'minecraft:smithing_table',
+                screen: WindowTypes.SMITHING_TABLE,
+                inputs: [null, new Item({ name: 'minecraft:diamond_pickaxe' }), null],
+                bookshelfPower: 0
+            };
+            const inventory = new HumanInventory();
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: advertised.netId,
+                                repetitions: 1
+                            },
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                count: 1,
+                                source: slot(0, ContainerUiId.SMITHING_TABLE_INPUT_CONTAINER)
+                            },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { open }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.getItem(0).getName()).toBe('minecraft:diamond_sword');
+            expect(open.inputs[1]).toBeNull();
         });
 
         it('undoes everything when a later step fails', async () => {

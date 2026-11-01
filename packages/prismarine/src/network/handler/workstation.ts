@@ -1,16 +1,9 @@
 /**
- * The two workstations whose craft the server decides: the enchanting table and the anvil.
+ * The player's slots and result actions for workstations other than the crafting grid.
  *
- * `enchantment/enchantingTable.ts` and `enchantment/anvil.ts` work out what a row costs and what
- * it produces; this module is the part that knows which slot of which open screen holds the
- * stack they act on, and which `ItemStackRequest` action asks for the result.
- *
- * It is small on purpose. `ItemStackRequestHandler` resolves every slot of the player's own
- * containers, and the only thing it was missing for these two was a place to keep the stack a
- * player drops into the table between the `PLACE` that puts it there and the craft that takes
- * it out. That place is {@link import('../PlayerSession').OpenBlockContainer.inputs}, two slots
- * on the open window, and this module is the mapping between those two slots and the four
- * `ContainerUiId` values the client names them by.
+ * Enchanting and anvil results have rules of their own; stonecutting and smithing use the
+ * recipe registry. This module maps each screen's `ContainerUiId` values to the player's inputs
+ * kept in {@link import('../PlayerSession').OpenBlockContainer.inputs} while the screen is open.
  */
 import { ContainerUiId, WindowTypes } from '@jsprismarine/minecraft';
 
@@ -34,13 +27,19 @@ export const WORKSTATION_ITEM = 0;
 export const WORKSTATION_MATERIAL = 1;
 
 /** Which workstation slot each `ContainerUiId` names, by the screen that owns it. */
-const SLOT_IDS: Partial<Record<WindowTypes, readonly [number, number]>> = {
+const SLOT_IDS: Partial<Record<WindowTypes, readonly number[]>> = {
     [WindowTypes.ENCHANTMENT]: [ContainerUiId.ENCHANTING_INPUT_CONTAINER, ContainerUiId.ENCHANTING_MATERIAL_CONTAINER],
-    [WindowTypes.ANVIL]: [ContainerUiId.ANVIL_INPUT_CONTAINER, ContainerUiId.ANVIL_MATERIAL_CONTAINER]
+    [WindowTypes.ANVIL]: [ContainerUiId.ANVIL_INPUT_CONTAINER, ContainerUiId.ANVIL_MATERIAL_CONTAINER],
+    [WindowTypes.STONECUTTER]: [ContainerUiId.STONECUTTER_INPUT_CONTAINER],
+    [WindowTypes.SMITHING_TABLE]: [
+        ContainerUiId.SMITHING_TABLE_TEMPLATE_CONTAINER,
+        ContainerUiId.SMITHING_TABLE_INPUT_CONTAINER,
+        ContainerUiId.SMITHING_TABLE_MATERIAL_CONTAINER
+    ]
 };
 
 /**
- * The workstation slot one container name points at, or null when it points at none.
+ * The workstation slot a container name points at, or null when it points at none.
  *
  * @param open - The block container the session has open, or undefined when it has none.
  * @param containerId - The `Container Name` byte off the request.
