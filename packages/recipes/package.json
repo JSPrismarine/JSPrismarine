@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/recipes",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "The Java Edition recipe evaluator: all 22 recipe serializers, a crafting matcher, and a compile step to Bedrock identifiers",
     "sideEffects": false,
     "publishConfig": {

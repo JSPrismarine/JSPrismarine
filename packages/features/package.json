@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/features",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Java Edition world decoration: feature types, block state and value providers, placement modifiers and the seeded placement pipeline",
     "sideEffects": false,
     "publishConfig": {
