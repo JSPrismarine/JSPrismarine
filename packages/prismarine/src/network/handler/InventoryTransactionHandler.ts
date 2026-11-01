@@ -42,6 +42,12 @@ const SPRINT_KNOCKBACK = 1;
 /** A block has six faces, and the docs' Face names one of them. */
 const FACE_COUNT = 6;
 
+/** Bedrock's `SimulationTick` trigger for input held from a previous tick. */
+const SIMULATION_TICK_TRIGGER = 2;
+
+/** The item whose block interaction also has a separate air-use behavior. */
+const ENDER_EYE = 'minecraft:ender_eye';
+
 /**
  * One right click on a block, offered to the content hooks.
  *
@@ -512,6 +518,15 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             }
 
             case ItemUseActionType.USE:
+                // A held input is not a new Eye of Ender click. In particular, after the
+                // frame hook fills a frame, a simulation tick must not also throw the eye.
+                if (
+                    data.triggerType === SIMULATION_TICK_TRIGGER &&
+                    player.getInventory().getItemInHand().getName() === ENDER_EYE
+                ) {
+                    return;
+                }
+
                 // Bedrock never says how long a bow was drawn for. It says "started" here and
                 // "released" in another transaction entirely, and the gap between the two is the
                 // charge. So the clock starts here.
