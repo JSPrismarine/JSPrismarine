@@ -149,7 +149,7 @@ export class Entity {
      * What is in it is decided by {@link Entity.getDefaultAttributes}, which subclasses
      * override - a player has a food bar, a cow does not.
      */
-    public readonly attributes: Attributes = new Attributes(this.getDefaultAttributes());
+    public readonly attributes: Attributes;
 
     /**
      * Everything the world file said about this entity that the server does not model.
@@ -232,6 +232,7 @@ export class Entity {
      * @param {number} [options.pitch=0] - The pitch.
      * @param {number} [options.yaw=0] - The yaw.
      * @param {number} [options.headYaw=0] - The head yaw.
+     * @param {Attribute[]} [options.attributes] - Initial attributes, or this entity's defaults when omitted.
      * @returns {Entity} The entity instance.
      * @remarks The server is taken from the position's world rather than passed alongside
      * it, so the two can never disagree about which server the entity belongs to.
@@ -245,17 +246,20 @@ export class Entity {
         position,
         pitch = 0,
         yaw = 0,
-        headYaw = 0
+        headYaw = 0,
+        attributes
     }: {
         position: Position;
         pitch?: number;
         yaw?: number;
         headYaw?: number;
+        attributes?: Attribute[];
     }) {
         Entity.runtimeIdCount += 1n;
         this.runtimeId = Entity.runtimeIdCount;
         this.position = position;
         this.server = position.getWorld().getServer();
+        this.attributes = new Attributes(attributes ?? this.getDefaultAttributes());
 
         this.pitch = pitch;
         this.yaw = yaw;
@@ -352,8 +356,8 @@ export class Entity {
     /**
      * The attributes this kind of entity has, used to build {@link Entity.attributes}.
      *
-     * Called during field initialization, so it must not read any instance state - it
-     * describes the type, not the individual.
+     * Called during construction, before subclass fields initialize, so it must not read any
+     * instance state - it describes the type, not the individual.
      * @returns {Attribute[]} The attributes, freshly built.
      */
     protected getDefaultAttributes(): Attribute[] {

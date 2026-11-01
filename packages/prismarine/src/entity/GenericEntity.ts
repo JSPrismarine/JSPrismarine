@@ -1,5 +1,6 @@
 import { Entity } from './Entity';
 import type { Position } from '../world/Position';
+import type { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
 
 /**
  * An entity the server has no class for.
@@ -14,20 +15,23 @@ import type { Position } from '../world/Position';
 export class GenericEntity extends Entity {
     private readonly identifier: string;
 
+    /** Creates a generic actor body with its serialized type identifier. */
     public constructor({
         identifier,
         position,
         pitch = 0,
         yaw = 0,
-        headYaw = 0
+        headYaw = 0,
+        attributes
     }: {
         identifier: string;
         position: Position;
         pitch?: number;
         yaw?: number;
         headYaw?: number;
+        attributes?: Attribute[];
     }) {
-        super({ position, pitch, yaw, headYaw });
+        super({ position, pitch, yaw, headYaw, attributes });
         this.identifier = identifier;
 
         // Again, now that there is an identifier to look the size up by. Every other entity knows

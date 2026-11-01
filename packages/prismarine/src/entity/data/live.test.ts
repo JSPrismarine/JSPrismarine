@@ -11,6 +11,7 @@ import { Types } from '@jsprismarine/nbt';
 import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -280,6 +281,15 @@ const ENTITIES = new Map([
             },
             events: {
                 'minecraft:crystal_explode': { add: { component_groups: ['crystal_exploding'] } }
+            }
+        })
+    ],
+    [
+        'minecraft:cushion',
+        entityFile('minecraft:cushion', {
+            components: {
+                'minecraft:collision_box': { width: 0.5, height: 0.25 },
+                'minecraft:physics': {}
             }
         })
     ],
@@ -2291,6 +2301,44 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(guarded.removed).toBeUndefined();
             expect(guarded.instance.attributes.get('health')?.current).toBe(1);
+        });
+
+        it('explodes from a body hit without mob hurt feedback', async () => {
+            const crystal = live.runtime.spawn('minecraft:ender_crystal', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (crystal === undefined) throw new Error('the fixture declares no minecraft:ender_crystal');
+            await run(1);
+
+            const body = live.bodies.bodyOf(crystal.id);
+            if (body === undefined) throw new Error('the crystal has no client-facing body');
+            await body.damage(1);
+
+            expect(broadcasts.actorEffects).not.toContainEqual({
+                identifier: 'minecraft:ender_crystal',
+                entityId: body.getRuntimeId(),
+                effect: ActorEvent.HURT_ANIMATION
+            });
+            expect(broadcasts.actorSounds).not.toContainEqual({
+                identifier: 'minecraft:ender_crystal',
+                entityId: body.getRuntimeId(),
+                sound: LevelSoundEvent.HURT
+            });
+
+            await run(2);
+
+            expect(crystal.removed).toBe('explosion');
+        });
+
+        it('does not give a healthless object the generic living health attribute', async () => {
+            const cushion = live.runtime.spawn('minecraft:cushion', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cushion === undefined) throw new Error('the fixture declares no minecraft:cushion');
+            const body = live.bodies.bodyOf(cushion.id);
+            if (body === undefined) throw new Error('the cushion has no client-facing body');
+
+            expect(body.attributes.getAttribute(AttributeIds.Health)).toBeNull();
+            expect(live.runtime.hurt(cushion, undefined, 'entity_attack', 1)).toBe(false);
+            expect(await body.damage(1)).toBe(false);
+            expect(broadcasts.actorEffects).toEqual([]);
+            expect(broadcasts.actorSounds).toEqual([]);
         });
 
         it('sends new actor metadata when the beam target moves at runtime', async () => {

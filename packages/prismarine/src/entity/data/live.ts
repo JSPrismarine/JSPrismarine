@@ -362,7 +362,12 @@ export class LiveEntityRuntime {
 
     public constructor(options: LiveEntityOptions) {
         this.options = options;
-        this.bodies = new LiveBodies({ world: options.liveWorld, report: options.report });
+        this.bodies = new LiveBodies({
+            world: options.liveWorld,
+            report: options.report,
+            hurt: (entity, sourceId, cause, amount) =>
+                this.runtime.hurt(entity, sourceId, cause, amount, { feedback: false })
+        });
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
