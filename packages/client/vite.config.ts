@@ -4,7 +4,6 @@ import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, mergeConfig } from 'vite';
 import base from '../../vite.config.ts';
-import { yargsCjsImportMetaPlugin } from '../../scripts/yargs-cjs-import-meta.ts';
 import pkg from './package.json' with { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,14 +28,13 @@ export default mergeConfig(
         build: {
             lib: {
                 entry: input,
-                formats: process.env.NODE_ENV !== 'development' ? ['es', 'cjs'] : ['es'],
-                fileName: (format, name) => `${name}.${format}.${format === 'es' ? 'js' : 'cjs'}`,
+                formats: ['es'],
+                fileName: (format, name) => `${name}.${format}.js`,
                 name: pkg.name
             },
             rollupOptions: {
                 platform: 'node',
-                external: [...Object.keys(pkg.dependencies ?? {})],
-                plugins: [yargsCjsImportMetaPlugin]
+                external: [...Object.keys(pkg.dependencies ?? {})]
             }
         },
         plugins: [

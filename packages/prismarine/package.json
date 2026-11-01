@@ -8,14 +8,12 @@
             ".": {
                 "types": "./dist/index.d.ts",
                 "import": "./dist/index.es.js",
-                "module": "./dist/index.es.js",
-                "require": "./dist/index.cjs.cjs"
+                "module": "./dist/index.es.js"
             },
             "./*": {
                 "types": "./dist/*.d.ts",
                 "import": "./dist/*.es.js",
-                "module": "./dist/*.es.js",
-                "require": "./dist/*.cjs.cjs"
+                "module": "./dist/*.es.js"
             },
             "./package.json": "./package.json"
         }
@@ -30,7 +28,6 @@
         "CHANGELOG.md",
         "README.md"
     ],
-    "main": "./dist/index.cjs.cjs",
     "module": "./dist/index.es.js",
     "types": "./dist/index.d.ts",
     "exports": {
@@ -45,7 +42,7 @@
     },
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
-        "generate": "node utils/generate-schemas.cjs",
+        "generate": "node utils/generate-schemas.mjs",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "bench:chunks": "node --import tsx benchmarks/chunkGeneration.ts",

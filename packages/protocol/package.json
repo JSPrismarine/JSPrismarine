@@ -9,20 +9,17 @@
             ".": {
                 "types": "./dist/index.d.ts",
                 "import": "./dist/index.es.js",
-                "module": "./dist/index.es.js",
-                "require": "./dist/index.cjs.cjs"
+                "module": "./dist/index.es.js"
             },
             "./*": {
                 "types": "./dist/*.d.ts",
                 "import": "./dist/*.es.js",
-                "module": "./dist/*.es.js",
-                "require": "./dist/*.cjs.cjs"
+                "module": "./dist/*.es.js"
             },
             "./payload": {
                 "types": "./dist/payload/index.d.ts",
                 "import": "./dist/payload/index.es.js",
-                "module": "./dist/payload/index.es.js",
-                "require": "./dist/payload/index.cjs.cjs"
+                "module": "./dist/payload/index.es.js"
             },
             "./package.json": "./package.json"
         }

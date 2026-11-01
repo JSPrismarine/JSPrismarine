@@ -550,7 +550,7 @@ new shape.
 **Files.** `packages/prismarine/src/config/JsonConfigTypes.ts` (`WorldData` at 14, `FlatLayer` at
 7), `packages/prismarine/src/config/Config.ts` (`defaultWorlds` at 123, the `worlds` comment at
 51), new `packages/prismarine/src/config/normalizeWorldData.ts` with test,
-`packages/prismarine/utils/generate-schemas.cjs` only if a new type needs listing,
+`packages/prismarine/utils/generate-schemas.mjs` only if a new type needs listing,
 `packages/prismarine/schemas/config.schema.json` (regenerated with
 `pnpm --filter @jsprismarine/prismarine run generate`), `JsonSchemas.test.ts`, `docs/running.md`
 (section 1.3 "set `generator` to `Flat`" at line 48 and the seed example at 229).

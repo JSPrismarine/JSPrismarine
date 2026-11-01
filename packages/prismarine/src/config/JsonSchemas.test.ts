@@ -25,7 +25,7 @@ describe('JSON schemas', () => {
     // The budget is generous rather than measured, because what it guards against is a
     // generator that hangs, not one that is slower on a busier machine than on this one.
     beforeAll(() => {
-        execFileSync(process.execPath, [fileURLToPath(new URL('../../utils/generate-schemas.cjs', import.meta.url))]);
+        execFileSync(process.execPath, [fileURLToPath(new URL('../../utils/generate-schemas.mjs', import.meta.url))]);
     }, 180_000);
 
     it.each(schemaFiles)('compiles the Draft 7 schema %s', (file) => {

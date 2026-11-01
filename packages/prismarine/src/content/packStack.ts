@@ -69,25 +69,12 @@ export interface ResolvedPackStack {
     readonly diagnostics: readonly Diagnostic[];
 }
 
-/**
- * This module's own URL, or undefined in the CommonJS build.
- *
- * The package ships both formats, and the bundler replaces `import.meta`
- * with an empty object in the CommonJS output, so its members are read
- * defensively rather than assumed. Every caller below has a second way to
- * find what it was looking for.
- */
-const moduleUrl = (): string | undefined => {
-    const meta: { url?: string } = import.meta;
-    return typeof meta.url === 'string' ? meta.url : undefined;
-};
+const nodeModuleResolver = createRequire(import.meta.url);
 
 /** Resolves a module specifier against this file, or undefined when it cannot be found. */
 const resolveFrom = (specifier: string): string | undefined => {
-    const url = moduleUrl();
-    if (url === undefined) return undefined;
     try {
-        return createRequire(url).resolve(specifier);
+        return nodeModuleResolver.resolve(specifier);
     } catch {
         return undefined;
     }
