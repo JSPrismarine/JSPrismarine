@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/molang",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Molang parser, compiler and evaluator for Bedrock behavior packs",
     "sideEffects": false,
     "publishConfig": {

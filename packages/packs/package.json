@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/packs",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Bedrock pack stack loader: directories, .mcpack/.mcaddon archives and brarchive layers composed into per-registry definitions.",
     "sideEffects": false,
     "publishConfig": {

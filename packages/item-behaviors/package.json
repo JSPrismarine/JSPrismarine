@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/item-behaviors",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "The vanilla item behavior families that fill the item hook seam, with Java's mining speed and attack damage formulas.",
     "sideEffects": false,
     "publishConfig": {
