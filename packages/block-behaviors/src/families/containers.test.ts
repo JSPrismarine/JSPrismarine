@@ -114,6 +114,22 @@ describe('furnaceFamily', () => {
         ]);
     });
 
+    it('keeps furnace contents when the block becomes its lit variant', () => {
+        const harness = bindFamily(furnaceFamily, 'minecraft:lit_furnace');
+        harness.dimension.set(origin, 'minecraft:lit_furnace');
+        harness.dimension.setBlockData(origin, {
+            items: [{ identifier: 'minecraft:iron_ore', count: 1 }],
+            capacity: 3
+        });
+
+        harness.place(origin, { previous: { identifier: 'minecraft:furnace' } });
+
+        expect(harness.dimension.getBlockData(origin)?.items?.[0]).toEqual({
+            identifier: 'minecraft:iron_ore',
+            count: 1
+        });
+    });
+
     it('faces a placed furnace toward the placer', () => {
         // Java's `AbstractFurnaceBlock.getStateForPlacement` opposes the placer's horizontal
         // direction, so the mouth faces the player who placed it.
