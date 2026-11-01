@@ -1433,8 +1433,9 @@ export class EntityRuntime implements EntityScene {
      * wither's targeting read, so every path that deals damage goes through
      * here rather than writing the attribute itself.
      *
-     * @param options - Whether the host sends hit feedback; disable it when mirroring a legacy
-     *   body hit that already emitted the feedback.
+     * @param options - Whether to send generic host hurt feedback. Disable it when the body
+     *   already emitted feedback or the actor should not receive mob-style feedback.
+     * @returns Whether the data entity took damage.
      */
     public hurt(
         entity: DataEntity,
@@ -1442,22 +1443,22 @@ export class EntityRuntime implements EntityScene {
         cause: string,
         amount: number,
         options: { readonly feedback?: boolean } = {}
-    ): void {
-        if (this.pendingDeaths.has(entity.id)) return;
+    ): boolean {
+        if (this.pendingDeaths.has(entity.id)) return false;
         // An invulnerable record refuses everything, as Java's invulnerable end crystals do
         // through the respawn sequence.
-        if (entity.body.invulnerable) return;
-        if (entity.instance.attributes.get('health') === undefined) return;
+        if (entity.body.invulnerable) return false;
+        if (entity.instance.attributes.get('health') === undefined) return false;
 
         if (sourceId !== undefined && ['entity_attack', 'entity_explosion', 'projectile'].includes(cause)) {
             const attacker = this.entities.get(sourceId);
-            if (attacker !== undefined && !canEntityAttack(attacker.instance, entity.instance)) return;
+            if (attacker !== undefined && !canEntityAttack(attacker.instance, entity.instance)) return false;
         }
 
         let dealt = amount;
         if (amount > 0 && entity.instance.families().includes('dragon')) {
             const scaled = this.dragonDamageOf(entity, sourceId, cause, amount);
-            if (scaled === undefined) return;
+            if (scaled === undefined) return false;
             dealt = scaled;
         }
 
@@ -1475,6 +1476,7 @@ export class EntityRuntime implements EntityScene {
             if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
             else this.kill(entity);
         }
+        return result.amount > 0;
     }
 
     /**

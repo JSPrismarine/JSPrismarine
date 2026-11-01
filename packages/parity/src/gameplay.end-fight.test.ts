@@ -46,6 +46,15 @@ describeFamily(
             expect(javaDragon?.attributes['minecraft:max_health']).toBe(200);
         });
 
+        it('classifies crystals and cushions outside the mob damage path', () => {
+            const types = loadVanillaEntityTypes();
+            const crystal = types.spawn('minecraft:ender_crystal');
+            const cushion = types.spawn('minecraft:cushion');
+
+            expect(crystal.families()).not.toContain('mob');
+            expect(cushion.families()).not.toContain('mob');
+        });
+
         it('keeps crystal item ids, actor ids, and Java-to-Bedrock entity names aligned', () => {
             expect(items2193['minecraft:end_crystal']?.runtime_id).toBe(851);
             expect(items2225['minecraft:end_crystal']?.runtime_id).toBe(852);

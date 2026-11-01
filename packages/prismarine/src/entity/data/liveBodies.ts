@@ -14,12 +14,13 @@
  * invulnerability timer down, so the data runtime is the only thing driving
  * it. The client draws a Bedrock mob from its identifier either way.
  *
- * Health crosses in both directions, because both sides can change it. The
- * runtime's `minecraft:health` attribute is the truth; a blow that arrived
- * through the legacy damage pipeline - a player swinging at the body - shows
- * up here as the live health having dropped below what was last written, and
- * that difference is handed back to the runtime so the loot, the death and
- * the retaliation all happen in one place.
+ * Health crosses in both directions for entities that declare it, because
+ * both sides can change it. The runtime's `minecraft:health` attribute is
+ * the truth; for mobs, a blow that arrived through the legacy damage pipeline
+ * shows up here as live health dropping below what was last written, and that
+ * difference is handed back to the runtime so loot, death, and retaliation
+ * happen in one place. Nonmob bodies route hits straight to the runtime so
+ * they do not receive generic mob hurt feedback.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { isRecord } from '@jsprismarine/entities';
@@ -31,6 +32,8 @@ import type { World } from '../../world/World';
 import { itemOfDrop } from '../../inventory/persistence';
 import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { DamageCause } from '../DamageCause';
+import { DamageSource } from '../DamageSource';
 import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
 import type { ViewableEquipment } from '../predicateView';
 import type { Entity } from '../Entity';
@@ -66,9 +69,28 @@ const KNOCKBACK_LIFT = 0.4;
 class DataEntityBody extends GenericEntity {
     public constructor(
         private readonly driver: DataEntity,
-        options: { identifier: string; position: Position; pitch?: number; yaw?: number; headYaw?: number }
+        options: {
+            identifier: string;
+            position: Position;
+            pitch?: number;
+            yaw?: number;
+            headYaw?: number;
+            attributes?: Attribute[];
+        },
+        private readonly hurt: (amount: number, source: DamageSource) => boolean
     ) {
         super(options);
+    }
+
+    /** @inheritdoc */
+    public override async damage(
+        amount: number,
+        source: DamageCause | DamageSource = DamageCause.Generic
+    ): Promise<boolean> {
+        if (this.driver.instance.families().includes('mob')) return super.damage(amount, source);
+        if (amount <= 0 || !this.isAlive()) return false;
+
+        return this.hurt(amount, DamageSource.of(source));
     }
 
     /** @inheritdoc */
@@ -140,6 +162,8 @@ export interface LiveBodiesOptions {
     world(): World | undefined;
     /** Receives everything the mirror met and could not carry out. */
     report(message: string): void;
+    /** Applies a nonmob body hit through the data runtime. */
+    hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): boolean;
 }
 
 /** One live body per data-driven entity, kept in step with it. */
@@ -196,15 +220,25 @@ export class LiveBodies {
         if (world === undefined) return;
 
         const at = entity.position;
-        const body = new DataEntityBody(entity, {
-            identifier: entity.identifier,
-            position: Position.fromVector3(new Vector3(at.x, at.y, at.z), world),
-            yaw: entity.body.yaw,
-            headYaw: entity.body.yaw,
-            pitch: entity.body.pitch
-        });
-
         const health = entity.instance.attributes.get('health');
+        const body = new DataEntityBody(
+            entity,
+            {
+                identifier: entity.identifier,
+                position: Position.fromVector3(new Vector3(at.x, at.y, at.z), world),
+                yaw: entity.body.yaw,
+                headYaw: entity.body.yaw,
+                pitch: entity.body.pitch,
+                ...(health === undefined ? { attributes: [] } : {})
+            },
+            (amount, source) => {
+                const attacker = source.attacker;
+                const sourceId =
+                    attacker === null ? undefined : (this.idsByBody.get(attacker) ?? Number(attacker.getRuntimeId()));
+                return this.options.hurt(entity, sourceId, source.cause, amount);
+            }
+        );
+
         if (health !== undefined) {
             body.attributes.setAttribute(
                 new Attribute({
