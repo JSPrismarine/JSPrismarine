@@ -29,7 +29,7 @@ export default mergeConfig(
             lib: {
                 entry: input,
                 formats: ['es'],
-                fileName: (format, name) => `${name}.${format}.${format === 'es' ? 'js' : 'cjs'}`,
+                fileName: (format, name) => `${name}.${format}.js`,
                 name: pkg.name
             },
             rollupOptions: {

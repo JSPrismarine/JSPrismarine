@@ -1,7 +1,7 @@
 import { RolldownMagicString } from 'rolldown';
 import type { Plugin } from 'rolldown';
 
-/** Preserves Yargs package config resolution in CommonJS bundles. */
+/** Keeps Yargs package config resolution inside the Node SEA CommonJS bundle. */
 export const yargsCjsImportMetaPlugin: Plugin = {
     name: 'yargs-cjs-import-meta-resolve',
     transform(code, id) {

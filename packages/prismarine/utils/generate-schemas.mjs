@@ -1,11 +1,12 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { createGenerator } = require('ts-json-schema-generator');
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { createGenerator } from 'ts-json-schema-generator';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const packageDirectory = path.resolve(__dirname, '..');
-const sourcePath = path.join(packageDirectory, 'src/config/JsonConfigTypes.ts');
-const tsconfigPath = path.join(packageDirectory, 'tsconfig.json');
-const schemaDirectory = path.join(packageDirectory, 'schemas');
+const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const sourcePath = join(packageDirectory, 'src/config/JsonConfigTypes.ts');
+const tsconfigPath = join(packageDirectory, 'tsconfig.json');
+const schemaDirectory = join(packageDirectory, 'schemas');
 const schemaFiles = [
     ['ConfigFile', 'config.schema.json'],
     ['PermissionsFile', 'permissions.schema.json'],
@@ -22,7 +23,7 @@ const SCHEMA_PROPERTY = {
 
 /** Generate the package's Draft 7 schemas from its JSON file types. */
 function generateSchemas() {
-    fs.mkdirSync(schemaDirectory, { recursive: true });
+    mkdirSync(schemaDirectory, { recursive: true });
 
     for (const [type, file] of schemaFiles) {
         const generated = createGenerator({
@@ -47,10 +48,8 @@ function generateSchemas() {
             };
         }
 
-        fs.writeFileSync(path.join(schemaDirectory, file), `${JSON.stringify(schema, null, 4)}\n`);
+        writeFileSync(join(schemaDirectory, file), `${JSON.stringify(schema, null, 4)}\n`);
     }
 }
 
-if (require.main === module) generateSchemas();
-
-module.exports = { generateSchemas };
+generateSchemas();
