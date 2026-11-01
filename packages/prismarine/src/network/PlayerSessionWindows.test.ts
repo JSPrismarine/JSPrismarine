@@ -98,7 +98,7 @@ describe('network', () => {
 
             const opened = await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:enchanting_table');
 
-            expect(opened).toMatchObject({ screen: WindowTypes.ENCHANTMENT, inputs: [null, null] });
+            expect(opened).toMatchObject({ screen: WindowTypes.ENCHANTMENT, inputs: [null, null, null] });
             expect(sent).toHaveLength(1);
             // Not measured against BDS, unlike the crafting table, so nothing more is sent.
             expect(inventories).toEqual([]);
