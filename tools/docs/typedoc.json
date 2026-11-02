@@ -13,6 +13,7 @@
     "out": "./site/api",
     "docsRoot": "./site",
     "readme": "none",
+    "outputFileStrategy": "modules",
     "excludeExternals": true,
     "exclude": ["**/node_modules/**", "../../packages/parity"],
     "packageOptions": {
