@@ -233,9 +233,11 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             if (entity === undefined) return false;
 
             // An item stack or a painting has no health to take away, so the
-            // only way to kill it is to take it out of the world.
+            // only way to kill it is to take it out of the world. The cause is
+            // the one nothing turns aside: the ender dragon's damage rules
+            // refuse a generic attacker-less blow, and `/kill` must not be one.
             return entity.isAlive()
-                ? carryOut(entity.setHealth(0, DamageCause.Generic), true)
+                ? carryOut(entity.setHealth(0, DamageCause.SelfDestruct), true)
                 : carryOut(entity.getWorld().removeEntity(entity), true);
         },
 

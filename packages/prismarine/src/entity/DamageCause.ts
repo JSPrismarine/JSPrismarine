@@ -30,7 +30,13 @@ export enum DamageCause {
     Magic = 'magic',
     Wither = 'wither',
     /** Reflected back at an attacker by the armor they hit. */
-    Thorns = 'thorns'
+    Thorns = 'thorns',
+    /**
+     * An unconditional kill: the `/kill` command. Bedrock's `self_destruct`
+     * cause and Java's `genericKill` damage type, and like both of them it is
+     * not a blow anything can turn aside.
+     */
+    SelfDestruct = 'self_destruct'
 }
 
 /** The Java and server-specific cause names already represented by {@link DamageCause}. */

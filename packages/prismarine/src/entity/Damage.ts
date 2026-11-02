@@ -55,7 +55,8 @@ const MAX_RESISTANCE_LEVEL = 5;
  * Everything that gets through armor points regardless of how much of it is worn.
  *
  * Drowning, starving and hitting the ground are not blows, and a breastplate has never helped
- * with any of them. Fire and lava are deliberately absent: armor does reduce a burn.
+ * with any of them - nor has it ever argued with the `/kill` command. Fire and lava are
+ * deliberately absent: armor does reduce a burn.
  */
 const BYPASSES_ARMOR: ReadonlySet<DamageCause> = new Set([
     DamageCause.Drowning,
@@ -64,7 +65,8 @@ const BYPASSES_ARMOR: ReadonlySet<DamageCause> = new Set([
     DamageCause.Magic,
     DamageCause.Wither,
     DamageCause.Fall,
-    DamageCause.Suffocation
+    DamageCause.Suffocation,
+    DamageCause.SelfDestruct
 ]);
 
 /**

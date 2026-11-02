@@ -5,6 +5,7 @@ import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import { DamageCause } from './DamageCause';
 import { Entity } from './Entity';
 
 const entityAt = (x: number, y: number, z: number) => {
@@ -48,6 +49,28 @@ describe('entity', () => {
                 expect(entity.getPosition().getY()).toBe(64);
                 expect(entity.getPosition().getZ()).toBe(20);
                 expect(broadcastMove).not.toHaveBeenCalled();
+            });
+        });
+
+        describe('setHealth', () => {
+            it('records what killed it when the write itself is the kill', async () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                await entity.setHealth(0, DamageCause.SelfDestruct);
+
+                // What `/kill` relies on: the data-entity mirror reads the last damage
+                // source to tell the runtime what took the health, and a kill written
+                // straight onto the attribute must not arrive there as generic damage.
+                expect(entity.isAlive()).toBe(false);
+                expect(entity.getLastDamageSource()?.cause).toBe(DamageCause.SelfDestruct);
+            });
+
+            it('records nothing for a write the entity survives', async () => {
+                const { entity } = entityAt(0, 64, 0);
+
+                await entity.setHealth(5);
+
+                expect(entity.getLastDamageSource()).toBeNull();
             });
         });
 

@@ -19,6 +19,7 @@ import type { Config } from '../../config/Config';
 import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { DamageCause } from '../../entity/DamageCause';
 import { Entity } from '../../entity/Entity';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
@@ -392,12 +393,14 @@ describe('the server command host', () => {
             await expect(fixture.run('kill @e[type=pig]')).resolves.toBe(1);
         });
 
-        it('kills a living entity by taking its health', async () => {
+        it('kills a living entity by taking its health, with the cause nothing refuses', async () => {
             const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 0, 0));
 
             await fixture.run('kill @e');
 
-            expect(pig.setHealth).toHaveBeenCalledWith(0, expect.anything());
+            // The cause is load-bearing: the ender dragon's damage rules turn aside a
+            // generic attacker-less blow, and `self_destruct` is what gets through.
+            expect(pig.setHealth).toHaveBeenCalledWith(0, DamageCause.SelfDestruct);
         });
 
         it('removes an entity that has no health to take', async () => {

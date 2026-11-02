@@ -55,6 +55,28 @@ describeFamily(
             expect(cushion.families()).not.toContain('mob');
         });
 
+        it('lets a `/kill` land on the dragon and activate its death hold', () => {
+            const types = loadVanillaEntityTypes();
+            const dragon = types.spawn('minecraft:ender_dragon');
+
+            // The server's dragon damage rules key on the `dragon` family and admit the
+            // `/kill` cause whole; the pack's own damage sensor only zeroes falls, so the
+            // blow reaches the health and the death event activates the hold group.
+            expect(dragon.families()).toContain('dragon');
+
+            const result = dragon.damage({ cause: 'self_destruct', amount: 200 });
+            expect(result).toMatchObject({ amount: 200, died: true });
+
+            dragon.applyQueuedEvents();
+            expect(dragon.activeComponentGroups()).toContain('dragon_death');
+
+            // The goal registry is not loaded here, so the behavior is read off the
+            // parsed group: it is what tells the server's removal listener to wait the
+            // death animation out rather than take the dragon away on the spot.
+            const group = types.registry.get('minecraft:ender_dragon')?.entity.componentGroups.get('dragon_death');
+            expect(group?.get('minecraft:behavior.dragondeath')).toBeDefined();
+        });
+
         it('keeps crystal item ids, actor ids, and Java-to-Bedrock entity names aligned', () => {
             expect(items2193['minecraft:end_crystal']?.runtime_id).toBe(851);
             expect(items2225['minecraft:end_crystal']?.runtime_id).toBe(852);
