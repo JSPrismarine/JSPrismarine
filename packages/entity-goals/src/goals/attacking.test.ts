@@ -37,7 +37,7 @@ const combatWorld = (
 };
 
 describe('minecraft:behavior.melee_box_attack', () => {
-    it('does not search the same melee path again on the tick it starts', () => {
+    it('reuses the planned melee path at the first re-path interval', () => {
         const victim = testMob('victim', { x: 8, y: 1, z: 0 });
         const blocks = voxelGrid([['##########'], ['..........'], ['..........']]);
         let passabilityReads = 0;
@@ -63,7 +63,7 @@ describe('minecraft:behavior.melee_box_attack', () => {
         expect(passabilityReads).toBe(initialReads);
 
         harness.tick();
-        expect(passabilityReads).toBeGreaterThan(initialReads);
+        expect(passabilityReads).toBe(initialReads);
     });
 
     it('claims move and look and walks at the target', () => {

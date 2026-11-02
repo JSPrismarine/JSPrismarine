@@ -11,6 +11,7 @@ import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
 import PlayerSession from '../network/PlayerSession';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
+import EntityGrid from './EntityGrid';
 import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
@@ -82,6 +83,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+        entityGrid: new EntityGrid(),
         entityChunkIndices: new Map(),
         level: fakeLevel(),
         blockUpdates: new BlockUpdateScheduler(),
@@ -126,6 +128,7 @@ const emptyWorld = () => {
 
     const world: World = Object.assign(Object.create(World.prototype), {
         name: 'flooded',
+        entityGrid: new EntityGrid(),
         entities,
         players: new Map(),
         entityChunkIndices: new Map(),

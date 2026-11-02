@@ -6,6 +6,7 @@ import type { LiveBodies } from '../entity/data/liveBodies';
 import type { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
 import { stub, stubOf } from '../testing/stub.test.helper';
+import EntityGrid from './EntityGrid';
 import { Dimensions } from './Dimension';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { World } from './World';
@@ -20,6 +21,7 @@ const bodyOf = (identifier: string): Entity =>
 const worldOf = (live: LiveEntityRuntime): World => {
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map(),
+        entityGrid: new EntityGrid(),
         entities: new Map(),
         entityChunkIndices: new Map(),
         players: new Map(),

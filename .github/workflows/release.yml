@@ -111,7 +111,7 @@ jobs:
         name: 🗃️ Prepare executable data
         needs: release
         if: ${{ needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
-        runs-on: windows-latest
+        runs-on: ubuntu-latest
         permissions:
             contents: read
         steps:

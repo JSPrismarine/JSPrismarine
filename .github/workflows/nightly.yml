@@ -51,7 +51,7 @@ jobs:
         concurrency:
             group: nightly-data-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: true
-        runs-on: windows-latest
+        runs-on: ubuntu-latest
         permissions:
             contents: read
         steps:
