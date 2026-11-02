@@ -4,7 +4,9 @@ import { GameRules } from './GameRuleManager';
 import { Vector3 } from '@jsprismarine/math';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { MobSpawner } from '../blockentity/BlockEntities';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
+import { BlockView } from '../entity/ai/BlockView';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { LevelStem } from '@jsprismarine/worldgen';
 import type { Block, Server, Service } from '../';
@@ -67,6 +69,8 @@ import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
 import { isPortalBlock } from './portal/rules';
 import { tickFurnace } from './cooking';
+import { tickSpawner } from './spawners';
+import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
@@ -711,6 +715,82 @@ export class World implements Service {
     }
 
     /**
+     * Runs the monster spawners in chunks that are currently simulated.
+     *
+     * The cycle itself is {@link tickSpawner}; this answers what it asks about the world, makes
+     * the mobs it decided on through the data runtime, and writes the delay back so the clients
+     * holding the chunk and the next save both see it.
+     */
+    private tickSpawners(playerChunkRefCounts: PlayerChunkRefCounts): void {
+        // Resolved on the first spawner met rather than up front: most ticks of most worlds
+        // meet none, and this pass should cost them nothing.
+        let random: (() => number) | undefined;
+        let view: BlockView | undefined;
+
+        for (const chunk of this.chunks.values()) {
+            if (!playerChunkRefCounts.simulates(chunk.getX(), chunk.getZ())) continue;
+
+            for (const blockEntity of [...chunk.getBlockEntities()]) {
+                if (!(blockEntity instanceof MobSpawner)) continue;
+                random ??= this.server.getRandom();
+                view ??= new BlockView(this);
+
+                const ticked = tickSpawner(
+                    blockEntity,
+                    this.spawnerSurroundings(blockEntity.getPosition(), view, random)
+                );
+                if (ticked === undefined) continue;
+
+                const identifier = blockEntity.getEntityIdentifier();
+                const live = this.dataEntities();
+                if (ticked.spawns.length > 0 && !live.runtime.content().entities.registry.has(identifier)) {
+                    this.server.getLogger().debug(`A spawner asked for ${identifier}, which no data runtime declares`);
+                } else {
+                    for (const spawn of ticked.spawns)
+                        live.runtime.spawn(identifier, spawn, { yaw: random() * 360, pitch: 0 });
+                }
+                writeBlockEntity(this, ticked.tags);
+            }
+        }
+    }
+
+    /** What one spawner sees of the world around its block, with the box rules Java's `BaseSpawner` reads by. */
+    private spawnerSurroundings(at: Vector3, view: BlockView, random: () => number): SpawnerSurroundings {
+        const center = new Vector3(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5);
+        // Java inflates the block's own box, so the range reaches one block further on the far side.
+        const inBox = (x: number, y: number, z: number, range: number): boolean =>
+            x >= at.getX() - range &&
+            x <= at.getX() + 1 + range &&
+            y >= at.getY() - range &&
+            y <= at.getY() + 1 + range &&
+            z >= at.getZ() - range &&
+            z <= at.getZ() + 1 + range;
+
+        return {
+            random,
+            isPlayerWithin: (range) =>
+                this.getPlayers().some((player) => {
+                    const feet = new Vector3(
+                        player.getPosition().getX(),
+                        player.getFeetY(),
+                        player.getPosition().getZ()
+                    );
+                    return feet.distanceSquaredTo(center) <= range * range;
+                }),
+            countNearby: (identifier, range) =>
+                this.getEntities().filter((entity) => {
+                    const position = entity.getPosition();
+                    return (
+                        entity.getType() === identifier &&
+                        inBox(position.getX(), entity.getFeetY(), position.getZ(), range)
+                    );
+                }).length,
+            canSpawnAt: (x, y, z) =>
+                view.isPassable(x, y, z) && view.isPassable(x, y + 1, z) && view.isSolid(x, y - 1, z)
+        };
+    }
+
+    /**
      * Called every tick.
      *
      * @param tick
@@ -759,6 +839,7 @@ export class World implements Service {
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
         this.tickCookingStations(playerChunkRefCounts);
+        this.tickSpawners(playerChunkRefCounts);
         const isPositionTicking = (x: number, z: number): boolean =>
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
         const entities = this.getEntities();

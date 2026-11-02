@@ -232,6 +232,36 @@ export class ItemFrame extends BlockEntity {
     }
 }
 
+/**
+ * The rates a fresh spawner runs at, Java's `BaseSpawner` fields, which Bedrock stores under
+ * the same names: ten to forty seconds between cycles, four attempts a cycle, six of the mob
+ * within range before it waits, a player within sixteen blocks, and spawns four blocks out.
+ */
+const SPAWNER_RATE_DEFAULTS = {
+    MinSpawnDelay: 200,
+    MaxSpawnDelay: 800,
+    SpawnCount: 4,
+    MaxNearbyEntities: 6,
+    RequiredPlayerRange: 16,
+    SpawnRange: 4
+} as const;
+
+/**
+ * How the client draws the mob turning inside the cage.
+ *
+ * Vanilla writes these three onto every spawner with a mob, and a client given the mob's
+ * identifier without them draws an empty cage: the scale it is handed is zero. The same three
+ * values Geyser sends for a Java spawner.
+ */
+const DISPLAY_ENTITY = { DisplayEntityWidth: 0.8, DisplayEntityHeight: 0.8, DisplayEntityScale: 1 } as const;
+
+/**
+ * A monster spawner.
+ *
+ * The mob and the rates are read as written and written back with vanilla's defaults filled
+ * in, so a spawner a feature placed with nothing but its mob leaves the server as the one
+ * vanilla would have saved, which is also the one the client knows how to draw.
+ */
 export class MobSpawner extends BlockEntity {
     public static override readonly ID = 'MobSpawner';
 
@@ -240,12 +270,62 @@ export class MobSpawner extends BlockEntity {
         return new MobSpawner(position, extra);
     }
 
+    /** The mob it spawns, as a Bedrock identifier, or the empty string for a spawner with none. */
     public getEntityIdentifier(): string {
         return this.extra.getString('EntityIdentifier', '');
     }
 
+    /** Ticks until the next spawn cycle. */
     public getDelay(): number {
         return this.extra.getShort('Delay', 0);
+    }
+
+    /** The shortest wait a cycle sets for the next, in ticks. */
+    public getMinSpawnDelay(): number {
+        return this.extra.getShort('MinSpawnDelay', SPAWNER_RATE_DEFAULTS.MinSpawnDelay);
+    }
+
+    /** The longest wait a cycle sets for the next, in ticks. */
+    public getMaxSpawnDelay(): number {
+        return this.extra.getShort('MaxSpawnDelay', SPAWNER_RATE_DEFAULTS.MaxSpawnDelay);
+    }
+
+    /** How many spawns a cycle attempts. */
+    public getSpawnCount(): number {
+        return this.extra.getShort('SpawnCount', SPAWNER_RATE_DEFAULTS.SpawnCount);
+    }
+
+    /** How many of its mob may stand within {@link MobSpawner.getSpawnRange} before a cycle waits. */
+    public getMaxNearbyEntities(): number {
+        return this.extra.getShort('MaxNearbyEntities', SPAWNER_RATE_DEFAULTS.MaxNearbyEntities);
+    }
+
+    /** How close a player has to be for the spawner to run at all, in blocks. */
+    public getRequiredPlayerRange(): number {
+        return this.extra.getShort('RequiredPlayerRange', SPAWNER_RATE_DEFAULTS.RequiredPlayerRange);
+    }
+
+    /** How far out a spawn may land, horizontally, in blocks. */
+    public getSpawnRange(): number {
+        return this.extra.getShort('SpawnRange', SPAWNER_RATE_DEFAULTS.SpawnRange);
+    }
+
+    /**
+     * The compound to write back, with vanilla's rates filled in where the spawner carries none
+     * and, for one with a mob, the three fields the client draws it by.
+     */
+    public override toNBT(): NBTTagCompound {
+        const nbt = super.toNBT();
+        for (const [key, value] of Object.entries(SPAWNER_RATE_DEFAULTS)) {
+            if (!nbt.has(key)) nbt.addValue(key, new Types.ShortVal(value));
+        }
+        if (!nbt.has('Delay')) nbt.addValue('Delay', new Types.ShortVal(0));
+        if (this.getEntityIdentifier() !== '') {
+            for (const [key, value] of Object.entries(DISPLAY_ENTITY)) {
+                if (!nbt.has(key)) nbt.addValue(key, new Types.FloatVal(value));
+            }
+        }
+        return nbt;
     }
 }
 
