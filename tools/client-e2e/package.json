@@ -1,0 +1,15 @@
+{
+    "name": "@jsprismarine/client-e2e",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Drives the cinnabar Bedrock client against a local JSPrismarine server for end-to-end verification",
+    "type": "module",
+    "scripts": {
+        "ensure": "node src/ensure-cinnabar.mts",
+        "e2e": "node src/run.mts",
+        "typecheck": "tsc-ts --noEmit"
+    },
+    "devDependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.0"
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "compilerOptions": {
+        "allowImportingTsExtensions": true,
+        "erasableSyntaxOnly": true,
+        "lib": ["ESNext"],
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "noEmit": true,
+        "noUncheckedIndexedAccess": true,
+        "resolveJsonModule": true,
+        "rewriteRelativeImportExtensions": false,
+        "skipLibCheck": true,
+        "strict": true,
+        "target": "ESNext",
+        "types": ["node"],
+        "verbatimModuleSyntax": true
+    },
+    "include": ["src/**/*.mts"]
+}
