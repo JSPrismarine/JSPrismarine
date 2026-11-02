@@ -140,6 +140,7 @@ jobs:
             # Fails when a path is missing rather than letting a suite skip itself silently,
             # which is how these suites went unrun for as long as they did.
             - name: 🔑 Resolve the real-data environment
+              id: real_data_env
               run: node scripts/real-data-env.mts --github-env
 
             - name: 🔨 Build
@@ -153,9 +154,70 @@ jobs:
               if: ${{ !cancelled() }}
               run: pnpm --filter @jsprismarine/parity run dashboard
 
+            - name: Check out the pull request base
+              id: parity_base_checkout
+              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.real_data_env.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.event.pull_request.base.sha }}
+                  path: parity-baseline
+
+            - name: 📦 Install pull request base dependencies
+              id: parity_base_install
+              if: ${{ !cancelled() && steps.parity_base_checkout.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: pnpm install --frozen-lockfile
+
+            - name: Share fetched data with the pull request base
+              id: parity_base_cache
+              if: ${{ !cancelled() && steps.parity_base_install.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: |
+                  mkdir -p node_modules/.cache
+                  if [ -e node_modules/.cache/jsprismarine ] || [ -L node_modules/.cache/jsprismarine ]; then
+                    rm -rf node_modules/.cache/jsprismarine
+                  fi
+                  ln -s "$GITHUB_WORKSPACE/node_modules/.cache/jsprismarine" node_modules/.cache/jsprismarine
+
+            - name: ⬇️ Fetch sources for the pull request base
+              id: parity_base_sources
+              if: ${{ !cancelled() && steps.parity_base_cache.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+
+            - name: 🏭 Prepare Java data for the pull request base
+              id: parity_base_data
+              if: ${{ !cancelled() && steps.parity_base_sources.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: |
+                  pnpm --filter @jsprismarine/bedrock-data run datagen:java
+                  pnpm --filter @jsprismarine/bedrock-data run dump:java
+                  git diff --exit-code -- packages/bedrock-data/src/jsp/java
+                  node scripts/real-data-env.mts --github-env
+
+            - name: 🔨 Build the pull request base
+              id: parity_base_build
+              if: ${{ !cancelled() && steps.parity_base_data.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: pnpm run build
+
+            - name: 📊 Generate the pull request base dashboard
+              id: parity_baseline
+              if: ${{ !cancelled() && steps.parity_base_build.outcome == 'success' }}
+              working-directory: parity-baseline
+              env:
+                  GITHUB_STEP_SUMMARY: ''
+              run: pnpm --filter @jsprismarine/parity run dashboard
+
+            - name: Save the pull request base dashboard
+              if: ${{ !cancelled() && steps.parity_baseline.outcome == 'success' }}
+              working-directory: parity-baseline
+              run: cp packages/parity/dist/dashboard.md "$RUNNER_TEMP/parity-dashboard-base.md"
+
             - name: 💬 Comment on parity changes
-              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+              if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.parity_baseline.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PARITY_BASELINE_PATH: ${{ runner.temp }}/parity-dashboard-base.md
               run: pnpm --filter @jsprismarine/parity run comment:pr
 

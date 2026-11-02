@@ -177,3 +177,12 @@ export const describeParityTrend = (
         coverageTrend(previousMeasurements, currentMeasurements)
     ].join('\n');
 };
+
+/** Describes parity movement from the dashboard at the pull request base to its current dashboard. */
+export const describeDashboardTrend = (baseline: string, current: string): string =>
+    describeParityTrend(
+        parseDashboardTotals(baseline),
+        parseDashboardTotals(current),
+        parseDashboardMeasurements(baseline),
+        parseDashboardMeasurements(current)
+    );

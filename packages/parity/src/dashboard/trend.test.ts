@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeParityTrend, parseDashboardMeasurements, parseDashboardTotals } from './trend';
+import { describeDashboardTrend, describeParityTrend, parseDashboardMeasurements, parseDashboardTotals } from './trend';
 import type { DashboardTotals } from './trend';
 
 const dashboard = `# Parity dashboard
@@ -65,6 +65,15 @@ describe('parity dashboard trend', () => {
         expect(describeParityTrend(undefined, totals({ defects: 2 }))).toBe(
             'Baseline established: 2 open gaps (failed comparisons plus known defects).'
         );
+    });
+
+    it('compares a pull request dashboard with its base dashboard on the first report', () => {
+        const baseline = dashboard.replace(
+            '| **total** | green | 3 | 0 | 0 | 1 | 0 |',
+            '| **total** | red | 2 | 1 | 0 | 1 | 1 |'
+        );
+
+        expect(describeDashboardTrend(baseline, dashboard)).toContain('Parity improved: open gaps fell from 2 to 0.');
     });
 
     it('reports when open parity gaps fall or rise', () => {

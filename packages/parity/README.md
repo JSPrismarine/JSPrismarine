@@ -190,11 +190,10 @@ pnpm --filter @jsprismarine/parity run dashboard
 Runs the suite with the JSON reporter and renders a Markdown table to stdout and
 `dist/dashboard.md`, one row per declared family with its status and its passed, failed,
 not-measured, accepted-gap and defect counts. In CI the real-data job appends the table to
-`$GITHUB_STEP_SUMMARY`. On same-repository pull requests, the job also creates or updates one
-comment with the current dashboard and its change from the previous report on that PR. The first
-report establishes the baseline; later reports call out whether open gaps or measured coverage
-increased or fell. The updater searches every comment page for its marker and edits the existing
-bot comment in place. The renderer is a pure function with its own tests,
+`$GITHUB_STEP_SUMMARY`. On same-repository pull requests, the job also runs the dashboard at the
+PR's base commit, then creates or updates one comment comparing the current dashboard with that
+baseline. The updater searches every comment page for its marker and edits the existing bot comment
+in place. The renderer is a pure function with its own tests,
 [`src/dashboard/render.ts`](src/dashboard/render.ts).
 
 The entity coverage summary reports aggregate component counts and runtime results. Per-entity
