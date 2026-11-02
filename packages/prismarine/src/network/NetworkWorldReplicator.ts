@@ -10,7 +10,14 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Entity } from '../entity/Entity';
 import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
-import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
+import {
+    effectiveViewDistance,
+    isInView,
+    SOUND_RADIUS,
+    toChunk,
+    VIEW_MARGIN_CHUNKS,
+    WORLD_EVENT_RADIUS
+} from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
 import type { WorldChange } from '../world/WorldChange';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
@@ -196,16 +203,45 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return;
         }
 
+        const changesByChunk = new Map<string, { readonly order: number; readonly change: BlockChange }[]>();
+        for (const [order, change] of changes.entries()) {
+            const chunkX = toChunk(change.position.getX());
+            const chunkZ = toChunk(change.position.getZ());
+            const key = `${chunkX},${chunkZ}`;
+            const bucket = changesByChunk.get(key);
+            const entry = { order, change };
+            if (bucket === undefined) changesByChunk.set(key, [entry]);
+            else bucket.push(entry);
+        }
+
         for (const player of players) {
             const viewer = player.getPosition();
-            const visible = changes.filter((change) =>
-                isInView({ event: change.position, viewer, viewDistance: player.viewDistance })
-            );
+            const centerX = toChunk(viewer.getX());
+            const centerZ = toChunk(viewer.getZ());
+            const reach = effectiveViewDistance(player.viewDistance) + VIEW_MARGIN_CHUNKS;
+            const bucketRadius = Math.ceil(reach);
+            const reachSquared = reach * reach;
+            const visible: { readonly order: number; readonly change: BlockChange }[] = [];
+
+            for (let offsetX = -bucketRadius; offsetX <= bucketRadius; offsetX++) {
+                for (let offsetZ = -bucketRadius; offsetZ <= bucketRadius; offsetZ++) {
+                    if (offsetX * offsetX + offsetZ * offsetZ > reachSquared) continue;
+                    const bucket = changesByChunk.get(`${centerX + offsetX},${centerZ + offsetZ}`);
+                    if (bucket === undefined) continue;
+
+                    for (const entry of bucket) {
+                        if (isInView({ event: entry.change.position, viewer, viewDistance: player.viewDistance }))
+                            visible.push(entry);
+                    }
+                }
+            }
+
             if (visible.length === 0) continue;
+            visible.sort((left, right) => left.order - right.order);
 
             broadcastSharedBatches(
                 [player.getNetworkSession().getConnection()],
-                this.blockPackets(visible),
+                this.blockPackets(visible.map(({ change }) => change)),
                 this.server.getConfig().getPacketCompressionLevel(),
                 (error) => this.server.getLogger().error(error)
             );
