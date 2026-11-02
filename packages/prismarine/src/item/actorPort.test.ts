@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import HumanInventory from '../inventory/HumanInventory';
@@ -26,11 +26,12 @@ interface Recorded {
     readonly added: Entity[];
     /** Every actor sound the world was asked to play, by runtime id. */
     readonly actorSounds: { runtimeId: bigint; sound: number }[];
+    readonly namedSounds: { sound: string; volume?: number; pitch?: number }[];
     /** Every structure search the world was asked for. */
     readonly searches: { name: string; origin: { x: number; z: number }; radius: number | undefined }[];
 }
 
-const recording = (): Recorded => ({ fed: [], logged: [], added: [], actorSounds: [], searches: [] });
+const recording = (): Recorded => ({ fed: [], logged: [], added: [], actorSounds: [], namedSounds: [], searches: [] });
 
 /** A player reduced to what the port reads and writes, still a `Player` to `instanceof`. */
 const playerDouble = (recorded: Recorded): Player =>
@@ -66,6 +67,8 @@ const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World
         broadcastMove: async () => {},
         sendActorSound: async (entity: Entity, sound: number) =>
             void recorded.actorSounds.push({ runtimeId: entity.getRuntimeId(), sound }),
+        playNamedSoundAt: (_position: Vector3, sound: string, options?: { volume?: number; pitch?: number }) =>
+            void recorded.namedSounds.push({ sound, ...options }),
         locateStructure: (name: string, origin: { x: number; z: number }, radius?: number) => {
             recorded.searches.push({ name, origin, radius });
             // The world resolves a `#tag` through the generator's members; this double stands in
@@ -211,7 +214,10 @@ describe('the item actor port', () => {
         expect(eye?.getPosition().getX()).toBe(1.5);
         expect(eye?.getPosition().getY()).toBeCloseTo(65 - 1.62 + 0.9);
         expect(eye?.getPosition().getZ()).toBe(1.5);
-        expect(recorded.actorSounds).toEqual([{ runtimeId: eye?.getRuntimeId(), sound: LevelSoundEvent.LAUNCH }]);
+        // Named, not the actor's `LAUNCH`, which the client resolved to a firework: vanilla
+        // Bedrock plays the bow at half volume, and the fixed 0.5 roll pitches it at 0.4.
+        expect(recorded.actorSounds).toEqual([]);
+        expect(recorded.namedSounds).toEqual([{ sound: 'random.bow', volume: 0.5, pitch: 0.4 }]);
 
         // Signaled: the first tick after a signal sets the eye off toward its target.
         await eye?.update(1);

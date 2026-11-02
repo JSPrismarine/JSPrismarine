@@ -106,6 +106,15 @@ export interface ServerItemActorPort extends ItemActorPort {
 const EYE_OF_ENDER_SEARCH_RADIUS_CHUNKS = 100;
 
 /**
+ * The thrown eye's `random.bow`, as `EnderEyeItem.use` plays it: half volume, and a pitch of
+ * `0.4 / (random * 0.4 + 0.8)`, which lands between a third and a half of the bow's own.
+ */
+const EYE_LAUNCH_VOLUME = 0.5;
+const EYE_LAUNCH_PITCH_BASE = 0.4;
+const EYE_LAUNCH_PITCH_SPREAD = 0.4;
+const EYE_LAUNCH_PITCH_FLOOR = 0.8;
+
+/**
  * The kinds this server has no system for, and what each one needs.
  *
  * One table serves both `perform`, which reports from it, and `supports`, which answers from it,
@@ -420,9 +429,11 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * Throws an eye of ender.
      *
      * Java's `EnderEyeItem.use` after the search: the eye starts at `player.getY(0.5)`, half the
-     * body up from the feet, is signaled at the point, and the launch sound plays. The sound
-     * goes with the throw rather than as a `play-sound` of its own because Bedrock keys it on
-     * the actor: `LevelSoundEvent.LAUNCH` for an `eye_of_ender_signal` is the eye's own sound.
+     * body up from the feet, is signaled at the point, and the launch sound plays. The sound is
+     * named rather than sent as the actor's `LAUNCH`: the client's sound tables have no entry
+     * for `eye_of_ender_signal`, so `LAUNCH` resolved to a firework going up. Vanilla Bedrock
+     * plays `random.bow` at half volume and a low pitch, Java's `0.4 / (random * 0.4 + 0.8)`,
+     * which lands between a third and a half.
      */
     const signal = (action: SignalAction): void => {
         const thrower = entityOf(action.source);
@@ -440,7 +451,14 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
 
         void loaded
             .addEntity(eye)
-            .then(() => loaded.sendActorSound(eye, LevelSoundEvent.LAUNCH))
+            .then(() =>
+                loaded.playNamedSoundAt(eye.getPosition(), 'random.bow', {
+                    volume: EYE_LAUNCH_VOLUME,
+                    pitch:
+                        EYE_LAUNCH_PITCH_BASE /
+                        (loaded.getServer().getRandom()() * EYE_LAUNCH_PITCH_SPREAD + EYE_LAUNCH_PITCH_FLOOR)
+                })
+            )
             .catch((error: unknown) => loaded.getServer().getLogger().error(error));
     };
 

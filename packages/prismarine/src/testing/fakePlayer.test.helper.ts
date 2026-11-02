@@ -58,6 +58,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
     const events: any[] = [];
     const actorEvents: number[] = [];
     const actorSounds: number[] = [];
+    /** Every sound played by name rather than by level sound event. */
+    const namedSounds: string[] = [];
     /** Every debug line the server logged. */
     const logged: string[] = [];
     /** What the world was asked to do with the player, in order: `save`, `remove`, `add`. */
@@ -117,6 +119,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         getChunk: async (x, z) => new Chunk(x, z),
         sendActorEvent: async (_entity, event) => void actorEvents.push(event),
         sendActorSound: async (_entity, sound) => void actorSounds.push(sound),
+        playNamedSoundAt: (_position, sound) => void namedSounds.push(sound),
         savePlayerData: async () => void roster.push('save'),
         updateBlockCracking: async (mining) => {
             cracked.push(mining);
@@ -175,6 +178,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         events,
         actorEvents,
         actorSounds,
+        namedSounds,
         logged,
         roster,
         disconnects,

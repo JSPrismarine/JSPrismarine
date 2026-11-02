@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { LevelEvent } from '@jsprismarine/minecraft';
 
 import type { Item } from '../../item/Item';
 import { Entity } from '../Entity';
@@ -148,7 +148,7 @@ export class EyeOfEnderSignal extends Entity {
      *
      * Java's `EyeOfEnder.tick`, in its order. The eye moves by the velocity it had, works out
      * the next one from where it now is, and once `life` passes {@link LIFETIME_TICKS} it plays
-     * its death sound, leaves the world, and either drops its item or bursts into particles.
+     * its break sound, leaves the world, and either drops its item or bursts into particles.
      */
     public override async update(tick: number): Promise<void> {
         await super.update(tick);
@@ -166,9 +166,12 @@ export class EyeOfEnderSignal extends Entity {
         this.life += 1;
         if (this.life <= LIFETIME_TICKS) return;
 
-        // Java's order: the sound, the discard, then what is left behind.
+        // Java's order: the sound, the discard, then what is left behind. Java has its own
+        // `entity.ender_eye.death`; Bedrock does not, and an actor `DEATH` sound for an entity
+        // its sound tables never mention falls back to the player's hurt sound. The break is
+        // named outright instead, as vanilla Bedrock spells it.
         const world = this.getWorld();
-        await world.sendActorSound(this, LevelSoundEvent.DEATH);
+        world.playNamedSoundAt(this.getPosition(), 'block.itemframe.break');
         await world.removeEntity(this);
         if (this.surviveAfterDeath) {
             await world.dropContents(this.getPosition(), [this.item]);

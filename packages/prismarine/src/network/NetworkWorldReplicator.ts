@@ -13,7 +13,7 @@ import { Position } from '../world/Position';
 import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
 import type { WorldChange } from '../world/WorldChange';
-import type { WorldChangeSink } from '../world/WorldChangeSink';
+import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
@@ -283,10 +283,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public namedSound(position: Vector3, name: string): void {
+    public namedSound(position: Vector3, name: string, options: NamedSoundOptions = {}): void {
         const packet = new PlaySoundPacket();
         packet.name = name;
         packet.position = position;
+        packet.volume = options.volume ?? 1;
+        packet.pitch = options.pitch ?? 1;
 
         this.sendAround(position, packet, { radius: SOUND_RADIUS });
     }

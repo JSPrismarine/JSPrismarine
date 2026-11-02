@@ -37,7 +37,7 @@ import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './bl
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import EntityGrid from './EntityGrid';
-import type { WorldChangeSink } from './WorldChangeSink';
+import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
 import { placePlayerSpawn } from './SpawnPlacement';
@@ -1667,7 +1667,21 @@ export class World implements Service {
      * @param {string} sound - The sound definition's name.
      */
     public playNamedSound(x: number, y: number, z: number, sound: string): void {
-        this.changes.namedSound(new Vector3(x + 0.5, y + 0.5, z + 0.5), sound);
+        this.playNamedSoundAt(new Vector3(x + 0.5, y + 0.5, z + 0.5), sound);
+    }
+
+    /**
+     * Plays a named sound at an exact world-space point.
+     *
+     * The counterpart of {@link World.playNamedSound} for things that are not blocks,
+     * the way {@link World.spawnNamedParticleAt} is for particles: an entity's position
+     * is already the point, so nothing centers it.
+     * @param {Vector3} position - Where the sound plays.
+     * @param {string} sound - The sound definition's name.
+     * @param {NamedSoundOptions} [options] - Volume and pitch, when the definition's own are not wanted.
+     */
+    public playNamedSoundAt(position: Vector3, sound: string, options?: NamedSoundOptions): void {
+        this.changes.namedSound(position, sound, options);
     }
 
     /**
