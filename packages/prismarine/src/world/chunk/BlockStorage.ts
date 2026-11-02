@@ -3,10 +3,14 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 
+/** Marks the one decoder path that has exclusive ownership of its index buffer. */
+const OWNED_INDICES = Symbol('BlockStorage owned indices');
+
 interface BlockStorageData {
     /** One palette index per block, in XZY order. Copied, so the caller may reuse its buffer. */
     blocks?: ArrayLike<number>;
     palette?: number[];
+    [OWNED_INDICES]?: true;
 }
 
 /** How many blocks one sub chunk holds. */
@@ -41,11 +45,26 @@ export default class BlockStorage {
      */
     private readonly paletteIndex: Map<number, number>;
 
-    public constructor({ blocks, palette }: BlockStorageData) {
+    public constructor({ blocks, palette, [OWNED_INDICES]: ownsIndices }: BlockStorageData) {
         this.palette = palette ?? [BlockRuntimeIds.getByName('minecraft:air')];
-        this.blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
-        if (blocks) this.blocks.set(blocks);
+        if (ownsIndices && blocks instanceof Uint16Array && blocks.length === BLOCKS_PER_SUBCHUNK) {
+            this.blocks = blocks;
+        } else {
+            this.blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+            if (blocks) this.blocks.set(blocks);
+        }
         this.paletteIndex = new Map(this.palette.map((runtimeId, index) => [runtimeId, index]));
+    }
+
+    /**
+     * Builds a storage from an index buffer that a decoder exclusively owns.
+     *
+     * @internal The caller must not read or write `blocks` after this call.
+     * @param blocks - The 4096 palette slots, in XZY order.
+     * @param palette - Runtime ids in the order those slots refer to.
+     */
+    public static fromOwnedIndices(blocks: Uint16Array, palette: number[]): BlockStorage {
+        return new BlockStorage({ blocks, palette, [OWNED_INDICES]: true });
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
@@ -97,6 +116,17 @@ export default class BlockStorage {
      */
     public getPaletteIndexAt(bx: number, by: number, bz: number): number {
         return this.blocks[BlockStorage.getIndex(bx, by, bz)]!;
+    }
+
+    /**
+     * Reads a palette slot by its XZY linear index, for internal storage codecs.
+     *
+     * @internal The index follows the same XZY layout as the persistent format.
+     * @param index - The slot in the 4096-entry storage buffer.
+     * @returns The palette index at that slot.
+     */
+    public getPaletteIndexAtIndex(index: number): number {
+        return this.blocks[index]!;
     }
 
     /** The palette slot for a runtime id, appending it if this storage has not seen it. */

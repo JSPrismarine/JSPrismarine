@@ -23,9 +23,6 @@ const BLOCKS_PER_SUBCHUNK = 4096;
 /** The widths the format allows. Anything else is a corrupt header. */
 const VALID_BITS_PER_BLOCK = [0, 1, 2, 3, 4, 5, 6, 8, 16];
 
-/** XZY, x major and y minor - the same order {@link BlockStorage} uses internally. */
-const positionOf = (index: number): [number, number, number] => [(index >> 8) & 0xf, index & 0xf, (index >> 4) & 0xf];
-
 const bitsFor = (paletteSize: number): number => {
     if (paletteSize <= 1) return 0;
 
@@ -48,8 +45,7 @@ export const encodePersistentStorage = (storage: BlockStorage, stream: BinaryStr
         for (let word = 0; word < wordCount; word++) {
             let packed = 0;
             for (let slot = 0; slot < blocksPerWord && position < BLOCKS_PER_SUBCHUNK; slot++) {
-                const [x, y, z] = positionOf(position++);
-                packed |= storage.getPaletteIndexAt(x, y, z) << (bitsPerBlock * slot);
+                packed |= storage.getPaletteIndexAtIndex(position++) << (bitsPerBlock * slot);
             }
 
             stream.writeIntLE(packed | 0);
@@ -102,5 +98,5 @@ export const decodePersistentStorage = (stream: BinaryStream): BlockStorage => {
 
     // The decoded indices are already one 16 bit slot per block, which is how a storage holds
     // them, so they go across whole rather than through 4096 single writes.
-    return new BlockStorage({ blocks: indices, palette });
+    return BlockStorage.fromOwnedIndices(indices, palette);
 };
