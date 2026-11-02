@@ -33,6 +33,7 @@ export interface SpawnRequest {
     readonly identifier: string;
     /** The event to run instead of `minecraft:entity_spawned`, when the rule names one. */
     readonly spawnEvent?: string;
+    /** The block position whose center the host uses to place the entity. */
     readonly position: SpawnPosition;
     /** The pool whose cap this spawn counts against. */
     readonly pool: string;
@@ -331,6 +332,7 @@ export class Spawner {
 
             for (const condition of rule.conditions) {
                 if (!evaluateSpawnCondition(condition, position, this.contextFor(rule, tick), pass).passed) continue;
+                if (!this.validSpawnPosition(position, condition)) continue;
                 candidates.push({ rule, condition });
                 totalWeight += Math.max(0, condition.weight.default);
             }
@@ -386,6 +388,7 @@ export class Spawner {
             const permutation = permutations?.[index];
             const swapped = permutation?.entityType === undefined ? undefined : splitSpawnType(permutation.entityType);
             const position = index === 0 ? anchor : this.herdMemberPosition(anchor, pass);
+            if (!this.validSpawnPosition(position, condition)) continue;
             if (!this.outsideSpawnExclusion(position, players, worldSpawn)) continue;
             const identifier = swapped?.identifier ?? rule.identifier;
             if (this.world.structureSpawnOverrideAt?.(identifier, position) === false) continue;
@@ -416,6 +419,16 @@ export class Spawner {
         if (position === undefined) return anchor;
         if (this.world.site('underwater', anchor) && !this.world.site('underwater', position)) return anchor;
         return position;
+    }
+
+    /** Whether the entity clears its body and has ground or its rule's allowed medium beneath it. */
+    private validSpawnPosition(at: SpawnPosition, condition: SpawnCondition): boolean {
+        if (!this.fits(at)) return false;
+        if (this.world.solid({ ...at, y: at.y - 1 })) return true;
+        return (
+            (condition.spawnsUnderwater && this.world.site('underwater', at)) ||
+            (condition.spawnsLava && this.world.site('lava', at))
+        );
     }
 
     private contextFor(rule: SpawnRule, tick: number): SpawnConditionContext {
