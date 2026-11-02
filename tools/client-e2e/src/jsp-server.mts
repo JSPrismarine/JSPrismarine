@@ -27,27 +27,46 @@ export interface JspServer {
     stop: () => Promise<void>;
 }
 
-/** Finds a UDP port the OS considers free right now. */
-const freeUdpPort = (): Promise<number> =>
-    new Promise((resolve, reject) => {
-        const socket = dgram.createSocket('udp4');
-        socket.once('error', reject);
-        socket.bind(0, '127.0.0.1', () => {
-            const { port } = socket.address();
-            socket.close(() => resolve(port));
+/** Ports reserved by servers this process is starting or running. */
+const reservedUdpPorts = new Set<number>();
+
+/** Reserves a UDP port the OS considers free right now. */
+const reserveFreeUdpPort = async (): Promise<number> => {
+    for (;;) {
+        const port = await new Promise<number>((resolve, reject) => {
+            const socket = dgram.createSocket('udp4');
+            socket.once('error', reject);
+            socket.bind(0, '127.0.0.1', () => {
+                const { port } = socket.address();
+                socket.close(() => resolve(port));
+            });
         });
-    });
+        if (reservedUdpPorts.has(port)) continue;
+        reservedUdpPorts.add(port);
+        return port;
+    }
+};
 
 /**
  * Starts the server from this checkout's sources and waits until it listens.
  *
+ * @param options.port - Requested UDP port; defaults to an available local port.
+ * @param options.dir - Scratch server directory; defaults to a temporary directory.
  * @param options.seconds - Startup budget before the boot is declared failed. Default 120.
+ * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
-    options: { port?: number; dir?: string; seconds?: number } = {}
+    options: { port?: number; dir?: string; seconds?: number; naturalCowSpawning?: boolean } = {}
 ): Promise<JspServer> => {
-    const port = options.port ?? (await freeUdpPort());
+    const port = options.port ?? (await reserveFreeUdpPort());
+    if (options.port !== undefined) {
+        if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
+            throw new Error(`invalid UDP port: ${port}`);
+        }
+        if (reservedUdpPorts.has(port)) throw new Error(`UDP port ${port} is already reserved by this e2e run`);
+        reservedUdpPorts.add(port);
+    }
     const dir = options.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-server-'));
     fs.mkdirSync(dir, { recursive: true });
 
@@ -134,6 +153,54 @@ export const startServer = async (
             4
         )}\n`
     );
+    if (options.naturalCowSpawning) {
+        fs.writeFileSync(
+            path.join(behaviorPack, 'entities', 'cow.json'),
+            `${JSON.stringify(
+                {
+                    format_version: '1.21.0',
+                    'minecraft:entity': {
+                        description: {
+                            identifier: 'minecraft:cow',
+                            is_spawnable: true,
+                            is_summonable: true
+                        },
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:collision_box': { width: 0.9, height: 1.3 },
+                            'minecraft:physics': { has_gravity: true, has_collision: true },
+                            'minecraft:type_family': { family: ['cow', 'mob'] }
+                        }
+                    }
+                },
+                null,
+                4
+            )}\n`
+        );
+        const spawnRules = path.join(behaviorPack, 'spawn_rules');
+        fs.mkdirSync(spawnRules, { recursive: true });
+        fs.writeFileSync(
+            path.join(spawnRules, 'cow.json'),
+            `${JSON.stringify(
+                {
+                    format_version: '1.8.0',
+                    'minecraft:spawn_rules': {
+                        description: { identifier: 'minecraft:cow', population_control: 'animal' },
+                        conditions: [
+                            {
+                                'minecraft:spawns_on_surface': {},
+                                'minecraft:spawns_on_block_filter': ['minecraft:grass_block'],
+                                'minecraft:weight': { default: 100 },
+                                'minecraft:herd': { min_size: 1, max_size: 1 }
+                            }
+                        ]
+                    }
+                },
+                null,
+                4
+            )}\n`
+        );
+    }
 
     const flatGenerator = (block: string) => ({
         type: 'minecraft:flat',
@@ -226,7 +293,12 @@ export const startServer = async (
     child.stdout?.on('data', onOutput);
     child.stderr?.on('data', onOutput);
 
-    const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
+    const exited = new Promise<void>((resolve) =>
+        child.once('exit', () => {
+            reservedUdpPorts.delete(port);
+            resolve();
+        })
+    );
 
     const waitForLine = (pattern: RegExp, timeoutMs = 60_000): Promise<string> =>
         new Promise((resolve, reject) => {
@@ -241,12 +313,23 @@ export const startServer = async (
         });
 
     const seconds = options.seconds ?? 120;
-    await Promise.race([
-        waitForLine(/now listening on port/, seconds * 1000),
-        exited.then(() => {
-            throw new Error(`server exited during startup; output ends with: ${lines.slice(-10).join('\n')}`);
-        })
-    ]);
+    try {
+        await Promise.race([
+            waitForLine(/now listening on port/, seconds * 1000),
+            exited.then(() => {
+                throw new Error(`server exited during startup; output ends with: ${lines.slice(-10).join('\n')}`);
+            })
+        ]);
+    } catch (error) {
+        if (child.exitCode === null && child.signalCode === null) {
+            const killer = setTimeout(() => child.kill('SIGKILL'), 15_000);
+            child.kill('SIGTERM');
+            await exited;
+            clearTimeout(killer);
+        }
+        fs.rmSync(dir, { recursive: true, force: true });
+        throw error;
+    }
 
     return {
         port,
@@ -255,11 +338,13 @@ export const startServer = async (
         command: (line) => child.stdin?.write(`${line}\n`),
         waitForLine,
         stop: async () => {
-            if (child.exitCode !== null) return;
-            child.stdin?.write('stop\n');
-            const killer = setTimeout(() => child.kill('SIGKILL'), 15_000);
-            await exited;
-            clearTimeout(killer);
+            if (child.exitCode === null && child.signalCode === null) {
+                child.stdin?.write('stop\n');
+                const killer = setTimeout(() => child.kill('SIGKILL'), 15_000);
+                await exited;
+                clearTimeout(killer);
+            }
+            fs.rmSync(dir, { recursive: true, force: true });
         }
     };
 };

@@ -8,8 +8,9 @@ import { sleep, vec3 } from '../scenario.mts';
 export const naturalSpawnPlacement: Scenario = {
     name: 'natural-spawn-placement',
     description: 'a natural cow spawn is visible to the client and stands above grass',
+    serverOptions: { naturalCowSpawning: true },
     run: async ({ client, server, playerName, artifacts, log }) => {
-        // Earlier scenarios leave the player at y=64, far above the flat world's y=-60 surface.
+        // The flat world's surface is at y=-60; move there before waiting for natural spawns.
         server.command(`teleport ${playerName} 0.5 -56 0.5`);
 
         const deadline = Date.now() + 30_000;

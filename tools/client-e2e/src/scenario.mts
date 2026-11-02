@@ -17,6 +17,11 @@ export interface ScenarioContext {
 export interface Scenario {
     name: string;
     description: string;
+    /** Optional content fixture required by this scenario's disposable server. */
+    serverOptions?: {
+        /** Add the minimal cow definition and natural spawn rule used by the spawn-placement scenario. */
+        naturalCowSpawning?: boolean;
+    };
     run: (context: ScenarioContext) => Promise<void>;
 }
 
