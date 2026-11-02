@@ -148,7 +148,7 @@ server's `size`. `parseBiomeSource` builds a `FixedBiomeSource`, `CheckerboardBi
 the preset and the climate boxes live in the data generator's `reports/biome_parameters`.
 Nothing here decides what a dimension type means to a Bedrock client; the
 server joins the parsed type with `@jsprismarine/mapping`'s overlay, as
-[docs/data-driven/dimensions.md](../../docs/data-driven/dimensions.md) describes.
+[docs/data-driven/dimensions.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/data-driven/dimensions.md) describes.
 
 ## Seams left open
 
@@ -244,7 +244,7 @@ steps.
 
 Carver paths cannot match Bedrock Edition for the same seed, because Mojang has not described
 Bedrock's generator
-([cross-edition-worldgen-parity.md](../../docs/research/cross-edition-worldgen-parity.md) section
+([cross-edition-worldgen-parity.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/cross-edition-worldgen-parity.md) section
 2). The tests that look across editions check determinism and distribution instead, and their
 names say so. Everything above compares against Java Edition, where exact equality is the point.
 

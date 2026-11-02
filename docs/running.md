@@ -232,7 +232,7 @@ every entry; `level-name` picks the one players join. The preset is a Java
 `worldgen/world_preset` id. `minecraft:normal`, the default, is the Overworld, the Nether and
 the End with vanilla terrain; `minecraft:flat` is a superflat Overworld that needs no Java data;
 `minecraft:large_biomes` and `minecraft:amplified` are the other two vanilla presets.
-[dimensions.md](data-driven/dimensions.md) describes every key and what is behind them.
+[dimensions.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/data-driven/dimensions.md) describes every key and what is behind them.
 
 ```json
 {

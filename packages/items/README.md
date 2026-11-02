@@ -14,7 +14,7 @@ The client decides identity. A Bedrock client knows an item by the identifier th
 item table has to be Bedrock's. The server decides properties. Nothing in either Bedrock pack
 format publishes nutrition, durability, mining speed or burn time for vanilla items, while Mojang's
 Java data generator publishes all of them for all 1658 Java items. That is
-[the plan's decision](../../docs/plans/data-driven-vanilla.md) in sections 2 and 4, and this package
+[the plan's decision](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md) in sections 2 and 4, and this package
 is the join: 1658 Java items go in through `@jsprismarine/mapping`, 1605 Bedrock identifiers come
 out with components attached.
 

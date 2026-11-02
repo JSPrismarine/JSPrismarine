@@ -18,9 +18,9 @@ features.canWriteBlocksAt(1, 0); // true, and it is the only step for which that
 ```
 
 The tables come out of Mojang's 26.3 server jar, read class by class in
-[java-chunk-generation-pipeline.md](../../docs/research/java-chunk-generation-pipeline.md). The
+[java-chunk-generation-pipeline.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/java-chunk-generation-pipeline.md). The
 decision to copy them rather than derive something equivalent is
-[ADR 0002](../../docs/adr/0002-chunk-generation-architecture.md).
+[ADR 0002](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/adr/0002-chunk-generation-architecture.md).
 
 ## The ten statuses
 

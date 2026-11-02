@@ -35,7 +35,7 @@ stem's generator is built by the `GeneratorFactories` registry, whose built-in k
 `{ kind, build(context) }` factory to add one. Portal travel between a level's worlds is the
 `DimensionTravel` service, reached through `Server.getDimensionTravel()`, with the cancelable
 `entityPortalEnter` and `playerChangeDimension` events. The guide is
-[docs/data-driven/dimensions.md](../../docs/data-driven/dimensions.md).
+[docs/data-driven/dimensions.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/data-driven/dimensions.md).
 
 ## JSON Schemas
 

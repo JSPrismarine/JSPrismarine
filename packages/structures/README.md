@@ -74,7 +74,7 @@ flattening. Their palettes name 47 identifiers the pinned Java version does not 
 `minecraft:wooden_door`.
 
 This package does not carry a 1.12 flattening table, and that is a decision rather than an
-omission. [The plan](../../docs/plans/data-driven-vanilla.md) section 4 sources structures from
+omission. [The plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md) section 4 sources structures from
 Java's data generator, and the Java corpus translates with nothing lost at all, so the table would
 buy nothing the server uses. The Bedrock zip's templates are a cross-check, and their 47 names are
 reported rather than guessed at. Writing a flattening table is the work to do if those files ever

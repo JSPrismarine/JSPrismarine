@@ -276,7 +276,7 @@ camelCase name or Bedrock's lowercase name onto the same rule, and `renamedGameR
 answers only the rename question.
 
 The measured shape of the rename differs from the figure in
-[the research note](../../docs/research/commands-functions-and-datapack-execution.md), which says
+[the research note](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/commands-functions-and-datapack-execution.md), which says
 36 renamed. Mojang's own old-to-new map, the constant pool of `GameRuleRegistryFix.class` in the
 26.3 jar, carries 59 legacy names over 58 current ones, of which 27 change more than case. Both
 `enableCommandBlocks` and `commandBlocksEnabled` become `minecraft:command_blocks_work`, which is
@@ -318,4 +318,4 @@ rules, 8 of which Java has no counterpart for, and it still spells the command l
   repository does not write yet; and `/script`, `/scriptevent`, `/gametest`, `/editor-allowlist`,
   `/wsserver`, `/changesetting`, `/packstack`, `/permission`, `/event`, `/reloadconfig`,
   `/reloadpacketlimitconfig` and `/serveridentity` are editor, telemetry and Script API surfaces
-  that are out of scope by [the plan](../../docs/plans/data-driven-vanilla.md) section 12.
+  that are out of scope by [the plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md) section 12.

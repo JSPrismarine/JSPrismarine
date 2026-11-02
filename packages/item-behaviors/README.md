@@ -35,7 +35,7 @@ A family is recognized one of two ways. Where Java's data already says what the 
 names a component, and the behavior then attaches to every item and binds nothing where the component
 is absent, so a pack's own food eats with no registration. Where neither edition publishes anything
 to recognize the item by, the rule names identifiers, which is the list
-[the behavior inventory](../../docs/research/engine-behavior-inventory.md) section 2 measured.
+[the behavior inventory](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/engine-behavior-inventory.md) section 2 measured.
 
 | Family                  | Items | Recognized by                        | Behaviors                                                                  |
 | ----------------------- | ----: | ------------------------------------ | -------------------------------------------------------------------------- |
@@ -254,7 +254,7 @@ enchantment damage and almost none of its own.
 
 `attackStrengthScale` defaults to 1, a fully charged swing. That is this project's choice for the
 attack cooldown, and it follows
-[the plan](../../docs/plans/data-driven-vanilla.md) section 12 decision 2: the Bedrock client draws no
+[the plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md) section 12 decision 2: the Bedrock client draws no
 cooldown meter and plays the strong-attack sound for every connecting hit, so scaling damage by time
 since the last swing produces hits that deal 20% for no reason the player can see. The parameter is
 there, and `attackStrengthScale(ticks, attackSpeed)` computes it from

@@ -329,7 +329,7 @@ piglin as `zombie_pigman`. Those rows are found through `@jsprismarine/mapping`,
 reaches them too.
 
 Which edition wins is decided per stat in [`src/javaStats.ts`](src/javaStats.ts) and recorded in
-[ADR 0001](../../docs/adr/0001-entity-stat-authority.md). Java decides the four a Bedrock client
+[ADR 0001](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/adr/0001-entity-stat-authority.md). Java decides the four a Bedrock client
 never computes for itself, so the wither spawns with Java's 300 health rather than Bedrock's 600
 and the witch follows from Java's 16 blocks rather than 64. Bedrock decides the five the client
 predicts an actor with, which `ClientMovementPredictionSyncPacket` enumerates: the bounding box

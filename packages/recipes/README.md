@@ -62,7 +62,7 @@ arrows are `crafting_imbue`, map cloning and shulker box and bundle dyeing are
 `crafting_transmute`, and all 17 suspicious stew recipes are plain `crafting_shapeless` with the
 effect in the result's `minecraft:suspicious_stew_effects` component. The eight serializers whose
 name still starts with `crafting_special_` are the eight in the table above, which is the same
-eight [java-registries-and-components.md](../../docs/research/java-registries-and-components.md)
+eight [java-registries-and-components.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/java-registries-and-components.md)
 section 8 lists. Four more types are code behind a parameterized file (`crafting_transmute`,
 `crafting_dye`, `crafting_imbue`, `crafting_decorated_pot`), so twelve of the 22 need a real
 implementation rather than a field read.

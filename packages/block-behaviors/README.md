@@ -274,7 +274,7 @@ The rest are scoped to this phase:
 - **Portal travel.** The geometry is here (below), but which world is "the Nether", the 8:1
   coordinate link, the destination search and the client's dimension change belong to the server,
   which owns the dimension list. `@jsprismarine/prismarine`'s `DimensionTravel` is that half;
-  [docs/data-driven/dimensions.md](../../docs/data-driven/dimensions.md) describes the whole trip.
+  [docs/data-driven/dimensions.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/data-driven/dimensions.md) describes the whole trip.
   The end gateway is claimed by the `portal` family and has no hook, so it teleports nobody.
 - **Redstone wire topology.** A wire fades one step per block from its neighbors. Stepping up and
   down over blocks, and the strong and weak distinction a solid block makes, need the solidity

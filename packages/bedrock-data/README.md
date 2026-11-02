@@ -123,7 +123,7 @@ layer 0 block states; plus the chunk's sorted block identifiers, its block entit
 failing digest can be read rather than guessed at, and one block histogram covers the region.
 
 The four digests are the four rows Phase 4 of
-[the plan](../../docs/plans/data-driven-vanilla.md) exits on. A generator that produces the same
+[the plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md) exits on. A generator that produces the same
 world reproduces every one of them exactly.
 
 ## Pinned upstream sources

@@ -69,7 +69,7 @@ defaults they declare; project components follow their documented shapes.
 Measured against the real data: Mojang's 98 vanilla block files in `bedrock-samples` v1.26.50.4 use
 20 distinct components under `components`, plus `minecraft:transformation` which appears only inside
 `shelf_mushroom`'s permutations, for 21 in all. That matches the count of 20 in
-[the research note](../../docs/research/bedrock-blocks-items-recipes-biomes-features.md), which
+[the research note](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/bedrock-blocks-items-recipes-biomes-features.md), which
 counted the base lists. The note's "8 permutations" for `shelf_mushroom` is one short; the file has
 nine. `src/vanillaBlocks.test.ts` checks both numbers and prints the tally.
 

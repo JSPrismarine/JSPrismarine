@@ -71,7 +71,7 @@ and uses them for contents a block entity carries into its own drop, such as a s
 inventory. There is one in vanilla, `minecraft:blocks/decorated_pot` for its sherds.
 
 Counts come from the corpus test described below, and agree with
-[the registry research note](../../docs/research/java-registries-and-components.md) section 3.
+[the registry research note](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/java-registries-and-components.md) section 3.
 
 ## What 26.3 renamed
 
