@@ -2,8 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { describeParityTrend, parseDashboardMeasurements, parseDashboardTotals } from '../src/dashboard/trend.ts';
-import type { DashboardTotals } from '../src/dashboard/trend.ts';
+import { describeDashboardTrend } from '../src/dashboard/trend.ts';
 import { findParityComment } from '../src/dashboard/comments.ts';
 import type { IssueComment } from '../src/dashboard/comments.ts';
 
@@ -39,12 +38,10 @@ const nextPageUrl = (linkHeader: string | null): string | undefined => {
     return nextLink?.match(/<([^>]+)>/)?.[1];
 };
 
-const totalsFromComment = (comment: IssueComment | undefined): DashboardTotals | undefined =>
-    comment === undefined ? undefined : parseDashboardTotals(comment.body);
-
 const token = requiredEnvironment('GITHUB_TOKEN');
 const repository = requiredEnvironment('GITHUB_REPOSITORY');
 const apiRoot = (process.env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/$/, '');
+const baseline = readFileSync(requiredEnvironment('PARITY_BASELINE_PATH'), 'utf8').trim();
 const event: unknown = JSON.parse(readFileSync(requiredEnvironment('GITHUB_EVENT_PATH'), 'utf8'));
 const pullNumber = pullRequestNumberFrom(event);
 
@@ -74,18 +71,11 @@ while (pageUrl !== undefined) {
 }
 
 const previousComment = findParityComment(comments, COMMENT_MARKER);
-const previousTotals = totalsFromComment(previousComment);
-const previousMeasurements = previousComment === undefined ? [] : parseDashboardMeasurements(previousComment.body);
 const dashboard = readFileSync(dashboardPath, 'utf8').trim();
-const currentTotals = parseDashboardTotals(dashboard);
-const currentMeasurements = parseDashboardMeasurements(dashboard);
 const familyDashboard = dashboard.replace(/^# Parity dashboard/, '### Family dashboard');
-const body = [
-    COMMENT_MARKER,
-    '## Parity trend',
-    describeParityTrend(previousTotals, currentTotals, previousMeasurements, currentMeasurements),
-    familyDashboard
-].join('\n\n');
+const body = [COMMENT_MARKER, '## Parity trend', describeDashboardTrend(baseline, dashboard), familyDashboard].join(
+    '\n\n'
+);
 
 const commentUrl = previousComment
     ? `${apiRoot}/repos/${repository}/issues/comments/${previousComment.id}`
