@@ -42,7 +42,9 @@ const UNATTRIBUTED: Record<DamageCause, string> = {
     [DamageCause.Suffocation]: '%death.attack.inWall',
     [DamageCause.Magic]: '%death.attack.magic',
     [DamageCause.Wither]: '%death.attack.wither',
-    [DamageCause.Thorns]: '%death.attack.generic'
+    [DamageCause.Thorns]: '%death.attack.generic',
+    // Bedrock has no `genericKill` line, so a `/kill` reads as a plain death.
+    [DamageCause.SelfDestruct]: '%death.attack.generic'
 };
 
 /**

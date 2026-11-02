@@ -2367,6 +2367,16 @@ describe('EntityRuntime', () => {
             expect(dragon.instance.attributes.get('health')?.current).toBe(200);
         });
 
+        it('lands a `/kill` whole, with nobody behind it', () => {
+            const { runtime, dragon } = dragonRuntime();
+
+            runtime.hurt(dragon, undefined, 'self_destruct', 200);
+            runtime.tick(1);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(0);
+            expect(dragon.instance.hasComponent('minecraft:behavior.dragondeath')).toBe(true);
+        });
+
         it('counts explosion damage from any source', () => {
             const { runtime, dragon } = dragonRuntime();
 

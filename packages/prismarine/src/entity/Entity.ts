@@ -762,7 +762,15 @@ export class Entity {
 
         // Only on the transition: something that is already dead does not die again, and
         // health being set to zero twice should not run a death twice.
-        if (alive && !this.isAlive()) await this.onDeath(DamageSource.of(source));
+        if (alive && !this.isAlive()) {
+            // Recorded as the last damage source, so a kill written straight onto the health -
+            // `/kill` - reaches whoever asks what did it with its real cause, the way a blow
+            // through `damage` already does. The data-entity mirror reads it to hand the kill
+            // to the runtime as what it was rather than as generic damage.
+            const damageSource = DamageSource.of(source);
+            this.lastDamageSource = damageSource;
+            await this.onDeath(damageSource);
+        }
     }
 
     /**

@@ -18,10 +18,11 @@ import type { Entity } from './Entity';
 /**
  * Causes that get through invulnerability frames.
  *
- * The void only: everything else respects the half-second of grace after a hit, and a player
- * standing under the world would otherwise be able to sit there indefinitely.
+ * The void and the `/kill` command, which is Java's `#bypasses_invulnerability` tag exactly.
+ * Everything else respects the half-second of grace after a hit, and a player standing under
+ * the world would otherwise be able to sit there indefinitely.
  */
-const BYPASSES_INVULNERABILITY: ReadonlySet<DamageCause> = new Set([DamageCause.Void]);
+const BYPASSES_INVULNERABILITY: ReadonlySet<DamageCause> = new Set([DamageCause.Void, DamageCause.SelfDestruct]);
 
 /** Burning, in either of its two forms; what Fire Protection is measured against. */
 const FIRE_CAUSES: ReadonlySet<DamageCause> = new Set([DamageCause.Fire, DamageCause.Lava]);

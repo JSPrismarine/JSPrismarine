@@ -200,7 +200,8 @@ const DAMAGE_TYPES: Readonly<Record<DamageCause, string>> = {
     [DamageCause.Suffocation]: 'minecraft:in_wall',
     [DamageCause.Magic]: 'minecraft:magic',
     [DamageCause.Wither]: 'minecraft:wither',
-    [DamageCause.Thorns]: 'minecraft:thorns'
+    [DamageCause.Thorns]: 'minecraft:thorns',
+    [DamageCause.SelfDestruct]: 'minecraft:generic_kill'
 };
 
 /**

@@ -58,6 +58,7 @@ import type PlayerSession from '../../network/PlayerSession';
 import { inventoryTransactionToProtocol } from '../../network/InventoryTransactionAdapter';
 import Codec2193 from '../../network/codec/Codec2193';
 import InventoryTransactionHandler from '../../network/handler/InventoryTransactionHandler';
+import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
@@ -304,6 +305,22 @@ const ENTITIES = new Map([
             },
             component_groups: { death: { 'minecraft:behavior.dragondeath': { priority: 0 } } },
             events: { 'jsprismarine:start_death': { add: { component_groups: ['death'] } } }
+        })
+    ],
+    [
+        'minecraft:ender_dragon',
+        // The vanilla dragon's shape, trimmed to its kill path
+        // (bedrock-samples 1.26.50, `behavior_pack/entities/ender_dragon.json`).
+        entityFile('minecraft:ender_dragon', {
+            components: {
+                'minecraft:health': { value: 200, max: 200 },
+                'minecraft:collision_box': { width: 13, height: 4 },
+                'minecraft:physics': { has_gravity: false, has_collision: false },
+                'minecraft:type_family': { family: ['dragon', 'mob'] },
+                'minecraft:on_death': { event: 'minecraft:start_death', target: 'self' }
+            },
+            component_groups: { dragon_death: { 'minecraft:behavior.dragondeath': { priority: 0 } } },
+            events: { 'minecraft:start_death': { add: { component_groups: ['dragon_death'] } } }
         })
     ],
     [
@@ -1767,6 +1784,21 @@ describe('the data-driven entity runtime over a live world', () => {
 
             await run(1);
             expect(live.runtime.all()).not.toContain(dragon);
+        });
+
+        it('lands a `/kill` on the ender dragon, whose rules refuse an attacker-less blow', async () => {
+            const dragon = live.runtime.spawn('minecraft:ender_dragon', { x: 8.5, y: GROUND_Y + 20, z: 8.5 });
+            if (dragon === undefined) throw new Error('the fixture declares no minecraft:ender_dragon');
+            await run(1);
+
+            // What the `/kill` verb does to the body: health written to zero with the
+            // one cause nothing turns aside. The mirror hands the drop to the runtime
+            // with that cause, and the dragon's damage rules let it through whole.
+            await live.bodies.bodyOf(dragon.id)!.setHealth(0, DamageCause.SelfDestruct);
+            await run(2);
+
+            expect(dragon.instance.attributes.get('health')?.current).toBe(0);
+            expect(dragon.instance.hasComponent('minecraft:behavior.dragondeath')).toBe(true);
         });
 
         it('shoves the mob away from whoever hit it', async () => {

@@ -121,6 +121,7 @@ import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
+import { DamageCause } from '../DamageCause';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 
@@ -1482,10 +1483,12 @@ export class EntityRuntime implements EntityScene {
     /**
      * Java's `EnderDragon.hurt` rules, which the Bedrock pack does not carry.
      *
-     * A dying dragon ignores damage; a hit counts only when a player dealt it or an
-     * explosion caused it, which is Java's `#always_hurts_ender_dragons` tag; and with no
-     * head part on this server every hit is a body hit, which Java lands at a quarter of
-     * the amount plus the amount capped at one. Anything below Java's 0.01 floor is dropped.
+     * A dying dragon ignores damage; a `/kill` lands whole, as Java's `EnderDragon.kill`
+     * override takes the dragon out regardless of its rules; otherwise a hit counts only
+     * when a player dealt it or an explosion caused it, which is Java's
+     * `#always_hurts_ender_dragons` tag; and with no head part on this server every hit
+     * is a body hit, which Java lands at a quarter of the amount plus the amount capped
+     * at one. Anything below Java's 0.01 floor is dropped.
      *
      * @returns The amount the dragon takes, or undefined when the hit does not count.
      */
@@ -1496,6 +1499,7 @@ export class EntityRuntime implements EntityScene {
         amount: number
     ): number | undefined {
         if (entity.instance.hasComponent('minecraft:behavior.dragondeath')) return undefined;
+        if (cause === DamageCause.SelfDestruct) return amount;
 
         const isExplosion = cause === 'entity_explosion' || cause === 'block_explosion';
         const fromPlayer = sourceId !== undefined && this.host.players().some((player) => player.id === sourceId);
