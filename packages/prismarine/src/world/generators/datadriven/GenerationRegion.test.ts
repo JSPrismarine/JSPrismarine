@@ -6,6 +6,7 @@
  * survives the trip from `@jsprismarine/features` into a chunk, not that the hook was called.
  */
 import { WorldgenRandom, bonusChest, endGateway, endSpike, monsterRoom } from '@jsprismarine/features';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import { GenerationRegion } from './GenerationRegion';
@@ -43,6 +44,41 @@ const terrainTile = (chunkX: number, chunkZ: number): GenerationRegion =>
         blocks: createJavaBlockOracle(new Map()),
         biomeAt: () => 'minecraft:plains'
     });
+
+const featureRegionOptions = () => ({
+    chunkX: 0,
+    chunkZ: 0,
+    minY: -64,
+    height: 384,
+    radius: 1,
+    seaLevel: 63,
+    seed: SEED,
+    blocks: createJavaBlockOracle(new Map()),
+    biomeAt: () => 'minecraft:plains'
+});
+
+/** Nine deterministic terrain tiles, as a feature worker receives them. */
+const featureTerrainTiles = (): GenerationRegion[] => {
+    const tiles: GenerationRegion[] = [];
+    for (let chunkX = -1; chunkX <= 1; chunkX++) {
+        for (let chunkZ = -1; chunkZ <= 1; chunkZ++) {
+            const tile = terrainTile(chunkX, chunkZ);
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const x = chunkX * 16 + localX;
+                    const z = chunkZ * 16 + localZ;
+                    const top = 40 + ((x * 17 + z * 31) & 7);
+                    tile.writeName(x, top, z, (x + z) % 3 === 0 ? 'minecraft:dirt' : 'minecraft:stone');
+                }
+            }
+            tile.featureWorld().setBlockEntity?.({ x: chunkX * 16, y: 50, z: chunkZ * 16 }, { id: 'minecraft:chest' });
+            tile.spawnEntityAt('minecraft:end_crystal', chunkX * 16 + 0.5, 52, chunkZ * 16 + 0.5, 0);
+            tile.freezeSurfaceHeights();
+            tiles.push(tile);
+        }
+    }
+    return tiles;
+};
 
 /** A neighbor's three by three feature view, centered on its own chunk and reaching into chunk 0. */
 const featureView = (chunkX: number, chunkZ: number): GenerationRegion =>
@@ -223,6 +259,96 @@ describe('neighbor chunk data', () => {
 
         expect(built.featureWorld().getBlock({ x: 16, y: 50, z: 8 }).name).toBe('minecraft:stone');
         expect(built.featureWorld().getHeight('WORLD_SURFACE_WG', 16, 8)).toBe(51);
+    });
+
+    it('reads immutable terrain tiles without changing feature output or allocating a copied view', () => {
+        const tiles = featureTerrainTiles();
+        const copied = new GenerationRegion(featureRegionOptions());
+        for (const tile of tiles) copied.copyCenterFrom(tile);
+        const viewed = GenerationRegion.featureView(featureRegionOptions(), tiles);
+
+        expect(Reflect.get(viewed, 'states')).toHaveProperty('byteLength', 0);
+        for (const x of [-16, -1, 0, 15, 16, 31]) {
+            for (const z of [-16, -1, 0, 15, 16, 31]) {
+                for (const y of [39, 40, 43, 47, 51]) {
+                    expect(viewed.stateAt(x, y, z)).toEqual(copied.stateAt(x, y, z));
+                }
+                expect(viewed.featureWorld().getHeight('WORLD_SURFACE', x, z)).toBe(
+                    copied.featureWorld().getHeight('WORLD_SURFACE', x, z)
+                );
+                expect(viewed.featureWorld().getHeight('WORLD_SURFACE_WG', x, z)).toBe(
+                    copied.featureWorld().getHeight('WORLD_SURFACE_WG', x, z)
+                );
+            }
+        }
+        expect(viewed.centerBlockEntities()).toEqual(copied.centerBlockEntities());
+        expect(viewed.centerEntitySpawns()).toEqual(copied.centerEntitySpawns());
+
+        copied.beginWriteTracking();
+        viewed.beginWriteTracking();
+        for (const [x, z, block] of [
+            [-1, 0, 'minecraft:gold_block'],
+            [16, 3, 'minecraft:oak_log'],
+            [0, 0, 'minecraft:air']
+        ] as const) {
+            copied.writeName(x, 60, z, block);
+            viewed.writeName(x, 60, z, block);
+        }
+
+        expect(viewed.takeTrackedPatches()).toEqual(copied.takeTrackedPatches());
+        expect(tiles[4]?.stateAt(0, 60, 0).name).toBe('minecraft:air');
+        expect(tiles[3]?.stateAt(-1, 60, 0).name).toBe('minecraft:air');
+    });
+
+    it('accepts terrain tiles in any arrival order without changing what positions they cover', () => {
+        const tiles = featureTerrainTiles();
+        const forward = GenerationRegion.featureView(featureRegionOptions(), tiles);
+        const reversed = GenerationRegion.featureView(featureRegionOptions(), [...tiles].reverse());
+
+        for (const [x, z] of [
+            [-16, -16],
+            [0, 0],
+            [15, 15],
+            [16, 16],
+            [31, 31]
+        ]) {
+            for (const y of [39, 40, 44, 47, 51]) {
+                expect(reversed.stateAt(x!, y, z!)).toEqual(forward.stateAt(x!, y, z!));
+            }
+        }
+    });
+
+    it('keeps overlapping feature tasks isolated across worker counts and task order', async () => {
+        const tiles = featureTerrainTiles();
+        const runTasks = async (workerCount: number, order: readonly number[]): Promise<readonly string[]> => {
+            const results = new Array<string>(order.length);
+            let next = 0;
+            await Promise.all(
+                Array.from({ length: workerCount }, async () => {
+                    while (next < order.length) {
+                        const task = order[next++]!;
+                        const view = GenerationRegion.featureView(featureRegionOptions(), tiles);
+                        view.beginWriteTracking();
+                        await Promise.resolve();
+                        view.writeName(0, 40, 0, task % 2 === 0 ? 'minecraft:gold_block' : 'minecraft:diamond_block');
+                        view.writeName(16, 40, 0, task % 3 === 0 ? 'minecraft:oak_log' : 'minecraft:birch_log');
+                        results[task] = createHash('sha256')
+                            .update(JSON.stringify(view.takeTrackedPatches()))
+                            .digest('hex');
+                    }
+                })
+            );
+            return results;
+        };
+        const order = Array.from({ length: 8 }, (_unused, index) => index);
+        const reversed = [...order].reverse();
+
+        const serial = await runTasks(1, order);
+        const parallel = await runTasks(4, reversed);
+
+        expect(parallel).toEqual(serial);
+        expect(tiles[4]?.stateAt(0, 40, 0).name).toBe('minecraft:dirt');
+        expect(tiles[7]?.stateAt(16, 40, 0).name).toBe('minecraft:stone');
     });
 
     it('leaves an existing block when a copied palette slot resolves to Java air', () => {
