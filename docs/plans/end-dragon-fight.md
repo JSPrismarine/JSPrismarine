@@ -24,6 +24,10 @@ The checks, as in [data-driven-dimensions.md](data-driven-dimensions.md): **pack
 chunk contents on purpose, which no corpus pins today, and extends the `worldgen.dimensions`
 parity test to pin the new End output instead.
 
+Project-wide roadmap status and the current milestone are maintained in the
+[data-driven vanilla plan](data-driven-vanilla.md#status-and-current-milestone); this file tracks
+the End fight execution details.
+
 ## Open questions needing a real client
 
 Record answers in `docs/data-driven/dimensions.md` (or the page chunk 9 adds) when found.

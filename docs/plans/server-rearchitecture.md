@@ -2,6 +2,10 @@
 
 Status: accepted direction, implementation in progress (started 2026-10-29).
 
+Project-wide roadmap status and the current milestone are maintained in the
+[data-driven vanilla plan](data-driven-vanilla.md#status-and-current-milestone); this file tracks
+the server re-architecture workstream.
+
 Progress (2026-10-30):
 
 - Done: Phase 0 (hygiene), Phase 1 (transport + `NetworkDispatcher` extraction), Phase 2

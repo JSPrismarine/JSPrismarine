@@ -7,6 +7,10 @@ free of new red rows. Chunks are grouped into waves. Chunks in one wave touch di
 disjoint files and can run concurrently; a chunk may start when every chunk it depends on has
 landed on the integration branch.
 
+Project-wide roadmap status and the current milestone are maintained in the
+[data-driven vanilla plan](data-driven-vanilla.md#status-and-current-milestone); this file tracks
+the dimensions execution details.
+
 ## Before any chunk
 
 Read ADR 0004, then the research note the chunk cites. The three notes are the specification:
