@@ -9,6 +9,7 @@
         "includes": [
             "packages/*/src/**",
             "scripts/**",
+            "tools/*/src/**",
             "packages/mapping/utils/generate/**",
             "packages/structures/utils/generate/**",
             "packages/parity/src/generation/capture.ts",
@@ -125,7 +126,8 @@
                 "scripts/**",
                 "packages/*/scripts/**",
                 "packages/mapping/utils/generate/**",
-                "packages/structures/utils/generate/**"
+                "packages/structures/utils/generate/**",
+                "tools/*/src/**"
             ],
             "linter": {
                 "rules": {

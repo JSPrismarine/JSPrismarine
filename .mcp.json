@@ -1,0 +1,8 @@
+{
+    "mcpServers": {
+        "cinnabar": {
+            "command": "node",
+            "args": ["tools/client-e2e/src/mcp-server-entry.mts"]
+        }
+    }
+}
