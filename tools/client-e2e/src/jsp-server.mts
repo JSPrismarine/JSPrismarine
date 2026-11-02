@@ -8,6 +8,7 @@ import dgram from 'node:dgram';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { repoRoot } from './cinnabar.mts';
 
@@ -61,9 +62,19 @@ export const startServer = async (
     fs.writeFileSync(path.join(dir, 'config.json'), `${JSON.stringify(config, null, 4)}\n`);
 
     const serverPackage = path.join(repoRoot, 'packages', 'server');
+    const coverageHook = path.join(path.dirname(fileURLToPath(import.meta.url)), 'coverage-exit.mjs');
+    const coverageArgs = process.env.NODE_V8_COVERAGE ? ['--import', coverageHook] : [];
     const child: ChildProcess = spawn(
         process.execPath,
-        ['--import', 'tsx', path.join(serverPackage, 'src', 'Server.ts'), '--no-tui', '--port', String(port)],
+        [
+            '--import',
+            'tsx',
+            ...coverageArgs,
+            path.join(serverPackage, 'src', 'Server.ts'),
+            '--no-tui',
+            '--port',
+            String(port)
+        ],
         {
             cwd: serverPackage,
             env: { ...process.env, JSP_DIR: dir, NODE_ENV: 'production' },

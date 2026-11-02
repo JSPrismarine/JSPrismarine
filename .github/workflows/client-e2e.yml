@@ -108,6 +108,19 @@ jobs:
                   # shellcheck disable=SC2086
                   pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" $RECORD $SCENARIOS
 
+            - name: 🔎 Verify client e2e coverage
+              id: client-e2e-coverage
+              run: node scripts/check-client-e2e-coverage.mts
+
+            - name: 🦺 Upload client e2e coverage to Codecov
+              if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: coverage/client-e2e/lcov.info
+                  flags: client-e2e
+
             - name: 📤 Upload evidence
               if: ${{ !cancelled() }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
