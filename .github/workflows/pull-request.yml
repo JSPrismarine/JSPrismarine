@@ -35,5 +35,5 @@ jobs:
               uses: mscharley/dependency-changesets-action@874dac2372a085cb94f750e8bdf5b1173a838a75 # v1.2.5
               with:
                   use-conventional-commits: false
-                  commit-message: 'deps: Add changeset.'
+                  commit-message: 'chore(deps): add changeset'
                   token: ${{ secrets.GITHUB_TOKEN }}
