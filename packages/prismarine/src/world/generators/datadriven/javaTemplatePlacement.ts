@@ -116,6 +116,7 @@ export const placeJavaTemplate = (
             : applyProcessors(ownCompounds(transformed.template, javaBlocks), processors, {
                   origin: [origin.x, origin.y, origin.z],
                   random: createLegacyRandom(seedOf(seed, origin)),
+                  placement,
                   blockAt: ([x, y, z]) => bedrockStateOf(target.blockAt(x, y, z)),
                   heightAt: (heightmap, x, z) => target.heightAt(heightmapOf(heightmap), x, z),
                   // The protected lists name Java blocks and the processor asks about the Bedrock

@@ -14,7 +14,8 @@ import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { NBTTagCompound as NBTCompound, Types } from '@jsprismarine/nbt';
 
 import type { RandomSource } from './random';
-import { stateDomainsOf } from './transform';
+import type { Placement } from './transform';
+import { stateDomainsOf, transformBedrockState } from './transform';
 import type { BedrockBlockState, BedrockStructureTemplate, TemplatePosition } from './types';
 import { NO_BLOCK, StructureFormatError } from './types';
 
@@ -96,6 +97,16 @@ export interface ProcessorContext {
     readonly hasTag?: (identifier: string, tag: string) => boolean;
     /** Whether a Bedrock state fills its whole cell, for the lava submerged processor. */
     readonly isFullBlock?: (state: BedrockBlockState) => boolean;
+    /**
+     * The rotation and mirror the template was prepared under.
+     *
+     * Java turns a template's states after its processors have run, so a state a processor
+     * introduces by name - a jigsaw block's `final_state`, a rule's `output_state` - turns with
+     * the building. This chain runs over a template that is already turned, so an introduced
+     * state has to be turned here instead; left out, it is placed as written, which is only
+     * right for a template placed unturned.
+     */
+    readonly placement?: Placement;
 }
 
 /**
@@ -301,6 +312,15 @@ interface ProcessorRule {
     readonly modifier: BlockEntityModifier;
 }
 
+/**
+ * A state a processor names outright, turned the way the template it lands in was turned.
+ *
+ * Without this a doorstep stair a jigsaw block stands in for faces east in every house of the
+ * village, whichever way the house was turned, and a fence gate opens into the wrong wall.
+ */
+const introducedState = (state: BedrockBlockState, context: ProcessorContext): BedrockBlockState =>
+    context.placement === undefined ? state : transformBedrockState(state, context.placement);
+
 const worldPositionOf = (pos: TemplatePosition, origin: TemplatePosition): TemplatePosition => [
     pos[0] + origin[0],
     pos[1] + origin[1],
@@ -331,7 +351,7 @@ const createRuleProcessor = (definition: Record<string, unknown>): StructureProc
                 if (existing !== undefined && !rule.location(existing, world[1], context)) continue;
                 if (!rule.position(block.pos, world, context.origin, context)) continue;
                 const nbt = rule.modifier(block.nbt);
-                return { ...block, state: rule.output, nbt };
+                return { ...block, state: introducedState(rule.output, context), nbt };
             }
             return block;
         }
@@ -620,7 +640,7 @@ export const createProcessor = (definition: unknown): StructureProcessor => {
         case 'minecraft:jigsaw_replacement':
             return {
                 type: 'minecraft:jigsaw_replacement',
-                process: (block) => {
+                process: (block, context) => {
                     if (block.state.name !== 'minecraft:jigsaw') return block;
                     if (block.nbt === undefined) return block;
                     const finalState = block.nbt.getString('final_state', 'minecraft:air');
@@ -628,7 +648,7 @@ export const createProcessor = (definition: unknown): StructureProcessor => {
                     if (parsed === undefined || parsed.name === 'minecraft:structure_void') return undefined;
                     return {
                         pos: block.pos,
-                        state: parsed,
+                        state: introducedState(parsed, context),
                         ...(block.extraState === undefined ? {} : { extraState: block.extraState })
                     };
                 }

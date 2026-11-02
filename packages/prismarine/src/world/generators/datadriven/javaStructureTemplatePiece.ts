@@ -316,6 +316,8 @@ export class TemplatePiece implements StructurePiece {
                 : applyProcessors(prepared.template, chain, {
                       origin: this.options.position,
                       random,
+                      // The template is already turned; a state a processor names has to be.
+                      placement: this.options.placement,
                       blockAt: ([x, y, z]) => bedrockViewOf(writer.blockAt(x, y, z)),
                       heightAt: (heightmap, x, z) => writer.heightAt(asHeightmap(heightmap), x, z),
                       hasTag: (identifier, tag) => writer.hasTag(identifier, tag),

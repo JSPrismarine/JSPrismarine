@@ -107,6 +107,30 @@ describe('the rule processor', () => {
         );
     });
 
+    it('turns a directional output_state with the template', () => {
+        const processor = createProcessor({
+            processor_type: 'minecraft:rule',
+            rules: [
+                {
+                    input_predicate: { predicate_type: 'minecraft:block_match', block: 'minecraft:oak_fence_gate' },
+                    location_predicate: { predicate_type: 'minecraft:always_true' },
+                    output_state: {
+                        Name: 'minecraft:spruce_fence_gate',
+                        Properties: { facing: 'east', in_wall: 'false', open: 'false', powered: 'false' }
+                    }
+                }
+            ]
+        });
+        const gate = (facing: string) =>
+            bedrockOf('minecraft:spruce_fence_gate', { facing, in_wall: 'false', open: 'false', powered: 'false' });
+        const input = block({ state: bedrockOf('minecraft:oak_fence_gate', { facing: 'south' }) });
+
+        expect(processor.process(input, context())?.state).toEqual(gate('east'));
+        expect(processor.process(input, context({ placement: { rotation: 'clockwise_90' } }))?.state).toEqual(
+            gate('south')
+        );
+    });
+
     it('stops at the first rule that matches', () => {
         const processor = createProcessor({
             processor_type: 'minecraft:rule',
@@ -435,6 +459,28 @@ describe('the jigsaw_replacement processor', () => {
         const input = block({ state: bedrockOf('minecraft:stone') });
 
         expect(processor.process(input, context())).toBe(input);
+    });
+
+    it('turns the final_state with the template, as Java turns states after its processors', () => {
+        // The plains house's entrance jigsaw stands in for its doorstep, an east-facing stair.
+        // The template it sits in was turned before this chain ran, so the stair has to be
+        // turned here or every house in the village gets a doorstep facing east.
+        const processor = createProcessor({ processor_type: 'minecraft:jigsaw_replacement' });
+        const doorstep = jigsawNbt('minecraft:oak_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]');
+        const stair = (facing: string) =>
+            bedrockOf('minecraft:oak_stairs', { facing, half: 'bottom', shape: 'straight', waterlogged: 'false' });
+        const replaced = (placement: ProcessorContext['placement']) =>
+            processor.process(
+                block({ state: bedrockOf('minecraft:jigsaw', { orientation: 'west_up' }), nbt: doorstep }),
+                context({ placement })
+            )?.state;
+
+        expect(replaced(undefined)).toEqual(stair('east'));
+        expect(replaced({ rotation: 'none' })).toEqual(stair('east'));
+        expect(replaced({ rotation: 'clockwise_90' })).toEqual(stair('south'));
+        expect(replaced({ rotation: 'clockwise_180' })).toEqual(stair('west'));
+        expect(replaced({ rotation: 'counterclockwise_90' })).toEqual(stair('north'));
+        expect(replaced({ mirror: 'front_back' })).toEqual(stair('west'));
     });
 });
 
