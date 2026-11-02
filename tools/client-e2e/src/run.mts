@@ -21,11 +21,12 @@ import { CinnabarClient } from './client.mts';
 import { startServer } from './jsp-server.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
+import { miningDrops } from './scenarios/mining-drops.mts';
 import { movement } from './scenarios/movement.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { teleport } from './scenarios/teleport.mts';
 
-const scenarios: Scenario[] = [spawn, movement, chat, teleport];
+const scenarios: Scenario[] = [spawn, movement, chat, miningDrops, teleport];
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
 const argv = process.argv.slice(2).filter((argument) => argument !== '--');
