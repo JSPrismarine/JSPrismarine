@@ -30,6 +30,8 @@ import { placementOverlap } from './scenarios/placement-overlap.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { teleport } from './scenarios/teleport.mts';
 import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
+import { dimensionsScenario } from './scenarios/dimensions.mts';
+import { enderDragon } from './scenarios/ender-dragon.mts';
 
 const scenarios: Scenario[] = [
     spawn,
@@ -38,6 +40,9 @@ const scenarios: Scenario[] = [
     miningDrops,
     edgeChunkBlockChange,
     teleport,
+    // Run the first End fight before the dimension scenario visits and leaves the End.
+    enderDragon,
+    dimensionsScenario,
     furnace,
     recipeBook,
     placementOverlap,
@@ -85,7 +90,11 @@ const results: { name: string; ok: boolean; note: string }[] = [];
 const client = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
 try {
     console.log('launching the headless client...');
-    await client.launch({ userRoot: path.join(server.dir, 'client-user-root'), displayName: playerName });
+    await client.launch({
+        userRoot: path.join(server.dir, 'client-user-root'),
+        displayName: playerName,
+        muteAudio: !values.record
+    });
 
     if (values.record) await client.recordStart(path.join(artifacts, 'run.mp4'));
 
