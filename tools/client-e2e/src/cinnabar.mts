@@ -138,6 +138,9 @@ export const ensureBuilt = (checkout: string): void => {
     if (!commandExists('ffmpeg')) {
         console.warn('ffmpeg is not on PATH; the client builds, but record_start will fail');
     }
+    // On CI, rustup installs the version the checkout's rust-toolchain.toml pins. Locally the
+    // ambient toolchain builds the checkout as-is, even where rustup is also installed.
+    if (process.env.CI && commandExists('rustup')) run('rustup', ['toolchain', 'install'], checkout);
 
     run('make', ['assets'], checkout);
     run('cargo', ['build', '-p', 'cinnabar', '--features', 'developer-control'], checkout);

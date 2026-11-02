@@ -1,0 +1,117 @@
+name: Client E2E
+# Joins a server built from this checkout with the pinned cinnabar Bedrock client (a real
+# rendering client, driven headlessly over MCP) and runs the tools/client-e2e scenarios.
+#
+# macOS runners are the one hosted platform where the client's renderer is proven in CI
+# (cinnabar's own GPU tests run on macos-latest via Metal). The client build is slow once per
+# cinnabar pin and then comes from the cache, so warm runs only boot the server, join, and play.
+on:
+    push:
+        branches:
+            - master
+        paths:
+            - .github/workflows/client-e2e.yml
+            - tools/client-e2e/**
+            - packages/auth/**
+            - packages/binaryutils/**
+            - packages/minecraft/**
+            - packages/nbt/**
+            - packages/prismarine/**
+            - packages/protocol/**
+            - packages/raknet/**
+            - packages/server/**
+            - packages/wire/**
+            - packages/bedrock-data/sources.json
+    pull_request:
+        paths:
+            - .github/workflows/client-e2e.yml
+            - tools/client-e2e/**
+            - packages/auth/**
+            - packages/binaryutils/**
+            - packages/minecraft/**
+            - packages/nbt/**
+            - packages/prismarine/**
+            - packages/protocol/**
+            - packages/raknet/**
+            - packages/server/**
+            - packages/wire/**
+            - packages/bedrock-data/sources.json
+    workflow_dispatch:
+        inputs:
+            scenarios:
+                description: Space-separated scenario names; empty runs them all
+                default: ''
+            record:
+                description: Also record the run as an MP4 artifact
+                type: boolean
+                default: false
+
+concurrency:
+    group: client-e2e-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    client-e2e:
+        name: 🎮 Client E2E
+        runs-on: macos-latest
+        # A cold cinnabar build dominates the first run after a pin change; warm runs take minutes.
+        timeout-minutes: 120
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+              with:
+                  go-version: 'stable'
+                  cache: false
+
+            # The cloudburst data pack that `pnpm install` fetches, shared with other runs.
+            # The cinnabar checkout below lives inside this directory and has its own key,
+            # so it is excluded here.
+            - name: Cache the fetched sources
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine
+                      !node_modules/.cache/jsprismarine/cinnabar
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            # The pinned checkout with its built client, controller, core, and compiled assets
+            # (about 1.5 GB). `ensure` is a no-op on a hit; a partially built miss self-heals
+            # because the build stamp is only written after every step succeeds.
+            - name: Cache the cinnabar build
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine/cinnabar
+                  key: ${{ runner.os }}-cinnabar-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
+
+            - name: 🔨 Ensure the pinned cinnabar client
+              run: pnpm --filter @jsprismarine/client-e2e run ensure
+
+            - name: 🍿 Install ffmpeg for recording
+              if: ${{ inputs.record }}
+              run: brew install ffmpeg
+
+            - name: 🎮 Run the client e2e scenarios
+              env:
+                  # Both expand unquoted below: empty vanishes, and scenarios word-split by design.
+                  RECORD: ${{ inputs.record && '--record' || '' }}
+                  SCENARIOS: ${{ inputs.scenarios || '' }}
+              run: |
+                  # shellcheck disable=SC2086
+                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" $RECORD $SCENARIOS
+
+            - name: 📤 Upload evidence
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: client-e2e-evidence
+                  path: ${{ runner.temp }}/client-e2e
+                  if-no-files-found: warn
