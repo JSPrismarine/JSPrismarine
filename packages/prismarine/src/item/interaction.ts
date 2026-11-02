@@ -17,7 +17,7 @@
  * server's copy one block and resends the inventory; one that does not sends back the blocks
  * and the inventory as they are. A Bedrock Dedicated Server 1.26.52 did both.
  */
-import { BLOCK_FACES, containerOpenSound } from '@jsprismarine/blocks';
+import { BLOCK_FACES, collisionBox, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, BlockStateValue, FaceLocation, HookBlock } from '@jsprismarine/blocks';
 import { facingFromYaw, opposite } from '@jsprismarine/block-behaviors';
 import { relative } from '@jsprismarine/engine-systems';
@@ -108,6 +108,15 @@ const TORCH_BLOCKS = new Set([
     'minecraft:copper_torch'
 ]);
 
+/** A block's implicit `minecraft:collision_box` when the component is omitted. */
+const FULL_BLOCK_COLLISION_BOX = { origin: [-8, 0, -8], size: [16, 16, 16] } as const;
+
+/** One box in the resolved `minecraft:collision_box` component. */
+type ResolvedCollisionBox = {
+    readonly origin: readonly [number, number, number];
+    readonly size: readonly [number, number, number];
+};
+
 /** The block an item places, or undefined for an item with no block placement. */
 const placedBlockOf = (content: ServerContent, placed: Item): string | undefined => {
     let identifier = ITEM_PLACE_TARGETS.get(placed.getName()) ?? placed.getName();
@@ -174,6 +183,53 @@ const placementStatesOf = (
     return states;
 };
 
+/** Whether one resolved block collision box intersects the player's body. */
+const collisionBoxOverlapsPlayer = (player: Player, at: ContentPosition, box: ResolvedCollisionBox) => {
+    const position = player.getPosition();
+    const { width, height } = player.getBox();
+    const playerMinX = position.getX() - width / 2;
+    const playerMaxX = position.getX() + width / 2;
+    const playerMinY = player.getFeetY();
+    const playerMaxY = playerMinY + height;
+    const playerMinZ = position.getZ() - width / 2;
+    const playerMaxZ = position.getZ() + width / 2;
+    const blockMinX = at.x + 0.5 + box.origin[0] / 16;
+    const blockMaxX = blockMinX + box.size[0] / 16;
+    const blockMinY = at.y + box.origin[1] / 16;
+    const blockMaxY = blockMinY + box.size[1] / 16;
+    const blockMinZ = at.z + 0.5 + box.origin[2] / 16;
+    const blockMaxZ = blockMinZ + box.size[2] / 16;
+
+    return (
+        playerMinX < blockMaxX &&
+        playerMaxX > blockMinX &&
+        playerMinY < blockMaxY &&
+        playerMaxY > blockMinY &&
+        playerMinZ < blockMaxZ &&
+        playerMaxZ > blockMinZ
+    );
+};
+
+/** Whether the state an item would place collides with the player's body. */
+const placementOverlapsPlayer = (
+    content: ServerContent,
+    player: Player,
+    at: ContentPosition,
+    identifier: string,
+    states: Readonly<Record<string, BlockStateValue>>
+): boolean => {
+    const collision = content.blocks.types.get(identifier)?.state(states).content.params(collisionBox);
+    if (collision === false) return false;
+
+    const boxes =
+        collision === undefined || collision === true
+            ? [FULL_BLOCK_COLLISION_BOX]
+            : Array.isArray(collision)
+              ? collision
+              : [collision];
+    return boxes.some((box) => collisionBoxOverlapsPlayer(player, at, box));
+};
+
 /**
  * Puts the block an item names into the world, through the content adapter.
  *
@@ -205,10 +261,13 @@ const placeBlock = (
     const standing = world.loadedBlockAt(target.x, target.y, target.z);
     if (standing === undefined || !canReplace(standing)) return undefined;
 
+    const states = placementStatesOf(content, identifier, rotation, face);
+    if (placementOverlapsPlayer(content, player, target, identifier, states)) return undefined;
+
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
     const playerPosition = player.getPosition();
-    blocks.setBlock(target, identifier, placementStatesOf(content, identifier, rotation, face), true, {
+    blocks.setBlock(target, identifier, states, true, {
         placedBy: {
             identifier: 'minecraft:player',
             position: {

@@ -80,6 +80,8 @@ Use American English spelling in prose and documentation. Do not use British spe
 
 - Follow existing Vitest patterns and place unit tests beside the code they cover. Test observable
   behavior and public contracts, and add regression coverage for bugs when the task calls for tests.
+- For bug fixes, add a focused unit regression test. When a fix changes client-visible behavior,
+  add and run a client-e2e scenario for the same behavior with `pnpm run e2e:client <scenario>`.
   Tag tests that assert wall-clock timing or host-dependent load as `performance`, and exclude them
   from CI test selectors. Keep CI assertions on deterministic, observable behavior.
   Keep implementation totals (for example, registered functions, commands, components, behaviors,

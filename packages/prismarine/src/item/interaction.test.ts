@@ -689,6 +689,27 @@ describe('useItemOnBlock', () => {
             return playerHolding(world, tables, false, gamemode);
         };
 
+        it('refuses a block placement that overlaps the player', () => {
+            place(chunk, { x: 1, y: 63, z: 1 }, 'minecraft:stone');
+            const player = playerHolding(world, 'minecraft:dirt');
+
+            expect(click(player, { x: 1, y: 63, z: 1 })).toBe('handled');
+
+            expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:air');
+            expect(changed).toContain('1,64,1 minecraft:air');
+            expect(changed).not.toContain('1,64,1 minecraft:dirt');
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('allows a non-colliding block to overlap the player', () => {
+            place(chunk, { x: 1, y: 63, z: 1 }, 'minecraft:stone');
+
+            expect(click(playerHolding(world, 'minecraft:torch'), { x: 1, y: 63, z: 1 })).toBe('handled');
+
+            expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:torch');
+        });
+
         it('puts the block against the clicked face of one that cannot be built over', () => {
             place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
 
