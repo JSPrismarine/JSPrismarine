@@ -19,6 +19,9 @@ env:
 jobs:
     nightly-version:
         name: 🏷️ Resolve nightly version
+        concurrency:
+            group: nightly-version-${{ github.event.pull_request.number || github.ref }}
+            cancel-in-progress: true
         runs-on: ubuntu-latest
         permissions:
             actions: read
@@ -45,6 +48,9 @@ jobs:
 
     aot-data:
         name: 🗃️ Prepare executable data
+        concurrency:
+            group: nightly-data-${{ github.event.pull_request.number || github.ref }}
+            cancel-in-progress: true
         runs-on: windows-latest
         permissions:
             contents: read
@@ -98,6 +104,9 @@ jobs:
                       output: dist/prismarine-windows-x64
                       architecture: ''
         runs-on: ${{ matrix.runner }}
+        concurrency:
+            group: nightly-build-${{ github.event.pull_request.number || github.ref }}-${{ matrix.platform }}
+            cancel-in-progress: true
         env:
             BUILD_TYPE: nightly
             BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
