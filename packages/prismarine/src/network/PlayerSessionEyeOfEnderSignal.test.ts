@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
-import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import { describe, expect, it } from 'vitest';
 
 import { EyeOfEnderSignal } from '../entity/other/EyeOfEnderSignal';
@@ -20,7 +20,7 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
  */
 const thrownEye = () => {
     const fake = fakePlayer();
-    const { player, world, server, sent, roster, actorSounds } = fake;
+    const { player, world, server, sent, roster, namedSounds } = fake;
     const replicator = new NetworkWorldReplicator(world, server);
     Object.assign(world, {
         getPlayers: () => [player],
@@ -42,7 +42,7 @@ const thrownEye = () => {
     });
     eye.signalTo(new Vector3(100, 0, 0));
 
-    return { player, sent, roster, actorSounds, replicator, eye };
+    return { player, sent, roster, namedSounds, replicator, eye };
 };
 
 /** Runs ticks the way the world does: every entity's update, then one movement flush. */
@@ -88,13 +88,37 @@ describe('PlayerSession and an eye of ender signal', () => {
         expect(last?.getY()).toBeGreaterThan(64.9);
     });
 
-    it('leaves the world with its death sound after eighty ticks', async () => {
-        const { player, eye, replicator, roster, actorSounds } = thrownEye();
+    it('sends a named sound with the volume and pitch it was played at', async () => {
+        const { player, sent, replicator } = thrownEye();
+        await player.getNetworkSession().considerEntity(
+            new EyeOfEnderSignal({
+                item: new Item({ runtimeId: 1, name: 'minecraft:ender_eye' }),
+                random: () => 0.5,
+                position: new Position(0.5, 64.9, 0.5, player.getWorld())
+            })
+        );
+        sent.length = 0;
+
+        // The thrown eye's bow: half volume and a low pitch, which is what tells a player an
+        // eye left the hand rather than an arrow. Both have to survive the trip to the packet.
+        replicator.namedSound(new Vector3(0.5, 64.9, 0.5), 'random.bow', { volume: 0.5, pitch: 0.4 });
+
+        const sounds = sent.filter((p) => p instanceof PlaySoundPacket);
+        expect(sounds).toHaveLength(1);
+        expect(sounds[0]?.name).toBe('random.bow');
+        expect(sounds[0]?.volume).toBe(0.5);
+        expect(sounds[0]?.pitch).toBe(0.4);
+    });
+
+    it('leaves the world with its break sound after eighty ticks', async () => {
+        const { player, eye, replicator, roster, namedSounds } = thrownEye();
         await player.getNetworkSession().considerEntity(eye);
 
         await tick(eye, replicator, 81);
 
         expect(roster).toContain('remove');
-        expect(actorSounds).toEqual([LevelSoundEvent.DEATH]);
+        // Named, not an actor `DEATH` sound: the client's sound tables have no entry for
+        // the eye, so `DEATH` fell back to the player's hurt sound.
+        expect(namedSounds).toEqual(['block.itemframe.break']);
     });
 });

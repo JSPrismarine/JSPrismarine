@@ -7,6 +7,19 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { WorldChange } from './WorldChange';
 
 /**
+ * How loud and how high a named sound plays, when the definition's own values are not wanted.
+ *
+ * Vanilla varies a few throws this way: the eye of ender leaves the hand at half volume and a
+ * low random pitch, which is what tells it apart from a bow.
+ */
+export interface NamedSoundOptions {
+    /** A multiplier on the definition's volume; one leaves it as written. */
+    readonly volume?: number;
+    /** A multiplier on the definition's pitch; one leaves it as written. */
+    readonly pitch?: number;
+}
+
+/**
  * Where a world reports what just happened in it.
  *
  * The world's one outward-facing seam. It exists because half of what has to reach a client
@@ -63,8 +76,9 @@ export interface WorldChangeSink {
      * those travel as text.
      * @param {Vector3} position - Where the sound comes from, already centered in its block.
      * @param {string} name - The client sound definition's name.
+     * @param {NamedSoundOptions} [options] - Volume and pitch, when they are not the definition's own.
      */
-    namedSound(position: Vector3, name: string): void;
+    namedSound(position: Vector3, name: string, options?: NamedSoundOptions): void;
 
     /**
      * A named particle effect appeared at a position.

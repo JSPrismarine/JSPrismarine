@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { LevelEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { Item as ItemStack } from '../../item/Item';
@@ -13,14 +13,14 @@ const fakeWorld = () => {
     const removed: unknown[] = [];
     const dropped: { position: Vector3; items: unknown[] }[] = [];
     const worldEvents: { event: number; data: number }[] = [];
-    const actorSounds: number[] = [];
+    const namedSounds: string[] = [];
 
     return {
         moves,
         removed,
         dropped,
         worldEvents,
-        actorSounds,
+        namedSounds,
         getName: () => 'test',
         getServer: () => testEntityServer(),
         broadcastMove: async (entity: { getPosition(): Vector3 }) => void moves.push(entity.getPosition()),
@@ -28,7 +28,7 @@ const fakeWorld = () => {
         dropContents: async (position: Vector3, items: unknown[]) => void dropped.push({ position, items }),
         sendWorldEvent: async (_position: Vector3 | null, event: number, data: number) =>
             void worldEvents.push({ event, data }),
-        sendActorSound: async (_entity: unknown, sound: number) => void actorSounds.push(sound)
+        playNamedSoundAt: (_position: Vector3, sound: string) => void namedSounds.push(sound)
     };
 };
 
@@ -108,7 +108,7 @@ describe('entity', () => {
             expect(world.dropped).toHaveLength(1);
             expect(world.dropped[0]?.items).toEqual([signal.getItem()]);
             expect(world.worldEvents).toHaveLength(0);
-            expect(world.actorSounds).toEqual([LevelSoundEvent.DEATH]);
+            expect(world.namedSounds).toEqual(['block.itemframe.break']);
         });
 
         it('shatters instead when the roll lands on the one in five', async () => {
@@ -121,7 +121,9 @@ describe('entity', () => {
             expect(world.removed).toEqual([signal]);
             expect(world.dropped).toHaveLength(0);
             expect(world.worldEvents).toEqual([{ event: LevelEvent.PARTICLES_EYE_OF_ENDER_DEATH, data: 0 }]);
-            expect(world.actorSounds).toEqual([LevelSoundEvent.DEATH]);
+            // The break named as Bedrock spells it: an actor `DEATH` sound has no entry for the
+            // eye in the client's sound tables and fell back to the player's hurt sound.
+            expect(world.namedSounds).toEqual(['block.itemframe.break']);
         });
 
         it('hangs where it was thrown until it is given a target', async () => {
