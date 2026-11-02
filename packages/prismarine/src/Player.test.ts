@@ -701,6 +701,67 @@ describe('Player', () => {
         });
     });
 
+    describe('the void', () => {
+        /** Puts the player's eyes at `y`; their feet are `EYE_HEIGHT` lower. */
+        const fallTo = async (player: Player, y: number) =>
+            player.setPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
+
+        it('hurts a player four half-hearts every half second once 64 blocks under the floor', async () => {
+            const { player } = fakePlayer();
+            await fallTo(player, -200);
+
+            await tick(player, 9);
+            expect(player.getHealth()).toBe(20);
+
+            await tick(player, 1, 10);
+            expect(player.getHealth()).toBe(16);
+
+            await tick(player, 10, 11);
+            expect(player.getHealth()).toBe(12);
+        });
+
+        it('leaves a player alone just above the depth', async () => {
+            const { player } = fakePlayer();
+            // The Overworld floor is -64, so the void begins at -128; feet at -127.
+            await fallTo(player, -127 + EYE_HEIGHT);
+
+            await tick(player, 20);
+
+            expect(player.getHealth()).toBe(20);
+        });
+
+        it('reaches a creative player, whom nothing else can hurt', async () => {
+            const { player } = fakePlayer();
+            player.gamemode = Gametype.CREATIVE;
+            await fallTo(player, -200);
+
+            await tick(player, 10);
+
+            expect(player.getHealth()).toBe(16);
+        });
+
+        it('passes a spectator by', async () => {
+            const { player } = fakePlayer();
+            player.gamemode = Gametype.SPECTATOR;
+            await fallTo(player, -200);
+
+            await tick(player, 20);
+
+            expect(player.getHealth()).toBe(20);
+        });
+
+        it('kills, and says the player fell out of the world', async () => {
+            const { player, sent } = fakePlayer();
+            await fallTo(player, -200);
+
+            await tick(player, 50);
+
+            expect(player.isAlive()).toBe(false);
+            const death = sent.find((packet) => packet instanceof DeathInfoPacket);
+            expect(death?.getPacketData()?.cause).toBe('death.attack.outOfWorld');
+        });
+    });
+
     describe('syncing', () => {
         it('sends what changed, and only what changed', async () => {
             const { player, sent } = fakePlayer();

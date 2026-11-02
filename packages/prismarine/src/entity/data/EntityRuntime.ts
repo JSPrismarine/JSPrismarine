@@ -122,6 +122,7 @@ import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 import { DamageCause } from '../DamageCause';
+import { VOID_DAMAGE, VOID_DEPTH, VOID_INTERVAL } from '../Environment';
 import type { StatusEffectInput } from '../StatusEffect';
 import { mergeStatusEffect, normalizeStatusEffectId, removeStatusEffectFromMap } from '../StatusEffect';
 
@@ -932,6 +933,7 @@ export class EntityRuntime implements EntityScene {
             this.tickTimers(entity.body);
             entity.instance.tick();
             this.tickDaylightBurn(entity);
+            this.tickVoid(entity);
             if (entity.removed !== undefined) continue;
             entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
             this.syncGameEventListener(entity);
@@ -2842,6 +2844,25 @@ export class EntityRuntime implements EntityScene {
         if (body.conditions.has('on_fire') && this.world.level.gameTime() % FIRE_DAMAGE_INTERVAL_TICKS === 0) {
             if (ruleIsOn(this.world.level, FIRE_DAMAGE)) this.hurt(entity, undefined, 'fire_tick', FIRE_DAMAGE_AMOUNT);
         }
+    }
+
+    /**
+     * Takes an entity that fell out of the world.
+     *
+     * Java's `checkBelowWorld`, {@link VOID_DEPTH} blocks under the dimension's floor. A
+     * living thing is hurt four half-hearts every {@link VOID_INTERVAL} ticks, the void's
+     * half-second cadence, and dies of it; anything with no health to take, a dropped stack
+     * or a stray arrow, is simply discarded, as Java's `onBelowWorld` discards it.
+     */
+    private tickVoid(entity: DataEntity): void {
+        if (entity.position.y >= this.world.level.minY - VOID_DEPTH) return;
+
+        if (entity.instance.attributes.get('health') === undefined) {
+            this.remove(entity.id, 'fell_out_of_world');
+            return;
+        }
+        if (this.world.level.gameTime() % VOID_INTERVAL !== 0) return;
+        this.hurt(entity, undefined, 'void', VOID_DAMAGE);
     }
 
     /** Activates a newly spawned or restored fuse without spending its first tick. */

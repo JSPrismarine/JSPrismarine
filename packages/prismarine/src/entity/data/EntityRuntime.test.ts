@@ -2306,6 +2306,62 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('the void', () => {
+        /** Sixty-five blocks under the test world's -64 floor: one past where the void begins. */
+        const BELOW_THE_WORLD = { ...GROUND, y: -64 - 65 };
+
+        it('hurts a mob four half-hearts on the void\u2019s half-second beat', () => {
+            const { runtime } = runtimeOf(new TestEntityWorld({ gameTime: 10 }));
+            const cow = runtime.spawn('minecraft:cow', BELOW_THE_WORLD);
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            runtime.tick(1);
+
+            expect(cow.instance.attributes.get('health')?.current).toBe(6);
+        });
+
+        it('waits between beats', () => {
+            const { runtime } = runtimeOf(new TestEntityWorld({ gameTime: 5 }));
+            const cow = runtime.spawn('minecraft:cow', BELOW_THE_WORLD);
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            runtime.tick(1);
+
+            expect(cow.instance.attributes.get('health')?.current).toBe(10);
+        });
+
+        it('leaves a mob alone just above the depth', () => {
+            const { runtime } = runtimeOf(new TestEntityWorld({ gameTime: 10 }));
+            const cow = runtime.spawn('minecraft:cow', { ...GROUND, y: -64 - 63 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            runtime.tick(1);
+
+            expect(cow.instance.attributes.get('health')?.current).toBe(10);
+        });
+
+        it('discards something with no health to take', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:pebble': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.25, height: 0.25 },
+                            'minecraft:physics': {}
+                        }
+                    }
+                }
+            );
+            const pebble = runtime.spawn('jsprismarine:pebble', BELOW_THE_WORLD);
+            if (pebble === undefined) throw new Error('the fixture declares no jsprismarine:pebble');
+
+            runtime.tick(1);
+
+            expect(pebble.removed).toBe('fell_out_of_world');
+        });
+    });
+
     describe('the dragon damage rules', () => {
         /**
          * The vanilla dragon's shape, trimmed to its damage path
