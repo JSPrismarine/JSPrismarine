@@ -34,9 +34,12 @@ collects V8 coverage from the server process and writes an LCOV report to
 
 In CI, `.github/workflows/client-e2e.yml` runs the suite on macOS (the one hosted platform where
 the client's renderer is proven) for pull requests that touch the wire or gameplay packages, and
-uploads the artifacts as evidence and the LCOV report to Codecov. The cinnabar build is cached on
-the pin, so only the first run after a pin change pays for the compile. On GitHub Actions the
-runner also writes a pass/fail table to the job summary.
+uploads the artifacts as evidence and the LCOV report to Codecov. Locally, the pinned checkout and
+build live outside the repository at `$XDG_CACHE_HOME/jsprismarine/cinnabar/<commit>/repo`, falling
+back to `~/.cache/jsprismarine/cinnabar/<commit>/repo`. Set `JSP_CINNABAR_CACHE_DIR` to change the
+cache root, or set `JSP_CINNABAR_PATH` to use an existing checkout directly. GitHub Actions keeps
+the cache outside its workspace, restores the pin-specific cache on PRs, and saves it from master
+so later PRs can reuse it. The runner also writes a pass/fail table to the job summary.
 
 ## Version pin
 

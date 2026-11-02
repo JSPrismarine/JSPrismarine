@@ -2,11 +2,12 @@
  * Resolves and builds the pinned cinnabar checkout that the e2e harness drives.
  *
  * The pin lives in `cinnabar.json`. The checkout is cached under
- * `node_modules/.cache/jsprismarine/cinnabar/<commit>/repo`, or taken from
- * `JSP_CINNABAR_PATH` when set (an existing checkout, used as-is).
+ * `$XDG_CACHE_HOME/jsprismarine/cinnabar/<commit>/repo` (falling back to `~/.cache`), or taken
+ * from `JSP_CINNABAR_PATH` when set (an existing checkout, used as-is).
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,7 +42,10 @@ export const readPin = (): CinnabarPin => {
 export const checkoutDir = (pin: CinnabarPin): string => {
     const override = process.env.JSP_CINNABAR_PATH;
     if (override) return path.resolve(override);
-    return path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine', 'cinnabar', pin.commit.slice(0, 12), 'repo');
+    const cacheRoot =
+        process.env.JSP_CINNABAR_CACHE_DIR ||
+        path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache'), 'jsprismarine', 'cinnabar');
+    return path.resolve(cacheRoot, pin.commit.slice(0, 12), 'repo');
 };
 
 /** The build outputs the harness needs from a cinnabar checkout. */
