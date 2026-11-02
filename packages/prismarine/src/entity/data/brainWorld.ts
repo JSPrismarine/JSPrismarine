@@ -295,7 +295,27 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
                 event,
                 blockPositionOf(pos),
                 source === undefined ? undefined : Number(source.id)
-            )
+            ),
+        snifferDigPosition: (body) => {
+            const entity = scene.byId(Number(body.id));
+            return entity === undefined ? undefined : scene.snifferDigPosition(entity.body);
+        },
+        dropSnifferSeed: (body) => {
+            const entity = scene.byId(Number(body.id));
+            if (entity !== undefined) scene.dropSnifferSeed(entity.body);
+        },
+        sonicBoom: (body, target) => {
+            const entity = scene.byId(Number(body.id));
+            if (entity !== undefined) scene.sonicBoom(entity.body, Number(target.id));
+        },
+        villagerRaidState: (body) => {
+            const entity = scene.byId(Number(body.id));
+            return entity === undefined ? undefined : scene.villagerRaidState(entity.body);
+        },
+        villagerRaidEffect: (body, effect) => {
+            const entity = scene.byId(Number(body.id));
+            if (entity !== undefined) scene.villagerRaidEffect(entity.body, effect);
+        }
     };
 };
 

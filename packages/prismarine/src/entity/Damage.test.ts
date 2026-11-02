@@ -102,6 +102,11 @@ describe('damage reduction', () => {
             expect(bypassesArmor(DamageCause.Fall)).toBe(true);
             expect(bypassesEnchantments(DamageCause.Fall)).toBe(false);
         });
+
+        it('lets a sonic boom through armor and its enchantments', () => {
+            expect(bypassesArmor(DamageCause.SonicBoom)).toBe(true);
+            expect(bypassesEnchantments(DamageCause.SonicBoom)).toBe(true);
+        });
     });
 
     describe('the whole pipeline', () => {
@@ -123,6 +128,18 @@ describe('damage reduction', () => {
 
         it('skips the armor step for the causes that bypass it', () => {
             expect(reduceDamage(10, { ...bare, defensePoints: 20, bypassesArmor: true })).toBeCloseTo(10);
+        });
+
+        it('skips armor and protection enchantments for a sonic boom', () => {
+            expect(
+                reduceDamage(10, {
+                    ...bare,
+                    defensePoints: 20,
+                    enchantmentProtection: 20,
+                    bypassesArmor: true,
+                    bypassesEnchantments: true
+                })
+            ).toBeCloseTo(10);
         });
 
         it('still applies the enchantments when only the armor is bypassed', () => {

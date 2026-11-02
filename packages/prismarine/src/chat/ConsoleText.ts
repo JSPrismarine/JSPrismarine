@@ -29,6 +29,7 @@ const CONSOLE_TEXT: Record<string, string> = {
     'death.attack.cactus': '%1$s was pricked to death',
     'death.attack.inWall': '%1$s suffocated in a wall',
     'death.attack.magic': '%1$s was killed by magic',
+    'death.attack.sonic_boom': '%1$s was obliterated by a sonically-charged shriek',
     'death.attack.wither': '%1$s withered away',
 
     // The same deaths with a killer. Victim first, killer second.

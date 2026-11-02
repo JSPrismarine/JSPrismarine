@@ -69,7 +69,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | `integration` | tags, entity-runtime, entity-coverage, spawning, client-packets | Loaded tags through resolved registries; a representative entity behavior; every composed entity declaration through runtime spawn and tick; natural spawning through composed vanilla rules; client join payloads |
 | `worldgen` | biomes, terrain, corpus, features, structures, determinism, dimensions | Java's biome lookups and dumped columns, and the generation corpus: this server's own chunk output recorded at a named commit; Java's dimension types and world presets through the parsers, and one chunk per vanilla dimension |
 | `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
-| `gameplay` | end-fight | End crystal and dragon definitions, item and actor ids, the seed-derived spike table, and exit podium cells |
+| `gameplay` | brain-effects, end-fight | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java 26.3; end crystal and dragon definitions, item and actor ids, the seed-derived spike table, and exit podium cells |
 | `protocol` | negotiation, wire-roundtrip, dimension-change | Each registered protocol version negotiates its own codec from a real first packet; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
 | `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |
 

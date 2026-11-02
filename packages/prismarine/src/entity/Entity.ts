@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import type { EntityPosition } from '@jsprismarine/entities';
 import type { Item } from '../item/Item';
 import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -943,6 +944,9 @@ export class Entity {
         _strength: number,
         _damping: number = SINGLE_DAMPING
     ): void {}
+
+    /** Applies a world-space impulse to an entity with a movement owner. */
+    public applyImpulse(_impulse: EntityPosition): void {}
 
     /** Armor points worn by this actor. */
     public getArmorDefensePoints(): number {

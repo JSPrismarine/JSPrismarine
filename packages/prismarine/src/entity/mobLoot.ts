@@ -196,6 +196,7 @@ const DAMAGE_TYPES: Readonly<Record<DamageCause, string>> = {
     [DamageCause.Attack]: 'minecraft:mob_attack',
     [DamageCause.Projectile]: 'minecraft:mob_projectile',
     [DamageCause.Explosion]: 'minecraft:explosion',
+    [DamageCause.SonicBoom]: 'minecraft:sonic_boom',
     [DamageCause.Contact]: 'minecraft:cactus',
     [DamageCause.Suffocation]: 'minecraft:in_wall',
     [DamageCause.Magic]: 'minecraft:magic',

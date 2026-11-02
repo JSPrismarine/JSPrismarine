@@ -22,6 +22,8 @@ export enum DamageCause {
     /** Hit by something thrown or fired, which is not the same as being struck by its owner. */
     Projectile = 'projectile',
     Explosion = 'explosion',
+    /** The warden's sonic boom, which passes through armor and its enchantments. */
+    SonicBoom = 'sonic_boom',
     /** Walked into something that hurts to touch: a cactus, a berry bush. */
     Contact = 'contact',
     /** A solid block where the entity's head is. */

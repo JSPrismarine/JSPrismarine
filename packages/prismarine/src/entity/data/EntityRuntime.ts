@@ -55,7 +55,16 @@ import {
     parseEventTarget
 } from '@jsprismarine/entities';
 import { liquidStateOf } from '@jsprismarine/block-behaviors';
-import { admireGoldItem, canAdmire, isBarterCurrency, MemoryModuleTypes } from '@jsprismarine/entity-brains';
+import {
+    admireGoldItem,
+    canAdmire,
+    EntityCondition,
+    isBarterCurrency,
+    MemoryModuleTypes,
+    WARDEN
+} from '@jsprismarine/entity-brains';
+import { blockPosTracker } from '@jsprismarine/entity-brains';
+import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
 import type {
     BlockQuery,
@@ -1088,11 +1097,48 @@ export class EntityRuntime implements EntityScene {
         const definition = entity.brainMob;
         if (brain === undefined || definition === undefined) return;
 
+        this.updateBrainConditions(entity);
         // The context is rebuilt each tick because `BrainMob` is a view over live state rather
         // than a stored object, which is what keeps it from going stale after a position change.
         const context = { world: this.brainWorld(), body: brainMobOf(entity, brain, this) };
         definition.updateActivity(context);
         brain.tick(context);
+    }
+
+    /** Refreshes body facts that depend on the sniffer's live position and relationships. */
+    private updateBrainConditions(entity: DataEntity): void {
+        if (entity.identifier !== 'minecraft:sniffer') return;
+
+        const { body } = entity;
+        const canSniff =
+            !entity.instance.hasComponent('minecraft:is_baby') &&
+            body.conditions.has(EntityCondition.ON_GROUND) &&
+            !body.conditions.has(EntityCondition.IN_WATER) &&
+            body.loveTicks <= 0 &&
+            this.rides.vehicleOf(entity.id) === undefined &&
+            !this.leashHolders.has(entity.id);
+        setCondition(body.conditions, EntityCondition.CAN_SNIFF, canSniff);
+
+        const digPosition = this.snifferDigPosition(body);
+        const tags = digPosition === undefined ? undefined : this.content().tags;
+        const block = digPosition === undefined ? undefined : this.world.blocks.get(digPosition);
+        const explored =
+            entity.brain
+                ?.getMemory(MemoryModuleTypes.SNIFFER_EXPLORED_POSITIONS)
+                ?.some(
+                    (entry) =>
+                        entry.dimension === this.world.level.dimension &&
+                        entry.pos.x === digPosition?.x &&
+                        entry.pos.y === digPosition?.y &&
+                        entry.pos.z === digPosition?.z
+                ) ?? false;
+        const canDig =
+            !entity.instance.hasComponent('minecraft:is_baby') &&
+            digPosition !== undefined &&
+            block !== undefined &&
+            tags?.includes('block', 'minecraft:sniffer_diggable_block', block.identifier) === true &&
+            !explored;
+        setCondition(body.conditions, EntityCondition.CAN_DIG, canDig);
     }
 
     /**
@@ -2728,6 +2774,144 @@ export class EntityRuntime implements EntityScene {
 
         const position = blockPositionOf(at);
         for (const drop of this.rolled(id)) this.host.drop(position, drop);
+    }
+
+    /** The block under the sniffer's head, which must carry Java's diggable-block tag. */
+    public snifferDigPosition(body: MobBody): EntityPosition | undefined {
+        const entity = this.entities.get(body.id);
+        if (entity?.identifier !== 'minecraft:sniffer') return undefined;
+
+        const radians = (body.yaw * Math.PI) / 180;
+        return {
+            x: Math.floor(body.position.x - Math.sin(radians) * 2.25),
+            y: Math.floor(body.position.y + 0.2) - 1,
+            z: Math.floor(body.position.z + Math.cos(radians) * 2.25)
+        };
+    }
+
+    /** Rolls Java's `sniffer_digging` loot table at the sniffer's head and plays its drop sound. */
+    public dropSnifferSeed(body: MobBody): void {
+        const entity = this.entities.get(body.id);
+        if (entity?.identifier !== 'minecraft:sniffer') return;
+
+        const radians = (body.yaw * Math.PI) / 180;
+        const head = {
+            x: body.position.x - Math.sin(radians) * 0.6,
+            y: body.position.y + entity.facts.box.height * 0.8,
+            z: body.position.z + Math.cos(radians) * 0.6
+        };
+        this.dropLoot('loot_tables/gameplay/sniffer_digging.json', head);
+        this.world.effects.playSound(blockPositionOf(head), 'minecraft:entity.sniffer.drop_seed');
+    }
+
+    /** Resolves one warden sonic boom against the current runtime or host-owned target. */
+    public sonicBoom(body: MobBody, targetId: number): void {
+        const source = this.entities.get(body.id);
+        if (source?.identifier !== 'minecraft:warden') return;
+
+        const target = this.entities.get(targetId);
+        if (target?.removed !== undefined) return;
+        const player =
+            target === undefined ? this.host.players().find((candidate) => candidate.id === targetId) : undefined;
+        const targetPosition = target?.position ?? player?.position;
+        if (targetPosition === undefined) return;
+
+        const origin = entityEyePosition(source.position, source.facts.box.height);
+        const destination =
+            target === undefined
+                ? { x: targetPosition.x, y: targetPosition.y + 1.62, z: targetPosition.z }
+                : entityEyePosition(target.position, target.facts.box.height);
+        const delta = {
+            x: destination.x - origin.x,
+            y: destination.y - origin.y,
+            z: destination.z - origin.z
+        };
+        if (
+            Math.hypot(delta.x, delta.z) > WARDEN.sonicBoom.distanceXz ||
+            Math.abs(targetPosition.y - source.position.y) > WARDEN.sonicBoom.distanceY
+        ) {
+            return;
+        }
+
+        const length = Math.hypot(delta.x, delta.y, delta.z);
+        const direction =
+            length === 0 ? { x: 0, y: 0, z: 1 } : { x: delta.x / length, y: delta.y / length, z: delta.z / length };
+        const impulse = {
+            x: direction.x * WARDEN.sonicBoom.knockbackHorizontal,
+            y: direction.y * WARDEN.sonicBoom.knockbackHorizontal + WARDEN.sonicBoom.knockbackVertical,
+            z: direction.z * WARDEN.sonicBoom.knockbackHorizontal
+        };
+        this.world.effects.playSound(blockPositionOf(source.position), 'minecraft:entity.warden.sonic_boom');
+
+        if (target !== undefined) {
+            if (!this.hurt(target, source.id, 'sonic_boom', WARDEN.sonicBoom.damage)) return;
+            const remaining = 1 - Math.min(1, Math.max(0, target.facts.knockbackResistance));
+            target.body.push({ x: impulse.x * remaining, y: impulse.y * remaining, z: impulse.z * remaining });
+            return;
+        }
+
+        this.host.applySonicBoom?.(targetId, WARDEN.sonicBoom.damage, source.id, impulse);
+    }
+
+    /** The raid facts at this villager's position, supplied by its host's raid owner. */
+    public villagerRaidState(body: MobBody): VillagerRaidState | undefined {
+        return this.host.villagerRaidStateAt?.(body.position);
+    }
+
+    /** Performs the fallback world effect when the host has not supplied a raid effect handler. */
+    public villagerRaidEffect(body: MobBody, effect: VillagerRaidEffect): void {
+        if (this.host.villagerRaidEffect !== undefined) {
+            this.host.villagerRaidEffect(body.id, effect);
+            return;
+        }
+
+        switch (effect) {
+            case 'ring_bell': {
+                const bell = this.poi('meeting', body.position, 48);
+                if (bell === undefined) return;
+                this.world.effects.playSound(blockPositionOf(bell), 'minecraft:block.bell.use');
+                this.world.effects.emitGameEvent('minecraft:block_activate', blockPositionOf(bell), body.id);
+                return;
+            }
+            case 'move_to_sky_seeing_spot': {
+                const spot = this.skySeeingSpot(body.position);
+                const entity = this.entities.get(body.id);
+                if (spot === undefined || entity?.brain === undefined) return;
+                entity.brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+                    target: blockPosTracker({ x: Math.floor(spot.x), y: Math.floor(spot.y), z: Math.floor(spot.z) }),
+                    speedModifier: 0.6,
+                    closeEnoughDist: 0
+                });
+                return;
+            }
+            case 'celebrate_victory':
+                this.world.effects.playSound(blockPositionOf(body.position), 'minecraft:entity.villager.celebrate');
+                return;
+            case 'reset_status':
+                return;
+        }
+    }
+
+    /** Finds the nearest passable position under open sky for a raid activity. */
+    private skySeeingSpot(center: EntityPosition): EntityPosition | undefined {
+        if (!this.world.level.hasSkyLight || this.world.blocks.skyLight === undefined) return undefined;
+        const origin = { x: Math.floor(center.x), y: Math.floor(center.y), z: Math.floor(center.z) };
+        for (let radius = 0; radius <= 8; radius += 1) {
+            for (let dx = -radius; dx <= radius; dx += 1) {
+                for (let dz = -radius; dz <= radius; dz += 1) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) continue;
+                    const at = { x: origin.x + dx + 0.5, y: origin.y, z: origin.z + dz + 0.5 };
+                    const block = { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) };
+                    if (
+                        this.navigation().isPassable(block) &&
+                        this.world.blocks.skyLight({ x: block.x, y: block.y + 1, z: block.z }) === 15
+                    ) {
+                        return at;
+                    }
+                }
+            }
+        }
+        return undefined;
     }
 
     /**

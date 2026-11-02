@@ -317,19 +317,21 @@ that need facts the seam deliberately does not carry.
   transfer needs two containers. Piglin bartering uses `makePiglinBrain`'s `onBarter` hook so the
   host can roll the active `minecraft:barter` table; the allay and copper golem write their memories
   and leave the item move to the host.
-- **Block placement.** The frog's `TryLaySpawnOnFluidNearLand` and the sniffer's dig emit a game
-  event and clear their memory; the host places the block.
-- **Damage and projectiles.** The warden's sonic boom and the breeze's wind charge walk their memory
-  state machines and play their sounds. The 10 damage, the 15 by 20 reach and the two knockback
-  factors are constants on `WARDEN.sonicBoom` for a host to apply.
+- **Block effects.** The frog's `TryLaySpawnOnFluidNearLand` leaves block placement to the host.
+  The sniffer checks `minecraft:sniffer_diggable_block`, drops Java's digging loot after 120 ticks,
+  and remembers a position only after a successful dig. Java does not change the block.
+- **Damage and projectiles.** The warden fires its sonic boom after a 34-tick windup. The host
+  applies 10 `sonic_boom` damage, which bypasses armor and armor enchantments, then applies the
+  15-by-20-block range and resistance-scaled knockback. The breeze's wind charge still leaves its
+  projectile effect to the host.
 - **Villager professions and trading.** `VillagerProfession` carries only what the brain reads: the
   profession id, its job-site point of interest and its secondary blocks. `WorkAtComposter`,
   `HarvestFarmland`, `UseBonemeal`, `ShowTradesToPlayer`, `TradeWithVillager`, `GiveGiftToHero` and
   `VillagerMakeLove` are present by name with their real priorities and weights, and their effects
   belong to `@jsprismarine/trading` and the farming code.
-- **Raids.** `SetRaidStatus`, `ResetRaidStatus`, `RingBell` and `CelebrateVillagersSurvivedRaid` are
-  in the `pre_raid` and `raid` packages by name. The raid state machine itself is 1675 lines of Java
-  in `world/entity/raid` and is a separate piece of work.
+- **Raids.** The villager brain reads raid status from its host and requests bell, sky-seeking,
+  celebration, and reset effects through that seam. The host still owns raid creation, waves, and
+  victory state; this server does not start pillager patrols or village raids.
 - **Poses and animations.** A behavior that sets a pose in Java writes an `EntityCondition` here
   instead, so a host can drive its own animation state.
 
@@ -342,7 +344,7 @@ it keeps one builder chain instead of two with different accessor shapes.
 
 ## Tests
 
-151 tests, no gated corpus. They cover the memory expiry rule and the precondition map, the activity
+The tests cover the memory expiry rule and the precondition map, the activity
 stack and the schedule throttle, each combinator, each of the 24 sensors against the world double,
 and one representative situation for each of the twenty mobs: an idle villager going to work at tick
 2000 and staying idle without a job site, a piglin holding `ADMIRING_ITEM` for 119 ticks when given

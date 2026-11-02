@@ -4,6 +4,7 @@ import { Activities, MemoryModuleTypes, entityTracker } from '@jsprismarine/enti
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { FilterEntityView } from '@jsprismarine/entities';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
+import type { ContentEntity } from '../../content/world/adapter';
 
 import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
@@ -49,6 +50,43 @@ const moverRuntime = (world = new TestEntityWorld()) =>
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
 describe('EntityRuntime', () => {
+    describe('warden sonic boom', () => {
+        it('routes a hit on a host-owned player through the host effect seam', () => {
+            const player: ContentEntity = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: { x: 0.5, y: FLOOR_Y + 1, z: 8.5 }
+            };
+            const world = new TestEntityWorld({ players: [player] });
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'minecraft:warden': {
+                        components: {
+                            'minecraft:health': { value: 500, max: 500 },
+                            'minecraft:collision_box': { width: 0.9, height: 2.9 }
+                        }
+                    }
+                }
+            );
+            const warden = runtime.spawn('minecraft:warden', GROUND);
+            if (warden === undefined) throw new Error('the fixture declares no minecraft:warden');
+
+            runtime.sonicBoom(warden.body, player.id);
+
+            expect(world.sonicBoomHits).toHaveLength(1);
+            expect(world.sonicBoomHits[0]).toMatchObject({ id: player.id, amount: 10, sourceId: warden.id });
+            expect(
+                Math.hypot(
+                    world.sonicBoomHits[0]!.impulse.x,
+                    world.sonicBoomHits[0]!.impulse.y - 0.5,
+                    world.sonicBoomHits[0]!.impulse.z
+                )
+            ).toBeCloseTo(2.5);
+        });
+    });
+
     describe('event effects', () => {
         it('routes data-defined sounds, particles, and vibrations through the world', () => {
             const world = new TestEntityWorld();

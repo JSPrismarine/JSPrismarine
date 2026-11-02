@@ -89,6 +89,8 @@ export const FAMILIES = {
 
     /** The End crystal, dragon, spike, and podium data the respawn fight reads. */
     gameplayEndFight: 'gameplay.end-fight',
+    /** Sniffer digging, warden sonic-boom damage, and villager raid host effects. */
+    gameplayBrainEffects: 'gameplay.brain-effects',
 
     /** Every registered protocol version negotiates its own codec from a real first packet. */
     protocolNegotiation: 'protocol.negotiation',

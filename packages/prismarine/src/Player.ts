@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import type { EntityPosition } from '@jsprismarine/entities';
 import { ActorEvent, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
@@ -1189,6 +1190,12 @@ export default class Player extends Human {
         void this.getNetworkSession().sendMotion(
             new Vector3(directionX * strength, KNOCKBACK_LIFT, directionZ * strength)
         );
+    }
+
+    /** Asks the client to apply a world-space impulse, including nonstandard vertical lift. */
+    public override applyImpulse(impulse: EntityPosition): void {
+        if (!this.connected) return;
+        void this.getNetworkSession().sendMotion(new Vector3(impulse.x, impulse.y, impulse.z));
     }
 
     /**

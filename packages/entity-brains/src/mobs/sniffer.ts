@@ -65,8 +65,15 @@ export function resetSniffing(context: BrainContext): void {
  */
 function sniffing(): BehaviorControl {
     const hooks: BehaviorHooks = {
-        checkExtraStartConditions: (context) => !context.body.baby && has(context.body, EntityCondition.CAN_SNIFF),
-        canStillUse: (context) => has(context.body, EntityCondition.CAN_SNIFF),
+        checkExtraStartConditions: (context) =>
+            !context.body.baby &&
+            has(context.body, EntityCondition.CAN_SNIFF) &&
+            !context.body.brain.hasMemoryValue(MemoryModuleTypes.IS_PANICKING) &&
+            !context.body.brain.hasMemoryValue(MemoryModuleTypes.TEMPTING_PLAYER),
+        canStillUse: (context) =>
+            has(context.body, EntityCondition.CAN_SNIFF) &&
+            !context.body.brain.hasMemoryValue(MemoryModuleTypes.IS_PANICKING) &&
+            !context.body.brain.hasMemoryValue(MemoryModuleTypes.TEMPTING_PLAYER),
         stop: (context) => {
             const spot = context.world.randomPos(context.body, { xzRange: 8, yRange: 2, medium: 'land' });
             if (spot === undefined) {
@@ -134,11 +141,14 @@ function searching(): BehaviorControl {
 /**
  * Java's `SnifferAi.Digging`.
  *
- * Finishing the dig arms a 9600-tick `SNIFF_COOLDOWN`, eight real-world minutes; being interrupted
- * resets the sniffing memories instead and leaves the cooldown clear.
+ * The seed drops 120 ticks into the animation. Finishing the dig arms a 9600-tick
+ * `SNIFF_COOLDOWN`, eight real-world minutes; being interrupted resets the sniffing memories
+ * instead and leaves the cooldown clear.
  */
 function digging(): BehaviorControl {
+    let startTimestamp = 0;
     let endTimestamp = 0;
+    let seedDropped = false;
     const hooks: BehaviorHooks = {
         checkExtraStartConditions: (context) => has(context.body, EntityCondition.CAN_SNIFF),
         canStillUse: (context) =>
@@ -146,7 +156,15 @@ function digging(): BehaviorControl {
             has(context.body, EntityCondition.CAN_DIG) &&
             !has(context.body, EntityCondition.IN_LOVE),
         start: (_context, timestamp) => {
+            startTimestamp = timestamp;
             endTimestamp = timestamp + SNIFFER.diggingDuration.min;
+            seedDropped = false;
+        },
+        tick: (context, timestamp) => {
+            if (!seedDropped && timestamp - startTimestamp >= 120) {
+                context.world.dropSnifferSeed(context.body);
+                seedDropped = true;
+            }
         },
         stop: (context, timestamp) => {
             if (timestamp > endTimestamp) {
@@ -178,6 +196,23 @@ function finishedDigging(): BehaviorControl {
     const hooks: BehaviorHooks = {
         canStillUse: (context) => context.body.brain.hasMemoryValue(MemoryModuleTypes.SNIFFER_DIGGING),
         stop: (context) => {
+            const pos = context.world.snifferDigPosition(context.body);
+            if (pos !== undefined) {
+                const explored = context.body.brain.getMemory(MemoryModuleTypes.SNIFFER_EXPLORED_POSITIONS) ?? [];
+                const alreadyExplored = explored.some(
+                    (entry) =>
+                        entry.dimension === context.world.dimension &&
+                        entry.pos.x === pos.x &&
+                        entry.pos.y === pos.y &&
+                        entry.pos.z === pos.z
+                );
+                if (!alreadyExplored) {
+                    context.body.brain.setMemory(MemoryModuleTypes.SNIFFER_EXPLORED_POSITIONS, [
+                        ...explored,
+                        { dimension: context.world.dimension, pos }
+                    ]);
+                }
+            }
             context.world.emitGameEvent('minecraft:block_place', context.body.position, context.body);
             context.body.brain.eraseMemory(MemoryModuleTypes.SNIFFER_DIGGING);
             context.body.brain.setMemory(MemoryModuleTypes.SNIFFER_HAPPY, true);

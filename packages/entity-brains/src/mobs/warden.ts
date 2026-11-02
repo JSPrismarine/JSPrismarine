@@ -23,8 +23,8 @@ import {
     swim,
     timedState
 } from '../behavior/common.js';
-import type { BehaviorControl } from '../behavior/control.js';
-import { conditions, DoNothing } from '../behavior/control.js';
+import type { BehaviorControl, BehaviorHooks } from '../behavior/control.js';
+import { Behavior, conditions, DoNothing } from '../behavior/control.js';
 import { RunOne } from '../behavior/gate.js';
 import { MemoryModuleTypes, UNIT } from '../memory.js';
 import type { BrainMobDefinition } from '../registry.js';
@@ -364,14 +364,13 @@ function roar(anger?: WardenAnger): BehaviorControl {
  * `SONIC_BOOM_SOUND_COOLDOWN` the tail; the damage itself is the host's.
  */
 function sonicBoom(): BehaviorControl {
-    return timedState('SonicBoom', WARDEN.sonicBoom.duration, {
-        entryCondition: conditions(
-            [MemoryModuleTypes.ATTACK_TARGET, 'value_present'],
-            [MemoryModuleTypes.SONIC_BOOM_COOLDOWN, 'value_absent'],
-            [MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN, 'registered'],
-            [MemoryModuleTypes.SONIC_BOOM_SOUND_DELAY, 'registered']
-        ),
-        onStart: (context) => {
+    let startTimestamp = 0;
+    let fired = false;
+    const hooks: BehaviorHooks = {
+        canStillUse: () => true,
+        start: (context, timestamp) => {
+            startTimestamp = timestamp;
+            fired = false;
             context.body.brain.setMemoryWithExpiry(
                 MemoryModuleTypes.ATTACK_COOLING_DOWN,
                 true,
@@ -384,20 +383,36 @@ function sonicBoom(): BehaviorControl {
             );
             context.body.playSound('minecraft:entity.warden.sonic_charge');
         },
-        onStop: (context) => {
-            context.body.brain.setMemoryWithExpiry(
-                MemoryModuleTypes.SONIC_BOOM_COOLDOWN,
-                UNIT,
-                WARDEN.sonicBoom.cooldown
-            );
+        tick: (context, timestamp) => {
+            if (fired || timestamp - startTimestamp < WARDEN.sonicBoom.ticksBeforePlayingSound) return;
+            fired = true;
             context.body.brain.setMemoryWithExpiry(
                 MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN,
                 UNIT,
                 WARDEN.sonicBoom.duration - WARDEN.sonicBoom.ticksBeforePlayingSound
             );
-            context.body.playSound('minecraft:entity.warden.sonic_boom');
+            const target = context.body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET);
+            if (target !== undefined && target.alive) context.world.sonicBoom(context.body, target);
+        },
+        stop: (context) => {
+            context.body.brain.setMemoryWithExpiry(
+                MemoryModuleTypes.SONIC_BOOM_COOLDOWN,
+                UNIT,
+                WARDEN.sonicBoom.cooldown
+            );
         }
-    });
+    };
+    return new Behavior(
+        'SonicBoom',
+        conditions(
+            [MemoryModuleTypes.ATTACK_TARGET, 'value_present'],
+            [MemoryModuleTypes.SONIC_BOOM_COOLDOWN, 'value_absent'],
+            [MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN, 'registered'],
+            [MemoryModuleTypes.SONIC_BOOM_SOUND_DELAY, 'registered']
+        ),
+        hooks,
+        { minDuration: WARDEN.sonicBoom.duration, maxDuration: WARDEN.sonicBoom.duration }
+    );
 }
 
 function coreActivity(): ActivityData {

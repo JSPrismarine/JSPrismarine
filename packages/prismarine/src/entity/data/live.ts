@@ -41,6 +41,7 @@ import { actorMotionIn } from './persistence';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { ContentItemDrop } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
@@ -266,6 +267,30 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
                 ? DamageSource.of(damageCause)
                 : new DamageSource({ cause: damageCause, attacker, deathMessageOverride });
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
+    },
+    applySonicBoom: (id, amount, sourceId, impulse) => {
+        const world = options.liveWorld();
+        const target = world?.getEntity(BigInt(id));
+        if (target === null || target === undefined) return;
+
+        const attacker = world?.getEntity(BigInt(sourceId)) ?? null;
+        const source = new DamageSource({ cause: DamageCause.SonicBoom, attacker });
+        void target
+            .damage(amount, source)
+            .then((landed) => {
+                if (!landed) return;
+                const resistance = Math.min(
+                    1,
+                    Math.max(0, target.attributes.getValue(AttributeIds.KnockbackResistence))
+                );
+                const remaining = 1 - resistance;
+                target.applyImpulse({
+                    x: impulse.x * remaining,
+                    y: impulse.y * remaining,
+                    z: impulse.z * remaining
+                });
+            })
+            .catch((error: unknown) => options.report(String(error)));
     },
     attackSound: (id) => {
         const world = options.liveWorld();

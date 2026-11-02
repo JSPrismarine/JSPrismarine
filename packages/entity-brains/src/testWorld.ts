@@ -26,9 +26,11 @@ import type {
     BrainWorld,
     PoiRecord,
     RandomPosRequest,
-    Vec3
+    Vec3,
+    VillagerRaidEffect,
+    VillagerRaidState
 } from './world.js';
-import { distanceSquared } from './world.js';
+import { blockContaining, distanceSquared } from './world.js';
 
 /** What a test says about an entity it places. */
 export interface TestEntityOptions {
@@ -239,6 +241,8 @@ export interface TestWorldOptions {
     readonly attackable?: (body: BrainEntity, target: BrainEntity) => boolean;
     /** The melee reach, in blocks. Defaults to 2. */
     readonly meleeRange?: number;
+    /** The raid state visible to villagers, when a test exercises raid activities. */
+    readonly villagerRaidState?: VillagerRaidState;
 }
 
 /** A {@link BrainWorld} backed by plain data. */
@@ -259,6 +263,12 @@ export class TestWorld implements BrainWorld {
     public readonly sounds: { sound: string; pos: Vec3 }[] = [];
     /** Every `emitGameEvent` call, in order. */
     public readonly gameEvents: { event: string; pos: Vec3; source?: BrainEntity }[] = [];
+    /** Sniffer seed-drop callbacks, in the order they fired. */
+    public readonly snifferSeedDrops: string[] = [];
+    /** Warden sonic-boom callbacks, in the order they fired. */
+    public readonly sonicBooms: { source: string; target: string }[] = [];
+    /** Villager raid effects, in the order the host received them. */
+    public readonly villagerRaidEffects: { body: string; effect: VillagerRaidEffect }[] = [];
     /**
      * What {@link TestWorld.randomPos} returns. A test sets it to make a wander deterministic;
      * `undefined` means the draw found nothing, which is a real outcome in Java too.
@@ -270,6 +280,7 @@ export class TestWorld implements BrainWorld {
     private readonly lineOfSight: (body: BrainEntity, target: BrainEntity) => boolean;
     private readonly attackable: (body: BrainEntity, target: BrainEntity) => boolean;
     private readonly meleeRange: number;
+    private readonly raidState: VillagerRaidState | undefined;
 
     public constructor(options: TestWorldOptions = {}) {
         this.dimension = options.dimension ?? 'minecraft:overworld';
@@ -279,6 +290,7 @@ export class TestWorld implements BrainWorld {
         this.lineOfSight = options.lineOfSight ?? (() => true);
         this.attackable = options.attackable ?? ((body, target) => target.alive && target.id !== body.id);
         this.meleeRange = options.meleeRange ?? 2;
+        this.raidState = options.villagerRaidState;
     }
 
     /** Places a mob and registers it as an entity. */
@@ -478,6 +490,31 @@ export class TestWorld implements BrainWorld {
     /** Records the vibration in `gameEvents`, which is what the warden's sensor reads in a test. */
     public emitGameEvent(event: string, pos: Vec3, source?: BrainEntity): void {
         this.gameEvents.push({ event, pos, source });
+    }
+
+    /** Uses the body's block as the stand-in dig target for brain-only tests. */
+    public snifferDigPosition(body: BrainMob): BlockPos {
+        return blockContaining(body.position);
+    }
+
+    /** Records the point at which the sniffer's host would roll its loot table. */
+    public dropSnifferSeed(body: BrainMob): void {
+        this.snifferSeedDrops.push(body.id);
+    }
+
+    /** Records a sonic boom for tests; the data-driven runtime applies its real damage. */
+    public sonicBoom(body: BrainMob, target: BrainEntity): void {
+        this.sonicBooms.push({ source: body.id, target: target.id });
+    }
+
+    /** Returns the raid state supplied to this test world. */
+    public villagerRaidState(_body: BrainMob): VillagerRaidState | undefined {
+        return this.raidState;
+    }
+
+    /** Records a world-owned effect requested by a villager brain. */
+    public villagerRaidEffect(body: BrainMob, effect: VillagerRaidEffect): void {
+        this.villagerRaidEffects.push({ body: body.id, effect });
     }
 }
 
