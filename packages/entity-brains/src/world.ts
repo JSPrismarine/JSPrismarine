@@ -31,6 +31,19 @@ export interface GlobalPos {
     readonly pos: BlockPos;
 }
 
+/** The raid facts Java's villager brain reads from its host raid manager. */
+export interface VillagerRaidState {
+    /** At least one wave has spawned. */
+    readonly hasStarted: boolean;
+    /** The raid is between waves and its villagers should prepare for the next one. */
+    readonly betweenWaves: boolean;
+    /** The villagers won and may celebrate. */
+    readonly victory: boolean;
+}
+
+/** A world effect requested by a villager raid behavior. */
+export type VillagerRaidEffect = 'ring_bell' | 'move_to_sky_seeing_spot' | 'celebrate_victory' | 'reset_status';
+
 /**
  * Java's `PositionTracker`: either a fixed block (`BlockPosTracker`) or a moving entity
  * (`EntityTracker`). A walk or look target holds one of these rather than a bare position, which is
@@ -272,6 +285,16 @@ export interface BrainWorld {
     playSound(sound: string, pos: Vec3): void;
     /** Emits a game event at a position, which is what a warden's vibration listener hears. */
     emitGameEvent(event: string, pos: Vec3, source?: BrainEntity): void;
+    /** The block beneath the sniffer's head, or undefined when its host cannot resolve it. */
+    snifferDigPosition(body: BrainMob): BlockPos | undefined;
+    /** Rolls and drops the sniffer's seed loot at its head. */
+    dropSnifferSeed(body: BrainMob): void;
+    /** Deals the warden's sonic-boom damage and applies its target effect. */
+    sonicBoom(body: BrainMob, target: BrainEntity): void;
+    /** Reads the active raid near a villager, if its host tracks one. */
+    villagerRaidState(body: BrainMob): VillagerRaidState | undefined;
+    /** Performs a world-owned effect requested by a villager raid behavior. */
+    villagerRaidEffect(body: BrainMob, effect: VillagerRaidEffect): void;
 }
 
 /** Everything one brain tick needs. Every behavior and sensor takes exactly this. */

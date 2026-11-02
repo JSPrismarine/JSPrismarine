@@ -20,6 +20,7 @@ import type {
 import type { ServerContent } from '../../content/ServerContent';
 import type { DataEntity, MobBody } from './DataEntity';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
+import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 
 /** How an entity came to exist, which decides the spawn event it runs. */
 export interface SpawnOptions {
@@ -127,6 +128,16 @@ export interface EntityScene {
     breedWith(parent: MobBody, mate: GoalMob): void;
     /** Rolls a loot table and drops what it produced. */
     dropLoot(table: string, at: EntityPosition): void;
+    /** The block beneath the sniffer's head, or undefined if its body is not indexed. */
+    snifferDigPosition(body: MobBody): EntityPosition | undefined;
+    /** Rolls and drops the sniffer's seed loot at its head. */
+    dropSnifferSeed(body: MobBody): void;
+    /** Applies one warden sonic boom to a live entity or host-owned entity. */
+    sonicBoom(body: MobBody, targetId: number): void;
+    /** The host raid state at a villager's position, when a raid owner is connected. */
+    villagerRaidState(body: MobBody): VillagerRaidState | undefined;
+    /** Performs a raid effect through the host that owns that world state. */
+    villagerRaidEffect(body: MobBody, effect: VillagerRaidEffect): void;
     /** Fires an entity event on a named subject, which `trigger` with a target does. */
     trigger(source: MobBody, event: string, target: string): void;
     /** Records what the runtime met and could not carry out. */

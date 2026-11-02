@@ -93,6 +93,11 @@ class DataEntityBody extends GenericEntity {
         return this.hurt(amount, DamageSource.of(source));
     }
 
+    /** Adds the impulse to the entity body the runtime integrates each tick. */
+    public override applyImpulse(impulse: EntityPosition): void {
+        this.driver.body.push({ x: impulse.x, y: impulse.y, z: impulse.z });
+    }
+
     /** @inheritdoc */
     public override getSyncedProperties() {
         return syncedPropertiesOf(this.driver.instance.properties);

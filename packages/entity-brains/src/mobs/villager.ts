@@ -34,7 +34,7 @@ import {
     updateActivityFromSchedule
 } from '../behavior/common.js';
 import type { BehaviorControl } from '../behavior/control.js';
-import { DoNothing } from '../behavior/control.js';
+import { DoNothing, OneShot } from '../behavior/control.js';
 import { GateBehavior, RunOne, triggerOneShuffled } from '../behavior/gate.js';
 import { MemoryModuleTypes } from '../memory.js';
 import type { BrainMobDefinition, BrainMobOptions } from '../registry.js';
@@ -49,7 +49,7 @@ import {
     VillagerBabiesSensor,
     VillagerHostilesSensor
 } from '../sensing/sensors.js';
-import type { BrainContext } from '../world.js';
+import type { BrainContext, VillagerRaidEffect } from '../world.js';
 import { blockContaining, blockPosTracker, bottomCenterOf, distanceSquared } from '../world.js';
 
 /** The named constants of `VillagerGoalPackages`. */
@@ -386,7 +386,7 @@ export function corePackage(profession: VillagerProfession, speedModifier: numbe
         [0, villagerPanicTrigger()],
         [0, wakeUp()],
         [0, reactToBell()],
-        [0, timedState('SetRaidStatus', 1)],
+        [0, setRaidStatus()],
         [0, validateNearbyPoi(profession.jobSitePoi, MemoryModuleTypes.JOB_SITE)],
         [0, validateNearbyPoi(profession.jobSitePoi, MemoryModuleTypes.POTENTIAL_JOB_SITE)],
         [1, moveToTargetSink()],
@@ -409,6 +409,32 @@ export function corePackage(profession: VillagerProfession, speedModifier: numbe
         [10, timedState('AssignProfessionFromJobSite', 1)],
         [10, timedState('ResetProfession', 1)]
     ];
+}
+
+/** Java's `SetRaidStatus`: periodically switches between the raid and pre-raid activities. */
+function setRaidStatus(): BehaviorControl {
+    return new OneShot('SetRaidStatus', [], (context) => {
+        if (context.world.randomInt(20) !== 0) return false;
+        const raid = context.world.villagerRaidState(context.body);
+        if (raid === undefined) return false;
+        const activity = raid.hasStarted && !raid.betweenWaves ? Activities.RAID : Activities.PRE_RAID;
+        context.body.brain.setActiveActivityIfPossible(activity);
+        return true;
+    });
+}
+
+/** Lets a world-owned raid effect run from the corresponding brain activity. */
+function villagerRaidEffect(name: string, effect: VillagerRaidEffect, interval = 0): BehaviorControl {
+    let lastRun = Number.NEGATIVE_INFINITY;
+    return new OneShot(name, [], (context, timestamp) => {
+        if (effect === 'celebrate_victory' && context.world.villagerRaidState(context.body)?.victory !== true) {
+            return false;
+        }
+        if (timestamp - lastRun < interval) return false;
+        lastRun = timestamp;
+        context.world.villagerRaidEffect(context.body, effect);
+        return true;
+    });
 }
 
 /** Java's `getWorkPackage`. The farmer's two farming weights differ from everyone else's. */
@@ -595,7 +621,7 @@ export function panicPackage(speedModifier: number): readonly PrioritizedBehavio
 /** Java's `getPreRaidPackage`. */
 export function preRaidPackage(speedModifier: number): readonly PrioritizedBehavior[] {
     return [
-        [0, timedState('RingBell', 1)],
+        [0, villagerRaidEffect('RingBell', 'ring_bell', 40)],
         [
             0,
             triggerOneShuffled([
@@ -614,18 +640,18 @@ export function preRaidPackage(speedModifier: number): readonly PrioritizedBehav
             ])
         ],
         minimalLookBehavior(),
-        [99, timedState('ResetRaidStatus', 1)]
+        [99, villagerRaidEffect('ResetRaidStatus', 'reset_status', 20)]
     ];
 }
 
 /** Java's `getRaidPackage`. */
 export function raidPackage(speedModifier: number): readonly PrioritizedBehavior[] {
     return [
-        [0, timedState('MoveToSkySeeingSpot', 1)],
-        [0, timedState('CelebrateVillagersSurvivedRaid', 600)],
+        [0, villagerRaidEffect('MoveToSkySeeingSpot', 'move_to_sky_seeing_spot', 200)],
+        [0, villagerRaidEffect('CelebrateVillagersSurvivedRaid', 'celebrate_victory', 20)],
         [2, locateHidingPlace(VILLAGER.raidHideSearchDistance, speedModifier * 1.4, 1)],
         minimalLookBehavior(),
-        [99, timedState('ResetRaidStatus', 1)]
+        [99, villagerRaidEffect('ResetRaidStatus', 'reset_status', 20)]
     ];
 }
 

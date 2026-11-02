@@ -11,6 +11,7 @@
  * the real goal and brain packages. Nothing here is a mock of the runtime.
  */
 import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
+import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { Definitions } from '@jsprismarine/packs';
 
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
@@ -334,6 +335,8 @@ export interface TestWorldOptions {
      * ones the content path reads.
      */
     readonly gameRules?: Readonly<Record<string, boolean | number>>;
+    /** The raid state this world reports to villagers. */
+    readonly villagerRaidState?: VillagerRaidState;
 }
 
 /** A flat stone world with air above it, and a recording host. */
@@ -366,6 +369,17 @@ export class TestEntityWorld {
         deathMessageOverride?: string;
     }[] = [];
 
+    /** Sonic-boom hits routed to host-owned entities. */
+    public readonly sonicBoomHits: {
+        id: number;
+        amount: number;
+        sourceId: number;
+        impulse: ContentPosition;
+    }[] = [];
+
+    /** Raid effects requested by villager brains. */
+    public readonly villagerRaidEffects: { id: number; effect: VillagerRaidEffect }[] = [];
+
     /** Data-driven entities asked to play their attack sound. */
     public readonly attackSounds: number[] = [];
 
@@ -374,6 +388,8 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    /** The raid state the host reports, which a test may replace between ticks. */
+    public villagerRaidState: VillagerRaidState | undefined;
 
     /** Blocks a test placed, over the flat floor. */
     private readonly placed = new Map<string, ContentBlock>();
@@ -382,12 +398,23 @@ export class TestEntityWorld {
     private readonly lying = new Map<number, ContentItemEntity>();
 
     private nextItemId = 1;
+    private gameTimeTicks: number;
+    private dayTimeTicks: number;
 
     private readonly options: TestWorldOptions;
 
     public constructor(options: TestWorldOptions = {}) {
         this.options = options;
         this.players = options.players ?? [];
+        this.villagerRaidState = options.villagerRaidState;
+        this.gameTimeTicks = options.gameTime ?? 0;
+        this.dayTimeTicks = options.dayTime ?? 0;
+    }
+
+    /** Advances the test world's clocks together, as one server tick does. */
+    public advance(ticks = 1): void {
+        this.gameTimeTicks += ticks;
+        this.dayTimeTicks = (this.dayTimeTicks + ticks) % 24000;
     }
 
     /** The groups the blocks, world and network subsystems own. */
@@ -400,8 +427,8 @@ export class TestEntityWorld {
                 hasSkyLight: true,
                 seaLevel: 62,
                 seed: 0n,
-                gameTime: () => this.options.gameTime ?? 0,
-                dayTime: () => this.options.dayTime ?? 0,
+                gameTime: () => this.gameTimeTicks,
+                dayTime: () => this.dayTimeTicks,
                 difficulty: () => 'normal',
                 weather: () => 'clear',
                 isRainingAt: () => false,
@@ -468,6 +495,10 @@ export class TestEntityWorld {
                     sourceId,
                     ...(deathMessageOverride === undefined ? {} : { deathMessageOverride })
                 }),
+            applySonicBoom: (id, amount, sourceId, impulse) =>
+                this.sonicBoomHits.push({ id, amount, sourceId, impulse }),
+            villagerRaidStateAt: () => this.villagerRaidState,
+            villagerRaidEffect: (id, effect) => this.villagerRaidEffects.push({ id, effect }),
             attackSound: (id) => this.attackSounds.push(id),
             startDeathAnimation: (id) => this.deathAnimations.push(id),
             mobEventActive: () => false

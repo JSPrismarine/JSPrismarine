@@ -38,6 +38,7 @@ const UNATTRIBUTED: Record<DamageCause, string> = {
     [DamageCause.Attack]: '%death.attack.generic',
     [DamageCause.Projectile]: '%death.attack.generic',
     [DamageCause.Explosion]: '%death.attack.explosion',
+    [DamageCause.SonicBoom]: '%death.attack.sonic_boom',
     [DamageCause.Contact]: '%death.attack.cactus',
     [DamageCause.Suffocation]: '%death.attack.inWall',
     [DamageCause.Magic]: '%death.attack.magic',
@@ -57,6 +58,7 @@ const ATTRIBUTED: Partial<Record<DamageCause, string>> = {
     [DamageCause.Attack]: '%death.attack.player',
     [DamageCause.Projectile]: '%death.attack.arrow',
     [DamageCause.Explosion]: '%death.attack.explosion.player',
+    [DamageCause.SonicBoom]: '%death.attack.sonic_boom',
     [DamageCause.Magic]: '%death.attack.indirectMagic',
     [DamageCause.Thorns]: '%death.attack.thorns',
     // The `.player` suffix is vanilla's for "while fighting somebody", and pairs with the

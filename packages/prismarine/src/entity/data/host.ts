@@ -13,6 +13,7 @@
  * `src/content/world/notWired.ts` applies at the other seam.
  */
 import type { FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { StatusEffectInput } from '../StatusEffect';
 import type {
     ContentBlockAccess,
@@ -136,6 +137,12 @@ export interface EntityHostFacts {
     startDeathAnimation?(id: number): void;
     /** Applies projectile knockback to an entity outside the data-driven index. */
     knockback?(id: number, directionX: number, directionZ: number, strength: number): void;
+    /** Hurts an external target, then applies the warden's three-dimensional impulse if it lands. */
+    applySonicBoom?(id: number, amount: number, sourceId: number, impulse: ContentPosition): void;
+    /** The raid facts at a position, supplied by the world raid owner. */
+    villagerRaidStateAt?(at: ContentPosition): VillagerRaidState | undefined;
+    /** Performs a world-owned effect requested by a villager raid behavior. */
+    villagerRaidEffect?(id: number, effect: VillagerRaidEffect): void;
     /** Whether a named mob event, such as `minecraft:pillager_patrols_event`, is running. */
     mobEventActive(event: string): boolean;
     /**

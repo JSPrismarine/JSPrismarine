@@ -34,7 +34,7 @@ import { PIGLIN_BRUTE } from './piglinBrute.js';
 import { SNIFFER } from './sniffer.js';
 import { TADPOLE } from './tadpole.js';
 import { VILLAGER, VILLAGER_SCHEDULE } from './villager.js';
-import { AngerManagement, WARDEN, angerLevelByAnger, setDisturbanceLocation } from './warden.js';
+import { AngerManagement, makeWardenBrain, WARDEN, angerLevelByAnger, setDisturbanceLocation } from './warden.js';
 import { ZOGLIN } from './zoglin.js';
 import {
     ALLAY_BRAIN,
@@ -475,6 +475,22 @@ describe('the sniffer', () => {
         SNIFFER_BRAIN.updateActivity(body.context);
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.SNIFF);
     });
+
+    it('drops a seed 120 ticks into digging and remembers the successful dig position', () => {
+        const world = new TestWorld({ randomValues: [0] });
+        const { body, brain } = spawn(SNIFFER_BRAIN, {
+            world,
+            entity: { conditions: [EntityCondition.CAN_SNIFF, EntityCondition.CAN_DIG] }
+        });
+        brain.setMemory(MemoryModuleTypes.SNIFFER_DIGGING, true);
+
+        run(body, SNIFFER_BRAIN, 220);
+
+        expect(world.snifferSeedDrops).toEqual([body.id]);
+        expect(brain.getMemory(MemoryModuleTypes.SNIFFER_EXPLORED_POSITIONS)).toEqual([
+            { dimension: world.dimension, pos: { x: 0, y: 64, z: 0 } }
+        ]);
+    });
 });
 
 describe('the piglin', () => {
@@ -663,6 +679,23 @@ describe('the warden', () => {
         WARDEN_BRAIN.updateActivity(body.context);
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.ROAR);
     });
+
+    it('fires its sonic boom at the 34-tick windup and records its target through the world seam', () => {
+        const world = new TestWorld({ randomValues: [0] });
+        const { body } = spawn(WARDEN_BRAIN, { world });
+        const target: BrainEntity = world.place('minecraft:player', { x: 0, y: 64, z: 8 });
+        const anger = new AngerManagement(() => true);
+        anger.increaseAnger(target, 100);
+        const brain = makeWardenBrain(anger, () => true);
+        body.attach(brain);
+        brain.setMemoryWithExpiry(MemoryModuleTypes.DIG_COOLDOWN, UNIT, WARDEN.diggingCooldown);
+        brain.setMemory(MemoryModuleTypes.ATTACK_TARGET, target);
+
+        run(body, WARDEN_BRAIN, WARDEN.sonicBoom.ticksBeforePlayingSound + 1);
+
+        expect(world.sonicBooms).toEqual([{ source: body.id, target: target.id }]);
+        expect(brain.getMemory(MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN)).toBe(UNIT);
+    });
 });
 
 describe('the camel and the happy ghast, the two mobs that run both AI systems', () => {
@@ -778,6 +811,33 @@ describe('the villager', () => {
         const { body, brain } = spawn(VILLAGER_BRAIN, { world, entity: { baby: true }, brain: { baby: true } });
         VILLAGER_BRAIN.updateActivity(body.context);
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.PLAY);
+    });
+
+    it('switches into pre-raid activity and rings the meeting bell through the world seam', () => {
+        const world = new TestWorld({
+            randomValues: [0],
+            villagerRaidState: { hasStarted: false, betweenWaves: true, victory: false }
+        });
+        const { body, brain } = spawn(VILLAGER_BRAIN, { world });
+
+        run(body, VILLAGER_BRAIN, 4);
+
+        expect(brain.getActiveNonCoreActivity()).toBe(Activities.PRE_RAID);
+        expect(world.villagerRaidEffects).toContainEqual({ body: body.id, effect: 'ring_bell' });
+    });
+
+    it('switches into raid activity and asks the host for the raid world effects', () => {
+        const world = new TestWorld({
+            randomValues: [0],
+            villagerRaidState: { hasStarted: true, betweenWaves: false, victory: true }
+        });
+        const { body, brain } = spawn(VILLAGER_BRAIN, { world });
+
+        run(body, VILLAGER_BRAIN, 4);
+
+        expect(brain.getActiveNonCoreActivity()).toBe(Activities.RAID);
+        expect(world.villagerRaidEffects).toContainEqual({ body: body.id, effect: 'move_to_sky_seeing_spot' });
+        expect(world.villagerRaidEffects).toContainEqual({ body: body.id, effect: 'celebrate_victory' });
     });
 
     it('panics when a zombie comes within the villager hostile distance of 8', () => {

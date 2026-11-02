@@ -445,8 +445,11 @@ modules, all 24 sensors, all 26 activities, the combinators, and each of the twe
 real activity table, priorities, memory conditions and constants. The behavior library is 37 shared
 behaviors plus the mob-specific ones. A behavior whose effect the world seam can express is
 implemented in full; the rest keep their real name, memory conditions and constants, do the memory
-bookkeeping Java does, and leave the world effect to the host. The sniffer's dig, the warden's sonic
-boom damage and the raid state machine are in that group.
+bookkeeping Java does, and leave the world effect to the host. The sniffer's host checks its live
+dig conditions, drops the Java digging loot after 120 ticks, and records a dig position only when
+the behavior completes. The warden's host deals sonic-boom damage after the 34-tick windup and
+applies knockback only when damage lands. Villager brains read raid status and request raid effects
+through the host; raid creation and waves still belong to a raid manager the server does not have.
 
 Two consequences are worth knowing before you build around a brain mob.
 

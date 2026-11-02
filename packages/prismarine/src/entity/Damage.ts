@@ -65,6 +65,7 @@ const BYPASSES_ARMOR: ReadonlySet<DamageCause> = new Set([
     DamageCause.Magic,
     DamageCause.Wither,
     DamageCause.Fall,
+    DamageCause.SonicBoom,
     DamageCause.Suffocation,
     DamageCause.SelfDestruct
 ]);
@@ -76,16 +77,15 @@ const BYPASSES_ARMOR: ReadonlySet<DamageCause> = new Set([
  * reduced by Feather Falling, which is the whole reason anyone enchants boots. Folding the two
  * together made the best boots in the game do nothing.
  *
- * Empty, and that is Java's answer rather than an omission. Java gates this step on
- * `#minecraft:bypasses_enchantments`, whose only member is `minecraft:sonic_boom` - a warden's
- * shriek, which this server has no `DamageCause` for. Everything else is decided by each
+ * Java gates this step on `#minecraft:bypasses_enchantments`, whose only member is
+ * `minecraft:sonic_boom` - a warden's shriek. Everything else is decided by each
  * enchantment's own `requirements`: all five of the Protection family refuse a source in
  * `#minecraft:bypasses_invulnerability`, which is what keeps them off the void, and Fire
  * Protection, Blast Protection, Projectile Protection and Feather Falling each name the one
  * damage tag they answer. This set held Starvation and Void before the components were read,
  * and the first of those was wrong: Java's Protection does reduce starving.
  */
-const BYPASSES_ENCHANTMENTS: ReadonlySet<DamageCause> = new Set();
+const BYPASSES_ENCHANTMENTS: ReadonlySet<DamageCause> = new Set([DamageCause.SonicBoom]);
 
 /** What the damage pipeline knows about the entity being hit. */
 export interface Mitigation {

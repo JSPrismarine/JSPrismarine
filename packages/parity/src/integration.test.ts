@@ -49,6 +49,7 @@ import type { ServerWorldAdapter } from '@jsprismarine/prismarine/content/world/
 interface RealStack {
     readonly content: ServerContent;
     readonly runtime: EntityRuntime;
+    readonly world: TestEntityWorld;
     readonly reports: EntityRuntimeReport[];
     readonly reportContext: EntityReportContext;
 }
@@ -99,7 +100,7 @@ const realStack = (): RealStack => {
     };
 
     content = buildServerContent({ world: singleDimension(adapter) });
-    builtStack = { content, runtime, reports, reportContext };
+    builtStack = { content, runtime, world, reports, reportContext };
 
     return builtStack;
 };
@@ -600,6 +601,81 @@ describeFamily(
             expect(cube.body.velocity.x).toBeGreaterThan(0);
             expect(cube.body.velocity.y).toBeGreaterThan(0);
             runtime.remove(cube.id, 'parity runtime check complete');
+        });
+    },
+    { tags: ['real-data'] }
+);
+
+describeFamily(
+    FAMILIES.gameplayBrainEffects,
+    REAL_STACK_REFERENCES,
+    () => {
+        it('drops the Java sniffer digging loot through the entity host', { timeout: 180_000 }, () => {
+            const { runtime, world } = realStack();
+            const sniffer = runtime.spawn('minecraft:sniffer', { x: 0.5, y: 64, z: 0.5 });
+            if (sniffer === undefined) throw new Error('the Java stack declares no minecraft:sniffer');
+            const dropsBefore = world.drops.length;
+            const soundsBefore = world.sounds.length;
+
+            runtime.dropSnifferSeed(sniffer.body);
+
+            const drops = world.drops.slice(dropsBefore);
+            expect(drops.length).toBeGreaterThan(0);
+            expect(drops.every(({ item }) => item.count > 0)).toBe(true);
+            expect(
+                drops.every(({ item }) =>
+                    ['minecraft:torchflower_seeds', 'minecraft:pitcher_pod'].includes(item.identifier)
+                )
+            ).toBe(true);
+            expect(world.sounds.slice(soundsBefore)).toContain('minecraft:entity.sniffer.drop_seed');
+            runtime.remove(sniffer.id, 'parity brain effect complete');
+        });
+
+        it('deals ten sonic-boom damage and applies the Java impulse to an indexed target', () => {
+            const { runtime, world } = realStack();
+            const warden = runtime.spawn('minecraft:warden', { x: 0.5, y: 64, z: 0.5 });
+            const target = runtime.spawn('minecraft:cow', { x: 0.5, y: 64, z: 8.5 });
+            if (warden === undefined || target === undefined) {
+                throw new Error('the Java stack must declare both minecraft:warden and minecraft:cow');
+            }
+            const startingHealth = target.instance.attributes.get('health')?.current;
+            if (startingHealth === undefined) throw new Error('the cow has no Java health attribute');
+            const soundsBefore = world.sounds.length;
+
+            runtime.sonicBoom(warden.body, target.id);
+
+            expect(target.instance.attributes.get('health')?.current).toBe(startingHealth - 10);
+            expect(target.body.velocity.x).toBeCloseTo(0);
+            expect(target.body.velocity.z).toBeGreaterThan(0);
+            expect(
+                Math.hypot(target.body.velocity.x, target.body.velocity.y - 0.5, target.body.velocity.z)
+            ).toBeCloseTo(2.5);
+            expect(world.sounds.slice(soundsBefore)).toContain('minecraft:entity.warden.sonic_boom');
+            runtime.remove(target.id, 'parity brain effect complete');
+            runtime.remove(warden.id, 'parity brain effect complete');
+        });
+
+        it('reads Java raid state and sends villager raid effects to the host', () => {
+            const { runtime, world } = realStack();
+            world.villagerRaidState = { hasStarted: true, betweenWaves: false, victory: true };
+            const villager = runtime.spawn('minecraft:villager', { x: 0.5, y: 64, z: 0.5 });
+            if (villager === undefined) throw new Error('the Java stack declares no minecraft:villager');
+            const effectsBefore = world.villagerRaidEffects.length;
+
+            expect(runtime.villagerRaidState(villager.body)).toEqual(world.villagerRaidState);
+            runtime.villagerRaidEffect(villager.body, 'ring_bell');
+            runtime.villagerRaidEffect(villager.body, 'move_to_sky_seeing_spot');
+            runtime.villagerRaidEffect(villager.body, 'celebrate_victory');
+            runtime.villagerRaidEffect(villager.body, 'reset_status');
+
+            expect(world.villagerRaidEffects.slice(effectsBefore).map(({ effect }) => effect)).toEqual([
+                'ring_bell',
+                'move_to_sky_seeing_spot',
+                'celebrate_victory',
+                'reset_status'
+            ]);
+            world.villagerRaidState = undefined;
+            runtime.remove(villager.id, 'parity brain effect complete');
         });
     },
     { tags: ['real-data'] }
