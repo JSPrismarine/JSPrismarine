@@ -7,10 +7,12 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-import { binaries, checkoutDir, readPin } from './cinnabar.mts';
+import { binaries, checkoutDir, readPin, servedProtocols, targetDirectory } from './cinnabar.mts';
 
-const checkout = checkoutDir(readPin());
-const mcp = binaries(checkout).mcp;
+const protocolVersion = servedProtocols().at(-1);
+if (protocolVersion === undefined) throw new Error('packages/bedrock-data/sources.json declares no BDS protocols');
+const checkout = checkoutDir(readPin(protocolVersion), protocolVersion);
+const mcp = binaries(targetDirectory(protocolVersion, checkout)).mcp;
 if (!fs.existsSync(mcp)) {
     console.error(`${mcp} is not built. Run: pnpm --filter @jsprismarine/client-e2e run ensure`);
     process.exit(1);

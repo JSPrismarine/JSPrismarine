@@ -57,7 +57,8 @@ const { values, positionals } = parseArgs({
     options: {
         record: { type: 'boolean', default: false },
         artifacts: { type: 'string' },
-        port: { type: 'string' }
+        port: { type: 'string' },
+        protocol: { type: 'string' }
     },
     allowPositionals: true
 });
@@ -76,9 +77,13 @@ const selected = positionals.length
 const artifacts = path.resolve(values.artifacts ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-')));
 fs.mkdirSync(artifacts, { recursive: true });
 const playerName = 'jsp-e2e';
+const protocolVersion = values.protocol === undefined ? undefined : Number(values.protocol);
+if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || protocolVersion <= 0)) {
+    throw new Error('--protocol must be a positive integer');
+}
 
 console.log('ensuring the pinned cinnabar build (the first run clones and compiles it)...');
-const cinnabar = ensureCinnabar();
+const cinnabar = ensureCinnabar(protocolVersion);
 console.log(`client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol})`);
 
 console.log('booting a scratch JSPrismarine server...');
@@ -92,6 +97,7 @@ try {
     console.log('launching the headless client...');
     await client.launch({
         userRoot: path.join(server.dir, 'client-user-root'),
+        clientBinary: cinnabar.clientBinary,
         displayName: playerName,
         muteAudio: !values.record
     });

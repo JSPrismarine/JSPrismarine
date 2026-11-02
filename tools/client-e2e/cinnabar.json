@@ -1,4 +1,11 @@
 {
     "repository": "https://github.com/cinnabar-mc/cinnabar.git",
-    "commit": "069a83fb674ce6e84c67f0e48d67b92411b135aa"
+    "versions": {
+        "2193": {
+            "commit": "485c24673e9df7ba31a6788e24797cbc4a18c2a5"
+        },
+        "2225": {
+            "commit": "069a83fb674ce6e84c67f0e48d67b92411b135aa"
+        }
+    }
 }

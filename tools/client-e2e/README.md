@@ -17,13 +17,16 @@ screenshots and recordings as evidence.
 ## Commands
 
 ```bash
-# Clone and build the pinned client (slow once, then a no-op), and verify the
-# protocol it speaks is one this checkout serves.
+# Clone and build the latest pinned client (slow once, then a no-op).
 pnpm --filter @jsprismarine/client-e2e run ensure
+
+# Select a protocol explicitly when testing a particular server version.
+pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2193
 
 # Run every scenario, or a selection. --record captures the run as an MP4.
 pnpm run e2e:client
 pnpm run e2e:client movement chat
+pnpm run e2e:client -- --protocol 2193 movement chat
 pnpm run e2e:client -- --record --artifacts /tmp/evidence
 ```
 
@@ -33,22 +36,31 @@ collects V8 coverage from the server process and writes an LCOV report to
 `coverage/client-e2e/lcov.info`.
 Headless client audio is muted by default; `--record` leaves it enabled.
 
-In CI, `.github/workflows/client-e2e.yml` runs the suite on macOS (the one hosted platform where
-the client's renderer is proven) for pull requests that touch the wire or gameplay packages, and
-uploads the artifacts as evidence and the LCOV report to Codecov. Locally, the pinned checkout and
-build live outside the repository at `$XDG_CACHE_HOME/jsprismarine/cinnabar/<commit>/repo`, falling
-back to `~/.cache/jsprismarine/cinnabar/<commit>/repo`. Set `JSP_CINNABAR_CACHE_DIR` to change the
-cache root, or set `JSP_CINNABAR_PATH` to use an existing checkout directly. GitHub Actions keeps
-the cache outside its workspace, restores the pin-specific cache on PRs, and saves it from master
-so later PRs can reuse it. The runner also writes a pass/fail table to the job summary.
+In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protocol in
+`packages/bedrock-data/sources.json` and runs the full suite on macOS for each one. Each matrix job
+uploads protocol-specific evidence and an LCOV report to Codecov. A preceding macOS job builds the
+latest pinned client with sccache, so the matrix can reuse compiler outputs for dependencies shared
+between protocol pins. Locally, source checkouts live
+outside the repository at `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>/<commit>/repo`, falling
+back to `~/.cache/jsprismarine/cinnabar/v<protocol>/<commit>/repo`. Cargo and Go build outputs live in
+one shared `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>` directory per protocol, outside all
+checkouts and worktrees. Cargo's final artifacts go in `target/`, and its intermediates go in
+`build/`. Pins with different commits therefore reuse that protocol's build cache. When `sccache` is
+installed, Rust outputs are also reused across protocol caches and worktrees; on macOS, install it
+with `brew install sccache`. Its local cache is shared at `<cache-root>/sccache` and is capped at
+sccache's 10 GB default. Set
+`JSP_CINNABAR_CACHE_DIR` to change the cache root, or set `JSP_CINNABAR_PATH` to use an existing
+checkout directly. GitHub Actions restores and saves one protocol-specific build cache outside its
+workspace and a shared sccache cache for later runs. The runner also writes a pass/fail table to the
+job summary.
 
 ## Version pin
 
-`cinnabar.json` pins the client commit. `ensure` cross-checks the pin's Bedrock target
-(`assets/bedrock-target.json` in the checkout) against the wire protocols this checkout serves
-(`packages/bedrock-data/sources.json`), and fails with instructions when they diverge. Point
-`JSP_CINNABAR_PATH` at an existing cinnabar checkout to skip the clone (offline, or while
-testing a different client commit).
+`cinnabar.json` pins a cinnabar commit for each wire protocol. `ensure` cross-checks the selected
+pin's Bedrock target (`assets/bedrock-target.json` in the checkout) against the requested protocol
+and the protocols this checkout serves. The matrix fails if a newly supported protocol has no
+cinnabar pin. Point `JSP_CINNABAR_PATH` at an existing cinnabar checkout to skip the clone (offline,
+or while testing a different client commit).
 
 ## Interactive driving
 
