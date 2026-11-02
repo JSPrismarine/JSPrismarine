@@ -28,8 +28,13 @@ pnpm run e2e:client -- --record --artifacts /tmp/evidence
 ```
 
 The runner prints the artifacts directory (screenshots, recordings, the full server log) and
-exits non-zero when the join or any scenario fails. Keep it out of CI: it compiles a full game
-client and renders on the host GPU.
+exits non-zero when the join or any scenario fails.
+
+In CI, `.github/workflows/client-e2e.yml` runs the suite on macOS (the one hosted platform where
+the client's renderer is proven) for pull requests that touch the wire or gameplay packages, and
+uploads the artifacts as evidence. The cinnabar build is cached on the pin, so only the first run
+after a pin change pays for the compile. On GitHub Actions the runner also writes a pass/fail
+table to the job summary.
 
 ## Version pin
 

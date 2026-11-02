@@ -64,6 +64,7 @@ const server = await startServer({ port: values.port ? Number(values.port) : und
 console.log(`server listening on 127.0.0.1:${server.port}, data in ${server.dir}`);
 
 let failures = 0;
+const results: { name: string; ok: boolean; note: string }[] = [];
 const client = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
 try {
     console.log('launching the headless client...');
@@ -78,6 +79,7 @@ try {
     await client.waitForScreenAbsent('Loading', 120_000);
     await joined;
     console.log('join: ok (client in world past the loading screen, server saw the player join)');
+    results.push({ name: 'join', ok: true, note: 'client in world, server saw the player join' });
 
     for (const scenario of selected) {
         const dir = path.join(artifacts, scenario.name);
@@ -91,10 +93,16 @@ try {
                 log: (message) => console.log(`${scenario.name}: ${message}`)
             });
             console.log(`${scenario.name}: ok (${scenario.description})`);
+            results.push({ name: scenario.name, ok: true, note: scenario.description });
         } catch (error) {
             failures += 1;
             console.error(`${scenario.name}: FAILED`);
             console.error(error);
+            results.push({
+                name: scenario.name,
+                ok: false,
+                note: error instanceof Error ? error.message : String(error)
+            });
             await client.screenshot(path.join(dir, 'failure.png')).catch(() => {});
         }
     }
@@ -107,12 +115,31 @@ try {
     failures += 1;
     console.error('run failed before scenarios completed:');
     console.error(error);
+    results.push({ name: 'run', ok: false, note: error instanceof Error ? error.message : String(error) });
 } finally {
     await client.close().catch(() => {});
     await server.stop().catch(() => {});
 }
 
 fs.writeFileSync(path.join(artifacts, 'server.log'), `${server.lines.join('\n')}\n`);
+// On GitHub Actions, put the verdicts on the run's summary page beside the uploaded artifacts.
+if (process.env.GITHUB_STEP_SUMMARY) {
+    const escape = (text: string): string => text.replaceAll('|', '\\|').replaceAll('\n', ' ');
+    const rows = results.map(
+        (result) => `| ${result.name} | ${result.ok ? 'pass' : 'FAIL'} | ${escape(result.note)} |`
+    );
+    fs.appendFileSync(
+        process.env.GITHUB_STEP_SUMMARY,
+        [
+            `## Client e2e (cinnabar ${cinnabar.target.gameVersion}, protocol ${cinnabar.target.wireProtocol})`,
+            '',
+            '| check | result | note |',
+            '| --- | --- | --- |',
+            ...rows,
+            ''
+        ].join('\n')
+    );
+}
 console.log(`artifacts: ${artifacts}`);
 console.log(failures === 0 ? 'e2e: all scenarios passed' : `e2e: ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);
