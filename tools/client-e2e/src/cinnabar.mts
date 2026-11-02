@@ -56,10 +56,8 @@ export const buildDirectory = (protocolVersion: number): string =>
     path.join(protocolCacheDirectory(protocolVersion), 'build');
 
 /** Cargo's final target directory for one protocol, outside all cinnabar checkouts. */
-export const targetDirectory = (protocolVersion: number, checkout: string): string =>
-    process.env.JSP_CINNABAR_PATH
-        ? path.join(checkout, 'target')
-        : path.join(protocolCacheDirectory(protocolVersion), 'target');
+export const targetDirectory = (protocolVersion: number): string =>
+    path.join(protocolCacheDirectory(protocolVersion), 'target');
 
 /** Client path that preserves Cinnabar's development-checkout root detection. */
 export const developmentClientBinary = (checkout: string): string => path.join(checkout, 'target', 'debug', 'cinnabar');
@@ -171,7 +169,7 @@ const stampFile = (protocolCache: string): string => path.join(protocolCache, '.
 export const ensureBuilt = (checkout: string, protocolVersion: number): void => {
     const protocolCache = protocolCacheDirectory(protocolVersion);
     const cargoBuildDir = buildDirectory(protocolVersion);
-    const targetDir = targetDirectory(protocolVersion, checkout);
+    const targetDir = targetDirectory(protocolVersion);
     const built = binaries(targetDir);
     const expected = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkout, encoding: 'utf8' }).trim();
     const expectedStamp = `${expected}\nprotocol-cache-v1`;
@@ -252,7 +250,7 @@ export const ensureCinnabar = (requestedProtocol?: number) => {
     ensureBuilt(checkout, protocolVersion);
     return {
         checkout,
-        binaries: binaries(targetDirectory(protocolVersion, checkout)),
+        binaries: binaries(targetDirectory(protocolVersion)),
         clientBinary: developmentClientBinary(checkout),
         target
     };
