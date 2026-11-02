@@ -2533,6 +2533,7 @@ export class World implements Service {
 
         this.entities.set(entity.getRuntimeId(), entity);
         if (entity instanceof Player) this.players.set(entity.getRuntimeId(), entity);
+        this.entityGrid.add(entity);
         this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
@@ -2555,6 +2556,7 @@ export class World implements Service {
         if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeId))
             this.itemEntities -= 1;
 
+        this.entityGrid.remove(entity);
         this.entities.delete(entity.getRuntimeId());
         this.players.delete(entity.getRuntimeId());
 
@@ -2775,6 +2777,7 @@ export class World implements Service {
      * @param {boolean} teleport - Whether clients should snap instead of interpolate.
      */
     public async broadcastMove(entity: Entity, teleport = false): Promise<void> {
+        this.entityGrid.refilePickupItem(entity);
         this.markEntityChunkChanged(entity);
         this.changes.entityMoved(entity, teleport);
     }

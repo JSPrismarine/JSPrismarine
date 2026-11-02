@@ -116,7 +116,7 @@ import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from '
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
-import type { EntityHostFacts, EntityWorldFacts } from './host';
+import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
 import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
@@ -1197,10 +1197,16 @@ export class EntityRuntime implements EntityScene {
      * something that is not there.
      */
     public items(center: EntityPosition, radius: number): readonly GoalItem[] {
-        return (this.host.items?.() ?? [])
-            .filter((lying) => distance(center, lying.position) <= radius)
-            .sort((a, b) => distance(center, a.position) - distance(center, b.position))
-            .map((lying) => ({
+        const candidates = this.host.itemsNear?.(center, radius) ?? this.host.items?.() ?? [];
+        const nearby: { readonly lying: ContentItemEntity; readonly distance: number; readonly order: number }[] = [];
+        for (const [order, lying] of candidates.entries()) {
+            const away = distance(center, lying.position);
+            if (away <= radius) nearby.push({ lying, distance: away, order });
+        }
+
+        return nearby
+            .sort((left, right) => left.distance - right.distance || left.order - right.order)
+            .map(({ lying }) => ({
                 id: lying.id,
                 position: () => lying.position,
                 identifier: () => lying.item.identifier,

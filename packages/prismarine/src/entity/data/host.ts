@@ -93,6 +93,13 @@ export interface EntityHostFacts {
      */
     items?(): readonly ContentItemEntity[];
     /**
+     * Item stacks whose horizontal positions may be inside a pickup radius.
+     *
+     * The runtime still applies the exact three-dimensional radius and nearest-first ordering.
+     * A live host can use its spatial index here; hosts without one retain {@link items}.
+     */
+    itemsNear?(center: ContentPosition, radius: number): readonly ContentItemEntity[];
+    /**
      * Takes items from one item entity, removing it when the whole stack was taken.
      *
      * @param id - The runtime id of the dropped stack.

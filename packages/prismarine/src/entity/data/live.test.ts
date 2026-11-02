@@ -932,6 +932,36 @@ describe('the data-driven entity runtime over a live world', () => {
         );
     };
 
+    it('queries nearby dropped items by live spatial candidates and keeps exact nearest-first ties', async () => {
+        const addItem = async (x: number, y: number, z: number): Promise<ItemEntity> => {
+            const item = new ItemEntity({
+                position: new Position(x, y, z, world),
+                item: new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 1 })
+            });
+            await world.addEntity(item);
+            return item;
+        };
+        const center = { x: 0.5, y: 64, z: 0.5 };
+        const firstTie = await addItem(1.5, 64.125, 0.5);
+        const secondTie = await addItem(-0.5, 64.125, 0.5);
+        const nearest = await addItem(0.5, 64.125, 0.5);
+        await addItem(0.5, 67.125, 0.5);
+
+        const found = live.runtime.items(center, 2);
+
+        expect(found.map((item) => item.id)).toEqual([
+            Number(nearest.getRuntimeId()),
+            Number(firstTie.getRuntimeId()),
+            Number(secondTie.getRuntimeId())
+        ]);
+        expect(found[0]?.position()).toEqual({ x: 0.5, y: 64, z: 0.5 });
+
+        await firstTie.setPosition({ position: new Vector3(32.5, 64.125, 0.5), teleport: true });
+        await world.removeEntity(secondTie);
+
+        expect(live.runtime.items(center, 2).map((item) => item.id)).toEqual([Number(nearest.getRuntimeId())]);
+    });
+
     it('wires the entity subsystem’s two groups into the content world', () => {
         // Both used to throw `NotWiredError` naming the entity subsystem.
         expect(() => live.runtime.content().world.spawnWorld.players()).not.toThrow();

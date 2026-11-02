@@ -11,6 +11,8 @@ interface ItemIndexEntry {
     readonly order: number;
     readonly x: number;
     readonly z: number;
+    readonly cellX: number;
+    readonly cellZ: number;
 }
 
 /**
@@ -34,6 +36,9 @@ interface ItemIndexEntry {
 export class EntityGrid {
     private readonly cells = new Map<string, Entity[]>();
     private readonly itemCells = new Map<string, ItemIndexEntry[]>();
+    private readonly pickupItemCells = new Map<string, ItemIndexEntry[]>();
+    private readonly pickupItems = new Map<bigint, ItemIndexEntry>();
+    private nextPickupOrder = 0;
 
     private static key(chunkX: number, chunkZ: number): string {
         return `${chunkX},${chunkZ}`;
@@ -47,6 +52,9 @@ export class EntityGrid {
     public rebuild(entities: readonly Entity[]): void {
         this.cells.clear();
         this.itemCells.clear();
+        this.pickupItemCells.clear();
+        this.pickupItems.clear();
+        this.nextPickupOrder = 0;
 
         for (const [order, entity] of entities.entries()) {
             const position = entity.getPosition();
@@ -62,12 +70,73 @@ export class EntityGrid {
 
             if (entity.getType() !== 'minecraft:item') continue;
 
-            const itemKey = EntityGrid.itemKey(Math.floor(x / ITEM_CELL_SIZE), Math.floor(z / ITEM_CELL_SIZE));
+            const cellX = Math.floor(x / ITEM_CELL_SIZE);
+            const cellZ = Math.floor(z / ITEM_CELL_SIZE);
+            const itemKey = EntityGrid.itemKey(cellX, cellZ);
             const itemCell = this.itemCells.get(itemKey);
-            const entry = { entity, chunkX, chunkZ, order, x, z };
+            const entry = { entity, chunkX, chunkZ, order, x, z, cellX, cellZ };
             if (itemCell) itemCell.push(entry);
             else this.itemCells.set(itemKey, [entry]);
+            this.addPickupEntry(entry);
         }
+        this.nextPickupOrder = entities.length;
+    }
+
+    /** Adds or replaces one item's live pickup entry without waiting for the next tick rebuild. */
+    public add(entity: Entity): void {
+        const id = entity.getRuntimeId();
+        const previous = this.pickupItems.get(id);
+        const order = previous?.order ?? this.nextPickupOrder++;
+        if (previous !== undefined) this.removePickupEntry(previous);
+        if (entity.getType() !== 'minecraft:item') return;
+
+        const position = entity.getPosition();
+        const x = position.getX();
+        const z = position.getZ();
+        this.addPickupEntry({
+            entity,
+            chunkX: CoordinateUtils.fromBlockToChunk(x),
+            chunkZ: CoordinateUtils.fromBlockToChunk(z),
+            order,
+            x,
+            z,
+            cellX: Math.floor(x / ITEM_CELL_SIZE),
+            cellZ: Math.floor(z / ITEM_CELL_SIZE)
+        });
+    }
+
+    /** Removes one item's live pickup entry, if it still names this entity instance. */
+    public remove(entity: Entity): void {
+        const entry = this.pickupItems.get(entity.getRuntimeId());
+        if (entry?.entity === entity) this.removePickupEntry(entry);
+    }
+
+    /** Updates one item's live pickup cell after its position changes. */
+    public refilePickupItem(entity: Entity): void {
+        const entry = this.pickupItems.get(entity.getRuntimeId());
+        if (entry?.entity !== entity) return;
+
+        const position = entity.getPosition();
+        const x = position.getX();
+        const z = position.getZ();
+        const cellX = Math.floor(x / ITEM_CELL_SIZE);
+        const cellZ = Math.floor(z / ITEM_CELL_SIZE);
+        if (cellX === entry.cellX && cellZ === entry.cellZ) {
+            const updated = { ...entry, x, z };
+            this.replacePickupEntry(entry, updated);
+            return;
+        }
+
+        this.removePickupEntry(entry);
+        this.addPickupEntry({
+            ...entry,
+            chunkX: CoordinateUtils.fromBlockToChunk(x),
+            chunkZ: CoordinateUtils.fromBlockToChunk(z),
+            x,
+            z,
+            cellX,
+            cellZ
+        });
     }
 
     /**
@@ -137,6 +206,76 @@ export class EntityGrid {
         );
 
         return found.map(({ entity }) => entity);
+    }
+
+    /**
+     * Returns live item candidates in horizontal range, in world insertion order.
+     *
+     * Pickup goals apply the exact three-dimensional radius and nearest-first ordering after
+     * this query. Unlike {@link nearItems}, this index is updated on same-tick add, remove, and
+     * movement changes, so a goal never receives a stack another mob already took.
+     * @param {number} x - World x coordinate.
+     * @param {number} z - World z coordinate.
+     * @param {number} radius - Horizontal candidate radius, in blocks.
+     * @returns {Entity[]} Nearby item entities in their original world insertion order.
+     */
+    public nearItemsForPickup(x: number, z: number, radius: number): Entity[] {
+        if (radius < 0) return [];
+
+        const cellX = Math.floor(x / ITEM_CELL_SIZE);
+        const cellZ = Math.floor(z / ITEM_CELL_SIZE);
+        const cellRadius = Math.ceil(radius / ITEM_CELL_SIZE);
+        const radiusSquared = radius * radius;
+        const found: ItemIndexEntry[] = [];
+
+        for (let offsetX = -cellRadius; offsetX <= cellRadius; offsetX++) {
+            for (let offsetZ = -cellRadius; offsetZ <= cellRadius; offsetZ++) {
+                const cell = this.pickupItemCells.get(EntityGrid.itemKey(cellX + offsetX, cellZ + offsetZ));
+                if (cell === undefined) continue;
+
+                for (const entry of cell) {
+                    const dx = entry.x - x;
+                    const dz = entry.z - z;
+                    if (dx * dx + dz * dz <= radiusSquared) found.push(entry);
+                }
+            }
+        }
+
+        found.sort((left, right) => left.order - right.order);
+        return found.map(({ entity }) => entity);
+    }
+
+    /** Inserts a live pickup entry into both the id map and its fine cell. */
+    private addPickupEntry(entry: ItemIndexEntry): void {
+        const key = EntityGrid.itemKey(entry.cellX, entry.cellZ);
+        const cell = this.pickupItemCells.get(key);
+        if (cell === undefined) this.pickupItemCells.set(key, [entry]);
+        else cell.push(entry);
+        this.pickupItems.set(entry.entity.getRuntimeId(), entry);
+    }
+
+    /** Replaces the entry in place, preserving its within-cell order. */
+    private replacePickupEntry(previous: ItemIndexEntry, updated: ItemIndexEntry): void {
+        const cell = this.pickupItemCells.get(EntityGrid.itemKey(previous.cellX, previous.cellZ));
+        if (cell !== undefined) {
+            const index = cell.indexOf(previous);
+            if (index !== -1) cell[index] = updated;
+        }
+        this.pickupItems.set(updated.entity.getRuntimeId(), updated);
+    }
+
+    /** Removes one entry from its fine cell and id map. */
+    private removePickupEntry(entry: ItemIndexEntry): void {
+        const key = EntityGrid.itemKey(entry.cellX, entry.cellZ);
+        const cell = this.pickupItemCells.get(key);
+        if (cell !== undefined) {
+            const index = cell.indexOf(entry);
+            if (index !== -1) cell.splice(index, 1);
+            if (cell.length === 0) this.pickupItemCells.delete(key);
+        }
+        if (this.pickupItems.get(entry.entity.getRuntimeId()) === entry) {
+            this.pickupItems.delete(entry.entity.getRuntimeId());
+        }
     }
 
     /**
