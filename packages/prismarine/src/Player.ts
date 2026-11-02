@@ -4,7 +4,7 @@ import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { DamageSource } from './entity/DamageSource';
+import { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS } from './entity/PortalContact';
@@ -15,7 +15,10 @@ import {
     DROWNING_INTERVAL,
     FALL_GRACE,
     isAllowed,
-    isUnderwater
+    isUnderwater,
+    VOID_DAMAGE,
+    VOID_DEPTH,
+    VOID_INTERVAL
 } from './entity/Environment';
 import Human, { EYE_HEIGHT, eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -557,6 +560,7 @@ export default class Player extends Human {
         await this.getNetworkSession().update(tick);
 
         await this.updateVitals(tick);
+        await this.updateVoid(tick);
 
         // With server-authoritative block breaking the server animates the cracks itself, every
         // tick, where a client left to it would report each swing instead. The world answers
@@ -815,6 +819,23 @@ export default class Player extends Human {
 
         // The rest of hunger is a four-second clock, not a per-tick one.
         if (tick % VITALS_INTERVAL === 0) await this.updateHunger();
+    }
+
+    /**
+     * Hurts a player who has fallen out of the world.
+     *
+     * Java's `checkBelowWorld`: {@link VOID_DEPTH} blocks under the dimension's floor, four
+     * half-hearts every {@link VOID_INTERVAL} ticks, which is the half-second cadence the
+     * grace period leaves. Outside {@link Player.updateVitals} on purpose, because that gate
+     * is {@link Player.isVulnerable} and the void is the one thing that reaches a creative
+     * player; `damage` is what keeps it off a spectator.
+     * @param {number} tick - The current world-tick.
+     */
+    private async updateVoid(tick: number): Promise<void> {
+        if (!this.connected || !this.isAlive() || tick % VOID_INTERVAL !== 0) return;
+        if (this.getFeetY() >= this.getWorld().getDimension().minY - VOID_DEPTH) return;
+
+        await this.damage(VOID_DAMAGE, DamageCause.Void);
     }
 
     /**
@@ -1131,9 +1152,21 @@ export default class Player extends Human {
         amount: number,
         source: DamageCause | DamageSource = DamageCause.Generic
     ): Promise<boolean> {
-        if (!this.isVulnerable()) return false;
+        const damageSource = DamageSource.of(source);
+        if (!this.isVulnerable() && !this.isReachedEvenWhenInvulnerable(damageSource)) return false;
 
-        return super.damage(amount, source);
+        return super.damage(amount, damageSource);
+    }
+
+    /**
+     * Whether a blow gets through to a player the world otherwise cannot hurt.
+     *
+     * Java's `#bypasses_invulnerability` tag, which is the void and `/kill`: a creative player
+     * falls out of the world like anyone else. A spectator is beyond even those, as Java's
+     * `isInvulnerableTo` answers before the tag is consulted.
+     */
+    private isReachedEvenWhenInvulnerable(source: DamageSource): boolean {
+        return source.bypassesInvulnerability() && this.gamemode !== Gametype.SPECTATOR;
     }
 
     /**
