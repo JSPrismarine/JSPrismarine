@@ -28,13 +28,15 @@ pnpm run e2e:client -- --record --artifacts /tmp/evidence
 ```
 
 The runner prints the artifacts directory (screenshots, recordings, the full server log) and
-exits non-zero when the join or any scenario fails.
+exits non-zero when the join or any scenario fails. The root `pnpm run e2e:client` command also
+collects V8 coverage from the server process and writes an LCOV report to
+`coverage/client-e2e/lcov.info`.
 
 In CI, `.github/workflows/client-e2e.yml` runs the suite on macOS (the one hosted platform where
 the client's renderer is proven) for pull requests that touch the wire or gameplay packages, and
-uploads the artifacts as evidence. The cinnabar build is cached on the pin, so only the first run
-after a pin change pays for the compile. On GitHub Actions the runner also writes a pass/fail
-table to the job summary.
+uploads the artifacts as evidence and the LCOV report to Codecov. The cinnabar build is cached on
+the pin, so only the first run after a pin change pays for the compile. On GitHub Actions the
+runner also writes a pass/fail table to the job summary.
 
 ## Version pin
 
