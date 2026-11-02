@@ -48,6 +48,13 @@ describe('world', () => {
             expect(storage.getRuntimeId(0, 0, 0)).toBe(stone());
         });
 
+        it('reads palette slots by their XZY linear index', () => {
+            const storage = new BlockStorage({});
+            storage.setBlock(1, 2, 3, dirt());
+
+            expect(storage.getPaletteIndexAtIndex(0x132)).toBe(storage.getPaletteIndexAt(1, 2, 3));
+        });
+
         it('round trips through the network form', () => {
             const storage = new BlockStorage({});
             storage.setBlock(4, 5, 6, stone());
