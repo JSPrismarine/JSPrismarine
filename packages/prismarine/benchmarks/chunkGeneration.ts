@@ -1,9 +1,9 @@
 /**
  * How long the overworld generator takes per chunk, and where the time goes.
  *
- * Run `pnpm --filter @jsprismarine/prismarine run bench:chunks`. Pass a worker count as the
- * first argument and a chunk count as the second; `0` workers runs the whole thing on this
- * thread, which is the figure every other arm is worth comparing against.
+ * Run `pnpm --filter @jsprismarine/prismarine run bench:chunks`. Arguments are worker count,
+ * chunk count, arm, region size, steal threshold, and measured sample count; `0` workers runs the
+ * whole thing on this thread, which is the figure every other arm is worth comparing against.
  *
  * The chunks are a contiguous block rather than scattered positions, because that is the shape
  * a start region and a player's view distance both have: neighbors are shared, and a run over
@@ -12,7 +12,8 @@
  * This needs Mojang's world generation data, the same as the generator does. Without it the
  * run reports what is missing and stops.
  */
-import { availableParallelism } from 'node:os';
+import { createHash } from 'node:crypto';
+import os, { availableParallelism } from 'node:os';
 
 import {
     DataDrivenGenerator,
@@ -38,7 +39,16 @@ const arm = process.argv[4] ?? 'full';
 /** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
 const regionChunks = Number.parseInt(process.argv[5] ?? '8', 10);
 const stealAfter = Number.parseInt(process.argv[6] ?? '2', 10);
+const sampleCount = Number.parseInt(process.argv[7] ?? '7', 10);
+const warmups = 2;
 const seed = 1234n;
+
+if (![workers, chunks, regionChunks, stealAfter, sampleCount].every(Number.isSafeInteger)) {
+    throw new RangeError('Worker, chunk, region, steal, and sample counts must be safe integers');
+}
+if (workers < 0 || chunks < 1 || regionChunks < 1 || stealAfter < 1 || sampleCount < 1) {
+    throw new RangeError('Workers must be nonnegative; chunks, region, steal, and samples must be positive');
+}
 
 const sources = findJavaWorldgenSources();
 if (sources === undefined) {
@@ -54,6 +64,12 @@ const registries = loadJavaWorldgenRegistries(sources);
 const templates = findJavaTemplateSource(cacheRoot(), registries.processorLists);
 const loaded = performance.now() - startedLoading;
 
+let workerPoolUnavailable = false;
+const poolUnavailable = (reason: string): void => {
+    workerPoolUnavailable = true;
+    process.stderr.write(`no worker pool: ${reason}\n`);
+};
+
 const generator = new DataDrivenGenerator({
     registries,
     templates,
@@ -66,7 +82,7 @@ const generator = new DataDrivenGenerator({
                   workers,
                   regionChunks,
                   stealAfter,
-                  onUnavailable: (reason) => process.stderr.write(`no chunk pool: ${reason}\n`)
+                  onUnavailable: poolUnavailable
               }
           }
         : {}),
@@ -76,7 +92,7 @@ const generator = new DataDrivenGenerator({
                   pipeline: defaultChunkPipeline(),
                   workers,
                   javaTemplates: true,
-                  onUnavailable: (reason) => process.stderr.write(`no stage pool: ${reason}\n`)
+                  onUnavailable: poolUnavailable
               }
           }
         : {}),
@@ -85,7 +101,7 @@ const generator = new DataDrivenGenerator({
               terrain: {
                   pipeline: defaultTerrainPipeline(),
                   workers,
-                  onUnavailable: (reason) => process.stderr.write(`no pool: ${reason}\n`)
+                  onUnavailable: poolUnavailable
               }
           }
         : {})
@@ -95,23 +111,66 @@ const generator = new DataDrivenGenerator({
 const side = Math.ceil(Math.sqrt(chunks));
 const positions = Array.from({ length: chunks }, (_unused, index) => [index % side, Math.trunc(index / side)] as const);
 
-const run = async (): Promise<void> => {
+interface Run {
+    readonly ms: number;
+    readonly outputDigest: string;
+}
+
+const run = async (): Promise<Run> => {
     const started = performance.now();
     // All at once, because that is how the preload and the chunk scheduler ask: the depth is
     // what lets a pool have more than one worker busy.
-    await Promise.all(positions.map(async ([x, z]) => generator.generateChunk(x, z, seed)));
-    const elapsed = performance.now() - started;
-
-    process.stdout.write(
-        `${workers === 0 ? 'inline' : `${workers} workers`} (${arm}` +
-            `${arm === 'chunks' ? `, region ${regionChunks}, steal ${stealAfter}` : ''}): ` +
-            `${chunks} chunks in ${elapsed.toFixed(0)} ms, ` +
-            `${(elapsed / chunks).toFixed(1)} ms/chunk, ${((chunks / elapsed) * 1000).toFixed(1)} chunks/s ` +
-            `(registries loaded in ${loaded.toFixed(0)} ms, ${availableParallelism()} cores)\n`
+    const generated = await Promise.all(
+        positions.map(async ([x, z]) => ({ x, z, chunk: await generator.generateChunk(x, z, seed) }))
     );
+    const elapsed = performance.now() - started;
+    const output = createHash('sha256');
+    for (const { x, z, chunk } of generated) {
+        output.update(`${x},${z}\0`);
+        output.update(chunk.networkSerialize());
+    }
 
-    generator.stopGenerating();
+    return { ms: elapsed, outputDigest: output.digest('hex') };
 };
 
-await run();
-process.exit(0);
+const percentile = (sorted: readonly number[], fraction: number): number =>
+    sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
+
+try {
+    for (let warmup = 0; warmup < warmups; warmup++) await run();
+    const runs = await Promise.all(Array.from({ length: sampleCount }, run));
+    const times = runs.map(({ ms }) => ms).sort((left, right) => left - right);
+    const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
+    if (digests.size !== 1) throw new Error('Chunk-generation output digest changed between samples');
+
+    const p50 = percentile(times, 0.5);
+    process.stdout.write(
+        `${JSON.stringify({
+            benchmark: 'chunk-generation',
+            seed: seed.toString(),
+            node: process.version,
+            platform: `${os.platform()}-${os.arch()}`,
+            cpu: os.cpus()[0]?.model ?? 'unknown',
+            availableParallelism: availableParallelism(),
+            workerCount: workers > 0 && !workerPoolUnavailable ? workers : 0,
+            requestedWorkerCount: workers,
+            chunks,
+            arm,
+            regionChunks,
+            stealAfter,
+            warmups,
+            samples: sampleCount,
+            registriesLoadedMs: loaded,
+            distributionMs: {
+                min: times[0] ?? 0,
+                p50,
+                p95: percentile(times, 0.95),
+                max: times.at(-1) ?? 0
+            },
+            throughputChunksPerSecond: (chunks / p50) * 1000,
+            outputDigest: runs[0]?.outputDigest
+        })}\n`
+    );
+} finally {
+    generator.stopGenerating();
+}
