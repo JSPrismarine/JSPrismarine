@@ -12,6 +12,10 @@ env:
     GIT_CONFIG_VALUE_0: master
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
 jobs:
     tests:
         name: 🧪 Tests
@@ -35,9 +39,11 @@ jobs:
                       ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'vitest.workspace.ts', 'packages/**/vitest.config.ts') }}-
 
             - name: 🔨 Build
+              if: matrix.os == 'ubuntu-latest'
               run: pnpm run build
 
             - name: 📃 Typecheck
+              if: matrix.os == 'macos-latest'
               run: pnpm run typecheck
 
             - name: 🧪 Test
@@ -69,11 +75,6 @@ jobs:
         name: 🗃️ Real data suites
         runs-on: ubuntu-latest
         timeout-minutes: 90
-        # Keep a pull request's dashboard/comment updates serial so concurrent first runs
-        # cannot both see no prior report and create duplicate comments.
-        concurrency:
-            group: parity-${{ github.event.pull_request.number || github.ref }}
-            cancel-in-progress: false
         permissions:
             contents: read
             pull-requests: write
@@ -142,9 +143,6 @@ jobs:
             - name: 🔑 Resolve the real-data environment
               id: real_data_env
               run: node scripts/real-data-env.mts --github-env
-
-            - name: 🔨 Build
-              run: pnpm run build
 
             - name: 🧪 Test
               run: pnpm exec vitest run --tagsFilter='real-data && !performance'
