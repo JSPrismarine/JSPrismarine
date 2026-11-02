@@ -651,7 +651,9 @@ const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] =
                 'blockEntities' in patch &&
                 Array.isArray(patch.blockEntities) &&
                 'entitySpawns' in patch &&
-                Array.isArray(patch.entitySpawns)
+                Array.isArray(patch.entitySpawns) &&
+                'structureBlocks' in patch &&
+                Array.isArray(patch.structureBlocks)
         )
     ) {
         throw new TypeError('A feature worker returned an invalid patch list.');
@@ -1531,12 +1533,16 @@ export class DataDrivenGenerator implements Generator {
         const own = chunk.ownFeatureWrites;
         if (own !== undefined) final.applyPatch(own);
 
+        // A neighbor decorated against this chunk's bare terrain, so an ore vein or a grass
+        // patch of its own chose its blocks without seeing the pieces this chunk placed. The
+        // structure's blocks are kept, which is the outcome Java reaches in either order.
+        const keep = own?.structureBlocks ?? [];
         const inbound = new InboundFeaturePatches<RegionChunkPatch>();
         for (const [dx, dz] of FEATURE_PATCH_ORDER) {
             const patch = region.neighbor(dx, dz, 'features').featureWritesInto(chunk.chunkX, chunk.chunkZ);
             if (patch !== undefined) inbound.receive(dx, dz, patch);
         }
-        for (const patch of inbound.inMergeOrder()) final.applyPatch(patch);
+        for (const patch of inbound.inMergeOrder()) final.applyPatch(patch, { keep });
 
         chunk.recordFinalRegion(final);
         return chunk;
@@ -1839,14 +1845,18 @@ export class DataDrivenGenerator implements Generator {
 
                     random.setFeatureSeed(populationSeed, index, stepIndex);
                     const pieceRandom = asStructureRandom(random);
-                    for (const start of placing) {
-                        // Java skips a piece whose box misses the chunk, which is what keeps a
-                        // mineshaft's 170 pieces from each running in all thirty chunks it
-                        // covers. The skipped piece draws nothing, so the stream moves with it.
-                        for (const piece of start.pieces) {
-                            if (boxesOverlap(piece.boundingBox, clip)) piece.place(writer, pieceRandom);
+                    // Marked as the structure's, so a neighbor's feature that reaches in here
+                    // does not overwrite them at the merge; see `RegionChunkPatch.structureBlocks`.
+                    region.withStructureWrites(() => {
+                        for (const start of placing) {
+                            // Java skips a piece whose box misses the chunk, which is what keeps
+                            // a mineshaft's 170 pieces from each running in all thirty chunks it
+                            // covers. The skipped piece draws nothing, so the stream moves with it.
+                            for (const piece of start.pieces) {
+                                if (boxesOverlap(piece.boundingBox, clip)) piece.place(writer, pieceRandom);
+                            }
                         }
-                    }
+                    });
                 });
             }
 

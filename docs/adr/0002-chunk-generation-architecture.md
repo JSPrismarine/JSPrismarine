@@ -50,6 +50,13 @@ final blocks are its terrain, then its own feature writes, then the eight inboun
 in a fixed neighbor order. A chunk may only reach `full` once it and all eight neighbors have
 passed `features`, which is Java's rule and is what makes a tree whole across a border.
 
+One exception to the inbound order: a block a structure piece wrote is kept against an inbound
+patch. A neighbor decorated against this chunk's bare terrain and never saw the pieces, so its ore
+vein or grass patch was decided against stone or air that is a fortress wall or a library in the
+finished chunk. Java reaches the same outcome in either decoration order, since a feature tests
+the structure's blocks when it runs later and the piece writes over the feature when it runs
+earlier, so the patch carries the structure's positions and the merge drops inbound writes there.
+
 **A worker pool.** piscina, six workers, each holding one seed's compiled pipeline, fed the
 registry documents as one `SharedArrayBuffer` of UTF-8 JSON. Workers run status bodies and return
 transferable proto chunks. The main thread owns the holders, the scheduler, the patch merge and

@@ -44,6 +44,19 @@ const terrainTile = (chunkX: number, chunkZ: number): GenerationRegion =>
         biomeAt: () => 'minecraft:plains'
     });
 
+/** A neighbor's three by three feature view, centered on its own chunk and reaching into chunk 0. */
+const featureView = (chunkX: number, chunkZ: number): GenerationRegion =>
+    new GenerationRegion({
+        chunkX,
+        chunkZ,
+        minY: -64,
+        height: 384,
+        seaLevel: 63,
+        seed: SEED,
+        blocks: createJavaBlockOracle(new Map()),
+        biomeAt: () => 'minecraft:plains'
+    });
+
 /** Fills the whole three by three chunk window with stone up to `top`. */
 const fillStone = (built: GenerationRegion, top: number): void => {
     for (let x = -16; x < 32; x++) {
@@ -269,6 +282,98 @@ describe('neighbor chunk data', () => {
         destinationWorld.setBlockEntity?.(position, { id: 'minecraft:chest' });
         destination.applyPatch(patch);
         expect(destination.centerBlockEntities()).toHaveLength(0);
+    });
+});
+
+describe('structure writes', () => {
+    const NETHER_BRICKS = { name: 'minecraft:nether_bricks', properties: {} };
+    const QUARTZ_ORE = { name: 'minecraft:nether_quartz_ore', properties: {} };
+
+    it('marks what a structure piece wrote and carries the marks in its chunk\u2019s patch', () => {
+        const built = region();
+        built.beginWriteTracking();
+        built.withStructureWrites(() => {
+            built.write(4, 64, 4, NETHER_BRICKS);
+            built.write(4, 65, 4, AIR);
+        });
+        built.write(5, 64, 4, STONE);
+
+        const [patch] = built.takeTrackedPatches();
+        if (patch === undefined) throw new Error('The writes did not produce a patch');
+        expect(patch.blocks).toHaveLength(3);
+        // The carved air counts too: a corridor is as much the structure's as its walls.
+        expect(patch.structureBlocks).toEqual([
+            { x: 4, y: 64, z: 4 },
+            { x: 4, y: 65, z: 4 }
+        ]);
+    });
+
+    it('lets a feature of the same pass take a mark away, as it saw the structure\u2019s block', () => {
+        const built = region();
+        built.beginWriteTracking();
+        built.withStructureWrites(() => built.write(4, 64, 4, NETHER_BRICKS));
+        built.write(4, 64, 4, STONE);
+
+        const [patch] = built.takeTrackedPatches();
+        expect(patch?.structureBlocks).toEqual([]);
+    });
+
+    it('keeps a structure\u2019s blocks against a neighbor\u2019s patch at the merge', () => {
+        // The fortress wall, written by this chunk's own pass.
+        const own = region();
+        own.beginWriteTracking();
+        own.withStructureWrites(() => {
+            own.write(4, 64, 4, NETHER_BRICKS);
+            own.write(4, 65, 4, AIR);
+        });
+        const [ownPatch] = own.takeTrackedPatches();
+        if (ownPatch === undefined) throw new Error('The structure did not produce a patch');
+
+        // The neighbor's quartz vein, decided against bare netherrack it saw where the wall is.
+        const neighbor = featureView(1, 0);
+        neighbor.beginWriteTracking();
+        neighbor.write(4, 64, 4, QUARTZ_ORE);
+        neighbor.write(4, 65, 4, QUARTZ_ORE);
+        neighbor.write(5, 64, 4, QUARTZ_ORE);
+        const [inbound] = neighbor.takeTrackedPatches();
+        if (inbound === undefined) throw new Error('The vein did not produce a patch');
+
+        const final = terrainTile(0, 0);
+        final.applyPatch(ownPatch);
+        final.applyPatch(inbound, { keep: ownPatch.structureBlocks });
+
+        expect(final.stateAt(4, 64, 4).name).toBe('minecraft:nether_bricks');
+        expect(final.stateAt(4, 65, 4).name).toBe('minecraft:air');
+        // Beside the wall the vein lands as it would have.
+        expect(final.stateAt(5, 64, 4).name).toBe('minecraft:nether_quartz_ore');
+    });
+
+    it('keeps a structure\u2019s block entity against a neighbor\u2019s write over it', () => {
+        const own = region();
+        own.beginWriteTracking();
+        own.withStructureWrites(() => {
+            own.write(4, 64, 4, { name: 'minecraft:chest', properties: {} });
+            own.featureWorld().setBlockEntity?.({ x: 4, y: 64, z: 4 }, { id: 'minecraft:chest' });
+        });
+        const [ownPatch] = own.takeTrackedPatches();
+        if (ownPatch === undefined) throw new Error('The structure did not produce a patch');
+
+        const neighbor = featureView(1, 0);
+        const neighborWorld = neighbor.featureWorld();
+        neighborWorld.setBlock({ x: 4, y: 64, z: 4 }, { name: 'minecraft:chest', properties: {} });
+        neighborWorld.setBlockEntity?.({ x: 4, y: 64, z: 4 }, { id: 'minecraft:chest' });
+        neighbor.beginWriteTracking();
+        neighborWorld.setBlock({ x: 4, y: 64, z: 4 }, STONE);
+        const [inbound] = neighbor.takeTrackedPatches();
+        if (inbound === undefined) throw new Error('The overwrite did not produce a patch');
+        expect(inbound.blockEntityRemovals).toHaveLength(1);
+
+        const final = terrainTile(0, 0);
+        final.applyPatch(ownPatch);
+        final.applyPatch(inbound, { keep: ownPatch.structureBlocks });
+
+        expect(final.stateAt(4, 64, 4).name).toBe('minecraft:chest');
+        expect(final.centerBlockEntities()).toHaveLength(1);
     });
 });
 

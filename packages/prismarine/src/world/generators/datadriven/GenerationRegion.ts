@@ -165,6 +165,13 @@ export interface RegionBlockWrite {
     readonly block: RegionBlock;
 }
 
+/** A block position in world coordinates. */
+export interface RegionBlockPosition {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
 /** Decoration output that belongs to one chunk. */
 export interface RegionChunkPatch {
     readonly chunkX: number;
@@ -173,6 +180,17 @@ export interface RegionChunkPatch {
     readonly blockEntityRemovals: readonly RegionBlockEntityRemoval[];
     readonly blockEntities: readonly RegionBlockEntity[];
     readonly entitySpawns: readonly RegionEntitySpawn[];
+    /**
+     * The positions among {@link RegionChunkPatch.blocks} a structure piece wrote.
+     *
+     * A structure's blocks win over a feature from another chunk, whichever of the two Java
+     * would have run first: decorated earlier, the feature tests against the structure's blocks
+     * and leaves them; decorated later, the piece writes over whatever the feature placed. A
+     * neighbor's pass here decorates against bare terrain and never sees the pieces, so the
+     * merge is where that outcome is kept - an inbound write at one of these positions is
+     * dropped.
+     */
+    readonly structureBlocks: readonly RegionBlockPosition[];
 }
 
 interface MutableRegionPatch {
@@ -182,6 +200,16 @@ interface MutableRegionPatch {
     readonly blockEntityRemovals: RegionBlockEntityRemoval[];
     readonly blockEntities: RegionBlockEntity[];
     readonly entitySpawns: RegionEntitySpawn[];
+    readonly structureBlocks: RegionBlockPosition[];
+}
+
+/** What {@link GenerationRegion.applyPatch} leaves alone. */
+export interface ApplyPatchOptions {
+    /**
+     * Positions the patch may not write. The chunk's own structure blocks, when the patch is a
+     * neighbor's; see {@link RegionChunkPatch.structureBlocks}.
+     */
+    readonly keep?: readonly RegionBlockPosition[];
 }
 
 /**
@@ -249,7 +277,10 @@ export class GenerationRegion {
     private entitySpawns: RegionEntitySpawn[] = [];
 
     private trackingWrites = false;
+    /** Whether the writes arriving now come from a structure piece; see {@link GenerationRegion.withStructureWrites}. */
+    private placingStructure = false;
     private readonly trackedWrites = new Map<number, RegionBlockWrite>();
+    private readonly trackedStructureWrites = new Map<number, RegionBlockPosition>();
     private readonly trackedBlockEntityRemovals = new Map<number, RegionBlockEntityRemoval>();
     private readonly trackedBlockEntities = new Map<number, RegionBlockEntity>();
     private readonly trackedEntitySpawns: RegionEntitySpawn[] = [];
@@ -418,9 +449,27 @@ export class GenerationRegion {
     public beginWriteTracking(): void {
         this.trackingWrites = true;
         this.trackedWrites.clear();
+        this.trackedStructureWrites.clear();
         this.trackedBlockEntityRemovals.clear();
         this.trackedBlockEntities.clear();
         this.trackedEntitySpawns.length = 0;
+    }
+
+    /**
+     * Runs a structure piece's placement, marking what it writes as the structure's.
+     *
+     * The marks ride along in the patches as {@link RegionChunkPatch.structureBlocks}. A later
+     * write at the same position by a feature of this pass takes the mark away again, because
+     * that feature saw the structure's block and Java would have let it through too.
+     */
+    public withStructureWrites<T>(place: () => T): T {
+        const wasPlacing = this.placingStructure;
+        this.placingStructure = true;
+        try {
+            return place();
+        } finally {
+            this.placingStructure = wasPlacing;
+        }
     }
 
     /** Returns the writes grouped by destination chunk, then stops tracking. */
@@ -431,7 +480,15 @@ export class GenerationRegion {
             const key = `${chunkX},${chunkZ}`;
             let patch = patches.get(key);
             if (patch === undefined) {
-                patch = { chunkX, chunkZ, blocks: [], blockEntityRemovals: [], blockEntities: [], entitySpawns: [] };
+                patch = {
+                    chunkX,
+                    chunkZ,
+                    blocks: [],
+                    blockEntityRemovals: [],
+                    blockEntities: [],
+                    entitySpawns: [],
+                    structureBlocks: []
+                };
                 patches.set(key, patch);
             }
             return patch;
@@ -439,6 +496,9 @@ export class GenerationRegion {
 
         for (const write of this.trackedWrites.values()) {
             patchFor(Math.floor(write.x / 16), Math.floor(write.z / 16)).blocks.push(write);
+        }
+        for (const position of this.trackedStructureWrites.values()) {
+            patchFor(Math.floor(position.x / 16), Math.floor(position.z / 16)).structureBlocks.push(position);
         }
         for (const removal of this.trackedBlockEntityRemovals.values()) {
             patchFor(Math.floor(removal.x / 16), Math.floor(removal.z / 16)).blockEntityRemovals.push(removal);
@@ -451,6 +511,7 @@ export class GenerationRegion {
         }
 
         this.trackedWrites.clear();
+        this.trackedStructureWrites.clear();
         this.trackedBlockEntityRemovals.clear();
         this.trackedBlockEntities.clear();
         this.trackedEntitySpawns.length = 0;
@@ -521,17 +582,33 @@ export class GenerationRegion {
         }
     }
 
-    /** Applies a previous feature write before this chunk's own decoration runs. */
-    public applyPatch(patch: RegionChunkPatch): void {
+    /**
+     * Applies a feature pass's writes to this region.
+     *
+     * @param patch - The writes, this chunk's own or a neighbor's.
+     * @param options - What to leave alone. A write, a block entity or its removal at a kept
+     *   position is dropped; an entity spawn is kept, because it stands in the world rather
+     *   than in a block.
+     */
+    public applyPatch(patch: RegionChunkPatch, options: ApplyPatchOptions = {}): void {
+        const kept = new Set<number>();
+        for (const position of options.keep ?? []) {
+            const index = this.indexOf(position.x, position.y, position.z);
+            if (index !== -1) kept.add(index);
+        }
+        const isKept = (x: number, y: number, z: number): boolean => kept.size > 0 && kept.has(this.indexOf(x, y, z));
+
         for (const removal of patch.blockEntityRemovals) {
             const index = this.indexOf(removal.x, removal.y, removal.z);
-            if (index !== -1) this.blockEntities.delete(index);
+            if (index !== -1 && !kept.has(index)) this.blockEntities.delete(index);
         }
         for (const write of patch.blocks) {
+            if (isKept(write.x, write.y, write.z)) continue;
             if (write.block.bedrock === undefined) this.write(write.x, write.y, write.z, write.block.java);
             else this.writeBedrock(write.x, write.y, write.z, write.block.bedrock);
         }
         for (const blockEntity of patch.blockEntities) {
+            if (isKept(blockEntity.x, blockEntity.y, blockEntity.z)) continue;
             this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
         }
         this.entitySpawns.push(...patch.entitySpawns);
@@ -779,6 +856,8 @@ export class GenerationRegion {
         if (!this.trackingWrites) return;
 
         this.trackedWrites.set(index, { x, y, z, block: this.palette[this.states[index]!]! });
+        if (this.placingStructure) this.trackedStructureWrites.set(index, { x, y, z });
+        else this.trackedStructureWrites.delete(index);
     }
 
     private heightAt(heightmap: HeightmapType, x: number, z: number): number {
