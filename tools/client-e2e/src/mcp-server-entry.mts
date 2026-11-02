@@ -12,7 +12,7 @@ import { binaries, checkoutDir, readPin, servedProtocols, targetDirectory } from
 const protocolVersion = servedProtocols().at(-1);
 if (protocolVersion === undefined) throw new Error('packages/bedrock-data/sources.json declares no BDS protocols');
 const checkout = checkoutDir(readPin(protocolVersion), protocolVersion);
-const mcp = binaries(targetDirectory(protocolVersion, checkout)).mcp;
+const mcp = binaries(targetDirectory(protocolVersion)).mcp;
 if (!fs.existsSync(mcp)) {
     console.error(`${mcp} is not built. Run: pnpm --filter @jsprismarine/client-e2e run ensure`);
     process.exit(1);
