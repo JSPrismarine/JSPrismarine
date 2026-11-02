@@ -86,7 +86,12 @@ import { findClosestBiome } from './biomeSearch';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { GenerationRegion } from './GenerationRegion';
-import type { GenerationRegionPayload, GenerationRegionTransfer, RegionChunkPatch } from './GenerationRegion';
+import type {
+    GenerationRegionOptions,
+    GenerationRegionPayload,
+    GenerationRegionTransfer,
+    RegionChunkPatch
+} from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 import type { BeardJunction, BeardPiece } from './javaStructureBeard';
@@ -611,10 +616,11 @@ const DEFAULT_CONCURRENCY = 1;
 const RETENTION_RADIUS = 2;
 
 /**
- * The nine chunks a feature view covers, in the order their terrain is copied into it.
+ * The nine chunks a feature view reads through, in the order they are supplied to it.
  *
  * The order decides nothing, because the nine write disjoint columns of the view. It is written
- * down so a reader does not have to work that out.
+ * down so a reader does not have to work that out. Terrain reads come from the immutable tiles;
+ * only writes from the current decoration pass are stored in the view.
  */
 const FEATURE_VIEW_TILES = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => [dx, dz] as const));
 
@@ -1368,7 +1374,12 @@ export class DataDrivenGenerator implements Generator {
      * the feature view, which is Java's `WorldGenRegion` extent.
      */
     private createRegion(cx: number, cz: number, radius: number, pipeline: SeededPipeline): GenerationRegion {
-        return new GenerationRegion({
+        return new GenerationRegion(this.regionOptions(cx, cz, radius, pipeline));
+    }
+
+    /** Builds the world readers and geometry shared by ordinary and read-through regions. */
+    private regionOptions(cx: number, cz: number, radius: number, pipeline: SeededPipeline): GenerationRegionOptions {
+        return {
             chunkX: cx,
             chunkZ: cz,
             minY: pipeline.dimension.minY,
@@ -1379,7 +1390,7 @@ export class DataDrivenGenerator implements Generator {
             blocks: pipeline.oracle,
             biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
             ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
-        });
+        };
     }
 
     /** Rebuilds a transferred region with the world-specific readers this thread owns. */
@@ -1507,8 +1518,7 @@ export class DataDrivenGenerator implements Generator {
         tiles: readonly GenerationRegion[],
         pipeline: SeededPipeline
     ): readonly RegionChunkPatch[] {
-        const view = this.createRegion(cx, cz, 1, pipeline);
-        for (const tile of tiles) view.copyCenterFrom(tile);
+        const view = GenerationRegion.featureView(this.regionOptions(cx, cz, 1, pipeline), tiles);
 
         view.beginWriteTracking();
         this.decorate(cx, cz, view, pipeline);

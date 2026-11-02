@@ -29,6 +29,11 @@ import { placeJavaTemplate } from './javaTemplatePlacement';
 /** The radius of Java's feature view around its generating chunk. */
 const FEATURE_RADIUS = 1;
 
+/** Keeps feature-view writes sparse while terrain blocks remain in their immutable source tiles. */
+const READ_THROUGH_TERRAIN = Symbol('GenerationRegion read-through terrain');
+
+const chunkKeyOf = (chunkX: number, chunkZ: number): string => `${chunkX},${chunkZ}`;
+
 const AIR = 'minecraft:air';
 const AIR_STATE: BlockState = { name: AIR, properties: {} };
 
@@ -55,6 +60,7 @@ export interface GenerationRegionOptions {
      * makes `template` and `fossil` report that they placed nothing.
      */
     readonly templates?: TemplateSource;
+    [READ_THROUGH_TERRAIN]?: true;
 }
 
 /**
@@ -263,6 +269,8 @@ export class GenerationRegion {
     private readonly originX: number;
     private readonly originZ: number;
     private states: Uint16Array<ArrayBuffer>;
+    private terrainSources: ReadonlyMap<string, GenerationRegion> | undefined;
+    private readonly sparseWrites: Map<number, number> | undefined;
     private palette: RegionBlock[] = [{ java: AIR_STATE }];
     private paletteIndex = new Map<string, number>([[AIR, 0]]);
     private isAirByPaletteSlot: boolean[] = [];
@@ -299,9 +307,68 @@ export class GenerationRegion {
 
         this.originX = (options.chunkX - this.radius) * 16;
         this.originZ = (options.chunkZ - this.radius) * 16;
-        this.states = new Uint16Array(this.width * this.width * options.height);
+        this.states = new Uint16Array(options[READ_THROUGH_TERRAIN] ? 0 : this.width * this.width * options.height);
+        this.terrainSources = undefined;
+        this.sparseWrites = options[READ_THROUGH_TERRAIN] ? new Map() : undefined;
         this.highest = new Int32Array(this.width * this.width).fill(options.minY - 1);
         this.isAirByPaletteSlot = [options.blocks.isAir(AIR_STATE)];
+    }
+
+    /**
+     * Builds a feature view over nine immutable terrain tiles, with only its writes stored locally.
+     *
+     * @internal The terrain tiles are read-only for the life of this view; writes and patches
+     *   belong to this feature pass alone.
+     * @param options - Feature-view geometry and world readers.
+     * @param tiles - The nine completed radius-zero terrain tiles around the center chunk.
+     * @returns An isolated feature view that does not copy the tiles' block-state arrays.
+     */
+    public static featureView(options: GenerationRegionOptions, tiles: readonly GenerationRegion[]): GenerationRegion {
+        if (tiles.length !== 9) throw new RangeError('A feature view needs nine terrain tiles.');
+
+        const sources = new Map<string, GenerationRegion>();
+        for (const tile of tiles) {
+            if (tile.radius !== 0 || tile.minY !== options.minY || tile.maxY !== options.minY + options.height - 1) {
+                throw new RangeError('Feature-view terrain tiles must be radius-zero and match its vertical extent.');
+            }
+            sources.set(chunkKeyOf(tile.chunkX, tile.chunkZ), tile);
+        }
+
+        for (let dx = -FEATURE_RADIUS; dx <= FEATURE_RADIUS; dx++) {
+            for (let dz = -FEATURE_RADIUS; dz <= FEATURE_RADIUS; dz++) {
+                if (!sources.has(chunkKeyOf(options.chunkX + dx, options.chunkZ + dz))) {
+                    throw new RangeError('A feature view needs every terrain tile in its three by three window.');
+                }
+            }
+        }
+
+        const view = new GenerationRegion({ ...options, radius: FEATURE_RADIUS, [READ_THROUGH_TERRAIN]: true });
+        view.terrainSources = sources;
+
+        for (const tile of tiles) {
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const x = tile.chunkX * 16 + localX;
+                    const z = tile.chunkZ * 16 + localZ;
+                    const sourceColumn = tile.columnIndex(x, z);
+                    const targetColumn = view.columnIndex(x, z);
+                    if (sourceColumn === -1 || targetColumn === -1) continue;
+
+                    view.highest[targetColumn] = tile.highest[sourceColumn]!;
+                    if (tile.frozenSurface !== null) {
+                        view.frozenSurface ??= new Int32Array(view.highest.length).fill(options.minY - 1);
+                        view.frozenSurface[targetColumn] = tile.frozenSurface[sourceColumn]!;
+                    }
+                }
+            }
+
+            for (const blockEntity of tile.centerBlockEntities()) {
+                view.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
+            }
+            view.entitySpawns.push(...tile.centerEntitySpawns());
+        }
+
+        return view;
     }
 
     /**
@@ -402,7 +469,20 @@ export class GenerationRegion {
     /** The palette entry at a block position, air outside the region. */
     public blockAt(x: number, y: number, z: number): RegionBlock {
         const index = this.indexOf(x, y, z);
-        return index === -1 ? this.palette[0]! : this.palette[this.states[index]!]!;
+        if (index === -1) return this.palette[0]!;
+
+        const written = this.sparseWrites?.get(index);
+        if (written !== undefined) return this.palette[written]!;
+
+        if (this.terrainSources !== undefined) {
+            const chunkX = Math.floor(x / 16);
+            const chunkZ = Math.floor(z / 16);
+            const source = this.terrainSources.get(chunkKeyOf(chunkX, chunkZ));
+            const block = source?.blockAt(x, y, z);
+            return block === undefined || block.java.name === AIR ? this.palette[0]! : block;
+        }
+
+        return this.palette[this.states[index]!]!;
     }
 
     /** Writes a state, ignoring a position outside the region. Returns whether it landed. */
@@ -410,7 +490,7 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return false;
 
-        this.states[index] = this.paletteSlot(state);
+        this.writeSlot(index, this.paletteSlot(state));
         this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
         return true;
@@ -421,7 +501,7 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return false;
 
-        this.states[index] = this.paletteSlotForName(name);
+        this.writeSlot(index, this.paletteSlotForName(name));
         this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
         return true;
@@ -439,7 +519,7 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return false;
 
-        this.states[index] = this.bedrockSlot(state);
+        this.writeSlot(index, this.bedrockSlot(state));
         this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
         return true;
@@ -524,8 +604,8 @@ export class GenerationRegion {
             throw new RangeError('Cannot combine generation regions with different vertical extents');
         }
 
-        // A feature view copies nine terrain tiles. Move their palette indices in bulk so this
-        // boundary does not allocate a RegionBlock and sort state properties for every block.
+        // Move the source palette indices in bulk so this merge does not allocate a RegionBlock
+        // and sort state properties for every block.
         const destinationSlots = source.palette.map((block, slot) => {
             if (slot === 0) return 0;
             const destinationSlot =
@@ -626,16 +706,22 @@ export class GenerationRegion {
         if (this.trackingWrites) this.trackedBlockEntities.delete(index);
 
         const column = this.columnIndex(x, z);
-        const isAir = this.isAirByPaletteSlot[this.states[index]!]!;
+        const written = this.sparseWrites?.get(index);
+        const isAir =
+            written === undefined ? this.isAirByPaletteSlot[this.states[index]!]! : this.isAirByPaletteSlot[written]!;
         if (!isAir) {
             if (y > this.highest[column]!) this.highest[column] = y;
         } else if (y === this.highest[column]) {
             // Removing the topmost block drops the column's ceiling to the next one down.
             let nextY = y - 1;
-            let nextIndex = index - 1;
-            while (nextY >= this.minY && this.isAirByPaletteSlot[this.states[nextIndex]!]!) {
-                nextY--;
-                nextIndex--;
+            if (this.sparseWrites === undefined) {
+                let nextIndex = index - 1;
+                while (nextY >= this.minY && this.isAirByPaletteSlot[this.states[nextIndex]!]!) {
+                    nextY--;
+                    nextIndex--;
+                }
+            } else {
+                while (nextY >= this.minY && this.options.blocks.isAir(this.blockAt(x, nextY, z).java)) nextY--;
             }
             this.highest[column] = nextY;
         }
@@ -855,9 +941,15 @@ export class GenerationRegion {
     private trackWrite(index: number, x: number, y: number, z: number): void {
         if (!this.trackingWrites) return;
 
-        this.trackedWrites.set(index, { x, y, z, block: this.palette[this.states[index]!]! });
+        this.trackedWrites.set(index, { x, y, z, block: this.blockAt(x, y, z) });
         if (this.placingStructure) this.trackedStructureWrites.set(index, { x, y, z });
         else this.trackedStructureWrites.delete(index);
+    }
+
+    /** Writes a palette slot into this region or its task-local sparse overlay. */
+    private writeSlot(index: number, slot: number): void {
+        if (this.sparseWrites === undefined) this.states[index] = slot;
+        else this.sparseWrites.set(index, slot);
     }
 
     private heightAt(heightmap: HeightmapType, x: number, z: number): number {
