@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { WindowIds, WindowTypes } from '@jsprismarine/minecraft';
+import { ContainerUiId, WindowIds, WindowTypes } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -91,6 +91,31 @@ describe('network', () => {
 
             expect(session.closeWindow(WindowIds.FIRST)).toBe(true);
             expect(session.getOpenBlockContainer()).toBeUndefined();
+        });
+
+        it('sends furnace slots under the container names its screen uses', async () => {
+            const { session, sent } = sessionFor();
+            const contents = [
+                new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ore', count: 1 }), count: 1 }),
+                new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 1 }), count: 1 }),
+                new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ingot', count: 1 }), count: 1 })
+            ];
+
+            await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:furnace', contents);
+
+            const packets = sent.filter(
+                (packet): packet is InventoryContentPacket => packet instanceof InventoryContentPacket
+            );
+            expect(packets.map((packet) => packet.containerId)).toEqual([
+                ContainerUiId.FURNACE_INGREDIENT_CONTAINER,
+                ContainerUiId.FURNACE_FUEL_CONTAINER,
+                ContainerUiId.FURNACE_RESULT_CONTAINER
+            ]);
+            expect(
+                packets.map((packet) =>
+                    packet.items.map((item) => Item.fromStackDescriptor({ protocolVersion: 2193 }, item).getName())
+                )
+            ).toEqual([['minecraft:iron_ore'], ['minecraft:coal'], ['minecraft:iron_ingot']]);
         });
 
         it('opens a workstation without a contents packet, since it stores nothing', async () => {

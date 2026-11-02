@@ -38,6 +38,7 @@ import { eyePositionAt } from '../entity/Human';
 import type { Item as ItemEntity } from '../entity/other/Item';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import { blockContainerOf } from '../inventory/blockContainers';
+import { blockSlotName } from '../inventory/containerSlots';
 import { WindowIds } from '../inventory/WindowIds';
 import { WindowTypes } from '../inventory/WindowTypes';
 import { Item } from '../item/Item';
@@ -927,11 +928,12 @@ export default class PlayerSession {
      * they were clicked, because `openMainInventory` was the only `ContainerOpen` ever sent.
      *
      * The contents follow the open for the same reason they do there: a window whose contents
-     * never arrive is one the client has no reason to keep. A workstation stores nothing of its
-     * own, so no contents follow its open. A crafting table is followed by the player's own
-     * inventory under window 0 instead, which is what a Bedrock Dedicated Server 1.26.52 sent
-     * after a click on one. Repeated requests for the same open block return the current window
-     * without sending another open packet.
+     * never arrive is one the client has no reason to keep. Each packet uses the container name
+     * that screen assigns to its slots, so a furnace's fuel list arrives under its fuel name.
+     * A workstation stores nothing of its own, so no contents follow its open. A crafting table
+     * is followed by the player's own inventory under window 0 instead, which is what a Bedrock
+     * Dedicated Server 1.26.52 sent after a click on one. Repeated requests for the same open
+     * block return the current window without sending another open packet.
      *
      * @param at - The block position, which is what `ContainerOpen` carries for a block.
      * @param identifier - The block standing there, which decides the screen.
@@ -981,15 +983,29 @@ export default class PlayerSession {
             // a double chest is 54 entries from two block entities, which `blockContainerOf` does
             // not know about and the caller does.
             if (contents.length > 0) {
-                const content = new InventoryContentPacket();
-                content.windowId = packet.windowId;
-                content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
                 const context = this.connection.codec.context;
-                content.items = contents.map((entry) => {
-                    const item = entry.toItemStack();
-                    return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+
+                // Furnace and brewing screens name their slots as separate containers, rather
+                // than as one flat block inventory. Send each complete slot list under the name
+                // the client uses for requests to that part of the screen.
+                const byContainer = new Map<number, ContainerEntry[]>();
+                contents.forEach((entry, slot) => {
+                    const named = blockSlotName(container.screen, slot);
+                    const slots = byContainer.get(named.containerId) ?? [];
+                    slots[named.slotId] = entry;
+                    byContainer.set(named.containerId, slots);
                 });
-                await this.connection.sendDataPacket(content);
+
+                for (const [containerId, slots] of byContainer) {
+                    const content = new InventoryContentPacket();
+                    content.windowId = packet.windowId;
+                    content.containerId = containerId;
+                    content.items = slots.map((entry) => {
+                        const item = entry.toItemStack();
+                        return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
+                    });
+                    await this.connection.sendDataPacket(content);
+                }
             }
 
             // What a Bedrock Dedicated Server 1.26.52 sent after a click on a crafting table: the
