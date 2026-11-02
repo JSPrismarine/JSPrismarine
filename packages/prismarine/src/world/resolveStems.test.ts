@@ -11,9 +11,6 @@ import { normalizeWorldData } from '../config/normalizeWorldData';
 import { Dimensions } from './Dimension';
 import { DEFAULT_FLAT_SETTINGS, flatStem } from './generators/factories/flat';
 import { OVERWORLD_NOISE_STEM } from './generators/factories/noise';
-import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
-import { loadJavaWorldgenRegistriesFrom } from './generators/datadriven/javaWorldgenData';
-import { stub } from '../testing/stub.test.helper';
 import { BUILT_IN_WORLD_PRESETS, dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import { THE_END_DIMENSION_TYPE_JSON, VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
 
@@ -277,15 +274,12 @@ describe('dimensionTypesOf', () => {
             [OVERWORLD_STEM_ID, OVERWORLD_NOISE_STEM],
             ['mypack:sky', skyStem]
         ]);
-        const registries = () =>
-            stub<JavaWorldgenRegistries>({
-                dimensionTypes: new Map([['mypack:sky_type', THE_END_DIMENSION_TYPE_JSON]])
-            });
+        const dimensionTypes = () => new Map([['mypack:sky_type', THE_END_DIMENSION_TYPE_JSON]]);
 
-        expect(dimensionTypesOf(stems, registries).get('mypack:sky_type')?.skybox).toBe('end');
-        expect(() =>
-            dimensionTypesOf(stems, () => stub<JavaWorldgenRegistries>({ dimensionTypes: new Map() }))
-        ).toThrowError('The mypack:sky dimension names the dimension type mypack:sky_type, which no pack defines');
+        expect(dimensionTypesOf(stems, dimensionTypes).get('mypack:sky_type')?.skybox).toBe('end');
+        expect(() => dimensionTypesOf(stems, () => new Map())).toThrowError(
+            'The mypack:sky dimension names the dimension type mypack:sky_type, which no pack defines'
+        );
     });
 
     describe('over a datapack loaded through the pack stack', () => {
@@ -307,16 +301,15 @@ describe('dimensionTypesOf', () => {
                 JSON.stringify({ ...THE_END_DIMENSION_TYPE_JSON, min_y: 0, height: 512, logical_height: 512 })
             );
 
-            const registries = loadJavaWorldgenRegistriesFrom(
-                load([{ kind: 'datapack', path: root }]).definitions,
-                join(root, 'no-reports')
-            );
+            const { definitions } = load([{ kind: 'datapack', path: root }]);
             const stems = new Map([
                 [OVERWORLD_STEM_ID, OVERWORLD_NOISE_STEM],
                 ['mypack:sky', skyStem]
             ]);
 
-            expect(dimensionTypesOf(stems, () => registries).get('mypack:sky_type')).toMatchObject({
+            const dimensionTypes = () =>
+                new Map([...definitions.dimensionTypes].map(([id, definition]) => [id, definition.data]));
+            expect(dimensionTypesOf(stems, dimensionTypes).get('mypack:sky_type')).toMatchObject({
                 minY: 0,
                 height: 512,
                 skybox: 'end'

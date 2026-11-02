@@ -169,13 +169,13 @@ export const loadOf = (
  */
 export const dimensionTypesOf = (
     stems: ReadonlyMap<string, LevelStem>,
-    registries: () => JavaWorldgenRegistries
+    dimensionTypes: () => ReadonlyMap<string, unknown>
 ): ReadonlyMap<string, DimensionTypeDefinition> => {
     const types = new Map<string, DimensionTypeDefinition>(Object.entries(VANILLA_DIMENSION_TYPES));
     for (const [id, stem] of stems) {
         if (types.has(stem.type)) continue;
 
-        const document = registries().dimensionTypes.get(stem.type);
+        const document = dimensionTypes().get(stem.type);
         if (document === undefined) {
             throw new Error(`The ${id} dimension names the dimension type ${stem.type}, which no pack defines`);
         }

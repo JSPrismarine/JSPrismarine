@@ -261,7 +261,6 @@ export default class WorldManager implements Service {
         const provider = new providerClass(levelPath, this.server);
         const saved = await this.savedWorldGenSettings(provider, folderName, seed);
 
-        const registries = () => this.registries();
         const stems = resolveStems(normalized, this.presets(), saved, (line) => {
             logger.warn(`World '${folderName}': ${line}`);
         });
@@ -272,6 +271,10 @@ export default class WorldManager implements Service {
         // content registries. Read here rather than inside the level, because a level is built
         // from a config entry and the registries are the server's.
         const content = this.server.getContent();
+        const dimensionTypeDefinitions = new Map(
+            [...content.definitions.dimensionTypes].map(([id, definition]) => [id, definition.data])
+        );
+        const registries = () => this.registries();
         const report = (what: string) => (identifier: string, error: unknown) => {
             logger.error(error);
             logger.error(`§c${identifier}§r threw on ${what}; it will not be reported again`);
@@ -284,7 +287,7 @@ export default class WorldManager implements Service {
             provider,
             seed,
             stems,
-            dimensionTypes: dimensionTypesOf(stems, registries),
+            dimensionTypes: dimensionTypesOf(stems, () => dimensionTypeDefinitions),
             load,
             factories: this.generatorFactories,
             worldgen: registries,

@@ -1,4 +1,3 @@
-import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Dimension } from '@jsprismarine/minecraft';
 import {
@@ -241,24 +240,23 @@ describe('PlayerSession.changeWorld', () => {
         expect(logged.at(-1)).toContain('pending');
     });
 
-    it('refuses a target of a custom dimension type, which no client has been seen to accept', async () => {
-        const { player, server, roster, sent } = fakePlayer();
+    it('sends a change to a custom dimension id announced to the client', async () => {
+        const { player, roster, sent } = fakePlayer();
         const session = player.getNetworkSession();
-        const errors: string[] = [];
-        server.getLogger = () =>
-            stub<Logger>({ debug: () => {}, verbose: () => {}, error: (message) => void errors.push(String(message)) });
         const sky = dimensionTypeOf(Dimensions.Overworld.java, 'mypack:sky', FIRST_CUSTOM_DIMENSION_ID);
-        const origin = player.getWorld();
         sent.length = 0;
 
         await session.changeWorld(arrivalIn(worldOf(sky, roster)));
 
-        expect(roster).toEqual([]);
-        expect(sent).toHaveLength(0);
-        expect(player.getWorld()).toBe(origin);
-        expect(session.pendingDimensionChange()).toBeUndefined();
-        expect(errors).toHaveLength(1);
-        expect(errors[0]).toContain('mypack:sky');
+        expect(roster).toEqual(['save', 'remove', 'add']);
+        expect(player.getWorld().getDimension()).toMatchObject({
+            id: 'mypack:sky',
+            bedrockId: FIRST_CUSTOM_DIMENSION_ID
+        });
+        expect(sent.find((packet) => packet instanceof ChangeDimensionPacket)?.getPacketData()?.dimension).toBe(
+            FIRST_CUSTOM_DIMENSION_ID
+        );
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(player.getWorld());
     });
 
     it('passes a respawn through to the client', async () => {
