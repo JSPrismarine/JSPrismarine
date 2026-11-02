@@ -42,7 +42,7 @@ import { lookVector } from '../Archery';
 import Player from '../../Player';
 import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { ContentItemDrop } from '../../content/world/adapter';
+import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
@@ -202,6 +202,31 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
     return found;
 };
 
+/** The item stacks within a pickup radius, selected from the world's fine live item index. */
+const lyingItemsNear = (
+    world: World | undefined,
+    center: ContentPosition,
+    radius: number
+): readonly ContentItemEntity[] => {
+    if (world === undefined || radius < 0) return [];
+
+    const found: ContentItemEntity[] = [];
+    for (const entity of world.getEntityGrid().nearItemsForPickup(center.x, center.z, radius)) {
+        if (!(entity instanceof ItemEntity) || world.getEntity(entity.getRuntimeId()) !== entity) continue;
+        const held = entity.getItem();
+        if (held === undefined) continue;
+
+        const at = entity.getPosition();
+        found.push({
+            id: Number(entity.getRuntimeId()),
+            position: { x: at.getX(), y: entity.getFeetY(), z: at.getZ() },
+            item: { identifier: held.getItem().getName(), count: held.getCount() },
+            filterView: filterItemOf(held.getItem())
+        });
+    }
+    return found;
+};
+
 /** The host facts over one live world. */
 const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFacts => ({
     players: () => options.entities.players(),
@@ -229,6 +254,7 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         return true;
     },
     items: () => lyingItemsIn(options.liveWorld()),
+    itemsNear: (center, radius) => lyingItemsNear(options.liveWorld(), center, radius),
     takeItem: (id, count) => {
         const world = options.liveWorld();
         const entity = world?.getEntity(BigInt(id));
