@@ -19,6 +19,8 @@ export const edgeChunkBlockChange: Scenario = {
     description: 'a block update across the -1/0 chunk edge reaches the client',
     run: async ({ server, client, playerName, log }) => {
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
+        server.command('setblock -1 63 -1 minecraft:stone');
+        server.command('setblock -1 64 0 minecraft:stone');
         server.command(`teleport ${playerName} -0.5 64 -0.5`);
 
         const deadline = Date.now() + 15_000;
@@ -30,7 +32,6 @@ export const edgeChunkBlockChange: Scenario = {
         }
 
         // The client stands in chunk z=-1 and receives the update for chunk z=0.
-        server.command('setblock -1 64 0 minecraft:stone');
         server.command('setblock -1 65 0 minecraft:dirt');
         await sleep(500);
         await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
