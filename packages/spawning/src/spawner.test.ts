@@ -22,8 +22,8 @@ const baseWorld = {
     age: () => 0,
     mobEventActive: () => false,
     villageBorderDistance: () => undefined,
-    // Hollow: nothing here is about where a draw landed.
-    solid: () => false,
+    // A flat floor at y=63 supports the surface pass; no other blocks obstruct draws.
+    solid: (at: SpawnPosition) => at.y === 63,
     surfaceY: () => 64,
     minY: () => -64
 } satisfies SpawnWorld;
@@ -111,6 +111,7 @@ describe('one spawn cycle', () => {
                 return flag === 'surface' && at.y >= 64;
             },
             block: (at) => (at.y === 63 ? 'minecraft:water' : at.y < 63 ? 'minecraft:stone' : 'minecraft:air'),
+            solid: () => false,
             surfaceY: () => 64,
             minY: () => 63
         });
@@ -401,6 +402,13 @@ describe('the delay filter cooldown', () => {
 });
 
 describe('where the underground pass puts a mob', () => {
+    const MAGMA_CUBE = ruleOf('minecraft:magma_cube', 'monster', [
+        {
+            'minecraft:spawns_underground': {},
+            'minecraft:spawns_on_block_prevented_filter': ['minecraft:nether_wart_block', 'minecraft:shroomlight'],
+            'minecraft:weight': { default: 10 }
+        }
+    ]);
     const ZOMBIE = ruleOf('minecraft:zombie', 'monster', [
         {
             'minecraft:spawns_underground': {},
@@ -409,6 +417,36 @@ describe('where the underground pass puts a mob', () => {
         }
     ]);
     const dark = { ...baseWorld, light: () => 0 };
+
+    it('refuses magma cubes above lava without solid ground beneath them', () => {
+        const aboveLava = worldWith({
+            site: (flag, at) => {
+                if (flag === 'underground') return at.y < 34;
+                if (flag === 'surface') return at.y >= 34;
+                return flag === 'lava' && at.y === 32;
+            },
+            block: (at) => (at.y === 32 ? 'minecraft:lava' : 'minecraft:air'),
+            solid: () => false,
+            surfaceY: () => 34,
+            minY: () => 33,
+            players: () => [{ position: { x: 100, y: 64, z: 100 } }]
+        });
+        const spawner = new Spawner({
+            rules: [MAGMA_CUBE],
+            world: aboveLava,
+            random: seededRandom(7),
+            constants: {
+                ...SPAWN_CONSTANTS,
+                spawnRadiusChunks: 0,
+                chunksPerCycle: 1,
+                positionsPerChunk: 1,
+                herdRadius: 0,
+                minimumSpawnDistance: 0
+            }
+        });
+
+        expect(spawner.cycle('monster', 0)).toEqual([]);
+    });
 
     it('refuses a draw that landed inside rock', () => {
         // The draw is uniform over the column, so in a world with few caves most of it is
@@ -428,7 +466,12 @@ describe('where the underground pass puts a mob', () => {
         // the one over it are both below that, which rules out y -1 as well as y 0.
         const spawner = new Spawner({
             rules: [ZOMBIE],
-            world: { ...dark, solid: (at: SpawnPosition) => at.y >= 0 },
+            world: {
+                ...dark,
+                solid: (at: SpawnPosition) => at.y >= 0 || at.y === -3,
+                surfaceY: () => -1,
+                minY: () => -2
+            },
             random: seededRandom(7)
         });
 
@@ -440,7 +483,12 @@ describe('where the underground pass puts a mob', () => {
     it('takes a draw that landed in a cave', () => {
         const spawner = new Spawner({
             rules: [ZOMBIE],
-            world: { ...dark, solid: () => false },
+            world: {
+                ...dark,
+                solid: (at: SpawnPosition) => at.y === -1,
+                surfaceY: () => 1,
+                minY: () => 0
+            },
             random: seededRandom(7)
         });
 

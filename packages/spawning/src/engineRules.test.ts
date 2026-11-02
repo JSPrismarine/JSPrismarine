@@ -105,7 +105,7 @@ const swampWorld = {
     weather: () => 'clear' as const,
     age: () => 0,
     mobEventActive: () => false,
-    solid: () => false,
+    solid: (at: SpawnPosition) => at.y === 63,
     surfaceY: () => 64,
     minY: () => -64
 } satisfies SpawnWorld;
@@ -227,8 +227,9 @@ describe('the spawner with the engine rules on', () => {
             biomeTags: () => ['monster', 'overworld', 'plains'],
             site: (flag: SpawnSiteFlag) => flag === 'underground',
             // One slime chunk's worth of column, so every draw lands in it.
-            surfaceY: () => 30,
-            minY: () => 0,
+            solid: (at: SpawnPosition) => at.y === 9,
+            surfaceY: () => 11,
+            minY: () => 10,
             players: () => [{ position: { x: -6 * 16 + 8, y: 20, z: 8 } }]
         });
 

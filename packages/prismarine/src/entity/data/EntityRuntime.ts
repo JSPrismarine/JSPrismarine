@@ -1020,7 +1020,11 @@ export class EntityRuntime implements EntityScene {
 
         const requests = spawner.tick(tick);
         for (const request of requests)
-            this.spawn(request.identifier, request.position, { event: request.spawnEvent, pool: request.pool });
+            this.spawn(
+                request.identifier,
+                { x: request.position.x + 0.5, y: request.position.y, z: request.position.z + 0.5 },
+                { event: request.spawnEvent, pool: request.pool }
+            );
         return requests;
     }
 

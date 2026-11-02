@@ -120,8 +120,8 @@ const permissiveWorld = {
     light: () => 7,
     biomeTags: () => ['plains', 'overworld', 'ocean', 'monster', 'animal', 'nether', 'mesa'],
     biome: () => 'minecraft:plains',
-    // Hollow: nothing here is about where a draw landed.
-    solid: () => false,
+    // A flat floor at y=63 supports the surface pass.
+    solid: (at: SpawnPosition) => at.y === 63,
     surfaceY: () => 64,
     minY: () => -64,
     players: () => [{ position: { x: 0, y: 64, z: 0 } }],
@@ -197,6 +197,7 @@ describe.runIf(enabled)('the vanilla spawn rules', { tags: ['real-data'] }, () =
                 return flag === 'surface' && at.y >= 64;
             },
             biomeTags: () => ['ocean', 'overworld'],
+            solid: () => false,
             surfaceY: () => 64,
             minY: () => 63,
             players: () => [{ position: { x: 0, y: 64, z: 0 } }]

@@ -610,7 +610,7 @@ describeFamily(
     REAL_STACK_REFERENCES,
     () => {
         it(
-            'keeps a vanilla cow rule from spawning inside the shared world-spawn exclusion radius',
+            'places vanilla cows on supported positions outside the world-spawn exclusion radius',
             { timeout: 180_000 },
             () => {
                 const { content } = realStack();
@@ -620,7 +620,7 @@ describeFamily(
                 const world = {
                     site: (flag, at) => (flag === 'surface' ? at.y >= 64 : flag === 'underground' && at.y < 64),
                     block: (at) => (at.y <= 63 ? 'minecraft:grass_block' : 'minecraft:air'),
-                    solid: () => false,
+                    solid: (at) => at.y === 63,
                     light: () => 15,
                     biomeTags: () => ['animal', 'plains', 'overworld'],
                     biome: () => 'minecraft:plains',
@@ -643,18 +643,21 @@ describeFamily(
                     positionsPerChunk: 1,
                     herdRadius: 0
                 };
-                const runWithDistance = (minimumSpawnDistance: number) =>
+                const runWithDistance = (spawnWorld: SpawnWorld, minimumSpawnDistance: number) =>
                     new Spawner({
                         rules: cowRules,
-                        world,
+                        world: spawnWorld,
                         random: { nextFloat: () => 0, nextInt: () => 0 },
                         constants: { ...constants, minimumSpawnDistance },
                         engineRules: new Map()
                     }).cycle('animal', 0);
 
                 expect(cowRules.length).toBeGreaterThan(0);
-                expect(runWithDistance(0).length).toBeGreaterThan(0);
-                expect(runWithDistance(SPAWN_CONSTANTS.minimumSpawnDistance)).toEqual([]);
+                const supportedSpawns = runWithDistance(world, 0);
+                expect(supportedSpawns.length).toBeGreaterThan(0);
+                expect(supportedSpawns.every(({ position }) => position.y === 64)).toBe(true);
+                expect(runWithDistance({ ...world, solid: () => false }, 0)).toEqual([]);
+                expect(runWithDistance(world, SPAWN_CONSTANTS.minimumSpawnDistance)).toEqual([]);
             }
         );
     },

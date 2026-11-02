@@ -1505,7 +1505,11 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(cows.length).toBeGreaterThan(0);
             expect(live.runtime.poolCount('animal')).toBe(cows.length);
             // Standing on the floor the chunk actually carries, not at a guessed height.
-            for (const cow of cows) expect(cow.position.y).toBe(GROUND_Y);
+            for (const cow of cows) {
+                expect(cow.position.y).toBe(GROUND_Y);
+                expect(cow.position.x - Math.floor(cow.position.x)).toBeCloseTo(0.5);
+                expect(cow.position.z - Math.floor(cow.position.z)).toBeCloseTo(0.5);
+            }
         });
 
         it('gives every spawned mob a body the clients are sent', async () => {
