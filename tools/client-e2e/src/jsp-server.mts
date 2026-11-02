@@ -50,11 +50,130 @@ export const startServer = async (
     const port = options.port ?? (await freeUdpPort());
     const dir = options.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-server-'));
     fs.mkdirSync(dir, { recursive: true });
+
+    const datapack = path.join(dir, 'client-e2e-datapack');
+    const customDimension = path.join(datapack, 'data', 'client_e2e', 'dimension_type', 'custom.json');
+    fs.mkdirSync(path.dirname(customDimension), { recursive: true });
+    fs.writeFileSync(
+        path.join(datapack, 'pack.mcmeta'),
+        JSON.stringify({ pack: { pack_format: 121, description: 'Client e2e dimensions' } }, null, 4)
+    );
+    fs.writeFileSync(
+        customDimension,
+        `${JSON.stringify(
+            {
+                min_y: 0,
+                height: 256,
+                logical_height: 256,
+                coordinate_scale: 1,
+                has_skylight: true,
+                has_ceiling: false,
+                ambient_light: 0,
+                monster_spawn_light_level: 0,
+                monster_spawn_block_light_limit: 0,
+                infiniburn: '#minecraft:infiniburn_overworld'
+            },
+            null,
+            4
+        )}\n`
+    );
+
+    const behaviorPack = path.join(dir, 'client-e2e-behavior-pack');
+    fs.mkdirSync(path.join(behaviorPack, 'entities'), { recursive: true });
+    fs.writeFileSync(
+        path.join(behaviorPack, 'manifest.json'),
+        JSON.stringify(
+            {
+                format_version: 2,
+                header: {
+                    name: 'Client e2e entities',
+                    description: 'Entities used by client e2e scenarios',
+                    uuid: 'c3de07fa-bc74-4c08-bdd1-330b9fdc5100',
+                    version: [1, 0, 0],
+                    min_engine_version: [1, 21, 0]
+                },
+                modules: [
+                    {
+                        type: 'data',
+                        uuid: 'c3de07fa-bc74-4c08-bdd1-330b9fdc5101',
+                        version: [1, 0, 0]
+                    }
+                ]
+            },
+            null,
+            4
+        )
+    );
+    fs.writeFileSync(
+        path.join(behaviorPack, 'entities', 'ender_dragon.json'),
+        `${JSON.stringify(
+            {
+                format_version: '1.21.0',
+                'minecraft:entity': {
+                    description: {
+                        identifier: 'minecraft:ender_dragon',
+                        is_spawnable: true,
+                        is_summonable: true
+                    },
+                    components: {
+                        'minecraft:health': { value: 200, max: 200 },
+                        'minecraft:collision_box': { width: 13, height: 4 },
+                        'minecraft:physics': { has_gravity: false, has_collision: false },
+                        'minecraft:type_family': { family: ['dragon', 'mob'] },
+                        'minecraft:on_death': { event: 'minecraft:start_death', target: 'self' }
+                    },
+                    component_groups: {
+                        dragon_death: { 'minecraft:behavior.dragondeath': { priority: 0 } }
+                    },
+                    events: {
+                        'minecraft:start_death': { add: { component_groups: ['dragon_death'] } }
+                    }
+                }
+            },
+            null,
+            4
+        )}\n`
+    );
+
+    const flatGenerator = (block: string) => ({
+        type: 'minecraft:flat',
+        settings: {
+            layers: [
+                { block: 'minecraft:bedrock', height: 1 },
+                { block, height: 3 }
+            ],
+            biome: 'minecraft:plains',
+            lakes: false,
+            features: false,
+            structure_overrides: []
+        }
+    });
     const config = {
         port: port,
         'online-mode': false,
         'level-name': 'e2e',
-        worlds: { e2e: { seed: '1', preset: 'minecraft:flat' } },
+        worlds: {
+            e2e: {
+                seed: '1',
+                preset: 'minecraft:flat',
+                dimensions: {
+                    'minecraft:the_nether': {
+                        type: 'minecraft:the_nether',
+                        generator: flatGenerator('minecraft:netherrack')
+                    },
+                    'minecraft:the_end': {
+                        type: 'minecraft:the_end',
+                        generator: flatGenerator('minecraft:end_stone')
+                    },
+                    'client_e2e:custom': {
+                        type: 'client_e2e:custom',
+                        generator: { type: 'jsprismarine:void' }
+                    }
+                }
+            }
+        },
+        'content-world-packs': [behaviorPack],
+        'content-datapacks': [datapack],
         'preload-radius': 0,
         'max-players': 4,
         motd: 'JSPrismarine e2e'

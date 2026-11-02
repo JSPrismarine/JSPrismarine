@@ -61,10 +61,21 @@ export class CinnabarClient {
     /**
      * Launches a hidden client with an isolated user root and an offline display name.
      *
-     * @param userRoot - Absolute directory for `CINNABAR_USER_ROOT`; created when missing.
+     * @param options.userRoot - Absolute directory for `CINNABAR_USER_ROOT`; created when missing.
+     * @param options.muteAudio - Mute the client through its saved master volume before launch.
      */
-    async launch(options: { userRoot: string; displayName?: string; size?: [number, number] }): Promise<void> {
+    async launch(options: {
+        userRoot: string;
+        muteAudio: boolean;
+        displayName?: string;
+        size?: [number, number];
+    }): Promise<void> {
         fs.mkdirSync(options.userRoot, { recursive: true });
+        if (options.muteAudio) {
+            const settings = path.join(options.userRoot, 'config', 'settings.json');
+            fs.mkdirSync(path.dirname(settings), { recursive: true });
+            fs.writeFileSync(settings, `${JSON.stringify({ schema: 2, values: { main_volume: 0 } }, null, 4)}\n`);
+        }
         await this.call('launch_client', {
             headless: true,
             size: options.size ?? [1280, 720],
