@@ -175,6 +175,14 @@ export interface PendingDimensionChange {
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
+/** Screens whose primary content packet spans several named request containers. */
+const COMBINED_BLOCK_CONTENT_SCREENS = new Set([
+    WindowTypes.FURNACE,
+    WindowTypes.BLAST_FURNACE,
+    WindowTypes.SMOKER,
+    WindowTypes.BREWING_STAND
+]);
+
 /** A screen a block opened for one player, as the session remembers it. */
 export interface OpenBlockContainer {
     /** The `Container Id` it was opened under. */
@@ -836,7 +844,7 @@ export default class PlayerSession {
 
         const pk = new InventoryContentPacket();
         pk.items = inventory.getItems(true).map((entry) => {
-            const item = entry.toItemStack();
+            const item = entry.toItemStack().withCount(entry.getCount());
             return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
         });
         pk.windowId = windowId;
@@ -856,7 +864,7 @@ export default class PlayerSession {
             .getArmor()
             .getItems(true)
             .map((entry) => {
-                const item = entry.toItemStack();
+                const item = entry.toItemStack().withCount(entry.getCount());
                 return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
             });
         armor.windowId = WindowIds.ARMOR;
@@ -985,26 +993,43 @@ export default class PlayerSession {
             if (contents.length > 0) {
                 const context = this.connection.codec.context;
 
-                // Furnace and brewing screens name their slots as separate containers, rather
-                // than as one flat block inventory. Send each complete slot list under the name
-                // the client uses for requests to that part of the screen.
-                const byContainer = new Map<number, ContainerEntry[]>();
-                contents.forEach((entry, slot) => {
-                    const named = blockSlotName(container.screen, slot);
-                    const slots = byContainer.get(named.containerId) ?? [];
-                    slots[named.slotId] = entry;
-                    byContainer.set(named.containerId, slots);
-                });
-
-                for (const [containerId, slots] of byContainer) {
+                // Furnaces and brewing stands expose named containers for requests, but their
+                // open packet is followed by one complete primary inventory. Sending one partial
+                // content packet per named slot leaves clients without the window's full storage
+                // model, so moves into those slots are rejected before a request is sent.
+                if (COMBINED_BLOCK_CONTENT_SCREENS.has(container.screen)) {
                     const content = new InventoryContentPacket();
                     content.windowId = packet.windowId;
-                    content.containerId = containerId;
-                    content.items = slots.map((entry) => {
-                        const item = entry.toItemStack();
+                    content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
+                    content.items = contents.map((entry) => {
+                        const item = entry.toItemStack().withCount(entry.getCount());
                         return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
                     });
                     await this.connection.sendDataPacket(content);
+                } else {
+                    // Screens with separate primary inventories name each complete slot list
+                    // under the container the client uses for requests to that part of the screen.
+                    const byContainer = new Map<number, ContainerEntry[]>();
+                    contents.forEach((entry, slot) => {
+                        const named = blockSlotName(container.screen, slot);
+                        const slots = byContainer.get(named.containerId) ?? [];
+                        slots[named.slotId] = entry;
+                        byContainer.set(named.containerId, slots);
+                    });
+
+                    for (const [containerId, slots] of byContainer) {
+                        const content = new InventoryContentPacket();
+                        content.windowId = packet.windowId;
+                        content.containerId = containerId;
+                        content.items = slots.map((entry) => {
+                            const item = entry.toItemStack().withCount(entry.getCount());
+                            return item.toStackDescriptor(
+                                context,
+                                item.stackNetworkId > 0 ? item.stackNetworkId : null
+                            );
+                        });
+                        await this.connection.sendDataPacket(content);
+                    }
                 }
             }
 
@@ -1076,7 +1101,7 @@ export default class PlayerSession {
         const payloads = joinContentPayloads(this.server.getContent(), this.server.getLogger(), {
             itemData: this.connection.codec.itemData
         });
-        if (payloads !== undefined) {
+        if (payloads !== undefined && craftingRecipeCount(payloads.crafting) > 0) {
             const all = craftingRecipeCount(payloads.crafting);
             const crafting = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
 

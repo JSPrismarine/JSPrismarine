@@ -66,7 +66,7 @@ describe('network', () => {
 
         it('opens a chest on the block it stands on, and sends what it holds', async () => {
             const { session, sent } = sessionFor();
-            const stick = new ContainerEntry({ item: new Item({ name: 'minecraft:stick', count: 3 }), count: 3 });
+            const stick = new ContainerEntry({ item: new Item({ name: 'minecraft:stick', count: 1 }), count: 3 });
 
             const opened = await session.openBlockContainer(new Vector3(4, 64, -7), 'minecraft:chest', [stick]);
 
@@ -93,30 +93,32 @@ describe('network', () => {
             expect(session.getOpenBlockContainer()).toBeUndefined();
         });
 
-        it('sends furnace slots under the container names its screen uses', async () => {
-            const { session, sent } = sessionFor();
-            const contents = [
-                new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ore', count: 1 }), count: 1 }),
-                new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 1 }), count: 1 }),
-                new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ingot', count: 1 }), count: 1 })
-            ];
+        it.each(['minecraft:furnace', 'minecraft:blast_furnace', 'minecraft:smoker'])(
+            'sends %s contents as one complete primary inventory',
+            async (identifier) => {
+                const { session, sent } = sessionFor();
+                const contents = [
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ore', count: 1 }), count: 1 }),
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 1 }), count: 8 }),
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ingot', count: 1 }), count: 1 })
+                ];
 
-            await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:furnace', contents);
+                await session.openBlockContainer(new Vector3(0, 64, 0), identifier, contents);
 
-            const packets = sent.filter(
-                (packet): packet is InventoryContentPacket => packet instanceof InventoryContentPacket
-            );
-            expect(packets.map((packet) => packet.containerId)).toEqual([
-                ContainerUiId.FURNACE_INGREDIENT_CONTAINER,
-                ContainerUiId.FURNACE_FUEL_CONTAINER,
-                ContainerUiId.FURNACE_RESULT_CONTAINER
-            ]);
-            expect(
-                packets.map((packet) =>
-                    packet.items.map((item) => Item.fromStackDescriptor({ protocolVersion: 2193 }, item).getName())
-                )
-            ).toEqual([['minecraft:iron_ore'], ['minecraft:coal'], ['minecraft:iron_ingot']]);
-        });
+                const packets = sent.filter(
+                    (packet): packet is InventoryContentPacket => packet instanceof InventoryContentPacket
+                );
+                expect(packets).toHaveLength(1);
+                expect(packets[0]).toMatchObject({
+                    windowId: WindowIds.FIRST,
+                    containerId: ContainerUiId.LEVEL_ENTITY_CONTAINER
+                });
+                expect(
+                    packets[0]?.items.map((item) => Item.fromStackDescriptor({ protocolVersion: 2193 }, item).getName())
+                ).toEqual(['minecraft:iron_ore', 'minecraft:coal', 'minecraft:iron_ingot']);
+                expect(packets[0]?.items[1]?.stackSize).toBe(8);
+            }
+        );
 
         it('opens a workstation without a contents packet, since it stores nothing', async () => {
             const { session, sent, inventories } = sessionFor();

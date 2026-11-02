@@ -21,8 +21,8 @@ describe('the slots a block screen owns', () => {
 
     it("puts a furnace's three slots in Bedrock's order: input, fuel, output", () => {
         expect(blockSlotOf(WindowTypes.FURNACE, ContainerUiId.FURNACE_INGREDIENT_CONTAINER, 0, 3)).toBe(0);
-        expect(blockSlotOf(WindowTypes.FURNACE, ContainerUiId.FURNACE_FUEL_CONTAINER, 0, 3)).toBe(1);
-        expect(blockSlotOf(WindowTypes.FURNACE, ContainerUiId.FURNACE_RESULT_CONTAINER, 0, 3)).toBe(2);
+        expect(blockSlotOf(WindowTypes.FURNACE, ContainerUiId.FURNACE_FUEL_CONTAINER, 1, 3)).toBe(1);
+        expect(blockSlotOf(WindowTypes.FURNACE, ContainerUiId.FURNACE_RESULT_CONTAINER, 2, 3)).toBe(2);
     });
 
     it('gives a blast furnace and a smoker their own ingredient container', () => {
@@ -32,8 +32,8 @@ describe('the slots a block screen owns', () => {
 
     it("puts a brewing stand's three bottles first, then the ingredient and the fuel", () => {
         expect(blockSlotOf(WindowTypes.BREWING_STAND, ContainerUiId.BREWING_STAND_RESULT_CONTAINER, 2, 5)).toBe(2);
-        expect(blockSlotOf(WindowTypes.BREWING_STAND, ContainerUiId.BREWING_STAND_INPUT_CONTAINER, 0, 5)).toBe(3);
-        expect(blockSlotOf(WindowTypes.BREWING_STAND, ContainerUiId.BREWING_STAND_FUEL_CONTAINER, 0, 5)).toBe(4);
+        expect(blockSlotOf(WindowTypes.BREWING_STAND, ContainerUiId.BREWING_STAND_INPUT_CONTAINER, 3, 5)).toBe(3);
+        expect(blockSlotOf(WindowTypes.BREWING_STAND, ContainerUiId.BREWING_STAND_FUEL_CONTAINER, 4, 5)).toBe(4);
     });
 
     it('refuses a container name the open screen does not use', () => {
@@ -48,11 +48,11 @@ describe('the slots a block screen owns', () => {
         });
         expect(blockSlotName(WindowTypes.FURNACE, 1)).toEqual({
             containerId: ContainerUiId.FURNACE_FUEL_CONTAINER,
-            slotId: 0
+            slotId: 1
         });
         expect(blockSlotName(WindowTypes.BREWING_STAND, 4)).toEqual({
             containerId: ContainerUiId.BREWING_STAND_FUEL_CONTAINER,
-            slotId: 0
+            slotId: 4
         });
     });
 
