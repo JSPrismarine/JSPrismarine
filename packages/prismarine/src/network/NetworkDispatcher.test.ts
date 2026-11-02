@@ -244,6 +244,44 @@ describe('network', () => {
             expect(targets).toStrictEqual([session]);
         });
 
+        it('processes frames from one client in arrival order while a handler awaits', async () => {
+            let markFirstStarted!: () => void;
+            let releaseFirst!: () => void;
+            const firstStarted = new Promise<void>((resolve) => (markFirstStarted = resolve));
+            const firstGate = new Promise<void>((resolve) => (releaseFirst = resolve));
+            const handled: string[] = [];
+            const { transport } = makeDispatcher({
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        if (!(packet instanceof TextPacket)) throw new Error('expected a text packet');
+                        const text = packet.getPacketData()?.message;
+                        if (text === undefined) throw new Error('expected a packet message');
+
+                        handled.push(`${text}:start`);
+                        if (text === 'first') {
+                            markFirstStarted();
+                            await firstGate;
+                        }
+                        handled.push(`${text}:finish`);
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            const first = transport.emitFrame(frameOf(message('first')), address('a:1'));
+            await firstStarted;
+            const second = transport.emitFrame(frameOf(message('second')), address('a:1'));
+            await new Promise<void>((resolve) => setImmediate(resolve));
+
+            expect(handled).toStrictEqual(['first:start']);
+
+            releaseFirst();
+            await Promise.all([first, second]);
+
+            expect(handled).toStrictEqual(['first:start', 'first:finish', 'second:start', 'second:finish']);
+        });
+
         it('drops a play packet that arrives before login has completed', async () => {
             const targets: unknown[] = [];
             const { transport, lines } = makeDispatcher({

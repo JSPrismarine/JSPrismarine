@@ -69,6 +69,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly logFilter: PacketLogFilter;
     private readonly createConnection: NetworkDispatcherOptions<C>['createConnection'];
     private readonly query: NetworkDispatcherOptions<C>['query'];
+    /** Keeps each reliable-ordered client stream sequential through async packet handlers. */
+    private readonly frameQueues = new WeakMap<ClientConnection, Promise<void>>();
 
     public constructor(options: NetworkDispatcherOptions<C>) {
         this.sessionManager = options.sessionManager;
@@ -82,7 +84,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
         options.transport.onConnect((connection) => this.handleConnect(connection));
         options.transport.onDisconnect((address, reason) => this.handleDisconnect(address, reason));
-        options.transport.onFrame((payload, address) => this.handleFrame(payload, address));
+        options.transport.onFrame((payload, address) => this.enqueueFrame(payload, address));
         options.transport.onRaw((payload, address) => this.handleRaw(payload, address));
     }
 
@@ -153,14 +155,30 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         .pipe((packet, connection) => this.gatePhase(packet, connection))
         .pipe((gated, connection) => this.dispatch(gated, connection));
 
-    private async handleFrame(payload: Buffer, inetAddr: InetAddress): Promise<void> {
-        let connection: ClientConnection | null;
-        if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
-            this.logger.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
-            return;
-        }
+    private enqueueFrame(payload: Buffer, inetAddr: InetAddress): Promise<void> {
+        const token = inetAddr.toToken();
+        const connection = this.sessionManager.get(token);
+        if (connection === null) return this.handleFrame(payload, inetAddr);
 
+        const previous = this.frameQueues.get(connection) ?? Promise.resolve();
+        const current = previous.then(() => this.handleFrame(payload, inetAddr, connection));
+        this.frameQueues.set(connection, current);
+        return current;
+    }
+
+    private async handleFrame(
+        payload: Buffer,
+        inetAddr: InetAddress,
+        expectedConnection?: ClientConnection
+    ): Promise<void> {
         try {
+            const token = inetAddr.toToken();
+            const connection = this.sessionManager.get(token);
+            if (connection === null || (expectedConnection !== undefined && connection !== expectedConnection)) {
+                this.logger.error(`Got a packet from a closed connection (${token})`);
+                return;
+            }
+
             await this.inbound.run(payload, connection);
         } catch (error: unknown) {
             this.logger.error(error);
