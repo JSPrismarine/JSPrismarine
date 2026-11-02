@@ -5,6 +5,10 @@ The decision and its arithmetic are in
 slice is sized for one agent, is independently committable, and leaves the tree working and the
 parity dashboard green.
 
+Project-wide roadmap status and the current milestone are maintained in the
+[data-driven vanilla plan](data-driven-vanilla.md#status-and-current-milestone); this file tracks
+the chunk-generation execution details.
+
 ## Before any slice
 
 Read [ADR 0002](../adr/0002-chunk-generation-architecture.md), then

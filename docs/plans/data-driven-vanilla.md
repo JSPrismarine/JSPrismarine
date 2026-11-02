@@ -1,5 +1,8 @@
 # Data-driven vanilla: plan, revision 2
 
+This plan is the source of truth for roadmap phase status and the current project milestone.
+Execution plans link here instead of choosing a separate project-wide milestone.
+
 Written 2026-10-24 from the seventeen research notes in [docs/research/](../research/README.md). Revision 1 of this file answered "how does a Bedrock server become data-driven" and concluded that Bedrock behavior packs are the only format worth loading. Eight further notes reopened that conclusion by measuring the Java side, and three of its load-bearing facts turned out to be wrong. This revision replaces it.
 
 What changed, in one paragraph. Mojang removed obfuscation from Java Edition in release 26.1, so Java's block properties, mob stats and behavior classes are readable from the official jar instead of needing a community dump or a hypothetical headless Endstone fork ([java-code-only-behavior.md](../research/java-code-only-behavior.md) section 1). Every one of Java 26.3's 35723 block states resolves to a real Bedrock palette entry, and the mapping is published as MIT data by GeyserMC, so Java-shaped content reaching a Bedrock client is a solved problem rather than a research risk ([java-to-bedrock-translation.md](../research/java-to-bedrock-translation.md) sections 1 and 10). And vanilla Java ships zero mcfunction files, so the function runtime that looked like the center of Java's data-driven model buys no parity at all ([commands-functions-and-datapack-execution.md](../research/commands-functions-and-datapack-execution.md) section 1).
@@ -143,6 +146,33 @@ Two tests keep the claim honest. A conformance test that the server's classifica
 The mapping module adds Chunker's five property tests per version, described in section 5. The dashboard rows are the behavior families of [engine-behavior-inventory.md](../research/engine-behavior-inventory.md) plus one row per mapping domain.
 
 ## 9. Phases
+
+### Status and current milestone
+
+Status as of 2026-11-02. A phase is complete when its scope and exit criterion are implemented.
+In-progress phases have code in the repository but still have an unmet exit criterion. No phase is
+wholly not started: Phase 5 already has implementation and parity coverage, though much of its
+long tail remains.
+
+| Phase | Status | Implementing packages | Parity rows |
+| --- | --- | --- | --- |
+| 0. Foundations | Complete | [`bedrock-data`](../../packages/bedrock-data/), [`mapping`](../../packages/mapping/), [`packs`](../../packages/packs/), [`molang`](../../packages/molang/), [`content`](../../packages/content/), [`parity`](../../packages/parity/) | [`registry.*`, `mapping.*`, and `conformance.*`](../../packages/parity/README.md#families) |
+| 1. Blocks and items from data | Complete | [`blocks`](../../packages/blocks/), [`items`](../../packages/items/), [`block-behaviors`](../../packages/block-behaviors/), [`item-behaviors`](../../packages/item-behaviors/) | [`blocks.properties`](../../packages/parity/src/blocks.properties.test.ts), [`items.components`](../../packages/parity/src/items.components.test.ts), [`integration.block-behaviors` and `integration.client-packets`](../../packages/parity/src/integration.test.ts) |
+| 2. Loot, recipes, advancements, and tags | Complete | [`loot`](../../packages/loot/), [`recipes`](../../packages/recipes/), [`advancements`](../../packages/advancements/), [`enchantments`](../../packages/enchantments/), [`predicates`](../../packages/predicates/), [`trading`](../../packages/trading/), [`content`](../../packages/content/) | [`loot.tables`](../../packages/parity/src/loot.tables.test.ts), [`loot.distribution`](../../packages/parity/src/loot.distribution.test.ts), [`recipes.registry`](../../packages/parity/src/recipes.registry.test.ts), [`integration.tags` and `integration.client-packets`](../../packages/parity/src/integration.test.ts) |
+| 3. Entities, spawning, and trading | Complete | [`entities`](../../packages/entities/), [`entity-goals`](../../packages/entity-goals/), [`entity-brains`](../../packages/entity-brains/), [`spawning`](../../packages/spawning/), [`trading`](../../packages/trading/) | [`entities.stats`](../../packages/parity/src/entities.stats.test.ts), [`entities.addactor`](../../packages/parity/src/entities.addactor.test.ts), [`integration.entity-runtime`, `integration.entity-coverage`, and `integration.spawning`](../../packages/parity/src/integration.test.ts) |
+| 4. World generation | In progress | [`worldgen`](../../packages/worldgen/), [`features`](../../packages/features/), [`structures`](../../packages/structures/), [`chunkgen`](../../packages/chunkgen/), [`prismarine`](../../packages/prismarine/) | [`worldgen.biomes`](../../packages/parity/src/worldgen.biomes.test.ts), [`worldgen.terrain`](../../packages/parity/src/worldgen.terrain.test.ts), [`worldgen.corpus`, `worldgen.features`, and `worldgen.structures`](../../packages/parity/src/worldgen.generation.test.ts), [`worldgen.determinism`](../../packages/parity/src/worldgen.determinism.test.ts), [`worldgen.dimensions`](../../packages/parity/src/worldgen.dimensions.test.ts) |
+| 5. Long tail and authoring surface | In progress | [`block-behaviors`](../../packages/block-behaviors/), [`item-behaviors`](../../packages/item-behaviors/), [`engine-systems`](../../packages/engine-systems/), [`commands`](../../packages/commands/), [`mcfunction`](../../packages/mcfunction/) | [`commands.tree`](../../packages/parity/src/commands.tree.test.ts), [`integration.block-behaviors` and `integration.spawning`](../../packages/parity/src/integration.test.ts) |
+
+Phase 2's advancement and enchantment implementations, and Phase 3's trading implementation,
+have package tests but no dedicated parity rows yet. This is missing dashboard coverage, not missing
+package implementations.
+
+The current next milestone is to finish [Phase 4: world generation](#phase-4-world-generation),
+the first incomplete phase in sequence. Its exit criteria still need a Java comparison over the
+planned reference region and feature counts against a measured reference-world distribution.
+`worldgen.terrain` currently covers nine columns, and `worldgen.features` compares against this
+server's corpus; the [parity README](../../packages/parity/README.md#what-a-row-does-not-claim)
+documents both limits. Update this section when the milestone changes.
 
 ### Phase 0: foundations
 
