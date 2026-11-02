@@ -2,7 +2,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { assert, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from './BlockEntityRegistry';
-import { Chest, Furnace, Sign } from './BlockEntities';
+import { Chest, Furnace, MobSpawner, Sign } from './BlockEntities';
 import { GenericBlockEntity } from './GenericBlockEntity';
 
 /** The compound a world file holds for one block entity. */
@@ -121,6 +121,48 @@ describe('blockentity', () => {
     });
 
     describe('modeled types', () => {
+        it('writes a spawner back with vanilla\u2019s rates and the fields that draw its mob', () => {
+            // A feature places a spawner with nothing but its mob. The client draws the cage
+            // empty unless the three display fields come with it, and the save should hold
+            // the rates vanilla would have written rather than leave every reader to default.
+            const spawner = BlockEntityRegistry.fromNBT(
+                nbt('MobSpawner', 0, 64, 0, (root) => {
+                    root.addValue('EntityIdentifier', new Types.StringVal('minecraft:silverfish'));
+                })
+            );
+            assert(spawner instanceof MobSpawner);
+            const written = spawner.toNBT();
+
+            expect(spawner.getEntityIdentifier()).toBe('minecraft:silverfish');
+            expect(spawner.getMinSpawnDelay()).toBe(200);
+            expect(spawner.getMaxSpawnDelay()).toBe(800);
+            expect(spawner.getSpawnCount()).toBe(4);
+            expect(spawner.getMaxNearbyEntities()).toBe(6);
+            expect(spawner.getRequiredPlayerRange()).toBe(16);
+            expect(spawner.getSpawnRange()).toBe(4);
+            expect(written.getShort('Delay', -1)).toBe(0);
+            expect(written.getShort('MinSpawnDelay', -1)).toBe(200);
+            expect(written.getFloat('DisplayEntityWidth', 0)).toBeCloseTo(0.8);
+            expect(written.getFloat('DisplayEntityHeight', 0)).toBeCloseTo(0.8);
+            expect(written.getFloat('DisplayEntityScale', 0)).toBe(1);
+        });
+
+        it('keeps a spawner\u2019s own rates and draws nothing for one with no mob', () => {
+            const spawner = BlockEntityRegistry.fromNBT(
+                nbt('MobSpawner', 0, 64, 0, (root) => {
+                    root.addValue('MinSpawnDelay', new Types.ShortVal(20));
+                    root.addValue('Delay', new Types.ShortVal(7));
+                })
+            );
+            assert(spawner instanceof MobSpawner);
+            const written = spawner.toNBT();
+
+            expect(spawner.getMinSpawnDelay()).toBe(20);
+            expect(spawner.getDelay()).toBe(7);
+            expect(written.getShort('MinSpawnDelay', -1)).toBe(20);
+            expect(written.has('DisplayEntityScale')).toBe(false);
+        });
+
         it('reads a furnace and writes its timers back', () => {
             const furnace = BlockEntityRegistry.fromNBT(
                 nbt('Furnace', 0, 64, 0, (root) => {
