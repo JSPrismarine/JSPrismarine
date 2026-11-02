@@ -8,6 +8,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import type { BlockEntityRequest } from '@jsprismarine/features';
 import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import type { BedrockBlockState } from '@jsprismarine/structures';
 import { createLegacyRandom } from '@jsprismarine/structures';
 import { describe, expect, it } from 'vitest';
 
@@ -85,8 +87,51 @@ const roomTemplate = () =>
 
 const TEMPLATE = 'test:room';
 
+/**
+ * A one-block template holding the plains house's entrance jigsaw: the block the street meets,
+ * which stands in for an east-facing doorstep stair once the house is placed.
+ */
+const doorstepTemplate = () =>
+    encode(
+        compound({
+            DataVersion: int(5023),
+            size: triple(1, 1, 1),
+            palette: new Set([
+                compound({ id: str('minecraft:jigsaw'), properties: compound({ orientation: str('west_up') }) })
+            ]),
+            blocks: new Set([
+                compound({
+                    pos: triple(0, 0, 0),
+                    state: int(0),
+                    nbt: compound({
+                        id: str('minecraft:jigsaw'),
+                        name: str('minecraft:building_entrance'),
+                        target: str('minecraft:building_entrance'),
+                        pool: str('minecraft:empty'),
+                        joint: str('aligned'),
+                        final_state: str(
+                            'minecraft:oak_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]'
+                        )
+                    })
+                })
+            ]),
+            entities: new Set()
+        })
+    );
+
+const DOORSTEP = 'test:doorstep';
+
 const store = () =>
-    createStructureTemplateStore(createTemplateSource(() => new Map([[TEMPLATE, roomTemplate()]]), new Map()));
+    createStructureTemplateStore(
+        createTemplateSource(
+            () =>
+                new Map([
+                    [TEMPLATE, roomTemplate()],
+                    [DOORSTEP, doorstepTemplate()]
+                ]),
+            new Map()
+        )
+    );
 
 const level: StructureLevel = {
     minY: -64,
@@ -100,29 +145,56 @@ const level: StructureLevel = {
 interface Recorded {
     readonly blockEntities: { x: number; y: number; z: number; request: BlockEntityRequest }[];
     readonly spawns: { type: string; x: number; y: number; z: number; yaw: number }[];
+    readonly blocks: { x: number; y: number; z: number; state: BedrockBlockState }[];
 }
 
-const place = (placement: Parameters<ReturnType<typeof store>['prepared']>[1]): Recorded => {
-    const recorded: Recorded = { blockEntities: [], spawns: [] };
+const place = (placement: Parameters<ReturnType<typeof store>['prepared']>[1], template = TEMPLATE): Recorded => {
+    const recorded: Recorded = { blockEntities: [], spawns: [], blocks: [] };
     const writer: StructureWriter = {
         level,
         blockAt: () => ({ name: 'minecraft:air', properties: {} }),
         setBlock: () => true,
-        setBedrockBlock: () => true,
+        setBedrockBlock: (x, y, z, state) => {
+            recorded.blocks.push({ x, y, z, state });
+            return true;
+        },
         setBlockEntity: (x, y, z, request) => recorded.blockEntities.push({ x, y, z, request }),
         spawnEntity: (type, x, y, z, yaw) => recorded.spawns.push({ type, x, y, z, yaw }),
         heightAt: () => 64,
         hasTag: () => false
     };
 
-    new TemplatePiece({ store: store(), template: TEMPLATE, position: [10, 64, 20], placement }).place(
+    new TemplatePiece({ store: store(), template, position: [10, 64, 20], placement }).place(
         writer,
         createLegacyRandom(1n)
     );
     return recorded;
 };
 
+/** The Bedrock state a Java state maps to, so a test names directions in Java's vocabulary. */
+const bedrockOf = (javaId: string, properties: Record<string, string>): BedrockBlockState => {
+    const result = javaBlockStateToBedrock(javaId, properties);
+    if (result.kind === 'unknown') throw new Error(`${javaId} is not a Java 26.3 block state`);
+    return result.bedrock;
+};
+
 describe('a template piece', () => {
+    it('turns the stair a jigsaw block stands in for with the rest of the house', () => {
+        // Java replaces the jigsaw with its `final_state` and then turns every state, so the
+        // doorstep faces the street whichever way the house was placed. The stair here is the
+        // only block, so a stair facing east after a quarter turn is the bug the village showed.
+        const stair = (facing: string) =>
+            bedrockOf('minecraft:oak_stairs', { facing, half: 'bottom', shape: 'straight', waterlogged: 'false' });
+
+        expect(place({}, DOORSTEP).blocks.map((block) => block.state)).toEqual([stair('east')]);
+        expect(place({ rotation: 'clockwise_90' }, DOORSTEP).blocks.map((block) => block.state)).toEqual([
+            stair('south')
+        ]);
+        expect(place({ rotation: 'counterclockwise_90' }, DOORSTEP).blocks.map((block) => block.state)).toEqual([
+            stair('north')
+        ]);
+    });
+
     it('attaches the block entity a template block carries', () => {
         const { blockEntities } = place({});
 
@@ -217,7 +289,7 @@ const APPEND_LOOT = {
 
 describe('a block entity a processor made rather than the template', () => {
     const placeGravel = (): Recorded => {
-        const recorded: Recorded = { blockEntities: [], spawns: [] };
+        const recorded: Recorded = { blockEntities: [], spawns: [], blocks: [] };
         const writer: StructureWriter = {
             level,
             blockAt: () => ({ name: 'minecraft:air', properties: {} }),
