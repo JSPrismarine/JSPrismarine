@@ -5,6 +5,7 @@ import type { Scenario } from '../scenario.mts';
 import { sleep, vec3 } from '../scenario.mts';
 
 const BLOCK_REPLY = /Found the block at|The block is |That chunk is not loaded/;
+const PLACEMENT_OFFSET_X = 32;
 
 /** Reads one block through the server console. */
 const blockAt = async (
@@ -46,18 +47,18 @@ export const placementOverlap: Scenario = {
     description: 'the server refuses a colliding block placed in the player body',
     run: async ({ client, server, playerName, log }) => {
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
-        server.command('setblock 0 63 0 minecraft:stone');
-        server.command('setblock 0 64 2 minecraft:stone');
+        server.command(`setblock ${PLACEMENT_OFFSET_X} 63 0 minecraft:stone`);
+        server.command(`setblock ${PLACEMENT_OFFSET_X} 64 2 minecraft:stone`);
         server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:dirt 1`);
-        server.command(`teleport ${playerName} 0.5 64 0.5`);
+        server.command(`teleport ${playerName} ${PLACEMENT_OFFSET_X + 0.5} 64 0.5`);
         const ready = server.waitForLine(/placement-overlap-ready/, 30_000);
         server.command('say placement-overlap-ready');
         await ready;
-        await waitForFeet(client, [0.5, 64, 0.5]);
+        await waitForFeet(client, [PLACEMENT_OFFSET_X + 0.5, 64, 0.5]);
 
         await client.input({ look: { yaw: 0, pitch: 21, frames: 0 } });
         await rightClick(client);
-        const control = await blockAt(server, 0, 65, 2, 'minecraft:dirt');
+        const control = await blockAt(server, PLACEMENT_OFFSET_X, 65, 2, 'minecraft:dirt');
         assert.match(control, /Found the block at/, `ordinary client placement reached the server: ${control}`);
 
         const rearmed = server.waitForLine(/placement-overlap-rearmed/, 10_000);
@@ -67,7 +68,7 @@ export const placementOverlap: Scenario = {
         await sleep(200);
         await client.input({ look: { yaw: 0, pitch: 85, frames: 0 } });
         await rightClick(client);
-        const overlap = await blockAt(server, 0, 64, 0, 'minecraft:air');
+        const overlap = await blockAt(server, PLACEMENT_OFFSET_X, 64, 0, 'minecraft:air');
         assert.match(overlap, /Found the block at/, `overlapping placement left the target air: ${overlap}`);
 
         const heldStack = server.waitForLine(/Removed \d+ items?/, 10_000);
