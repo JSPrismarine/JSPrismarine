@@ -234,7 +234,17 @@ describe('C3 / C5 / C8 - offline path', () => {
 });
 
 describe('C7 - hostile first datagram sequence number', () => {
-    it('bounds the NACK window instead of walking 16.7M holes', { tags: ['performance'] }, () => {
+    it('bounds the NACK window instead of expanding 16.7M holes', () => {
+        const { session } = makeSession();
+        const frameSet = new FrameSet();
+        frameSet.sequenceNumber = 0xffffff;
+        frameSet.frames = [];
+
+        session['handleFrameSet'](frameSet);
+        expect(session['lostFrameSequences'].size).toBeLessThanOrEqual(512);
+    });
+
+    it('handles a hostile first datagram within the performance budget', { tags: ['performance'] }, () => {
         const { session } = makeSession();
         const frameSet = new FrameSet();
         frameSet.sequenceNumber = 0xffffff;
@@ -243,7 +253,6 @@ describe('C7 - hostile first datagram sequence number', () => {
         const started = Date.now();
         session['handleFrameSet'](frameSet);
         expect(Date.now() - started).toBeLessThan(1000);
-        expect(session['lostFrameSequences'].size).toBeLessThanOrEqual(512);
     });
 });
 
@@ -417,17 +426,24 @@ describe('P4 - acknowledgments are resolved without expanding ranges', () => {
         return stream.getBuffer();
     };
 
-    it('decodes the full 24 bit space from ten bytes without allocating it', { tags: ['performance'] }, () => {
+    it('keeps the full 24 bit ACK space in one range without expanding sequences', () => {
         const datagram = rangeDatagram(0xc0, 0, 0xffffff);
         expect(datagram.byteLength).toBe(10);
 
         const ack = new ACK(datagram);
+        ack.decode();
+
+        expect(ack.ranges).toEqual([{ start: 0, end: 0xffffff }]);
+        expect(ack.sequenceNumbers).toEqual([]);
+    });
+
+    it('decodes a full 24 bit ACK range within the performance budget', { tags: ['performance'] }, () => {
+        const ack = new ACK(rangeDatagram(0xc0, 0, 0xffffff));
         const started = process.hrtime.bigint();
         ack.decode();
         const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
 
         expect(ack.ranges).toEqual([{ start: 0, end: 0xffffff }]);
-        expect(ack.sequenceNumbers).toEqual([]); // nothing was expanded
         expect(elapsedMs).toBeLessThan(50); // used to take ~350 ms and ~128 MiB
     });
 
