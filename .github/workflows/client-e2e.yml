@@ -71,29 +71,36 @@ jobs:
                   cache: false
 
             # The cloudburst data pack that `pnpm install` fetches, shared with other runs.
-            # The cinnabar checkout below lives inside this directory and has its own key,
-            # so it is excluded here.
+            # The cinnabar build uses a separate cache outside the workspace.
             - name: Cache the fetched sources
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: |
-                      node_modules/.cache/jsprismarine
-                      !node_modules/.cache/jsprismarine/cinnabar
+                  path: node_modules/.cache/jsprismarine
                   key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
                   restore-keys: |
                       ${{ runner.os }}-jsp-sources-
 
-            # The pinned checkout with its built client, controller, core, and compiled assets
-            # (about 1.5 GB). `ensure` is a no-op on a hit; a partially built miss self-heals
-            # because the build stamp is only written after every step succeeds.
-            - name: Cache the cinnabar build
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+            # PRs can restore the base branch cache, but caches they create are scoped to that PR.
+            # Restore on every run and save only on master so sibling PRs reuse one shared build.
+            - name: Restore the cinnabar build cache
+              id: cinnabar-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
-                  path: node_modules/.cache/jsprismarine/cinnabar
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar
                   key: ${{ runner.os }}-cinnabar-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
 
             - name: 🔨 Ensure the pinned cinnabar client
               run: pnpm --filter @jsprismarine/client-e2e run ensure
+              env:
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+
+            # Keep the reusable cache in the default branch scope. PR runs only restore it.
+            - name: Save the cinnabar build cache
+              if: ${{ github.ref == 'refs/heads/master' && steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar
+                  key: ${{ runner.os }}-cinnabar-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
 
             - name: 🍿 Install ffmpeg for recording
               if: ${{ inputs.record }}
