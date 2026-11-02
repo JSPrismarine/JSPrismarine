@@ -62,10 +62,12 @@ export class CinnabarClient {
      * Launches a hidden client with an isolated user root and an offline display name.
      *
      * @param options.userRoot - Absolute directory for `CINNABAR_USER_ROOT`; created when missing.
+     * @param options.clientBinary - Protocol-specific client executable from the external Cargo cache.
      * @param options.muteAudio - Mute the client through its saved master volume before launch.
      */
     async launch(options: {
         userRoot: string;
+        clientBinary: string;
         muteAudio: boolean;
         displayName?: string;
         size?: [number, number];
@@ -77,6 +79,7 @@ export class CinnabarClient {
             fs.writeFileSync(settings, `${JSON.stringify({ schema: 2, values: { main_volume: 0 } }, null, 4)}\n`);
         }
         await this.call('launch_client', {
+            binary: options.clientBinary,
             headless: true,
             size: options.size ?? [1280, 720],
             args: ['--display-name', options.displayName ?? 'jsp-e2e'],
