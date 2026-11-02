@@ -7,7 +7,7 @@ import { fakePlayer } from '@jsprismarine/prismarine/testing/fakePlayer.test.hel
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import type { Entity } from '@jsprismarine/prismarine/entity/Entity';
-import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
+import { dimensionTypeOf, Dimensions, FIRST_CUSTOM_DIMENSION_ID } from '@jsprismarine/prismarine/world/DimensionType';
 import type { DimensionType } from '@jsprismarine/prismarine/world/DimensionType';
 import { Position } from '@jsprismarine/prismarine/world/Position';
 import type { World } from '@jsprismarine/prismarine/world/World';
@@ -51,16 +51,17 @@ const worldOf = (dimension: DimensionType): World =>
     });
 
 let destination: World | undefined;
-const target = (): World => {
-    destination ??= worldOf(Dimensions.Nether);
+const target = (dimension: DimensionType = Dimensions.Nether): World => {
+    destination ??= worldOf(dimension);
     return destination;
 };
 
 /**
- * Every packet `changeWorld` sends for an Overworld to Nether change, then the arrival chunk the
- * change queued, in the order the client receives them.
+ * Every packet `changeWorld` sends for an Overworld to a destination change, then the arrival
+ * chunk the change queued, in the order the client receives them.
  */
-const captureSequence = async (): Promise<NetworkPacket<unknown>[]> => {
+const captureSequence = async (dimension: DimensionType = Dimensions.Nether): Promise<NetworkPacket<unknown>[]> => {
+    destination = undefined;
     const { player, sent } = fakePlayer();
     const session = player.getNetworkSession();
     // A tracked mob in the world being left, so the change has an actor to remove.
@@ -75,7 +76,7 @@ const captureSequence = async (): Promise<NetworkPacket<unknown>[]> => {
     // A plain `Vector3`, which is what the packet carries. A `Position` would drag its world into
     // the data comparison.
     const position = Position.fromObject({ x: 100.5, y: 70, z: -20.5 });
-    const arrival: Arrival = { world: target(), position, yaw: 90, pitch: 10 };
+    const arrival: Arrival = { world: target(dimension), position, yaw: 90, pitch: 10 };
     sent.length = 0;
 
     await session.changeWorld(arrival);
@@ -132,10 +133,13 @@ const withFloat32Position = (sent: object): object => {
 describe(FAMILIES.protocolDimensionChange, () => {
     const codecs = registeredCodecs;
     let sequence: NetworkPacket<unknown>[] = [];
+    let customSequence: NetworkPacket<unknown>[] = [];
     let names: string[] = [];
+    const customDimension = dimensionTypeOf(Dimensions.Overworld.java, 'client_e2e:custom', FIRST_CUSTOM_DIMENSION_ID);
 
     beforeAll(async () => {
         sequence = await captureSequence();
+        customSequence = await captureSequence(customDimension);
         names = sequence.map((packet) => packet.getName());
     });
 
@@ -152,6 +156,28 @@ describe(FAMILIES.protocolDimensionChange, () => {
         const chunks = sequence.filter((packet) => packet instanceof LevelChunkPacket);
         expect(chunks.length).toBeGreaterThan(0);
         expect(chunks.every((packet) => packet.getPacketData()?.dimension === Dimensions.Nether.bedrockId)).toBe(true);
+    });
+
+    it('sends the assigned custom id in the change and its arrival chunks', () => {
+        const change = customSequence.find((packet) => packet instanceof ChangeDimensionPacket);
+        expect(change?.getPacketData()?.dimension).toBe(FIRST_CUSTOM_DIMENSION_ID);
+
+        const chunks = customSequence.filter((packet) => packet instanceof LevelChunkPacket);
+        expect(chunks.length).toBeGreaterThan(0);
+        expect(chunks.every((packet) => packet.getPacketData()?.dimension === FIRST_CUSTOM_DIMENSION_ID)).toBe(true);
+
+        for (const codec of codecs) {
+            for (const packet of [change, ...chunks]) {
+                if (packet === undefined) continue;
+                const trip = roundTrip(codec, packet);
+                expect(trip.reencoded, `${packet.getName()} at protocol ${codec.protocolVersion}`).toStrictEqual(
+                    trip.bytes
+                );
+                expect(trip.data, `${packet.getName()} at protocol ${codec.protocolVersion}`).toMatchObject({
+                    dimension: FIRST_CUSTOM_DIMENSION_ID
+                });
+            }
+        }
     });
 
     it('registers both codecs this row compares', () => {

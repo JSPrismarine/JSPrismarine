@@ -267,14 +267,10 @@ is present.
 
 The portal rules know the three vanilla types only. A nether portal frame lights in a custom
 dimension, since only the End refuses lighting, but the portal leads nowhere because no rule links
-that type to another, so only a `/teleport` or `/execute in` can name a custom dimension. For a
-player, even that stops short. `PlayerSession.changeWorld` refuses a target world whose dimension
-type is custom, logs an error naming the player, the world, the type and its Bedrock id, and
-leaves the player where they stand. No client has been verified to accept `ChangeDimension` with
-an id of 1000 or more, which is the first open question below, and the refusal stays until one
-has. Entities that are not players move freely, since their trip sends nothing about the
-dimension to a client. A player whose record was written in a custom dimension still joins there,
-because the login moves them without a `ChangeDimension`.
+that type to another. Players and other entities can travel there through `/teleport` or
+`/execute in`. `PlayerSession.changeWorld` sends the custom Bedrock id after `DimensionData`
+announces it during login. The client-e2e suite verifies travel to and from custom id 1000 with its
+pinned Cinnabar 1.26.60 client; the retail Bedrock client has not been checked.
 
 ## Portals
 
@@ -474,29 +470,22 @@ Three rows in `@jsprismarine/parity` guard this ([parity.md](parity.md) explains
 
 ## Open questions
 
-The implementation plan listed five questions only a real Bedrock client can answer. None has been
-run against one; every slice that touched them says so in its Changeset, and the plan's client
-integration test has not been written. What the code does today, and what remains to check:
+The implementation plan listed five questions for a live Bedrock client. The client-e2e suite now
+checks Nether, End, and custom dimension travel with its pinned Cinnabar 1.26.60 client. Custom
+dimension support remains unverified for Mojang's retail Bedrock client, as do four other questions:
 
-1. **Does the client accept `ChangeDimension` to an id of 1000 or more, and then `LevelChunk` with
-   that id?** The server sends custom ids on the join, in `StartGame` and `DimensionData`, as
-   Dragonfly does; Mojang's payload comment lists only 0 to 3. On a change it does not try.
-   `PlayerSession.changeWorld` refuses a world of a custom type with a logged error and the player
-   stays put, so until this is verified a custom dimension is reachable by joining in it and by
-   entities that are not players. Test with one custom `dimension_type` before lifting the
-   refusal.
-2. **Does the client keep inventory, effects and attributes across a change?** Not yet verified
+1. **Does the client keep inventory, effects and attributes across a change?** Not yet verified
    against a real client. The server re-sends attributes, the inventory and the spawn position
    after `EndLoadingScreen` as the safe default; effects are not re-sent. A manual run would show
    whether the re-send is needed and whether effects survive without one.
-3. **Does the client honor `StartGame.generator` of 3 (Nether) or 4 (End) when the spawn dimension
+2. **Does the client honor `StartGame.generator` of 3 (Nether) or 4 (End) when the spawn dimension
    is not the Overworld, or must it describe the Overworld stem?** The server always sends the
    Overworld stem's generator. Not yet verified against a real client.
-4. **Does a 2225 client accept a `DimensionDefinition` with `Cloud Height` and `Render Clouds`
+3. **Does a 2225 client accept a `DimensionDefinition` with `Cloud Height` and `Render Clouds`
    appended, and a 2193 client one without?** Both layouts round-trip through the codecs and the
    `protocol.dimension-change` row pins them. The field order has not been verified against a real
    client.
-5. **How many chunks must arrive before the client closes the loading screen?** The server queues
+4. **How many chunks must arrive before the client closes the loading screen?** The server queues
    the real chunks around the arrival and streams them from the middle outward; it does not send
    Geyser's empty chunks in radius 3. The bundled `@jsprismarine/client` answers
    `StartLoadingScreen` when `ChangeDimension` arrives and sends `PlayerAction ChangeDimensionAck`

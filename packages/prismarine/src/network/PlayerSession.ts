@@ -1540,13 +1540,11 @@ export default class PlayerSession {
      * screen, so a move between two worlds of the same Bedrock id detours through another
      * dimension first.
      *
-     * Two arrivals are refused without side effects. While a change is pending, another is
-     * logged at debug and dropped: the player is still ticked on the loading screen, and one
-     * who arrived inside the exit portal would otherwise be sent back once the 10 tick
-     * cooldown ran out, before the client ever closed the first screen. A world of a custom
-     * dimension type is logged as an error and dropped: a `ChangeDimension` with an id of
-     * {@link import('../world/DimensionType').FIRST_CUSTOM_DIMENSION_ID} or more has not been
-     * verified against a real client, so this stays on the vanilla three until one is.
+     * A second arrival while a change is pending is logged at debug and dropped: the player
+     * is still ticked on the loading screen, and one who arrived inside the exit portal would
+     * otherwise be sent back once the 10 tick cooldown ran out, before the client ever closed
+     * the first screen. Custom dimension ids are sent after the level announces them in
+     * `DimensionData`.
      * @param arrival - The world, feet position and rotation the player lands at.
      */
     public async changeWorld(arrival: Arrival): Promise<void> {
@@ -1564,15 +1562,6 @@ export default class PlayerSession {
                 );
             return;
         }
-        if (target.custom) {
-            this.server
-                .getLogger()
-                .error(
-                    `Refused to move ${player.getName()} to ${world.getName()}: its dimension type ${target.id} has the custom Bedrock id ${target.bedrockId}, which no client has been verified to accept in ChangeDimension`
-                );
-            return;
-        }
-
         const from = player.getWorld();
         const left = from.getDimension();
 

@@ -162,6 +162,6 @@ The worker pool is shared, so a Nether chunk and an Overworld chunk compete for 
 workers. Lazy `load` means the first portal trip pays the destination's pipeline build
 (`RandomState` costs 55 to 134 ms per settings and seed); `load: 'eager'` moves that to startup.
 
-Whether a Bedrock client accepts `ChangeDimension` to an id of 1000 or more, and whether it keeps
-inventory and effects across a dimension change, have not been verified. The plan marks the slices
-that must test both against a real client before relying on them.
+The client-e2e suite verifies `ChangeDimension` to custom id 1000 and arrival chunks with its
+pinned Cinnabar 1.26.60 client. Mojang's retail Bedrock client remains unverified. Inventory and
+effects across a dimension change also remain unverified against a client.

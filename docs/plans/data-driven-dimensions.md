@@ -67,10 +67,10 @@ Commit messages follow the repository's Conventional Commits rules
 
 Record the answer in `docs/data-driven/dimensions.md` (chunk 23) when found.
 
-1. Does the client accept `ChangeDimension` to a `Dimension ID` of 1000 or more, and does it then
-   accept `LevelChunk` with that id? Dragonfly registers such ids; Mojang's payload comment lists
-   only 0 to 3. Chunks 17 and 16 send them; test with one custom `dimension_type` before relying
-   on it.
+1. Does Mojang's retail client accept `ChangeDimension` to a `Dimension ID` of 1000 or more, and
+   then accept `LevelChunk` with that id? The client-e2e suite verifies both with its pinned
+   Cinnabar 1.26.60 client, and player travel is enabled. Test the retail client before claiming
+   compatibility with it.
 2. Does the client keep inventory, effects and attributes across `ChangeDimension`? Geyser
    re-sends attributes and relies on the Java server for effects. Chunk 16 re-sends attributes
    and inventory after `EndLoadingScreen` as the safe default; measure whether it is needed.
@@ -865,8 +865,9 @@ change does not mark old-world hashes loaded (the storage note's observation abo
 
 **Changeset.** `@jsprismarine/prismarine` patch.
 
-**Verify.** **package** on prismarine, **types**, **custom**. Then a manual run against a real
-client for open questions 2 and 5; record the result in the commit body.
+**Verify.** **package** on prismarine, **types**, **custom**, and the client-e2e change sequence.
+The client-e2e suite now verifies custom ids with Cinnabar 1.26.60; inventory/effect persistence,
+loading-screen chunk requirements, and retail-client behavior remain open.
 
 **Done when** `Player.setWorld` is a one-line forwarder and the tests pass.
 
@@ -893,8 +894,8 @@ carries the spawn's dimension id rather than the join world's.
 
 **Changeset.** `@jsprismarine/prismarine` patch.
 
-**Verify.** **package** on prismarine, **types**, **custom**. Manual check of open questions 1
-and 3 with a custom `dimension_type` in a test datapack; note the result in the commit body.
+**Verify.** **package** on prismarine, **types**, **custom**, and the client-e2e custom-dimension
+trip. Cinnabar 1.26.60 accepts id 1000; the retail-client result remains open.
 
 **Done when** `rg 'instanceof Flat' packages/prismarine/src` is empty.
 
@@ -1215,9 +1216,9 @@ release after chunks 8, 9 and 11 ship.
 1. **The `World` constructor change in chunk 14 touches every `World*.test.ts`.** There are more
    than thirty. Build `fakeLevel()` first and migrate tests by search and replace; do not weaken
    any assertion to get there.
-2. **Open question 1 (ids of 1000 or more).** If the client refuses, custom dimensions still
-   load server-side but a player cannot enter one; `changeWorld` must then refuse with a clear
-   error rather than hang the client on the loading screen. Decide in chunk 16.
+2. **Custom ids above 999.** Cinnabar 1.26.60 accepts custom id 1000 in client-e2e. Mojang's
+   retail-client behavior remains unverified; track that compatibility separately from server
+   travel support.
 3. **The shared pool in chunk 12 changes `DataDrivenGenerator`'s cache shape.** The corpus is the
    net; a byte difference there is a bug, not a re-capture.
 4. **Chunk 2's composite `worldgen` registry id** is a judgment call about `Definitions`' key
