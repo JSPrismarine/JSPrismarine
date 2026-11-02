@@ -1,0 +1,110 @@
+- name: "Beginner"
+  color: "fbca04"
+  description: "Good issue for somewhat new contributors"
+
+- name: "Bug"
+  color: "d73a4a"
+  description: "Something not working as it should or even going terribly wrong"
+
+- name: "Dependants"
+  color: "4ADECD"
+  description: "Issues and bugs for people leveraging us as dependency"
+
+- name: "Dependency"
+  color: "ededed"
+  description: "PRs and issues related to the packages we depend on"
+
+- name: "Developer Experience"
+  color: "44E11C"
+  description: "Things related to making our development easier"
+
+- name: "DevOps"
+  color: "ededed"
+  description: "Deployments of websites, example servers etc"
+
+- name: "Documentation"
+  color: "0075ca"
+  description: "Improvements, additions or issues  in our documentation"
+
+- name: "Duplicate"
+  color: "cfd3d7"
+  description: "Already brought up in a previous issue (please use the search function before submitting an issue)"
+
+- name: "Enhancement"
+  color: "a2eeef"
+  description: "New feature or request that aren’t blocking and would just be “nice to have”"
+
+- name: "Good First Issue"
+  color: "7057ff"
+  description: "Perfect for newcomers"
+
+- name: "hacktoberfest-accepted"
+  color: "FDB50E"
+
+- name: "Help Wanted"
+  color: "AD75A3"
+  description: "A pair of extra hands and attention is needed to solve this issue or get this PR ready"
+
+- name: "Invalid"
+  color: "e4e669"
+  description: "Something about this doesn't seem right"
+
+- name: "Low Priority"
+  color: "f3ffaf"
+  description: "There are more pressing blockers to deal with first"
+
+- name: "Nethernet"
+  color: "ed1e1f"
+  description: "Related to nethernet/webrtc"
+
+- name: "Networking"
+  color: "315478"
+  description: "Raknet and general networking features or issues"
+
+- name: "Performance"
+  color: "0E7F06"
+  description: "Any issue or feature related to performance, no matter if it’s network, tick, etc"
+
+- name: "Protocol"
+  color: "CB2A7C"
+  description: "Minecraft Bedrock Edition protocol changes and updates"
+
+- name: "Question"
+  color: "d876e3"
+  description: "User wanted more information"
+
+- name: "RFC"
+  color: "1d76db"
+  description: "Request for comments"
+
+- name: "Security"
+  color: "d93f0b"
+  description: "Security or privacy issue"
+
+- name: "Stale"
+  color: "BFD4F2"
+  description: "This PR has not had any recent activity or response from the author"
+
+- name: "Tests"
+  color: "7C64F0"
+  description: "Testing related issues/PRs."
+
+- name: "Unconfirmed"
+  color: "1FD145"
+  description: "The behavior is not reproducible"
+
+- name: "Waiting On Author"
+  color: "5319e7"
+  description: "We need more information from the original author"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "Work In Progress"
+  color: "7DB2F3"
+  description: "Somebody has taken ownership of this issue and is currently working on it"
+
+- name: "⛔ PR Is Blocked"
+  color: "B60205"
+  description: "PR is blocked by something outside of the author's control, protected from stalebot"
