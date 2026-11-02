@@ -26,6 +26,57 @@ const WAYPOINT_RADIUS = 0.7;
 /** How many ticks a walk may make no progress before the navigator gives up. */
 const STUCK_TICKS = 100;
 
+/** Java's `PathNavigation.MAX_TIME_RECOMPUTE` cadence, in goal ticks. */
+const PATH_RECOMPUTE_TICKS = 20;
+
+/** Compares a path request profile, including the values held in its records. */
+const sameProfile = (left: NavigationProfile, right: NavigationProfile): boolean => {
+    if (
+        left.kind !== right.kind ||
+        left.height !== right.height ||
+        left.stepHeight !== right.stepHeight ||
+        left.maxFallDistance !== right.maxFallDistance ||
+        left.canPathOverWater !== right.canPathOverWater ||
+        left.canPathOverLava !== right.canPathOverLava ||
+        left.canPathFromAir !== right.canPathFromAir ||
+        left.canFloat !== right.canFloat ||
+        left.canSink !== right.canSink ||
+        left.canSwim !== right.canSwim ||
+        left.canWalk !== right.canWalk ||
+        left.canWalkInLava !== right.canWalkInLava ||
+        left.canClimbLadders !== right.canClimbLadders ||
+        left.canStandOnPowderSnow !== right.canStandOnPowderSnow ||
+        left.canFly !== right.canFly ||
+        left.canBreach !== right.canBreach ||
+        left.canJump !== right.canJump ||
+        left.canOpenDoors !== right.canOpenDoors ||
+        left.canOpenIronDoors !== right.canOpenIronDoors ||
+        left.canPassDoors !== right.canPassDoors ||
+        left.canBreakDoors !== right.canBreakDoors ||
+        left.avoidWater !== right.avoidWater ||
+        left.avoidSun !== right.avoidSun ||
+        left.avoidPortals !== right.avoidPortals ||
+        left.avoidDamageBlocks !== right.avoidDamageBlocks ||
+        left.isAmphibious !== right.isAmphibious ||
+        left.blocksToAvoid.length !== right.blocksToAvoid.length ||
+        !left.blocksToAvoid.every((block, index) => block === right.blocksToAvoid[index])
+    ) {
+        return false;
+    }
+
+    const leftMalus = left.pathfindingMalus;
+    const rightMalus = right.pathfindingMalus;
+    if (leftMalus === undefined || rightMalus === undefined) return leftMalus === rightMalus;
+
+    const leftTypes = Object.keys(leftMalus);
+    const rightTypes = Object.keys(rightMalus);
+    return leftTypes.length === rightTypes.length && leftTypes.every((type) => leftMalus[type] === rightMalus[type]);
+};
+
+/** Whether two requests target the same whole-block destination. */
+const sameBlock = (left: EntityPosition | undefined, right: EntityPosition): boolean =>
+    left !== undefined && left.x === right.x && left.y === right.y && left.z === right.z;
+
 /** What one entity's movement needs from the rest of the package. */
 export interface NavigatorContext {
     /** Moves, looks and jumps; undefined when the caller supplied no actuator. */
@@ -41,6 +92,11 @@ export class Navigator {
     private path: Path | undefined;
     private waypoint = 0;
     private destination: EntityPosition | undefined;
+    private plannedTarget: EntityPosition | undefined;
+    private plannedGoalRadius: number | undefined;
+    private plannedProfile: NavigationProfile | undefined;
+    private ticksUntilRecompute = 0;
+    private pathNeedsRecompute = false;
     private speed = 1;
     private radius = 1;
     private idleTicks = 0;
@@ -75,27 +131,52 @@ export class Navigator {
         this.destination = destination;
         this.speed = speedMultiplier;
         this.radius = goalRadius;
-        this.waypoint = 0;
         this.idleTicks = 0;
         this.lastDistance = Number.POSITIVE_INFINITY;
 
         const view = this.context.navigation();
         if (view === undefined) {
             this.path = undefined;
+            this.clearPlannedRoute();
+            this.waypoint = 0;
             actuator.moveTo(destination, speedMultiplier);
             return true;
         }
 
-        this.path = findPath(view, this.context.profile(), {
+        const target = blockOf(destination);
+        const goalRadiusBlocks = Math.max(0, Math.floor(goalRadius));
+        const profile = this.context.profile();
+        if (
+            this.path !== undefined &&
+            !this.pathNeedsRecompute &&
+            this.ticksUntilRecompute > 1 &&
+            sameBlock(this.plannedTarget, target) &&
+            this.plannedGoalRadius === goalRadiusBlocks &&
+            this.plannedProfile !== undefined &&
+            sameProfile(this.plannedProfile, profile)
+        ) {
+            this.ticksUntilRecompute -= 1;
+            this.step();
+            return true;
+        }
+
+        this.waypoint = 0;
+        this.path = findPath(view, profile, {
             from: actuator.position(),
             to: destination,
-            goalRadius: Math.max(0, Math.floor(goalRadius))
+            goalRadius: goalRadiusBlocks
         });
         if (this.path === undefined) {
             this.destination = undefined;
+            this.clearPlannedRoute();
             return false;
         }
 
+        this.plannedTarget = target;
+        this.plannedGoalRadius = goalRadiusBlocks;
+        this.plannedProfile = profile;
+        this.ticksUntilRecompute = PATH_RECOMPUTE_TICKS;
+        this.pathNeedsRecompute = false;
         this.step();
         return true;
     }
@@ -148,10 +229,16 @@ export class Navigator {
         }
 
         const current = path.nodes[this.waypoint];
-        if (current === undefined) return false;
+        if (current === undefined) {
+            this.pathNeedsRecompute = true;
+            return false;
+        }
         if (distanceBetween(here, centerOf(current)) <= WAYPOINT_RADIUS) {
             this.waypoint += 1;
-            if (this.waypoint >= path.nodes.length) return false;
+            if (this.waypoint >= path.nodes.length) {
+                this.pathNeedsRecompute = true;
+                return false;
+            }
         }
         this.step();
         return true;
@@ -162,7 +249,17 @@ export class Navigator {
         this.path = undefined;
         this.destination = undefined;
         this.waypoint = 0;
+        this.clearPlannedRoute();
         this.context.actuator?.stopMoving();
+    }
+
+    /** Invalidates the cached request whenever it no longer describes a usable route. */
+    private clearPlannedRoute(): void {
+        this.plannedTarget = undefined;
+        this.plannedGoalRadius = undefined;
+        this.plannedProfile = undefined;
+        this.ticksUntilRecompute = 0;
+        this.pathNeedsRecompute = false;
     }
 
     /**
