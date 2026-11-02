@@ -1,6 +1,6 @@
 # @jsprismarine/kernel
 
-The module kernel from the [server re-architecture plan](../../docs/plans/server-rearchitecture.md).
+The module kernel from the [server re-architecture plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/server-rearchitecture.md).
 It owns three things: module lifecycle, a token-keyed service registry, and the event bus. Worlds,
 sessions, commands, networking, and the tick loop are modules; first-party and third-party modules
 use the same API.

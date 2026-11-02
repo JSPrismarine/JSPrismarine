@@ -1,6 +1,6 @@
 # @jsprismarine/parity
 
-The parity test suite of the [data-driven vanilla plan](../../docs/plans/data-driven-vanilla.md)
+The parity test suite of the [data-driven vanilla plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md)
 (section 8): Vitest comparisons between what the server ships and the reference data the
 repository carries, with a dashboard. Roadmap status and the current milestone are in the plan's
 [section 9](../../docs/plans/data-driven-vanilla.md#status-and-current-milestone). Private, never
@@ -105,7 +105,7 @@ protocol explicit; the determinism row separately checks behavior across generat
 `worldgen.dimensions` has two halves. The first parses the pinned datapack's four
 `dimension_type` and seven `worldgen/world_preset` documents through the public parsers of
 `@jsprismarine/worldgen` and compares them, field by field, with the tables in
-[the dimension research note](../../docs/research/data-driven-dimensions.md) (sections 1.1, 1.2
+[the dimension research note](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/data-driven-dimensions.md) (sections 1.1, 1.2
 and 2.5), the three Bedrock overlay rows of `@jsprismarine/mapping` included. The second
 generates chunk 0,0 of each `minecraft:normal` stem at seed 1234 through the one shared noise
 generator and reads the payload back the way a client would: blocks stay inside the Bedrock
@@ -146,7 +146,7 @@ that row holds each registry's pinned entry count, so a Java version that adds a
 fails rather than widening the gap.
 
 The entity stat rows work the same way. Which edition decides a stat is settled in
-[ADR 0001](../../docs/adr/0001-entity-stat-authority.md) and held in
+[ADR 0001](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/adr/0001-entity-stat-authority.md) and held in
 `@jsprismarine/entities`; `statRuling` turns a measured disagreement into a verdict and a
 reason, and `allowlist.ts` builds the row from that. A `bedrock` or `exception` ruling is an
 accepted gap, a `java` ruling is a defect, and the allow-list test fails if a row's kind or

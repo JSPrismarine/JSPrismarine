@@ -166,7 +166,7 @@ its corners.
 Against Bedrock the positions cannot match at all, and this is not a gap that effort closes.
 Bedrock's generator uses an undocumented random source, so the same world seed picks different
 positions even where the rules agree.
-[cross-edition-worldgen-parity.md](../../docs/research/cross-edition-worldgen-parity.md) section 4
+[cross-edition-worldgen-parity.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/cross-edition-worldgen-parity.md) section 4
 measures where the rules do agree: coal ore's counts, heights, sizes, discard chances and
 distributions are identical in the two editions, the amethyst geode agrees on chance, height
 range, block layers and layer probabilities, and the plains flower patch agrees on its 64 tries

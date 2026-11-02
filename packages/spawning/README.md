@@ -136,7 +136,7 @@ Mojang documents the pool names and every component's parameters, but the spawn-
 field for the algorithm's attempt rate, population caps, sampling radius, herd placement, or density
 radius. It also does not state which light value `minecraft:brightness_filter` compares or what
 `adjust_for_weather` does to it. The research note
-[`docs/research/bedrock-entities-spawning-loot-trading.md`](../../docs/research/bedrock-entities-spawning-loot-trading.md)
+[`docs/research/bedrock-entities-spawning-loot-trading.md`](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/bedrock-entities-spawning-loot-trading.md)
 section 4 lists the gaps one by one.
 
 The one place numbers appear is the "Typical Cap" column of `EntitySpawningDeepDive.md`, and every
@@ -174,7 +174,7 @@ initial position. Mojang's Bedrock spawn-rule files do not carry this distance.
 | `despawnFloorY` | -128 | Published, and the same in both editions. |
 
 The project chose Bedrock's model over Java's deliberately.
-[`docs/plans/data-driven-vanilla.md`](../../docs/plans/data-driven-vanilla.md) section 12 decision 3
+[`docs/plans/data-driven-vanilla.md`](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md) section 12 decision 3
 records why: Java's model is implementable and invisible to a Bedrock client, and it would break
 every farm a Bedrock player has built.
 

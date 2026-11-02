@@ -10,6 +10,19 @@ on:
         types: [opened, synchronize, labeled]
 
 jobs:
+    docs:
+        name: 📖 Build documentation
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 📖 Build documentation
+              run: pnpm run build:docs
+
     renovate:
         name: 🔍 Update Lockfile & Add Changeset
         runs-on: ubuntu-latest

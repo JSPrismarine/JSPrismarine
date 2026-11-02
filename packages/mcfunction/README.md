@@ -177,6 +177,6 @@ broken file is left out of the registry and the rest of the stack still loads.
 
 ## Further reading
 
-[The research note on commands, functions and datapack execution](../../docs/research/commands-functions-and-datapack-execution.md)
+[The research note on commands, functions and datapack execution](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/research/commands-functions-and-datapack-execution.md)
 is where the facts above come from, including what was measured in Mojang's own files and what
 could not be confirmed.

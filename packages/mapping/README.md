@@ -109,7 +109,7 @@ The tables under `src/tables/` are generated and committed. They come from the p
 `packages/bedrock-data/sources.json`: GeyserMC/mappings `blocks.nbt` (positional over Java block
 state ids) joined against Mojang's `reports/blocks.json`, GeyserMC `items.json` and `biomes.json`,
 and this repository's own BDS 1.26.51.1 captures as the Bedrock source of truth. The GeyserMC data
-is MIT; see [NOTICE](NOTICE).
+is MIT; see [NOTICE](https://github.com/JSPrismarine/JSPrismarine/blob/master/packages/mapping/NOTICE).
 
 To regenerate after a version bump:
 
