@@ -1162,6 +1162,49 @@ describe('network', () => {
                 expect(craftingInput.get(1)?.getAmount()).toBe(1);
             });
 
+            it('auto-crafts a recipe from inventory and consumes the requested ingredients', async () => {
+                const inventory = new HumanInventory();
+                inventory.setItem(
+                    0,
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:oak_planks' }), count: 2 })
+                );
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_RECIPE_AUTO,
+                                    recipeNetId: 1,
+                                    repetitions: 1
+                                },
+                                {
+                                    type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                    count: 2,
+                                    source: slot(0)
+                                },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 4,
+                                    source: createdOutput,
+                                    destination: slot(1)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    await sticksServer()
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                expect(inventory.getItem(0).getName()).toBe('minecraft:air');
+                expect(inventory.getItem(1).getName()).toBe('minecraft:stick');
+                expect(inventory.getItem(1).getAmount()).toBe(4);
+            });
+
             it('takes no more out of the created output than the craft made', async () => {
                 // The step's count was believed, so one craft placed as many sticks as it asked for.
                 const inventory = new HumanInventory();

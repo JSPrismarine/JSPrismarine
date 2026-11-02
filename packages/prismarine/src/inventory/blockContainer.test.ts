@@ -411,7 +411,7 @@ describe('a block container a player can put things in', () => {
         await apply(server, player, [
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
-                at(ContainerUiId.FURNACE_RESULT_CONTAINER, 0),
+                at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2),
                 8
             )
         ]);
@@ -422,7 +422,7 @@ describe('a block container a player can put things in', () => {
         await apply(server, player, [
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
-                at(ContainerUiId.FURNACE_FUEL_CONTAINER, 0),
+                at(ContainerUiId.FURNACE_FUEL_CONTAINER, 1),
                 8
             )
         ]);
@@ -430,7 +430,7 @@ describe('a block container a player can put things in', () => {
 
         // And the output still comes out, which is the only way to empty a furnace.
         await apply(server, player, [
-            move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 0), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 3), 1)
+            move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 3), 1)
         ]);
         expect(player.getInventory().getItem(3).getName()).toBe('minecraft:stone');
 

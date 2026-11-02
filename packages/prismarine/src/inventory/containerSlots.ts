@@ -29,7 +29,7 @@ interface SlotSegment {
      * at, so all of them resolve onto the same slots.
      */
     readonly containers: readonly ContainerUiId[];
-    /** The block slot this run starts at. */
+    /** The first slot index this run addresses in the block inventory. */
     readonly first: number;
     /** How many slots are in the run, or undefined for "the rest of the block's slots". */
     readonly count?: number;
@@ -91,7 +91,7 @@ export const screenStoresSlots = (screen: WindowTypes): boolean => SEGMENTS[scre
  *
  * @param screen - The `Container Type` the client has open.
  * @param containerId - The `Container Name` off the request.
- * @param slotId - The slot within that container, as the client numbers it.
+ * @param slotId - The slot index in the block inventory, as the client numbers it.
  * @param size - How many slots the block has, which bounds an open-ended segment.
  */
 export const blockSlotOf = (screen: WindowTypes, containerId: number, slotId: number, size: number): number | null => {
@@ -102,9 +102,9 @@ export const blockSlotOf = (screen: WindowTypes, containerId: number, slotId: nu
     for (const segment of segments) {
         if (!segment.containers.includes(containerId)) continue;
 
-        const slot = segment.first + slotId;
+        const slot = slotId;
         const end = segment.count === undefined ? size : Math.min(size, segment.first + segment.count);
-        return slot < end ? slot : null;
+        return slot >= segment.first && slot < end && slot < size ? slot : null;
     }
 
     return null;
@@ -119,10 +119,11 @@ export const blockSlotName = (screen: WindowTypes, slot: number): { containerId:
         if (segment.count !== undefined && slot >= segment.first + segment.count) continue;
 
         // The first name of the run: a response has to pick one, and `LEVEL_ENTITY_CONTAINER`
-        // is the one every storage screen answers to.
+        // is the one every storage screen answers to. Slot indices stay absolute within the
+        // block inventory, even when a screen gives each run its own container name.
         return {
             containerId: segment.containers[0] ?? ContainerUiId.LEVEL_ENTITY_CONTAINER,
-            slotId: slot - segment.first
+            slotId: slot
         };
     }
 

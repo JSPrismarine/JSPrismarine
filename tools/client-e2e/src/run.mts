@@ -22,11 +22,13 @@ import { startServer } from './jsp-server.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
+import { furnace } from './scenarios/furnace.mts';
+import { recipeBook } from './scenarios/recipe-book.mts';
 import { movement } from './scenarios/movement.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { teleport } from './scenarios/teleport.mts';
 
-const scenarios: Scenario[] = [spawn, movement, chat, miningDrops, teleport];
+const scenarios: Scenario[] = [spawn, movement, chat, miningDrops, teleport, furnace, recipeBook];
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
 const argv = process.argv.slice(2).filter((argument) => argument !== '--');

@@ -8,9 +8,9 @@
  *
  * The set lives for as long as the session does. Java saves it in the player
  * file and this server's player data has no field for it, so a player who
- * reconnects starts from whatever the server grants them. The row in
- * {@link import('../vanillaCommands').UNWIRED_COMMANDS} used to say the whole
- * thing was missing.
+ * reconnects starts from whatever the server grants them. When the content
+ * build has no Java recipes, the server's built-in recipe manager supplies
+ * the vanilla book the client was sent.
  */
 import type { EntityRef } from '@jsprismarine/commands';
 import type { RecipeBook } from '@jsprismarine/recipes';
@@ -77,9 +77,11 @@ export const changeRecipes = (
     give: boolean
 ): number => {
     const all = recipe === ALL_RECIPES;
-    if (!all && book.get(recipe) === undefined) refuse(`There is no recipe called ${recipe}`);
+    const recipes = book.recipes.length > 0 ? book.recipes : server.getRecipeManager().getRecipes();
+    const ids = recipes.map((entry) => entry.id);
+    if (!all && !ids.includes(recipe)) refuse(`There is no recipe called ${recipe}`);
 
-    const ids = all ? book.recipes.map((entry) => entry.id) : [recipe];
+    const changedIds = all ? ids : [recipe];
     let changed = 0;
 
     for (const ref of players) {
@@ -98,7 +100,7 @@ export const changeRecipes = (
             continue;
         }
 
-        const applied = give ? unlocked.grant(name, ids) : unlocked.revoke(name, ids);
+        const applied = give ? unlocked.grant(name, changedIds) : unlocked.revoke(name, changedIds);
         if (applied.length === 0) continue;
 
         changed += 1;

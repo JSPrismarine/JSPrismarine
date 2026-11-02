@@ -149,10 +149,17 @@ describe('network', () => {
                 const inventory = session.getPlayer().getInventory();
                 inventory.setItem(
                     3,
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 9 }), count: 9 })
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 1 }), count: 9 })
                 );
 
                 await session.sendInventory();
+
+                const packet = nth(
+                    sent.filter((candidate) => candidate instanceof InventoryContentPacket),
+                    0,
+                    'InventoryContentPacket'
+                );
+                expect(packet.items[3]?.stackSize).toBe(9);
 
                 const ids = sent
                     .filter((packet) => packet instanceof InventoryContentPacket)
