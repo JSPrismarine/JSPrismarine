@@ -16,48 +16,124 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
+import { isInView } from '../world/Proximity';
 
 /** A player and the block updates the replicator batches for it. */
-const replicatorFor = () => {
-    const batches: Buffer[] = [];
-    const connection = stub<ClientConnection>({
-        codec: Codec2193,
-        sendSharedBatch: (content) => void batches.push(content)
-    });
-    const session = stub<PlayerSession>({ getConnection: () => connection });
+const replicatorFor = (
+    viewers: readonly { readonly x: number; readonly z: number; readonly viewDistance: number }[]
+) => {
     const world = stub<World>({ getName: () => 'test' });
-    const player = stub<Player>({
-        getNetworkSession: () => session,
-        getPosition: () => new Position(8, 64, 8, world),
-        isOnline: () => true,
-        viewDistance: 4
+    const batches = viewers.map((): Buffer[] => []);
+    const players = viewers.map((viewer, index) => {
+        const connection = stub<ClientConnection>({
+            codec: Codec2193,
+            sendSharedBatch: (content) => void batches[index]!.push(content)
+        });
+        const session = stub<PlayerSession>({ getConnection: () => connection });
+        return stub<Player>({
+            getNetworkSession: () => session,
+            getPosition: () => new Position(viewer.x, 64, viewer.z, world),
+            isOnline: () => true,
+            viewDistance: viewer.viewDistance
+        });
     });
     const visibleWorld = stub<World>({
         getName: () => 'test',
-        getPlayers: () => [player]
+        getPlayers: () => players
     });
     const server = stub<Server>({
         getConfig: () => stub<Config>({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 1 }),
         getLogger: () => stub<Logger>({ error: () => {}, verbose: () => {} })
     });
 
-    return { batches, replicator: new NetworkWorldReplicator(visibleWorld, server) };
+    return { batches, players, replicator: new NetworkWorldReplicator(visibleWorld, server) };
 };
+
+/** Decodes every block update sent in one player's batches, in packet order. */
+const updatesIn = (batches: readonly Buffer[]) =>
+    batches.flatMap((batch) =>
+        BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB })
+            .decode(batch)
+            .map((packetBytes) => {
+                const packet = new UpdateBlockPacket(packetBytes);
+                packet.decode();
+                return {
+                    x: packet.x,
+                    y: packet.y,
+                    z: packet.z,
+                    runtimeId: packet.blockRuntimeId,
+                    flags: packet.flags
+                };
+            })
+    );
 
 describe('NetworkWorldReplicator block changes', () => {
     it('asks the client to update neighboring block visuals', async () => {
-        const { batches, replicator } = replicatorFor();
+        const { batches, replicator } = replicatorFor([{ x: 8, z: 8, viewDistance: 4 }]);
         const fireRuntimeId = BlockRuntimeIds.tryGetByState('minecraft:fire', { age: 0 });
         if (fireRuntimeId === null) throw new Error('minecraft:fire age 0 must be in the block palette');
 
         replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: fireRuntimeId });
         await replicator.flushBlockChanges();
 
-        const [packetBytes] = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(batches[0]!);
-        const update = new UpdateBlockPacket(packetBytes);
-        update.decode();
+        const [update] = updatesIn(batches[0]!);
+        if (update === undefined) throw new Error('Expected one block update');
 
-        expect(update.blockRuntimeId).toBe(fireRuntimeId >>> 0);
+        expect(update.runtimeId).toBe(fireRuntimeId >>> 0);
         expect(update.flags).toBe(UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network);
+    });
+
+    it('matches the exact view test at chunk edges and preserves packet order for negative coordinates', async () => {
+        const viewers = [
+            { x: -0.1, z: -0.1, viewDistance: 2 },
+            { x: 64.1, z: 64.1, viewDistance: 1 }
+        ];
+        const changes = [
+            new Vector3(-64, 64, -16), // first viewer's west boundary, including the margin
+            new Vector3(-64, 64, -32), // outside the circular corner
+            new Vector3(-16, 64, -16),
+            new Vector3(96, 64, 64), // second viewer's east boundary
+            new Vector3(96, 64, 96), // outside the circular corner
+            new Vector3(-80, 64, -16), // outside the first viewer's range
+            new Vector3(63, 64, 63)
+        ];
+        const { batches, players, replicator } = replicatorFor(viewers);
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        const fire = BlockRuntimeIds.tryGetByState('minecraft:fire', { age: 0 });
+        if (fire === null) throw new Error('minecraft:fire age 0 must be in the block palette');
+
+        const expectedChanges = new Map<string, { readonly position: Vector3; readonly runtimeId: number }>();
+        for (const [index, position] of changes.entries()) {
+            const runtimeId = index === 2 ? stone : fire;
+            const key = `${position.getX()},${position.getY()},${position.getZ()}`;
+            expectedChanges.set(key, { position, runtimeId });
+            replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: runtimeId });
+        }
+        // Replacing an existing position keeps its original position in the pending packet order.
+        const first = changes[0]!;
+        replicator.worldChanged({ kind: 'block-set', position: first, blockRuntimeId: stone });
+        expectedChanges.set(`${first.getX()},${first.getY()},${first.getZ()}`, { position: first, runtimeId: stone });
+
+        await replicator.flushBlockChanges();
+
+        for (const [index, viewer] of viewers.entries()) {
+            const expected = [...expectedChanges.values()]
+                .filter(({ position }) =>
+                    isInView({
+                        event: position,
+                        viewer: players[index]!.getPosition(),
+                        viewDistance: viewer.viewDistance
+                    })
+                )
+                .map(({ position, runtimeId }) => ({
+                    x: position.getX(),
+                    y: position.getY(),
+                    z: position.getZ(),
+                    runtimeId: runtimeId >>> 0,
+                    flags: UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network
+                }));
+
+            expect(updatesIn(batches[index]!)).toEqual(expected);
+        }
     });
 });

@@ -29,12 +29,14 @@ import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { placementOverlap } from './scenarios/placement-overlap.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { teleport } from './scenarios/teleport.mts';
+import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
 
 const scenarios: Scenario[] = [
     spawn,
     movement,
     chat,
     miningDrops,
+    edgeChunkBlockChange,
     teleport,
     furnace,
     recipeBook,
