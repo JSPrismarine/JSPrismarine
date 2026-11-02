@@ -76,6 +76,36 @@ describe('minecraft:behavior.pickup_items', () => {
 
         expect(harness.running()).toEqual([]);
     });
+
+    it('keeps shareable priority ahead of distance when choosing a pickup candidate', () => {
+        const nearby = testItem('nearby', { x: 9.5, y: 1, z: 8.5 }, 'minecraft:wheat');
+        const preferred = testItem('preferred', { x: 22.5, y: 1, z: 8.5 }, 'minecraft:apple');
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.pickup_items': {
+                    priority: 6,
+                    max_dist: 24,
+                    can_pickup_any_item: false
+                }
+            },
+            components: {
+                'minecraft:shareables': {
+                    items: [
+                        { item: 'minecraft:apple', priority: 0 },
+                        { item: 'minecraft:wheat', priority: 1 }
+                    ]
+                }
+            },
+            world: {
+                items: () => [nearby, preferred]
+            },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.actuator.log).toContain('moveTo 22.5,1,8.5 @1');
+    });
 });
 
 describe('minecraft:behavior.equip_item', () => {

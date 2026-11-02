@@ -10,9 +10,6 @@
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
  */
-import { writeFileSync } from 'node:fs';
-import { Session } from 'node:inspector';
-
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import { singleDimension } from '../src/content/world/adapter';
@@ -52,7 +49,7 @@ const seededRandom = (seed: number): RandomSource => {
 const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
 
 /** The flat world the mobs stand in, built once rather than per read. */
-const benchWorld = (random: RandomSource) => {
+const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
     const placed = new Map<string, ContentBlock>();
     const world: EntityWorldFacts = {
         level: {
@@ -71,11 +68,15 @@ const benchWorld = (random: RandomSource) => {
             gameRule: () => undefined
         },
         blocks: {
-            get: (at) =>
-                placed.get(keyOf(at)) ?? {
-                    identifier: at.y > FLOOR_Y ? 'minecraft:air' : 'minecraft:stone',
-                    states: {}
-                },
+            get: (at) => {
+                blockReads.count++;
+                return (
+                    placed.get(keyOf(at)) ?? {
+                        identifier: at.y > FLOOR_Y ? 'minecraft:air' : 'minecraft:stone',
+                        states: {}
+                    }
+                );
+            },
             set: (at, block) => {
                 placed.set(keyOf(at), block);
             },
@@ -140,7 +141,8 @@ const PLAYERS = 2;
 /** Builds a runtime with `count` mobs standing in it, and players walking among them. */
 const scenario = (count: number, seed: number) => {
     const random = seededRandom(seed);
-    const world = benchWorld(random);
+    const blockReads = { count: 0 };
+    const world = benchWorld(random, blockReads);
     const players: ContentEntity[] = Array.from({ length: PLAYERS }, (_unused, index) => ({
         id: 100_000 + index,
         identifier: 'minecraft:player',
@@ -183,61 +185,80 @@ const scenario = (count: number, seed: number) => {
     // A separate stream for the layout, so changing the mob count does not shift the
     // numbers the goals draw.
     const layout = seededRandom(seed * 7919 + 13);
+    const breedingIds: number[] = [];
     for (let index = 0; index < count; index += 1) {
-        const at: EntityPosition = {
-            x: (layout.nextFloat() - 0.5) * SPREAD,
-            y: FLOOR_Y + 1,
-            z: (layout.nextFloat() - 0.5) * SPREAD
-        };
-        runtime.spawn(MIX[index % MIX.length]!, at);
+        const pair = Math.trunc(index / 2);
+        const at: EntityPosition =
+            BREEDING_PAIRS > 0
+                ? {
+                      x: (pair % 32) * 24 + (index % 2 === 0 ? 0.5 : 8.5),
+                      y: FLOOR_Y + 1,
+                      z: Math.trunc(pair / 32) * 24 + 0.5
+                  }
+                : {
+                      x: (layout.nextFloat() - 0.5) * SPREAD,
+                      y: FLOOR_Y + 1,
+                      z: (layout.nextFloat() - 0.5) * SPREAD
+                  };
+        const entity = runtime.spawn(BREEDING_PAIRS > 0 ? 'minecraft:sheep' : MIX[index % MIX.length]!, at);
+        if (entity !== undefined && BREEDING_PAIRS > 0) breedingIds.push(entity.id);
     }
 
-    return { runtime, content, walkPlayers };
+    const spawned = runtime.all().length;
+    if (spawned !== count) {
+        throw new Error(
+            `Entity AI benchmark spawned ${spawned} of ${count} requested mobs. ` +
+                'Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
+                '`pnpm --filter @jsprismarine/bedrock-data run datagen:java` first.'
+        );
+    }
+
+    return {
+        runtime,
+        content,
+        walkPlayers,
+        blockReads,
+        startBreeding: () => breedingIds.forEach((id) => runtime.setInLove(id, 400))
+    };
 };
 
 /** The timing of one run: every tick's wall time, in milliseconds. */
-const run = (count: number, tickCount: number, seed: number, profile = false): number[] => {
-    const { runtime, walkPlayers } = scenario(count, seed);
+const run = (
+    count: number,
+    tickCount: number,
+    seed: number
+): { readonly times: readonly number[]; readonly measuredBlockReads: number } => {
+    const { runtime, walkPlayers, blockReads, startBreeding } = scenario(count, seed);
     const times: number[] = [];
     for (let tick = 0; tick < WARMUP; tick += 1) {
         walkPlayers(tick);
         runtime.tick(tick);
     }
 
-    const session = profile ? startProfiler() : undefined;
+    const readsBeforeMeasure = blockReads.count;
+    startBreeding();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
         const started = performance.now();
         runtime.tick(tick);
         times.push(performance.now() - started);
     }
-    session?.();
-    return times;
-};
-
-/** Starts the sampling profiler and hands back the function that writes the result out. */
-const startProfiler = () => {
-    const session = new Session();
-    session.connect();
-    session.post('Profiler.enable');
-    session.post('Profiler.setSamplingInterval', { interval: 100 });
-    session.post('Profiler.start');
-    return () =>
-        session.post('Profiler.stop', (_error, { profile: taken }) => {
-            writeFileSync(process.env.ENTITY_AI_PROFILE ?? '/tmp/entityAi.cpuprofile', JSON.stringify(taken));
-        });
+    return { times, measuredBlockReads: blockReads.count - readsBeforeMeasure };
 };
 
 /** The value at a percentile of a sample, nearest-rank. */
 const percentile = (sorted: readonly number[], fraction: number): number =>
     sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(fraction * sorted.length) - 1))] ?? 0;
 
-const COUNTS = process.argv.slice(2).map(Number).filter(Boolean);
+const requestedPairs = Number.parseInt(process.env.ENTITY_AI_BREEDING_PAIRS ?? '0', 10);
+const BREEDING_PAIRS = Number.isSafeInteger(requestedPairs) && requestedPairs > 0 ? requestedPairs : 0;
+const COUNTS = BREEDING_PAIRS > 0 ? [BREEDING_PAIRS * 2] : process.argv.slice(2).map(Number).filter(Boolean);
 const WARMUP = 200;
-const MEASURED = Number(process.env.ENTITY_AI_TICKS ?? 1000);
+const MEASURED = Number(process.env.ENTITY_AI_TICKS ?? (BREEDING_PAIRS > 0 ? 40 : 1000));
 
 const report = (count: number): void => {
-    const times = run(count, WARMUP + MEASURED, 1234, process.env.ENTITY_AI_PROFILE !== undefined);
+    const result = run(count, WARMUP + MEASURED, 1234);
+    const times = result.times;
     const sorted = [...times].sort((a, b) => a - b);
     const mean = times.reduce((sum, value) => sum + value, 0) / times.length;
     const row = [
@@ -248,8 +269,21 @@ const report = (count: number): void => {
         percentile(sorted, 0.99).toFixed(3).padStart(9),
         (sorted.at(-1) ?? 0).toFixed(3).padStart(9)
     ];
-    console.log(row.join('  '));
+    console.log(
+        row.join('  ') +
+            `  (${BREEDING_PAIRS > 0 ? `${BREEDING_PAIRS} breeding pairs, ` : ''}` +
+            `${result.measuredBlockReads} measured block reads)`
+    );
 };
 
-console.log(['mobs', '  mean ms', ' ms/mob', '   p50 ms', '   p99 ms', '  worst ms'].join('  '));
+console.log(
+    [
+        BREEDING_PAIRS > 0 ? 'breeding mobs' : 'mobs',
+        '  mean ms',
+        ' ms/mob',
+        '   p50 ms',
+        '   p99 ms',
+        '  worst ms'
+    ].join('  ')
+);
 for (const count of COUNTS.length > 0 ? COUNTS : [1, 10, 30, 100]) report(count);
