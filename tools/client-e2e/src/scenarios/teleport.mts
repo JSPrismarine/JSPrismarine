@@ -10,13 +10,25 @@ export const teleport: Scenario = {
     run: async ({ client, server, playerName, log }) => {
         const before = vec3(await client.state(), 'feet');
         const target: [number, number] = [Math.round(before[0]) + 24, Math.round(before[2]) + 24];
+        const floorReady = server.waitForLine(/teleport-fixture-ready/, 15_000);
+        server.command(
+            `fill ${target[0] - 1} -57 ${target[1] - 1} ${target[0] + 1} -57 ${target[1] + 1} minecraft:stone`
+        );
+        server.command(`gamemode creative ${playerName}`);
+        server.command('say teleport-fixture-ready');
+        await floorReady;
         server.command(`teleport ${playerName} ${target[0]} -56 ${target[1]}`);
 
         const deadline = Date.now() + 30_000;
         for (;;) {
             const feet = vec3(await client.state(), 'feet');
-            const distance = Math.hypot(feet[0] - target[0], feet[2] - target[1]);
+            const distance = Math.hypot(feet[0] - target[0], feet[1] + 56, feet[2] - target[1]);
             if (distance < 2) {
+                await client.waitForScreenAbsent('Menu(Death)', 5_000);
+                const survivalReady = server.waitForLine(/teleport-survival-ready/, 15_000);
+                server.command(`gamemode survival ${playerName}`);
+                server.command('say teleport-survival-ready');
+                await survivalReady;
                 log(`teleported from ${before.join(', ')} to ${feet.join(', ')}`);
                 return;
             }

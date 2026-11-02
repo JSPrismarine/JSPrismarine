@@ -23,18 +23,24 @@ pnpm --filter @jsprismarine/client-e2e run ensure
 # Select a protocol explicitly when testing a particular server version.
 pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2193
 
-# Run every scenario, or a selection. --record captures the run as an MP4.
+# Run every scenario, or a selection. Independent suites run two at a time by default.
 pnpm run e2e:client
 pnpm run e2e:client movement chat
 pnpm run e2e:client -- --protocol 2193 movement chat
-pnpm run e2e:client -- --record --artifacts /tmp/evidence
+pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
 ```
 
-The runner prints the artifacts directory (screenshots, recordings, the full server log) and
-exits non-zero when the join or any scenario fails. The root `pnpm run e2e:client` command also
-collects V8 coverage from the server process and writes an LCOV report to
+Gameplay and dimension scenarios share one server and client; natural spawning uses a separate
+server because it needs a cow spawn fixture that could affect gameplay checks. The runner resets
+the player, inventory, drops, and controls between scenarios, then stops each server and removes
+its temporary data. The two suites run concurrently by default; use `--concurrency 1` when
+debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's
+artifact directory and leaves audio enabled. Headless client audio is muted otherwise.
+
+The runner prints the artifacts directory (screenshots, recordings, a combined server log, and a
+server log per suite) and exits non-zero when any scenario fails. The root `pnpm run e2e:client`
+command also collects V8 coverage from the server processes and writes an LCOV report to
 `coverage/client-e2e/lcov.info`.
-Headless client audio is muted by default; `--record` leaves it enabled.
 
 In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protocol in
 `packages/bedrock-data/sources.json` and runs the full suite on macOS for each one. Each matrix job
@@ -72,7 +78,8 @@ holds the workflow and its rules.
 ## Adding a scenario
 
 Add a file under `src/scenarios/` exporting a `Scenario` (see `src/scenario.mts`) and register it
-in the `scenarios` list in `src/run.mts`. A scenario receives the live server (console commands,
-log matching), the in-world client (input, state, captures), and an artifacts directory. Assert
-with `node:assert/strict` and throw to fail. The runner has already joined the world by the time
-a scenario runs.
+in the compatible suite in `src/run.mts`. A scenario receives its suite's server (console commands, log
+matching), its in-world client (input, state, captures), and an artifacts directory. Scenarios in
+one suite run sequentially with a reset between them; separate suites can run concurrently, so keep
+files inside the provided artifacts directory and avoid shared mutable state. Assert with
+`node:assert/strict` and throw to fail; the runner joins the client before the first scenario.
