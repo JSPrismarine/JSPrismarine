@@ -37,7 +37,12 @@ beforeAll(async () => {
     vi.stubEnv('JSP_DIR', stateRoot);
     writeFileSync(
         path.join(stateRoot, 'config.json'),
-        JSON.stringify({ 'online-mode': false, worlds: { world: { generator: 'Flat' } } })
+        JSON.stringify({
+            'online-mode': false,
+            // Login tests do not need a spawn area; the default radius of 10 preloads 441 chunks.
+            'preload-radius': 0,
+            worlds: { world: { generator: 'Flat' } }
+        })
     );
 
     const logger = new Logger('error');
