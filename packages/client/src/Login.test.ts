@@ -183,14 +183,33 @@ describe('logging into a real server', () => {
         const token = address.toToken();
         expect(server!.getSessionManager().has(token)).toBe(true);
 
+        let continueTeardown!: () => void;
+        const teardownGate = new Promise<void>((resolve) => {
+            continueTeardown = resolve;
+        });
+        let signalTeardownStarted!: () => void;
+        const teardownStarted = new Promise<void>((resolve) => {
+            signalTeardownStarted = resolve;
+        });
+        server!.once('raknetDisconnect', async () => {
+            signalTeardownStarted();
+            await teardownGate;
+        });
+
         // What RakNet does the moment it drops a session, and what the `openConnection` of a
         // client reconnecting from the same port races against. The tear-down that follows
         // is asynchronous; releasing the token has to happen before any of it, or the
         // reconnection is refused as "already connected" and then torn down in its place.
         server!.getRaknet()!.emit('closeConnection', address, 'test');
 
-        // Synchronously: not after a microtask, not after the player has finished saving.
-        expect(server!.getSessionManager().has(token)).toBe(false);
+        // The transport keeps events for one session in FIFO order, so observe the queued
+        // disconnect at its async teardown boundary and hold it there while checking release.
+        await teardownStarted;
+        try {
+            expect(server!.getSessionManager().has(token)).toBe(false);
+        } finally {
+            continueTeardown();
+        }
     }, 40_000);
 
     it('places a new player the way a Bedrock Dedicated Server does', async () => {
