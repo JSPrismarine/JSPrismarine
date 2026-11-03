@@ -262,15 +262,16 @@ const SCENARIOS: readonly Scenario[] = [
 ];
 
 /** Reviewed behavior baselines; the brain-mix digest also locks live entity references in memories. */
+// The package-root runner resolves workspace overlays, so these goldens must capture that content.
 const EXPECTED_DIGESTS: Readonly<Partial<Record<string, string>>> = {
-    hostile: 'ac6e4551cd5974484d44d06c22a5189c66a77297391710cff2549b038c3a7d95',
-    farm: '06ce634e1500f6f52a238a0bcb352eaf8edb4d904090570ddc541d836dde699e',
-    mixed: '86d28a23d6324db532c95e9271b7524a940cff78b0026f4d06ddb8d0fc2ac614',
-    stacked: '61ecca73ee3d869c94612b3cd2a411e14ab702cda7bc578d04624122ccbf0a7b',
-    sparse: '29aa8215bd262c183f42147a7cdc299fede76de05bbe2859721f7e9e8bdb3300',
-    'brain-mix': '49887ee656cee995cbc8735eb2b1f5479a1dfffb2d78c0207b8947a4ba8c9e5d',
-    'collision-base': '66d70b851f3a72b4480074745e3545e084062bc8cfa61b6ba00850a965de0e9e',
-    'collision-dragon': '236beabb21c88d410c33a64b50cbefe1aa85f47af64c3d56e06ad7e2445ff05c'
+    hostile: '9f58b05f642297dbe3f93b9990acbf06c137ee15183418661df16d02291392ef',
+    farm: 'd370cd073a19ab8e0fe93cd8153643318a4874f89a78eafbac6cd750696958f2',
+    mixed: '3cd7d034a83a146eaeac993c8f79d052464117c92b5b87f1c299750e5d728d87',
+    stacked: '4c5c494e2391bf5a7d47ce9e267b032b0869dc56c8bf087e621d69a8cf914f32',
+    sparse: 'e24bba7482eceb19efd7f4efe65093fbb5bb73875cc3c57eb0548ad1d5b6cafe',
+    'brain-mix': 'faf24e611778cbe494d7a768a0dd1e5b23eff35a2c7a723a6fcd7f4227e2d85e',
+    'collision-base': '3639c7b2536bd32f7319036c8482e56eb63388efe2042c07057269e348283a7f',
+    'collision-dragon': 'c15c0abd3e538c42d5a6472d9972683b269c2143caa6c86ac94bb65045654b92'
 };
 
 /** One number's exact bits, so a digest catches a change below printed precision. */
