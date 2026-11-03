@@ -317,7 +317,14 @@ export const liveFactsOf = (type: EntityFacts, instance: EntityInstance): Entity
  * @returns The id to roll, or undefined when the path is not a loot table path.
  */
 export const javaLootIdOf = (table: string): string | undefined => {
-    const match = /^(?:.*\/)?loot_tables\/(?<rest>.+?)(?:\.json)?$/.exec(table);
-    const rest = match?.groups?.rest;
-    return rest === undefined ? undefined : `minecraft:${rest}`;
+    const marker = 'loot_tables/';
+    const markerIndex = table.lastIndexOf(marker);
+    if (markerIndex < 0) return undefined;
+
+    let rest = table.slice(markerIndex + marker.length);
+    if (rest.length === 0) return undefined;
+
+    // The old expression greedily chose the last `loot_tables/` marker in a path.
+    if (rest.length > '.json'.length && rest.endsWith('.json')) rest = rest.slice(0, -'.json'.length);
+    return `minecraft:${rest}`;
 };

@@ -1,7 +1,7 @@
 import { DEFAULT_UNDERWATER_MOVEMENT } from '@jsprismarine/entities';
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_BOX, boxOf } from './facts';
+import { DEFAULT_BOX, boxOf, javaLootIdOf } from './facts';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
 /**
@@ -34,6 +34,24 @@ describe('the hitbox of an entity type', () => {
     it('is a block for a declared type that carries no collision box', () => {
         // `jsprismarine:hatchling` declares a spawn event and nothing about its shape.
         expect(boxOf(registry(), 'jsprismarine:hatchling')).toStrictEqual(DEFAULT_BOX);
+    });
+});
+
+describe('Java loot table identifiers', () => {
+    it('strips the pack path and optional JSON extension', () => {
+        expect(javaLootIdOf('loot_tables/entities/cow.json')).toBe('minecraft:entities/cow');
+        expect(javaLootIdOf('packs/one/loot_tables/entities/cow')).toBe('minecraft:entities/cow');
+        expect(javaLootIdOf('packs/loot_tables/old/loot_tables/entities/cow.json')).toBe('minecraft:entities/cow');
+    });
+
+    it('returns undefined without a nonempty loot table path', () => {
+        expect(javaLootIdOf('entities/cow.json')).toBeUndefined();
+        expect(javaLootIdOf('loot_tables/')).toBeUndefined();
+    });
+
+    it('handles repeated path markers without regex backtracking', () => {
+        const repeated = `${'loot_tables/a/'.repeat(50_000)}loot_tables/entities/cow.json`;
+        expect(javaLootIdOf(repeated)).toBe('minecraft:entities/cow');
     });
 });
 
