@@ -9,6 +9,7 @@
  */
 import type { EntityCommandHost, EntityRef, Rotation, SelectorFacts, Vector3 } from '@jsprismarine/commands';
 import { matchSelector } from '@jsprismarine/commands';
+import { typeFamily } from '@jsprismarine/entities';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
@@ -102,12 +103,25 @@ const barFractionOf = (level: number, points: number): number => {
 };
 
 /**
+ * The type families of one entity, which is what `@e[family=...]` compares.
+ *
+ * The live instance answers first, because a component group added at runtime brings its own
+ * `minecraft:type_family` with it and a zombie villager mid-conversion is in different families
+ * than the one its file declares. The two bodies no data instance backs, the player and a
+ * dropped stack, fall back to the families their own declaration carries.
+ */
+const familiesOf = (server: Server, entity: Entity): readonly string[] => {
+    const live = entity.getWorld().dataEntities();
+    const id = live?.bodies.entityIdOf(entity);
+    const instance = id === undefined ? undefined : live?.runtime.byId(id)?.instance;
+    if (instance !== undefined) return instance.families();
+
+    return server.getContent()?.entities.registry.get(entity.getType())?.params(typeFamily)?.family ?? [];
+};
+
+/**
  * The facts an `EntityRef` does not carry, as far as this server can answer
  * them.
- *
- * `families` is left out rather than faked: a selector argument this server
- * cannot evaluate must not silently match everything, and
- * {@link matchSelector} fails a test whose fact is absent.
  */
 const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<SelectorFacts> => ({
     gameMode: (ref) => {
@@ -116,7 +130,11 @@ const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<Selector
     },
     level: (ref) => resolvePlayer(server, ref)?.attributes.getValue(AttributeIds.PlayerLevel),
     score: scoreFactOf(scoreboard),
-    tags: (ref) => resolveEntity(server, ref)?.getTags() ?? []
+    tags: (ref) => resolveEntity(server, ref)?.getTags() ?? [],
+    families: (ref) => {
+        const entity = resolveEntity(server, ref);
+        return entity === undefined ? [] : familiesOf(server, entity);
+    }
 });
 
 /**

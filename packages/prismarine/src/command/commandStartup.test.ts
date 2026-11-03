@@ -96,7 +96,10 @@ const writeBehaviorPack = (at: string, identifiers: readonly string[]): void => 
             format_version: '1.21.0',
             'minecraft:entity': {
                 description: { identifier, is_spawnable: true, is_summonable: true },
-                components: { 'minecraft:health': { value: 40, max: 40 } }
+                components: {
+                    'minecraft:health': { value: 40, max: 40 },
+                    'minecraft:type_family': { family: [identifier.split(':')[1], 'mob'] }
+                }
             }
         };
     }
@@ -299,6 +302,23 @@ describe('the command layer on a booted server', () => {
 
         await expect(run('/testfor @e[type=sheep]')).resolves.toBe(true);
         await expect(run('/testfor @e[type=wolf]')).resolves.toBe(false);
+    });
+
+    // Every `family` test used to fail, because the host answered no families at all, so
+    // `/kill @e[family=monster]` and every other family selector reached nothing.
+    it('matches a mob by the type families its definition declares', async () => {
+        await run('/summon minecraft:cow 11 70 11');
+
+        await expect(run('/testfor @e[type=cow,family=cow]')).resolves.toBe(true);
+        await expect(run('/testfor @e[type=cow,family=mob]')).resolves.toBe(true);
+        await expect(run('/testfor @e[type=cow,family=monster]')).resolves.toBe(false);
+    });
+
+    it('excludes a family the selector negates', async () => {
+        await run('/summon minecraft:pig 12 70 12');
+
+        await expect(run('/testfor @e[type=pig,family=!mob]')).resolves.toBe(false);
+        await expect(run('/testfor @e[type=pig,family=!monster]')).resolves.toBe(true);
     });
 
     it('reports an unregistered command as unknown', async () => {
