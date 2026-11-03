@@ -54,10 +54,13 @@ const isConstructorDeclaration = (node: Node): node is ConstructorDeclaration =>
 const extendsClass = (declaration: ClassDeclaration, className: string): boolean =>
     declaration.heritageClauses?.nodes.some(
         (clause) =>
+            clause.token === SyntaxKind.ExtendsKeyword &&
             clause.types.nodes.some((type) => {
-                const expression = 'expression' in type ? type.expression : type.typeName;
+                // TypeScript 7 includes type references here; only expression nodes name runtime bases.
+                if (!('expression' in type)) return false;
+                const expression = type.expression;
                 return 'text' in expression && typeof expression.text === 'string' && expression.text === className;
-            }) ?? false
+            })
     ) ?? false;
 
 const classDeclarationsIn = (source: SourceFile): ClassDeclaration[] =>
