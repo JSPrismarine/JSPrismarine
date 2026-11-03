@@ -187,20 +187,49 @@ const logOutAndIn = async () => {
 
     const returning = buildPlayer(back, server, uuid);
     await returning.enable();
+    await back.addEntity(returning);
+
+    const returningInventory = returning.getInventory();
+    const original = returningInventory.getEntry(0);
+    const baselineDigest = back.replayStateDigest();
+    returningInventory.setItem(
+        0,
+        new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 1 }), count: 1 })
+    );
+    const oneStackDigest = back.replayStateDigest();
+    returningInventory.setItem(
+        0,
+        new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 2 }), count: 2 })
+    );
+    const duplicatedStackDigest = back.replayStateDigest();
+    returningInventory.setItem(
+        0,
+        new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 1 }), count: 2 })
+    );
+    const mismatchedStackDigest = back.replayStateDigest();
+    if (original === null) returningInventory.removeItem(0);
+    else returningInventory.setItem(0, original);
+    const restoredDigest = back.replayStateDigest();
 
     await reopened.disable();
-    return returning;
+    return {
+        returning,
+        digests: { baselineDigest, oneStackDigest, duplicatedStackDigest, mismatchedStackDigest, restoredDigest }
+    };
 };
 
 describe('a player logging out and back in', () => {
     let returning: Player;
+    let digests: Awaited<ReturnType<typeof logOutAndIn>>['digests'];
 
     beforeAll(async () => {
         previousDirectory = process.env.JSP_DIR;
         scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-player-'));
         process.env.JSP_DIR = scratch;
 
-        returning = await logOutAndIn();
+        const result = await logOutAndIn();
+        returning = result.returning;
+        digests = result.digests;
     }, 60_000);
 
     afterAll(() => {
@@ -216,6 +245,13 @@ describe('a player logging out and back in', () => {
         expect(inventory.getHandSlotIndex()).toBe(PICKAXE_SLOT);
         expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_pickaxe');
         expect(inventory.getItem(PICKAXE_SLOT).getAmount()).toBe(1);
+    });
+
+    it('changes the world digest when a player stack is duplicated', () => {
+        expect(digests.oneStackDigest).not.toBe(digests.baselineDigest);
+        expect(digests.duplicatedStackDigest).not.toBe(digests.oneStackDigest);
+        expect(digests.mismatchedStackDigest).not.toBe(digests.duplicatedStackDigest);
+        expect(digests.restoredDigest).toBe(digests.baselineDigest);
     });
 
     it('keeps the enchantments, including one no Bedrock number names', () => {

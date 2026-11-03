@@ -1,7 +1,11 @@
 import type GameRuleManager from './GameRuleManager';
 import { GameRules } from './GameRuleManager';
 
+import { createHash } from 'node:crypto';
+
 import { Vector3 } from '@jsprismarine/math';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { MobSpawner } from '../blockentity/BlockEntities';
@@ -2903,6 +2907,89 @@ export class World implements Service {
      */
     public getEntities(): Entity[] {
         return Array.from(this.entities.values());
+    }
+
+    /**
+     * Hashes loaded chunks and live entity state for one replay tick.
+     *
+     * Chunks include blocks, biomes, and block entities. Player inventories are included because
+     * duplicate or missing stacks can leave every other world field unchanged.
+     */
+    public replayStateDigest(): string {
+        const hash = createHash('sha256');
+        const level = this.getLevel();
+        hash.update(
+            JSON.stringify({
+                dimension: this.getDimension().id,
+                seed: this.getSeed().toString(),
+                tick: this.getTicks(),
+                weather: level.getWeather().saved(),
+                gameRules: [...level.getGameRuleManager().getGameRules()]
+            })
+        );
+
+        // Chunk map insertion order depends on which player's async request finished first.
+        // Sorting makes the digest describe state, not load timing.
+        const chunks = [...this.chunks.values()].sort((left, right) =>
+            left.getX() === right.getX() ? left.getZ() - right.getZ() : left.getX() - right.getX()
+        );
+        for (const chunk of chunks) {
+            hash.update(`chunk:${chunk.getX()},${chunk.getZ()}:`);
+            hash.update(chunk.networkSerialize());
+        }
+
+        // Data-driven actors keep component state in their runtime until save time.
+        this.dataEntities().persist();
+        // Entity map insertion order follows spawn timing; runtime ids sort that order, while
+        // leaving the ids out of the hash lets a fresh process compare the same actor state.
+        const entities = this.getEntities().sort((left, right) => {
+            const leftId = left.getRuntimeId();
+            const rightId = right.getRuntimeId();
+            return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+        });
+        for (const entity of entities) {
+            const stream = new BinaryStream();
+            new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN).writeCompound(EntitySerializer.toNBT(entity));
+            hash.update(`entity:${entity.getType()}:`);
+            hash.update(stream.getBuffer());
+            hash.update(
+                JSON.stringify(
+                    entity.attributes
+                        .getAttributes()
+                        .map((attribute) => [
+                            attribute.getName(),
+                            attribute.getMin(),
+                            attribute.getMax(),
+                            attribute.getDefault(),
+                            attribute.getValue()
+                        ])
+                        .sort(([left], [right]) => {
+                            const leftName = String(left);
+                            const rightName = String(right);
+                            return leftName < rightName ? -1 : leftName > rightName ? 1 : 0;
+                        })
+                )
+            );
+
+            if (entity instanceof Player) {
+                const inventory = entity.getInventory();
+                const containers = [inventory, inventory.getArmor(), inventory.getOffhand(), inventory.getEnderChest()];
+                const stackCounts = containers.map((container) =>
+                    Array.from({ length: container.getSlotCount() }, (_unused, slot) => {
+                        const entry = container.getEntry(slot);
+                        return entry === null
+                            ? null
+                            : { entryCount: entry.getCount(), itemCount: entry.getItem().getAmount() };
+                    })
+                );
+
+                // A slot can carry two counts that normally agree; preserve both so the digest
+                // catches the same split state that can duplicate a stack during inventory moves.
+                hash.update(JSON.stringify({ inventory: storedInventory(inventory), stackCounts }));
+            }
+        }
+
+        return hash.digest('hex');
     }
 
     /**
