@@ -66,6 +66,7 @@ import {
 import { blockPosTracker } from '@jsprismarine/entity-brains';
 import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
+import type { RecipeBook } from '@jsprismarine/recipes';
 import type {
     BlockQuery,
     GoalBlock,
@@ -189,6 +190,13 @@ const dragWithModifier = (drag: number, modifier: number): number => 1 - (1 - dr
 /** Applies an entity's friction modifier without reversing its remaining momentum. */
 const groundDragWithModifier = (drag: number, modifier: number): number =>
     Math.max(0, dragWithModifier(drag, modifier));
+
+/** The immutable recipe facts `craftInto` uses after a book accepts its trial grid. */
+interface CraftIntoCandidate {
+    readonly recipeId: string;
+    readonly consumedPerCraft: number;
+    readonly resultCount: number;
+}
 
 /** Resolves an entity name through the shared Java-to-Bedrock table and the active content registry. */
 const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): string | undefined =>
@@ -376,6 +384,8 @@ export class EntityRuntime implements EntityScene {
     /** The point-of-interest kinds already reported as unindexed, so each is said once. */
     private readonly unindexedPoi = new Set<string>();
     private readonly lookupContent: () => ServerContent;
+    /** Recipe books are readonly content snapshots; a reload supplies a new key, and values keep only scalars. */
+    private readonly craftIntoCache = new WeakMap<RecipeBook, Map<string, CraftIntoCandidate | null>>();
     private readonly onReport: (message: string) => void;
     private readonly onSpawn: (entity: DataEntity) => void;
     private readonly onRemove: (entity: DataEntity, reason: string) => void;
@@ -1980,41 +1990,55 @@ export class EntityRuntime implements EntityScene {
         const wanted = Math.floor(wantedOutput);
         if (available <= 0 || wanted <= 0) return undefined;
 
+        const recipes = this.content().recipes;
+        let cache = this.craftIntoCache.get(recipes);
+        if (cache === undefined) {
+            cache = new Map();
+            this.craftIntoCache.set(recipes, cache);
+        }
+
         for (let inputPerCraft = 1; inputPerCraft <= Math.min(9, available); inputPerCraft += 1) {
-            const slots = Array.from({ length: 9 }, (_, index) =>
-                index < inputPerCraft ? { id: inputIdentifier, count: 1 } : null
-            );
-            const matches = this.content().recipes.matchAll({
-                station: 'crafting',
-                grid: { width: 3, height: 3, slots }
-            });
-            for (const match of matches) {
-                if (
-                    match.result.id !== outputIdentifier ||
-                    match.result.count <= 0 ||
-                    (match.result.components !== undefined && Object.keys(match.result.components).length > 0) ||
-                    match.remainder.some((item) => item !== null)
-                )
-                    continue;
-
-                const consumedPerCraft = match.consumed.reduce((total, count) => total + count, 0);
-                if (consumedPerCraft !== inputPerCraft) continue;
-
-                const crafts = Math.min(
-                    Math.floor(available / consumedPerCraft),
-                    Math.ceil(wanted / match.result.count)
+            const key = `${inputIdentifier}\0${outputIdentifier}\0${inputPerCraft}`;
+            let candidate = cache.get(key);
+            if (candidate === undefined) {
+                const slots = Array.from({ length: 9 }, (_, index) =>
+                    index < inputPerCraft ? { id: inputIdentifier, count: 1 } : null
                 );
-                if (crafts <= 0) continue;
-                const craftedCount = match.result.count * crafts;
-                return {
-                    recipeId: match.recipe.id,
-                    inputIdentifier,
-                    inputCount: consumedPerCraft * crafts,
-                    outputIdentifier,
-                    craftedCount,
-                    outputCount: Math.min(wanted, craftedCount)
-                };
+                for (const match of recipes.matchAll({
+                    station: 'crafting',
+                    grid: { width: 3, height: 3, slots }
+                })) {
+                    if (
+                        match.result.id !== outputIdentifier ||
+                        match.result.count <= 0 ||
+                        (match.result.components !== undefined && Object.keys(match.result.components).length > 0) ||
+                        match.remainder.some((item) => item !== null)
+                    )
+                        continue;
+
+                    const consumedPerCraft = match.consumed.reduce((total, count) => total + count, 0);
+                    if (consumedPerCraft !== inputPerCraft) continue;
+                    candidate = { recipeId: match.recipe.id, consumedPerCraft, resultCount: match.result.count };
+                    break;
+                }
+                cache.set(key, candidate ?? null);
             }
+            if (candidate === null || candidate === undefined) continue;
+
+            const crafts = Math.min(
+                Math.floor(available / candidate.consumedPerCraft),
+                Math.ceil(wanted / candidate.resultCount)
+            );
+            if (crafts <= 0) continue;
+            const craftedCount = candidate.resultCount * crafts;
+            return {
+                recipeId: candidate.recipeId,
+                inputIdentifier,
+                inputCount: candidate.consumedPerCraft * crafts,
+                outputIdentifier,
+                craftedCount,
+                outputCount: Math.min(wanted, craftedCount)
+            };
         }
         return undefined;
     }

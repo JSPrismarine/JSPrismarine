@@ -1,5 +1,6 @@
 import { javaItemToBedrock } from '@jsprismarine/mapping';
-import { compileRecipeBook, loadRecipes } from '@jsprismarine/recipes';
+import { compileRecipeBook, loadRecipes, matchRecipe, recipeIngredients } from '@jsprismarine/recipes';
+import type { CraftingGrid, RecipeInput } from '@jsprismarine/recipes';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
@@ -32,13 +33,7 @@ interface RecipeParityCase {
     readonly gaps: string[];
 }
 
-const compareRecipes = (): {
-    gaps: string[];
-    files: number;
-    compiled: number;
-    detail: string[];
-    cases: RecipeParityCase[];
-} => {
+const compareRecipes = () => {
     const { definitions } = loadVanillaDatapack();
     const { book, failed } = loadRecipes(
         [...definitions.recipesJava].map(([id, entry]) => [id, packFileJson(entry)] as const)
@@ -59,6 +54,7 @@ const compareRecipes = (): {
     for (const loss of report.losses) caseMap.get(loss.recipeId)?.gaps.push(`loss:${loss.recipeId}`);
 
     return {
+        book,
         gaps: [...new Set(gaps)],
         files: definitions.recipesJava.size,
         compiled: report.recipes.length,
@@ -71,7 +67,7 @@ describeFamily(
     FAMILIES.recipesRegistry,
     [REFERENCES.javaServerJar],
     () => {
-        const { gaps, files, compiled, detail, cases } = compareRecipes();
+        const { book, gaps, files, compiled, detail, cases } = compareRecipes();
         const verdict = checkAllowList(FAMILIES.recipesRegistry, gaps);
         const unexpected = new Set(verdict.unexpected);
 
@@ -98,6 +94,47 @@ describeFamily(
         it('reports the current recipe comparison coverage', () => {
             reportParityProgress(FAMILIES.recipesRegistry, { sourceFiles: files, compiledRecipes: compiled });
             expect(compiled).toBeGreaterThan(0);
+        });
+
+        it('keeps first and all matches in registry order for generated vanilla grids', () => {
+            const itemIds = [
+                ...new Set(
+                    book
+                        .byStation('crafting')
+                        .flatMap((recipe) =>
+                            recipeIngredients(recipe).flatMap((ingredient) =>
+                                ingredient === null ? [] : ingredient.items
+                            )
+                        )
+                )
+            ];
+            expect(itemIds.length).toBeGreaterThan(0);
+
+            // A seeded generator varies the crafting grids while keeping failures reproducible.
+            let randomState = 0x2812;
+            const random = (): number => {
+                randomState = (Math.imul(randomState, 1_664_525) + 1_013_904_223) >>> 0;
+                return randomState;
+            };
+            for (let sample = 0; sample < 128; sample++) {
+                const width = 1 + (random() % 3);
+                const height = 1 + (random() % 3);
+                const slots = Array.from({ length: width * height }, () => {
+                    if (random() % 4 === 0) return null;
+                    return { id: itemIds[random() % itemIds.length] ?? 'minecraft:stone', count: 1 };
+                });
+                const input: RecipeInput = {
+                    station: 'crafting',
+                    grid: { width, height, slots } satisfies CraftingGrid
+                };
+                const expected = book.byStation('crafting').flatMap((recipe) => {
+                    const match = matchRecipe(recipe, input);
+                    return match === undefined ? [] : [match];
+                });
+
+                expect(book.match(input)).toEqual(expected[0]);
+                expect(book.matchAll(input)).toEqual(expected);
+            }
         });
     },
     { tags: ['real-data'] }

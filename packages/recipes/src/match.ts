@@ -202,6 +202,40 @@ const matchStation = (recipe: Recipe, input: RecipeInput): CraftOutcome | undefi
 };
 
 /**
+ * Matches a crafting recipe against a grid its book has already cropped.
+ *
+ * This implementation-module helper lets `RecipeBook` crop once before trying its indexed
+ * candidates while preserving the full-grid slot order in the returned consumption and remainder.
+ *
+ * @internal
+ * @param grid - The input grid cropped to its occupied bounds.
+ * @param context - Injected registry lookups; {@link RecipeContext} says what each one enables.
+ * @returns The match, or `undefined` when the recipe does not accept the input.
+ */
+export const matchCraftingRecipe = (
+    recipe: Recipe,
+    input: Extract<RecipeInput, { station: 'crafting' }>,
+    grid: CroppedGrid,
+    context: RecipeContext = EMPTY_CONTEXT
+): RecipeMatch | undefined => {
+    if (recipe.station !== input.station || grid.filled === 0) return undefined;
+    const outcome = matchCrafting(recipe, grid, context);
+    if (outcome === undefined) return undefined;
+
+    const overrides = new Map<number, RecipeItemStack>();
+    for (const [slot, stack] of outcome.remainders ?? []) {
+        const source = grid.sourceSlots[slot];
+        if (source !== undefined) overrides.set(source, stack);
+    }
+    const consumedSlots = grid.sourceSlots.filter((_, slot) => grid.slots[slot] !== null);
+    return {
+        recipe,
+        result: outcome.result,
+        ...foldRemainders(input.grid.slots, consumedSlots, overrides, context)
+    };
+};
+
+/**
  * Whether one recipe accepts one station input, and what it produces.
  *
  * A crafting grid is cropped to the bounding box of its filled slots first,
@@ -227,24 +261,7 @@ export const matchRecipe = (
             ? { experience: recipe.experience, cookingTime: recipe.cookingTime }
             : {};
 
-    if (input.station === 'crafting') {
-        const grid = cropGrid(input.grid);
-        if (grid.filled === 0) return undefined;
-        const outcome = matchCrafting(recipe, grid, context);
-        if (outcome === undefined) return undefined;
-
-        const overrides = new Map<number, RecipeItemStack>();
-        for (const [slot, stack] of outcome.remainders ?? []) {
-            const source = grid.sourceSlots[slot];
-            if (source !== undefined) overrides.set(source, stack);
-        }
-        const consumedSlots = grid.sourceSlots.filter((_, slot) => grid.slots[slot] !== null);
-        return {
-            recipe,
-            result: outcome.result,
-            ...foldRemainders(input.grid.slots, consumedSlots, overrides, context)
-        };
-    }
+    if (input.station === 'crafting') return matchCraftingRecipe(recipe, input, cropGrid(input.grid), context);
 
     const outcome = matchStation(recipe, input);
     if (outcome === undefined) return undefined;

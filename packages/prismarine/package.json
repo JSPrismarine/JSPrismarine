@@ -51,6 +51,7 @@
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",
         "bench:items": "node --import tsx benchmarks/entityPickup.bench.ts",
         "bench:inbound-packets": "node --import tsx benchmarks/inboundPacketRecording.bench.ts",
+        "bench:recipes": "node benchmarks/run.mjs benchmarks/recipes.bench.ts",
         "bench:breeding-navigation": "node --import tsx benchmarks/run.mjs benchmarks/breedingNavigation.bench.ts",
         "bench:trends": "node benchmarks/trends.mjs",
         "bench:storage": "node --import tsx benchmarks/blockStorage.bench.ts",

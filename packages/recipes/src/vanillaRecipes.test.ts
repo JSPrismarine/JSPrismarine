@@ -16,7 +16,7 @@ import type { RecipeInput } from './match';
 import { matchRecipe } from './match';
 import { parseRecipe } from './parse';
 import type { Recipe } from './types';
-import { RECIPE_TYPES, STATION_BY_TYPE } from './types';
+import { recipeIngredients, RECIPE_TYPES, STATION_BY_TYPE } from './types';
 
 /**
  * Runs the whole package over Java 26.3's vanilla recipe files. Needs
@@ -276,6 +276,7 @@ describe.skipIf(!enabled)('the vanilla 26.3 recipe corpus', { tags: ['real-data'
         let reconstructed = 0;
         let matched = 0;
         let firstInBook = 0;
+        let equivalentInputs = 0;
         const unmatched: string[] = [];
         for (const recipe of recipes) {
             const input = reconstruct(recipe);
@@ -287,6 +288,45 @@ describe.skipIf(!enabled)('the vanilla 26.3 recipe corpus', { tags: ['real-data'
             }
             matched += 1;
             if (book.match(input)?.recipe.id === recipe.id) firstInBook += 1;
+
+            // Compare the indexed result with the former linear scan over the full station list.
+            const expected = book.byStation(input.station).flatMap((candidate) => {
+                const candidateMatch = matchRecipe(candidate, input, context);
+                return candidateMatch === undefined ? [] : [candidateMatch];
+            });
+            expect(book.match(input)).toEqual(expected[0]);
+            expect(book.matchAll(input)).toEqual(expected);
+            equivalentInputs += 1;
+        }
+
+        const itemIds = [
+            ...new Set(
+                recipes.flatMap((recipe) =>
+                    recipeIngredients(recipe).flatMap((ingredient) => (ingredient === null ? [] : ingredient.items))
+                )
+            )
+        ];
+        if (itemIds.length === 0) throw new Error('the vanilla recipe corpus has no ingredient items');
+        let randomState = 0x2812;
+        const random = (): number => {
+            randomState = (Math.imul(randomState, 1_664_525) + 1_013_904_223) >>> 0;
+            return randomState;
+        };
+        for (let sample = 0; sample < 256; sample++) {
+            const width = 1 + (random() % 3);
+            const height = 1 + (random() % 3);
+            const slots = Array.from({ length: width * height }, () => {
+                if (random() % 4 === 0) return null;
+                return { id: itemIds[random() % itemIds.length] ?? 'minecraft:stone', count: 1 };
+            });
+            const input: RecipeInput = { station: 'crafting', grid: gridOf(width, slots) };
+            const expected = book.byStation('crafting').flatMap((candidate) => {
+                const candidateMatch = matchRecipe(candidate, input, context);
+                return candidateMatch === undefined ? [] : [candidateMatch];
+            });
+            expect(book.match(input)).toEqual(expected[0]);
+            expect(book.matchAll(input)).toEqual(expected);
+            equivalentInputs += 1;
         }
 
         const report = compileRecipes(recipes, javaItemToBedrock);
@@ -298,6 +338,7 @@ describe.skipIf(!enabled)('the vanilla 26.3 recipe corpus', { tags: ['real-data'
                 `reconstructed ${reconstructed}`,
                 `matched ${matched}`,
                 `first in book ${firstInBook}`,
+                `equivalent inputs ${equivalentInputs}`,
                 `unmatched ${unmatched.length}`,
                 `compiled ${report.recipes.length}`,
                 `losses ${report.losses.length}`,
@@ -308,6 +349,7 @@ describe.skipIf(!enabled)('the vanilla 26.3 recipe corpus', { tags: ['real-data'
 
         // Only `repair_item` names no ingredient to rebuild an input from.
         expect(unmatched).toEqual([]);
+        expect(equivalentInputs).toBe(reconstructed + 256);
         expect(report.recipes.length + report.dropped.length).toBe(recipes.length);
         expect(report.dropped).toEqual([]);
         expect(report.gaps).toEqual([]);

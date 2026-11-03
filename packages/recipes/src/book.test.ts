@@ -85,6 +85,58 @@ describe('createRecipeBook', () => {
         expect(book.match(grid)?.recipe.id).toBe('minecraft:anvil');
         expect(book.matchAll(grid).map((match) => match.recipe.id)).toEqual(['minecraft:anvil', 'minecraft:torch']);
     });
+
+    it('merges shaped, shapeless, and special candidates in registry order', () => {
+        const parse = (id: string, source: unknown): Recipe => {
+            const result = parseRecipe(id, source);
+            if (result.recipe === undefined)
+                throw new Error(result.diagnostics.map(({ message }) => message).join('\n'));
+            return result.recipe;
+        };
+        const candidates = createRecipeBook([
+            parse('minecraft:zeta_transmute', {
+                type: 'minecraft:crafting_transmute',
+                input: 'minecraft:stone',
+                material: 'minecraft:coal',
+                result: { id: 'minecraft:diamond' }
+            }),
+            parse('minecraft:beta_shapeless', {
+                type: 'minecraft:crafting_shapeless',
+                ingredients: ['minecraft:stone', 'minecraft:coal'],
+                result: { id: 'minecraft:iron_ingot' }
+            }),
+            parse('minecraft:alpha_shaped', {
+                type: 'minecraft:crafting_shaped',
+                key: { S: 'minecraft:stone', C: 'minecraft:coal' },
+                pattern: ['SC'],
+                result: { id: 'minecraft:gold_ingot' }
+            }),
+            parse('minecraft:other_shape', {
+                type: 'minecraft:crafting_shaped',
+                key: { S: 'minecraft:stone', C: 'minecraft:coal' },
+                pattern: ['S', 'C'],
+                result: { id: 'minecraft:emerald' }
+            })
+        ]);
+        const grid = {
+            station: 'crafting',
+            grid: {
+                width: 2,
+                height: 1,
+                slots: [
+                    { id: 'minecraft:stone', count: 1 },
+                    { id: 'minecraft:coal', count: 1 }
+                ]
+            }
+        } as const;
+
+        expect(candidates.match(grid)?.recipe.id).toBe('minecraft:alpha_shaped');
+        expect(candidates.matchAll(grid).map(({ recipe }) => recipe.id)).toEqual([
+            'minecraft:alpha_shaped',
+            'minecraft:beta_shapeless',
+            'minecraft:zeta_transmute'
+        ]);
+    });
 });
 
 describe('loadRecipes', () => {

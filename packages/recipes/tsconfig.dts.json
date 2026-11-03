@@ -10,6 +10,7 @@
         "noEmit": false,
         "incremental": false,
         "inlineSourceMap": false,
+        "stripInternal": true,
         "paths": {
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }

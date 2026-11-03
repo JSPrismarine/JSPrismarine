@@ -1,7 +1,8 @@
 import type { RecipeContext } from './context';
 import { EMPTY_CONTEXT } from './context';
+import { cropGrid } from './grid';
 import type { RecipeInput, RecipeMatch } from './match';
-import { matchRecipe } from './match';
+import { matchCraftingRecipe, matchRecipe } from './match';
 import { assignNetIds, orderRecipes } from './order';
 import type { RecipeDiagnostic } from './parse';
 import { parseRecipe } from './parse';
@@ -49,6 +50,71 @@ export const createRecipeBook = (recipes: Iterable<Recipe>, context: RecipeConte
     }
 
     const candidates = (input: RecipeInput): readonly Recipe[] => byStation.get(input.station) ?? [];
+    const craftingRecipes = byStation.get('crafting') ?? [];
+    const craftingOrder = new Map(craftingRecipes.map((recipe, index) => [recipe, index]));
+    const shaped = new Map<string, Recipe[]>();
+    const shapeless = new Map<number, Recipe[]>();
+    const special: Recipe[] = [];
+    for (const recipe of craftingRecipes) {
+        switch (recipe.type) {
+            case 'minecraft:crafting_shaped': {
+                const filled = recipe.pattern.cells.filter((cell) => cell !== null).length;
+                const key = `${filled}:${recipe.pattern.width}:${recipe.pattern.height}`;
+                const bucket = shaped.get(key) ?? [];
+                bucket.push(recipe);
+                shaped.set(key, bucket);
+                break;
+            }
+            case 'minecraft:crafting_shapeless': {
+                const bucket = shapeless.get(recipe.ingredients.length) ?? [];
+                bucket.push(recipe);
+                shapeless.set(recipe.ingredients.length, bucket);
+                break;
+            }
+            default:
+                special.push(recipe);
+                break;
+        }
+    }
+
+    const candidatesByGrid = new Map<string, readonly Recipe[]>();
+    const craftingCandidates = (grid: ReturnType<typeof cropGrid>): readonly Recipe[] => {
+        const shapeKey = `${grid.filled}:${grid.width}:${grid.height}`;
+        const shapedCandidates = shaped.get(shapeKey);
+        const shapelessCandidates = shapeless.get(grid.filled);
+        if (shapedCandidates === undefined && shapelessCandidates === undefined) return special;
+
+        // A shaped key is one of the finite signatures registered above. A shapeless-only key
+        // needs only its filled count; grids with no bucket reuse the standalone special list.
+        const cacheKey = shapedCandidates === undefined ? `filled:${grid.filled}` : `shape:${shapeKey}`;
+        const cached = candidatesByGrid.get(cacheKey);
+        if (cached !== undefined) return cached;
+
+        const buckets = [shapedCandidates ?? [], shapelessCandidates ?? [], special] as const;
+        const offsets = [0, 0, 0];
+        const merged: Recipe[] = [];
+        while (true) {
+            let nextBucket = -1;
+            let nextOrder = Number.POSITIVE_INFINITY;
+            for (let index = 0; index < buckets.length; index++) {
+                const recipe = buckets[index]?.[offsets[index] ?? 0];
+                if (recipe === undefined) continue;
+                const order = craftingOrder.get(recipe) ?? Number.POSITIVE_INFINITY;
+                if (order < nextOrder) {
+                    nextBucket = index;
+                    nextOrder = order;
+                }
+            }
+            if (nextBucket === -1) break;
+            const recipe = buckets[nextBucket]?.[offsets[nextBucket] ?? 0];
+            if (recipe === undefined) break;
+            merged.push(recipe);
+            offsets[nextBucket] = (offsets[nextBucket] ?? 0) + 1;
+        }
+
+        candidatesByGrid.set(cacheKey, merged);
+        return merged;
+    };
 
     return {
         recipes: ordered,
@@ -56,17 +122,39 @@ export const createRecipeBook = (recipes: Iterable<Recipe>, context: RecipeConte
         get: (id) => byId.get(id),
         byStation: (station) => byStation.get(station) ?? [],
         match: (input) => {
+            if (input.station === 'crafting') {
+                const grid = cropGrid(input.grid);
+                if (grid.filled === 0) return undefined;
+                for (const recipe of craftingCandidates(grid)) {
+                    const match = matchCraftingRecipe(recipe, input, grid, context);
+                    if (match !== undefined) return match;
+                }
+                return undefined;
+            }
+
             for (const recipe of candidates(input)) {
                 const match = matchRecipe(recipe, input, context);
                 if (match !== undefined) return match;
             }
             return undefined;
         },
-        matchAll: (input) =>
-            candidates(input).flatMap((recipe) => {
+        matchAll: (input) => {
+            if (input.station === 'crafting') {
+                const grid = cropGrid(input.grid);
+                if (grid.filled === 0) return [];
+                const matches: RecipeMatch[] = [];
+                for (const recipe of craftingCandidates(grid)) {
+                    const match = matchCraftingRecipe(recipe, input, grid, context);
+                    if (match !== undefined) matches.push(match);
+                }
+                return matches;
+            }
+
+            return candidates(input).flatMap((recipe) => {
                 const match = matchRecipe(recipe, input, context);
                 return match === undefined ? [] : [match];
-            })
+            });
+        }
     };
 };
 
