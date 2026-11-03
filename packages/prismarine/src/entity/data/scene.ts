@@ -66,6 +66,8 @@ export interface EntityScene {
      * list intersects the hint, without excluding any possible match.
      */
     near(center: EntityPosition, radius: number, families?: readonly string[]): readonly DataEntity[];
+    /** Every entity whose collision box intersects the given AABB, in spawn order. */
+    inBox(min: EntityPosition, max: EntityPosition): readonly DataEntity[];
     byId(id: number): DataEntity | undefined;
     spawn(identifier: string, at: EntityPosition, options?: SpawnOptions): DataEntity | undefined;
     remove(id: number, reason: string): void;

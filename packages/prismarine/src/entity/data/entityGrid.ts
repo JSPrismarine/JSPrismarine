@@ -67,6 +67,11 @@ export class EntityGrid {
     /** The families each entity is filed under now. */
     private readonly filedFamilies = new Map<number, readonly string[]>();
 
+    /** The widest live collision box, used to keep box queries' cell broadphase conservative. */
+    private readonly boxWidths = new Map<number, number>();
+
+    private widestBox = 0;
+
     /**
      * When each entity entered the index.
      *
@@ -85,6 +90,9 @@ export class EntityGrid {
     public add(entity: DataEntity): void {
         this.arrived.set(entity.id, this.arrivals);
         this.arrivals += 1;
+        const width = entity.facts.box.width;
+        this.boxWidths.set(width, (this.boxWidths.get(width) ?? 0) + 1);
+        this.widestBox = Math.max(this.widestBox, width);
         this.file(entity, cellKeyOf(entity.position));
         this.refreshFamilies(entity);
     }
@@ -95,6 +103,14 @@ export class EntityGrid {
         if (key === undefined) return;
         this.filed.delete(entity.id);
         this.arrived.delete(entity.id);
+        const width = entity.facts.box.width;
+        const widthCount = this.boxWidths.get(width) ?? 0;
+        if (widthCount <= 1) {
+            this.boxWidths.delete(width);
+            if (width === this.widestBox) this.widestBox = Math.max(0, ...this.boxWidths.keys());
+        } else {
+            this.boxWidths.set(width, widthCount - 1);
+        }
         this.unfile(entity, key);
         for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, key);
         this.filedFamilies.delete(entity.id);
@@ -263,6 +279,40 @@ export class EntityGrid {
         const ordered = found.map((entity) => ({ entity, arrival: this.arrived.get(entity.id) ?? 0 }));
         ordered.sort((a, b) => a.arrival - b.arrival);
         return ordered.map(({ entity }) => entity);
+    }
+
+    /** Entities whose Java collision boxes strictly intersect an axis-aligned box. */
+    public withinBox(min: EntityPosition, max: EntityPosition): DataEntity[] {
+        const found: DataEntity[] = [];
+        // A target center can stand outside the query box while its collision box overlaps it.
+        // Expand the cell broadphase by the widest live box, then retain the exact AABB check below.
+        const halfWidth = this.widestBox / 2;
+        const lowX = cellOf(min.x - halfWidth);
+        const highX = cellOf(max.x + halfWidth);
+        const lowZ = cellOf(min.z - halfWidth);
+        const highZ = cellOf(max.z + halfWidth);
+
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const cell = this.cells.get(keyOf(cellX, cellZ));
+                if (cell === undefined) continue;
+                for (const entity of cell) {
+                    const halfWidth = entity.facts.box.width / 2;
+                    if (
+                        entity.position.x - halfWidth < max.x &&
+                        entity.position.x + halfWidth > min.x &&
+                        entity.position.y < max.y &&
+                        entity.position.y + entity.facts.box.height > min.y &&
+                        entity.position.z - halfWidth < max.z &&
+                        entity.position.z + halfWidth > min.z
+                    ) {
+                        found.push(entity);
+                    }
+                }
+            }
+
+        found.sort((a, b) => (this.arrived.get(a.id) ?? 0) - (this.arrived.get(b.id) ?? 0));
+        return found;
     }
 
     /** Puts one entity in a cell and records that it is there. */

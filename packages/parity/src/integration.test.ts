@@ -11,7 +11,7 @@ import {
 } from '@jsprismarine/block-behaviors';
 import type { HookBlock } from '@jsprismarine/blocks';
 import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
-import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
+import { MemoryModuleTypes, NearestLivingEntitySensor } from '@jsprismarine/entity-brains';
 import {
     bedrockBiomeToJava,
     bedrockBlockToJava,
@@ -29,6 +29,7 @@ import { buildServerContent } from '@jsprismarine/prismarine/content/ServerConte
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
 import { entityContentGroups } from '@jsprismarine/prismarine/entity/contentAdapter';
+import { brainMobOf } from '@jsprismarine/prismarine/entity/data/brainWorld';
 import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
 import { TestEntityWorld } from '@jsprismarine/prismarine/entity/data/testing';
 import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/index';
@@ -1120,6 +1121,51 @@ describeFamily(
             const found = runtime.brainWorld().findBlock(center, 1, 2, (block) => block === 'minecraft:soul_fire');
 
             expect(found).toEqual({ ...center, z: center.z + 1 });
+        });
+
+        it('matches Java nearest-living AABB corners for entities and players', { timeout: 180_000 }, () => {
+            const { runtime, world } = realStack();
+            world.players = [];
+            const origin = { x: 320, y: 64, z: 320 };
+            const goat = runtime.spawn('minecraft:goat', origin);
+            if (goat?.brain === undefined) throw new Error('the Java stack must declare a goat brain');
+            const body = brainMobOf(goat, goat.brain, runtime);
+            const range = body.attribute('minecraft:follow_range');
+            const corner = runtime.spawn('minecraft:cow', {
+                x: origin.x + range * 0.75,
+                y: origin.y,
+                z: origin.z + range * 0.75
+            });
+            const outside = runtime.spawn('minecraft:sheep', {
+                x: origin.x + range + goat.facts.box.width / 2 + 1,
+                y: origin.y,
+                z: origin.z
+            });
+            const player = {
+                id: 100_320,
+                identifier: 'minecraft:player',
+                position: {
+                    x: origin.x - range * 0.75,
+                    y: origin.y,
+                    z: origin.z + range * 0.75
+                }
+            };
+            world.players = [player];
+            if (corner === undefined || outside === undefined) {
+                throw new Error('the Java stack must declare cows and sheep');
+            }
+
+            new NearestLivingEntitySensor().tick({ world: runtime.brainWorld(), body });
+
+            const nearest = goat.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES) ?? [];
+            const ids = nearest.map(({ id }) => id);
+            expect(ids).toContain(String(corner.id));
+            expect(ids).toContain(String(player.id));
+            expect(ids).not.toContain(String(outside.id));
+            runtime.remove(outside.id, 'parity living box complete');
+            runtime.remove(corner.id, 'parity living box complete');
+            runtime.remove(goat.id, 'parity living box complete');
+            world.players = [];
         });
 
         it('selects the nearest Java axolotl water and frog land targets', { timeout: 180_000 }, () => {

@@ -44,7 +44,7 @@ export class NearestLivingEntitySensor extends Sensor {
     protected doTick(context: BrainContext): void {
         const range = context.body.attribute(FOLLOW_RANGE_ATTRIBUTE);
         const found = context.world
-            .livingEntitiesNear(context.body.position, range, context.body)
+            .livingEntitiesNear(context.body.position, range, context.body, context.body.dimensions)
             .filter((entity) => entity.alive);
         const sorted = [...found].sort(
             (a, b) =>

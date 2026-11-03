@@ -24,18 +24,29 @@ import type {
     BrainMob,
     BrainNavigation,
     BrainWorld,
+    EntityDimensions,
     PoiRecord,
     RandomPosRequest,
     Vec3,
     VillagerRaidEffect,
     VillagerRaidState
 } from './world.js';
-import { blockContaining, blockPositionsInManhattanOrder, distanceSquared } from './world.js';
+import {
+    blockContaining,
+    blockPositionsInManhattanOrder,
+    distanceSquared,
+    entityIntersectsBounds,
+    inflatedEntityBounds
+} from './world.js';
+
+/** A generic one-block test entity, overridden for exact geometry cases. */
+const DEFAULT_TEST_DIMENSIONS: EntityDimensions = { width: 1, height: 1 };
 
 /** What a test says about an entity it places. */
 export interface TestEntityOptions {
     readonly id?: string;
     readonly position?: Vec3;
+    readonly dimensions?: EntityDimensions;
     readonly alive?: boolean;
     readonly baby?: boolean;
     readonly spectator?: boolean;
@@ -53,6 +64,7 @@ export class TestEntity implements BrainEntity {
     public readonly id: string;
     public readonly type: string;
     public position: Vec3;
+    public readonly dimensions: EntityDimensions;
     public alive: boolean;
     public baby: boolean;
     public spectator: boolean;
@@ -67,6 +79,7 @@ export class TestEntity implements BrainEntity {
         this.type = type;
         this.id = options.id ?? `${type}#${nextEntityId++}`;
         this.position = options.position ?? { x: 0, y: 0, z: 0 };
+        this.dimensions = options.dimensions ?? DEFAULT_TEST_DIMENSIONS;
         this.alive = options.alive ?? true;
         this.baby = options.baby ?? false;
         this.spectator = options.spectator ?? false;
@@ -353,13 +366,19 @@ export class TestWorld implements BrainWorld {
         return bound <= 0 ? 0 : Math.floor(this.random() * bound);
     }
 
-    /** Every non-item entity within the radius, minus the excluded one. Items are tracked separately. */
-    public livingEntitiesNear(center: Vec3, radius: number, exclude: BrainEntity): readonly BrainEntity[] {
+    /** Every non-item entity whose box intersects the excluded entity's inflated box. */
+    public livingEntitiesNear(
+        center: Vec3,
+        radius: number,
+        exclude: BrainEntity,
+        excludeDimensions = exclude.dimensions ?? DEFAULT_TEST_DIMENSIONS
+    ): readonly BrainEntity[] {
+        const bounds = inflatedEntityBounds(center, excludeDimensions, radius);
         return this.entities.filter(
             (entity) =>
                 entity.id !== exclude.id &&
                 entity.type !== 'minecraft:item' &&
-                distanceSquared(entity.position, center) <= radius * radius
+                entityIntersectsBounds(entity.position, entity.dimensions, bounds)
         );
     }
 

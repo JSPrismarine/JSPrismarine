@@ -18,6 +18,47 @@ export interface Vec3 {
     readonly z: number;
 }
 
+/** The size of an entity's box, measured across and up from its feet. */
+export interface EntityDimensions {
+    /** The width across both horizontal axes. */
+    readonly width: number;
+    /** The height above the entity's position. */
+    readonly height: number;
+}
+
+/** An axis-aligned query box, with strict overlap matching Java's `AABB.intersects`. */
+export interface EntityBounds {
+    readonly min: Vec3;
+    readonly max: Vec3;
+}
+
+/** Java's `Entity.getBoundingBox().inflate(amount)`. */
+export const inflatedEntityBounds = (position: Vec3, dimensions: EntityDimensions, amount: number): EntityBounds => ({
+    min: {
+        x: position.x - dimensions.width / 2 - amount,
+        y: position.y - amount,
+        z: position.z - dimensions.width / 2 - amount
+    },
+    max: {
+        x: position.x + dimensions.width / 2 + amount,
+        y: position.y + dimensions.height + amount,
+        z: position.z + dimensions.width / 2 + amount
+    }
+});
+
+/** Whether an entity's box strictly intersects a query box, as Java's `AABB.intersects` does. */
+export const entityIntersectsBounds = (position: Vec3, dimensions: EntityDimensions, bounds: EntityBounds): boolean => {
+    const halfWidth = dimensions.width / 2;
+    return (
+        position.x - halfWidth < bounds.max.x &&
+        position.x + halfWidth > bounds.min.x &&
+        position.y < bounds.max.y &&
+        position.y + dimensions.height > bounds.min.y &&
+        position.z - halfWidth < bounds.max.z &&
+        position.z + halfWidth > bounds.min.z
+    );
+};
+
 /** A whole-block position. Java's `BlockPos`. */
 export interface BlockPos {
     readonly x: number;
@@ -152,6 +193,8 @@ export interface BrainEntity {
     /** The entity type tags, such as `minecraft:axolotl_hunt_targets`. */
     readonly typeTags: ReadonlySet<string>;
     readonly position: Vec3;
+    /** Its Java collision box, when the host can provide it. */
+    readonly dimensions?: EntityDimensions;
     /** Where its eyes are, when the world can provide that detail. */
     readonly eyePosition?: Vec3;
     readonly alive: boolean;
@@ -239,8 +282,13 @@ export interface BrainWorld {
     random(): number;
     /** An integer in `[0, bound)`. */
     randomInt(bound: number): number;
-    /** Every living entity within `radius` of `center`, nearest first, excluding `exclude`. */
-    livingEntitiesNear(center: Vec3, radius: number, exclude: BrainEntity): readonly BrainEntity[];
+    /** Every living entity whose box intersects `exclude`'s box inflated by `radius`, nearest first. */
+    livingEntitiesNear(
+        center: Vec3,
+        radius: number,
+        exclude: BrainEntity,
+        excludeDimensions?: EntityDimensions
+    ): readonly BrainEntity[];
     /** Every player in the level, including ones far away; sensors filter by range themselves. */
     players(): readonly BrainEntity[];
     /** Every dropped item within the given box half-extents of `center`. */

@@ -103,7 +103,7 @@ import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
 import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, sameEquipment, slotForItem } from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
-import { EntityFactsLookup, javaLootIdOf } from './facts';
+import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
 import type { EntityFacts } from './facts';
 import {
     bodyCanOccupy,
@@ -163,12 +163,12 @@ const COMPONENT_EQUIPMENT_SLOTS = {
     feet: 'slot.armor.feet',
     body: 'slot.armor.body'
 } satisfies Record<MobEquipmentSlot, EntityEquipmentSlot>;
-const PLAYER_WIDTH = 0.6;
-const PLAYER_HEIGHT = 1.8;
+const PLAYER_WIDTH = PLAYER_BOX.width;
+const PLAYER_HEIGHT = PLAYER_BOX.height;
 const TICKS_PER_SECOND = 20;
 
 /** Bedrock's player collision box, which the server uses for entity interactions. */
-const PLAYER_ENTITY_BOX = { width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
+const PLAYER_ENTITY_BOX = PLAYER_BOX;
 
 /** Distance between the closest points of two entity collision boxes. */
 const distanceOutsideEntityBoxes = (
@@ -456,6 +456,11 @@ export class EntityRuntime implements EntityScene {
      */
     public near(center: EntityPosition, radius: number, families?: readonly string[]): readonly DataEntity[] {
         return this.grid.within(center, radius, families);
+    }
+
+    /** Every live entity whose collision box intersects the given AABB, in spawn order. */
+    public inBox(min: EntityPosition, max: EntityPosition): readonly DataEntity[] {
+        return this.grid.withinBox(min, max);
     }
 
     /** How many live entities of one type stand within a radius of a position. */

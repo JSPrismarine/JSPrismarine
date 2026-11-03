@@ -116,6 +116,21 @@ describe('NearestLivingEntitySensor', () => {
         expect(context.body.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES)).toEqual([near, far]);
     });
 
+    it('uses Java inflated-box corners and excludes an entity beyond one box face', () => {
+        const sensor = new NearestLivingEntitySensor();
+        const { world, context } = scene(sensor);
+        const cornerEntity = world.place('minecraft:cow', { x: 12, y: 64, z: 12 });
+        const cornerPlayer = world.place('minecraft:player', { x: -12, y: 64, z: 12 });
+        const beyondFace = world.place('minecraft:sheep', { x: 17, y: 64, z: 0 });
+
+        scan(sensor, context);
+
+        const nearby = context.body.brain.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES);
+        expect(nearby).toContain(cornerEntity);
+        expect(nearby).toContain(cornerPlayer);
+        expect(nearby).not.toContain(beyondFace);
+    });
+
     it('builds the visible view from line of sight', () => {
         const hidden = { id: 'hidden' };
         const sensor = new NearestLivingEntitySensor();

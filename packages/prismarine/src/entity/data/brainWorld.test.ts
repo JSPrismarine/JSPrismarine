@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { definitionOf } from '../../content/ContentOptions';
+import { brainEntityOf } from './brainWorld';
 import { entityFixture, entityFixtureStack, FLOOR_Y, TestEntityWorld } from './testing';
 
 describe('BrainWorld block tags', () => {
@@ -51,5 +52,30 @@ describe('BrainWorld block tags', () => {
         expect(found).toEqual({ x: 0, y: FLOOR_Y + 1, z: 1 });
         expect(brainWorld.canStandAt({ x: 0, y: FLOOR_Y + 1, z: 0 })).toBe(true);
         expect(brainWorld.canStandAt({ x: -1, y: FLOOR_Y + 1, z: 0 })).toBe(false);
+    });
+
+    it('queries entity and player collision boxes at AABB corners and stops beyond one face', () => {
+        const player = {
+            id: 99,
+            identifier: 'minecraft:player',
+            position: { x: 3.5, y: FLOOR_Y + 1, z: 12 }
+        };
+        const world = new TestEntityWorld({ players: [player] });
+        const fixture = entityFixture(world);
+        const goat = fixture.runtime.spawn('minecraft:goat', { x: 15.5, y: FLOOR_Y + 1, z: 0 });
+        const corner = fixture.runtime.spawn('minecraft:cow', { x: 27.5, y: FLOOR_Y + 1, z: 12 });
+        const edge = fixture.runtime.spawn('minecraft:cow', { x: 32.1, y: FLOOR_Y + 1, z: 0 });
+        const outside = fixture.runtime.spawn('minecraft:cow', { x: 32.5, y: FLOOR_Y + 1, z: 0 });
+        if (goat === undefined || corner === undefined || edge === undefined || outside === undefined) {
+            throw new Error('the fixture must declare a goat and cows');
+        }
+
+        const found = fixture.runtime
+            .brainWorld()
+            .livingEntitiesNear(goat.position, 16, brainEntityOf(goat, fixture.runtime), goat.facts.box);
+
+        expect(found.map(({ id }) => id).sort()).toEqual(
+            [String(corner.id), String(edge.id), String(player.id)].sort()
+        );
     });
 });

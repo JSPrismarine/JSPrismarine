@@ -46,6 +46,9 @@ export interface EntityBox {
  */
 export const DEFAULT_BOX: EntityBox = { width: 1, height: 1 };
 
+/** Java player's collision box, shared by queries that include host-owned players. */
+export const PLAYER_BOX: EntityBox = { width: 0.6, height: 1.8 };
+
 /**
  * The boxes of the types the server models that no entity file declares.
  *

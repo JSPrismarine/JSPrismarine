@@ -14,10 +14,17 @@ import type {
     BrainMob,
     BrainNavigation,
     BrainWorld,
+    EntityDimensions,
     PoiRecord,
     Vec3
 } from '@jsprismarine/entity-brains';
-import { blockContaining, blockPositionsInManhattanOrder, distanceSquared } from '@jsprismarine/entity-brains';
+import {
+    blockContaining,
+    blockPositionsInManhattanOrder,
+    distanceSquared,
+    entityIntersectsBounds,
+    inflatedEntityBounds
+} from '@jsprismarine/entity-brains';
 import type { Brain } from '@jsprismarine/entity-brains';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
@@ -30,6 +37,7 @@ import { distance } from './DataEntity';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
 import { blockPositionOf, entityEyePosition } from './position';
 import type { EntityScene } from './scene';
+import { DEFAULT_BOX, PLAYER_BOX } from './facts';
 
 /** How far a sensor may look for a non-combat target when the type declares no follow range. */
 const DEFAULT_FOLLOW_RANGE = 16;
@@ -40,6 +48,7 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
     type: entity.identifier,
     typeTags: new Set(entity.facts.families),
     position: entity.position,
+    dimensions: entity.facts.box,
     eyePosition: entityEyePosition(entity.position, entity.facts.box.height),
     alive: entity.removed === undefined,
     baby: entity.instance.hasComponent('minecraft:is_baby'),
@@ -63,6 +72,7 @@ const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity =
     type: player.identifier,
     typeTags: new Set(),
     position: player.position,
+    dimensions: PLAYER_BOX,
     eyePosition: { x: player.position.x, y: player.position.y + EYE_HEIGHT, z: player.position.z },
     alive: true,
     baby: false,
@@ -203,16 +213,24 @@ const attributeOf = (entity: DataEntity, attribute: string): number => {
 
 /** Builds the one `BrainWorld` for a dimension. */
 export const brainWorldOf = (scene: EntityScene): BrainWorld => {
-    const livingNear = (center: Vec3, radius: number, exclude: BrainEntity): readonly BrainEntity[] => {
+    const livingNear = (
+        center: Vec3,
+        radius: number,
+        exclude: BrainEntity,
+        excludeDimensions: EntityDimensions = exclude.dimensions ?? DEFAULT_BOX
+    ): readonly BrainEntity[] => {
+        const bounds = inflatedEntityBounds(center, excludeDimensions, radius);
         const found = new Map<string, BrainEntity>();
-        for (const candidate of scene.near(center, radius)) {
+        for (const candidate of scene.inBox(bounds.min, bounds.max)) {
             if (String(candidate.id) === exclude.id || candidate.removed !== undefined) continue;
             const entity = brainEntityOf(candidate, scene);
             found.set(entity.id, entity);
         }
         for (const player of scene.host.players()) {
             const id = String(player.id);
-            if (id === exclude.id || found.has(id) || distance(center, player.position) > radius) continue;
+            if (id === exclude.id || found.has(id) || !entityIntersectsBounds(player.position, PLAYER_BOX, bounds)) {
+                continue;
+            }
             found.set(id, brainPlayerOf(player, scene));
         }
         return [...found.values()].sort((a, b) => distance(center, a.position) - distance(center, b.position));
