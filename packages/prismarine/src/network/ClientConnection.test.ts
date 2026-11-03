@@ -114,14 +114,14 @@ describe('network', () => {
             const first = send.mock.calls.at(-1)?.[0];
             expect(first).toBeInstanceOf(DisconnectPacket);
             expect(first?.getPacketData()).toMatchObject({ message: 'Outdated client!' });
-            expect(send).toHaveBeenLastCalledWith(first, false);
+            expect(send).toHaveBeenLastCalledWith(first, false, true);
 
             connection.hasCompression = true;
             await connection.disconnect('Kicked', false);
             const second = send.mock.calls.at(-1)?.[0];
             expect(second).toBeInstanceOf(DisconnectPacket);
             expect(second?.getPacketData()).toMatchObject({ message: 'Kicked' });
-            expect(send).toHaveBeenLastCalledWith(second, true);
+            expect(send).toHaveBeenLastCalledWith(second, true, true);
         });
 
         it('stamps the goodbye with the reason code it was given', async () => {
@@ -135,7 +135,7 @@ describe('network', () => {
             const defaultPacket = send.mock.calls.at(-1)?.[0];
             expect(defaultPacket).toBeInstanceOf(DisconnectPacket);
             expect(defaultPacket?.getPacketData()).toMatchObject({ reason: DisconnectReason.DISCONNECTED });
-            expect(send).toHaveBeenLastCalledWith(defaultPacket, false);
+            expect(send).toHaveBeenLastCalledWith(defaultPacket, false, true);
 
             await connection.disconnect('Kicked', false, DisconnectReason.KICKED);
             const kickedPacket = send.mock.calls.at(-1)?.[0];
@@ -144,7 +144,7 @@ describe('network', () => {
                 reason: DisconnectReason.KICKED,
                 message: 'Kicked'
             });
-            expect(send).toHaveBeenLastCalledWith(kickedPacket, false);
+            expect(send).toHaveBeenLastCalledWith(kickedPacket, false, true);
         });
 
         it('does nothing for a connection that never got a player', async () => {

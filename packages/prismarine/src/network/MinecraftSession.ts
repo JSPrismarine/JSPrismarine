@@ -6,8 +6,14 @@ import HandshakeCodec from './codec/HandshakeCodec';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { TransportConnection } from './transport/Transport';
 import type { encodePacketBatch } from './encodePacketBatch';
-import { encodePacketBatchAsync, encodePacketBatchBySize } from './encodePacketBatch';
+import {
+    encodePacketBatchAsync,
+    encodePacketBatchBySize,
+    encodePacketBatchFromBuffersBySize,
+    encodePacketsForCodec
+} from './encodePacketBatch';
 import type { PacketBatchOptions } from './encodePacketBatch';
+import { DEFAULT_COMPRESSION_LEVEL } from '@jsprismarine/protocol';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -37,10 +43,40 @@ export const debugPacketNames = (value: string | undefined): ReadonlySet<string>
 /** Where `JSP_DEBUG_DUMP_PACKETS` files go unless `JSP_DEBUG_DUMP_DIR` says otherwise. */
 const defaultDumpDir = (): string => process.env.JSP_DEBUG_DUMP_DIR ?? path.join(os.tmpdir(), 'jsprismarine-packets');
 
+/** Bound queued packet bodies so traffic outside a world tick still gets framed promptly. */
+const OUTBOUND_QUEUE_BYTE_LIMIT = 64 * 1024;
+
+interface QueuedPacket {
+    readonly packet: NetworkPacket<unknown>;
+    readonly buffer: Buffer;
+    readonly options: PacketBatchOptions;
+    readonly direct: boolean;
+    readonly resolve: () => void;
+    readonly reject: (error: unknown) => void;
+    readonly done: Promise<void>;
+}
+
+const sameBatchOptions = (left: PacketBatchOptions, right: PacketBatchOptions): boolean => {
+    // `undefined` means the BatchCodec default, so default `sendPackets` and `sendDataPacket`
+    // calls can share a queue even though only the latter spells out `compressed: true`.
+    const leftCompressed = left.compressed ?? true;
+    const rightCompressed = right.compressed ?? true;
+    if (leftCompressed !== rightCompressed) return false;
+    if (!leftCompressed) return true;
+
+    // The algorithm selects the batch prefix and decoder, so mixing algorithms corrupts a frame.
+    return (
+        (left.compressionAlgorithm ?? PacketCompressionAlgorithm.ZLIB) ===
+            (right.compressionAlgorithm ?? PacketCompressionAlgorithm.ZLIB) &&
+        (left.compressionLevel ?? DEFAULT_COMPRESSION_LEVEL) ===
+            (right.compressionLevel ?? DEFAULT_COMPRESSION_LEVEL) &&
+        (left.compressionThreshold ?? 1) === (right.compressionThreshold ?? 1)
+    );
+};
+
 /**
- * The layer between a `ClientConnection` and its transport: wraps single packets in a
- * batch of their own, frames encoded batches in the order they were asked for, and logs what
- * went out.
+ * The layer between a `ClientConnection` and its transport: coalesces queued packet buffers
+ * into batches, frames them in the order they were asked for, and logs what went out.
  *
  * Whether a batch is compressed is the caller's decision, taken from the connection's
  * negotiated state. `RequestNetworkSettingsHandler` sends `NetworkSettings` uncompressed
@@ -80,9 +116,9 @@ export default class MinecraftSession {
      * to the one they were queued in.
      *
      * So framing follows the order the sends were requested, not the order the work
-     * finished. The counter keeps that from costing anything in the ordinary case: with no
-     * asynchronous send outstanding there is nothing to get behind, and a packet frames
-     * immediately as it always did.
+     * finished. The counter keeps direct and shared batches off the promise chain when there
+     * is no asynchronous send to get behind; ordinary single-packet sends use the separate
+     * coalescing queue and its explicit flush points.
      */
     private outbound: Promise<void> = Promise.resolve();
     private pendingAsyncSends = 0;
@@ -90,6 +126,10 @@ export default class MinecraftSession {
     private outboundConnectionId: number | undefined;
     private outboundTick: (() => number) | undefined;
     private nextOutboundSequence = 0;
+    private queuedPackets: QueuedPacket[] = [];
+    private queuedPacketBytes = 0;
+    private queuedBatchOptions: PacketBatchOptions | undefined;
+    private flushScheduled = false;
 
     public constructor(
         connection: TransportConnection,
@@ -139,22 +179,31 @@ export default class MinecraftSession {
         return next;
     }
 
-    /** Encodes packets into one batch and queues it on the session's ordered outbound chain. */
+    /**
+     * Encodes packets into a batch, or appends their bytes to the per-session queue when
+     * `direct` is false.
+     */
     public sendPackets(
         packets: readonly NetworkPacket<unknown>[],
         { direct = true, ...batchOptions }: PacketBatchSendOptions = {}
     ): void {
         if (this.dropsPackets(packets)) return;
 
-        const batch = encodePacketBatchBySize(
-            packets,
-            this.codec,
-            this.withCompressionOptions({
-                compressionAlgorithm: this.compressionAlgorithm,
-                compressionThreshold: this.compressionThreshold,
-                ...batchOptions
-            })
-        );
+        const options = this.withCompressionOptions({
+            compressionAlgorithm: this.compressionAlgorithm,
+            compressionThreshold: this.compressionThreshold,
+            ...batchOptions
+        });
+        if (!direct) {
+            for (const packet of packets) this.enqueuePacket(packet, options, false);
+            return;
+        }
+
+        // Preserve request order when an urgent batch follows packets waiting for the tick
+        // flush or the setImmediate fallback.
+        void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
+
+        const batch = encodePacketBatchBySize(packets, this.codec, options);
         if (batch instanceof Promise) {
             this.pendingAsyncSends++;
             void this.chain(async () => {
@@ -186,6 +235,8 @@ export default class MinecraftSession {
         { direct = true, ...batchOptions }: PacketBatchSendOptions = {}
     ): Promise<void> {
         if (this.dropsPackets(packets)) return;
+
+        void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
 
         this.pendingAsyncSends++;
         try {
@@ -226,24 +277,14 @@ export default class MinecraftSession {
      * @param {boolean} [direct=false] - Force a datagram of its own.
      * @param packetBuffers - Their encoded bytes for packet diagnostics.
      */
-    public sendSharedBatch(
+    public async sendSharedBatch(
         content: Buffer,
         packets: readonly NetworkPacket<unknown>[],
         direct = false,
         packetBuffers?: readonly Buffer[]
     ): Promise<void> {
-        const representative = packets[0];
-        if (representative !== undefined) this.dump(representative, packetBuffers?.[0]);
-        if (this.dropsPackets(packets)) return Promise.resolve();
-
-        // Through the same ordering chain as everything else, so a shared batch cannot
-        // overtake a chunk batch that is still compressing.
-        return this.ordered(() => {
-            this.frameAndRecord(content, packets, direct, packetBuffers);
-            if (representative !== undefined && this.logFilter.shouldLog(representative)) {
-                this.logger.silly(`Sent §b${representative.getName()}§r packet`);
-            }
-        });
+        void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
+        await this.ordered(() => this.frameSharedBatch(content, packets, direct, packetBuffers));
     }
 
     /**
@@ -253,12 +294,13 @@ export default class MinecraftSession {
      * @param failedPacket - The packet to name if encoding or compression fails.
      * @returns Completion of this send's ordered framing slot.
      */
-    public sendSharedBatchAsync(
+    public async sendSharedBatchAsync(
         batchPromise: Promise<ReturnType<typeof encodePacketBatch>>,
         failedPacket: NetworkPacket<unknown>
     ): Promise<void> {
+        void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
         this.pendingAsyncSends++;
-        return this.chain(async () => {
+        await this.chain(async () => {
             let batch: ReturnType<typeof encodePacketBatch>;
             try {
                 batch = await batchPromise;
@@ -335,60 +377,172 @@ export default class MinecraftSession {
     }
 
     public async sendDataPacket(packet: NetworkPacket<unknown>, comp = true, direct = false): Promise<void> {
-        let batch: ReturnType<typeof encodePacketBatch>;
+        const options = this.withCompressionOptions({
+            compressed: comp,
+            compressionAlgorithm: this.compressionAlgorithm,
+            compressionThreshold: this.compressionThreshold
+        });
+        let encodedPacket: NetworkPacket<unknown>;
+        let buffer: Buffer;
         try {
-            const encoded = encodePacketBatchBySize(
-                [packet],
-                this.codec,
-                this.withCompressionOptions({
-                    compressed: comp,
-                    compressionAlgorithm: this.compressionAlgorithm,
-                    compressionThreshold: this.compressionThreshold
-                }),
-                'cached'
-            );
-
-            if (encoded instanceof Promise) {
-                this.pendingAsyncSends++;
-                try {
-                    await this.chain(async () => {
-                        let batch: Awaited<typeof encoded>;
-                        try {
-                            batch = await encoded;
-                        } catch (error: unknown) {
-                            this.logPacketEncodeFailure(packet, error);
-                            return;
-                        }
-                        this.frameEncodedDataPacket(batch, direct);
-                    });
-                } finally {
-                    this.pendingAsyncSends--;
-                }
-                return;
-            }
-
-            batch = encoded;
+            const encoded = encodePacketsForCodec([packet], this.codec);
+            const prepared = encoded.packets[0];
+            const packetBuffer = encoded.buffers[0];
+            if (prepared === undefined || packetBuffer === undefined)
+                throw new Error('Packet encoding returned no bytes');
+            encodedPacket = prepared;
+            buffer = packetBuffer;
         } catch (error: unknown) {
             this.logPacketEncodeFailure(packet, error);
             return;
         }
 
-        const { packets: encodedPackets, packetBuffers } = batch;
-        const encodedPacket = encodedPackets[0]!;
-        const encodedBytes = packetBuffers[0]!;
+        if (this.dropped.has(packet.getName())) {
+            this.dump(encodedPacket);
+            this.drops(packet.getName());
+            return;
+        }
 
-        // After encoding, so a dumped packet is the bytes the client would have been given,
-        // whether or not it is also dropped.
-        this.dump(encodedPacket, encodedBytes);
-        if (this.drops(encodedPacket.getName())) return;
+        // A direct send is its own flush point. Compression changes and the byte cap are also
+        // boundaries. Reserve the older queue synchronously so concurrent sends cannot mix modes.
+        const needsBoundary =
+            direct ||
+            (this.queuedBatchOptions !== undefined && !sameBatchOptions(this.queuedBatchOptions, options)) ||
+            this.queuedPacketBytes + buffer.byteLength > OUTBOUND_QUEUE_BYTE_LIMIT;
+        const previousFlush = needsBoundary ? this.flushOutboundPackets() : Promise.resolve();
 
-        // Behind any chunk batch still compressing, so this packet does not overtake terrain
-        // it was meant to follow.
-        await this.ordered(() => {
-            this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
-            if (this.logFilter.shouldLog(encodedPacket)) {
-                this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
+        const queued = this.enqueuePreparedPacket(encodedPacket, buffer, options, direct);
+        if (direct || this.queuedPacketBytes >= OUTBOUND_QUEUE_BYTE_LIMIT) {
+            const currentFlush = this.flushOutboundPackets();
+            await Promise.all([previousFlush, currentFlush, queued.done]);
+        } else {
+            this.scheduleOutboundFlush();
+            await Promise.all([previousFlush, queued.done]);
+        }
+    }
+
+    /**
+     * Frames packets accumulated since the last queue boundary.
+     * @returns Resolves after the batch holding these packets has been framed.
+     */
+    public async flushOutboundPackets(): Promise<void> {
+        const queued = this.queuedPackets;
+        if (queued.length === 0) return;
+
+        this.queuedPackets = [];
+        this.queuedPacketBytes = 0;
+        this.queuedBatchOptions = undefined;
+
+        const packets = queued.map(({ packet }) => packet);
+        const buffers = queued.map(({ buffer }) => buffer);
+        const options = queued[0]!.options;
+        let batch: ReturnType<typeof encodePacketBatchFromBuffersBySize>;
+        try {
+            batch = encodePacketBatchFromBuffersBySize(packets, buffers, options);
+        } catch (error: unknown) {
+            for (const { packet, resolve } of queued) {
+                this.logPacketEncodeFailure(packet, error);
+                resolve();
             }
+            return;
+        }
+        const frame = (content: Buffer): void => {
+            try {
+                // A packet may be prepared again under another session codec before this
+                // queue flushes, so dump the captured bytes rather than its mutable stream.
+                for (const { packet, buffer } of queued) this.dump(packet, buffer);
+                this.frameAndRecord(
+                    content,
+                    packets,
+                    queued.some(({ direct }) => direct),
+                    buffers
+                );
+                for (const { packet } of queued) {
+                    if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
+                }
+            } catch (error: unknown) {
+                for (const { reject } of queued) reject(error);
+                throw error;
+            }
+            for (const { resolve } of queued) resolve();
+        };
+
+        if (batch instanceof Promise) {
+            this.pendingAsyncSends++;
+            try {
+                await this.chain(async () => {
+                    try {
+                        const encoded = await batch;
+                        frame(encoded.content);
+                    } catch (error: unknown) {
+                        for (const { packet } of queued) this.logPacketEncodeFailure(packet, error);
+                        for (const { resolve } of queued) resolve();
+                    }
+                });
+            } finally {
+                this.pendingAsyncSends--;
+            }
+            return;
+        }
+
+        await this.ordered(() => frame(batch.content));
+    }
+
+    private enqueuePacket(packet: NetworkPacket<unknown>, options: PacketBatchOptions, direct: boolean): QueuedPacket {
+        const encoded = encodePacketsForCodec([packet], this.codec);
+        const prepared = encoded.packets[0];
+        const buffer = encoded.buffers[0];
+        if (prepared === undefined || buffer === undefined) throw new Error('Packet encoding returned no bytes');
+        if (
+            this.queuedPackets.length > 0 &&
+            (this.queuedBatchOptions === undefined ||
+                !sameBatchOptions(this.queuedBatchOptions, options) ||
+                this.queuedPacketBytes + buffer.byteLength > OUTBOUND_QUEUE_BYTE_LIMIT)
+        ) {
+            void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
+        }
+        const queued = this.enqueuePreparedPacket(prepared, buffer, options, direct);
+        if (this.queuedPacketBytes >= OUTBOUND_QUEUE_BYTE_LIMIT) {
+            void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
+        } else this.scheduleOutboundFlush();
+        return queued;
+    }
+
+    private enqueuePreparedPacket(
+        packet: NetworkPacket<unknown>,
+        buffer: Buffer,
+        options: PacketBatchOptions,
+        direct: boolean
+    ): QueuedPacket {
+        if (
+            this.queuedPackets.length > 0 &&
+            this.queuedBatchOptions !== undefined &&
+            !sameBatchOptions(this.queuedBatchOptions, options)
+        ) {
+            // The caller has already reserved this packet's place by flushing the prior queue.
+            // A mismatch here means a concurrent send crossed that boundary, so fail loudly
+            // rather than put packets with different wire compression formats together.
+            throw new Error('Outbound packet compression changed while a queue flush was pending');
+        }
+        let resolve = (): void => {};
+        let reject = (_error: unknown): void => {};
+        const done = new Promise<void>((finish, fail) => {
+            resolve = finish;
+            reject = fail;
+        });
+        const queued: QueuedPacket = { packet, buffer, options, direct, resolve, reject, done };
+        this.queuedPackets.push(queued);
+        this.queuedPacketBytes += buffer.byteLength;
+        this.queuedBatchOptions = options;
+        return queued;
+    }
+
+    private scheduleOutboundFlush(): void {
+        if (this.flushScheduled) return;
+        this.flushScheduled = true;
+        setImmediate(() => {
+            this.flushScheduled = false;
+            void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
         });
     }
 
@@ -412,18 +566,20 @@ export default class MinecraftSession {
      * and before batching and compression. A write failure is logged and otherwise ignored;
      * a debugging aid must not take the connection down with it.
      * @param packet - An encoded packet.
+     * @param encodedBuffer - The buffer captured when this packet was prepared, if it was queued.
      */
-    private dump(packet: NetworkPacket<unknown>, encodedBytes?: Buffer): void {
+    private dump(packet: NetworkPacket<unknown>, encodedBuffer?: Buffer): void {
         const name = packet.getName();
         if (!this.dumped.has(name)) return;
 
-        const bytes = encodedBytes ?? packet.getBuffer();
+        // Shared batches may carry packet labels without the packet streams being prepared.
+        const buffer = encodedBuffer ?? packet.getBuffer();
         const address = this.connection.token.replaceAll(':', '-');
         const file = path.join(this.dumpDir, `${Date.now()}-${address}-${name}.bin`);
         try {
             fs.mkdirSync(this.dumpDir, { recursive: true });
-            fs.writeFileSync(file, bytes);
-            this.logger.warn(`Dumped §b${name}§r packet (${bytes.byteLength} bytes) to ${file}`);
+            fs.writeFileSync(file, buffer);
+            this.logger.warn(`Dumped §b${name}§r packet (${buffer.byteLength} bytes) to ${file}`);
         } catch (error: unknown) {
             this.logger.warn(`Could not dump §b${name}§r packet to ${file}: ${String(error)}`);
         }
@@ -460,7 +616,6 @@ export default class MinecraftSession {
             this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
         }
     }
-
     private logPacketEncodeFailure(packet: NetworkPacket<unknown>, error: unknown): void {
         this.logger.error(error);
         this.logger.warn(

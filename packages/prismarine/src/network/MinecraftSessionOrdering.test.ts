@@ -39,23 +39,26 @@ const encodedBatchOf = (text: string): Buffer => {
 /** Records what was framed, in the order RakNet was handed it. */
 const fakeSession = () => {
     const framed: string[] = [];
+    const direct: boolean[] = [];
     const connection = stub<TransportConnection>({
         token: 'token',
-        sendFrame: (payload: Buffer) => void framed.push(payload.toString('base64')),
+        sendFrame: (payload: Buffer, immediate = false) => {
+            framed.push(payload.toString('base64'));
+            direct.push(immediate);
+        },
         close: () => {}
     });
     const logger = stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} });
 
-    return { framed, session: new MinecraftSession(connection, logger) };
+    return { framed, direct, session: new MinecraftSession(connection, logger) };
 };
 
 describe('network', () => {
     describe('MinecraftSession ordering', () => {
-        it('frames a packet immediately when nothing is compressing', async () => {
-            // The ordinary case has to stay as cheap as it was: no queue, no deferral.
+        it('frames queued packets from the setImmediate fallback', async () => {
             const { framed, session } = fakeSession();
 
-            void session.sendDataPacket(message('now'));
+            await session.sendDataPacket(message('now'));
 
             expect(framed.length).toBe(1);
         });
@@ -77,6 +80,101 @@ describe('network', () => {
 
             expect(framed.length).toBe(2);
             expect(framed[0]).toBe(chunkFrame.toString('base64'));
+        });
+
+        it('flushes queued packets before an asynchronous chunk batch', async () => {
+            const { framed, session } = fakeSession();
+            const queuedFrame = encodedBatchOf('queued');
+
+            const queued = session.sendDataPacket(message('queued'));
+            const chunk = session.sendPacketsAsync(packetsOf('terrain '.repeat(500)), { direct: false });
+            await Promise.all([queued, chunk]);
+
+            expect(framed).toEqual([
+                queuedFrame.toString('base64'),
+                encodedBatchOf('terrain '.repeat(500)).toString('base64')
+            ]);
+        });
+
+        it('flushes queued packets before a precompressed shared batch', async () => {
+            const { framed, session } = fakeSession();
+            const before = session.sendDataPacket(message('before'));
+            const shared = session.sendSharedBatch(encodedBatchOf('shared'), packetsOf('shared'));
+
+            await Promise.all([before, shared]);
+
+            expect(framed).toEqual([
+                encodedBatchOf('before').toString('base64'),
+                encodedBatchOf('shared').toString('base64')
+            ]);
+        });
+
+        it('flushes queued packets before an asynchronously prepared shared batch', async () => {
+            const { framed, session } = fakeSession();
+            const before = session.sendDataPacket(message('before'));
+            const packet = message('shared');
+            packet.encode();
+            const batch = {
+                content: encodedBatchOf('shared'),
+                packets: [packet],
+                packetBuffers: [packet.getBuffer()]
+            };
+            const shared = session.sendSharedBatchAsync(Promise.resolve(batch), message('shared'));
+
+            await Promise.all([before, shared]);
+
+            expect(framed).toEqual([
+                encodedBatchOf('before').toString('base64'),
+                encodedBatchOf('shared').toString('base64')
+            ]);
+        });
+
+        it('combines queued movement packets with ordinary sends using equivalent defaults', async () => {
+            const { framed, session } = fakeSession();
+            const ordinary = session.sendDataPacket(message('ordinary'));
+            session.sendPackets(packetsOf('movement'), { direct: false });
+            const flush = session.flushOutboundPackets();
+
+            await Promise.all([ordinary, flush]);
+
+            expect(framed).toHaveLength(1);
+            expect(
+                BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
+                    Buffer.from(framed[0]!, 'base64')
+                )
+            ).toHaveLength(2);
+        });
+
+        it('flushes queued packets when the negotiated compression algorithm changes', async () => {
+            const { framed, session } = fakeSession();
+            const zlibSend = session.sendDataPacket(message('zlib'));
+            session.setCompressionSettings(PacketCompressionAlgorithm.SNAPPY, 1);
+            const snappySend = session.sendDataPacket(message('snappy'));
+
+            await Promise.all([zlibSend, snappySend]);
+
+            expect(framed).toHaveLength(2);
+            expect(
+                BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
+                    Buffer.from(framed[0]!, 'base64')
+                )
+            ).toHaveLength(1);
+            expect(
+                BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.SNAPPY }).decode(
+                    Buffer.from(framed[1]!, 'base64')
+                )
+            ).toHaveLength(1);
+        });
+
+        it('flushes prior packets before a direct packet and marks its frame immediate', async () => {
+            const { framed, direct, session } = fakeSession();
+
+            const queued = session.sendDataPacket(message('queued'));
+            const urgent = session.sendDataPacket(message('urgent'), true, true);
+            await Promise.all([queued, urgent]);
+
+            expect(framed).toHaveLength(2);
+            expect(direct).toEqual([false, true]);
         });
 
         it('frames two batches in the order they were queued, not the order they compressed', async () => {
@@ -124,11 +222,11 @@ describe('network', () => {
             encodeAsync.mockRestore();
         });
 
-        it('goes back to framing immediately once the queue has drained', async () => {
+        it('frames a later packet after the previous asynchronous batch drains', async () => {
             const { framed, session } = fakeSession();
 
             await session.sendPacketsAsync(packetsOf('terrain'), { direct: false });
-            void session.sendDataPacket(message('after'));
+            await session.sendDataPacket(message('after'));
 
             expect(framed.length).toBe(2);
         });

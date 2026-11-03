@@ -1006,6 +1006,12 @@ export class World implements Service {
         } finally {
             endUnloadProfile?.();
         }
+
+        // Drain the per-session fallback queues once all tick-driven traffic, including
+        // movement and time, has had a chance to join the same outbound batch.
+        await Promise.all(
+            this.getPlayers().map((player) => player.getNetworkSession().getConnection().flushOutboundPackets())
+        );
     }
 
     /**

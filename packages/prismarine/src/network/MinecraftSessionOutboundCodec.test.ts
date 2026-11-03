@@ -74,6 +74,12 @@ const animate = () => {
     return packet;
 };
 
+const secondAnimate = () => {
+    const packet = animate();
+    packet.runtimeEntityId = 301n;
+    return packet;
+};
+
 const startGame = () => new StartGamePacket(START_GAME_DATA);
 
 /** Hashes each decoded packet buffer across every frame, independent of batch compression. */
@@ -82,6 +88,9 @@ const decodedPacketStreamDigest = (frames: readonly Buffer[]): string => {
     const packets = frames.flatMap((frame) => decoder.decode(frame));
     return createHash('sha256').update(Buffer.concat(packets)).digest('hex');
 };
+
+const packetBuffersDigest = (packets: readonly Buffer[]): string =>
+    createHash('sha256').update(Buffer.concat(packets)).digest('hex');
 
 describe('network', () => {
     describe('MinecraftSession outbound codec', () => {
@@ -354,6 +363,53 @@ describe('network', () => {
             expect(thresholded.framed[1]![1]).toBe(PacketCompressionAlgorithm.ZLIB);
             expect(decodedPacketStreamDigest(thresholded.framed)).toBe(
                 decodedPacketStreamDigest(alwaysCompressed.framed)
+            );
+        });
+
+        it('coalesces concurrently queued sends without changing the decoded packet stream', async () => {
+            const batched = fakeSession(Codec2193);
+            const separate = fakeSession(Codec2193);
+            const packets = [animate(), secondAnimate()];
+
+            await Promise.all(packets.map((packet) => batched.session.sendDataPacket(packet)));
+            for (const packet of [animate(), secondAnimate()]) await separate.session.sendDataPacket(packet);
+
+            expect(batched.framed).toHaveLength(1);
+            expect(separate.framed).toHaveLength(2);
+            expect(decodedPacketStreamDigest(batched.framed)).toBe(decodedPacketStreamDigest(separate.framed));
+        });
+
+        it('flushes queued packets before the 64 KiB body cap', async () => {
+            const batched = fakeSession(Codec2193);
+            const separate = fakeSession(Codec2193);
+
+            await Promise.all([batched.session.sendDataPacket(animate()), batched.session.sendDataPacket(startGame())]);
+            await separate.session.sendDataPacket(animate());
+            await separate.session.sendDataPacket(startGame());
+
+            expect(batched.framed).toHaveLength(2);
+            expect(decodedPacketStreamDigest(batched.framed)).toBe(decodedPacketStreamDigest(separate.framed));
+        });
+
+        it('flushes the queue when compression state changes', async () => {
+            const session = fakeSession(Codec2193);
+            const packets = [animate(), secondAnimate()];
+
+            await Promise.all([
+                session.session.sendDataPacket(packets[0]!, false),
+                session.session.sendDataPacket(packets[1]!, true)
+            ]);
+
+            expect(session.framed).toHaveLength(2);
+            expect(unbatch(session.framed[0]!, false)).toEqual(
+                unbatch(encodePacketBatch([packets[0]!], Codec2193, { compressed: false }).content, false)
+            );
+            const expectedUncompressed = encodePacketBatch([animate()], Codec2193, { compressed: false }).content;
+            const expectedCompressed = encodePacketBatch([secondAnimate()], Codec2193).content;
+            expect(
+                packetBuffersDigest([...unbatch(session.framed[0]!, false), ...unbatch(session.framed[1]!, true)])
+            ).toBe(
+                packetBuffersDigest([...unbatch(expectedUncompressed, false), ...unbatch(expectedCompressed, true)])
             );
         });
     });

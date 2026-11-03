@@ -574,7 +574,7 @@ export default class PlayerSession {
         // should be showing, so naming only the current batch un-rendered everything sent
         // before it. What governs visibility is the radius around the position.
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
-        await this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
+        const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
 
         const packets = chunksToSend.map(
             (chunk) =>
@@ -592,12 +592,17 @@ export default class PlayerSession {
         // Asynchronous: compressing a batch of chunks is the biggest single piece of work on
         // this path, and this is what moves it off the main thread.
         try {
-            await this.connection.sendPacketsAsync(packets, {
-                direct: false,
-                compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
-                compressionAlgorithm: this.connection.compressionAlgorithm,
-                compressionThreshold: this.connection.compressionThreshold
-            });
+            await Promise.all([
+                // Queue the publisher update first; sendPacketsAsync flushes the queued
+                // packet batch before reserving the chunk batch's ordered frame.
+                publisherSend,
+                this.connection.sendPacketsAsync(packets, {
+                    direct: false,
+                    compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
+                    compressionAlgorithm: this.connection.compressionAlgorithm,
+                    compressionThreshold: this.connection.compressionThreshold
+                })
+            ]);
         } catch (error: unknown) {
             // Nothing reached the client, so nothing may be recorded as loaded. Marking
             // before the send meant a batch that failed to compress left every chunk in it
@@ -2344,6 +2349,9 @@ export default class PlayerSession {
         // Not `direct`: movement is not urgent enough to force a datagram of its own, and letting
         // RakNet coalesce it with whatever else is going out is the point of batching it at all.
         this.connection.sendPackets(packets, { direct: false });
+        // The session queue can include other tick traffic; this method still resolves only after
+        // the batch holding the movement has been framed.
+        await this.connection.flushOutboundPackets();
     }
 
     /**

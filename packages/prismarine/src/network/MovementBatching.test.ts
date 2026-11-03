@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Config } from '../config/Config';
 import type Server from '../Server';
 import type { Entity } from '../entity/Entity';
+import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
 
 /**
@@ -20,20 +24,23 @@ import PlayerSession from './PlayerSession';
 
 /** A session with the connection replaced, so what actually goes on the wire can be counted. */
 const sessionWithCountedSends = () => {
-    const batches: MoveActorAbsolutePacket[][] = [];
-    const singles: MoveActorAbsolutePacket[] = [];
+    const batches: NetworkPacket<unknown>[][] = [];
+    const singles: NetworkPacket<unknown>[] = [];
 
-    const connection: any = {
-        sendPackets: (packets: readonly MoveActorAbsolutePacket[]) => void batches.push([...packets]),
-        sendDataPacket: async (packet: MoveActorAbsolutePacket) => void singles.push(packet)
-    };
-
-    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
-        connection,
-        queuedMoves: new Map()
+    const connection = stub<ClientConnection>({
+        sendPackets: (packets) => void batches.push([...packets]),
+        sendDataPacket: async (packet) => void singles.push(packet),
+        flushOutboundPackets: async () => {}
     });
+    const config = stub<Config>({ getEntityTrackingHysteresis: () => 2, getProximityBroadcast: () => true });
+    const session = new PlayerSession(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
 
     return { session, batches, singles };
+};
+
+const requireMovementPacket = (packet: NetworkPacket<unknown>): MoveActorAbsolutePacket => {
+    if (!(packet instanceof MoveActorAbsolutePacket)) throw new Error('movement batch contained a different packet');
+    return packet;
 };
 
 const someWorld = () => stub<World>({ getName: () => 'test', getServer: () => stub<Server>() });
@@ -104,7 +111,7 @@ describe('entity movement on the wire', () => {
         session.queueMoveActor(entityAt(7n, 2));
         await session.flushQueuedMoves();
 
-        const ids = batches[0]!.map((packet) => packet.runtimeEntityId);
+        const ids = batches[0]!.map((packet) => requireMovementPacket(packet).runtimeEntityId);
         expect(ids).toEqual([7n, 3n]);
     });
 
@@ -127,7 +134,7 @@ describe('entity movement on the wire', () => {
         session.queueMoveActor(entity);
         await session.flushQueuedMoves();
 
-        const packet = batches[0]![0]!;
+        const packet = requireMovementPacket(batches[0]![0]!);
         packet.encode();
         const encoded = packet.getBuffer();
 
@@ -144,7 +151,7 @@ describe('entity movement on the wire', () => {
             session.queueMoveActor(entity);
             await session.flushQueuedMoves();
 
-            const packet = batches[0]![0]!;
+            const packet = requireMovementPacket(batches[0]![0]!);
             packet.encode();
             const encoded = packet.getBuffer();
             // Packet id, then the runtime id as an unsigned varlong, then the header byte. Both
