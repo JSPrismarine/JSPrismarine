@@ -11,6 +11,7 @@ import { loadGenerationCorpus } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The generation corpus: three rows that regenerate the committed corpus and diff it.
@@ -62,6 +63,20 @@ describeFamily(
         it('regenerates every chunk the golden recorded, block for block', () => {
             const diff = diffChunks(golden, captured);
             const verdict = checkAllowList(FAMILIES.worldgenCorpus, diff.gaps);
+            const unexpected = new Set(verdict.unexpected);
+            const chunks = new Map([...golden.chunks, ...captured.chunks].map((chunk) => [chunk.id, chunk]));
+            reportParityCases(
+                FAMILIES.worldgenCorpus,
+                import.meta.filename,
+                [...chunks.keys()].map((id) =>
+                    parityCase(
+                        `chunk:${id}`,
+                        id,
+                        'Generated Java worldgen corpus chunk',
+                        ![...unexpected].some((gap) => gap.endsWith(`:${id}`))
+                    )
+                )
+            );
 
             expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
         });
@@ -98,6 +113,28 @@ describeFamily(
         it('places the same blocks the decoration pass placed when the corpus was captured', () => {
             const diff = diffCensus(golden, captured);
             const verdict = checkAllowList(FAMILIES.worldgenFeatures, diff.gaps);
+            const unexpected = new Set(verdict.unexpected);
+            const totals = new Set<string>(Object.keys(golden.blockCounts));
+            const decorated = captured.chunks.filter((chunk) => chunk.tier === 'full');
+            for (const chunk of decorated) for (const state of Object.keys(chunk.census)) totals.add(state);
+            reportParityCases(FAMILIES.worldgenFeatures, import.meta.filename, [
+                ...[...totals].map((state) =>
+                    parityCase(
+                        `block-count:${state}`,
+                        state,
+                        'Java worldgen decorated block count',
+                        !unexpected.has(`block-count:${state}`)
+                    )
+                ),
+                ...decorated.map((chunk) =>
+                    parityCase(
+                        `chunk-census:${chunk.id}`,
+                        chunk.id,
+                        'Java worldgen decorated chunk block census',
+                        !unexpected.has(`census:${chunk.id}`)
+                    )
+                )
+            ]);
 
             expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
         });
@@ -128,6 +165,43 @@ describeFamily(
         it('starts every structure the golden recorded, in the same chunk and the same box', () => {
             const diff = diffStructures(golden, captured);
             const verdict = checkAllowList(FAMILIES.worldgenStructures, diff.gaps);
+            const unexpected = new Set(verdict.unexpected);
+            const placements = new Map(
+                [...golden.structures, ...captured.structures].map((placement) => [
+                    `${placement.seed}/${placement.structure}@${placement.chunkX},${placement.chunkZ}`,
+                    placement
+                ])
+            );
+            const structureTypes = new Set([
+                ...golden.unbuiltStructureTypes,
+                ...captured.unbuiltStructureTypes,
+                ...golden.structures.map((placement) => placement.structure),
+                ...captured.structures.map((placement) => placement.structure)
+            ]);
+            reportParityCases(FAMILIES.worldgenStructures, import.meta.filename, [
+                ...[...placements.keys()].map((key) =>
+                    parityCase(
+                        `placement:${key}`,
+                        key,
+                        'Java worldgen structure placement and bounding box',
+                        ![...unexpected].some(
+                            (gap) =>
+                                gap.endsWith(`:${key}`) &&
+                                (gap.startsWith('structure-gone:') ||
+                                    gap.startsWith('structure-new:') ||
+                                    gap.startsWith('structure-box:'))
+                        )
+                    )
+                ),
+                ...[...structureTypes].map((type) =>
+                    parityCase(
+                        `structure-type:${type}`,
+                        type,
+                        'Structure builder availability',
+                        !unexpected.has(`unbuilt-structure-type:${type}`)
+                    )
+                )
+            ]);
 
             expect(verdict.unexpected, diff.detail.join('\n')).toEqual([]);
         });

@@ -7,6 +7,7 @@ import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * The registries a datapack can reference whose entries reach a Bedrock client as something
@@ -15,7 +16,7 @@ import { REFERENCES } from './references.ts';
  * A banner pattern travels as a two-letter code in block entity NBT, a goat horn as an item
  * data value and a painting as a resource pack texture name. Neither GeyserMC/mappings nor the
  * bedrock-samples metadata publishes the pairing, so there is no table to generate and the
- * whole registry is one accepted gap until a Phase 2 or Phase 3 capture produces the Bedrock
+ * whole registry is deferred until a Phase 2 or Phase 3 capture produces the Bedrock
  * side. `UNTRANSLATED_REGISTRIES` in `@jsprismarine/mapping` declares which registries they are
  * and the review baseline for their entry counts, and both the allow-list rows and this row's
  * measurements come from it rather than a second copy.
@@ -39,11 +40,25 @@ interface MeasuredRegistry {
     readonly named: number;
 }
 
-const compareUntranslatedRegistries = (): { gaps: string[]; measured: MeasuredRegistry[] } => {
+interface UntranslatedIdentifierCase {
+    readonly registry: string;
+    readonly javaId: string;
+    readonly resolution: string;
+}
+
+const compareUntranslatedRegistries = (): {
+    gaps: string[];
+    measured: MeasuredRegistry[];
+    cases: UntranslatedIdentifierCase[];
+} => {
     const resolver = createPackIdentifierResolver();
+    const cases: UntranslatedIdentifierCase[] = [];
     const measured = UNTRANSLATED_REGISTRIES.map((untranslated) => {
         const published = javaIdentifiersTable.registries[untranslated.registry] ?? [];
         const resolutions = published.map((javaId) => resolver.resolve(untranslated.registry, javaId));
+        for (const [index, javaId] of published.entries()) {
+            cases.push({ registry: untranslated.registry, javaId, resolution: resolutions[index] ?? 'unknown' });
+        }
 
         return {
             registry: untranslated.registry,
@@ -53,12 +68,31 @@ const compareUntranslatedRegistries = (): { gaps: string[]; measured: MeasuredRe
         };
     });
 
-    return { gaps: measured.filter((row) => row.lost > 0).map((row) => `untranslated:${row.registry}`), measured };
+    return {
+        gaps: measured.filter((row) => row.lost > 0).map((row) => `untranslated:${row.registry}`),
+        measured,
+        cases
+    };
 };
 
 describeFamily(FAMILIES.mappingUntranslated, [REFERENCES.javaIdentifierCensus], () => {
-    const { gaps, measured } = compareUntranslatedRegistries();
+    const { gaps, measured, cases } = compareUntranslatedRegistries();
     const verdict = checkAllowList(FAMILIES.mappingUntranslated, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.mappingUntranslated,
+        import.meta.filename,
+        cases.map(({ registry, javaId, resolution }) => {
+            const gap = `untranslated:${registry}`;
+            return {
+                id: `${registry}/${javaId}`,
+                title: javaId,
+                context: `Java ${registry} identifier census · ${resolution}`,
+                status: unexpected.has(gap) || resolution !== 'loss' ? 'failed' : 'passed'
+            };
+        })
+    );
 
     it('names a Bedrock value for every registry but the ones with no published pairing', () => {
         expect(verdict.unexpected).toEqual([]);

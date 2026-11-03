@@ -24,6 +24,7 @@ import { loadBlockPaletteCapture } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The portal note's `blocks.portals` row: every block the portal rules name exists in the
@@ -150,28 +151,40 @@ const linkedDimensionIds = (): readonly string[] => [
 ];
 
 /** Which `links` ids are not a vanilla dimension type with a Bedrock overlay. */
-const compareLinks = (): { gaps: string[]; links: number } => {
+const compareLinks = (): { gaps: string[]; links: number; cases: ReturnType<typeof parityCase>[] } => {
     const gaps: string[] = [];
     const ids = linkedDimensionIds();
+    const cases = ids.map((id) => {
+        const matched = VANILLA_DIMENSION_IDS.includes(id) && bedrockDimensionOverlay(id) !== undefined;
+        return parityCase(`dimension-link:${id}`, id, 'Portal dimension link', matched);
+    });
     for (const id of ids) {
         if (!VANILLA_DIMENSION_IDS.includes(id) || bedrockDimensionOverlay(id) === undefined) {
             gaps.push(`unknown-dimension:${id}`);
         }
     }
-    return { gaps, links: ids.length };
+    return { gaps, links: ids.length, cases };
 };
 
 /** Which vanilla dimension types `DIMENSION_TRAVEL` has no rule for. */
-const compareTravelRules = (): { gaps: string[]; travelRules: number } => {
+const compareTravelRules = (): { gaps: string[]; travelRules: number; cases: ReturnType<typeof parityCase>[] } => {
     const gaps: string[] = [];
+    const cases = VANILLA_DIMENSION_IDS.map((id) =>
+        parityCase(`travel-rule:${id}`, id, 'Portal dimension travel rule', DIMENSION_TRAVEL[id] !== undefined)
+    );
     for (const id of VANILLA_DIMENSION_IDS) {
         if (DIMENSION_TRAVEL[id] === undefined) gaps.push(`missing-travel:${id}`);
     }
-    return { gaps, travelRules: Object.keys(DIMENSION_TRAVEL).length };
+    return { gaps, travelRules: Object.keys(DIMENSION_TRAVEL).length, cases };
 };
 
 /** Which table values differ from the numbers the research note quotes. */
-const compareConstants = (): { gaps: string[]; constants: number; detail: string[] } => {
+const compareConstants = (): {
+    gaps: string[];
+    constants: number;
+    detail: string[];
+    cases: ReturnType<typeof parityCase>[];
+} => {
     const gaps: string[] = [];
     const detail: string[] = [];
     const checks: readonly { readonly name: string; readonly table: number | undefined; readonly note: number }[] = [
@@ -213,16 +226,23 @@ const compareConstants = (): { gaps: string[]; constants: number; detail: string
         detail.push(`${check.name}: table ${String(check.table)}, research note ${check.note}`);
     }
 
-    return { gaps, constants: checks.length, detail };
+    const cases = checks.map((check) =>
+        parityCase(`constant:${check.name}`, check.name, 'Java portal behavior constant', check.table === check.note)
+    );
+
+    return { gaps, constants: checks.length, detail, cases };
 };
 
 const comparePortalBlocks = (
     capture: BlockPaletteCapture
-): { gaps: string[]; blocks: number; states: number; detail: string[] } => {
+): { gaps: string[]; blocks: number; states: number; detail: string[]; cases: ReturnType<typeof parityCase>[] } => {
     const gaps: string[] = [];
     const detail: string[] = [];
     const blocks = portalBlocks();
     const states = expectedStates();
+    const cases = blocks.map((block) =>
+        parityCase(`block:${block}`, block, 'Bedrock portal block palette', capture.states[block] !== undefined)
+    );
 
     for (const block of blocks) {
         if (capture.states[block] === undefined) gaps.push(`missing-block:${block}`);
@@ -230,12 +250,21 @@ const comparePortalBlocks = (
 
     for (const expected of states) {
         const declared = capture.states[expected.block];
+        const domain = capture.domains[expected.block]?.[expected.state]?.values ?? [];
+        const matched = declared !== undefined && expected.state in declared && sameValues(domain, expected);
+        cases.push(
+            parityCase(
+                `state:${expected.block}#${expected.state}`,
+                `${expected.block} · ${expected.state}`,
+                'Bedrock portal block state',
+                matched
+            )
+        );
         if (declared === undefined) continue;
         if (!(expected.state in declared)) {
             gaps.push(`missing-state:${expected.block}#${expected.state}`);
             continue;
         }
-        const domain = capture.domains[expected.block]?.[expected.state]?.values ?? [];
         if (sameValues(domain, expected)) continue;
         gaps.push(`domain:${expected.block}#${expected.state}`);
         detail.push(
@@ -243,16 +272,26 @@ const comparePortalBlocks = (
         );
     }
 
-    return { gaps, blocks: blocks.length, states: states.length, detail };
+    return { gaps, blocks: blocks.length, states: states.length, detail, cases };
 };
 
 describeFamily(FAMILIES.blocksPortals, [REFERENCES.bedrockBlockPalette], () => {
     const capture = loadBlockPaletteCapture();
-    const { gaps: blockGaps, blocks, states, detail: blockDetail } = comparePortalBlocks(capture);
-    const { gaps: linkGaps, links } = compareLinks();
-    const { gaps: travelGaps, travelRules } = compareTravelRules();
-    const { gaps: constantGaps, constants, detail: constantDetail } = compareConstants();
+    const portalBlockComparison = comparePortalBlocks(capture);
+    const { gaps: blockGaps, blocks, states, detail: blockDetail } = portalBlockComparison;
+    const linkComparison = compareLinks();
+    const travelComparison = compareTravelRules();
+    const constantComparison = compareConstants();
+    const { gaps: linkGaps, links } = linkComparison;
+    const { gaps: travelGaps, travelRules } = travelComparison;
+    const { gaps: constantGaps, constants, detail: constantDetail } = constantComparison;
     const verdict = checkAllowList(FAMILIES.blocksPortals, [...blockGaps, ...linkGaps, ...travelGaps, ...constantGaps]);
+    reportParityCases(FAMILIES.blocksPortals, import.meta.filename, [
+        ...portalBlockComparison.cases,
+        ...linkComparison.cases,
+        ...travelComparison.cases,
+        ...constantComparison.cases
+    ]);
     const unexpected = (prefix: string): string[] => verdict.unexpected.filter((gap) => gap.startsWith(prefix));
 
     it('finds every portal, frame, fire and platform block the rules name in the palette capture', () => {

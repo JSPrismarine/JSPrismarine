@@ -24,6 +24,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
 import { reportParityProgress } from './progress.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The portal note's `protocol.dimension-change` row: the packet sequence
@@ -130,6 +131,15 @@ const withFloat32Position = (sent: object): object => {
     return { ...sent, position };
 };
 
+const matchesPacketData = (actual: unknown, expected: object): boolean => {
+    try {
+        expect(actual).toMatchObject(expected);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 describe(FAMILIES.protocolDimensionChange, () => {
     const codecs = registeredCodecs;
     let sequence: NetworkPacket<unknown>[] = [];
@@ -167,9 +177,21 @@ describe(FAMILIES.protocolDimensionChange, () => {
         expect(chunks.every((packet) => packet.getPacketData()?.dimension === FIRST_CUSTOM_DIMENSION_ID)).toBe(true);
 
         for (const codec of codecs) {
+            const cases: ReturnType<typeof parityCase>[] = [];
             for (const packet of [change, ...chunks]) {
                 if (packet === undefined) continue;
                 const trip = roundTrip(codec, packet);
+                const matched =
+                    trip.reencoded.equals(trip.bytes) &&
+                    matchesPacketData(trip.data, { dimension: FIRST_CUSTOM_DIMENSION_ID });
+                cases.push(
+                    parityCase(
+                        `custom-dimension:${codec.protocolVersion}/${packet.getName()}`,
+                        packet.getName(),
+                        `Assigned custom dimension id · protocol ${codec.protocolVersion}`,
+                        matched
+                    )
+                );
                 expect(trip.reencoded, `${packet.getName()} at protocol ${codec.protocolVersion}`).toStrictEqual(
                     trip.bytes
                 );
@@ -177,6 +199,7 @@ describe(FAMILIES.protocolDimensionChange, () => {
                     dimension: FIRST_CUSTOM_DIMENSION_ID
                 });
             }
+            reportParityCases(FAMILIES.protocolDimensionChange, import.meta.filename, cases);
         }
     });
 
@@ -189,9 +212,34 @@ describe(FAMILIES.protocolDimensionChange, () => {
     for (const codec of codecs) {
         describe(`protocol ${codec.protocolVersion}`, () => {
             it('encodes every packet of the sequence and decodes it back to the same bytes and data', () => {
-                for (const packet of sequence) {
+                const comparisons = sequence.map((packet) => {
                     const sent = packet.getPacketData();
                     const trip = roundTrip(codec, packet);
+                    const expected =
+                        sent !== null && typeof sent === 'object'
+                            ? packet instanceof ChangeDimensionPacket
+                                ? withFloat32Position(sent)
+                                : sent
+                            : undefined;
+                    const matched =
+                        trip.reencoded.equals(trip.bytes) &&
+                        (expected === undefined || matchesPacketData(trip.data, expected));
+                    return { packet, sent, trip, matched };
+                });
+                reportParityCases(
+                    FAMILIES.protocolDimensionChange,
+                    import.meta.filename,
+                    comparisons.map(({ packet, matched }) =>
+                        parityCase(
+                            `sequence:${codec.protocolVersion}/${packet.getName()}`,
+                            packet.getName(),
+                            `Dimension-change packet round trip · protocol ${codec.protocolVersion}`,
+                            matched
+                        )
+                    )
+                );
+
+                for (const { packet, sent, trip } of comparisons) {
                     expect(trip.reencoded, packet.getName()).toStrictEqual(trip.bytes);
                     // Every field the server set reads back equal. A version may append a gated
                     // field the server never set, such as `LevelChunk`'s `isClientBiomeUpdate` at
@@ -211,6 +259,7 @@ describe(FAMILIES.protocolDimensionChange, () => {
 
     it('reads through a later codec everything an earlier codec reads, equal', () => {
         const ascending = [...codecs].sort((a, b) => a.protocolVersion - b.protocolVersion);
+        const cases: ReturnType<typeof parityCase>[] = [];
         for (const packet of sequence) {
             if (packet.getPacketData() === null) continue;
             let earlier: object | undefined;
@@ -218,10 +267,21 @@ describe(FAMILIES.protocolDimensionChange, () => {
                 const { data } = roundTrip(codec, packet);
                 expect(typeof data, packet.getName()).toBe('object');
                 if (typeof data !== 'object' || data === null) continue;
-                if (earlier !== undefined) expect(data, packet.getName()).toMatchObject(earlier);
+                if (earlier !== undefined) {
+                    cases.push(
+                        parityCase(
+                            `cross-codec:${codec.protocolVersion}/${packet.getName()}`,
+                            packet.getName(),
+                            `Later protocol preserves fields read by earlier codecs · ${codec.protocolVersion}`,
+                            matchesPacketData(data, earlier)
+                        )
+                    );
+                    expect(data, packet.getName()).toMatchObject(earlier);
+                }
                 earlier = data;
             }
         }
+        reportParityCases(FAMILIES.protocolDimensionChange, import.meta.filename, cases);
     });
 
     describe('DimensionDefinition', () => {
@@ -247,12 +307,30 @@ describe(FAMILIES.protocolDimensionChange, () => {
         };
 
         it('round-trips the cloud fields at protocol 2225', () => {
-            expect(through(Codec2225.protocolVersion).read).toEqual(definition);
+            const found = through(Codec2225.protocolVersion).read;
+            reportParityCases(FAMILIES.protocolDimensionChange, import.meta.filename, [
+                parityCase(
+                    'dimension-definition:cloud-fields/2225',
+                    'DimensionDefinition cloud fields',
+                    'Bedrock protocol 2225 dimension definition',
+                    matchesPacketData(found, definition)
+                )
+            ]);
+            expect(found).toEqual(definition);
         });
 
         it('leaves the cloud fields off the wire at protocol 2193 and reads their fallbacks back', () => {
             const { bytes, read } = through(Codec2193.protocolVersion);
-            expect(read).toEqual({ ...definition, cloudHeight: 0, renderClouds: false });
+            const expected = { ...definition, cloudHeight: 0, renderClouds: false };
+            reportParityCases(FAMILIES.protocolDimensionChange, import.meta.filename, [
+                parityCase(
+                    'dimension-definition:cloud-fields/2193',
+                    'DimensionDefinition legacy fallback fields',
+                    'Bedrock protocol 2193 omits cloud fields',
+                    matchesPacketData(read, expected) && bytes.length < through(Codec2225.protocolVersion).bytes.length
+                )
+            ]);
+            expect(read).toEqual(expected);
             expect(bytes.length).toBeLessThan(through(Codec2225.protocolVersion).bytes.length);
         });
     });

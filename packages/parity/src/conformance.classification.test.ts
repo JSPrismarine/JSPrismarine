@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AXIS_A, AXIS_B, countBy, coveredRows, loadClassification, readRepoFile } from './classification.ts';
 import { FAMILIES } from './families.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The first of the two tests plan section 8 asks for: the classification table the claim
@@ -27,6 +28,23 @@ describe(FAMILIES.conformanceClassification, () => {
     const rows = loadClassification();
     const byDecider = countBy(rows, 'decider');
     const byVisibility = countBy(rows, 'visibility');
+
+    reportParityCases(
+        FAMILIES.conformanceClassification,
+        import.meta.filename,
+        rows.map((row) =>
+            parityCase(
+                `classification:${row.id}`,
+                `${row.id} · ${row.area}`,
+                `${row.decider} decides · ${row.visibility} visibility · ${row.source}`,
+                row.id > 0 &&
+                    AXIS_A.includes(row.decider) &&
+                    AXIS_B.includes(row.visibility) &&
+                    row.area !== '' &&
+                    row.source !== ''
+            )
+        )
+    );
 
     it('reads a well formed row for every difference, numbered without a gap', () => {
         expect(rows.length).toBeGreaterThan(0);

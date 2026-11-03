@@ -29,15 +29,20 @@ describe('allow list', () => {
             expect(blockLosses).toContainEqual({
                 family: FAMILIES.mappingBlocks,
                 id: `loss:${loss.javaId}`,
-                kind: 'accepted',
+                kind: 'intentional',
                 reason: loss.reason,
                 reference: loss.reference
             });
         }
     });
 
-    it('gives every entry a kind, so a defect never reads as an accepted gap', () => {
-        for (const entry of allowList) expect(['accepted', 'defect']).toContain(entry.kind);
+    it('gives every entry a distinct intentional, deferred, or defect classification', () => {
+        for (const entry of allowList) expect(['intentional', 'deferred', 'defect']).toContain(entry.kind);
+        expect(allowList.filter((entry) => entry.kind === 'deferred').map((entry) => entry.id)).toEqual([
+            'untranslated:banner_pattern',
+            'untranslated:instrument',
+            'untranslated:painting_variant'
+        ]);
     });
 
     it('takes every entity stat verdict from the decision rather than restating it', () => {
@@ -54,7 +59,7 @@ describe('allow list', () => {
             if (!isSharedStat(stat)) continue;
 
             const ruling = statRuling(entry.id.slice(divider + 1), stat);
-            expect(entry.kind, entry.id).toBe(ruling.kind === 'java' ? 'defect' : 'accepted');
+            expect(entry.kind, entry.id).toBe(ruling.kind === 'java' ? 'defect' : 'intentional');
             expect(entry.reason, entry.id).toBe(ruling.reason);
         }
     });
@@ -72,7 +77,7 @@ describe('allow list', () => {
             {
                 family: FAMILIES.registryItems,
                 id: 'minecraft:closed_gap',
-                kind: 'accepted' as const,
+                kind: 'intentional' as const,
                 reason: 'fixture',
                 reference: 'this test'
             }
@@ -89,7 +94,7 @@ describe('allow list', () => {
             {
                 family: FAMILIES.registryItems,
                 id: 'minecraft:open_gap',
-                kind: 'accepted' as const,
+                kind: 'intentional' as const,
                 reason: 'fixture',
                 reference: 'this test'
             }

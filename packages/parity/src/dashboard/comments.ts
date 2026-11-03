@@ -53,6 +53,9 @@ export const renderParityComment = (
     const baselineById = new Map(checkCases(baseline).map((entry) => [entry.id, entry]));
     const currentChecks = checkCases(current);
     const currentById = new Map(currentChecks.map((entry) => [entry.id, entry]));
+    const usesDataLevelCases = (tracker: TrackerData): boolean =>
+        tracker.cases.some((entry) => entry.kind === 'check' && entry.id.startsWith('data:'));
+    const caseSchemasMatch = usesDataLevelCases(current) === usesDataLevelCases(baseline);
     const changedOutcomeCases = currentChecks.filter((entry) => {
         const previous = baselineById.get(entry.id);
         return previous !== undefined && previous.status !== entry.status;
@@ -69,7 +72,8 @@ export const renderParityComment = (
         `${removedCount} removed`,
         `${changedOutcomeCases.length} outcome changes`
     ].join(', ');
-    const acceptedDelta = current.accepted - baseline.accepted;
+    const intentionalDelta = current.intentional - (baseline.intentional ?? 0);
+    const deferredDelta = current.deferred - (baseline.deferred ?? 0);
     const defectDelta = current.defects - baseline.defects;
     const signed = (value: number): string => `${value > 0 ? '+' : ''}${value}`;
     const caseList = relevantCases.slice(0, 12).map((entry) => `- **${entry.family}** · ${caseLabel(entry, revision)}`);
@@ -78,8 +82,14 @@ export const renderParityComment = (
     return [
         '<!-- jsprismarine-parity-trend -->',
         '## Parity checks',
-        `**Current:** ${current.passed}/${current.checks} passing; ${current.failed} failing; ${current.notMeasured} not measured; ${current.accepted} accepted gaps; ${current.defects} known defects.`,
-        `**Compared with base:** ${caseChanges}; accepted gaps ${signed(acceptedDelta)}; known defects ${signed(defectDelta)}.`,
+        `**Current:** ${current.passed}/${current.checks} passing; ${current.failed} failing; ${current.notMeasured} not measured; ${current.intentional} intentional differences; ${current.deferred} deferred; ${current.defects} known defects.`,
+        ...(caseSchemasMatch
+            ? [
+                  `**Compared with base:** ${caseChanges}; intentional differences ${signed(intentionalDelta)}; deferred ${signed(deferredDelta)}; known defects ${signed(defectDelta)}.`
+              ]
+            : [
+                  '**Compared with base:** case deltas will be available after the base branch uses data-level tracking.'
+              ]),
         '### Cases touched by this PR',
         ...(caseList.length === 0 ? ['No parity case changes to list.'] : caseList),
         ...(remaining > 0 ? [`- ${remaining} more relevant cases.`] : []),

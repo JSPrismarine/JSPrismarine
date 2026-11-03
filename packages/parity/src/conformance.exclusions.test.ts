@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { readRepoFile } from './classification.ts';
 import { FAMILIES } from './families.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The second of the two tests plan section 8 asks for: one negative check per excluded
@@ -33,6 +34,19 @@ const EXCLUDED = [
 ] as const;
 
 describe(FAMILIES.conformanceExclusions, () => {
+    it('reports each excluded category that the published claim still names', () => {
+        const cases = EXCLUDED.map(({ category, phrase }) =>
+            parityCase(
+                `exclusion:${category}`,
+                category,
+                'Excluded from the Java parity claim',
+                CLAIM_PAGES.every((page) => readRepoFile(page).includes(phrase))
+            )
+        );
+        reportParityCases(FAMILIES.conformanceExclusions, import.meta.filename, cases);
+        expect(cases.every((entry) => entry.status === 'passed')).toBe(true);
+    });
+
     it.each(EXCLUDED)('the published claim still excludes $category', ({ phrase }) => {
         for (const page of CLAIM_PAGES) {
             expect(readRepoFile(page), `${page} no longer names this exclusion`).toContain(phrase);

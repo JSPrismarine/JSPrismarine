@@ -7,6 +7,7 @@ import type { GenerationEnvironment } from './generation/capture.ts';
 import { captureChunk, openGeneration } from './generation/capture.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * Three properties the chunk generation rewrite needs, measured on the generator it replaces.
@@ -109,6 +110,14 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
 
         it('gives the same chunk twice for the same seed and coordinates', () => {
             const found = readings.get(at)!;
+            reportParityCases(FAMILIES.worldgenDeterminism, import.meta.filename, [
+                parityCase(
+                    `repeat:${at}`,
+                    at,
+                    `Java worldgen chunk repeated with seed ${subject.seed}`,
+                    found.repeated === found.alone
+                )
+            ]);
             expect(found.repeated).toBe(found.alone);
         });
 
@@ -119,6 +128,21 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
             if (found.afterHandoff !== found.alone) gaps.push(`mutates-after-handoff:${at}`);
 
             const verdict = checkAllowList(FAMILIES.worldgenDeterminism, gaps);
+            const unexpected = new Set(verdict.unexpected);
+            reportParityCases(FAMILIES.worldgenDeterminism, import.meta.filename, [
+                parityCase(
+                    `order:${at}`,
+                    at,
+                    `Java worldgen chunk generated after neighboring chunks · seed ${subject.seed}`,
+                    !unexpected.has(`order-dependent:${at}`)
+                ),
+                parityCase(
+                    `handoff:${at}`,
+                    at,
+                    `Java worldgen chunk read after neighboring chunks · seed ${subject.seed}`,
+                    !unexpected.has(`mutates-after-handoff:${at}`)
+                )
+            ]);
             expect(
                 verdict.unexpected,
                 `generated alone ${found.alone}, after its neighbors ${found.afterNeighbors}, ` +

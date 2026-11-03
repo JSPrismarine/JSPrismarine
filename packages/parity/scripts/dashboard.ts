@@ -6,7 +6,7 @@
  * this script also fails when a declared dashboard family has no test.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +15,7 @@ import type { VitestJsonReport } from '../src/dashboard/render.ts';
 import type { ParityMeasurement } from '../src/progress.ts';
 import { ALL_FAMILIES } from '../src/families.ts';
 import { familiesWithoutTests, renderDashboard } from '../src/dashboard/render.ts';
+import type { ReportedParityCase } from '../src/dashboard/tracker.ts';
 import { buildTrackerData } from '../src/dashboard/tracker.ts';
 
 /**
@@ -54,13 +55,15 @@ const { allowList } = await import('../src/allowlist.ts');
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const reportPath = join(packageRoot, 'dist', 'parity-report.json');
 const progressPath = join(packageRoot, 'dist', 'parity-progress.jsonl');
+const trackerCasesPath = join(packageRoot, 'dist', 'parity-cases');
 
 mkdirSync(join(packageRoot, 'dist'), { recursive: true });
 writeFileSync(progressPath, '');
+rmSync(trackerCasesPath, { recursive: true, force: true });
 
 const run = spawnSync('pnpm', ['exec', 'vitest', 'run', '--reporter=json', `--outputFile=${reportPath}`], {
     cwd: packageRoot,
-    env: { ...process.env, PARITY_PROGRESS_FILE: progressPath },
+    env: { ...process.env, PARITY_PROGRESS_FILE: progressPath, PARITY_CASES_DIRECTORY: trackerCasesPath },
     stdio: ['ignore', 'ignore', 'inherit']
 });
 
@@ -81,6 +84,18 @@ const isParityMeasurement = (value: unknown): value is ParityMeasurement =>
     typeof value.name === 'string' &&
     typeof value.value === 'number' &&
     Number.isFinite(value.value);
+const isTrackerStatus = (value: unknown): value is ReportedParityCase['status'] =>
+    value === 'passed' || value === 'failed' || value === 'not measured';
+const isParityCase = (value: unknown): value is ReportedParityCase =>
+    isRecord(value) &&
+    typeof value.family === 'string' &&
+    isFamily(value.family) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    isTrackerStatus(value.status) &&
+    typeof value.sourceFile === 'string' &&
+    (value.context === undefined || typeof value.context === 'string') &&
+    (value.details === undefined || typeof value.details === 'string');
 const measurements = readFileSync(progressPath, 'utf-8')
     .split(/\r?\n/)
     .filter((line) => line !== '')
@@ -92,9 +107,29 @@ const measurements = readFileSync(progressPath, 'utf-8')
 const markdown = renderDashboard(report, allowList, measurements);
 const missingFamilies = familiesWithoutTests(report);
 const repositoryRoot = join(packageRoot, '..', '..');
-const tracker = buildTrackerData(report, allowList, repositoryRoot, packageRoot, {
-    sourceCommit: process.env.GITHUB_SHA ?? 'working tree'
-});
+
+const parityCases = existsSync(trackerCasesPath)
+    ? readdirSync(trackerCasesPath)
+          .filter((name) => name.endsWith('.jsonl'))
+          .flatMap((name) =>
+              readFileSync(join(trackerCasesPath, name), 'utf-8')
+                  .split(/\r?\n/)
+                  .filter((line) => line !== '')
+                  .map((line) => {
+                      const value: unknown = JSON.parse(line);
+                      if (!isParityCase(value)) throw new Error(`Invalid parity case record: ${line}`);
+                      return value;
+                  })
+          )
+    : [];
+const tracker = buildTrackerData(
+    report,
+    allowList,
+    repositoryRoot,
+    packageRoot,
+    { sourceCommit: process.env.GITHUB_SHA ?? 'working tree' },
+    parityCases
+);
 
 const outputPath = join(packageRoot, 'dist', 'dashboard.md');
 writeFileSync(outputPath, markdown);

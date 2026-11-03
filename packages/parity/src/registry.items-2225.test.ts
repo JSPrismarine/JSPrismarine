@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { FAMILIES } from './families.ts';
 import { bedrockCaptureAt, loadRequiredItemListAt } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The protocol 2225 tables against the Bedrock Dedicated Server 1.26.60.6 capture they are
@@ -34,6 +35,24 @@ describe(FAMILIES.registryItems2225, () => {
     const capture2193 = loadRequiredItemListAt(2193);
 
     it('ships every item of the 1.26.60 capture, on the id and flag the capture recorded', () => {
+        reportParityCases(
+            FAMILIES.registryItems2225,
+            import.meta.filename,
+            [...new Set([...Object.keys(capture), ...Object.keys(item_table_2225)])].map((name) => {
+                const expected = capture[name];
+                const actual = item_table_2225[name];
+                return parityCase(
+                    `capture:${name}`,
+                    name,
+                    'Java Bedrock 1.26.60 item registry runtime id and component flag',
+                    expected !== undefined &&
+                        actual !== undefined &&
+                        actual.runtime_id === expected.runtime_id &&
+                        actual.component_based === expected.component_based
+                );
+            })
+        );
+
         const disagreements = Object.entries(capture)
             .filter(([name, entry]) => {
                 const ours = item_table_2225[name];
@@ -55,12 +74,38 @@ describe(FAMILIES.registryItems2225, () => {
         const missing = Object.entries(item_table_2225)
             .filter(([, entry]) => !Number.isInteger(entry.version))
             .map(([name]) => name);
+        reportParityCases(
+            FAMILIES.registryItems2225,
+            import.meta.filename,
+            Object.entries(item_table_2225).map(([name, entry]) =>
+                parityCase(
+                    `item-version:${name}`,
+                    name,
+                    'Bedrock 1.26.60 item version metadata',
+                    Number.isInteger(entry.version)
+                )
+            )
+        );
 
         expect(missing).toEqual([]);
     });
 
     it('numbers every item uniquely', () => {
         const ids = Object.values(item_table_2225).map((entry) => entry.runtime_id);
+        const counts = new Map<number, number>();
+        for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+        reportParityCases(
+            FAMILIES.registryItems2225,
+            import.meta.filename,
+            Object.entries(item_table_2225).map(([name, entry]) =>
+                parityCase(
+                    `unique-runtime-id:${name}`,
+                    name,
+                    `Bedrock item runtime id ${entry.runtime_id} is unique`,
+                    counts.get(entry.runtime_id) === 1
+                )
+            )
+        );
 
         expect(new Set(ids).size).toBe(ids.length);
     });
@@ -80,6 +125,18 @@ describe(FAMILIES.registryItems2225, () => {
     });
 
     it('drops no item 1.26.51 had', () => {
+        reportParityCases(
+            FAMILIES.registryItems2225,
+            import.meta.filename,
+            Object.keys(capture2193).map((name) =>
+                parityCase(
+                    `kept-from-2193:${name}`,
+                    name,
+                    'Bedrock 1.26.51 item remains in the 1.26.60 table',
+                    name in item_table_2225
+                )
+            )
+        );
         expect(Object.keys(capture2193).filter((name) => !(name in item_table_2225))).toEqual([]);
     });
 
@@ -104,12 +161,26 @@ describe(FAMILIES.registryItems2225, () => {
                 ).blocks
             );
 
-        expect(definitionsOf(2225)).toBe(definitionsOf(2193));
-        expect(
-            readFileSync(bedrockCaptureAt(2225, 'biome_definitions_network.nbt')).equals(
-                readFileSync(bedrockCaptureAt(2193, 'biome_definitions_network.nbt'))
+        const blocksUnchanged = definitionsOf(2225) === definitionsOf(2193);
+        const biomesUnchanged = readFileSync(bedrockCaptureAt(2225, 'biome_definitions_network.nbt')).equals(
+            readFileSync(bedrockCaptureAt(2193, 'biome_definitions_network.nbt'))
+        );
+        reportParityCases(FAMILIES.registryItems2225, import.meta.filename, [
+            parityCase(
+                'block-data-unchanged',
+                'Block definitions',
+                'Bedrock 1.26.60 block definition capture and export',
+                blocksUnchanged && JSON.stringify(blocks2225) === JSON.stringify(block_definitions)
+            ),
+            parityCase(
+                'biome-data-unchanged',
+                'Biome definitions',
+                'Bedrock 1.26.60 biome definition capture and export',
+                biomesUnchanged && biomes2225.equals(biome_definitions_network)
             )
-        ).toBe(true);
+        ]);
+        expect(blocksUnchanged).toBe(true);
+        expect(biomesUnchanged).toBe(true);
 
         // And the exports follow the capture of their own version.
         expect(blocks2225).toEqual(block_definitions);
@@ -152,6 +223,18 @@ describe(FAMILIES.registryItems2225, () => {
 
         it('sends a 2225 session the numbering vanilla 1.26.60 sends', () => {
             const sent = sentAt(2225);
+            reportParityCases(
+                FAMILIES.registryItems2225,
+                import.meta.filename,
+                [...new Set([...Object.keys(capture), ...sent.keys()])].map((name) =>
+                    parityCase(
+                        `sent:2225:${name}`,
+                        name,
+                        'ItemRegistryPacket item runtime id · protocol 2225',
+                        sent.has(name) && sent.get(name) === capture[name]?.runtime_id
+                    )
+                )
+            );
 
             expect([...sent.keys()].sort()).toEqual(Object.keys(capture).sort());
             for (const [name, entry] of Object.entries(capture)) expect(sent.get(name), name).toBe(entry.runtime_id);
@@ -159,6 +242,18 @@ describe(FAMILIES.registryItems2225, () => {
 
         it('sends a 2193 session the numbering vanilla 1.26.51 sends, unchanged', () => {
             const sent = sentAt(2193);
+            reportParityCases(
+                FAMILIES.registryItems2225,
+                import.meta.filename,
+                [...new Set([...Object.keys(capture2193), ...sent.keys()])].map((name) =>
+                    parityCase(
+                        `sent:2193:${name}`,
+                        name,
+                        'ItemRegistryPacket item runtime id · protocol 2193',
+                        sent.has(name) && sent.get(name) === capture2193[name]?.runtime_id
+                    )
+                )
+            );
 
             expect([...sent.keys()].sort()).toEqual(Object.keys(capture2193).sort());
             for (const [name, entry] of Object.entries(capture2193))

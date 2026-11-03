@@ -8,6 +8,8 @@ export interface ReportedTest {
     ancestorTitles: string[];
     status: string;
     title: string;
+    /** Optional reporter tags; data-level parity cases use an explicit sidecar instead. */
+    tags?: string[];
     /** Source position supplied by Vitest's JSON reporter. */
     location?: { line: number; column?: number };
 }
@@ -57,8 +59,10 @@ export interface FamilyCounts {
     failed: number;
     /** Tests skipped for want of reference data, which the dashboard does not count as a pass. */
     notMeasured: number;
-    /** Allow-listed gaps the project accepts as correct behavior. */
-    accepted: number;
+    /** Edition or product constraints that make the difference intentional. */
+    intentional: number;
+    /** Known differences with an implementation path that has been postponed. */
+    deferred: number;
     /** Allow-listed gaps the project records as unfixed defects. */
     defects: number;
 }
@@ -72,7 +76,14 @@ export const statusOf = (counts: FamilyCounts): FamilyStatus => {
     return 'green';
 };
 
-const emptyCounts = (): FamilyCounts => ({ passed: 0, failed: 0, notMeasured: 0, accepted: 0, defects: 0 });
+const emptyCounts = (): FamilyCounts => ({
+    passed: 0,
+    failed: 0,
+    notMeasured: 0,
+    intentional: 0,
+    deferred: 0,
+    defects: 0
+});
 
 const entityDetailMeasurement = (measurement: ParityMeasurement): boolean =>
     measurement.family === FAMILIES.integrationEntityCoverage && measurement.name.startsWith('entity:');
@@ -123,7 +134,8 @@ export const renderDashboard = (
     for (const entry of allowList) {
         const counts = row(entry.family);
         if (entry.kind === 'defect') counts.defects += 1;
-        else counts.accepted += 1;
+        else if (entry.kind === 'deferred') counts.deferred += 1;
+        else counts.intentional += 1;
     }
 
     const families = [...rows.keys()].sort();
@@ -132,7 +144,8 @@ export const renderDashboard = (
         total.passed += counts.passed;
         total.failed += counts.failed;
         total.notMeasured += counts.notMeasured;
-        total.accepted += counts.accepted;
+        total.intentional += counts.intentional;
+        total.deferred += counts.deferred;
         total.defects += counts.defects;
     }
 
@@ -145,13 +158,13 @@ export const renderDashboard = (
     const lines = [
         '# Parity dashboard',
         '',
-        '| Family | Status | Passed | Failed | Not measured | Accepted gaps | Known defects |',
-        '| --- | --- | ---: | ---: | ---: | ---: | ---: |',
+        '| Family | Status | Passed | Failed | Not measured | Intentional differences | Deferred | Known defects |',
+        '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |',
         ...families.map((family) => {
             const counts = rows.get(family)!;
-            return `| ${family} | ${statusOf(counts)} | ${counts.passed} | ${counts.failed} | ${counts.notMeasured} | ${counts.accepted} | ${counts.defects} |`;
+            return `| ${family} | ${statusOf(counts)} | ${counts.passed} | ${counts.failed} | ${counts.notMeasured} | ${counts.intentional} | ${counts.deferred} | ${counts.defects} |`;
         }),
-        `| **total** | ${statusOf(total)} | ${total.passed} | ${total.failed} | ${total.notMeasured} | ${total.accepted} | ${total.defects} |`,
+        `| **total** | ${statusOf(total)} | ${total.passed} | ${total.failed} | ${total.notMeasured} | ${total.intentional} | ${total.deferred} | ${total.defects} |`,
         '',
         'A row is green only when every one of its tests compared real reference data and passed.',
         '`not measured` means a comparison found no reference data to stand on, so it compared',

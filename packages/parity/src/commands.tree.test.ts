@@ -13,6 +13,7 @@ import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * Phase 5's command row: the tree the server publishes against Mojang's own Bedrock command
@@ -29,12 +30,39 @@ import { REFERENCES } from './references.ts';
  * `not-shared:<name>` for a name the shared list claims and the table lacks, and
  * `dropped:<command> <path>` for a branch the flattener cannot show the client at all.
  */
-const compareCommandTree = (): { gaps: string[]; commands: number; overloads: number; detail: string[] } => {
+const compareCommandTree = (): {
+    gaps: string[];
+    commands: number;
+    overloads: number;
+    detail: string[];
+    cases: ReturnType<typeof parityCase>[];
+} => {
     const registry = registerVanillaCommands();
     const flattened = flattenCommandTree(registry);
     const javaOnly = new Set<string>(JAVA_ONLY_COMMAND_NAMES);
     const gaps: string[] = [];
     const detail: string[] = [];
+    const cases = flattened.commands.flatMap((command) => {
+        const hasOverloads = command.overloads.length > 0;
+        return [
+            ...(javaOnly.has(command.name)
+                ? []
+                : [
+                      parityCase(
+                          `command:${command.name}/client-support`,
+                          command.name,
+                          'Bedrock command metadata',
+                          bedrockCommand(command.name) !== undefined
+                      )
+                  ]),
+            parityCase(
+                `command:${command.name}/overloads`,
+                `${command.name} overloads`,
+                'Published command tree',
+                hasOverloads
+            )
+        ];
+    });
 
     for (const command of flattened.commands) {
         if (command.overloads.length === 0) gaps.push(`no-overloads:${command.name}`);
@@ -44,21 +72,33 @@ const compareCommandTree = (): { gaps: string[]; commands: number; overloads: nu
 
     for (const name of SHARED_COMMAND_NAMES) {
         if (bedrockCommand(name) === undefined) gaps.push(`not-shared:${name}`);
+        cases.push(
+            parityCase(`shared-command:${name}`, name, 'Shared command metadata', bedrockCommand(name) !== undefined)
+        );
     }
 
     for (const note of flattened.notes) {
         if (note.severity !== 'dropped') continue;
         gaps.push(`dropped:${note.command} ${note.path}`);
+        cases.push(
+            parityCase(
+                `command-path:${note.command}/${note.path}`,
+                `${note.command} · ${note.path}`,
+                'Flattened command path',
+                false
+            )
+        );
         if (detail.length < 20) detail.push(`${note.command} ${note.path}: ${note.message}`);
     }
 
     const overloads = flattened.commands.reduce((sum, command) => sum + command.overloads.length, 0);
-    return { gaps: [...new Set(gaps)], commands: flattened.commands.length, overloads, detail };
+    return { gaps: [...new Set(gaps)], commands: flattened.commands.length, overloads, detail, cases };
 };
 
 describeFamily(FAMILIES.commandsTree, [REFERENCES.bedrockCommandMetadata], () => {
-    const { gaps, commands, overloads, detail } = compareCommandTree();
+    const { gaps, commands, overloads, detail, cases } = compareCommandTree();
     const verdict = checkAllowList(FAMILIES.commandsTree, gaps);
+    reportParityCases(FAMILIES.commandsTree, import.meta.filename, cases);
 
     it('publishes only commands a Bedrock client is built to parse', () => {
         expect(verdict.unexpected, detail.join('\n')).toEqual([]);

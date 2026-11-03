@@ -30,7 +30,14 @@ const fixtureAllowList: AllowListEntry[] = [
     {
         family: FAMILIES.registryItems,
         id: 'sources-disagree:minecraft:fixture_item',
-        kind: 'accepted',
+        kind: 'intentional',
+        reason: 'fixture',
+        reference: 'this test'
+    },
+    {
+        family: FAMILIES.mappingUntranslated,
+        id: 'untranslated:fixture_registry',
+        kind: 'deferred',
         reason: 'fixture',
         reference: 'this test'
     },
@@ -73,14 +80,19 @@ describe('dashboard renderer', () => {
         expect(missing).toContain(FAMILIES.integrationTags);
     });
 
-    it('counts passed, failed, not-measured, accepted and defect columns separately', () => {
+    it('counts passed, failed, not-measured, intentional, deferred, and defect columns separately', () => {
         const markdown = renderDashboard(fixtureReport, fixtureAllowList);
 
-        expect(rowFor(markdown, 'registry.blocks')).toBe('| registry.blocks | green | 2 | 0 | 0 | 0 | 0 |');
-        expect(rowFor(markdown, 'registry.items')).toBe('| registry.items | red | 1 | 1 | 0 | 1 | 0 |');
-        expect(rowFor(markdown, 'worldgen.features')).toBe('| worldgen.features | not measured | 0 | 0 | 1 | 0 | 0 |');
-        expect(rowFor(markdown, 'blocks.properties')).toBe('| blocks.properties | no tests | 0 | 0 | 0 | 0 | 1 |');
-        expect(rowFor(markdown, '(other)')).toBe('| (other) | green | 1 | 0 | 0 | 0 | 0 |');
+        expect(rowFor(markdown, 'registry.blocks')).toBe('| registry.blocks | green | 2 | 0 | 0 | 0 | 0 | 0 |');
+        expect(rowFor(markdown, 'registry.items')).toBe('| registry.items | red | 1 | 1 | 0 | 1 | 0 | 0 |');
+        expect(rowFor(markdown, 'worldgen.features')).toBe(
+            '| worldgen.features | not measured | 0 | 0 | 1 | 0 | 0 | 0 |'
+        );
+        expect(rowFor(markdown, 'mapping.untranslated')).toBe(
+            '| mapping.untranslated | no tests | 0 | 0 | 0 | 0 | 1 | 0 |'
+        );
+        expect(rowFor(markdown, 'blocks.properties')).toBe('| blocks.properties | no tests | 0 | 0 | 0 | 0 | 0 | 1 |');
+        expect(rowFor(markdown, '(other)')).toBe('| (other) | green | 1 | 0 | 0 | 0 | 0 | 0 |');
     });
 
     it('explains what a not-measured row means, so green is not the only legible state', () => {
@@ -128,11 +140,15 @@ describe('dashboard renderer', () => {
     });
 
     it('reads a defect-only family as defects rather than green', () => {
-        expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, accepted: 0, defects: 1 })).toBe('defects');
-        expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, accepted: 2, defects: 0 })).toBe('green');
+        expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, intentional: 0, deferred: 0, defects: 1 })).toBe(
+            'defects'
+        );
+        expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, intentional: 2, deferred: 1, defects: 0 })).toBe(
+            'green'
+        );
     });
 
     it('reads a failure as red even when something else was not measured', () => {
-        expect(statusOf({ passed: 1, failed: 1, notMeasured: 1, accepted: 0, defects: 0 })).toBe('red');
+        expect(statusOf({ passed: 1, failed: 1, notMeasured: 1, intentional: 0, deferred: 0, defects: 0 })).toBe('red');
     });
 });

@@ -5,10 +5,10 @@ import type { DashboardTotals } from './trend';
 
 const dashboard = `# Parity dashboard
 
-| Family | Status | Passed | Failed | Not measured | Accepted gaps | Known defects |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| registry.blocks | green | 3 | 0 | 0 | 1 | 0 |
-| **total** | green | 3 | 0 | 0 | 1 | 0 |
+| Family | Status | Passed | Failed | Not measured | Intentional differences | Deferred | Known defects |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| registry.blocks | green | 3 | 0 | 0 | 1 | 1 | 0 |
+| **total** | green | 3 | 0 | 0 | 1 | 1 | 0 |
 
 ## Coverage measurements
 
@@ -22,14 +22,26 @@ const totals = (overrides: Partial<DashboardTotals> = {}): DashboardTotals => ({
     passed: 3,
     failed: 0,
     notMeasured: 0,
-    accepted: 1,
+    intentional: 1,
+    deferred: 0,
     defects: 0,
     ...overrides
 });
 
 describe('parity dashboard trend', () => {
     it('reads the generated totals row', () => {
-        expect(parseDashboardTotals(dashboard)).toEqual(totals());
+        expect(parseDashboardTotals(dashboard)).toEqual(totals({ deferred: 1 }));
+    });
+
+    it('reads totals from the base dashboard format before deferred gaps were separate', () => {
+        const legacyDashboard = `# Parity dashboard
+
+| Family | Status | Passed | Failed | Not measured | Accepted gaps | Known defects |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| **total** | green | 3 | 0 | 0 | 1 | 0 |
+`;
+
+        expect(parseDashboardTotals(legacyDashboard)).toEqual(totals({ intentional: 1 }));
     });
 
     it('reads measured data volume from the dashboard comment', () => {
@@ -62,25 +74,31 @@ describe('parity dashboard trend', () => {
     });
 
     it('establishes a baseline on the first report', () => {
-        expect(describeParityTrend(undefined, totals({ defects: 2 }))).toBe(
-            'Baseline established: 2 open gaps (failed comparisons plus known defects).'
+        expect(describeParityTrend(undefined, totals({ defects: 2, deferred: 0 }))).toBe(
+            'Baseline established: 2 open gaps (failed comparisons, deferred work, and known defects).'
         );
     });
 
     it('compares a pull request dashboard with its base dashboard on the first report', () => {
         const baseline = dashboard.replace(
-            '| **total** | green | 3 | 0 | 0 | 1 | 0 |',
-            '| **total** | red | 2 | 1 | 0 | 1 | 1 |'
+            '| **total** | green | 3 | 0 | 0 | 1 | 1 | 0 |',
+            '| **total** | red | 2 | 1 | 0 | 1 | 1 | 1 |'
         );
 
-        expect(describeDashboardTrend(baseline, dashboard)).toContain('Parity improved: open gaps fell from 2 to 0.');
+        expect(describeDashboardTrend(baseline, dashboard)).toContain('Parity improved: open gaps fell from 3 to 1.');
     });
 
     it('reports when open parity gaps fall or rise', () => {
-        expect(describeParityTrend(totals({ failed: 1, defects: 1 }), totals({ failed: 0 }))).toContain(
+        expect(describeParityTrend(totals({ failed: 1, defects: 1 }), totals({ failed: 0, deferred: 0 }))).toContain(
             'Parity improved: open gaps fell from 2 to 0.'
         );
-        expect(describeParityTrend(totals(), totals({ failed: 1 }))).toContain(
+        expect(describeParityTrend(totals({ deferred: 0 }), totals({ failed: 1, deferred: 0 }))).toContain(
+            'Parity regressed: open gaps rose from 0 to 1.'
+        );
+    });
+
+    it('counts deferred work as an open parity gap', () => {
+        expect(describeParityTrend(totals({ deferred: 0 }), totals({ deferred: 1 }))).toContain(
             'Parity regressed: open gaps rose from 0 to 1.'
         );
     });

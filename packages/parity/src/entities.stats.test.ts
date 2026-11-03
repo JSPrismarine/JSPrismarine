@@ -8,6 +8,7 @@ import { FAMILIES } from './families.ts';
 import { loadJavaEntityAttributes } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
+import { reportParityCases } from './trackerCases.ts';
 import { REFERENCES } from './references.ts';
 import { loadVanillaEntityTypes } from './vanillaEntities.ts';
 
@@ -24,7 +25,7 @@ import { loadVanillaEntityTypes } from './vanillaEntities.ts';
  * from the decision instead of keeping a second copy of it.
  *
  * A disagreement that survives the spawn is read through `statRuling`. A `bedrock` or
- * `exception` ruling is an accepted divergence and carries the decision's own reason onto the
+ * `exception` ruling is an intentional divergence and carries the decision's own reason onto the
  * dashboard; a `java` ruling means the server should already be running Java's number and is
  * not, which is a defect.
  *
@@ -131,6 +132,55 @@ describeFamily(
     () => {
         const { gaps, measured, disagreements, detail } = compareEntityStats();
         const verdict = checkAllowList(FAMILIES.entitiesStats, gaps);
+        const unexpected = new Set(verdict.unexpected);
+        const java = loadJavaEntityAttributes();
+        const statsByJava = new Map<string, MeasuredStat[]>();
+        for (const row of measured) {
+            const rows = statsByJava.get(row.javaId) ?? [];
+            rows.push(row);
+            statsByJava.set(row.javaId, rows);
+        }
+        const disagreementsByJava = new Map<string, MeasuredStat[]>();
+        for (const row of disagreements) {
+            const rows = disagreementsByJava.get(row.javaId) ?? [];
+            rows.push(row);
+            disagreementsByJava.set(row.javaId, rows);
+        }
+
+        reportParityCases(
+            FAMILIES.entitiesStats,
+            import.meta.filename,
+            Object.keys(java).map((javaId) => {
+                const mapped = javaEntityTypeToBedrock(javaId);
+                if (mapped.kind !== 'mapped') {
+                    return {
+                        id: javaId,
+                        title: javaId,
+                        context: `Java entity stats · ${mapped.kind} mapping`,
+                        status: 'not measured'
+                    };
+                }
+
+                const rows = statsByJava.get(javaId) ?? [];
+                const differing = disagreementsByJava.get(javaId) ?? [];
+                const failed =
+                    unexpected.has(`no-definition:${mapped.bedrock}`) ||
+                    differing.some((row) => unexpected.has(`${row.stat}:${row.bedrockId}`));
+                return {
+                    id: javaId,
+                    title: javaId,
+                    context: `Java entity attributes · ${rows.map((row) => row.stat).join(', ')}`,
+                    status: failed ? 'failed' : rows.length === 0 ? 'not measured' : 'passed',
+                    ...(differing.length === 0
+                        ? {}
+                        : {
+                              details: differing
+                                  .map((row) => `${row.stat}: server ${row.server}, Java ${row.java}`)
+                                  .join('; ')
+                          })
+                };
+            })
+        );
 
         it('runs every mob on the value the stat decision gives it', () => {
             expect(verdict.unexpected, detail.join('\n')).toEqual([]);

@@ -9,6 +9,7 @@ import { declaredDistribution } from './lootDistribution.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * The other half of phase 2's loot exit criterion: the distribution a table rolls, against the
@@ -70,6 +71,7 @@ interface TableResult {
     readonly categories: number;
     /** How many draws the rarest item was expected to get, before any cells were merged. */
     readonly rarestExpected: number;
+    readonly gaps: readonly string[];
 }
 
 const compareDistributions = (): {
@@ -121,8 +123,11 @@ const compareDistributions = (): {
         }
 
         const strangers = [...observed.keys()].filter((item) => !declared.shares.has(item));
+        const caseGaps: string[] = [];
         if (strangers.length > 0) {
-            gaps.push(`unexpected-item:${id}`);
+            const gap = `unexpected-item:${id}`;
+            gaps.push(gap);
+            caseGaps.push(gap);
             detail.push(`${id} rolled ${strangers.join(', ')}, which the table does not declare`);
         }
 
@@ -130,7 +135,9 @@ const compareDistributions = (): {
         const deviation = Math.sqrt(rolls * declared.drawsVariance);
         const allowed = deviation === 0 ? 0 : ROLL_COUNT_SIGMA * deviation;
         if (Math.abs(draws - predictedDraws) > allowed) {
-            gaps.push(`rolls:${id}`);
+            const gap = `rolls:${id}`;
+            gaps.push(gap);
+            caseGaps.push(gap);
             detail.push(
                 `${id} produced ${draws} stacks over ${rolls} rolls, where the roll counts predict ${predictedDraws}` +
                     (deviation === 0 ? ' exactly' : ` give or take ${allowed.toFixed(1)}`)
@@ -151,7 +158,9 @@ const compareDistributions = (): {
                   );
 
         if (result !== undefined && result.pValue < ALPHA) {
-            gaps.push(`distribution:${id}`);
+            const gap = `distribution:${id}`;
+            gaps.push(gap);
+            caseGaps.push(gap);
             const worst = [...result.cells]
                 .sort(
                     (left, right) => Math.abs(right.observed - right.expected) - Math.abs(left.observed - left.expected)
@@ -169,7 +178,8 @@ const compareDistributions = (): {
             draws,
             pValue: result?.pValue,
             categories: declared.shares.size,
-            rarestExpected: (draws * rarest) / declared.meanDraws
+            rarestExpected: (draws * rarest) / declared.meanDraws,
+            gaps: caseGaps
         });
     }
 
@@ -183,6 +193,19 @@ describeFamily(
         const { gaps, detail, results, qualified, tables } = compareDistributions();
         const verdict = checkAllowList(FAMILIES.lootDistribution, gaps);
         const tested = results.filter((result) => result.pValue !== undefined);
+        const unexpected = new Set(verdict.unexpected);
+
+        reportParityCases(
+            FAMILIES.lootDistribution,
+            import.meta.filename,
+            results.map(({ id, gaps: caseGaps, categories }) => ({
+                id,
+                title: id,
+                context: `Java loot table distribution · ${categories} item outcomes`,
+                status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+                ...(caseGaps.length === 0 ? {} : { details: caseGaps.join(', ') })
+            }))
+        );
 
         it('rolls every predictable table into the distribution its own weights declare', () => {
             expect(verdict.unexpected, detail.join('\n')).toEqual([]);

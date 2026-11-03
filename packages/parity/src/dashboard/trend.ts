@@ -8,8 +8,10 @@ export interface DashboardTotals {
     readonly failed: number;
     /** Comparisons skipped because their reference data was unavailable. */
     readonly notMeasured: number;
-    /** Differences the project accepts as correct behavior. */
-    readonly accepted: number;
+    /** Edition or product constraints that make the difference intentional. */
+    readonly intentional: number;
+    /** Known differences with an implementation path that has been postponed. */
+    readonly deferred: number;
     /** Differences recorded as known defects. */
     readonly defects: number;
 }
@@ -30,7 +32,7 @@ export const parseDashboardTotals = (markdown: string): DashboardTotals => {
         .split('|')
         .slice(1, -1)
         .map((column) => column.trim());
-    if (columns.length !== 7 || columns[0] !== '**total**') {
+    if ((columns.length !== 7 && columns.length !== 8) || columns[0] !== '**total**') {
         throw new Error(`Parity dashboard total row has an unexpected shape: ${row}`);
     }
 
@@ -42,12 +44,14 @@ export const parseDashboardTotals = (markdown: string): DashboardTotals => {
         return Number(value);
     };
 
+    const hasDeferredColumn = columns.length === 8;
     return {
         passed: countAt(2),
         failed: countAt(3),
         notMeasured: countAt(4),
-        accepted: countAt(5),
-        defects: countAt(6)
+        intentional: countAt(5),
+        deferred: hasDeferredColumn ? countAt(6) : 0,
+        defects: countAt(hasDeferredColumn ? 7 : 6)
     };
 };
 
@@ -76,7 +80,7 @@ export const parseDashboardMeasurements = (markdown: string): readonly Dashboard
         });
 };
 
-const openGapsOf = (totals: DashboardTotals): number => totals.failed + totals.defects;
+const openGapsOf = (totals: DashboardTotals): number => totals.failed + totals.deferred + totals.defects;
 
 const countChange = (previous: number, current: number): string => {
     const delta = current - previous;
@@ -140,7 +144,7 @@ const coverageTrend = (previous: readonly DashboardMeasurement[], current: reado
     return `Coverage measurements unchanged: ${current.length} tracked values.`;
 };
 
-/** Describes parity, accepted-gap, and measured-coverage movement between two reports. */
+/** Describes parity, intentional-difference, deferred-work, and measured-coverage movement. */
 export const describeParityTrend = (
     previous: DashboardTotals | undefined,
     current: DashboardTotals,
@@ -149,7 +153,7 @@ export const describeParityTrend = (
 ): string => {
     const currentGaps = openGapsOf(current);
     if (previous === undefined) {
-        const baseline = `Baseline established: ${currentGaps} open gaps (failed comparisons plus known defects).`;
+        const baseline = `Baseline established: ${currentGaps} open gaps (failed comparisons, deferred work, and known defects).`;
         return currentMeasurements.length === 0
             ? baseline
             : `${baseline}\nCoverage baseline: ${currentMeasurements.length} measured values across ${new Set(currentMeasurements.map((measurement) => measurement.family)).size} families.`;
@@ -173,7 +177,7 @@ export const describeParityTrend = (
 
     return [
         assessment,
-        `Passed: ${countChange(previous.passed, current.passed)}; failed: ${countChange(previous.failed, current.failed)}; not measured: ${countChange(previous.notMeasured, current.notMeasured)}; accepted gaps: ${countChange(previous.accepted, current.accepted)}; known defects: ${countChange(previous.defects, current.defects)}.`,
+        `Passed: ${countChange(previous.passed, current.passed)}; failed: ${countChange(previous.failed, current.failed)}; not measured: ${countChange(previous.notMeasured, current.notMeasured)}; intentional differences: ${countChange(previous.intentional, current.intentional)}; deferred: ${countChange(previous.deferred, current.deferred)}; known defects: ${countChange(previous.defects, current.defects)}.`,
         coverageTrend(previousMeasurements, currentMeasurements)
     ].join('\n');
 };
