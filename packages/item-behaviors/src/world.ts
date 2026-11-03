@@ -398,10 +398,12 @@ export interface WorldActions {
      * What a `minecraft:block_transformer` turns a block into: the axe's
      * stripping, the shovel's path and the hoe's tilling, all one data table.
      *
+     * @param face - The clicked face, which an entry's `disallowed_faces` may
+     *   refuse: a hoe swung at the underside of dirt tills nothing.
      * @returns The replacement, or undefined when the transformer has no rule
      *   for the block.
      */
-    transform(transformer: string, block: BlockReference): BlockPlacement | undefined;
+    transform(transformer: string, block: BlockReference, face: BlockFace): BlockPlacement | undefined;
     /**
      * The effects one potion identifier applies.
      *

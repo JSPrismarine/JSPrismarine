@@ -102,8 +102,8 @@ export const waxingBehavior: ItemBehaviorSpec = {
     name: 'vanilla:waxing',
     hooks: ['onUseOn'],
     create: (context) => {
-        const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block }) => {
-            const placement = context.world.transform('minecraft:honeycomb', block);
+        const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
+            const placement = context.world.transform('minecraft:honeycomb', block, blockFace);
             if (placement === undefined) return undefined;
 
             context.world.perform({ kind: 'place-block', position: block.position, placement });

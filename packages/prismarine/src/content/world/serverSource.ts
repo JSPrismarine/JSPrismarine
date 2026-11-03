@@ -17,6 +17,7 @@ import type { RandomSource } from '@jsprismarine/predicates';
 import { seededRandom } from '@jsprismarine/predicates';
 
 import { createContentBlockGroup } from '../../block/contentAdapter';
+import { resolveTransform } from '../../item/blockTransformers';
 import { createContentItemGroup } from '../../item/contentAdapter';
 import { createItemActorPort } from '../../item/actorPort';
 import { entityContentGroups } from '../../entity/contentAdapter';
@@ -173,6 +174,14 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
             level,
             actors,
             content,
+            transformers: (transformer, block, face) =>
+                resolveTransform(
+                    content().blockTransformers,
+                    { tags: content().tags, blockAt: (at) => blockGroup.get(at) },
+                    transformer,
+                    block,
+                    face
+                ),
             placeEndCrystal: (base) => {
                 const loaded = world();
                 if (loaded === undefined || live === undefined) return false;

@@ -21,6 +21,7 @@ import {
 import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { Item as PrismarineItem } from '@jsprismarine/prismarine/item/Item';
+import { resolveTransform } from '@jsprismarine/prismarine/item/blockTransformers';
 import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
@@ -801,6 +802,60 @@ describeFamily(
                 ]);
                 expect(harvests, identifier).toBe(true);
                 expect(asFastAsUnlit, identifier).toBe(true);
+            }
+        });
+
+        /**
+         * Java 26.3 keeps the tool transforms in its `block_transformer` registry, and the
+         * rules name Java tags and blocks. Each case runs one real registry file against the
+         * real tag stack and the block mapping: the loaded data decides what a tool does.
+         */
+        it('resolves the real block transformers: till, path, and strip', { timeout: 180_000 }, () => {
+            const { content } = realStack();
+            const blockAt = () => ({ identifier: 'minecraft:air', states: {} });
+
+            const cases = [
+                {
+                    id: 'minecraft:hoe/till-grass',
+                    transformer: 'minecraft:hoe',
+                    clicked: 'minecraft:grass_block',
+                    states: {},
+                    expected: { identifier: 'minecraft:farmland', states: { moisturized_amount: 0 } }
+                },
+                {
+                    id: 'minecraft:shovel/path-grass',
+                    transformer: 'minecraft:shovel',
+                    clicked: 'minecraft:grass_block',
+                    states: {},
+                    expected: { identifier: 'minecraft:grass_path', states: {} }
+                },
+                {
+                    id: 'minecraft:axe/strip-log',
+                    transformer: 'minecraft:axe',
+                    clicked: 'minecraft:oak_log',
+                    states: { pillar_axis: 'z' },
+                    expected: { identifier: 'minecraft:stripped_oak_log', states: { pillar_axis: 'z' } }
+                }
+            ] as const;
+
+            for (const found of cases) {
+                const placement = resolveTransform(
+                    content.blockTransformers,
+                    { tags: content.tags, blockAt },
+                    found.transformer,
+                    { identifier: found.clicked, states: found.states, position: { x: 0, y: 64, z: 0 } },
+                    'up'
+                );
+                const matches = JSON.stringify(placement) === JSON.stringify(found.expected);
+                reportParityCases(FAMILIES.integrationTags, import.meta.filename, [
+                    {
+                        id: found.id,
+                        title: found.transformer,
+                        context: `Java block_transformer registry on ${found.clicked}`,
+                        status: matches ? 'passed' : 'failed'
+                    }
+                ]);
+                expect(placement, found.id).toEqual(found.expected);
             }
         });
 

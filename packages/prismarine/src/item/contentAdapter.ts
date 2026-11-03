@@ -19,6 +19,7 @@
  */
 import { relative } from '@jsprismarine/engine-systems';
 import type {
+    BlockFace,
     BlockPlacement,
     BlockPosition,
     EffectApplication,
@@ -104,13 +105,18 @@ export interface ItemActorPort {
 /**
  * What a `minecraft:block_transformer` turns a block into.
  *
- * Injected rather than read out of the content, because 26.3 keeps the table
- * in Java's own `block_transformer` registry and `@jsprismarine/packs` does
- * not route that registry yet. The default answers nothing for every block,
- * which is the interface's own "this transformer has no rule here", so an axe
- * declines to strip rather than stripping a log into something guessed.
+ * Injected rather than computed here, because the table is Java's own
+ * `block_transformer` registry and `src/item/blockTransformers.ts` resolves
+ * it over the built content; the server wires that resolver in. The default
+ * answers nothing for every block, which is the interface's own "this
+ * transformer has no rule here", so an axe declines to strip rather than
+ * stripping a log into something guessed.
  */
-export type BlockTransformers = (transformer: string, block: ContentBlock) => BlockPlacement | undefined;
+export type BlockTransformers = (
+    transformer: string,
+    block: ContentBlock & { readonly position: BlockPosition },
+    face: BlockFace
+) => BlockPlacement | undefined;
 
 /**
  * The effects one potion identifier applies.
@@ -237,7 +243,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
             spawnPosition: level.spawnPosition()
         }),
         includes: (set, member) => holderSetIncludes(content().tags, set, member),
-        transform: (transformer, block) => transformers(transformer, block),
+        transform: (transformer, block, face) => transformers(transformer, block, face),
         effectsOf: (potion) => potions(potion),
         placeEndCrystal: (base) => options.placeEndCrystal?.(base) ?? false,
         perform

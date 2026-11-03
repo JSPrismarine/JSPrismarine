@@ -41,6 +41,8 @@ import type { TradeTable } from '@jsprismarine/trading';
 
 import type { ContentOptions } from './ContentOptions';
 import { resolvePackStack } from './packStack';
+import { parseBlockTransformers } from '../item/blockTransformers';
+import type { BlockTransformerRegistry } from '../item/blockTransformers';
 import { buildContentTags } from './tags';
 import type { ContentTags } from './tags';
 import { bedrockEntityTypeTagsFor } from './entityTypeTags';
@@ -131,6 +133,8 @@ export interface ServerContent {
     readonly enchantments: EnchantmentRegistry;
     /** Bedrock's spawn rules, one per parsed `spawn_rules/` file. */
     readonly spawnRules: readonly SpawnRule[];
+    /** Java's `block_transformer` registry: what an axe strips, a shovel paths and a hoe tills. */
+    readonly blockTransformers: BlockTransformerRegistry;
     /** Bedrock's trade tables, keyed by the pack-relative path a villager names. */
     readonly tradeTables: ReadonlyMap<string, TradeTable>;
     /** Bedrock's biome definitions, unparsed, keyed by identifier. */
@@ -405,6 +409,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         advancements,
         enchantments,
         spawnRules: parseSpawnRules(definitions.spawnRules, diagnostics),
+        blockTransformers: parseBlockTransformers(definitions.blockTransformers),
         tradeTables: parseTradeTables(definitions.tradeTables, diagnostics),
         biomes: registryOf('biomes', definitions.biomes),
         features: registryOf('features', definitions.features),

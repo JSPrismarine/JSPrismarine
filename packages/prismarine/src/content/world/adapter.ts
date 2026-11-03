@@ -273,7 +273,11 @@ export interface ContentItemAccess {
      *
      * @returns The replacement, or undefined when the transformer has no rule for the block.
      */
-    transform(transformer: string, block: ContentBlock): BlockPlacement | undefined;
+    transform(
+        transformer: string,
+        block: ContentBlock & { readonly position: ContentPosition },
+        face: BlockFace
+    ): BlockPlacement | undefined;
     /**
      * The effects one potion identifier applies. Java keeps this table in code, in `Potions`,
      * so the server answers rather than the item package.
