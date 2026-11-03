@@ -159,6 +159,9 @@ const blockAt = (context: Context, nameKey: string, statesKey?: string): BlockRe
     states: statesKey === undefined ? {} : parseBlockStates(value<string>(context, statesKey))
 });
 
+/** `/fill`'s handling of what already stands in the region, which both its overloads end in. */
+const fillModeArgument = () => enumArgument('FillMode', ['destroy', 'hollow', 'keep', 'outline', 'replace'] as const);
+
 /** Registers the 15 world commands. */
 export const registerWorldCommands = (registry: CommandRegistry<CommandSource>): void => {
     const content = registry.getContent();
@@ -195,12 +198,20 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
             arg('from', blockPositionArgument()).then(
                 arg('to', blockPositionArgument()).then(
                     arg('block', resourceArgument('minecraft:block', content.blocks))
-                        .executes(command((context) => fill(context, 'replace')))
+                        .executes(command((context) => fill(context, undefined, 'replace')))
                         .then(
-                            arg(
-                                'mode',
-                                enumArgument('FillMode', ['destroy', 'hollow', 'keep', 'outline', 'replace'] as const)
-                            ).executes(command((context) => fill(context, value(context, 'mode'))))
+                            arg('blockStates', blockStatesArgument())
+                                .executes(command((context) => fill(context, 'blockStates', 'replace')))
+                                .then(
+                                    arg('mode', fillModeArgument()).executes(
+                                        command((context) => fill(context, 'blockStates', value(context, 'mode')))
+                                    )
+                                )
+                        )
+                        .then(
+                            arg('mode', fillModeArgument()).executes(
+                                command((context) => fill(context, undefined, value(context, 'mode')))
+                            )
                         )
                 )
             )
@@ -483,13 +494,13 @@ const setBlock = (context: Context, statesKey: string | undefined, mode: string)
     return report(current, placed ? 1 : 0, 'Placed the block');
 };
 
-const fill = (context: Context, mode: string): number => {
+const fill = (context: Context, statesKey: string | undefined, mode: string): number => {
     const current = source(context);
     const filled = current.host.world.fill(
         current.dimension,
         resolvePosition(value(context, 'from'), current),
         resolvePosition(value(context, 'to'), current),
-        blockAt(context, 'block'),
+        blockAt(context, 'block', statesKey),
         mode === 'destroy'
             ? 'destroy'
             : mode === 'hollow'
