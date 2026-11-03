@@ -151,8 +151,13 @@ const hasBlockTag = (content: ServerContent, block: HookBlock, tag: string): boo
     return javaIdentifiers.some((identifier) => content.tags.includes('block', tag, identifier));
 };
 
+const blockActionsByAdapter = new WeakMap<ServerWorldAdapter, BlockWorldActions>();
+
 /** `WorldActions` as `@jsprismarine/block-behaviors` declares it, for one dimension. */
 const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): BlockWorldActions => {
+    const cached = blockActionsByAdapter.get(adapter);
+    if (cached !== undefined) return cached;
+
     const dimension = adapter.level.dimension;
 
     const hookBlock = (at: ContentPosition): HookBlock | undefined => {
@@ -169,7 +174,7 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         normal: TICK_PRIORITIES.NORMAL
     };
 
-    return {
+    const actions: BlockWorldActions = {
         getBlock: hookBlock,
         setBlock: (position, identifier, states = {}, notifyNeighbors = true, placement) =>
             adapter.blocks.set(position, { identifier, states }, notifyNeighbors, placement),
@@ -243,6 +248,11 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         lightLevel: (position) => adapter.blocks.light(position),
         random: () => adapter.random.nextFloat()
     };
+
+    // Adapters belong to one content build and are replaced on reload, so this cache shares only
+    // the action closures; each call still reads the live adapter and its current content lookup.
+    blockActionsByAdapter.set(adapter, actions);
+    return actions;
 };
 
 /** `WorldActions` as `@jsprismarine/item-behaviors` declares it, which is a different interface. */

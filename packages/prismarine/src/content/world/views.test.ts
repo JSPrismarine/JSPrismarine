@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { buildServerContent } from '../ServerContent';
 import { fixtureContentOptions } from '../testing';
-import type { ContentBlock, ContentPosition, ServerWorldAdapter } from './adapter';
+import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import { singleDimension } from './adapter';
 import { NotWiredError } from './notWired';
 import { unwiredWorld } from './unwired';
+import { contentWorldViews } from './views';
 
 /** The block the stub world holds at every position, and the one it reports loaded. */
 const LIT_LAMP: ContentBlock = { identifier: 'minecraft:redstone_lamp', states: { lit: true } };
@@ -99,6 +100,40 @@ describe('the content world views', () => {
         expect(actions.entitiesAt({ x: 0, y: 0, z: 0 })).toEqual([
             { id: 3, identifier: 'minecraft:cow', position: { x: 1, y: 2, z: 3 } }
         ]);
+    });
+
+    it('reuses block actions per adapter without sharing them across dimensions or content reloads', () => {
+        const overworld = stubWorld('minecraft:overworld');
+        const nether = stubWorld('minecraft:nether');
+        const source: ServerWorldSource = {
+            at: (dimension) => (dimension === 'minecraft:overworld' ? overworld.adapter : nether.adapter)
+        };
+        const content = contentFor(overworld.adapter);
+        const views = contentWorldViews(source, () => content);
+        const overworldActions = views.blockWorld.at('minecraft:overworld');
+
+        expect(views.blockWorld.at('minecraft:overworld')).toBe(overworldActions);
+        expect(views.blockWorld.at('minecraft:nether')).not.toBe(overworldActions);
+
+        let currentBlock: ContentBlock = LIT_LAMP;
+        const replacementWrites: ContentPosition[] = [];
+        const replacement: ServerWorldAdapter = {
+            ...overworld.adapter,
+            blocks: {
+                ...overworld.adapter.blocks,
+                get: () => currentBlock,
+                set: (at) => void replacementWrites.push(at)
+            }
+        };
+        const replacementViews = contentWorldViews(singleDimension(replacement), () => content);
+        const replacementActions = replacementViews.blockWorld.at('minecraft:overworld');
+
+        expect(replacementActions).not.toBe(overworldActions);
+        currentBlock = { identifier: 'minecraft:stone', states: {} };
+        expect(replacementActions.getBlock({ x: 0, y: 0, z: 0 })?.identifier).toBe('minecraft:stone');
+        replacementActions.setBlock({ x: 1, y: 2, z: 3 }, 'minecraft:stone');
+        expect(overworld.writes).toEqual([]);
+        expect(replacementWrites).toEqual([{ x: 1, y: 2, z: 3 }]);
     });
 
     it('answers a block behavior’s property lookup out of the resolved block types', () => {
