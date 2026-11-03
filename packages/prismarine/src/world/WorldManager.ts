@@ -291,6 +291,7 @@ export default class WorldManager implements Service {
             load,
             factories: this.generatorFactories,
             worldgen: registries,
+            chunkWorkers: this.server.getConfig().getChunkWorkers(),
             config: { ...worldData },
             handlers: (world) => ({
                 randomTickHandlers: contentRandomTickHandlers({ content, world, report: report('a random tick') }),

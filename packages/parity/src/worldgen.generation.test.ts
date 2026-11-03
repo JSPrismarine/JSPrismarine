@@ -12,6 +12,7 @@ import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
+import { chunkWorkerCount } from '@jsprismarine/prismarine/world/generators/chunkConcurrency';
 
 /**
  * The generation corpus: three rows that regenerate the committed corpus and diff it.
@@ -53,6 +54,7 @@ const prepare = async (): Promise<void> => {
 };
 
 const needs = [REFERENCES.generationCorpus, REFERENCES.javaWorldgenData, REFERENCES.javaServerJar];
+const WORKER_COUNTS = [...new Set([1, Math.max(0, chunkWorkerCount())])];
 
 describeFamily(
     FAMILIES.worldgenCorpus,
@@ -100,6 +102,27 @@ describeFamily(
             expect(golden.provenance.commit).toMatch(/^[0-9a-f]{40}$/);
             expect(golden.provenance.protocol).not.toBe('');
         });
+
+        it.each(WORKER_COUNTS)(
+            'keeps corpus chunks and structure placements stable with %i worker(s)',
+            async (workers) => {
+                const generated = await captureCorpus(environment!, undefined, workers);
+                const chunkDiff = diffChunks(golden, generated);
+                const structureDiff = diffStructures(golden, generated);
+
+                expect(
+                    checkAllowList(FAMILIES.worldgenCorpus, chunkDiff.gaps).unexpected,
+                    chunkDiff.detail.join('\n')
+                ).toEqual([]);
+                expect(
+                    checkAllowList(FAMILIES.worldgenStructures, structureDiff.gaps).unexpected,
+                    structureDiff.detail.join('\n')
+                ).toEqual([]);
+                expect(checkAllowList(FAMILIES.worldgenCorpus, chunkDiff.gaps).stale).toEqual([]);
+                expect(checkAllowList(FAMILIES.worldgenStructures, structureDiff.gaps).stale).toEqual([]);
+            },
+            CORPUS_TIMEOUT
+        );
     },
     { tags: ['real-data'] }
 );

@@ -142,6 +142,8 @@ export interface GenerationWorkerData {
     readonly pipeline: string;
     /** Handed to the factory. Cloned to each worker, so keep it flat and keep it small. */
     readonly setup: unknown;
+    /** Optional benchmark buffer: one shared heap-used byte count per worker after its last task. */
+    readonly workerHeapStats?: SharedArrayBuffer;
 }
 
 /** How a {@link GenerationPool} is built. */
@@ -175,6 +177,11 @@ export interface GenerationPoolOptions {
     readonly workers: number;
     /** Handed to every worker's {@link WorkerPipelineFactory}. */
     readonly setup?: unknown;
+    /**
+     * Optional benchmark sink with one `Int32` slot per worker plus a leading worker counter.
+     * Each worker stores its isolate heap usage in bytes after its most recent task.
+     */
+    readonly workerHeapStats?: SharedArrayBuffer;
     /**
      * How many tasks may be with the workers at once, which defaults to one more than there are
      * workers.
@@ -335,22 +342,25 @@ export const workerExecArgv = (
 };
 
 /**
- * A fixed pool of piscina workers.
+ * A lazily started pool of piscina workers.
  *
- * Fixed rather than elastic: a worker's value is the pipeline it has already built, so one that
- * is retired for being idle throws away the 200 to 400 ms that went into it.
+ * Workers start when the first task arrives and stay warm until the pool is destroyed. A worker's
+ * value is the pipeline it has already built, so retiring it for being idle throws away the 200
+ * to 400 ms that went into it.
  */
 const piscinaRunner: TaskRunnerFactory = (options) => {
     const execArgv = workerExecArgv(options);
 
     return new Piscina<GenerationTask, GenerationResult>({
         filename: options.worker ?? defaultGenerationWorker(),
-        minThreads: options.workers,
+        minThreads: 0,
         maxThreads: options.workers,
+        idleTimeout: Infinity,
         ...(execArgv === undefined ? {} : { execArgv }),
         workerData: {
             pipeline: workerModuleSpecifier(options.pipeline),
-            setup: options.setup
+            setup: options.setup,
+            ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats })
         } satisfies GenerationWorkerData
     });
 };

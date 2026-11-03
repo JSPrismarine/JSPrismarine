@@ -118,6 +118,8 @@ export interface ConfigFile {
     'view-distance'?: number;
     /** How many chunks around spawn to generate before accepting players. 0 skips it. @minimum 0 */
     'preload-radius'?: number;
+    /** How many worker threads to use for chunk generation. 0 keeps generation on the server thread. @asType integer @minimum 0 */
+    'chunk-workers'?: number;
     /** How long each tick may spend sending chunks, out of its 50 ms. @minimum 0 */
     'chunk-send-budget-ms'?: number;
     /** Whether positional packets only go to nearby players. */
@@ -179,6 +181,7 @@ export const CONFIG_KEY_ORDER = [
     'motd',
     'view-distance',
     'preload-radius',
+    'chunk-workers',
     'chunk-send-budget-ms',
     'proximity-broadcast',
     'server-authoritative-block-breaking',

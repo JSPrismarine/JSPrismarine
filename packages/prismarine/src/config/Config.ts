@@ -6,6 +6,7 @@ import { ConfigBuilder } from './ConfigBuilder';
 import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
 import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
+import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 
 import { Difficulty, getGametypeName, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
@@ -58,6 +59,7 @@ const COMMENTS = {
     motd: 'The message shown in the server list.',
     'view-distance': 'How far players see, in chunks.',
     'preload-radius': 'How many chunks around spawn to generate before accepting players. 0 skips it.',
+    'chunk-workers': 'How many worker threads to use for chunk generation. 0 keeps it on the server thread.',
     'chunk-send-budget-ms': 'How long each tick may spend sending chunks, out of its 50 ms.',
     'proximity-broadcast': 'Whether positional packets only go to players near them. Turn off only to debug.',
     'server-authoritative-block-breaking':
@@ -104,6 +106,7 @@ const DEFAULTS = {
     motd: 'Another JSPrismarine server!',
     'view-distance': 10,
     'preload-radius': 10,
+    'chunk-workers': Math.max(0, chunkWorkerCount()),
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
     'server-authoritative-block-breaking': true,
@@ -173,6 +176,7 @@ export class Config {
     private motd: string = DEFAULTS.motd;
     private viewDistance: number = DEFAULTS['view-distance'];
     private preloadRadius: number = DEFAULTS['preload-radius'];
+    private chunkWorkers: number = DEFAULTS['chunk-workers'];
     private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
     private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
     private serverAuthoritativeBlockBreaking: boolean = DEFAULTS['server-authoritative-block-breaking'];
@@ -260,6 +264,7 @@ export class Config {
         this.motd = read('motd', DEFAULTS.motd);
         this.viewDistance = read('view-distance', DEFAULTS['view-distance']);
         this.preloadRadius = read('preload-radius', DEFAULTS['preload-radius']);
+        this.chunkWorkers = read('chunk-workers', DEFAULTS['chunk-workers']);
         this.chunkSendBudgetMs = read('chunk-send-budget-ms', DEFAULTS['chunk-send-budget-ms']);
         this.proximityBroadcast = read('proximity-broadcast', DEFAULTS['proximity-broadcast']);
         this.serverAuthoritativeBlockBreaking = read(
@@ -430,6 +435,19 @@ export class Config {
      */
     public getPreloadRadius(): number {
         return Math.max(0, Math.round(this.preloadRadius));
+    }
+
+    /**
+     * How many worker threads chunk generation may use.
+     *
+     * Zero keeps generation on the server thread. The default reserves two cores for the server
+     * and caps the rest at the number already measured to help generation.
+     *
+     * @returns A nonnegative integer worker count
+     */
+    public getChunkWorkers(): number {
+        const workers = Number(this.chunkWorkers);
+        return Number.isFinite(workers) ? Math.max(0, Math.trunc(workers)) : DEFAULTS['chunk-workers'];
     }
 
     /**

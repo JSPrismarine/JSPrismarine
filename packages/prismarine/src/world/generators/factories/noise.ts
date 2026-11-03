@@ -71,16 +71,19 @@ export const createNoiseGeneratorFactory = (): GeneratorFactory => {
 
 /** The server's one generator, over the first stem's registries and worker count. */
 const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildContext): DataDrivenGenerator => {
-    const stages = stagePool(context.workers ?? chunkWorkerCount(), context.logger);
+    const workers = context.workers ?? chunkWorkerCount();
+    const stages = stagePool(workers, context.logger);
     const built = new DataDrivenGenerator({
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
         ...(context.completionQueue === undefined ? {} : { completionQueue: context.completionQueue }),
         ...(stages === undefined ? {} : { stages })
     });
-    if (stages !== undefined && stages.workers > 0) {
-        context.logger.info(`Generating terrain and features in §b${stages.workers}§r worker thread(s)`);
-    }
+    context.logger.info(
+        stages === undefined
+            ? 'Generating terrain and features on the server thread (chunk-workers: 0)'
+            : `Generating terrain and features in up to §b${workers}§r worker thread(s), started on demand`
+    );
     return built;
 };
 

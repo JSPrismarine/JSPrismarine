@@ -13,7 +13,8 @@
  * `Xoroshiro128++` or `LegacyRandom` derived from the seed, so there is nothing legitimate here
  * to break.
  */
-import { workerData } from 'node:worker_threads';
+import { getHeapStatistics } from 'node:v8';
+import { threadId, workerData } from 'node:worker_threads';
 
 import Piscina from 'piscina';
 
@@ -53,6 +54,18 @@ const isPipelineFactory = (value: unknown): value is WorkerPipelineFactory => ty
 /** Built once per worker, on the first task. */
 let pipeline: Promise<WorkerPipeline> | undefined;
 
+/** `GenerationPool` is the only code that starts this worker and writes its `workerData`. */
+const workerDataFromParent = workerData as GenerationWorkerData;
+const workerHeapStats =
+    workerDataFromParent.workerHeapStats === undefined
+        ? undefined
+        : new Int32Array(workerDataFromParent.workerHeapStats);
+const workerHeapSlot = workerHeapStats === undefined ? undefined : Atomics.add(workerHeapStats, 0, 1) + 1;
+
+if (workerHeapStats !== undefined && workerHeapSlot !== undefined && workerHeapSlot >= workerHeapStats.length) {
+    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
+}
+
 const load = async (): Promise<WorkerPipeline> => {
     // `workerData` is the object the pool wrote on the other side of a thread boundary, which
     // the compiler cannot follow. Nothing but this package writes it.
@@ -76,6 +89,10 @@ const load = async (): Promise<WorkerPipeline> => {
 export default async function runGenerationTask(task: GenerationTask): Promise<GenerationResult> {
     pipeline ??= load();
     const result = await (await pipeline).run(task);
+
+    if (workerHeapStats !== undefined && workerHeapSlot !== undefined) {
+        Atomics.store(workerHeapStats, workerHeapSlot, getHeapStatistics().used_heap_size);
+    }
 
     // piscina reads these two symbols to decide what travels in the transfer list and what the
     // caller receives. Both are plain symbols rather than `unique symbol`, so the shape is an

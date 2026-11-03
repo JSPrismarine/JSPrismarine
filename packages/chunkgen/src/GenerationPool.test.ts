@@ -44,6 +44,29 @@ const readBack = (payload: unknown): { payload: FakePayload; blocks: number[] } 
 };
 
 describe('GenerationPool', () => {
+    it('starts without workers, starts one for the first task, and keeps it warm', async () => {
+        pool = open(1);
+
+        expect(pool.workers).toBe(0);
+
+        await pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
+        expect(pool.workers).toBe(1);
+
+        await pool.run({ status: 'terrain', chunkX: 1, chunkZ: 0, dimension: 0 });
+        expect(pool.workers).toBe(1);
+    }, 60_000);
+
+    it('reports per-worker heap when the benchmark buffer is requested', async () => {
+        const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2);
+        const stats = new Int32Array(buffer);
+        pool = new GenerationPool({ pipeline: FAKE_PIPELINE, workers: 1, workerHeapStats: buffer });
+
+        await pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
+
+        expect(Atomics.load(stats, 0)).toBe(1);
+        expect(Atomics.load(stats, 1)).toBeGreaterThan(0);
+    }, 60_000);
+
     it('runs a status body in a worker and moves the result back', async () => {
         pool = open(1, { seed: 1234 });
 

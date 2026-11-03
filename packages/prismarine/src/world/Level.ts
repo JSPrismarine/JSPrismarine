@@ -102,6 +102,8 @@ export interface LevelOptions {
      * the Java data cache on disk, which a flat or void level never touches.
      */
     readonly worldgen?: () => JavaWorldgenRegistries;
+    /** The chunk worker limit from server configuration, forwarded to generator factories. */
+    readonly chunkWorkers?: number;
     /** The `worlds.<name>` entry as configured, which a provider may read when generating. */
     readonly config?: WorldConfig;
     /** The handlers each world runs; see {@link WorldHandlersFactory}. */
@@ -145,6 +147,7 @@ export class Level {
     private readonly load: ReadonlyMap<string, DimensionLoad>;
     private readonly factories: GeneratorFactories;
     private readonly worldgen: () => JavaWorldgenRegistries;
+    private readonly chunkWorkers: number | undefined;
     private readonly config: WorldConfig;
     private readonly handlers: WorldHandlersFactory | undefined;
     private readonly onWorldBuilt: ((world: World) => void) | undefined;
@@ -194,6 +197,7 @@ export class Level {
         this.load = options.load ?? new Map();
         this.factories = options.factories;
         this.worldgen = options.worldgen ?? requireJavaWorldgenRegistries;
+        this.chunkWorkers = options.chunkWorkers;
         this.config = options.config ?? {};
         this.handlers = options.handlers;
         this.onWorldBuilt = options.onWorldBuilt;
@@ -439,6 +443,7 @@ export class Level {
             seed: this.seed,
             content: () => this.server.getContent(),
             worldgen: this.worldgen,
+            ...(this.chunkWorkers === undefined ? {} : { workers: this.chunkWorkers }),
             logger: this.server.getLogger(),
             completionQueue: this.server.getChunkCompletionQueue()
         });

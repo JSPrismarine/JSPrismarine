@@ -217,6 +217,7 @@ export default class Server extends EventEmitter {
 
         this.logger = logger;
         this.config = config;
+        this.chunkScheduler.setDepth(Math.max(1, config.getChunkWorkers()) * 2);
         this.profiler = profile ? new ServerProfiler() : undefined;
         if (this.profiler) {
             attachProfiler(this, this.profiler);

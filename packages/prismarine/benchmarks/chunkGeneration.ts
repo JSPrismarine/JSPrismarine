@@ -35,7 +35,8 @@ const chunks = Number.parseInt(args[1] ?? '16', 10);
  * Which half of the ladder to run, so a change can be charged to one of them.
  *
  * `terrain` is the noise fill alone, `structures` adds the layout pass that pushes terrain
- * around, and the default runs the decoration pass and the Bedrock translation as well.
+ * around, and the default runs the decoration pass and the Bedrock translation as well. `stages`
+ * runs the server's shared terrain and feature workers and reports their heap usage.
  */
 const arm = args[2] ?? 'full';
 /** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
@@ -72,7 +73,7 @@ const poolUnavailable = (reason: string): void => {
     process.stderr.write(`no worker pool: ${reason}\n`);
 };
 
-const createGenerator = (): DataDrivenGenerator =>
+const createGenerator = (workerHeapStats?: SharedArrayBuffer): DataDrivenGenerator =>
     new DataDrivenGenerator({
         registries,
         templates,
@@ -95,6 +96,7 @@ const createGenerator = (): DataDrivenGenerator =>
                       pipeline: defaultChunkPipeline(),
                       workers,
                       javaTemplates: true,
+                      ...(workerHeapStats === undefined ? {} : { workerHeapStats }),
                       onUnavailable: poolUnavailable
                   }
               }
@@ -117,12 +119,17 @@ const positions = Array.from({ length: chunks }, (_unused, index) => [index % si
 interface Run {
     readonly ms: number;
     readonly outputDigest: string;
+    readonly workerHeapUsedBytes: readonly number[];
 }
 
 const run = async (): Promise<Run> => {
+    const workerHeapStats =
+        workers > 0 && arm === 'stages'
+            ? new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * (workers + 1))
+            : undefined;
     // Each generator retains finished chunks by coordinate, so a fresh instance keeps every
     // warmup and sample on the generation path instead of measuring a cache hit.
-    const generator = createGenerator();
+    const generator = createGenerator(workerHeapStats);
     const started = performance.now();
     try {
         // All at once, because that is how the preload and the chunk scheduler ask: the depth is
@@ -137,7 +144,14 @@ const run = async (): Promise<Run> => {
             output.update(chunk.networkSerialize());
         }
 
-        return { ms: elapsed, outputDigest: output.digest('hex') };
+        const stats = workerHeapStats === undefined ? undefined : new Int32Array(workerHeapStats);
+        const workerCount = stats === undefined ? 0 : Atomics.load(stats, 0);
+        const workerHeapUsedBytes =
+            stats === undefined
+                ? []
+                : Array.from({ length: workerCount }, (_unused, index) => Atomics.load(stats, index + 1));
+
+        return { ms: elapsed, outputDigest: output.digest('hex'), workerHeapUsedBytes };
     } finally {
         generator.stopGenerating();
     }
@@ -179,6 +193,7 @@ process.stdout.write(
             max: times.at(-1) ?? 0
         },
         throughputChunksPerSecond: (chunks / p50) * 1000,
+        workerHeapUsedBytesByRun: runs.map(({ workerHeapUsedBytes }) => workerHeapUsedBytes),
         outputDigest: runs[0]?.outputDigest
     })}\n`
 );

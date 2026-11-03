@@ -7,6 +7,7 @@ import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel } from './Config';
 import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
+import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 
 describe('config', () => {
     describe('Config', () => {
@@ -64,6 +65,28 @@ describe('config', () => {
             expect(config.getViewDistance()).toBe(10);
         });
 
+        it('should default chunk workers to the available worker count', () => {
+            expect(config.getChunkWorkers()).toBe(Math.max(0, chunkWorkerCount()));
+        });
+
+        it('allows chunk generation to stay on the server thread', async () => {
+            writeFileSync(path.join(configDirectory, 'config.json'), '{"chunk-workers":0}');
+
+            const configured = new Config();
+            await configured.enable();
+
+            expect(configured.getChunkWorkers()).toBe(0);
+        });
+
+        it('clamps invalid negative chunk worker counts to zero', async () => {
+            writeFileSync(path.join(configDirectory, 'config.json'), '{"chunk-workers":-2}');
+
+            const configured = new Config();
+            await configured.enable();
+
+            expect(configured.getChunkWorkers()).toBe(0);
+        });
+
         it('should have online mode enabled by default', () => {
             expect(config.getOnlineMode()).toBe(true);
         });
@@ -106,6 +129,10 @@ describe('config', () => {
             expect(text).toContain('"port": 19132');
             expect(text).toContain('// How far players see, in chunks.');
             expect(text).toContain('"view-distance": 10');
+            expect(text).toContain(
+                '// How many worker threads to use for chunk generation. 0 keeps it on the server thread.'
+            );
+            expect(text).toContain('"chunk-workers":');
             // Every setting has a comment; `$schema` is the only top-level key without one.
             const keys = text.match(/^ {4}"[^"]+":/gm) ?? [];
             const comments = text.match(/^ {4}\/\//gm) ?? [];

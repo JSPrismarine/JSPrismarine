@@ -70,6 +70,7 @@ describe('JSON schemas', () => {
                 motd: 'A server',
                 'view-distance': 10,
                 'preload-radius': 10,
+                'chunk-workers': 4,
                 'chunk-send-budget-ms': 5,
                 'proximity-broadcast': true,
                 'server-authoritative-block-breaking': true,

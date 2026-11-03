@@ -24,7 +24,10 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder } from '@jsprismarine/nbt';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import type Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
-import { DataDrivenGenerator } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import {
+    DataDrivenGenerator,
+    defaultChunkPipeline
+} from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '@jsprismarine/prismarine/world/generators/datadriven/javaStructureTemplates';
 import type { JavaWorldgenRegistries } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 import {
@@ -298,11 +301,16 @@ export const captureChunk = (entry: CorpusChunk, chunk: Chunk): CapturedChunk =>
 };
 
 /** Builds the generator one corpus chunk is produced by, and nothing else is. */
-const generatorFor = (environment: GenerationEnvironment, tier: CorpusChunk['tier']): DataDrivenGenerator =>
+const generatorFor = (
+    environment: GenerationEnvironment,
+    tier: CorpusChunk['tier'],
+    workers = 0
+): DataDrivenGenerator =>
     new DataDrivenGenerator({
         registries: environment.registries,
         templates: environment.templates,
-        ...(tier === 'terrain' ? { decorate: false } : {})
+        ...(tier === 'terrain' ? { decorate: false } : {}),
+        ...(workers === 0 ? {} : { stages: { pipeline: defaultChunkPipeline(), workers, javaTemplates: true } })
     });
 
 /** Generates one corpus chunk under the capture protocol and reduces it. */
@@ -383,35 +391,55 @@ export interface CapturedCorpus {
  *
  * @param environment - The Java data, loaded once by {@link openGeneration}.
  * @param onChunk - Called after each chunk, for a capture script that wants progress.
+ * @param workers - The status worker limit, or zero to generate on the calling thread.
  */
 export const captureCorpus = async (
     environment: GenerationEnvironment,
-    onChunk?: (entry: CorpusChunk, elapsedMs: number) => void
+    onChunk?: (entry: CorpusChunk, elapsedMs: number) => void,
+    workers = 0
 ): Promise<CapturedCorpus> => {
     const started = performance.now();
     const chunks: ChunkDigest[] = [];
     const samples: WholeChunkSample[] = [];
     const blockCounts = new Map<string, number>();
+    const workerGenerators = new Map<CorpusChunk['tier'], DataDrivenGenerator>();
     let minY = 0;
     let height = 0;
 
-    for (const entry of CORPUS_CHUNKS) {
-        const at = performance.now();
-        const generator = generatorFor(environment, entry.tier);
-        const chunk = await generator.generateChunk(entry.chunkX, entry.chunkZ, BigInt(entry.seed));
-        minY = chunk.getMinY();
-        height = chunk.getMaxY() - minY + 1;
+    try {
+        for (const entry of CORPUS_CHUNKS) {
+            const at = performance.now();
+            let generator: DataDrivenGenerator;
+            if (workers === 0) {
+                generator = generatorFor(environment, entry.tier);
+            } else {
+                generator = workerGenerators.get(entry.tier) ?? generatorFor(environment, entry.tier, workers);
+                workerGenerators.set(entry.tier, generator);
+            }
 
-        const captured = captureChunk(entry, chunk);
-        chunks.push(captured.digest);
-        if (captured.sample !== undefined) samples.push(captured.sample);
-        if (entry.tier === 'full') {
-            for (const [state, count] of Object.entries(captured.census)) {
-                blockCounts.set(state, (blockCounts.get(state) ?? 0) + count);
+            try {
+                const chunk = await generator.generateChunk(entry.chunkX, entry.chunkZ, BigInt(entry.seed));
+                minY = chunk.getMinY();
+                height = chunk.getMaxY() - minY + 1;
+
+                const captured = captureChunk(entry, chunk);
+                chunks.push(captured.digest);
+                if (captured.sample !== undefined) samples.push(captured.sample);
+                if (entry.tier === 'full') {
+                    for (const [state, count] of Object.entries(captured.census)) {
+                        blockCounts.set(state, (blockCounts.get(state) ?? 0) + count);
+                    }
+                }
+
+                onChunk?.(entry, performance.now() - at);
+            } finally {
+                if (workers === 0) generator.stopGenerating();
             }
         }
-
-        onChunk?.(entry, performance.now() - at);
+    } finally {
+        // Keep each worker pool alive across corpus chunks so this measures warmed work rather
+        // than repeatedly paying the cost of starting a fresh worker for every chunk.
+        for (const generator of workerGenerators.values()) generator.stopGenerating();
     }
 
     const structures = captureStructures(environment);

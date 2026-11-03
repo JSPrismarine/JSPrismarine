@@ -124,11 +124,12 @@ const SKY_DIMENSION_TYPE = {
     infiniburn: '#minecraft:infiniburn_overworld'
 };
 
-/** A manager over a server double whose config names the given entries. */
+/** A manager over a server double whose config names the given entries and worker count. */
 const buildManager = (
     levelName: string,
     worlds: Record<string, LegacyWorldData>,
-    content: ServerContent = testContent()
+    content: ServerContent = testContent(),
+    chunkWorkers = 4
 ) => {
     const logged: string[] = [];
     const setWorld = vi.fn<Config['setWorld']>();
@@ -148,6 +149,7 @@ const buildManager = (
                 setWorld,
                 // Nothing preloads: the start region is covered by the world tests.
                 getPreloadRadius: () => 0,
+                getChunkWorkers: () => chunkWorkers,
                 getEntityTrackingInterval: () => 20
             }),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
@@ -163,12 +165,15 @@ const buildManager = (
     const builds = new Map<string, number>();
     /** The noise settings ids the registries carried when each dimension type's generator was built. */
     const noiseSettingsSeen = new Map<string, readonly string[]>();
+    /** Worker limits forwarded from the server config, by kind and dimension. */
+    const workersSeen = new Map<string, number | undefined>();
     for (const kind of [TEST_KIND, OTHER_KIND]) {
         manager.getGeneratorFactories().register({
             kind,
             build: (context) => {
                 const key = `${kind} ${context.dimension.id}`;
                 builds.set(key, (builds.get(key) ?? 0) + 1);
+                workersSeen.set(key, context.workers);
                 if (context.dimension.custom) {
                     noiseSettingsSeen.set(context.dimension.id, [...context.worldgen().noiseSettings.keys()]);
                 }
@@ -177,10 +182,19 @@ const buildManager = (
         });
     }
 
-    return { manager, logged, setWorld, builds, noiseSettingsSeen };
+    return { manager, logged, setWorld, builds, noiseSettingsSeen, workersSeen };
 };
 
 describe('WorldManager', () => {
+    it('forwards configured chunk workers to generator factories', async () => {
+        const { manager, workersSeen } = buildManager('main', { main: entryOf() }, testContent(), 2);
+        await manager.enable();
+
+        expect(workersSeen.get(`${TEST_KIND} ${Dimensions.Overworld.id}`)).toBe(2);
+
+        await manager.disable();
+    });
+
     it('loads every `worlds` entry as a level, the `level-name` one as the default', async () => {
         const { manager } = buildManager('main', { other: entryOf(), main: entryOf() });
         await manager.enable();

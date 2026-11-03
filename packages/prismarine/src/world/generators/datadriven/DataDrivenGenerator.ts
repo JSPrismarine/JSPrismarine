@@ -243,6 +243,8 @@ export interface StagePoolOptions {
      * here.
      */
     readonly javaTemplates?: boolean;
+    /** Optional benchmark buffer with one heap-used byte count per worker after its last task. */
+    readonly workerHeapStats?: SharedArrayBuffer;
     /** Told once when the worker module cannot be loaded and stages fall back to this thread. */
     readonly onUnavailable?: (reason: string) => void;
 }
@@ -813,6 +815,7 @@ export class DataDrivenGenerator implements Generator {
         const where = {
             pipeline: stages.pipeline,
             workers: stages.workers,
+            ...(stages.workerHeapStats === undefined ? {} : { workerHeapStats: stages.workerHeapStats }),
             ...(stages.worker === undefined ? {} : { worker: stages.worker })
         };
         const reason = GenerationPool.unavailable(where);
