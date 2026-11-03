@@ -61,7 +61,7 @@ on:
                 default: false
 
 concurrency:
-    group: client-e2e-${{ github.event.pull_request.number || github.ref }}
+    group: client-e2e-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
     cancel-in-progress: true
 
 permissions:
