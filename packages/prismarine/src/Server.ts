@@ -43,6 +43,7 @@ import type { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
+import { finishStartupPhase, startStartupPhase } from './profiling/startupPhase';
 import ChunkScheduler from './world/ChunkScheduler';
 import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
 import { DimensionTravel } from './world/portal/DimensionTravel';
@@ -276,15 +277,21 @@ export default class Server extends EventEmitter {
         // Output needs only stdout, so attach it before anything logs.
         this.logger.setConsole(this.console);
         await this.logger.enable();
+        const contentBuildStartedAt = startStartupPhase();
         this.enableContent();
+        finishStartupPhase('content-build', contentBuildStartedAt);
         // Built before a player arrives, so the report of what the content
         // build invented reads as a startup line and a build that cannot
         // produce payloads says so here rather than on the first join.
         joinContentPayloads(this.content, this.logger);
         await this.packetHandlerRegistry.enable();
         await this.kernel.start();
+        const commandBuildStartedAt = startStartupPhase();
         await this.commandManager.enable();
+        finishStartupPhase('command-build', commandBuildStartedAt);
+        const worldManagerEnableStartedAt = startStartupPhase();
         await this.worldManager.enable();
+        finishStartupPhase('world-manager-enable', worldManagerEnableStartedAt);
 
         // `#minecraft:load` runs once the packs are loaded and the worlds are
         // up, because its functions are allowed to touch a world.

@@ -71,3 +71,15 @@ server users do not need to install an npm package to access the schemas.
 `Block.getJavaTags()` and `Item.getJavaTags()` expose Java datapack tag membership after the
 content stack loads. `hasJavaTag(name)` checks one membership. Their `getTags()` and `hasTag(name)`
 methods continue to expose Bedrock tags.
+
+## Startup benchmark
+
+`bench:startup` compares source and built server startup with Node's compile cache disabled, cold,
+and warm. Each run starts from a fresh temporary `JSP_DIR` with the same flat-world configuration
+and seed. The report includes time and main-thread CPU until the server listens, heap use, and the
+content-build, command-build, and world-manager-enable phases.
+
+```sh
+pnpm --filter @jsprismarine/prismarine run bench:startup
+pnpm --filter @jsprismarine/prismarine run bench:trends -- --scenarios startup --write /tmp/startup-baseline.json
+```

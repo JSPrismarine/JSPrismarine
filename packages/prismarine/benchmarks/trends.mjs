@@ -41,6 +41,10 @@ const scenarios = {
     'breeding-navigation': {
         description: 'many-pair breeding route replanning',
         args: ['benchmarks/run.mjs', 'benchmarks/breedingNavigation.bench.ts', '100', '60', '7']
+    },
+    startup: {
+        description: 'server startup by runtime and compile-cache state',
+        args: ['--import', 'tsx', 'benchmarks/compileCache.ts', '--startup-only', '3']
     }
 };
 
@@ -125,8 +129,14 @@ const collectMetrics = (value, path = '', metrics = { digests: {}, p50s: {} }) =
     if (value === null || typeof value !== 'object') return metrics;
     for (const [key, member] of Object.entries(value)) {
         const memberPath = path === '' ? key : `${path}.${key}`;
-        if (key === 'outputDigest' && typeof member === 'string') metrics.digests[path] = member;
-        if (key === 'distributionMs' && member !== null && typeof member === 'object') {
+        if ((key === 'outputDigest' || key === 'workloadDigest') && typeof member === 'string') {
+            metrics.digests[path] = member;
+        }
+        if (
+            (key === 'distributionMs' || key.endsWith('DistributionMs')) &&
+            member !== null &&
+            typeof member === 'object'
+        ) {
             if (typeof member.p50 === 'number') metrics.p50s[memberPath] = member.p50;
         }
         collectMetrics(member, memberPath, metrics);

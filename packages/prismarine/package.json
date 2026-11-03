@@ -48,6 +48,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "bench:compile-cache": "node --import tsx benchmarks/compileCache.ts",
+        "bench:startup": "node --import tsx benchmarks/compileCache.ts --startup-only",
         "bench:chunks": "node --import tsx benchmarks/chunkGeneration.ts",
         "bench:commands": "node benchmarks/run.mjs benchmarks/commandTree.bench.ts",
         "bench:ticker": "node benchmarks/run.mjs benchmarks/tickerCatchup.bench.ts",

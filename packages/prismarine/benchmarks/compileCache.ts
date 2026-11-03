@@ -1,9 +1,9 @@
 /**
- * Evaluates Node's on-disk module compile cache against both server entry paths.
+ * Measures startup time, phase timings, and Node's module compile cache for both server entry paths.
  *
- * Run `pnpm --filter @jsprismarine/prismarine run bench:compile-cache`. The server uses a
- * temporary flat world and preload radius zero, so this measures startup without requiring
- * Java world-generation data or changing a real server directory.
+ * Run `bench:startup` for startup timings or `bench:compile-cache` to include worker smokes. Each
+ * run uses a fresh temporary flat world with preload radius zero, so no real server directory or
+ * Java world-generation data is needed.
  */
 import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
@@ -33,6 +33,12 @@ interface StartupMeasurement {
     readonly heapUsedBytes: number;
     readonly workerStarts: number;
     readonly firstWorkerStartMs?: number;
+    readonly startupPhases: readonly StartupPhaseMeasurement[];
+}
+
+interface StartupPhaseMeasurement {
+    readonly phase: 'content-build' | 'command-build' | 'world-manager-enable';
+    readonly durationMs: number;
 }
 
 interface StartupRun extends StartupMeasurement {
@@ -55,8 +61,6 @@ const workerSmokeEntry = fileURLToPath(new URL('./compileCacheWorker.ts', import
 const probe = fileURLToPath(new URL('./compileCacheProbe.mjs', import.meta.url));
 const STARTUP_TIMEOUT_MS = 180_000;
 const args = process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2);
-const runsPerCase = Number.parseInt(args[0] ?? '3', 10);
-if (!Number.isSafeInteger(runsPerCase) || runsPerCase < 1) throw new RangeError('Run count must be a positive integer');
 
 const buildSkipped = process.env.JSP_BENCH_SKIP_BUILD === '1';
 if (!buildSkipped || !existsSync(serverBuilt)) {
@@ -67,11 +71,20 @@ if (!buildSkipped || !existsSync(serverBuilt)) {
     if (built.status !== 0) throw new Error('Could not build @jsprismarine/server and its dependencies.');
 }
 
+const startupOnly = args.includes('--startup-only');
+const runArguments = args.filter((argument) => argument !== '--startup-only' && argument !== '--');
+if (runArguments.some((argument) => !/^\d+$/u.test(argument))) {
+    throw new Error(`Unknown benchmark argument: ${runArguments.find((argument) => !/^\d+$/u.test(argument))}`);
+}
+const runsPerCase = Number.parseInt(runArguments[0] ?? '3', 10);
+if (!Number.isSafeInteger(runsPerCase) || runsPerCase < 1) throw new RangeError('Run count must be a positive integer');
+
 const root = join(tmpdir(), `jsprismarine-compile-cache-${process.pid}-${Date.now()}`);
-const serverData = join(root, 'server');
-const cacheRoot = join(serverData, 'compile-cache');
+const serverTemplate = join(root, 'server-template');
+const runDataRoot = join(root, 'runs');
+const cacheRoot = join(root, 'compile-cache');
 const consumerRoot = join(root, 'consumer');
-mkdirSync(serverData, { recursive: true });
+mkdirSync(serverTemplate, { recursive: true });
 mkdirSync(cacheRoot, { recursive: true });
 accessSync(cacheRoot, constants.R_OK | constants.W_OK);
 
@@ -155,8 +168,25 @@ const config = {
     'server-ip': '127.0.0.1',
     worlds: { world: { preset: 'minecraft:flat', provider: 'LevelDB', seed: '2831' } }
 };
-writeFileSync(join(serverData, 'config.json'), `${JSON.stringify(config, null, 2)}\n`);
+writeFileSync(join(serverTemplate, 'config.json'), `${JSON.stringify(config, null, 2)}\n`);
 const workloadDigest = createHash('sha256').update(JSON.stringify(config)).digest('hex');
+
+let runIndex = 0;
+
+const isStartupPhaseMeasurement = (value: unknown): value is StartupPhaseMeasurement => {
+    if (typeof value !== 'object' || value === null || !('phase' in value) || !('durationMs' in value)) return false;
+    return (
+        (value.phase === 'content-build' ||
+            value.phase === 'command-build' ||
+            value.phase === 'world-manager-enable') &&
+        typeof value.durationMs === 'number'
+    );
+};
+
+const hasEveryStartupPhase = (phases: readonly StartupPhaseMeasurement[]): boolean =>
+    (['content-build', 'command-build', 'world-manager-enable'] as const).every((phase) =>
+        phases.some((measurement) => measurement.phase === phase)
+    );
 
 /** Whether an IPC message is the startup measurement sent by the preload probe. */
 const isStartupMeasurement = (value: unknown): value is StartupMeasurement => {
@@ -166,10 +196,15 @@ const isStartupMeasurement = (value: unknown): value is StartupMeasurement => {
         !('timeToListenMs' in value) ||
         !('mainThreadCpuUs' in value) ||
         !('heapUsedBytes' in value) ||
-        !('workerStarts' in value)
+        !('workerStarts' in value) ||
+        !('startupPhases' in value)
     ) {
         return false;
     }
+
+    const phases: unknown = value.startupPhases;
+    if (!Array.isArray(phases) || !phases.every(isStartupPhaseMeasurement) || !hasEveryStartupPhase(phases))
+        return false;
 
     return (
         value.type === 'startup-measurement' &&
@@ -181,7 +216,8 @@ const isStartupMeasurement = (value: unknown): value is StartupMeasurement => {
         'system' in value.mainThreadCpuUs &&
         typeof value.mainThreadCpuUs.system === 'number' &&
         typeof value.heapUsedBytes === 'number' &&
-        typeof value.workerStarts === 'number'
+        typeof value.workerStarts === 'number' &&
+        Array.isArray(value.startupPhases)
     );
 };
 
@@ -216,6 +252,8 @@ const runServer = async (
     const execArgv = runtime === 'tsx' ? ['--import', 'tsx', '--import', probe] : ['--import', probe];
     const entry = runtime === 'tsx' ? serverSource : builtServerEntry;
     const cwd = runtime === 'tsx' ? serverRoot : builtServerRoot;
+    const serverData = join(runDataRoot, `${runtime}-${cache}-${runIndex++}`);
+    cpSync(serverTemplate, serverData, { recursive: true });
     const env = { ...process.env, JSP_DIR: serverData, JSP_NO_TUI: '1', CI: '1' };
     if (compileCache === undefined) delete env.NODE_COMPILE_CACHE;
     else env.NODE_COMPILE_CACHE = compileCache;
@@ -353,6 +391,19 @@ const runWorkerSmoke = async (compileCache: string, cpuProfileDir: string): Prom
 
 const results: StartupRun[] = [];
 const workerSmokes: WorkerSmokeResult[] = [];
+
+const percentile = (values: readonly number[], fraction: number): number => {
+    const sorted = [...values].sort((left, right) => left - right);
+    return sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)] ?? 0;
+};
+
+const distribution = (values: readonly number[]) => ({
+    min: Math.min(...values),
+    p50: percentile(values, 0.5),
+    p95: percentile(values, 0.95),
+    max: Math.max(...values)
+});
+
 try {
     for (const runtime of ['tsx', 'built'] as const) {
         const runtimeCache = join(cacheRoot, runtime);
@@ -365,29 +416,72 @@ try {
             }
         }
     }
-    const cpuProfileDir = join(root, 'cpu-profiles');
-    mkdirSync(cpuProfileDir, { recursive: true });
-    const workerCache = join(cacheRoot, 'tsx');
-    for (let attempt = 0; attempt < 2; attempt++) {
-        const smoke = await runWorkerSmoke(workerCache, cpuProfileDir);
-        workerSmokes.push(smoke);
-        if (smoke.status !== 'passed') break;
+    if (!startupOnly) {
+        const cpuProfileDir = join(root, 'cpu-profiles');
+        mkdirSync(cpuProfileDir, { recursive: true });
+        const workerCache = join(cacheRoot, 'tsx');
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const smoke = await runWorkerSmoke(workerCache, cpuProfileDir);
+            workerSmokes.push(smoke);
+            if (smoke.status !== 'passed') break;
+        }
     }
+
+    const trendResults = (['tsx', 'built'] as const).flatMap((runtime) =>
+        (['disabled', 'cold', 'warm'] as const).map((cache) => {
+            const runs = results.filter((run) => run.runtime === runtime && run.cache === cache);
+            const phaseNames = ['content-build', 'command-build', 'world-manager-enable'] as const;
+            const phaseMsP50 = Object.fromEntries(
+                phaseNames.map((phase) => [
+                    phase,
+                    percentile(
+                        runs.map((run) => run.startupPhases.find((item) => item.phase === phase)?.durationMs ?? 0),
+                        0.5
+                    )
+                ])
+            );
+            return {
+                benchmark: `server-startup-${runtime}-${cache}`,
+                workloadDigest,
+                distributionMs: distribution(runs.map((run) => run.timeToListenMs)),
+                contentBuildDistributionMs: { p50: phaseMsP50['content-build'] },
+                commandBuildDistributionMs: { p50: phaseMsP50['command-build'] },
+                worldManagerEnableDistributionMs: { p50: phaseMsP50['world-manager-enable'] },
+                measurements: {
+                    mainThreadCpuUsP50: percentile(
+                        runs.map((run) => run.mainThreadCpuUs.user + run.mainThreadCpuUs.system),
+                        0.5
+                    ),
+                    heapUsedBytesP50: percentile(
+                        runs.map((run) => run.heapUsedBytes),
+                        0.5
+                    ),
+                    phaseMsP50,
+                    cacheSizeBytesP50: percentile(
+                        runs.map((run) => run.cacheSizeBytes),
+                        0.5
+                    )
+                }
+            };
+        })
+    );
 
     process.stdout.write(
         `${JSON.stringify({
-            benchmark: 'compile-cache-startup',
+            benchmark: startupOnly ? 'server-startup' : 'compile-cache-startup',
             node: process.version,
             platform: `${process.platform}-${process.arch}`,
             workloadDigest,
             runsPerCase,
-            results,
+            results: startupOnly ? trendResults : results,
+            trendResults,
+            runs: results,
             cpuProfilePlusTsxWorkerSmokes: workerSmokes,
             cacheDirectoryWritable: true,
             cacheDirectorySizeBytes: directoryBytes(cacheRoot),
             cacheRemovedWithoutRemovingServerData: (() => {
                 rmSync(cacheRoot, { recursive: true, force: true });
-                return !existsSync(cacheRoot) && existsSync(join(serverData, 'config.json'));
+                return !existsSync(cacheRoot) && existsSync(join(serverTemplate, 'config.json'));
             })()
         })}\n`
     );
