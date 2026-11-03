@@ -1,7 +1,12 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { startTestModule } from '@jsprismarine/kernel/testing';
 import type { TickEvent } from '../events/Events';
+import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import { ServerTicker, tickerModule } from './ticker';
 import type { TickerServer } from './ticker';
 import { tickerToken } from './tokens';
@@ -115,6 +120,44 @@ describe('modules/ticker', () => {
             expect(harness.warnings).toEqual([]);
         } finally {
             await handle.stop();
+        }
+    });
+
+    it('closes every tick profiling span when profiling is enabled', async () => {
+        const directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-ticker-profile-'));
+        vi.stubEnv('JSP_DIR', directory);
+        const harness = buildHarness({
+            getWorlds: () => [{ getName: () => 'overworld', update: async () => {} }]
+        });
+        const profiler = new ServerProfiler();
+        attachProfiler(harness.deps, profiler);
+        const handle = await startTestModule(tickerModule(harness.ticker));
+
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+            const file = await profiler.save();
+            if (file === undefined) throw new Error('ticker wrote no profile spans');
+            // The trace is parsed JSON written by ServerProfiler.save, so its shape is a boundary.
+            const trace = JSON.parse(readFileSync(file, 'utf8')) as {
+                traceEvents: Array<{ dur?: number; name?: string; ph?: string }>;
+            };
+            const spans = trace.traceEvents.filter((event) => event.ph === 'X');
+            const names = spans.map((span) => span.name);
+
+            expect(names).toEqual(
+                expect.arrayContaining([
+                    'Server.tick',
+                    'Server.tickHandlers',
+                    'World.update:overworld',
+                    'Server.tickFunctions',
+                    'Server.chunkScheduler'
+                ])
+            );
+            expect(spans.every((span) => span.dur !== undefined && span.dur >= 0)).toBe(true);
+        } finally {
+            await handle.stop();
+            vi.unstubAllEnvs();
+            rmSync(directory, { recursive: true, force: true });
         }
     });
 

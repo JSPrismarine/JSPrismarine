@@ -1,3 +1,7 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +12,7 @@ import Player from '../Player';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { DimensionTravel, PortalBlockRef } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';
+import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { Dimensions } from './Dimension';
 import EntityGrid from './EntityGrid';
 import { Position } from './Position';
@@ -15,6 +20,7 @@ import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { fakeLevel } from '../testing/level';
+import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import type GameRuleManager from './GameRuleManager';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
@@ -76,12 +82,22 @@ const worldTicking = ({
         flushMovement: record('flushMovement')
     };
 
+    const server = {
+        getConfig: () => ({ getEntityTrackingInterval: () => trackingInterval }),
+        getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} }),
+        // Inert: this file is about the order of the phases, not about what a mob does
+        // inside one, and the data runtime's own tick is covered by `live.test.ts`.
+        getEntityRuntime: () => inertEntityRuntime(),
+        getDimensionTravel: () => travel
+    };
+
     // Built on the real prototype, so `update` is the code under test rather than more of the
     // stand-in. Only what would reach the disk, a chunk or the network is replaced.
     const world: World = Object.assign(Object.create(World.prototype), {
         entities: new Map(),
         players: new Map(),
         chunks: new Map(),
+        name: 'tick-test-world',
         // The real one: it is ordinary in-memory bookkeeping, and a tick rebuilds it. Only what
         // would reach the disk, a chunk or the network is stood in for.
         entityGrid: new EntityGrid(),
@@ -100,19 +116,12 @@ const worldTicking = ({
         runBlockUpdates: async () => void calls.push('blockUpdates'),
         systems: { tick: () => void calls.push('systems') },
         save: async () => {},
-        server: {
-            getConfig: () => ({ getEntityTrackingInterval: () => trackingInterval }),
-            getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} }),
-            // Inert: this file is about the order of the phases, not about what a mob does
-            // inside one, and the data runtime's own tick is covered by `live.test.ts`.
-            getEntityRuntime: () => inertEntityRuntime(),
-            getDimensionTravel: () => travel
-        }
+        server
     });
 
     world.attachChangeSink(sink);
 
-    return { world, calls };
+    return { world, calls, server };
 };
 
 const dirtyEntity = (world: World) => {
@@ -205,6 +214,101 @@ describe('world', () => {
             // This pins start order only; completion remains concurrent as before.
             expect(started).toEqual(['first', 'second']);
             expect(maximumActive).toBe(2);
+        });
+
+        it('closes every world profiling span when profiling is enabled', async () => {
+            const directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-world-profile-'));
+            vi.stubEnv('JSP_DIR', directory);
+            const { world, server } = worldTicking();
+            const profiler = new ServerProfiler();
+            attachProfiler(server, profiler);
+
+            try {
+                await world.update(1);
+                const file = await profiler.save();
+                if (file === undefined) throw new Error('world update wrote no profile spans');
+                // The trace is parsed JSON written by ServerProfiler.save, so its shape is a boundary.
+                const trace = JSON.parse(readFileSync(file, 'utf8')) as {
+                    traceEvents: Array<{ dur?: number; name?: string; ph?: string }>;
+                };
+                const spans = trace.traceEvents.filter((event) => event.ph === 'X');
+                const names = spans.map((span) => span.name);
+
+                expect(names).toEqual(
+                    expect.arrayContaining([
+                        'World.autosave:tick-test-world',
+                        'World.blockUpdates:tick-test-world',
+                        'World.systems:tick-test-world',
+                        'World.entityGrid:tick-test-world',
+                        'World.portalContacts:tick-test-world',
+                        'World.dragonFight:tick-test-world',
+                        'World.entityUpdates:tick-test-world',
+                        'World.dataEntities:tick-test-world',
+                        'World.entityAttributes:tick-test-world',
+                        'World.entityTracking:tick-test-world',
+                        'World.blockChanges:tick-test-world',
+                        'World.blockEntities:tick-test-world',
+                        'World.movement:tick-test-world',
+                        'World.time:tick-test-world',
+                        'World.unloadChunks:tick-test-world'
+                    ])
+                );
+                expect(spans.every((span) => span.dur !== undefined && span.dur >= 0)).toBe(true);
+            } finally {
+                vi.unstubAllEnvs();
+                rmSync(directory, { recursive: true, force: true });
+            }
+        });
+
+        it('runs synchronous physics updates in due order without introducing async work between them', async () => {
+            const { world } = worldTicking();
+            const blockUpdates = new BlockUpdateScheduler();
+            const updated: number[] = [];
+            for (let x = 0; x < 3; x++) blockUpdates.schedule(x, 64, 0, 0);
+            Object.assign(world, {
+                blockUpdates,
+                physics: { update: (x: number) => void updated.push(x) }
+            });
+            // Bypass the fixture's phase logger so this exercises the real scheduled updates.
+            Reflect.deleteProperty(world, 'runBlockUpdates');
+
+            await world.update(1);
+
+            expect(updated).toEqual([0, 1, 2]);
+        });
+
+        it('waits for each asynchronous physics update before starting the next one', async () => {
+            const { world } = worldTicking();
+            const blockUpdates = new BlockUpdateScheduler();
+            const updated: string[] = [];
+            let releaseFirst!: () => void;
+            const firstUpdate = new Promise<void>((resolve) => {
+                releaseFirst = resolve;
+            });
+            for (let x = 0; x < 2; x++) blockUpdates.schedule(x, 64, 0, 0);
+            Object.assign(world, {
+                blockUpdates,
+                physics: {
+                    update: (x: number) => {
+                        updated.push(`start:${x}`);
+                        if (x === 0) {
+                            return firstUpdate.then(() => {
+                                updated.push('finish:0');
+                            });
+                        }
+                        updated.push(`finish:${x}`);
+                    }
+                }
+            });
+            // Bypass the fixture's phase logger so this exercises the real scheduled updates.
+            Reflect.deleteProperty(world, 'runBlockUpdates');
+
+            const tick = world.update(1);
+            expect(updated).toEqual(['start:0']);
+            releaseFirst();
+            await tick;
+
+            expect(updated).toEqual(['start:0', 'finish:0', 'start:1', 'finish:1']);
         });
 
         it("sends the tick's block changes before the block entities standing in them", async () => {

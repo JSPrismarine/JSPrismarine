@@ -133,6 +133,9 @@ describe('setStates', () => {
 describe('identifiers', () => {
     it('splits and rejoins a namespaced identifier', () => {
         expect(bareName('minecraft:oak_door')).toBe('oak_door');
+        expect(bareName('oak_door')).toBe('oak_door');
+        expect(bareName(':oak_door')).toBe('oak_door');
+        expect(bareName('plugin:oak:door')).toBe('oak:door');
         expect(sibling('plugin:oak_door', 'oak_trapdoor')).toBe('plugin:oak_trapdoor');
         expect(sibling('oak_door', 'oak_trapdoor')).toBe('minecraft:oak_trapdoor');
     });

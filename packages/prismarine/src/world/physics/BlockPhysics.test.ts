@@ -210,6 +210,23 @@ describe('block support', () => {
         expect(world.nameAt(2, GROUND + 1, 2)).toBe('minecraft:dandelion');
     });
 
+    it('returns synchronously when a supported plant has nothing to update', () => {
+        world.place(2, GROUND + 1, 2, 'minecraft:dandelion');
+
+        expect(physics.update(2, GROUND + 1, 2, 1)).toBeUndefined();
+    });
+
+    it('returns the async completion when an unsupported plant must be removed', async () => {
+        world.place(2, GROUND, 2, 'minecraft:air');
+        world.place(2, GROUND + 1, 2, 'minecraft:dandelion');
+
+        const update = physics.update(2, GROUND + 1, 2, 1);
+
+        expect(update).toBeInstanceOf(Promise);
+        await update;
+        expect(world.nameAt(2, GROUND + 1, 2)).toBe('minecraft:air');
+    });
+
     it('takes a whole row of plants when the ground under them goes', async () => {
         for (let x = 1; x <= 5; x++) world.place(x, GROUND + 1, 3, 'minecraft:short_grass');
         for (let x = 1; x <= 5; x++) await world.setBlockByName(x, GROUND, 3, 'minecraft:air');

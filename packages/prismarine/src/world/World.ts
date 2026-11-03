@@ -64,7 +64,7 @@ import { sectionTakesRandomTicks } from './randomTickSections';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
-import { startProfileSpan } from '../profiling/ServerProfiler';
+import { profileSpanStarter } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
 import { DragonFight } from './end/DragonFight';
 import type { DragonFightState } from './WorldPersistence';
@@ -826,6 +826,8 @@ export class World implements Service {
         // update, a mob looking at the ground ahead of it - loads a chunk.
         if (this.closing) return;
 
+        const startProfile = profileSpanStarter(this.server);
+
         // TODO: tick chunks
 
         // Auto save every 2 minutes. The interval has to be a remainder rather than an
@@ -834,31 +836,31 @@ export class World implements Service {
         // of the process' life.
         //
         // Started, not awaited - see {@link World.saving} for why the tick must not wait.
-        const endAutoSaveProfile = startProfileSpan(this.server, `World.autosave:${this.name}`);
+        const endAutoSaveProfile = startProfile?.(`World.autosave:${this.name}`);
         try {
             if (this.getTicks() % World.AUTO_SAVE_INTERVAL_TICKS === 0) this.beginAutoSave();
         } finally {
-            endAutoSaveProfile();
+            endAutoSaveProfile?.();
         }
 
         // Before the entities, so a mob walks on the world as it is this tick rather than as it was
         // before the sand under it fell away.
-        const endBlockUpdatesProfile = startProfileSpan(this.server, `World.blockUpdates:${this.name}`);
+        const endBlockUpdatesProfile = startProfile?.(`World.blockUpdates:${this.name}`);
         try {
             await this.runBlockUpdates();
         } finally {
-            endBlockUpdatesProfile();
+            endBlockUpdatesProfile?.();
         }
 
         // Java's order: the two scheduled tick lists, then the chunk tick that draws the random
         // positions, then the light the writes above queued. Budgeted, so one tick cannot stall
         // on a light flood or a backlog of fluid ticks. The weather cycle ran before this, on
         // the level, as `ServerLevel.tick` runs `advanceWeatherCycle` before its tick lists.
-        const endSystemsProfile = startProfileSpan(this.server, `World.systems:${this.name}`);
+        const endSystemsProfile = startProfile?.(`World.systems:${this.name}`);
         try {
             this.systems.tick(this.getTicks());
         } finally {
-            endSystemsProfile();
+            endSystemsProfile?.();
         }
 
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
@@ -873,11 +875,11 @@ export class World implements Service {
         // to be answered from where everything was at the top of the tick. Rebuilding it inside
         // the loop would let a mob be pushed by a neighbor that had already moved and not by one
         // that had not, which makes the shove depend on map iteration order.
-        const endEntityGridProfile = startProfileSpan(this.server, `World.entityGrid:${this.name}`);
+        const endEntityGridProfile = startProfile?.(`World.entityGrid:${this.name}`);
         try {
             this.entityGrid.rebuild(entities);
         } finally {
-            endEntityGridProfile();
+            endEntityGridProfile?.();
         }
 
         // Claimed per tick, so an entity that arrived from a world the level ticked earlier
@@ -893,28 +895,28 @@ export class World implements Service {
         // Before the updates, so the contact an entity's own update advances this tick already
         // knows whether it stood in a portal, as Java's `checkInsideBlocks` runs inside `tick`
         // before `handlePortal`.
-        const endPortalContactsProfile = startProfileSpan(this.server, `World.portalContacts:${this.name}`);
+        const endPortalContactsProfile = startProfile?.(`World.portalContacts:${this.name}`);
         try {
             await this.touchPortals(tickingEntities);
         } finally {
-            endPortalContactsProfile();
+            endPortalContactsProfile?.();
         }
 
         // Before the entity updates, as Java's `ServerLevel.tick` runs the fight before the
         // entities, so a dragon the fight spawns this tick stands in the world its first update
         // reads. A dimension without a fight skips this on one flag read.
-        const endDragonFightProfile = startProfileSpan(this.server, `World.dragonFight:${this.name}`);
+        const endDragonFightProfile = startProfile?.(`World.dragonFight:${this.name}`);
         try {
             await this.getDragonFight()?.tick();
         } finally {
-            endDragonFightProfile();
+            endDragonFightProfile?.();
         }
 
-        const endEntityUpdatesProfile = startProfileSpan(this.server, `World.entityUpdates:${this.name}`);
+        const endEntityUpdatesProfile = startProfile?.(`World.entityUpdates:${this.name}`);
         try {
             await Promise.all(tickingEntities.map((entity) => entity.update(tick)));
         } finally {
-            endEntityUpdatesProfile();
+            endEntityUpdatesProfile?.();
         }
 
         // The data-driven entities, after the written ones: a data entity's body is a
@@ -922,75 +924,75 @@ export class World implements Service {
         // half of it that the class hierarchy owns and this runs the half the components do.
         // The spawn and despawn cycle runs inside this tick, with Bedrock's caps and cadences
         // and the sixty vanilla spawn rules, through `@jsprismarine/spawning`.
-        const endDataEntitiesProfile = startProfileSpan(this.server, `World.dataEntities:${this.name}`);
+        const endDataEntitiesProfile = startProfile?.(`World.dataEntities:${this.name}`);
         try {
             await this.dataEntities().tick(tick, ({ x, z }) => isPositionTicking(x, z));
         } finally {
-            endDataEntitiesProfile();
+            endDataEntitiesProfile?.();
         }
 
         // Straight after the updates that changed them, and before anything else can add a body
         // whose attributes have not been touched yet. Read again rather than reused: the spawn
         // cycle above has put bodies in the world since the list was taken.
-        const endAttributesProfile = startProfileSpan(this.server, `World.entityAttributes:${this.name}`);
+        const endAttributesProfile = startProfile?.(`World.entityAttributes:${this.name}`);
         try {
             await this.flushEntityAttributes(this.getEntities());
         } finally {
-            endAttributesProfile();
+            endAttributesProfile?.();
         }
 
         // After everything has moved but before the movement goes out, so an entity that came
         // into range this tick is spawned before the first packet that says it moved.
-        const endTrackingProfile = startProfileSpan(this.server, `World.entityTracking:${this.name}`);
+        const endTrackingProfile = startProfile?.(`World.entityTracking:${this.name}`);
         try {
             await this.updateTracking(tick);
         } finally {
-            endTrackingProfile();
+            endTrackingProfile?.();
         }
 
         // After physics and after the entities, both of which change blocks, so a tick's block
         // changes leave as one batch per player rather than one packet each - see
         // `flushBlockChanges`. Before the movement, so a mob is not reported walking on ground the
         // client has not been told about yet.
-        const endBlockChangesProfile = startProfileSpan(this.server, `World.blockChanges:${this.name}`);
+        const endBlockChangesProfile = startProfile?.(`World.blockChanges:${this.name}`);
         try {
             await this.changes.flushBlockChanges();
         } finally {
-            endBlockChangesProfile();
+            endBlockChangesProfile?.();
         }
 
         // After the block changes, never before them. A client drops a block entity update for
         // a position it has no block entity at, and an `UpdateBlockPacket` landing afterwards
         // makes it rebuild the block entity from its own empty data - so a chest placed and
         // filled in one tick has to be announced as a block first.
-        const endBlockEntitiesProfile = startProfileSpan(this.server, `World.blockEntities:${this.name}`);
+        const endBlockEntitiesProfile = startProfile?.(`World.blockEntities:${this.name}`);
         try {
             await this.changes.flushBlockEntities();
         } finally {
-            endBlockEntitiesProfile();
+            endBlockEntitiesProfile?.();
         }
 
         // After every entity has moved, so a tick's movement leaves as one batch per player rather
         // than one per mob - see `flushMovement`.
-        const endMovementProfile = startProfileSpan(this.server, `World.movement:${this.name}`);
+        const endMovementProfile = startProfile?.(`World.movement:${this.name}`);
         try {
             await this.flushMovement();
         } finally {
-            endMovementProfile();
+            endMovementProfile?.();
         }
 
-        const endTimeProfile = startProfileSpan(this.server, `World.time:${this.name}`);
+        const endTimeProfile = startProfile?.(`World.time:${this.name}`);
         try {
             await this.sendTime();
         } finally {
-            endTimeProfile();
+            endTimeProfile?.();
         }
 
-        const endUnloadProfile = startProfileSpan(this.server, `World.unloadChunks:${this.name}`);
+        const endUnloadProfile = startProfile?.(`World.unloadChunks:${this.name}`);
         try {
             await this.unloadDistantChunks();
         } finally {
-            endUnloadProfile();
+            endUnloadProfile?.();
         }
     }
 
@@ -2032,7 +2034,8 @@ export class World implements Service {
         // Idempotent, which matters more than it looks: physics re-examines positions constantly,
         // and a write that changed nothing would still cost a packet to every player and another
         // round of neighbor updates - so a settled pool of water would never stop working.
-        if (chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf) === runtimeId) return false;
+        const previousRuntimeId = chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf);
+        if (previousRuntimeId === runtimeId) return false;
 
         // Read before the write: the light engine's decrease wave needs what stood here.
         const previous = chunk.getBlock(x, y, z);
@@ -2041,7 +2044,11 @@ export class World implements Service {
         const state = chunk.getBlock(x, y, z);
         this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
         const next: SystemBlock = { name: state.name, states: state.properties };
-        this.systems.onBlockChanged({ x, y, z }, { name: previous.name, states: previous.properties }, next);
+        this.systems.onBlockChanged(
+            { x, y, z },
+            { name: previous.name, states: previous.properties, runtimeId: previousRuntimeId },
+            { ...next, runtimeId }
+        );
 
         this.changes.worldChanged({ kind: 'block-set', position: new Vector3(x, y, z), blockRuntimeId: runtimeId });
 
@@ -2270,7 +2277,10 @@ export class World implements Service {
         const due = this.blockUpdates.due(this.getTicks());
 
         for (const { x, y, z } of due) {
-            await this.physics.update(x, y, z, this.getTicks());
+            const update = this.physics.update(x, y, z, this.getTicks());
+            // Settled positions finish synchronously; state-changing updates still await here
+            // before the next position so block writes keep their Java tick order.
+            if (update !== undefined) await update;
         }
     }
 

@@ -8,11 +8,27 @@ import { Dimensions } from './Dimension';
 import type { SystemBlock, WorldSystemsAccess, WorldSystemsOptions, WorldSystemsView } from './WorldSystems';
 import { LIGHT_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
 
-const AIR: SystemBlock = { name: 'minecraft:air', states: {} };
-const STONE: SystemBlock = { name: 'minecraft:stone', states: {} };
-const GLOWSTONE: SystemBlock = { name: 'minecraft:glowstone', states: {} };
-const WHEAT: SystemBlock = { name: 'minecraft:wheat', states: { growth: 0 } };
-const GLASS: SystemBlock = { name: 'minecraft:glass', states: {} };
+const AIR: SystemBlock = { name: 'minecraft:air', states: {}, runtimeId: BlockRuntimeIds.getByName('minecraft:air') };
+const STONE: SystemBlock = {
+    name: 'minecraft:stone',
+    states: {},
+    runtimeId: BlockRuntimeIds.getByName('minecraft:stone')
+};
+const GLOWSTONE: SystemBlock = {
+    name: 'minecraft:glowstone',
+    states: {},
+    runtimeId: BlockRuntimeIds.getByName('minecraft:glowstone')
+};
+const WHEAT: SystemBlock = {
+    name: 'minecraft:wheat',
+    states: { growth: 0 },
+    runtimeId: BlockRuntimeIds.getByName('minecraft:wheat')
+};
+const GLASS: SystemBlock = {
+    name: 'minecraft:glass',
+    states: {},
+    runtimeId: BlockRuntimeIds.getByName('minecraft:glass')
+};
 
 const key = (x: number, y: number, z: number): string => `${x},${y},${z}`;
 

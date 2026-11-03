@@ -30,6 +30,8 @@ import type { ContentRedstoneUpdateHandlers } from './redstoneUpdates';
 export interface SystemBlock {
     readonly name: string;
     readonly states: Readonly<Record<string, string | number | boolean>>;
+    /** The palette id for block changes whose caller already read it from the chunk. */
+    readonly runtimeId?: number;
 }
 
 /**
@@ -206,11 +208,20 @@ export class WorldSystems {
      */
     public onBlockChanged(at: BlockPosition, previous: SystemBlock, next: SystemBlock): void {
         if (previous.name !== next.name) this.redstoneUpdateHandlers?.forgetPosition(at);
-        this.lighting.onBlockChanged(
-            at,
-            lightPropertiesOf(previous) ?? TRANSPARENT,
-            lightPropertiesOf(next) ?? TRANSPARENT
-        );
+        this.lighting.onBlockChanged(at, this.lightPropertiesFor(previous), this.lightPropertiesFor(next));
+    }
+
+    /** Resolves changed-block light once per runtime id, sharing the light scan's memo. */
+    private lightPropertiesFor(block: SystemBlock): BlockLightProperties {
+        const runtimeId = block.runtimeId;
+        if (runtimeId !== undefined) {
+            const known = this.lightByRuntimeId.get(runtimeId);
+            if (known !== undefined) return known;
+        }
+
+        const properties = lightPropertiesOf(block) ?? TRANSPARENT;
+        if (runtimeId !== undefined) this.lightByRuntimeId.set(runtimeId, properties);
+        return properties;
     }
 
     /**

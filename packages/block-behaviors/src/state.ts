@@ -104,8 +104,21 @@ export const replaceKeepingStates = (world: WorldActions, block: HookBlock, iden
     world.setBlock(block.position, identifier, block.states);
 };
 
+/** A cap keeps stale names from repeated content reloads from accumulating forever. */
+const BARE_NAME_CACHE_LIMIT = 16_384;
+const bareNames = new Map<string, string>();
+
 /** The identifier with its namespace removed, which the family rules match on. */
-export const bareName = (identifier: string): string => identifier.replace(/^[^:]*:/, '');
+export const bareName = (identifier: string): string => {
+    const cached = bareNames.get(identifier);
+    if (cached !== undefined) return cached;
+
+    const colon = identifier.indexOf(':');
+    const name = colon === -1 ? identifier : identifier.slice(colon + 1);
+    if (bareNames.size === BARE_NAME_CACHE_LIMIT) bareNames.clear();
+    bareNames.set(identifier, name);
+    return name;
+};
 
 /** The identifier's namespace, `minecraft` for a vanilla block. */
 export const namespaceOf = (identifier: string): string => {

@@ -30,18 +30,18 @@ export class BlockPhysics {
      * @param {number} y - World y.
      * @param {number} z - World z.
      * @param {number} now - The current tick, for scheduling anything that follows.
+     * @returns A promise when an update changes the world, or nothing for a synchronous no-op.
      */
-    public async update(x: number, y: number, z: number, now: number): Promise<void> {
+    public update(x: number, y: number, z: number, now: number): void | Promise<void> {
         const name = this.nameAt(x, y, z);
         if (name === null) return;
 
         if (needsSupport(name) && !this.isSupported(x, y, z)) {
-            await this.breakUnsupported(x, y, z, now);
-            return;
+            return this.breakUnsupported(x, y, z, now);
         }
 
         if (falls(name) && this.canFallInto(x, y - 1, z)) {
-            await this.fall(name, x, y, z, now);
+            return this.fall(name, x, y, z, now);
         }
     }
 

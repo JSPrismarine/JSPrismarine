@@ -38,16 +38,20 @@ type TraceEvent = CompleteEvent | CounterEvent | MetadataEvent;
 
 const MAX_TRACE_EVENTS = 200_000;
 const NOOP = (): void => {};
-const profilers = new WeakMap<object, ServerProfiler>();
+const profileSpanStarters = new WeakMap<object, (name: string) => () => void>();
 
 /** Connects an opt-in profiler to an owner whose code records spans. */
 export const attachProfiler = (owner: object, profiler: ServerProfiler): void => {
-    profilers.set(owner, profiler);
+    profileSpanStarters.set(owner, (name) => profiler.start(name));
 };
+
+/** Resolves an owner's profiler once so unprofiled callers can skip building span names. */
+export const profileSpanStarter = (owner: object): ((name: string) => () => void) | undefined =>
+    profileSpanStarters.get(owner);
 
 /** Starts a trace span when the owner has profiling enabled; otherwise returns a shared no-op. */
 export const startProfileSpan = (owner: object, name: string): (() => void) =>
-    profilers.get(owner)?.start(name) ?? NOOP;
+    profileSpanStarter(owner)?.(name) ?? NOOP;
 
 /** Records bounded Chrome Trace Event data for one opt-in server run. */
 export class ServerProfiler {

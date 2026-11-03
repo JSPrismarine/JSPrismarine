@@ -1,7 +1,7 @@
 import type { Module } from '@jsprismarine/kernel';
 
 import { TickEvent } from '../events/Events';
-import { startProfileSpan } from '../profiling/ServerProfiler';
+import { profileSpanStarter } from '../profiling/ServerProfiler';
 import { tickerToken } from './tokens';
 
 type LateTickProfile = {
@@ -255,6 +255,7 @@ export class ServerTicker implements Ticker, TickControl {
         const server = this.server;
         const logger = server.getLogger();
         const profileOwner = server.getProfileOwner();
+        const startProfile = profileSpanStarter(profileOwner);
 
         // Monotonic, not wall clock: `Date.now()` follows the system time, and an NTP
         // correction or a VM resume moves it under the scheduler. A forward step used to
@@ -290,7 +291,7 @@ export class ServerTicker implements Ticker, TickControl {
             let chunkSchedulerMs = 0;
             let slowestWorldName: string | null = null;
             let slowestWorldMs = 0;
-            const endTickProfile = startProfileSpan(profileOwner, 'Server.tick');
+            const endTickProfile = startProfile?.('Server.tick');
 
             // The next tick is scheduled from `finally`, and everything that can throw is
             // inside the `try`, because the timer for the next tick is installed only
@@ -310,12 +311,12 @@ export class ServerTicker implements Ticker, TickControl {
                 // land in the middle of some later tick, and its rejection could not
                 // reach the catch below - it surfaced as an unhandled rejection instead.
                 let phaseStartedAt = now();
-                const endTickHandlersProfile = startProfileSpan(profileOwner, 'Server.tickHandlers');
+                const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
                 try {
                     await server.emitTick(event);
                 } finally {
                     tickHandlersMs = now() - phaseStartedAt;
-                    endTickHandlersProfile();
+                    endTickHandlersProfile?.();
                 }
 
                 const ticksPerSecond = 1000 / MINECRAFT_TICK_TIME_MS;
@@ -330,11 +331,11 @@ export class ServerTicker implements Ticker, TickControl {
                     await Promise.all(
                         (advancing ? server.getWorlds() : []).map(async (world) => {
                             const worldStartedAt = now();
-                            const endWorldProfile = startProfileSpan(profileOwner, `World.update:${world.getName()}`);
+                            const endWorldProfile = startProfile?.(`World.update:${world.getName()}`);
                             try {
                                 await world.update(event.getTick());
                             } finally {
-                                endWorldProfile();
+                                endWorldProfile?.();
                                 const elapsedMs = now() - worldStartedAt;
                                 if (elapsedMs > slowestWorldMs) {
                                     slowestWorldMs = elapsedMs;
@@ -349,23 +350,23 @@ export class ServerTicker implements Ticker, TickControl {
 
                 // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
                 // worlds, as Java runs it, so a function sees the world the tick left.
-                const endFunctionsProfile = startProfileSpan(profileOwner, 'Server.tickFunctions');
+                const endFunctionsProfile = startProfile?.('Server.tickFunctions');
                 try {
                     if (advancing) await server.tickFunctions();
                 } finally {
-                    endFunctionsProfile();
+                    endFunctionsProfile?.();
                 }
 
                 // Whatever fits in this tick's slice; the rest waits for the next one.
                 phaseStartedAt = now();
-                const endChunkSchedulerProfile = startProfileSpan(profileOwner, 'Server.chunkScheduler');
+                const endChunkSchedulerProfile = startProfile?.('Server.chunkScheduler');
                 try {
                     const chunkScheduler = server.getChunkScheduler();
                     chunkScheduler.setBudget(server.getChunkSendBudgetMs());
                     await chunkScheduler.tick();
                 } finally {
                     chunkSchedulerMs = now() - phaseStartedAt;
-                    endChunkSchedulerProfile();
+                    endChunkSchedulerProfile?.();
                 }
 
                 if (
@@ -379,7 +380,7 @@ export class ServerTicker implements Ticker, TickControl {
             } catch (error: unknown) {
                 logger.error(error);
             } finally {
-                endTickProfile();
+                endTickProfile?.();
                 this.currentTick++;
                 const endTime = now();
                 const elapsedMs = endTime - tickStartedAt;

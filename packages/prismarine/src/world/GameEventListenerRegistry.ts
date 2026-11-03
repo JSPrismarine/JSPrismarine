@@ -150,6 +150,8 @@ export class GameEventListenerRegistry {
      * requires when the nearest listener consumes the source's experience.
      */
     public post(event: ContentGameEvent): void {
+        if (this.sections.size === 0) return;
+
         const radius = SPECIAL_EVENT_RADII.get(event.event) ?? DEFAULT_NOTIFICATION_RADIUS;
         const minSectionX = sectionCoordinate(event.at.x - radius);
         const maxSectionX = sectionCoordinate(event.at.x + radius);
