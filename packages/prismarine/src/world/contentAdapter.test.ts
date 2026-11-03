@@ -18,8 +18,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { definitionOf } from '../content/ContentOptions';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
-import type { WorldContentBiomes } from './contentAdapter';
+import type { WorldContentFacts } from './contentAdapter';
 import { worldContentGroups } from './contentAdapter';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionByName, dimensionTypeOf } from './Dimension';
 import { VANILLA_DIMENSION_TYPES } from './vanillaDimensionTypes';
@@ -33,23 +34,49 @@ import { fakeLevel } from '../testing/level';
 const DIMENSION = 'minecraft:overworld';
 
 /**
- * The biome definitions the groups read, which is all of the content they touch.
+ * What the blocks of a column answer about themselves, for the spawn floor.
+ *
+ * One dense id per identifier and one solidity per dense id, which is the shape the built
+ * content has; the test names the few blocks a column is made of rather than every state the
+ * palette holds.
+ */
+const blocksThatAre = (solidity: Readonly<Record<string, boolean>>): WorldContentFacts['blocks'] => {
+    const identifiers = Object.keys(solidity);
+    const solid = Uint8Array.from(identifiers, (identifier) => (solidity[identifier] === true ? 1 : 0));
+
+    return {
+        types: new Map(identifiers.map((identifier, runtimeId) => [identifier, { state: () => ({ runtimeId }) }])),
+        table: { solid }
+    };
+};
+
+/**
+ * The content the groups read, which is the biome registry, the block columns and the tags.
  *
  * The real `ServerContent` needs a whole pack stack to build, and
- * `content/world/serverSource.test.ts` covers these groups over one. Here the registry is what
- * matters, so the double is `WorldContentBiomes` rather than a build.
+ * `content/world/serverSource.test.ts` covers these groups over one. Here those three are what
+ * matter, so the double is `WorldContentFacts` rather than a build.
  */
-const contentWith = (tags: Readonly<Record<string, readonly string[]>>): WorldContentBiomes => ({
+const contentWith = (
+    tags: Readonly<Record<string, readonly string[]>>,
+    blocks: WorldContentFacts['blocks'] = blocksThatAre({}),
+    leaves: readonly string[] = []
+): WorldContentFacts => ({
     biomes: Object.entries(tags).map(([identifier, names]) => [
         identifier,
         definitionOf('biomes', identifier, {
             'minecraft:biome': { description: { identifier }, components: { 'minecraft:tags': { tags: names } } }
         })
-    ])
+    ]),
+    blocks,
+    tags: {
+        includes: (registry, tag, identifier) =>
+            registry === 'block' && tag === 'minecraft:leaves' && leaves.includes(identifier)
+    }
 });
 
 /** The world's groups over one in-memory chunk at the origin, on a real `World`. */
-const groupsOver = (chunk: Chunk, content: WorldContentBiomes) => {
+const groupsOver = (chunk: Chunk, content: WorldContentFacts) => {
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         dimension: Dimensions.Overworld
@@ -101,6 +128,73 @@ describe('the biome a chunk stores', () => {
         // The neighbouring column is still what the chunk was filled with.
         expect(blocks.biome({ x: 4, y: 64, z: 9 })).toBe('minecraft:plains');
         expect(blocks.biomeTags({ x: 4, y: 64, z: 9 })).toEqual([]);
+    });
+});
+
+/**
+ * `surfaceY` is the one position the surface spawn pass tries, and every passive spawn rule
+ * names the ground it belongs on. A column whose answer is the canopy or the grass standing in
+ * it therefore spawns nothing at all, which is most of an overworld.
+ */
+describe('the spawn floor of a column', () => {
+    const GRASS = 'minecraft:grass_block';
+    const LEAVES = 'minecraft:oak_leaves';
+    const TALL_GRASS = 'minecraft:tall_grass';
+    const WATER = 'minecraft:water';
+
+    const COLUMN = blocksThatAre({
+        'minecraft:air': false,
+        [GRASS]: true,
+        // Leaves do carry a collision box; they are left out of the floor by name.
+        [LEAVES]: true,
+        [TALL_GRASS]: false,
+        [WATER]: false
+    });
+
+    /** A world holding one chunk, with the named blocks written into the column at 3, 9. */
+    const columnOf = (column: ReadonlyArray<readonly [number, string]>) => {
+        const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+        for (const [y, identifier] of column) {
+            chunk.setBlockRuntimeId(3, y, 9, BlockRuntimeIds.getByName(identifier));
+        }
+
+        return groupsOver(chunk, contentWith({}, COLUMN, [LEAVES])).blocks.surfaceY(3, 9);
+    };
+
+    it('stands a mob on the ground under a canopy rather than on the canopy', () => {
+        expect(
+            columnOf([
+                [62, GRASS],
+                [63, GRASS],
+                [70, LEAVES],
+                [71, LEAVES]
+            ])
+        ).toBe(64);
+    });
+
+    it('stands a mob on the ground under the grass growing out of it', () => {
+        expect(
+            columnOf([
+                [63, GRASS],
+                [64, TALL_GRASS]
+            ])
+        ).toBe(64);
+    });
+
+    it('keeps the top of a water column, which is where a fish spawns', () => {
+        expect(
+            columnOf([
+                [50, GRASS],
+                [51, WATER],
+                [52, WATER],
+                [53, WATER]
+            ])
+        ).toBe(54);
+    });
+
+    it('has no answer for a column with nothing to stand on', () => {
+        expect(columnOf([[70, LEAVES]])).toBeUndefined();
+        expect(columnOf([])).toBeUndefined();
     });
 });
 

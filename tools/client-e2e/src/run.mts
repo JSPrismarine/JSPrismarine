@@ -27,6 +27,7 @@ import { furnace } from './scenarios/furnace.mts';
 import { recipeBook } from './scenarios/recipe-book.mts';
 import { movement } from './scenarios/movement.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
+import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
 import { placementOverlap } from './scenarios/placement-overlap.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { teleport } from './scenarios/teleport.mts';
@@ -57,7 +58,8 @@ const suites: ScenarioSuite[] = [
         ]
     },
     // Natural spawning needs its own content fixture so roaming cows cannot affect gameplay checks.
-    { name: 'natural-spawn', scenarios: [naturalSpawnPlacement] }
+    // The canopy one runs last: it roofs the world over, and nothing after it would see the sky.
+    { name: 'natural-spawn', scenarios: [naturalSpawnPlacement, naturalSpawnUnderCanopy] }
 ];
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
