@@ -1,16 +1,22 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { definePacket, gated } from './define';
+import { definePacket, gated, isGated } from './define';
+import type { FieldSpec } from './define';
 import { AnimateHand, animatePacket } from './definitions/animate';
 import * as t from './fieldTypes';
+import type { WireType } from './fieldTypes';
 import { layoutAt } from './WireLayout';
 import { since } from './wireGates';
+import { wireDefinitions } from './definitions';
 
 import type { AnimatePayload } from './definitions/animate';
 
 const PROTOCOL_2193 = 2193;
 const PROTOCOL_2225 = 2225;
+
+const writtenBytes = (stream: BinaryStream): Buffer =>
+    stream.getWriteIndex() === 0 ? Buffer.alloc(0) : stream.getWriteBuffer();
 
 describe('a wire layout', () => {
     const payload: AnimatePayload = {
@@ -94,5 +100,72 @@ describe('a wire layout', () => {
         layoutAt(spec, PROTOCOL_2193).encode(stream, value);
 
         expect(layoutAt(spec, PROTOCOL_2193).decode(new BinaryStream(stream.getBuffer()))).toEqual(value);
+    });
+
+    it('keeps compiled and walker layouts byte-identical for every registered definition', () => {
+        for (const protocolVersion of [PROTOCOL_2193, PROTOCOL_2225]) {
+            for (const [name, definition] of wireDefinitions) {
+                const actualWalker = layoutAt(definition, protocolVersion, false);
+                const actualCompiled = layoutAt(definition, protocolVersion, true);
+                expect(actualWalker.implementation, name + ' walker').toBe('walker');
+                expect(actualCompiled.implementation, name + ' compiled').toBe('compiled');
+
+                // Preserve this definition's keys, order, and gates, but give each field a
+                // small deterministic wire type so the differential covers every layout
+                // without needing a hand-authored sample for each nested packet structure.
+                const probeFields: Record<string, FieldSpec<number>> = Object.fromEntries(
+                    Object.entries(definition.fields).map(([key, spec], index) => {
+                        const wireType: WireType<number> = {
+                            wire: 'layout-probe-' + index,
+                            write(stream, value) {
+                                stream.writeUnsignedVarInt(index);
+                                stream.writeUnsignedVarInt(value);
+                            },
+                            read(stream) {
+                                const fieldIndex = stream.readUnsignedVarInt();
+                                if (fieldIndex !== index) {
+                                    throw new Error(name + ' field order changed at index ' + index);
+                                }
+                                return stream.readUnsignedVarInt();
+                            }
+                        };
+                        return [key, isGated(spec) ? gated(spec.gate, wireType, index + 1000) : wireType];
+                    })
+                );
+                const probe = definePacket(name, probeFields);
+                const payload = Object.fromEntries(Object.keys(probeFields).map((_key, index) => [_key, index + 10]));
+                const walker = layoutAt(probe, protocolVersion, false);
+                const compiled = layoutAt(probe, protocolVersion, true);
+
+                const walkerBytes = new BinaryStream();
+                walker.encode(walkerBytes, payload);
+                const compiledBytes = new BinaryStream();
+                compiled.encode(compiledBytes, payload);
+                expect(writtenBytes(compiledBytes), name + ' encoded bytes at ' + protocolVersion).toEqual(
+                    writtenBytes(walkerBytes)
+                );
+                expect(compiled.decode(new BinaryStream(writtenBytes(compiledBytes)))).toEqual(
+                    walker.decode(new BinaryStream(writtenBytes(walkerBytes)))
+                );
+            }
+        }
+    });
+
+    it('compiles arbitrary payload keys as quoted own properties', () => {
+        const quotedKey = 'a"quoted\\key';
+        const definition = definePacket('ArbitraryKeyPacket', {
+            [quotedKey]: t.varuint32,
+            ['__proto__']: t.varuint32
+        });
+        const payload = { [quotedKey]: 7, ['__proto__']: 11 };
+        const layout = layoutAt(definition, PROTOCOL_2193);
+        const stream = new BinaryStream();
+        layout.encode(stream, payload);
+        const decoded = layout.decode(new BinaryStream(stream.getBuffer()));
+
+        expect(layout.implementation).toBe('compiled');
+        expect(decoded).toEqual(payload);
+        expect(Object.hasOwn(decoded, '__proto__')).toBe(true);
+        expect(Object.getPrototypeOf(decoded)).toBe(Object.prototype);
     });
 });
