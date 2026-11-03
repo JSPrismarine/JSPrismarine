@@ -30,6 +30,14 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
+            # The compiler's native binaries can land without their executable bit,
+            # which fails with "TypeScript server startup: Permission denied".
+            - name: 🔧 Restore executable bits
+              run: |
+                  find node_modules/.pnpm/@scriptc+cli-*/node_modules/@scriptc/cli-*/dist \
+                      \( -path '*/bin/scriptc' -o -path '*/lib/tsc-ts/lib/tsc-ts' -o -path '*/lib/typescript/lib/tsc' -o -name scriptc-comptime \) \
+                      -type f -exec chmod +x {} +
+
             - name: 🧪 Coverage report
               continue-on-error: true
               run: pnpm run package:scriptc:coverage
