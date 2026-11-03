@@ -15,6 +15,7 @@ import type { VitestJsonReport } from '../src/dashboard/render.ts';
 import type { ParityMeasurement } from '../src/progress.ts';
 import { ALL_FAMILIES } from '../src/families.ts';
 import { familiesWithoutTests, renderDashboard } from '../src/dashboard/render.ts';
+import { buildTrackerData } from '../src/dashboard/tracker.ts';
 
 /**
  * Teaches node how the workspace's own packages spell an import.
@@ -90,9 +91,14 @@ const measurements = readFileSync(progressPath, 'utf-8')
     });
 const markdown = renderDashboard(report, allowList, measurements);
 const missingFamilies = familiesWithoutTests(report);
+const repositoryRoot = join(packageRoot, '..', '..');
+const tracker = buildTrackerData(report, allowList, repositoryRoot, packageRoot, {
+    sourceCommit: process.env.GITHUB_SHA ?? 'working tree'
+});
 
 const outputPath = join(packageRoot, 'dist', 'dashboard.md');
 writeFileSync(outputPath, markdown);
+writeFileSync(join(packageRoot, 'dist', 'tracker.json'), `${JSON.stringify(tracker, null, 2)}\n`);
 console.log(markdown);
 console.error(`Dashboard written to ${outputPath}`);
 

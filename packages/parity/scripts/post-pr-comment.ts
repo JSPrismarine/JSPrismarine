@@ -2,14 +2,18 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { describeDashboardTrend } from '../src/dashboard/trend.ts';
-import { findParityComment } from '../src/dashboard/comments.ts';
+import { buildTrackerData } from '../src/dashboard/tracker.ts';
+import { findParityComment, renderParityComment } from '../src/dashboard/comments.ts';
+import { parseDashboardTotals } from '../src/dashboard/trend.ts';
 import type { IssueComment } from '../src/dashboard/comments.ts';
+import type { TrackerData } from '../src/dashboard/tracker.ts';
+import type { VitestJsonReport } from '../src/dashboard/render.ts';
 
 const COMMENT_MARKER = '<!-- jsprismarine-parity-trend -->';
 const GITHUB_API_VERSION = '2026-03-10';
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const dashboardPath = join(packageRoot, 'dist', 'dashboard.md');
+const repositoryRoot = join(packageRoot, '..', '..');
+const trackerPath = join(packageRoot, 'dist', 'tracker.json');
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
@@ -26,11 +30,17 @@ const requiredEnvironment = (name: string): string => {
     return value;
 };
 
-const pullRequestNumberFrom = (event: unknown): number => {
-    if (!isRecord(event) || !isRecord(event.pull_request) || typeof event.pull_request.number !== 'number') {
-        throw new Error('The GitHub event does not contain a pull request number.');
+const pullRequestFrom = (event: unknown): { number: number; headSha: string } => {
+    if (
+        !isRecord(event) ||
+        !isRecord(event.pull_request) ||
+        typeof event.pull_request.number !== 'number' ||
+        !isRecord(event.pull_request.head) ||
+        typeof event.pull_request.head.sha !== 'string'
+    ) {
+        throw new Error('The GitHub event does not contain a pull request number and head SHA.');
     }
-    return event.pull_request.number;
+    return { number: event.pull_request.number, headSha: event.pull_request.head.sha };
 };
 
 const nextPageUrl = (linkHeader: string | null): string | undefined => {
@@ -41,9 +51,8 @@ const nextPageUrl = (linkHeader: string | null): string | undefined => {
 const token = requiredEnvironment('GITHUB_TOKEN');
 const repository = requiredEnvironment('GITHUB_REPOSITORY');
 const apiRoot = (process.env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/$/, '');
-const baseline = readFileSync(requiredEnvironment('PARITY_BASELINE_PATH'), 'utf8').trim();
 const event: unknown = JSON.parse(readFileSync(requiredEnvironment('GITHUB_EVENT_PATH'), 'utf8'));
-const pullNumber = pullRequestNumberFrom(event);
+const { number: pullNumber, headSha } = pullRequestFrom(event);
 
 const request = async (url: string, init: RequestInit = {}): Promise<Response> => {
     const headers = new Headers(init.headers);
@@ -71,10 +80,38 @@ while (pageUrl !== undefined) {
 }
 
 const previousComment = findParityComment(comments, COMMENT_MARKER);
-const dashboard = readFileSync(dashboardPath, 'utf8').trim();
-const familyDashboard = dashboard.replace(/^# Parity dashboard/, '### Family dashboard');
-const body = [COMMENT_MARKER, '## Parity trend', describeDashboardTrend(baseline, dashboard), familyDashboard].join(
-    '\n\n'
+const changedFiles: string[] = [];
+let changedFilesUrl: string | undefined = `${apiRoot}/repos/${repository}/pulls/${pullNumber}/files?per_page=100`;
+while (changedFilesUrl !== undefined) {
+    const response = await request(changedFilesUrl);
+    const page: unknown = await response.json();
+    if (!Array.isArray(page)) throw new Error('GitHub returned an unexpected pull request file response.');
+    for (const value of page) {
+        if (isRecord(value) && typeof value.filename === 'string') changedFiles.push(value.filename);
+    }
+    changedFilesUrl = nextPageUrl(response.headers.get('link'));
+}
+
+// These are generated from the Vitest JSON reporter by the adjacent dashboard step.
+const current = JSON.parse(readFileSync(trackerPath, 'utf8')) as TrackerData;
+const baselineReport = JSON.parse(
+    readFileSync(requiredEnvironment('PARITY_BASELINE_REPORT_PATH'), 'utf8')
+) as VitestJsonReport;
+const baselineTracker = buildTrackerData(baselineReport, [], repositoryRoot, packageRoot);
+const baselineTotals = parseDashboardTotals(
+    readFileSync(requiredEnvironment('PARITY_BASELINE_DASHBOARD_PATH'), 'utf8')
+);
+const baseline: TrackerData = {
+    ...baselineTracker,
+    accepted: baselineTotals.accepted,
+    defects: baselineTotals.defects
+};
+const body = renderParityComment(
+    current,
+    baseline,
+    changedFiles,
+    headSha,
+    'https://jsprismarine.github.io/JSPrismarine/parity.html'
 );
 
 const commentUrl = previousComment

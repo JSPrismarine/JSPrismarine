@@ -201,15 +201,18 @@ jobs:
                   GITHUB_STEP_SUMMARY: ''
               run: pnpm --filter @jsprismarine/parity run dashboard
 
-            - name: Save the pull request base dashboard
+            - name: Save the pull request base report
               if: ${{ !cancelled() && steps.parity_baseline.outcome == 'success' }}
               working-directory: parity-baseline
-              run: cp packages/parity/dist/dashboard.md "$RUNNER_TEMP/parity-dashboard-base.md"
+              run: |
+                  cp packages/parity/dist/dashboard.md "$RUNNER_TEMP/parity-dashboard-base.md"
+                  cp packages/parity/dist/parity-report.json "$RUNNER_TEMP/parity-report-base.json"
 
             - name: 💬 Comment on parity changes
               if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && steps.parity_baseline.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  PARITY_BASELINE_PATH: ${{ runner.temp }}/parity-dashboard-base.md
+                  PARITY_BASELINE_DASHBOARD_PATH: ${{ runner.temp }}/parity-dashboard-base.md
+                  PARITY_BASELINE_REPORT_PATH: ${{ runner.temp }}/parity-report-base.json
               run: pnpm --filter @jsprismarine/parity run comment:pr
 

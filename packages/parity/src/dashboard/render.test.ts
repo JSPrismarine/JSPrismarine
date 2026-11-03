@@ -9,6 +9,7 @@ import { familiesWithoutTests, renderDashboard, statusOf } from './render.ts';
 const fixtureReport: VitestJsonReport = {
     testResults: [
         {
+            name: 'packages/parity/src/registry.blocks.test.ts',
             assertionResults: [
                 { ancestorTitles: ['registry.blocks'], status: 'passed', title: 'ships every block' },
                 { ancestorTitles: ['registry.blocks'], status: 'passed', title: 'no stale entries' },
@@ -19,6 +20,7 @@ const fixtureReport: VitestJsonReport = {
             ]
         },
         {
+            name: 'packages/parity/src/conformance.claim.test.ts',
             assertionResults: [{ ancestorTitles: ['conformance.claim'], status: 'passed', title: 'states the claim' }]
         }
     ]
@@ -56,6 +58,7 @@ describe('dashboard renderer', () => {
         const report: VitestJsonReport = {
             testResults: [
                 {
+                    name: 'packages/parity/src/registry.blocks.test.ts',
                     assertionResults: [
                         { ancestorTitles: [FAMILIES.registryBlocks], status: 'passed', title: 'resolves a block' },
                         { ancestorTitles: ['allow list'], status: 'passed', title: 'checks its entries' }

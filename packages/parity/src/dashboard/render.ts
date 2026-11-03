@@ -8,10 +8,14 @@ export interface ReportedTest {
     ancestorTitles: string[];
     status: string;
     title: string;
+    /** Source position supplied by Vitest's JSON reporter. */
+    location?: { line: number; column?: number };
 }
 
 /** One test file in the Vitest JSON report. */
 export interface ReportedFile {
+    /** File path as reported by Vitest. */
+    name: string;
     assertionResults: ReportedTest[];
 }
 
