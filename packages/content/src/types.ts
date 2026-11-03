@@ -73,6 +73,42 @@ export type FlagComputer<H extends HookSignatures<H>> = (type: TypeView<H>) => b
  */
 export type FlagSpec<H extends HookSignatures<H>, F> = { readonly [K in keyof F]: FlagComputer<H> };
 
+class ResolvedType<H extends HookSignatures<H>, F extends object> implements Type<H, Extract<keyof F, string>> {
+    private readonly componentsByName: ReadonlyMap<string, BoundComponent<H>>;
+
+    public readonly flags: Readonly<Record<Extract<keyof F, string>, boolean>>;
+
+    public constructor(
+        public readonly identifier: string,
+        public readonly definition: Definition,
+        public readonly components: readonly BoundComponent<H>[],
+        public readonly behaviors: readonly BoundBehavior<H>[],
+        public readonly hooks: HookTable<H>,
+        flagComputers: Readonly<Record<string, FlagComputer<H>>>
+    ) {
+        const componentsByName = new Map<string, BoundComponent<H>>();
+        for (const component of components) {
+            if (!componentsByName.has(component.name)) componentsByName.set(component.name, component);
+        }
+        this.componentsByName = componentsByName;
+
+        const flags: Record<string, boolean> = {};
+        for (const [flag, compute] of Object.entries(flagComputers)) flags[flag] = compute(this);
+        // Object.entries drops key literals, while the record contains only this constructor's flag spec.
+        this.flags = flags as Readonly<Record<Extract<keyof F, string>, boolean>>;
+    }
+
+    public params<P>(factory: ComponentFactory<H, P>): P | undefined {
+        const found = this.componentsByName.get(factory.name);
+        // The parameters came out of this factory's own schema, so they are its parameter type.
+        return found === undefined ? undefined : (found.params as P);
+    }
+
+    public hasComponent(name: string): boolean {
+        return this.componentsByName.has(name);
+    }
+}
+
 /** Options for {@link resolveTypes}. */
 export interface ResolveOptions<H extends HookSignatures<H>, F extends object> {
     /** The component names the domain implements. */
@@ -183,32 +219,19 @@ export const resolveTypes = <H extends HookSignatures<H>, F extends object = Rec
             });
         }
 
-        const names = new Set(components.map((component) => component.name));
-        const view: TypeView<H> = {
-            identifier: definition.identifier,
-            definition,
-            components,
-            behaviors,
-            hooks: new HookTable(contributions),
-            params: <P>(factory: ComponentFactory<H, P>): P | undefined => {
-                const found = components.find((component) => component.name === factory.name);
-                // The parameters came out of this factory's own schema, so they are its parameter type.
-                return found === undefined ? undefined : (found.params as P);
-            },
-            hasComponent: (name) => names.has(name)
-        };
-
-        // The spec is a mapped type over the caller's own flag names, which
-        // TypeScript gives no index signature, so walking it by name needs the
-        // erased shape; the keys come straight back out below.
+        // The spec is mapped over the caller's flag names, while Object.entries needs string keys.
         const spec = (options.flags ?? {}) as Readonly<Record<string, FlagComputer<H>>>;
-        const flags: Record<string, boolean> = {};
-        for (const [flag, compute] of Object.entries(spec)) flags[flag] = compute(view);
-
-        // Walking the spec with Object.entries drops its key literals, so the
-        // record carries exactly the spec's flags only by construction.
-        const computed = flags as Readonly<Record<Extract<keyof F, string>, boolean>>;
-        types.set(definition.identifier, { ...view, flags: computed });
+        types.set(
+            definition.identifier,
+            new ResolvedType<H, F>(
+                definition.identifier,
+                definition,
+                components,
+                behaviors,
+                new HookTable(contributions),
+                spec
+            )
+        );
     }
 
     if (options.strict && diagnostics.length > 0) throw new ContentLoadError(diagnostics);

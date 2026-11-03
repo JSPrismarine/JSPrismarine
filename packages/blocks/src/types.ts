@@ -95,6 +95,57 @@ export interface BlockType {
     state(values?: Readonly<Record<string, BlockStateValue>>): BlockState;
 }
 
+class ResolvedBlockState implements BlockState {
+    public constructor(
+        public readonly type: BlockType,
+        public readonly index: number,
+        public readonly runtimeId: number,
+        public readonly values: Readonly<Record<string, BlockStateValue>>,
+        public readonly permutations: PermutationMask,
+        public readonly content: Type<BlockHooks, keyof BlockFlags>,
+        public readonly tags: readonly string[],
+        public readonly javaTags: readonly string[]
+    ) {}
+
+    public hasTag(tag: string): boolean {
+        return this.tags.includes(tag);
+    }
+
+    public hasJavaTag(tag: string): boolean {
+        return this.javaTags.includes(tag);
+    }
+}
+
+class ResolvedBlockType implements BlockType {
+    public constructor(
+        public readonly identifier: string,
+        public readonly definition: BlockDefinitionDocument,
+        public readonly javaTags: readonly string[],
+        public readonly model: BlockStateModel,
+        public readonly states: readonly BlockState[]
+    ) {}
+
+    public hasJavaTag(tag: string): boolean {
+        return this.javaTags.includes(tag);
+    }
+
+    public state(values: Readonly<Record<string, BlockStateValue>> = {}): BlockState {
+        return this.states[this.model.encode(values)]!;
+    }
+}
+
+/** Shares one immutable copy for identical state tag lists. */
+const internStringArray = (cache: Map<string, readonly string[]>, values: readonly string[]): readonly string[] => {
+    let key = '';
+    for (const value of values) key += `${value.length}:${value}`;
+    const cached = cache.get(key);
+    if (cached !== undefined) return cached;
+
+    const shared = Object.freeze([...values]);
+    cache.set(key, shared);
+    return shared;
+};
+
 /** What {@link resolveBlocks} returns. */
 export interface BlockResolveResult {
     /** The palette the dense runtime ids index, built from the resolved blocks. */
@@ -255,31 +306,30 @@ export const resolveBlocks = (
     const palette = new BlockPalette(parsed.map((entry) => [entry.document.description.identifier, entry.model]));
     const types = new Map<string, BlockType>();
     const states: BlockState[] = new Array(palette.stateCount);
+    const sharedTags = new Map<string, readonly string[]>();
 
     for (const { definition, document, model } of parsed) {
         const identifier = document.description.identifier;
         const firstRuntimeId = palette.entry(identifier)!.firstRuntimeId;
         const byMask = new Map<string, Type<BlockHooks, keyof BlockFlags>>();
+        const masksByKey = new Map<string, PermutationMask>();
         const ownStates: BlockState[] = new Array(model.size);
-        const javaTagsByState = Array.from({ length: model.size }, (_, index) => [
-            ...new Set(options.javaTags?.(identifier, model.decode(index)) ?? [])
-        ]);
-        const javaTags = [...new Set(javaTagsByState.flat())];
-
-        const type: BlockType = {
-            identifier,
-            definition: document,
-            javaTags,
-            hasJavaTag: (tag) => javaTags.includes(tag),
-            model,
-            states: ownStates,
-            state: (values = {}) => ownStates[model.encode(values)]!
-        };
+        // A condition is independent of state; compile once per block instead of rebuilding its cache key per state.
+        const compiledPermutations = document.permutations.map((permutation) => molang.compile(permutation.condition));
+        const valuesByState = Array.from({ length: model.size }, (_, index) => model.decode(index));
+        const javaTagsByState = valuesByState.map((values) =>
+            internStringArray(sharedTags, [...new Set(options.javaTags?.(identifier, values) ?? [])])
+        );
+        const javaTags = internStringArray(sharedTags, [...new Set(javaTagsByState.flat())]);
+        const type = new ResolvedBlockType(identifier, document, javaTags, model, ownStates);
 
         for (let index = 0; index < model.size; index += 1) {
-            const values = model.decode(index);
-            const mask = permutationsFor(document, values, molang);
-            const key = mask.join(',');
+            const values = valuesByState[index]!;
+            const calculatedMask = permutationsFor(document, values, molang, compiledPermutations);
+            const key = calculatedMask.join(',');
+            // The same key groups states with the same permutation set; reuse its immutable mask.
+            const mask = masksByKey.get(key) ?? Object.freeze([...calculatedMask]);
+            masksByKey.set(key, mask);
 
             let content = byMask.get(key);
             if (content === undefined) {
@@ -295,19 +345,17 @@ export const resolveBlocks = (
                 byMask.set(key, content);
             }
 
-            const stateTags = content.params(blockTags) ?? [];
-            const state: BlockState = {
+            const stateTags = internStringArray(sharedTags, content.params(blockTags) ?? []);
+            const state = new ResolvedBlockState(
                 type,
                 index,
-                runtimeId: firstRuntimeId + index,
+                firstRuntimeId + index,
                 values,
-                permutations: mask,
+                mask,
                 content,
-                tags: stateTags,
-                hasTag: (tag) => stateTags.includes(tag),
-                javaTags: javaTagsByState[index]!,
-                hasJavaTag: (tag) => javaTagsByState[index]!.includes(tag)
-            };
+                stateTags,
+                javaTagsByState[index]!
+            );
             ownStates[index] = state;
             states[state.runtimeId] = state;
         }

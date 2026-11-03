@@ -1,5 +1,5 @@
 import type { ComponentEntry } from '@jsprismarine/content';
-import type { Molang } from '@jsprismarine/molang';
+import type { CompiledMolang, Molang } from '@jsprismarine/molang';
 
 import type { BlockDefinitionDocument } from './definition';
 import type { BlockStateValue } from './hooks';
@@ -33,15 +33,31 @@ export const conditionMatches = (
     return typeof result === 'number' && result !== 0;
 };
 
-/** Every permutation of a definition that matches one state, in declaration order. */
+/** Evaluates one compiled permutation against one block state. */
+const compiledConditionMatches = (
+    condition: CompiledMolang,
+    values: Readonly<Record<string, BlockStateValue>>
+): boolean => {
+    const result = condition.evaluate({
+        block: { blockState: (name) => values[name] }
+    });
+    return typeof result === 'number' && result !== 0;
+};
+
+/**
+ * Every permutation of a definition that matches one state, in declaration order.
+ *
+ * @param compiledConditions - Optional expressions compiled once per definition, in permutation order.
+ */
 export const permutationsFor = (
     document: BlockDefinitionDocument,
     values: Readonly<Record<string, BlockStateValue>>,
-    molang: Molang
+    molang: Molang,
+    compiledConditions: readonly CompiledMolang[] = document.permutations.map((permutation) =>
+        molang.compile(permutation.condition)
+    )
 ): PermutationMask =>
-    document.permutations.flatMap((permutation, index) =>
-        conditionMatches(molang, permutation.condition, values) ? [index] : []
-    );
+    compiledConditions.flatMap((condition, index) => (compiledConditionMatches(condition, values) ? [index] : []));
 
 /**
  * The component list for one state: the base components, then the components

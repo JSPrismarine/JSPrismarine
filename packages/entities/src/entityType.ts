@@ -84,6 +84,10 @@ export interface ResolveEntityResult {
     diagnostics: readonly Diagnostic[];
 }
 
+/** Copies resolved type fields onto an object with the same shared prototype. */
+const extendResolvedType = <Base extends object, Fields extends object>(base: Base, fields: Fields): Base & Fields =>
+    Object.assign(Object.create(Object.getPrototypeOf(base)), base, fields);
+
 /**
  * Resolves parsed entity definitions into entity types.
  *
@@ -197,15 +201,15 @@ const buildEntityType = (
     }
 
     const declaredComponents = [...declared].sort();
-    return {
-        ...type,
+    // Copying fields onto the same prototype keeps params and hasComponent shared and callable.
+    return extendResolvedType(type, {
         entity,
         tags,
-        hasTag: (tag) => tags.includes(tag),
+        hasTag: (tag: string) => tags.includes(tag),
         groups,
         declaredComponents,
         unimplementedComponents: declaredComponents.filter((name) => !components.has(name))
-    };
+    });
 };
 
 /**

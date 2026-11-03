@@ -1,6 +1,7 @@
 import type { Definition } from '@jsprismarine/content';
 import { BehaviorRegistry } from '@jsprismarine/content';
-import { describe, expect, it } from 'vitest';
+import { Molang } from '@jsprismarine/molang';
+import { describe, expect, it, vi } from 'vitest';
 
 import { destructibleByMining, loot, tags } from './components';
 import type { BlockHooks } from './hooks';
@@ -88,6 +89,60 @@ describe('resolving block definitions', () => {
         expect(grown.hasTag('grown')).toBe(true);
         expect(grown.hasTag('missing')).toBe(false);
         expect(grown.content.params(tags)).toEqual(grown.tags);
+    });
+
+    it('shares frozen state masks and tags, and uses shared prototype methods', () => {
+        const resolved = resolveBlocks(
+            [
+                definition('test:shared_one', {
+                    description: { identifier: 'test:shared_one', states: { growth: [0, 1] } },
+                    components: { 'minecraft:tags': ['shared'] }
+                }),
+                definition('test:shared_two', {
+                    description: { identifier: 'test:shared_two', states: { growth: [0, 1] } },
+                    components: { 'minecraft:tags': ['shared'] }
+                })
+            ],
+            { statePalette: emptyPalette, javaTags: () => ['java:shared'] }
+        );
+        const firstType = resolved.types.get('test:shared_one')!;
+        const secondType = resolved.types.get('test:shared_two')!;
+        const first = firstType.state({ growth: 0 });
+        const second = firstType.state({ growth: 1 });
+
+        expect(first.permutations).toBe(second.permutations);
+        expect(Object.isFrozen(first.permutations)).toBe(true);
+        expect(first.tags).toBe(second.tags);
+        expect(Object.isFrozen(first.tags)).toBe(true);
+        expect(first.javaTags).toBe(second.javaTags);
+        expect(Object.isFrozen(first.javaTags)).toBe(true);
+        expect(Object.isFrozen(firstType.javaTags)).toBe(true);
+        expect(first.hasTag).toBe(second.hasTag);
+        expect(first.hasJavaTag).toBe(second.hasJavaTag);
+        expect(firstType.state).toBe(secondType.state);
+        expect(firstType.hasJavaTag).toBe(secondType.hasJavaTag);
+    });
+
+    it('compiles each permutation condition once for every state of its block', () => {
+        const molang = new Molang();
+        const compile = vi.spyOn(molang, 'compile');
+
+        resolveBlocks(
+            [
+                definition('test:compiled_once', {
+                    description: { identifier: 'test:compiled_once', states: { growth: [0, 1] } },
+                    permutations: [
+                        {
+                            condition: "query.block_state('growth') == 1",
+                            components: { 'minecraft:tags': ['grown'] }
+                        }
+                    ]
+                })
+            ],
+            { molang, statePalette: emptyPalette }
+        );
+
+        expect(compile).toHaveBeenCalledTimes(1);
     });
 
     it('resolves one content type per distinct permutation set, not per state', () => {

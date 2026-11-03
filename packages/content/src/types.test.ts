@@ -82,6 +82,35 @@ describe('resolveTypes', () => {
         expect(types.get('jsp:ice')!.hasComponent('jsp:friction')).toBe(true);
     });
 
+    it('shares resolved type methods across instances while keeping component lookups correct', () => {
+        const { types } = resolveTypes(
+            [
+                definition('jsp:first_ice', 'base', { 'jsp:friction': 0.989 }),
+                definition('jsp:second_ice', 'base', { 'jsp:friction': 0.8 })
+            ],
+            { components, read }
+        );
+        const first = types.get('jsp:first_ice')!;
+        const second = types.get('jsp:second_ice')!;
+
+        expect(first.params).toBe(second.params);
+        expect(first.hasComponent).toBe(second.hasComponent);
+        expect(first.params(friction)).toBe(0.989);
+        expect(second.params(friction)).toBe(0.8);
+        expect(first.hasComponent('jsp:friction')).toBe(true);
+        expect(second.hasComponent('jsp:first')).toBe(false);
+    });
+
+    it('keeps the first bound component when a reader repeats a name', () => {
+        const duplicate: ComponentReader = (input) => [...read(input), { name: 'jsp:friction', value: 0.4 }];
+        const { types } = resolveTypes([definition('jsp:ice', 'base', { 'jsp:friction': 0.989 })], {
+            components,
+            read: duplicate
+        });
+
+        expect(types.get('jsp:ice')!.params(friction)).toBe(0.989);
+    });
+
     it('loads a type with an unknown component and reports it once per pack', () => {
         const { types, diagnostics } = resolveTypes(
             [
