@@ -1,7 +1,7 @@
 import type { ConsoleMessage, MessageLink, ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
 import { memoryLinkPair } from '@jsprismarine/console-protocol';
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExitListener, OutputListener, ServerChild } from './ServerChild';
 import { Supervisor } from './Supervisor';
 
@@ -78,6 +78,12 @@ const setup = (options: { canRestart?: boolean; failSpawns?: number } = {}) => {
 };
 
 describe('Supervisor', () => {
+    beforeEach(() => {
+        // The root Vitest config reuses workers, so restore real timers in case another suite
+        // leaves fake timers active; these tests use queueMicrotask and zero-delay timers.
+        vi.useRealTimers();
+    });
+
     it('reports starting on spawn and running when the child says so', async () => {
         const { supervisor, children, states } = setup();
         const links: unknown[] = [];
