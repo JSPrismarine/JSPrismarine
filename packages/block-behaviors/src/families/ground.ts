@@ -74,6 +74,11 @@ export const soilFamily = defineFamily(
                     setStates(world, event.block, { moisturized_amount: moisture - 1 });
                     return;
                 }
+                // Java's `shouldMaintainFarmland`: a dry field keeps the crop standing in it,
+                // and only bare farmland turns back to dirt. The crop is whatever grows, which
+                // is what carrying a `growth` state says.
+                const planted = world.getBlock(offset(event.block.position, 'up'));
+                if (planted !== undefined && hasState(planted, 'growth')) return;
                 world.setBlock(event.block.position, sibling(event.block.identifier, 'dirt'));
                 return;
             }
