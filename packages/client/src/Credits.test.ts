@@ -48,6 +48,8 @@ beforeAll(async () => {
         path.join(stateRoot, 'config.json'),
         JSON.stringify({
             'online-mode': false,
+            // This test creates its own chunks as the client travels, so skip the unrelated 441-chunk default preload.
+            'preload-radius': 0,
             worlds: {
                 world: {
                     preset: 'minecraft:flat',
