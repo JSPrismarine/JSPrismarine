@@ -97,8 +97,30 @@ const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): Ho
     return block && { identifier: block.name, position: at, dimension, states: block.states };
 };
 
-/** Items whose placed block has a different identifier. */
-const ITEM_PLACE_TARGETS: ReadonlyMap<string, string> = new Map([['minecraft:redstone', 'minecraft:redstone_wire']]);
+/**
+ * Items whose placed block has a different identifier.
+ *
+ * Java keeps these links in code - each is an `ItemNameBlockItem` or a
+ * `BlockItem` registered under another name in `Items` - so no data file
+ * publishes them and they are written down here, Java name to Java name.
+ * `placedBlockOf` maps the target through `@jsprismarine/mapping`, so the
+ * Bedrock spelling (`beetroot`, `trip_wire`) stays the mapping's business.
+ */
+const ITEM_PLACE_TARGETS: ReadonlyMap<string, string> = new Map([
+    ['minecraft:redstone', 'minecraft:redstone_wire'],
+    ['minecraft:wheat_seeds', 'minecraft:wheat'],
+    ['minecraft:beetroot_seeds', 'minecraft:beetroots'],
+    ['minecraft:melon_seeds', 'minecraft:melon_stem'],
+    ['minecraft:pumpkin_seeds', 'minecraft:pumpkin_stem'],
+    ['minecraft:torchflower_seeds', 'minecraft:torchflower_crop'],
+    ['minecraft:pitcher_pod', 'minecraft:pitcher_crop'],
+    ['minecraft:carrot', 'minecraft:carrots'],
+    ['minecraft:potato', 'minecraft:potatoes'],
+    ['minecraft:cocoa_beans', 'minecraft:cocoa'],
+    ['minecraft:sweet_berries', 'minecraft:sweet_berry_bush'],
+    ['minecraft:glow_berries', 'minecraft:cave_vines'],
+    ['minecraft:string', 'minecraft:tripwire']
+]);
 
 /** Blocks whose Java placement state faces away from their support. */
 const TORCH_BLOCKS = new Set([
