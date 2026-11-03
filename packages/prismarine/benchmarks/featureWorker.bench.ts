@@ -3,7 +3,8 @@
  *
  * Run `pnpm --filter @jsprismarine/prismarine run bench:feature-worker [samples]`. The payloads
  * contain nine full-height terrain tiles, and each timed sample includes structured cloning the
- * worker input and constructing the corresponding view. Digests are computed after timing.
+ * worker input and constructing the corresponding view. It also counts center-chunk block reads
+ * and the terrain-tile lookups they trigger. Digests are computed after timing.
  */
 import { createHash } from 'node:crypto';
 import os from 'node:os';
@@ -124,6 +125,24 @@ const measureHeightmapReads = (view: GenerationRegion) => {
     };
 };
 
+/** Counts the terrain-tile lookups made by one chunk's full-height feature reads. */
+const measureFeatureReads = (view: GenerationRegion) => {
+    let featureReads = 0;
+    let tileLookups = 0;
+    const started = performance.now();
+    for (let localX = 0; localX < 16; localX++) {
+        for (let localZ = 0; localZ < 16; localZ++) {
+            for (let y = MIN_Y; y < MIN_Y + HEIGHT; y++) {
+                view.blockAt(localX, y, localZ);
+                featureReads++;
+                // This fixture has no sparse overlay, so each feature read reaches one source tile.
+                tileLookups++;
+            }
+        }
+    }
+    return { featureReads, tileLookups, lookupMs: performance.now() - started };
+};
+
 interface Sample {
     readonly ms: number;
     readonly peakHeapDeltaBytes: number;
@@ -133,6 +152,9 @@ interface Sample {
     readonly heightmapBlockReads: number;
     readonly uncachedHeightmapBlockReads: number;
     readonly heightmapLookupMs: number;
+    readonly featureReads: number;
+    readonly terrainTileLookups: number;
+    readonly featureReadLookupMs: number;
 }
 
 const sample = (readThrough: boolean): Sample => {
@@ -150,6 +172,7 @@ const sample = (readThrough: boolean): Sample => {
     const peakAfterView = process.memoryUsage();
     const ms = performance.now() - started;
     const heightmapMeasurements = measureHeightmapReads(view);
+    const featureReadMeasurements = measureFeatureReads(view);
 
     return {
         ms,
@@ -160,7 +183,10 @@ const sample = (readThrough: boolean): Sample => {
         heightmapQueries: heightmapMeasurements.queries,
         heightmapBlockReads: heightmapMeasurements.blockReads,
         uncachedHeightmapBlockReads: heightmapMeasurements.uncachedBlockReads,
-        heightmapLookupMs: heightmapMeasurements.heightmapLookupMs
+        heightmapLookupMs: heightmapMeasurements.heightmapLookupMs,
+        featureReads: featureReadMeasurements.featureReads,
+        terrainTileLookups: featureReadMeasurements.tileLookups,
+        featureReadLookupMs: featureReadMeasurements.lookupMs
     };
 };
 
@@ -178,6 +204,7 @@ const summarize = (runs: readonly Sample[]) => {
         .map(({ uncachedHeightmapBlockReads }) => uncachedHeightmapBlockReads)
         .sort((a, b) => a - b);
     const heightmapLookupMs = runs.map(({ heightmapLookupMs }) => heightmapLookupMs).sort((a, b) => a - b);
+    const featureReadLookupMs = runs.map(({ featureReadLookupMs }) => featureReadLookupMs).sort((a, b) => a - b);
     const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
     return {
         distributionMs: {
@@ -192,6 +219,9 @@ const summarize = (runs: readonly Sample[]) => {
         heightmapBlockReads: percentile(heightmapBlockReads, 0.5),
         uncachedHeightmapBlockReads: percentile(uncachedHeightmapBlockReads, 0.5),
         heightmapLookupMs: percentile(heightmapLookupMs, 0.5),
+        featureReads: runs[0]?.featureReads ?? 0,
+        terrainTileLookups: runs[0]?.terrainTileLookups ?? 0,
+        featureReadLookupMs: percentile(featureReadLookupMs, 0.5),
         outputDigest: digests.size === 1 ? runs[0]?.outputDigest : 'unstable'
     };
 };

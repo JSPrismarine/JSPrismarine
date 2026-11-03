@@ -287,6 +287,51 @@ describe('spawnEntity', () => {
 });
 
 describe('neighbor chunk data', () => {
+    it('indexes all neighboring tiles by chunk coordinates and honors sparse overrides', () => {
+        const centerChunkX = -1;
+        const centerChunkZ = -2;
+        const blockNames = [
+            'minecraft:stone',
+            'minecraft:dirt',
+            'minecraft:gravel',
+            'minecraft:deepslate',
+            'minecraft:cobblestone',
+            'minecraft:netherrack',
+            'minecraft:sand',
+            'minecraft:clay',
+            'minecraft:moss_block'
+        ];
+        const tiles: GenerationRegion[] = [];
+        const expected: { readonly x: number; readonly z: number; readonly name: string }[] = [];
+        let tileIndex = 0;
+
+        for (let relativeX = -1; relativeX <= 1; relativeX++) {
+            for (let relativeZ = -1; relativeZ <= 1; relativeZ++) {
+                const chunkX = centerChunkX + relativeX;
+                const chunkZ = centerChunkZ + relativeZ;
+                const name = blockNames[tileIndex++]!;
+                const tile = terrainTile(chunkX, chunkZ);
+                const x = chunkX * 16 + 15;
+                const z = chunkZ * 16 + 15;
+                tile.writeName(x, 50, z, name);
+                tiles.push(tile);
+                expected.push({ x, z, name });
+            }
+        }
+
+        const viewed = GenerationRegion.featureView(
+            { ...featureRegionOptions(), chunkX: centerChunkX, chunkZ: centerChunkZ },
+            tiles.reverse()
+        );
+        for (const { x, z, name } of expected) {
+            expect(viewed.stateAt(x, 50, z).name).toBe(name);
+        }
+
+        viewed.writeName(-1, 50, -17, 'minecraft:gold_block');
+        expect(viewed.stateAt(-1, 50, -17).name).toBe('minecraft:gold_block');
+        expect(tiles[4]?.stateAt(-1, 50, -17).name).toBe('minecraft:cobblestone');
+    });
+
     it('copies neighboring terrain into the feature view', () => {
         const source = terrainTile(1, 0);
         source.writeName(16, 50, 8, 'minecraft:stone');

@@ -32,8 +32,6 @@ const FEATURE_RADIUS = 1;
 /** Keeps feature-view writes sparse while terrain blocks remain in their immutable source tiles. */
 const READ_THROUGH_TERRAIN = Symbol('GenerationRegion read-through terrain');
 
-const chunkKeyOf = (chunkX: number, chunkZ: number): string => `${chunkX},${chunkZ}`;
-
 const AIR = 'minecraft:air';
 const AIR_STATE: BlockState = { name: AIR, properties: {} };
 
@@ -269,8 +267,9 @@ export class GenerationRegion {
     private readonly originX: number;
     private readonly originZ: number;
     private states: Uint16Array<ArrayBuffer>;
-    private terrainSources: ReadonlyMap<string, GenerationRegion> | undefined;
+    private terrainSources: readonly (GenerationRegion | undefined)[] | undefined;
     private readonly sparseWrites: Map<number, number> | undefined;
+    private hasSparseWrites = false;
     private palette: RegionBlock[] = [{ java: AIR_STATE }];
     private paletteIndex = new Map<string, number>([[AIR, 0]]);
     private isAirByPaletteSlot: boolean[] = [];
@@ -331,20 +330,24 @@ export class GenerationRegion {
     public static featureView(options: GenerationRegionOptions, tiles: readonly GenerationRegion[]): GenerationRegion {
         if (tiles.length !== 9) throw new RangeError('A feature view needs nine terrain tiles.');
 
-        const sources = new Map<string, GenerationRegion>();
+        const sources: (GenerationRegion | undefined)[] = new Array(9);
         for (const tile of tiles) {
             if (tile.radius !== 0 || tile.minY !== options.minY || tile.maxY !== options.minY + options.height - 1) {
                 throw new RangeError('Feature-view terrain tiles must be radius-zero and match its vertical extent.');
             }
-            sources.set(chunkKeyOf(tile.chunkX, tile.chunkZ), tile);
+
+            const relativeX = tile.chunkX - options.chunkX;
+            const relativeZ = tile.chunkZ - options.chunkZ;
+            if (Math.abs(relativeX) > FEATURE_RADIUS || Math.abs(relativeZ) > FEATURE_RADIUS) {
+                throw new RangeError('Feature-view terrain tiles must fit its three by three window.');
+            }
+            const index = (relativeX + FEATURE_RADIUS) * 3 + relativeZ + FEATURE_RADIUS;
+            if (sources[index] !== undefined) throw new RangeError('A feature view needs distinct terrain tiles.');
+            sources[index] = tile;
         }
 
-        for (let dx = -FEATURE_RADIUS; dx <= FEATURE_RADIUS; dx++) {
-            for (let dz = -FEATURE_RADIUS; dz <= FEATURE_RADIUS; dz++) {
-                if (!sources.has(chunkKeyOf(options.chunkX + dx, options.chunkZ + dz))) {
-                    throw new RangeError('A feature view needs every terrain tile in its three by three window.');
-                }
-            }
+        if (sources.some((tile) => tile === undefined)) {
+            throw new RangeError('A feature view needs every terrain tile in its three by three window.');
         }
 
         const view = new GenerationRegion({ ...options, radius: FEATURE_RADIUS, [READ_THROUGH_TERRAIN]: true });
@@ -476,13 +479,16 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return this.palette[0]!;
 
-        const written = this.sparseWrites?.get(index);
+        // Avoid a Map lookup on every feature read until this view has an overlay to consult.
+        const written = this.hasSparseWrites ? this.sparseWrites?.get(index) : undefined;
         if (written !== undefined) return this.palette[written]!;
 
         if (this.terrainSources !== undefined) {
             const chunkX = Math.floor(x / 16);
             const chunkZ = Math.floor(z / 16);
-            const source = this.terrainSources.get(chunkKeyOf(chunkX, chunkZ));
+            const relativeX = chunkX - this.chunkX + FEATURE_RADIUS;
+            const relativeZ = chunkZ - this.chunkZ + FEATURE_RADIUS;
+            const source = this.terrainSources[relativeX * 3 + relativeZ];
             const block = source?.blockAt(x, y, z);
             return block === undefined || block.java.name === AIR ? this.palette[0]! : block;
         }
@@ -958,7 +964,10 @@ export class GenerationRegion {
     /** Writes a palette slot into this region or its task-local sparse overlay. */
     private writeSlot(index: number, slot: number): void {
         if (this.sparseWrites === undefined) this.states[index] = slot;
-        else this.sparseWrites.set(index, slot);
+        else {
+            this.sparseWrites.set(index, slot);
+            this.hasSparseWrites = true;
+        }
     }
 
     private heightAt(heightmap: HeightmapType, x: number, z: number): number {
