@@ -305,7 +305,43 @@ public final class DumpWorldgenVectors {
             );
         }
 
-        return obj(field("seed", quote("1234")), field("dimensions", array(dimensions)));
+        return obj(
+            field("seed", quote("1234")),
+            field("dimensions", array(dimensions)),
+            field("yIndependentColumns", dumpYIndependentColumns(provider))
+        );
+    }
+
+    /** Samples the vanilla cache nodes the compiler can prove do not depend on y. */
+    private static String dumpYIndependentColumns(final HolderLookup.Provider provider) {
+        NoiseGeneratorSettings settings = provider.lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+        RandomState state = RandomState.create(provider.lookupOrThrow(Registries.NOISE), 1234L, settings);
+        List<String> samples = new ArrayList<>();
+        int[][] columns = { { 0, 0 }, { 16, -16 }, { -37, 119 } };
+        int[] heights = { -64, 0, 128, 319 };
+
+        for (String name : new String[] { "continents", "erosion", "ridges" }) {
+            DensityFunction function = switch (name) {
+                case "continents" -> settings.noiseRouter().continents();
+                case "erosion" -> settings.noiseRouter().erosion();
+                default -> settings.noiseRouter().ridges();
+            };
+            for (int[] column : columns) {
+                List<String> values = new ArrayList<>();
+                for (int y : heights) values.add(floatValue(state.sampleBlockValueUncached(function, column[0], y, column[1])));
+                samples.add(
+                    obj(
+                        field("function", quote(name)),
+                        field("x", Integer.toString(column[0])),
+                        field("z", Integer.toString(column[1])),
+                        field("heights", ints(heights)),
+                        field("values", array(values))
+                    )
+                );
+            }
+        }
+        return array(samples);
     }
 
     private static String routerSamples(final RandomState state, final DensityFunction function) {

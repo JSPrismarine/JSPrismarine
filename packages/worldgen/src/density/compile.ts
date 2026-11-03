@@ -37,6 +37,12 @@ const gcd = (a: number, b: number): number => {
     return left;
 };
 
+const X_AXIS = 1;
+const Y_AXIS = 2;
+const Z_AXIS = 4;
+const XZ_AXES = X_AXIS | Z_AXIS;
+const XYZ_AXES = X_AXIS | Y_AXIS | Z_AXIS;
+
 /** What the compiler needs from the world seed to turn a tree into closures. */
 export interface CompileEnvironment {
     /** Returns the seeded noise instance for a `worldgen/noise` identifier. */
@@ -136,6 +142,7 @@ export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
+    private readonly domainAxesByNode = new Map<DensityFunctionNode, number>();
     private nextCacheId = 0;
     private cellSizeXz = 0;
     private cellSizeY = 0;
@@ -227,6 +234,9 @@ export class DensityFunctionCompiler {
             case 'cache': {
                 const id = this.cacheId(node);
                 const input = this.compile(node.input);
+                if ((this.domainAxes(node.input) & Y_AXIS) === 0) {
+                    return (context, x, _y, z) => context.cell(id).getColumnValue(context, input, x, z);
+                }
                 return (context, x, y, z) => {
                     const cell = context.cell(id);
                     if (cell.valid && cell.x === x && cell.y === y && cell.z === z) return cell.value;
@@ -525,6 +535,122 @@ export class DensityFunctionCompiler {
         const id = this.nextCacheId++;
         this.cacheIds.set(node, id);
         return id;
+    }
+
+    /**
+     * Which input coordinates can change a node's result. Unknown or context-backed behavior
+     * stays three-dimensional so a cache is never widened beyond what its function proves.
+     */
+    private domainAxes(node: DensityFunctionNode): number {
+        const cached = this.domainAxesByNode.get(node);
+        if (cached !== undefined) return cached;
+
+        let axes = XYZ_AXES;
+        switch (node.type) {
+            case 'constant':
+                axes = 0;
+                break;
+            case 'blend_alpha':
+            case 'blend_offset':
+                // Java's blender supplies horizontal values; SampleContext documents this contract.
+                axes = XZ_AXES;
+                break;
+            case 'beardifier':
+            case 'blend_density':
+            case 'distance_to_point':
+            case 'old_blended_noise':
+            case 'shift':
+                axes = XYZ_AXES;
+                break;
+            case 'end_outer_islands':
+            case 'shift_a':
+            case 'shift_b':
+                axes = XZ_AXES;
+                break;
+            case 'gradient':
+                axes = node.axis === 'x' ? X_AXIS : node.axis === 'y' ? Y_AXIS : Z_AXIS;
+                break;
+            case 'noise':
+                axes =
+                    (node.xzScale === 0 ? 0 : XZ_AXES) |
+                    (node.yScale === 0 ? 0 : Y_AXIS) |
+                    this.domainAxes(node.shiftX) |
+                    this.domainAxes(node.shiftY) |
+                    this.domainAxes(node.shiftZ);
+                break;
+            case 'cache':
+            case 'abs':
+            case 'cube':
+            case 'half_negative':
+            case 'log':
+            case 'negate':
+            case 'quarter_negative':
+            case 'reciprocal':
+            case 'sign':
+            case 'sqrt':
+            case 'square':
+            case 'squeeze':
+            case 'clamp':
+            case 'interpolated':
+                axes = this.domainAxes(node.input);
+                break;
+            case 'ceil':
+            case 'floor':
+            case 'round':
+            case 'truncate':
+                axes = this.domainAxes(node.input) | this.domainAxes(node.multiple);
+                break;
+            case 'add':
+            case 'div':
+            case 'max':
+            case 'min':
+            case 'mul':
+            case 'sub':
+                axes = this.domainAxes(node.left) | this.domainAxes(node.right);
+                break;
+            case 'find_top_surface':
+                // This operator ignores the caller's y and returns only a height for the x/z column.
+                axes = XZ_AXES;
+                break;
+            case 'interval_select':
+                axes = node.functions.reduce(
+                    (result, entry) => result | this.domainAxes(entry),
+                    this.domainAxes(node.input)
+                );
+                break;
+            case 'lerp':
+                axes = this.domainAxes(node.alpha) | this.domainAxes(node.first) | this.domainAxes(node.second);
+                break;
+            case 'pow':
+                axes = this.domainAxes(node.base) | this.domainAxes(node.exponent);
+                break;
+            case 'range_choice':
+                axes =
+                    this.domainAxes(node.input) |
+                    this.domainAxes(node.whenInRange) |
+                    this.domainAxes(node.whenOutOfRange);
+                break;
+            case 'slice': {
+                const fixedAxis = node.axis === 'x' ? X_AXIS : node.axis === 'y' ? Y_AXIS : Z_AXIS;
+                axes = this.domainAxes(node.input) & ~fixedAxis;
+                break;
+            }
+            case 'spline':
+                axes = this.splineDomainAxes(node.spline);
+                break;
+        }
+
+        this.domainAxesByNode.set(node, axes);
+        return axes;
+    }
+
+    /** Collects coordinate dependencies through the function-valued knots of a spline. */
+    private splineDomainAxes(spline: SplineNode): number {
+        if (spline.kind === 'constant') return 0;
+        return spline.values.reduce(
+            (axes, value) => axes | this.splineDomainAxes(value),
+            this.domainAxes(spline.coordinate)
+        );
     }
 
     private compileSpline(spline: SplineNode): CompiledSpline {

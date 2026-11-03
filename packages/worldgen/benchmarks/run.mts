@@ -21,6 +21,8 @@ interface ArmResult {
     readonly arm: string;
     readonly millisecondsPerChunk: number;
     readonly checksum: number;
+    readonly digest: string;
+    readonly octaveSamplesPerChunk: number;
     readonly cellsPerChunk: number;
 }
 
@@ -49,8 +51,11 @@ try {
     for (const arm of ARMS) {
         const result = best.get(arm);
         if (!result) continue;
-        const cells = `${result.cellsPerChunk} cells`.padStart(12);
-        process.stdout.write(`  ${arm.padEnd(10)} ${result.millisecondsPerChunk.toFixed(2).padStart(8)}${cells}\n`);
+        process.stdout.write(
+            `  ${arm.padEnd(10)} ${result.millisecondsPerChunk.toFixed(2).padStart(8)} ms/chunk, ` +
+                `${result.cellsPerChunk} cells/chunk, ` +
+                `${result.octaveSamplesPerChunk} octave samples/chunk, digest ${result.digest}\n`
+        );
     }
 
     // An arm counts the same blocks every round, so a checksum that moves between rounds means

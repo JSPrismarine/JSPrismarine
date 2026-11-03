@@ -16,6 +16,8 @@ import registryVectors from '../vectors/surface-registries.json' with { type: 'j
 import { CHUNK_SIZE, ChunkSampler } from '../src/chunk/ChunkSampler';
 import { RandomState } from '../src/RandomState';
 import { WorldgenData } from '../src/WorldgenData';
+import type { Noise } from '../src/noise/GradientNoise';
+import { NoiseStack } from '../src/noise/NoiseStack';
 
 /** The arms this file knows how to run. */
 export type BenchmarkArm = 'density' | 'fill' | 'router';
@@ -41,65 +43,152 @@ const data = new WorldgenData({
     noiseSettings: parseDocuments(registryVectors.noiseSettings)
 });
 
-const state = new RandomState(data, 1234n, data.settings('minecraft:overworld'));
-const finalDensity = state.settings.noiseRouter.finalDensity;
+const settings = data.settings('minecraft:overworld');
+const state = new RandomState(data, 1234n, settings);
+const countedState = new RandomState(data, 1234n, settings);
+const octaveSamples = { count: 0 };
+const instrumentedOctaves = new Set<Noise>();
+for (const id of data.noiseIds) {
+    const stack = countedState.noise(id);
+    if (!(stack instanceof NoiseStack)) continue;
+    for (const layer of stack.layers) {
+        const octave = layer.noise;
+        if (instrumentedOctaves.has(octave)) continue;
+        instrumentedOctaves.add(octave);
+        const get3 = octave.get3.bind(octave);
+        const get2 = octave.get2.bind(octave);
+        Object.defineProperty(octave, 'get3', {
+            configurable: true,
+            value: (x: number, y: number, z: number) => {
+                octaveSamples.count++;
+                return get3(x, y, z);
+            }
+        });
+        Object.defineProperty(octave, 'get2', {
+            configurable: true,
+            value: (x: number, z: number) => {
+                octaveSamples.count++;
+                return get2(x, z);
+            }
+        });
+    }
+}
+const finalDensity = settings.noiseRouter.finalDensity;
+
+// The density-only arm walks final_density's lattice even though the router arm compiles
+// chunk_surface_level, whose 16 by 1 cell size must not change the terrain fill.
 
 /** Walks every block of a chunk the way the generator does, and counts what it placed. */
-const fillChunk = (sampler: ChunkSampler): number => {
+const FNV_OFFSET = 2166136261;
+const FNV_PRIME = 16777619;
+const floatBits = new Float32Array(1);
+const floatWords = new Uint32Array(floatBits.buffer);
+
+const hashText = (hash: number, text: string): number => {
+    let result = hash;
+    for (let index = 0; index < text.length; index++) result = Math.imul(result ^ text.charCodeAt(index), FNV_PRIME);
+    return Math.imul(result ^ 0xff, FNV_PRIME) >>> 0;
+};
+
+const hashWord = (hash: number, word: number): number => Math.imul(hash ^ word, FNV_PRIME) >>> 0;
+
+interface WalkResult {
+    readonly count: number;
+    readonly digest: number;
+}
+
+/** Hashes the block output and counts solids while walking the generated cell buffers. */
+const fillChunk = (sampler: ChunkSampler, includeDigest: boolean): WalkResult => {
     let placed = 0;
+    let digest = FNV_OFFSET;
     for (let cell = 0; cell < sampler.cellCount; cell++) {
         sampler.forEachCellBlock(cell, (_x, _y, _z, block) => {
+            if (includeDigest) digest = hashText(digest, block);
             if (block !== 'minecraft:air') placed++;
         });
     }
-    return placed;
+    return { count: placed, digest };
 };
 
 // The interpolation cell the density arm walks, so it crosses a cell boundary as rarely as
 // `forEachCellBlock` does. A column walk refetches eight corners every eight blocks and would
 // charge the density pass for an order the generator stopped using.
-const cell = state.interpolationCellSizeOf(finalDensity) ?? { xz: CHUNK_SIZE, y: 384 };
+const cell = state.interpolationCellSizeOf(finalDensity) ?? { xz: CHUNK_SIZE, y: settings.noiseSettings.height };
 
 /** Reads the density of every block of a chunk, cell by cell, with no aquifer. */
-const fillDensity = (sampler: ChunkSampler): number => {
+const fillDensity = (sampler: ChunkSampler, includeDigest: boolean): WalkResult => {
     const { minBlockX, minBlockY, minBlockZ, maxBlockY } = sampler.volume;
     let solid = 0;
+    let digest = FNV_OFFSET;
     for (let firstZ = minBlockZ; firstZ < minBlockZ + CHUNK_SIZE; firstZ += cell.xz) {
         for (let firstX = minBlockX; firstX < minBlockX + CHUNK_SIZE; firstX += cell.xz) {
             for (let lastY = maxBlockY; lastY >= minBlockY; lastY -= cell.y) {
                 for (let x = firstX; x < firstX + cell.xz; x++) {
                     for (let z = firstZ; z < firstZ + cell.xz; z++) {
                         for (let y = lastY; y > Math.max(minBlockY - 1, lastY - cell.y); y--) {
-                            if (sampler.density(x, y, z) > 0) solid++;
+                            const density = sampler.density(x, y, z);
+                            if (includeDigest) {
+                                floatBits[0] = density;
+                                digest = hashWord(digest, floatWords[0] ?? 0);
+                            }
+                            if (density > 0) solid++;
                         }
                     }
                 }
             }
         }
     }
-    return solid;
+    return { count: solid, digest };
 };
 
 const run = (
     arm: BenchmarkArm
-): { arm: BenchmarkArm; millisecondsPerChunk: number; checksum: number; cellsPerChunk: number } => {
+): {
+    arm: BenchmarkArm;
+    millisecondsPerChunk: number;
+    checksum: number;
+    digest: string;
+    octaveSamplesPerChunk: number;
+    cellsPerChunk: number;
+} => {
     const walk = arm === 'density' ? fillDensity : fillChunk;
-    // Compile every slot before anything is measured. The surface pass's `chunk_surface_level`
-    // has a 16 by 1 cell, and the state's overall cell shrinks once it compiles.
-    if (arm === 'router') for (const slot of Object.values(state.settings.noiseRouter)) state.sampler(slot);
+    // Compile every slot before anything is measured in the router arm. This matches a running
+    // server after the surface pass compiled `chunk_surface_level`.
+    if (arm === 'router') {
+        for (const slot of Object.values(settings.noiseRouter)) state.sampler(slot);
+        for (const slot of Object.values(settings.noiseRouter)) countedState.sampler(slot);
+    }
 
     let checksum = 0;
+    let digest = FNV_OFFSET;
+    let cellsPerChunk = 0;
     let best = Number.POSITIVE_INFINITY;
     for (let round = 0; round < WARMUPS + REPETITIONS; round++) {
         const started = performance.now();
         for (const [chunkX, chunkZ] of CHUNKS) {
-            checksum += walk(new ChunkSampler(state, { chunkX, chunkZ }));
+            const sampler = new ChunkSampler(state, { chunkX, chunkZ });
+            cellsPerChunk = sampler.cellCount;
+            const result = walk(sampler, false);
+            checksum += result.count;
         }
         const elapsed = (performance.now() - started) / CHUNKS.length;
         if (round >= WARMUPS) best = Math.min(best, elapsed);
     }
-    const cellsPerChunk = new ChunkSampler(state, { chunkX: CHUNKS[0][0], chunkZ: CHUNKS[0][1] }).cellCount;
-    return { arm, millisecondsPerChunk: best, checksum, cellsPerChunk };
+
+    // Keep the digest and octave counter out of the timed passes so instrumentation does not hide
+    // the cache's throughput change.
+    for (const [chunkX, chunkZ] of CHUNKS) {
+        const sampler = new ChunkSampler(countedState, { chunkX, chunkZ });
+        digest = hashWord(digest, walk(sampler, true).digest);
+    }
+    return {
+        arm,
+        millisecondsPerChunk: best,
+        checksum,
+        digest: digest.toString(16).padStart(8, '0'),
+        octaveSamplesPerChunk: octaveSamples.count / CHUNKS.length,
+        cellsPerChunk
+    };
 };
 
 const requested = ARMS.find((arm) => arm === process.argv[2]);

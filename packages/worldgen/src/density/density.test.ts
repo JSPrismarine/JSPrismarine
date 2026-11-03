@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
+import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import { expectedFloat, vectors } from '../../vectors/vectors';
 import { f32, lerp3F } from '../math';
 import type { Noise } from '../noise/GradientNoise';
 import { LegacyRandomSource } from '../random/LegacyRandomSource';
+import { RandomState } from '../RandomState';
+import { WorldgenData } from '../WorldgenData';
 import type { CompileEnvironment } from './compile';
 import { DensityFunctionCompiler } from './compile';
 import { DENSITY_FUNCTION_TYPES } from './DensityFunction';
+import type { DensityFunctionNode } from './DensityFunction';
 import { parseDensityFunction } from './parse';
 import { SampleContext } from './SampleContext';
 
@@ -48,6 +53,16 @@ const harness = (json: unknown, environment?: Partial<CompileEnvironment>): Harn
     const context = new SampleContext();
     return { sample: (x, y, z) => sampler(context, x, y, z), context, noiseCalls: () => noiseCalls };
 };
+
+/** Parses the pinned Java registry documents at the JSON boundary. */
+const parseDocuments = (source: Record<string, string>): Map<string, unknown> =>
+    new Map(Object.entries(source).map(([id, document]) => [id, JSON.parse(document) as unknown]));
+
+const vanillaData = new WorldgenData({
+    densityFunctions: parseDocuments(registryVectors.densityFunctions),
+    noises: parseDocuments(registryVectors.noises),
+    noiseSettings: parseDocuments(registryVectors.noiseSettings)
+});
 
 const at = (json: unknown, x = 0, y = 0, z = 0): number => harness(json).sample(x, y, z);
 
@@ -528,6 +543,60 @@ describe('caching', () => {
         run.context.reset();
         run.sample(1, 2, 3);
         expect(run.noiseCalls()).toBe(2);
+    });
+
+    it('shares y-independent values across a column and checks exact xz keys', () => {
+        const input = { type: 'minecraft:noise', noise: 'minecraft:test', xz_scale: 1, y_scale: 0 };
+        const cached = harness({ type: 'minecraft:cache', input });
+        const uncached = harness(input);
+
+        for (const y of [-64, 0, 19, 319]) {
+            expect(cached.sample(9, y, -12)).toBe(uncached.sample(9, y, -12));
+        }
+        expect(cached.noiseCalls()).toBe(1);
+
+        // These x coordinates collide in the 32-wide table, so the exact key must prevent reuse.
+        expect(cached.sample(41, 17, -12)).toBe(uncached.sample(41, 17, -12));
+        expect(cached.sample(9, -31, -12)).toBe(uncached.sample(9, -31, -12));
+        const wideX = 2 ** 32 + 9;
+        expect(cached.sample(wideX, 6, -12)).toBe(uncached.sample(wideX, 6, -12));
+        expect(cached.sample(9, 21, -12)).toBe(uncached.sample(9, 21, -12));
+        expect(cached.noiseCalls()).toBe(5);
+
+        cached.context.reset();
+        cached.sample(9, 22, -12);
+        expect(cached.noiseCalls()).toBe(6);
+    });
+
+    it('keeps y-dependent cache inputs scoped to the full position', () => {
+        const run = harness({
+            type: 'minecraft:cache',
+            input: { type: 'minecraft:noise', noise: 'minecraft:test', xz_scale: 1, y_scale: 1 }
+        });
+
+        run.sample(9, 0, -12);
+        run.sample(9, 1, -12);
+
+        expect(run.noiseCalls()).toBe(2);
+    });
+
+    it('matches Java for y-independent cache nodes across several heights', () => {
+        const settings = vanillaData.settings('minecraft:overworld');
+        const state = new RandomState(vanillaData, BigInt(vectors.density.seed), settings);
+        const nodes = new Map<string, DensityFunctionNode>([
+            ['continents', settings.noiseRouter.continents],
+            ['erosion', settings.noiseRouter.erosion],
+            ['ridges', settings.noiseRouter.ridges]
+        ]);
+
+        for (const sample of vectors.density.yIndependentColumns) {
+            const node = nodes.get(sample.function);
+            if (!node) throw new Error(`missing Java y-independent density node ${sample.function}`);
+            const actual = sample.heights.map((y) => state.sampleUncached(node, sample.x, y, sample.z));
+
+            expect(actual).toEqual(sample.values.map(expectedFloat));
+            expect(new Set(actual).size).toBe(1);
+        }
     });
 });
 
