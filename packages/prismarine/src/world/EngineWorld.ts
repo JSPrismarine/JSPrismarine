@@ -11,12 +11,12 @@
  * allowed to know that two editions exist.
  */
 import { containerSignal } from '@jsprismarine/block-behaviors';
-import { redstoneConductivity } from '@jsprismarine/blocks';
-import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
+import { bedrockBlockStates } from '@jsprismarine/mapping';
 import type { BlockPosition, BlockRef, ExplosionWorld } from '@jsprismarine/engine-systems';
 import { AIR } from '@jsprismarine/engine-systems';
 
 import { worldBlockEntities } from './contentAdapter';
+import { createEngineBlockCache } from './EngineBlockCache';
 import { maxY } from './Dimension';
 import { takesRandomTicks } from './randomTickSections';
 import type { World } from './World';
@@ -41,25 +41,13 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
      * its contents each time.
      */
     const blockEntities = worldBlockEntities(() => world);
+    const blockCache = createEngineBlockCache(() => world.getServer().getContent());
 
     const dimension = world.getDimension();
 
     const readBlock = (at: BlockPosition): BlockRef => {
-        const block = world.loadedBlockAt(at.x, at.y, at.z);
-        if (block === undefined) return AIR;
-
-        const conductivity = world
-            .getServer()
-            .getContent()
-            .blocks.types.get(block.name)
-            ?.state(block.states)
-            .content.params(redstoneConductivity);
-
-        return {
-            name: block.name,
-            states: javaBlockStates(block.name, block.states),
-            ...(conductivity === undefined ? {} : { redstoneConductor: conductivity.redstoneConductor })
-        };
+        const runtimeId = world.loadedBlockRuntimeIdAt(at.x, at.y, at.z);
+        return runtimeId === undefined ? AIR : blockCache.get(runtimeId).block;
     };
 
     /**
@@ -76,10 +64,14 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
 
     return {
         getBlock: readBlock,
+        // Keep the position filter for existing callers while random ticks use the cached runtime-id path.
         isRandomlyTicking: (at) => {
             const runtimeId = world.loadedBlockRuntimeIdAt(at.x, at.y, at.z);
             return runtimeId !== undefined && takesRandomTicks(runtimeId);
         },
+        getBlockRuntimeId: (at) => world.loadedBlockRuntimeIdAt(at.x, at.y, at.z),
+        getBlockByRuntimeId: (runtimeId) => blockCache.get(runtimeId).block,
+        isRandomlyTickingRuntimeId: (runtimeId) => blockCache.get(runtimeId).randomTicking,
         setBlock: writeBlock,
 
         /**

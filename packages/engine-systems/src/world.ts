@@ -157,6 +157,12 @@ export type TickKind = 'block' | 'fluid';
 export interface WorldAccess {
     /** The block at one position. Outside the loaded world, return air. */
     getBlock(at: BlockPosition): BlockRef;
+    /** The runtime id at one position, or undefined when the host has no loaded block there. */
+    getBlockRuntimeId?(at: BlockPosition): number | undefined;
+    /** Resolve a runtime id without first looking up its position. */
+    getBlockByRuntimeId?(runtimeId: number): BlockRef;
+    /** Whether a runtime id receives random ticks, using the host's palette-state facts. */
+    isRandomlyTickingRuntimeId?(runtimeId: number): boolean;
     /**
      * Whether the stored block state at one position receives random ticks.
      * Hosts that translate state names for engine behavior can answer from their native state.

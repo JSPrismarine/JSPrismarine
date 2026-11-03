@@ -19,7 +19,7 @@
  */
 
 import { isRandomlyTicking } from './blockRules';
-import type { BlockPosition, WorldAccess } from './world';
+import type { BlockPosition, BlockRef, WorldAccess } from './world';
 
 /** Java's `random_tick_speed` default, read from the game rule registry. */
 export const DEFAULT_RANDOM_TICK_SPEED = 3;
@@ -98,7 +98,7 @@ export const drawSectionPositions = (
  * @param world - The world to read.
  * @param positions - The draw source.
  * @param sections - The randomly ticking sections of one chunk.
- * @param run - Called for each drawn position whose block takes random ticks.
+ * @param run - Called for each drawn position whose block takes random ticks, with its resolved block.
  * @param tickSpeed - `random_tick_speed`, Java's 3 by default.
  * @returns How many positions reached `run`.
  */
@@ -106,17 +106,35 @@ export const runRandomTicks = (
     world: WorldAccess,
     positions: BlockRandomPositions,
     sections: readonly SectionOrigin[],
-    run: (at: BlockPosition) => void,
+    run: (at: BlockPosition, block: BlockRef) => void,
     tickSpeed: number = DEFAULT_RANDOM_TICK_SPEED
 ): number => {
     if (tickSpeed <= 0) return 0;
     let ticked = 0;
+    const runtimeIdAt = world.getBlockRuntimeId;
+    const blockByRuntimeId = world.getBlockByRuntimeId;
+    const runtimeIdTakesRandomTicks = world.isRandomlyTickingRuntimeId;
     for (const section of sections) {
         for (const at of drawSectionPositions(positions, section, tickSpeed)) {
-            const takesTick = world.isRandomlyTicking?.(at) ?? isRandomlyTicking(world.getBlock(at));
-            if (!takesTick) continue;
+            let block: BlockRef;
+            if (
+                runtimeIdAt !== undefined &&
+                blockByRuntimeId !== undefined &&
+                runtimeIdTakesRandomTicks !== undefined
+            ) {
+                const runtimeId = runtimeIdAt.call(world, at);
+                if (runtimeId === undefined || !runtimeIdTakesRandomTicks.call(world, runtimeId)) continue;
+                block = blockByRuntimeId.call(world, runtimeId);
+            } else {
+                // Keep hosts' native palette filter so non-ticking blocks skip block conversion.
+                const takesTick = world.isRandomlyTicking?.(at);
+                if (takesTick === false) continue;
+                block = world.getBlock(at);
+                if (takesTick === undefined && !isRandomlyTicking(block)) continue;
+            }
             ticked++;
-            run(at);
+            // The filter already resolved this state; dispatching it avoids a second chunk read.
+            run(at, block);
         }
     }
     return ticked;

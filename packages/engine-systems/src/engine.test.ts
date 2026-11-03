@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { BlockRandomPositions } from './randomTick';
 import { createEngine } from './engine';
 import { createTestWorld } from './testWorld';
 import type { BlockPosition, WorldAccess } from './world';
@@ -58,5 +59,34 @@ describe('createEngine redstone updates', () => {
             { position: { x: 1, y: 0, z: 0 }, power: 15 },
             { position: origin, power: 0 }
         ]);
+    });
+});
+
+describe('createEngine', () => {
+    it('passes the filtered block to its random tick handler without reading it again', () => {
+        const world = createTestWorld();
+        const lava = block('minecraft:lava');
+        world.place({ x: 7, y: 11, z: 12 }, lava);
+        let reads = 0;
+        let handled: typeof lava | undefined;
+        const access = {
+            ...world,
+            getBlock(at: { x: number; y: number; z: number }) {
+                reads += 1;
+                return world.getBlock(at);
+            }
+        };
+        const engine = createEngine(access, {
+            randomTickHandlers: {
+                'minecraft:lava': (_at, activeBlock) => {
+                    handled = activeBlock;
+                }
+            }
+        });
+
+        engine.runRandomTicks(new BlockRandomPositions(), [{ x: 0, y: 0, z: 0 }]);
+
+        expect(handled).toBe(lava);
+        expect(reads).toBe(3);
     });
 });

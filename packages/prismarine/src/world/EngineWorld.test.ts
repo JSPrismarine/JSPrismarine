@@ -304,6 +304,28 @@ describe('world', () => {
         });
 
         describe('random ticks', () => {
+            it('filters pitcher crops by their Bedrock lower-half state', async () => {
+                let ticked = 0;
+                const world = await flatWorld({ 'minecraft:pitcher_crop': () => (ticked += 1) });
+
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++)
+                        place(
+                            world,
+                            x,
+                            GROUND + 1,
+                            z,
+                            named('minecraft:pitcher_crop', { growth: 0, upper_block_bit: 0 })
+                        );
+                }
+
+                setRandomTickSpeed(world, 50);
+                standInPlayer(world);
+                await runTicks(world, 3);
+
+                expect(ticked).toBeGreaterThan(0);
+            });
+
             it('grows the crop a random tick landed on', async () => {
                 const grown: string[] = [];
                 const world = await flatWorld({

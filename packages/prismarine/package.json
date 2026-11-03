@@ -96,6 +96,7 @@
         "bench:inbound-packets": "node --import tsx benchmarks/inboundPacketRecording.bench.ts",
         "bench:recipes": "node benchmarks/run.mjs benchmarks/recipes.bench.ts",
         "bench:breeding-navigation": "node benchmarks/run.mjs benchmarks/breedingNavigation.bench.ts",
+        "bench:random-ticks": "node --import tsx benchmarks/randomTicks.bench.ts",
         "bench:trends": "node benchmarks/trends.mjs",
         "bench:storage": "node benchmarks/run.mjs benchmarks/blockStorage.bench.ts",
         "bench:feature-worker": "node --expose-gc benchmarks/run.mjs benchmarks/featureWorker.bench.ts",

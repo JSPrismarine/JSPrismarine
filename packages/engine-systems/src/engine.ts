@@ -104,8 +104,7 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
                 world,
                 positions,
                 sections,
-                (at) => {
-                    const block = world.getBlock(at);
+                (at, block) => {
                     const handler = randomTickHandlers[block.name];
                     if (handler !== undefined) handler(at, block);
                 },
