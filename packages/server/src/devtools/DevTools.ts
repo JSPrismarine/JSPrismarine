@@ -1,4 +1,3 @@
-import * as inspector from 'node:inspector';
 import type { LogLevel, LogRecord, LogTransport } from '@jsprismarine/logger';
 
 const FRONTEND_URL =
@@ -31,6 +30,19 @@ export const createDevToolsFrontendUrl = (endpointUrl: string): string => {
     return frontend.href;
 };
 
+/**
+ * Loads `node:inspector` when DevTools is actually used.
+ *
+ * A static import would pull the inspector into every build, including ahead-of-time builds
+ * that embed no V8 to inspect, so the module is looked up at runtime instead.
+ */
+const loadInspector = () => {
+    const inspector = process.getBuiltinModule('node:inspector');
+    if (inspector === undefined)
+        throw new Error('DevTools needs the Node inspector, which this build does not include');
+    return inspector;
+};
+
 const consoleMethod = (level: LogLevel): 'debug' | 'error' | 'info' | 'log' | 'warn' => {
     switch (level) {
         case 'error':
@@ -56,7 +68,7 @@ export const createDevToolsLogTransport = (): LogTransport => ({
         const namespace = record.namespace ? ` [${record.namespace}]` : '';
         const message = record.message.replaceAll(/§[\da-fk-or]/gi, '');
         try {
-            inspector.console[consoleMethod(record.level)](
+            loadInspector().console[consoleMethod(record.level)](
                 `[${record.timestamp}] [${record.level.toUpperCase()}]${namespace}: ${message}`
             );
         } catch {
@@ -75,6 +87,7 @@ export const createDevToolsLogTransport = (): LogTransport => ({
  * @returns The inspector endpoint and matching frontend URL.
  */
 export const openDevTools = (): DevToolsSession => {
+    const inspector = loadInspector();
     const existingUrl = inspector.url();
     const handle = existingUrl === undefined ? inspector.open(0, '127.0.0.1') : undefined;
     const endpoint = inspector.url();
