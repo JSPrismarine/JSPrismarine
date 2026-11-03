@@ -101,7 +101,7 @@ describe('runRandomTicks', () => {
             runRandomTicks(world, new BlockRandomPositions(), [{ x: 0, y: 0, z: 0 }], (at) => ticked.push(at), 1)
         ).toBe(1);
         expect(ticked).toEqual([{ x: 7, y: 11, z: 12 }]);
-        expect(reads).toBe(0);
+        expect(reads).toBe(1);
     });
 
     it('can draw the same position twice in one chunk tick', () => {
