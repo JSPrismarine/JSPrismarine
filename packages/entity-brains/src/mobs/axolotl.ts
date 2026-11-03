@@ -3,7 +3,7 @@
 import { Activities } from '../activity.js';
 import type { ActivityData } from '../brain.js';
 import { activityData, Brain, prioritized } from '../brain.js';
-import { countDownCooldownTicks, triggerIf } from '../behavior/builder.js';
+import { behavior, countDownCooldownTicks, triggerIf } from '../behavior/builder.js';
 import {
     animalMakeLove,
     babyFollowAdult,
@@ -138,26 +138,51 @@ function canSetWalkTargetFromLookTarget(body: BrainMob, context: BrainContext): 
 
 /** Java's `TryFindLiquid`: walks to the nearest water within six blocks when out of it. */
 function tryFindWater() {
-    return triggerIf('TryFindLiquid', (body, context) => {
-        if (inWater(body)) {
-            return false;
-        }
-        const water = context.world.findBlock(
-            blockContaining(body.position),
-            6,
-            6,
-            (block) => block === 'minecraft:water'
-        );
-        if (water === undefined) {
-            return false;
-        }
-        body.brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
-            target: blockPosTracker(water),
-            speedModifier: AXOLOTL.speedOnLand,
-            closeEnoughDist: 0
+    let nextSearchAt = 0;
+    return behavior('TryFindLiquid')
+        .absent(MemoryModuleTypes.ATTACK_TARGET)
+        .absent(MemoryModuleTypes.WALK_TARGET)
+        .registered(MemoryModuleTypes.LOOK_TARGET)
+        .build((context, _attackTarget, walkTarget, lookTarget) => {
+            const center = blockContaining(context.body.position);
+            if (context.world.isWaterAt(center)) return false;
+
+            const now = context.world.gameTime();
+            if (now < nextSearchAt) return true;
+
+            let fallback: typeof center | undefined;
+            const water = context.world.findBlock(
+                center,
+                6,
+                6,
+                (block, _tags, position) => {
+                    if ((position.x === center.x && position.z === center.z) || block !== 'minecraft:water') {
+                        return false;
+                    }
+
+                    const above = context.world.blockAt({ ...position, y: position.y + 1 });
+                    if (above === 'minecraft:air' || above === 'minecraft:cave_air' || above === 'minecraft:void_air') {
+                        return true;
+                    }
+
+                    // Java keeps a distant water fallback while continuing to seek a cell with air above it.
+                    const dx = position.x + 0.5 - context.body.position.x;
+                    const dy = position.y + 0.5 - context.body.position.y;
+                    const dz = position.z + 0.5 - context.body.position.z;
+                    if (fallback === undefined && dx * dx + dy * dy + dz * dz >= 2.25) fallback = position;
+                    return false;
+                },
+                'manhattan'
+            );
+            nextSearchAt = now + 40;
+            const targetPosition = water ?? fallback;
+            if (targetPosition !== undefined) {
+                const target = blockPosTracker(targetPosition);
+                lookTarget.set(target);
+                walkTarget.set({ target, speedModifier: AXOLOTL.speedOnLand, closeEnoughDist: 0 });
+            }
+            return true;
         });
-        return true;
-    });
 }
 
 function fightActivity(): ActivityData {

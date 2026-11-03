@@ -1252,6 +1252,9 @@ importers:
       '@jsprismarine/entities':
         specifier: workspace:*
         version: link:../entities
+      '@jsprismarine/entity-brains':
+        specifier: workspace:*
+        version: link:../entity-brains
       '@jsprismarine/features':
         specifier: workspace:*
         version: link:../features

@@ -261,6 +261,8 @@ export interface BrainWorld {
     isWithinMeleeRange(body: BrainEntity, target: BrainEntity): boolean;
     /** The block id at a position, such as `minecraft:note_block`. */
     blockAt(pos: BlockPos): string;
+    /** Whether the block at a position has Java's water fluid tag. */
+    isWaterAt(pos: BlockPos): boolean;
     /** Every block tag at a position, such as `minecraft:piglin_repellents`. */
     blockTagsAt(pos: BlockPos): ReadonlySet<string>;
     /**
@@ -271,8 +273,11 @@ export interface BrainWorld {
         center: BlockPos,
         xzRange: number,
         yRange: number,
-        test: (block: string, tags: ReadonlySet<string>) => boolean
+        test: (block: string, tags: ReadonlySet<string>, position: BlockPos) => boolean,
+        ordering?: 'manhattan'
     ): BlockPos | undefined;
+    /** Whether Java would accept this position as a dry place to stand. */
+    canStandAt(position: BlockPos): boolean;
     /** A reachable position matching the request, or `undefined` when the draw found none. */
     randomPos(body: BrainEntity, request: RandomPosRequest): Vec3 | undefined;
     /** Java's `PoiManager::findAll`: points of interest of a type within `radius` of `center`. */
@@ -314,6 +319,37 @@ export function distanceSquared(a: Vec3, b: Vec3): number {
 /** Java's `BlockPos::distManhattan`, which is what decides a walk target is close enough. */
 export function distanceManhattan(a: BlockPos, b: BlockPos): number {
     return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z);
+}
+
+/**
+ * Java's `BlockPos.withinBoxByManhattanDistance` position order.
+ *
+ * Each Manhattan shell visits x from negative to positive, then y from negative
+ * to positive, and z positive before its negative mirror. Callers can stop the
+ * iterator at the first matching block without allocating the whole search box.
+ *
+ * @param center - The block at the center of the search.
+ * @param xzRange - The horizontal extent in both x and z.
+ * @param yRange - The vertical extent.
+ */
+export function* blockPositionsInManhattanOrder(
+    center: BlockPos,
+    xzRange: number,
+    yRange: number
+): Generator<BlockPos> {
+    const maxDepth = xzRange * 2 + yRange;
+    for (let depth = 0; depth <= maxDepth; depth += 1) {
+        const maxX = Math.min(xzRange, depth);
+        for (let dx = -maxX; dx <= maxX; dx += 1) {
+            const maxY = Math.min(yRange, depth - Math.abs(dx));
+            for (let dy = -maxY; dy <= maxY; dy += 1) {
+                const dz = depth - Math.abs(dx) - Math.abs(dy);
+                if (dz > xzRange) continue;
+                yield { x: center.x + dx, y: center.y + dy, z: center.z + dz };
+                if (dz > 0) yield { x: center.x + dx, y: center.y + dy, z: center.z - dz };
+            }
+        }
+    }
 }
 
 /** Java's `BlockPos.containing`: the block a position falls inside. */

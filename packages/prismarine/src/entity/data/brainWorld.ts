@@ -17,7 +17,7 @@ import type {
     PoiRecord,
     Vec3
 } from '@jsprismarine/entity-brains';
-import { blockContaining, distanceSquared } from '@jsprismarine/entity-brains';
+import { blockContaining, blockPositionsInManhattanOrder, distanceSquared } from '@jsprismarine/entity-brains';
 import type { Brain } from '@jsprismarine/entity-brains';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
@@ -239,13 +239,19 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
             distanceSquared(body.position, target.position) <= SIGHT_RANGE_SQUARED,
         isWithinMeleeRange: (body, target) => withinMeleeReach(body.position, target.position),
         blockAt: (pos) => scene.world.blocks.get(pos)?.identifier ?? 'minecraft:air',
+        isWaterAt: (pos) => scene.navigation().isWater(pos),
+        canStandAt: (position) => {
+            const navigation = scene.navigation();
+            if (navigation.isWater(position) || navigation.isLava(position)) return false;
+            return navigation.isPassable(position) && navigation.isSolid({ ...position, y: position.y - 1 });
+        },
         blockTagsAt: (pos) => {
             const identifier = scene.world.blocks.get(pos)?.identifier;
             if (identifier === undefined) return new Set();
             const tags = scene.content().tags;
             return contentTagsFor('block', identifier, tags);
         },
-        findBlock: (center, xzRange, yRange, test) => {
+        findBlock: (center, xzRange, yRange, test, ordering) => {
             const tags = scene.content().tags;
             const tagsByBlock = new Map<string, ReadonlySet<string>>();
             const blockTagsFor = (identifier: string): ReadonlySet<string> => {
@@ -257,13 +263,23 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
                 return resolved;
             };
 
+            const matches = (position: typeof center): boolean => {
+                const block = scene.world.blocks.get(position);
+                return block !== undefined && test(block.identifier, blockTagsFor(block.identifier), position);
+            };
+
+            if (ordering === 'manhattan') {
+                for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {
+                    if (matches(position)) return position;
+                }
+                return undefined;
+            }
+
             for (let dy = -yRange; dy <= yRange; dy += 1) {
                 for (let dx = -xzRange; dx <= xzRange; dx += 1) {
                     for (let dz = -xzRange; dz <= xzRange; dz += 1) {
                         const pos = { x: center.x + dx, y: center.y + dy, z: center.z + dz };
-                        const block = scene.world.blocks.get(pos);
-                        if (block === undefined) continue;
-                        if (test(block.identifier, blockTagsFor(block.identifier))) return pos;
+                        if (matches(pos)) return pos;
                     }
                 }
             }

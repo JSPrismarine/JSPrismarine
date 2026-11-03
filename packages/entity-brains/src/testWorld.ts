@@ -30,7 +30,7 @@ import type {
     VillagerRaidEffect,
     VillagerRaidState
 } from './world.js';
-import { blockContaining, distanceSquared } from './world.js';
+import { blockContaining, blockPositionsInManhattanOrder, distanceSquared } from './world.js';
 
 /** What a test says about an entity it places. */
 export interface TestEntityOptions {
@@ -403,6 +403,12 @@ export class TestWorld implements BrainWorld {
         return this.blocks.get(key(pos)) ?? 'minecraft:air';
     }
 
+    /** Whether the block at a position carries Java's water fluid tag. */
+    public isWaterAt(pos: BlockPos): boolean {
+        const block = this.blockAt(pos);
+        return block === 'minecraft:water' || block === 'minecraft:flowing_water';
+    }
+
     /** The tags a test placed at the position, or an empty set. */
     public blockTagsAt(pos: BlockPos): ReadonlySet<string> {
         return this.blockTags.get(key(pos)) ?? new Set();
@@ -413,8 +419,17 @@ export class TestWorld implements BrainWorld {
         center: BlockPos,
         xzRange: number,
         yRange: number,
-        test: (block: string, tags: ReadonlySet<string>) => boolean
+        test: (block: string, tags: ReadonlySet<string>, position: BlockPos) => boolean,
+        ordering?: 'manhattan'
     ): BlockPos | undefined {
+        if (ordering === 'manhattan') {
+            for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {
+                const block = this.blocks.get(key(position));
+                if (block !== undefined && test(block, this.blockTagsAt(position), position)) return position;
+            }
+            return undefined;
+        }
+
         const found: BlockPos[] = [];
         for (const [coords, block] of this.blocks) {
             const pos = parseKey(coords);
@@ -425,7 +440,7 @@ export class TestWorld implements BrainWorld {
             ) {
                 continue;
             }
-            if (test(block, this.blockTagsAt(pos))) {
+            if (test(block, this.blockTagsAt(pos), pos)) {
                 found.push(pos);
             }
         }
@@ -437,6 +452,22 @@ export class TestWorld implements BrainWorld {
                 (Math.abs(b.x - center.x) + Math.abs(b.y - center.y) + Math.abs(b.z - center.z))
         );
         return found[0];
+    }
+
+    /** Treats air over a placed block as an empty, supported standing position. */
+    public canStandAt(position: BlockPos): boolean {
+        const block = this.blockAt(position);
+        if (
+            block === 'minecraft:water' ||
+            block === 'minecraft:flowing_water' ||
+            block === 'minecraft:lava' ||
+            block === 'minecraft:flowing_lava'
+        ) {
+            return false;
+        }
+        if (block !== 'minecraft:air' && block !== 'minecraft:cave_air' && block !== 'minecraft:void_air') return false;
+        const below = this.blockAt({ ...position, y: position.y - 1 });
+        return below !== 'minecraft:air' && below !== 'minecraft:cave_air' && below !== 'minecraft:void_air';
     }
 
     /** The position a test parked in `nextRandomPos`, so a wander target is a fact of the test. */

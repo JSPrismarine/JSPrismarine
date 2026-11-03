@@ -6,7 +6,7 @@
  * from the pinned 26.3 server jar.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Activities } from '../activity.js';
 import type { Brain } from '../brain.js';
@@ -15,7 +15,7 @@ import type { BrainMobDefinition, BrainMobOptions } from '../registry.js';
 import type { TestEntityOptions, TestMob } from '../testWorld.js';
 import { TestWorld } from '../testWorld.js';
 import type { BrainEntity, Vec3 } from '../world.js';
-import { EntityCondition } from '../world.js';
+import { blockPosTracker, EntityCondition } from '../world.js';
 
 import { ALLAY } from './allay.js';
 import { ARMADILLO } from './armadillo.js';
@@ -141,6 +141,113 @@ describe('the armadillo', () => {
 });
 
 describe('the axolotl', () => {
+    it('searches water in Java Manhattan order and writes both target memories', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(AXOLOTL_BRAIN, {
+            world,
+            entity: { conditions: [EntityCondition.ON_GROUND] }
+        });
+        world.setBlock({ x: -1, y: 64, z: 0 }, 'minecraft:water');
+        world.setBlock({ x: 1, y: 64, z: 0 }, 'minecraft:water');
+
+        AXOLOTL_BRAIN.updateActivity(body.context);
+        body.tickBrain();
+
+        expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+            x: -1,
+            y: 64,
+            z: 0
+        });
+        expect(brain.getMemory(MemoryModuleTypes.LOOK_TARGET)?.currentBlockPosition()).toEqual({
+            x: -1,
+            y: 64,
+            z: 0
+        });
+    });
+
+    it('prefers water with air above, then falls back to distant covered water', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(AXOLOTL_BRAIN, { world });
+        world.setBlock({ x: -3, y: 64, z: 0 }, 'minecraft:water');
+        world.setBlock({ x: -3, y: 65, z: 0 }, 'minecraft:stone');
+        world.setBlock({ x: 4, y: 64, z: 0 }, 'minecraft:water');
+
+        AXOLOTL_BRAIN.updateActivity(body.context);
+        body.tickBrain();
+
+        expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+            x: 4,
+            y: 64,
+            z: 0
+        });
+    });
+
+    it('uses distant covered water only when no water has air above', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(AXOLOTL_BRAIN, { world });
+        world.setBlock({ x: -3, y: 64, z: 0 }, 'minecraft:water');
+        world.setBlock({ x: -3, y: 65, z: 0 }, 'minecraft:stone');
+
+        AXOLOTL_BRAIN.updateActivity(body.context);
+        body.tickBrain();
+
+        expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+            x: -3,
+            y: 64,
+            z: 0
+        });
+    });
+
+    it('does not search for water with an attack target or an existing walk target', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(AXOLOTL_BRAIN, { world });
+        AXOLOTL_BRAIN.updateActivity(body.context);
+        const findBlock = vi.spyOn(world, 'findBlock');
+
+        brain.setMemory(MemoryModuleTypes.ATTACK_TARGET, world.place('minecraft:cod', { x: 2, y: 64, z: 0 }));
+        body.tickBrain();
+        expect(findBlock).not.toHaveBeenCalled();
+
+        brain.eraseMemory(MemoryModuleTypes.ATTACK_TARGET);
+        brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+            target: blockPosTracker({ x: 20, y: 64, z: 0 }),
+            speedModifier: 1,
+            closeEnoughDist: 0
+        });
+        body.tickBrain();
+        expect(findBlock).not.toHaveBeenCalled();
+    });
+
+    it('searches for water no more than once every 40 ticks', () => {
+        const world = new TestWorld();
+        const { body } = spawn(AXOLOTL_BRAIN, { world });
+        const findBlock = vi.spyOn(world, 'findBlock');
+
+        const tick = () => {
+            AXOLOTL_BRAIN.updateActivity(body.context);
+            body.tickBrain();
+            world.advance();
+        };
+        tick();
+        for (let elapsed = 1; elapsed < 40; elapsed += 1) tick();
+        expect(findBlock).toHaveBeenCalledTimes(1);
+
+        tick();
+        expect(findBlock).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not search when its current block carries the water fluid tag', () => {
+        const world = new TestWorld();
+        const { body } = spawn(AXOLOTL_BRAIN, { world });
+        world.setBlock({ x: 0, y: 64, z: 0 }, 'minecraft:water');
+        const findBlock = vi.spyOn(world, 'findBlock');
+
+        AXOLOTL_BRAIN.updateActivity(body.context);
+        body.tickBrain();
+
+        expect(findBlock).not.toHaveBeenCalled();
+    });
+
     it('fights a submerged hunt target, and holds the 2400-tick hunting cooldown afterwards', () => {
         const world = new TestWorld();
         const { body, brain } = spawn(AXOLOTL_BRAIN, {
@@ -242,6 +349,94 @@ describe('the creaking', () => {
 });
 
 describe('the frog', () => {
+    it('does not search for dry land while already on land', () => {
+        const world = new TestWorld();
+        const { body } = spawn(FROG_BRAIN, { world });
+        const findBlock = vi.spyOn(world, 'findBlock');
+
+        FROG_BRAIN.updateActivity(body.context);
+        body.tickBrain();
+
+        expect(findBlock).not.toHaveBeenCalled();
+    });
+
+    it('searches dry standing positions in Java Manhattan order and writes both target memories', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(FROG_BRAIN, {
+            world,
+            entity: { conditions: [EntityCondition.IN_WATER] }
+        });
+        brain.setMemory(MemoryModuleTypes.IS_IN_WATER, UNIT);
+        world.setBlock({ x: 0, y: 64, z: 0 }, 'minecraft:water');
+        for (const x of [-1, 1]) {
+            world.setBlock({ x, y: 64, z: 0 }, 'minecraft:air');
+            world.setBlock({ x, y: 63, z: 0 }, 'minecraft:stone');
+        }
+
+        FROG_BRAIN.updateActivity(body.context);
+        body.tickBrain();
+
+        expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+            x: -1,
+            y: 64,
+            z: 0
+        });
+        expect(brain.getMemory(MemoryModuleTypes.LOOK_TARGET)?.currentBlockPosition()).toEqual({
+            x: -1,
+            y: 64,
+            z: 0
+        });
+        expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.closeEnoughDist).toBe(1);
+    });
+
+    it('does not search for land with an attack target or an existing walk target', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(FROG_BRAIN, {
+            world,
+            entity: { conditions: [EntityCondition.IN_WATER] }
+        });
+        brain.setMemory(MemoryModuleTypes.IS_IN_WATER, UNIT);
+        world.setBlock({ x: 0, y: 64, z: 0 }, 'minecraft:water');
+        FROG_BRAIN.updateActivity(body.context);
+        const findBlock = vi.spyOn(world, 'findBlock');
+
+        brain.setMemory(MemoryModuleTypes.ATTACK_TARGET, world.place('minecraft:slime', { x: 2, y: 64, z: 0 }));
+        body.tickBrain();
+        expect(findBlock).not.toHaveBeenCalled();
+
+        brain.eraseMemory(MemoryModuleTypes.ATTACK_TARGET);
+        brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+            target: blockPosTracker({ x: 20, y: 64, z: 0 }),
+            speedModifier: 1,
+            closeEnoughDist: 0
+        });
+        body.tickBrain();
+        expect(findBlock).not.toHaveBeenCalled();
+    });
+
+    it('searches for land no more than once every 60 ticks', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(FROG_BRAIN, {
+            world,
+            entity: { conditions: [EntityCondition.IN_WATER] }
+        });
+        brain.setMemory(MemoryModuleTypes.IS_IN_WATER, UNIT);
+        world.setBlock({ x: 0, y: 64, z: 0 }, 'minecraft:water');
+        const findBlock = vi.spyOn(world, 'findBlock');
+
+        const tick = () => {
+            FROG_BRAIN.updateActivity(body.context);
+            body.tickBrain();
+            world.advance();
+        };
+        tick();
+        for (let elapsed = 1; elapsed < 60; elapsed += 1) tick();
+        expect(findBlock).toHaveBeenCalledTimes(1);
+
+        tick();
+        expect(findBlock).toHaveBeenCalledTimes(2);
+    });
+
     it('targets a slime and goes to the tongue activity', () => {
         const world = new TestWorld();
         const { body, brain } = spawn(FROG_BRAIN, { world });

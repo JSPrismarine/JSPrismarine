@@ -31,4 +31,24 @@ describe('BrainWorld block tags', () => {
         expect(members).not.toHaveBeenCalled();
         expect(includes).toHaveBeenCalledTimes(2);
     });
+
+    it('finds the first matching block in Java Manhattan order and only accepts supported air', () => {
+        const world = new TestEntityWorld();
+        world.setBlock({ x: -1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+        world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+        const fixture = entityFixture(world);
+        const brainWorld = fixture.runtime.brainWorld();
+
+        const found = brainWorld.findBlock(
+            { x: 0, y: FLOOR_Y + 1, z: 0 },
+            1,
+            1,
+            (identifier) => identifier === 'minecraft:stone',
+            'manhattan'
+        );
+
+        expect(found).toEqual({ x: -1, y: FLOOR_Y + 1, z: 0 });
+        expect(brainWorld.canStandAt({ x: 0, y: FLOOR_Y + 1, z: 0 })).toBe(true);
+        expect(brainWorld.canStandAt({ x: -1, y: FLOOR_Y + 1, z: 0 })).toBe(false);
+    });
 });

@@ -11,6 +11,7 @@ import {
 } from '@jsprismarine/block-behaviors';
 import type { HookBlock } from '@jsprismarine/blocks';
 import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
+import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import {
     bedrockBiomeToJava,
     bedrockBlockToJava,
@@ -1034,6 +1035,35 @@ describeFamily(
             expect(piglin.brain).toBeDefined();
             expect(goalChecks).toBe(0);
             runtime.remove(piglin.id, 'parity brain goal check complete');
+        });
+
+        it('selects the nearest Java axolotl water and frog land targets', { timeout: 180_000 }, () => {
+            const { runtime, world } = realStack();
+            world.setBlock({ x: 103, y: 64, z: 0 }, 'minecraft:water');
+            world.setBlock({ x: 105, y: 64, z: 0 }, 'minecraft:water');
+            world.setBlock({ x: 200, y: 64, z: 0 }, 'minecraft:water');
+
+            const axolotl = runtime.spawn('minecraft:axolotl', { x: 100.5, y: 64.5, z: 0.5 });
+            const frog = runtime.spawn('minecraft:frog', { x: 200.5, y: 64.5, z: 0.5 });
+            if (axolotl?.brain === undefined || frog?.brain === undefined) {
+                throw new Error('the Java stack must declare axolotls and frogs with brains');
+            }
+
+            runtime.tick(1);
+
+            // Java 26.3 orders the bounded scans by Manhattan distance, then x from negative to positive.
+            expect(axolotl.brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+                x: 103,
+                y: 64,
+                z: 0
+            });
+            expect(frog.brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+                x: 199,
+                y: 64,
+                z: 0
+            });
+            runtime.remove(frog.id, 'parity brain search complete');
+            runtime.remove(axolotl.id, 'parity brain search complete');
         });
     },
     { tags: ['real-data'] }

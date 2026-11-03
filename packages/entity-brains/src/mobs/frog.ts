@@ -72,23 +72,34 @@ const nearestAttackable = (context: BrainContext) => context.body.brain.getMemor
 
 /** Java's `TryFindLand`: walk to a dry block within range. */
 function tryFindLand(range: number, speedModifier: number): BehaviorControl {
-    return triggerIf('TryFindLand', (body, context) => {
-        const land = context.world.findBlock(
-            blockContaining(body.position),
-            range,
-            range,
-            (block) => block === 'minecraft:air'
-        );
-        if (land === undefined) {
-            return false;
-        }
-        body.brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
-            target: blockPosTracker(land),
-            speedModifier,
-            closeEnoughDist: 0
+    let nextSearchAt = 0;
+    return behavior('TryFindLand')
+        .absent(MemoryModuleTypes.ATTACK_TARGET)
+        .absent(MemoryModuleTypes.WALK_TARGET)
+        .registered(MemoryModuleTypes.LOOK_TARGET)
+        .build((context, _attackTarget, walkTarget, lookTarget) => {
+            const center = blockContaining(context.body.position);
+            if (!context.world.isWaterAt(center)) return false;
+
+            const now = context.world.gameTime();
+            if (now < nextSearchAt) return true;
+
+            const land = context.world.findBlock(
+                center,
+                range,
+                range,
+                (_block, _tags, position) =>
+                    (position.x !== center.x || position.z !== center.z) && context.world.canStandAt(position),
+                'manhattan'
+            );
+            nextSearchAt = now + 60;
+            if (land !== undefined) {
+                const target = blockPosTracker(land);
+                lookTarget.set(target);
+                walkTarget.set({ target, speedModifier, closeEnoughDist: 1 });
+            }
+            return true;
         });
-        return true;
-    });
 }
 
 /** Java's `Croak`: a short idle noise, in the frog's idle and lay-spawn wander lists. */
