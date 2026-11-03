@@ -8,6 +8,7 @@ export default defineConfig({
     themeConfig: {
         nav: [
             { text: 'Guide', link: '/guide/running' },
+            { text: 'Parity tracker', link: '/parity' },
             { text: 'API', link: '/api/' }
         ],
         sidebar: {
