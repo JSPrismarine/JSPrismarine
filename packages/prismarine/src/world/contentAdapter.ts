@@ -15,6 +15,7 @@
  * loads they fall back to the vanilla table by name, and to the Overworld after that. The
  * seed comes from the configuration, which is where the world would have got it.
  */
+import { isLiquid } from '@jsprismarine/block-behaviors';
 import { DIFFICULTIES } from '@jsprismarine/engine-systems';
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 import type { Definition } from '@jsprismarine/packs';
@@ -24,6 +25,7 @@ import { applyBlockEntityRecord, blockEntityCompound, blockEntityRecord } from '
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { parseBiomeTags } from '../content/biomeTags';
 import type { BiomeTagIndex } from '../content/biomeTags';
+import type { ContentTags } from '../content/tags';
 import { gameRuleValue } from '../content/world/gameRules';
 import type {
     ContentBlockAccess,
@@ -34,6 +36,7 @@ import type {
 } from '../content/world/adapter';
 import type { BlockEntityStore, BlockStorageAccess } from '../block/contentAdapter';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import type { BlockStateValue } from '../block/state/BlockState';
 import { destroyBlock } from './blockDestroy';
 import { takeBlockEntity } from './blockMove';
 import { timeOfDay } from './DayCycle';
@@ -58,16 +61,30 @@ export interface WorldContentGroups {
 /** The live world for one dimension, or undefined when none is loaded. */
 export type LiveWorld = () => World | undefined;
 
+/** As much of a `BlockType` as the spawn floor reads: the dense id one of its states carries. */
+export interface SpawnFloorBlockType {
+    state(values?: Readonly<Record<string, BlockStateValue>>): { readonly runtimeId: number };
+}
+
 /**
  * The little of the built content these groups read.
  *
- * `ServerContent` satisfies it; this names only the registry `blocks.biomeTags` reads, so the
- * world subsystem does not take a dependency on the whole content build to answer one question
- * and a test does not have to build a pack stack to drive it.
+ * `ServerContent` satisfies it; this names only what `blocks.biomeTags` and `blocks.surfaceY`
+ * ask of it, so the world subsystem does not take a dependency on the whole content build to
+ * answer two questions and a test does not have to build a pack stack to drive it.
  */
-export interface WorldContentBiomes {
+export interface WorldContentFacts {
     /** Bedrock's biome definitions by identifier, whose `minecraft:tags` are the biome's tags. */
     readonly biomes: Iterable<readonly [string, Definition]>;
+    /** The resolved block types and their flattened columns, which `blocks.surfaceY` reads. */
+    readonly blocks: {
+        /** One resolved type per block identifier, read for the dense id of a placed state. */
+        readonly types: ReadonlyMap<string, SpawnFloorBlockType>;
+        /** The flattened columns; `solid` holds 1 for a block an entity may stand on. */
+        readonly table: { readonly solid: ArrayLike<number> };
+    };
+    /** The merged tag stack, which `blocks.surfaceY` asks whether a block is leaves. */
+    readonly tags: Pick<ContentTags, 'includes'>;
 }
 
 /** What {@link worldContentGroups} is built over. */
@@ -82,12 +99,42 @@ export interface WorldContentGroupOptions {
     difficulty(): number;
     /** Where every chance a content package rolls comes from, so a test can seed it. */
     readonly random: RandomSource;
-    /** The built content, read at call time; `blocks.biomeTags` reads its `biomes` registry. */
-    readonly content: () => WorldContentBiomes;
+    /** The built content, read at call time; see {@link WorldContentFacts} for what of it. */
+    readonly content: () => WorldContentFacts;
 }
 
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 export const contentDifficulty = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
+
+/** The block tag Java's spawn heightmap skips, so that nothing spawns on a treetop. */
+const LEAVES_TAG = 'minecraft:leaves';
+
+/**
+ * Whether a block is the floor of its column for spawning: Java's
+ * `Heightmap.Types.MOTION_BLOCKING_NO_LEAVES`, which is what `SpawnPlacements` reads for every
+ * mob that spawns on the ground.
+ *
+ * Three kinds of block are not that floor. Air is the obvious one. The plants, carpets and
+ * snow layers standing on the ground carry no collision box, and a mob spawned in one stands
+ * on the ground underneath it, which is the block a `minecraft:spawns_on_block_filter` names.
+ * Leaves do have a collision box, and Java leaves them out by name so that a forest spawns
+ * animals on its floor rather than on its canopy.
+ *
+ * A liquid counts, because a column of water is a column a fish spawns in rather than one
+ * whose bed it sinks to.
+ */
+const holdsUpASpawn = (
+    content: WorldContentFacts,
+    identifier: string,
+    states: Readonly<Record<string, BlockStateValue>>
+): boolean => {
+    if (content.tags.includes('block', LEAVES_TAG, identifier)) return false;
+    if (isLiquid(identifier)) return true;
+
+    const type = content.blocks.types.get(identifier);
+    if (type === undefined) return false;
+    return content.blocks.table.solid[type.state(states).runtimeId] === 1;
+};
 
 /**
  * Builds the world's four groups for one dimension.
@@ -133,7 +180,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
 
     // Parsed once per content build rather than per lookup: a spawn pass asks for the tags of
     // every candidate position, and the pack stack's biome definitions do not change under it.
-    let indexed: { content: WorldContentBiomes; tags: BiomeTagIndex } | undefined;
+    let indexed: { content: WorldContentFacts; tags: BiomeTagIndex } | undefined;
     const biomeTags = (): BiomeTagIndex => {
         const content = options.content();
         if (indexed?.content !== content) indexed = { content, tags: parseBiomeTags(content.biomes) };
@@ -199,10 +246,19 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
             const chunk = live().getLoadedChunk(x >> 4, z >> 4);
             if (chunk === null) return undefined;
 
-            // The adapter wants the lowest y an entity may stand on, which is one above the
-            // highest block that is not air. An empty column has nothing to stand on.
             const highest = chunk.getHighestBlockAt(x & 0xf, z & 0xf);
-            return highest === null ? undefined : highest + 1;
+            if (highest === null) return undefined;
+
+            // Down from there rather than straight off it: the highest block that is not air
+            // is the canopy over a forest and the grass standing on a plain, and an entity
+            // stands on neither. An empty column has nothing to stand on.
+            const built = options.content();
+            for (let y = highest; y >= type().minY; y -= 1) {
+                const block = chunk.getBlock(x & 0xf, y, z & 0xf);
+                if (holdsUpASpawn(built, block.name, block.properties)) return y + 1;
+            }
+
+            return undefined;
         },
         biome: biomeAt,
         // Bedrock keeps a biome's tags in its own definition, so the answer is the tags of

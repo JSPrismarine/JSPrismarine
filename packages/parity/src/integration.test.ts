@@ -31,7 +31,7 @@ import { Dimensions } from '@jsprismarine/prismarine/world/Dimension';
 import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 import { World } from '@jsprismarine/prismarine/world/World';
 import { SPAWN_CONSTANTS, Spawner } from '@jsprismarine/spawning';
-import type { SpawnWorld } from '@jsprismarine/spawning';
+import type { SpawnPosition, SpawnWorld } from '@jsprismarine/spawning';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
 
@@ -1032,6 +1032,107 @@ describeFamily(
                 expect(rejectedSpawnRadius).toBe(true);
             }
         );
+
+        it('spawns vanilla cows on the forest floor rather than on the canopy over it', { timeout: 180_000 }, () => {
+            const { content } = realStack();
+            const cowRules = content.spawnRules.filter(
+                (rule) => rule.identifier === 'minecraft:cow' && rule.populationControl === 'animal'
+            );
+
+            // One real chunk of forest: dirt, the grass block a cow belongs on, the grass
+            // growing out of it, and a canopy seven blocks over its head.
+            const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            for (let x = 0; x < 16; x += 1) {
+                for (let z = 0; z < 16; z += 1) {
+                    chunk.setBlockRuntimeId(x, 62, z, BlockRuntimeIds.getByName('minecraft:dirt'));
+                    chunk.setBlockRuntimeId(x, 63, z, BlockRuntimeIds.getByName('minecraft:grass_block'));
+                    chunk.setBlockRuntimeId(x, 64, z, BlockRuntimeIds.getByName('minecraft:tall_grass'));
+                    chunk.setBlockRuntimeId(x, 70, z, BlockRuntimeIds.getByName('minecraft:oak_leaves'));
+                }
+            }
+
+            const world: World = Object.assign(Object.create(World.prototype), {
+                chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+                dimension: Dimensions.Overworld
+            });
+            const groups = worldContentGroups({
+                dimension: Dimensions.Overworld.name,
+                world: () => world,
+                seed: 0n,
+                difficulty: () => 2,
+                random: { nextFloat: () => 0, nextInt: () => 0 },
+                content: () => content
+            });
+            const blockAt = ({ x, y, z }: SpawnPosition) => world.loadedBlockAt(x, y, z)?.name;
+            const solidAt = (at: SpawnPosition) => {
+                const block = world.loadedBlockAt(at.x, at.y, at.z);
+                if (block === undefined) return true;
+                const type = content.blocks.types.get(block.name);
+                return type === undefined || content.blocks.table.solid[type.state(block.states).runtimeId] === 1;
+            };
+
+            const spawnWorld = {
+                // The two passes split on the spawn surface, which is the split
+                // `src/entity/contentAdapter.ts` makes over the same adapter member.
+                site: (flag, at) => {
+                    const surface = groups.blocks.surfaceY(at.x, at.z);
+                    if (surface === undefined) return false;
+                    if (flag === 'surface') return at.y >= surface;
+                    if (flag === 'underground') return at.y < surface;
+                    return false;
+                },
+                block: blockAt,
+                solid: solidAt,
+                light: () => 15,
+                biomeTags: () => ['animal', 'forest', 'overworld'],
+                biome: () => 'minecraft:forest',
+                surfaceY: (x, z) => groups.blocks.surfaceY(x, z),
+                minY: () => Dimensions.Overworld.minY,
+                players: () => [{ position: { x: 8.5, y: 64, z: 8.5 } }],
+                worldSpawn: () => undefined,
+                poolCount: () => 0,
+                typeCount: () => 0,
+                difficulty: () => 'normal' as const,
+                weather: () => 'clear' as const,
+                age: () => 100_000,
+                mobEventActive: () => true,
+                villageBorderDistance: () => 4
+            } satisfies SpawnWorld;
+
+            const spawns = new Spawner({
+                rules: cowRules,
+                world: spawnWorld,
+                random: { nextFloat: () => 0, nextInt: () => 0 },
+                constants: {
+                    ...SPAWN_CONSTANTS,
+                    spawnRadiusChunks: 0,
+                    chunksPerCycle: 1,
+                    positionsPerChunk: 1,
+                    herdRadius: 0,
+                    minimumSpawnDistance: 0
+                },
+                engineRules: new Map()
+            }).cycle('animal', 0);
+
+            // The grass block's own y plus one: the cow stands in the tall grass, on the
+            // ground the rule's block filter names, with the canopy well over its head.
+            const onTheFloor =
+                spawns.length > 0 &&
+                spawns.every(
+                    ({ position }) =>
+                        position.y === 64 && blockAt({ ...position, y: position.y - 1 }) === 'minecraft:grass_block'
+                );
+            reportParityCases(FAMILIES.integrationSpawning, import.meta.filename, [
+                {
+                    id: 'minecraft:cow/forest-floor-spawn',
+                    title: 'minecraft:cow',
+                    context: 'Java spawn heightmap · MOTION_BLOCKING_NO_LEAVES under a canopy',
+                    status: onTheFloor ? 'passed' : 'failed'
+                }
+            ]);
+            expect(spawns.length).toBeGreaterThan(0);
+            expect(onTheFloor).toBe(true);
+        });
     },
     { tags: ['real-data'] }
 );

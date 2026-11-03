@@ -45,8 +45,16 @@ const BLOCKS = [
     'minecraft:farmland',
     'minecraft:wheat',
     'minecraft:wooden_door',
-    'minecraft:chest'
+    'minecraft:chest',
+    // The three a column has to be made of before the spawn floor is worth asking about: the
+    // ground, the leaves over it and the grass growing out of it.
+    'minecraft:grass_block',
+    'minecraft:oak_leaves',
+    'minecraft:tall_grass'
 ] as const;
+
+/** Java's leaves tag, which the spawn floor reads so that nothing stands on a canopy. */
+const LEAVES_TAG = definitionOf('tags', 'block/minecraft:leaves', { values: ['minecraft:oak_leaves'] });
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -223,7 +231,8 @@ describe('serverWorldSource', () => {
                         ['fixture:block_entity', BLOCK_ENTITY],
                         ['minecraft:ender_crystal', END_CRYSTAL]
                     ]),
-                    biomes: BIOMES
+                    biomes: BIOMES,
+                    tags: new Map([[LEAVES_TAG.identifier, LEAVES_TAG]])
                 }),
                 diagnostics: []
             }),
@@ -493,6 +502,22 @@ describe('serverWorldSource', () => {
         // Outside the one loaded chunk there is no biome, so no tags either.
         expect(adapter.blocks.biome({ x: 64, y: 64, z: 64 })).toBeUndefined();
         expect(adapter.blocks.biomeTags({ x: 64, y: 64, z: 64 })).toEqual([]);
+    });
+
+    /**
+     * The surface spawn pass tries exactly one position per column, and every passive spawn
+     * rule names the ground it belongs on. A column that answered with its canopy or with the
+     * grass growing out of it therefore spawned nothing, which is most of an overworld.
+     */
+    it('puts the spawn surface on the ground under a canopy and under the grass', () => {
+        const { spawnWorld } = content.world;
+
+        place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:grass_block');
+        place(chunk, { x: 6, y: 64, z: 6 }, 'minecraft:tall_grass');
+        place(chunk, { x: 6, y: 70, z: 6 }, 'minecraft:oak_leaves');
+
+        expect(spawnWorld.surfaceY(6, 6)).toBe(64);
+        expect(spawnWorld.block({ x: 6, y: 63, z: 6 })).toBe('minecraft:grass_block');
     });
 
     it('drops game events when no listener is installed', () => {
