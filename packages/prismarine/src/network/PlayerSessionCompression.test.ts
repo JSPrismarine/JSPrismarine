@@ -1,0 +1,63 @@
+import { describe, expect, it } from 'vitest';
+
+import type { Logger } from '@jsprismarine/logger';
+import type { Config } from '../config/Config';
+import type { Entity } from '../entity/Entity';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import type Player from '../Player';
+import type Server from '../Server';
+import { stub } from '../testing/stub.test.helper';
+import { Position } from '../world/Position';
+import type { World } from '../world/World';
+import ClientConnection from './ClientConnection';
+import { encodePacketBatch } from './encodePacketBatch';
+import type { RakNetTransportConnection } from './transport/RakNetTransport';
+import PlayerSession from './PlayerSession';
+import Codec2193 from './codec/Codec2193';
+
+describe('PlayerSession movement compression', () => {
+    it('uses the server compression level when flushing queued movement', async () => {
+        const configuredLevel = 1;
+        const frames: Buffer[] = [];
+        const connection = new ClientConnection(
+            stub<RakNetTransportConnection>({
+                token: '127.0.0.1:19132',
+                sendFrame: (frame) => void frames.push(frame),
+                close: () => {}
+            }),
+            stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} }),
+            undefined,
+            () => configuredLevel
+        );
+        connection.codec = Codec2193;
+
+        const config = stub<Config>({
+            getEntityTrackingHysteresis: () => 2,
+            getProximityBroadcast: () => true
+        });
+        const session = new PlayerSession(stub<Server>({ getConfig: () => config }), connection, stub<Player>());
+        const position = new Position(12, 64, -5, stub<World>());
+        const entity = stub<Entity>({
+            getRuntimeId: () => 300n,
+            getPosition: () => position,
+            pitch: 5,
+            yaw: 10,
+            headYaw: 20,
+            isOnGround: () => true
+        });
+
+        session.queueMoveActor(entity);
+        await session.flushQueuedMoves();
+
+        const expected = new MoveActorAbsolutePacket();
+        expected.runtimeEntityId = 300n;
+        expected.position = position;
+        expected.pitch = 5;
+        expected.yaw = 10;
+        expected.headYaw = 20;
+        expected.flags = MoveActorAbsolutePacket.FLAG_ON_GROUND;
+        expect(frames).toStrictEqual([
+            encodePacketBatch([expected], Codec2193, { compressionLevel: configuredLevel }).content
+        ]);
+    });
+});

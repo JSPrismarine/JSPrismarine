@@ -16,6 +16,7 @@ import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import { HandSlot } from '@jsprismarine/protocol';
+import { encodePacketBatch } from './encodePacketBatch';
 
 const START_GAME_CAPTURE = readFileSync(
     new URL('../../../protocol/src/packet/__fixtures__/start-game-bds-1.26.51.1.bin', import.meta.url)
@@ -29,7 +30,7 @@ const START_GAME_DATA = new StartGamePacket().deserialize(new NetworkBinaryStrea
  * packet with its negotiated version before encoding. A 2225 session must put the 2225 layout
  * on the wire while a 2193 session keeps the old one, using the same packet class.
  */
-const fakeSession = (codec: ProtocolCodec) => {
+const fakeSession = (codec: ProtocolCodec, getCompressionLevel?: () => number) => {
     const framed: Buffer[] = [];
     const connection = stub<TransportConnection>({
         token: '127.0.0.1:19132',
@@ -38,7 +39,15 @@ const fakeSession = (codec: ProtocolCodec) => {
     });
     const logger = stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} });
 
-    const session = new MinecraftSession(connection, logger);
+    const session = new MinecraftSession(
+        connection,
+        logger,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        getCompressionLevel
+    );
     session.codec = codec;
     return { framed, session };
 };
@@ -282,6 +291,26 @@ describe('network', () => {
             decoded!.decode();
             expect(decoded!.feof()).toBe(true);
             expect(decoded!.getPacketData()).toMatchObject({ chunkX: 4, chunkZ: -3, isClientBiomeUpdate: false });
+        });
+
+        it('applies the configured compression level to ordinary sends and keeps explicit batch overrides', async () => {
+            const configuredLevel = 1;
+            const configured = fakeSession(Codec2193, () => configuredLevel);
+            const overridden = fakeSession(Codec2193, () => configuredLevel);
+
+            await configured.session.sendDataPacket(animate());
+            configured.session.sendPackets([animate()]);
+            await configured.session.sendPacketsAsync([animate()]);
+            overridden.session.sendPackets([animate()], { compressionLevel: 9 });
+
+            expect(configured.framed).toStrictEqual([
+                encodePacketBatch([animate()], Codec2193, { compressionLevel: configuredLevel }).content,
+                encodePacketBatch([animate()], Codec2193, { compressionLevel: configuredLevel }).content,
+                encodePacketBatch([animate()], Codec2193, { compressionLevel: configuredLevel }).content
+            ]);
+            expect(overridden.framed).toStrictEqual([
+                encodePacketBatch([animate()], Codec2193, { compressionLevel: 9 }).content
+            ]);
         });
     });
 

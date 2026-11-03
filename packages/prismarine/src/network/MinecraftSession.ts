@@ -96,7 +96,8 @@ export default class MinecraftSession {
         private readonly logFilter: PacketLogFilter = new PacketLogFilter(),
         private readonly dropped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DROP_PACKETS),
         private readonly dumped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DUMP_PACKETS),
-        private readonly dumpDir: string = defaultDumpDir()
+        private readonly dumpDir: string = defaultDumpDir(),
+        private readonly getCompressionLevel?: () => number
     ) {
         this.connection = connection;
     }
@@ -146,7 +147,7 @@ export default class MinecraftSession {
         const batch = encodePacketBatch(packets, this.codec, {
             compressionAlgorithm: this.compressionAlgorithm,
             compressionThreshold: this.compressionThreshold,
-            ...batchOptions
+            ...this.withCompressionLevel(batchOptions)
         });
         void this.ordered(() => {
             this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
@@ -173,7 +174,7 @@ export default class MinecraftSession {
                 const batch = await encodePacketBatchAsync(packets, this.codec, {
                     compressionAlgorithm: this.compressionAlgorithm,
                     compressionThreshold: this.compressionThreshold,
-                    ...batchOptions
+                    ...this.withCompressionLevel(batchOptions)
                 });
                 this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
 
@@ -281,11 +282,11 @@ export default class MinecraftSession {
             batch = encodePacketBatch(
                 [packet],
                 this.codec,
-                {
+                this.withCompressionLevel({
                     compressed: comp,
                     compressionAlgorithm: this.compressionAlgorithm,
                     compressionThreshold: this.compressionThreshold
-                },
+                }),
                 'cached'
             );
         } catch (error: unknown) {
@@ -368,6 +369,17 @@ export default class MinecraftSession {
 
     public forceDisconnect(): void {
         this.connection.close();
+    }
+
+    /**
+     * Applies the server's current compression setting unless a caller chose a level for
+     * this batch. Most packet paths do not know about server configuration; resolving it here
+     * keeps ordinary sends, including queued movement, consistent with chunk and shared batches.
+     */
+    private withCompressionLevel(options: PacketBatchOptions): PacketBatchOptions {
+        if (options.compressionLevel !== undefined || this.getCompressionLevel === undefined) return options;
+
+        return { ...options, compressionLevel: this.getCompressionLevel() };
     }
 }
 
