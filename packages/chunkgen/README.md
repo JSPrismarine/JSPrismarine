@@ -225,7 +225,10 @@ sends it to a thread pool and keeps `features`, which writes radius 1, on a sing
 `process.execArgv`, so the loader the host was started with is already installed in the worker. A
 published install needs nothing: the specifier is a built `.js`. A dev checkout runs under
 `node --import tsx`, and its workers do too, which is what follows the extensionless
-`@jsprismarine/*` imports a `.ts` pipeline module is full of. Nothing has to be built first.
+`@jsprismarine/*` imports a `.ts` pipeline module is full of. Nothing has to be built first. A
+production workspace start selects the compiled `.es.js` exports with the `jsprismarine:dist`
+condition, so the pool picks its built pipeline and worker entries without adding a TypeScript
+loader to either thread.
 
 A host that reads TypeScript through a loader of its own, which is vitest, has no such flag to
 hand on, and its workers would read the `.ts` through Node's strip-only loader, which stops at the

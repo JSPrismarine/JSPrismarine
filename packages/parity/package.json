@@ -8,6 +8,7 @@
     "scripts": {
         "clean": "rimraf dist *.tsbuildinfo .turbo",
         "test": "vitest run",
+        "test:dist": "cross-env JSP_PARITY_USE_DIST=1 vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "dashboard": "node scripts/dashboard.ts",
         "comment:pr": "node scripts/post-pr-comment.ts",

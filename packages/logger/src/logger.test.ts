@@ -148,4 +148,31 @@ describe('namespace resolution', () => {
 
         expect(logger['getNamespace'](stack)).toBe('');
     });
+
+    it('resolves namespaces from built dist frames', () => {
+        const { logger, written } = makeLogger();
+        const stack = [
+            'Error',
+            '    at getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            '    at Server.start (file:///repo/packages/server/dist/Server.es.js:123:4)'
+        ].join('\n');
+        const NativeError = globalThis.Error;
+
+        vi.stubGlobal(
+            'Error',
+            class extends NativeError {
+                public override stack = stack;
+            }
+        );
+
+        try {
+            logger.info('built server');
+        } finally {
+            vi.unstubAllGlobals();
+        }
+
+        expect(written[0]).toContain('Server');
+        expect(written[0]).toContain('built server');
+    });
 });

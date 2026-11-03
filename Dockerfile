@@ -1,8 +1,8 @@
-# Runs the dedicated server from source, the same way `pnpm run start` does.
+# Builds and runs the dedicated server from compiled JavaScript.
 # The build context must include the bedrock-data resources submodule.
-FROM eclipse-temurin:25-jdk-jammy@sha256:e4f029273ed9e4444697df30bb6098dbe51477291598aebc54dd0b48d95d6ae7 AS temurin-jdk
+FROM eclipse-temurin:25-jdk-jammy@sha256:917e4ad2363fb761904f2e515237171bb6867521f03b1ab2cbf466c8ebd92399 AS temurin-jdk
 
-FROM node:26-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39
+FROM node:26-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS builder
 
 COPY --from=temurin-jdk /opt/java/openjdk /opt/java/openjdk
 
@@ -22,8 +22,16 @@ COPY . .
 
 RUN pnpm install --frozen-lockfile \
     && pnpm --filter @jsprismarine/bedrock-data run generate \
-    && mkdir /data \
-    && chown node:node /data
+    && pnpm run server:build
+
+FROM node:26-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS runtime
+
+WORKDIR /app
+
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+RUN mkdir /data && chown node:node /data
 
 ENV NODE_ENV=production
 ENV JSP_DIR=/data
@@ -35,4 +43,4 @@ WORKDIR /app/packages/server
 EXPOSE 19132/udp
 
 # Node runs as PID 1 so SIGTERM reaches the server, which saves the world before it exits.
-CMD ["node", "--unhandled-rejections=strict", "--import", "tsx", "./src/Server.ts"]
+CMD ["node", "--conditions=jsprismarine:dist", "--unhandled-rejections=strict", "./dist/Server.es.js"]

@@ -68,15 +68,15 @@ To arrange the cache by hand, or to refresh it:
     # Development: runs from source, restarts on file changes, opens the terminal UI
     $ pnpm run dev
 
-    # Production (you should probably be using the prebuilt version however)
-    $ pnpm run build
+    # Production: builds the workspace packages and starts the compiled server
     $ pnpm run start
 ```
 
 `pnpm run dev` is `prismarine --watch`: the server runs from TypeScript source and restarts when
 a watched source file or content pack data changes.
-`pnpm run start` runs the same entry point without the watcher. Both open the terminal UI
-described in the next section when they can, and fall back to the plain line console otherwise.
+`pnpm run start` builds the server and its workspace dependencies, then runs the compiled entry
+without the watcher. Both open the terminal UI described in the next section when they can, and
+fall back to the plain line console otherwise.
 
 ### The packaged executable
 

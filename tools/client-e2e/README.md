@@ -26,6 +26,7 @@ pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2193
 # Run every scenario, or a selection. Independent suites run two at a time by default.
 pnpm run e2e:client
 pnpm run e2e:client movement chat
+pnpm run e2e:client:dist spawn movement
 pnpm run e2e:client -- --protocol 2193 movement chat
 pnpm run e2e:client -- --compression-algorithm snappy movement chat
 pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
@@ -40,6 +41,9 @@ the player, inventory, drops, and controls between scenarios, then stops each se
 its temporary data. The two suites run concurrently by default; use `--concurrency 1` when
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's
 artifact directory and leaves audio enabled. Headless client audio is muted otherwise.
+
+`pnpm run e2e:client:dist` selects the built `Server.es.js` entry and the workspace's
+`jsprismarine:dist` exports. Build it first with `pnpm run server:build` or `pnpm run start`.
 
 The runner prints the artifacts directory (screenshots, recordings, a combined server log, and a
 server log per suite) and exits non-zero when any scenario fails. The root `pnpm run e2e:client`

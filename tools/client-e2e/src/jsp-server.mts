@@ -48,7 +48,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
 };
 
 /**
- * Starts the server from this checkout's sources and waits until it listens.
+ * Starts a scratch server from source or the built workspace output, then waits until it listens.
  *
  * @param options.port - Requested UDP port; defaults to an available local port.
  * @param options.dir - Scratch server directory; defaults to a temporary directory.
@@ -284,15 +284,23 @@ export const startServer = async (
     fs.writeFileSync(path.join(dir, 'config.json'), `${JSON.stringify(config, null, 4)}\n`);
 
     const serverPackage = path.join(repoRoot, 'packages', 'server');
+    const entryMode = process.env.JSP_E2E_SERVER_ENTRY ?? 'source';
+    if (entryMode !== 'source' && entryMode !== 'dist') {
+        throw new Error(`JSP_E2E_SERVER_ENTRY must be 'source' or 'dist', got '${entryMode}'`);
+    }
+    const built = entryMode === 'dist';
+    const serverEntry = path.join(serverPackage, built ? 'dist' : 'src', built ? 'Server.es.js' : 'Server.ts');
+    if (built && !fs.existsSync(serverEntry)) {
+        throw new Error(`built server entry is missing at ${serverEntry}; run pnpm run server:build first`);
+    }
     const coverageHook = path.join(path.dirname(fileURLToPath(import.meta.url)), 'coverage-exit.mjs');
     const coverageArgs = process.env.NODE_V8_COVERAGE ? ['--import', coverageHook] : [];
     const child: ChildProcess = spawn(
         process.execPath,
         [
-            '--import',
-            'tsx',
+            ...(built ? ['--conditions=jsprismarine:dist'] : ['--import', 'tsx']),
             ...coverageArgs,
-            path.join(serverPackage, 'src', 'Server.ts'),
+            serverEntry,
             '--no-tui',
             '--port',
             String(port),

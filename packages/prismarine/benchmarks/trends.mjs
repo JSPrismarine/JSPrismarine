@@ -20,23 +20,33 @@ const rootDirectory = resolve(packageDirectory, '../..');
 const scenarios = {
     chunks: {
         description: 'overworld chunk generation',
-        args: ['--import', 'tsx', 'benchmarks/chunkGeneration.ts', '0', '16', 'full', '8', '2', '7']
+        args: [
+            '--conditions=jsprismarine:dist',
+            'benchmarks/runExternal.mjs',
+            'benchmarks/chunkGeneration.ts',
+            '0',
+            '16',
+            'full',
+            '8',
+            '2',
+            '7'
+        ]
     },
     network: {
         description: 'proximity block-change flush',
-        args: ['--import', 'tsx', 'benchmarks/blockProximity.bench.ts', '256', '25000', '7']
+        args: ['benchmarks/run.mjs', 'benchmarks/blockProximity.bench.ts', '256', '25000', '7']
     },
     items: {
         description: 'dropped-item pickup search',
-        args: ['--import', 'tsx', 'benchmarks/entityPickup.bench.ts', '10000', '400', '7']
+        args: ['benchmarks/run.mjs', 'benchmarks/entityPickup.bench.ts', '10000', '400', '7']
     },
     storage: {
         description: 'persistent block storage codec',
-        args: ['--import', 'tsx', 'benchmarks/blockStorage.bench.ts', '50']
+        args: ['benchmarks/run.mjs', 'benchmarks/blockStorage.bench.ts', '50']
     },
     'feature-worker': {
         description: 'feature worker terrain copies',
-        args: ['--expose-gc', '--import', 'tsx', 'benchmarks/featureWorker.bench.ts', '7']
+        args: ['--expose-gc', 'benchmarks/run.mjs', 'benchmarks/featureWorker.bench.ts', '7']
     },
     'breeding-navigation': {
         description: 'many-pair breeding route replanning',

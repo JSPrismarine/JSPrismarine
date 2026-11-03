@@ -28,8 +28,14 @@
     "module": "./dist/index.es.js",
     "types": "./dist/index.d.ts",
     "exports": {
-        ".": "./src/index.ts",
-        "./*": "./src/*.ts",
+        ".": {
+            "jsprismarine:dist": "./dist/index.es.js",
+            "default": "./src/index.ts"
+        },
+        "./*": {
+            "jsprismarine:dist": "./dist/*.es.js",
+            "default": "./src/*.ts"
+        },
         "./package.json": "./package.json"
     },
     "scripts": {

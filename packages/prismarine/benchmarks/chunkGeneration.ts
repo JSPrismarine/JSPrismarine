@@ -19,13 +19,13 @@ import {
     DataDrivenGenerator,
     defaultChunkPipeline,
     defaultTerrainPipeline
-} from '../src/world/generators/datadriven/DataDrivenGenerator';
-import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
+} from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import { findJavaTemplateSource } from '@jsprismarine/prismarine/world/generators/datadriven/javaStructureTemplates';
 import {
     cacheRoot,
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
-} from '../src/world/generators/datadriven/javaWorldgenData';
+} from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
 
 // pnpm may keep the `--` script-argument separator in argv; remove it before parsing options.
 const args = process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2);

@@ -22,7 +22,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import { BRAIN_MOBS } from '@jsprismarine/entity-brains';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
-import { singleDimension } from '../src/content/world/adapter';
+import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
 import type {
     ContentBlock,
     ContentEntity,
@@ -31,12 +31,12 @@ import type {
     ContentTickScheduler,
     RandomSource,
     ServerWorldAdapter
-} from '../src/content/world/adapter';
-import { buildServerContent } from '../src/content/ServerContent';
-import type { ServerContent } from '../src/content/ServerContent';
-import { entityContentGroups } from '../src/entity/contentAdapter';
-import { EntityRuntime } from '../src/entity/data/EntityRuntime';
-import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '../src/entity/data/host';
+} from '@jsprismarine/prismarine/content/world/adapter';
+import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
+import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
+import { entityContentGroups } from '@jsprismarine/prismarine/entity/contentAdapter';
+import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
+import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '@jsprismarine/prismarine/entity/data/host';
 import { firstDivergentTick } from './entityAiReplay';
 
 const FLOOR_Y = 63;

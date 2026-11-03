@@ -39,8 +39,8 @@ import type { GoalMob } from '@jsprismarine/entity-goals';
 import { BRAIN_MOBS } from '@jsprismarine/entity-brains';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
-import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
-import { singleDimension } from '../src/content/world/adapter';
+import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
+import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
 import type {
     ContentBlock,
     ContentEntity,
@@ -49,14 +49,14 @@ import type {
     ContentTickScheduler,
     RandomSource,
     ServerWorldAdapter
-} from '../src/content/world/adapter';
-import { buildServerContent } from '../src/content/ServerContent';
-import type { ServerContent } from '../src/content/ServerContent';
-import type { ContentTags } from '../src/content/tags';
-import { entityContentGroups } from '../src/entity/contentAdapter';
-import { EntityRuntime } from '../src/entity/data/EntityRuntime';
-import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '../src/entity/data/host';
-import Chunk from '../src/world/chunk/Chunk';
+} from '@jsprismarine/prismarine/content/world/adapter';
+import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
+import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
+import type { ContentTags } from '@jsprismarine/prismarine/content/tags';
+import { entityContentGroups } from '@jsprismarine/prismarine/entity/contentAdapter';
+import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
+import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '@jsprismarine/prismarine/entity/data/host';
+import Chunk from '@jsprismarine/prismarine/world/chunk/Chunk';
 
 /** The y the flat floor's top sits at; everything above it is air. */
 const FLOOR_Y = 63;
