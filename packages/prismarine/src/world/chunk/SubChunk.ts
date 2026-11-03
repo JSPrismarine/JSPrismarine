@@ -1,6 +1,7 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import type { BlockState } from '../../block/state/BlockState';
+import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockStorage from './BlockStorage';
 
 /**
@@ -52,14 +53,9 @@ export default class SubChunk {
         return true;
     }
 
-    private getStorage(index: number): BlockStorage {
-        if (!this.storages.has(index)) {
-            // Create all missing storage layers
-            for (let i = 0; i <= index; i++) {
-                if (!this.storages.has(i)) {
-                    this.storages.set(i, new BlockStorage({}));
-                }
-            }
+    private getOrCreateStorage(index: number): BlockStorage {
+        for (let i = 0; i <= index; i++) {
+            if (!this.storages.has(i)) this.storages.set(i, new BlockStorage({}));
         }
 
         return this.storages.get(index)!;
@@ -82,7 +78,13 @@ export default class SubChunk {
             return this.getBlock(bx.getX(), bx.getY(), bx.getZ(), layer);
         }
 
-        return this.getStorage(layer).getBlock(bx, by, bz);
+        const storage = this.storages.get(layer);
+        if (storage) return storage.getBlock(bx, by, bz);
+
+        // An absent layer is all air; allocating it on a read changes the serialized layer count.
+        const air = BlockRuntimeIds.getState(BlockRuntimeIds.getByName('minecraft:air'));
+        if (!air) throw new Error('The air block state is not registered');
+        return air;
     }
 
     /**
@@ -95,11 +97,11 @@ export default class SubChunk {
      * @param layer - block storage layer
      */
     public getBlockRuntimeId(bx: number, by: number, bz: number, layer = 0): number {
-        return this.getStorage(layer).getRuntimeId(bx, by, bz);
+        return this.storages.get(layer)?.getRuntimeId(bx, by, bz) ?? BlockRuntimeIds.getByName('minecraft:air');
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number, layer: number): void {
-        this.getStorage(layer).setBlock(bx, by, bz, runtimeId);
+        this.getOrCreateStorage(layer).setBlock(bx, by, bz, runtimeId);
         this.revision++;
     }
 
