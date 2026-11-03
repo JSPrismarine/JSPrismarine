@@ -23,6 +23,7 @@ import { sleep, vec3 } from './scenario.mts';
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
+import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
 import { litFurnace } from './scenarios/lit-furnace.mts';
 import { recipeBook } from './scenarios/recipe-book.mts';
@@ -58,7 +59,10 @@ const suites: ScenarioSuite[] = [
             recipeBook,
             placementOverlap,
             enderDragon,
-            dimensionsScenario
+            dimensionsScenario,
+            // Last, because it reshapes the terrain it runs on - tilled ground, planted wheat
+            // and a water source stay behind - and nothing should have to play on top of that.
+            farmland
         ]
     },
     // Natural spawning needs its own content fixture so roaming cows cannot affect gameplay checks.
