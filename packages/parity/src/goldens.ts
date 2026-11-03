@@ -257,6 +257,8 @@ export interface JavaWorldgenRegistries {
     densityFunctions: Record<string, string>;
     noises: Record<string, string>;
     noiseSettings: Record<string, string>;
+    /** The `worldgen/carver` documents, each one compact JSON. */
+    carvers: Record<string, string>;
     biomeClimates: Record<string, unknown>;
 }
 
@@ -286,6 +288,24 @@ export interface JavaBiomePointVectors {
 export const loadJavaBiomePoints = (): JavaBiomePointVectors =>
     // Parsed JSON boundary; the dumper writes one entry per climate parameter list.
     readJson(join(worldgenRoot, 'vectors/biome-points.json')) as JavaBiomePointVectors;
+
+/** The biome Java reads a chunk's carvers from, and the jittered biome at the same corner. */
+export interface JavaCarverBiomeVectors {
+    seed: string;
+    firstChunk: number;
+    /** Chunks along each side of the window; the lists below hold `chunks * chunks` entries, x major. */
+    chunks: number;
+    biomes: string[];
+    /** Indices into `biomes`: the noise biome at `(chunkX * 4, 0, chunkZ * 4)`. */
+    noise: number[];
+    /** Indices into `biomes`: `BiomeManager.getBiome` at `(chunkX * 16, 0, chunkZ * 16)`. */
+    jittered: number[];
+}
+
+/** Reads the carver-selection biomes the oracle dumped for a window of overworld chunks. */
+export const loadJavaCarverBiomes = (): JavaCarverBiomeVectors =>
+    // Parsed JSON boundary; the dumper writes this file.
+    readJson(join(worldgenRoot, 'vectors/carver-biomes.json')) as JavaCarverBiomeVectors;
 
 /**
  * Unpacks one climate parameter point out of the biome vector file.

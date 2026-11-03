@@ -225,6 +225,13 @@ export const REFERENCES = {
         "Java's multi-noise biome lookups for the overworld and the end"
     ),
 
+    /** The biome Java reads a source chunk's carvers from, beside the jittered biome at its corner. */
+    worldgenCarverBiomes: committed(
+        'worldgen-carver-biomes',
+        'packages/worldgen/vectors/carver-biomes.json',
+        "Java's carver-selection noise biome for a 48 by 48 window of overworld chunks"
+    ),
+
     /**
      * The generation corpus: what this server's chunk generator produced at a named commit.
      *

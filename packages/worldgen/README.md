@@ -230,6 +230,10 @@ and records the openings in a `CarvingMask`. Trigonometry goes through Java's 65
 table rather than `Math.sin`, because the two differ in the last bits and a tunnel walks a hundred
 steps.
 
+`carversFromNoiseBiome` picks a source chunk's carver list from the biome source's cell at
+`(chunkX * 4, 0, chunkZ * 4)`, the way Java's `getBiomeGenerationSettingsForCarver` does. It skips
+`BiomeManager`, whose jitter moves the biome at a chunk corner in about 1.5% of overworld chunks.
+
 ### Parity
 
 | Stage | Vectors | Result |
@@ -241,6 +245,7 @@ steps.
 | Biome zoomer and its seed hash | 6 positions, 6 seeds | exact |
 | End biome source | 32 cells over all five end biomes | exact |
 | Carvers | `cave` and `canyon`, 5 chunks each, every opened block | exact |
+| Carver selection | noise biome at the corner of 2304 chunks, seed 1234 | exact |
 
 Carver paths cannot match Bedrock Edition for the same seed, because Mojang has not described
 Bedrock's generator
@@ -265,6 +270,9 @@ pnpm prettier --write packages/worldgen/vectors/surface-*.json packages/worldgen
 
 Run it from inside `node_modules/.cache/jsprismarine/`: Mojang's logger writes a `logs/` directory
 into the working directory.
+
+`utils/oracle/DumpCarverBiomes.java` writes `vectors/carver-biomes.json` and takes one argument,
+the output directory. Compile and run it the same way as the surface dumper.
 
 `surface-registries.json` carries the `material_rule`, `material_condition`, `carver`,
 `density_function`, `noise`, `noise_settings` and biome climate documents straight out of the jar,

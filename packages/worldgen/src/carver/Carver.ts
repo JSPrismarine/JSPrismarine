@@ -1,3 +1,4 @@
+import type { BiomeResolver } from '../biome/BiomeSource';
 import { typeName } from '../identifier';
 import { f32, floor } from '../math';
 import { LegacyRandomSource } from '../random/LegacyRandomSource';
@@ -507,6 +508,29 @@ export interface CarveChunkOptions {
     /** Where the openings are recorded. */
     readonly output: CarverOutput;
 }
+
+/**
+ * Picks a source chunk's carvers from its noise biome, the way Java's
+ * `NoiseBasedChunkGenerator.getBiomeGenerationSettingsForCarver` does.
+ *
+ * Java asks the biome source for the cell at `(minBlockX >> 2, 0, minBlockZ >> 2)`, which is
+ * the cell that holds the chunk's own corner. It does not go through `BiomeManager`, so the
+ * seeded jitter that moves a block's biome near an edge plays no part. Reading the jittered
+ * biome at `(minBlockX, 0, minBlockZ)` instead picks a different cell for some chunks, and a
+ * data pack whose neighboring biomes list different carvers then digs the wrong caves. It also
+ * costs a fuzzy lookup for each of the 289 source chunks around every carved chunk.
+ *
+ * @param noiseBiome - The biome source's cells, before any jitter.
+ * @param carversOf - The carvers one biome lists.
+ */
+export const carversFromNoiseBiome =
+    (
+        noiseBiome: BiomeResolver,
+        carversOf: (biome: string) => readonly CarverConfig[]
+    ): CarveChunkOptions['carversAt'] =>
+    (sourceChunkX, sourceChunkZ) =>
+        // A chunk is four cells wide, so its corner cell is `chunk * 16 >> 2`.
+        carversOf(noiseBiome(sourceChunkX * 4, 0, sourceChunkZ * 4));
 
 /**
  * Runs every carver of every chunk within eight chunks of the target chunk and records the

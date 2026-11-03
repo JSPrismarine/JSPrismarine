@@ -1,11 +1,27 @@
 import { javaIdentifierToBedrock } from '@jsprismarine/mapping';
-import type { ClimateTargetPoint } from '@jsprismarine/worldgen';
-import { ClimateParameterList, MultiNoiseBiomeSource, quantizeClimateCoord } from '@jsprismarine/worldgen';
+import type { CarverConfig, ClimateTargetPoint } from '@jsprismarine/worldgen';
+import {
+    BiomeManager,
+    ClimateParameterList,
+    MultiNoiseBiomeSource,
+    RandomState,
+    WorldgenData,
+    carversFromNoiseBiome,
+    createClimateSampler,
+    parseCarver,
+    quantizeClimateCoord
+} from '@jsprismarine/worldgen';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
-import { loadJavaBiomePoints, loadNetworkBiomes, unpackClimatePoint } from './goldens.ts';
+import {
+    loadJavaBiomePoints,
+    loadJavaCarverBiomes,
+    loadJavaWorldgenRegistries,
+    loadNetworkBiomes,
+    unpackClimatePoint
+} from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
@@ -90,7 +106,29 @@ const compareBiomeSource = (): {
     return { gaps: [...new Set(gaps)], lookups, boxes, detail, cases: [...caseMap.values()] };
 };
 
-describeFamily(FAMILIES.worldgenBiomes, [REFERENCES.worldgenBiomePoints, REFERENCES.bedrockBiomeDefinitions], () => {
+/** The overworld list and a sampler for the oracle's seed, built from the committed vectors. */
+const overworldAt = (seed: bigint) => {
+    const vectors = loadJavaBiomePoints();
+    const list = vectors.parameterLists.find((candidate) => candidate.name === 'minecraft:overworld');
+    if (list === undefined) throw new Error('the biome vector file has no overworld parameter list');
+    const entries = list.points.map((packed) => unpackClimatePoint(packed, list.biomes));
+
+    const registries = loadJavaWorldgenRegistries();
+    const parse = (documents: Record<string, string>): Map<string, unknown> =>
+        // The oracle writes each registry document as one line of JSON.
+        new Map(Object.entries(documents).map(([id, document]) => [id, JSON.parse(document) as unknown]));
+    const data = new WorldgenData({
+        densityFunctions: parse(registries.densityFunctions),
+        noises: parse(registries.noises),
+        noiseSettings: parse(registries.noiseSettings)
+    });
+    const state = new RandomState(data, seed, data.settings('minecraft:overworld'));
+    return { entries, registries, sampler: createClimateSampler(state) };
+};
+
+const needs = [REFERENCES.worldgenBiomePoints, REFERENCES.worldgenCarverBiomes, REFERENCES.bedrockBiomeDefinitions];
+
+describeFamily(FAMILIES.worldgenBiomes, needs, () => {
     const { gaps, lookups, boxes, detail, cases } = compareBiomeSource();
     const verdict = checkAllowList(FAMILIES.worldgenBiomes, gaps);
     const unexpected = new Set(verdict.unexpected);
@@ -132,5 +170,46 @@ describeFamily(FAMILIES.worldgenBiomes, [REFERENCES.worldgenBiomePoints, REFEREN
         expect(vectors.parameterLists.length).toBeGreaterThan(0);
         expect(lookups).toBe(expectedLookups);
         expect(boxes).toBe(expectedBoxes);
+    });
+
+    it("selects a data pack's carvers from the noise biome Java reads, not the jittered one", () => {
+        const vectors = loadJavaCarverBiomes();
+        const { entries, registries, sampler } = overworldAt(BigInt(vectors.seed));
+        const noiseBiome = new MultiNoiseBiomeSource(new ClimateParameterList(entries)).resolver(sampler);
+
+        // A data pack whose biomes list different carvers: every other biome digs canyons.
+        const cave = parseCarver(JSON.parse(registries.carvers['minecraft:cave'] as string) as unknown, 'cave');
+        const canyon = parseCarver(JSON.parse(registries.carvers['minecraft:canyon'] as string) as unknown, 'canyon');
+        const carversOf = (biome: string): readonly CarverConfig[] =>
+            vectors.biomes.indexOf(biome) % 2 === 0 ? [cave] : [canyon];
+
+        const carversAt = carversFromNoiseBiome(noiseBiome, carversOf);
+        let differsFromJittered = 0;
+        let compared = 0;
+        vectors.noise.forEach((javaNoise, index) => {
+            const chunkX = vectors.firstChunk + Math.floor(index / vectors.chunks);
+            const chunkZ = vectors.firstChunk + (index % vectors.chunks);
+            const expected = carversOf(vectors.biomes[javaNoise] as string);
+            expect(carversAt(chunkX, chunkZ), `chunk ${chunkX},${chunkZ}`).toEqual(expected);
+            if (carversOf(vectors.biomes[vectors.jittered[index] as number] as string)[0] !== expected[0]) {
+                differsFromJittered++;
+            }
+            compared++;
+        });
+
+        // The window has to hold chunks where the jittered biome would pick other carvers.
+        expect(differsFromJittered).toBeGreaterThan(0);
+        // `BiomeManager` keeps matching Java at the corner, so the two lookups stay distinguishable.
+        const manager = new BiomeManager(noiseBiome, BiomeManager.obfuscateSeed(BigInt(vectors.seed)));
+        const moved = vectors.noise.findIndex((javaNoise, index) => javaNoise !== vectors.jittered[index]);
+        const movedBiome = vectors.biomes[vectors.jittered[moved] as number];
+        expect(
+            manager.getBiome(
+                (vectors.firstChunk + Math.floor(moved / vectors.chunks)) * 16,
+                0,
+                (vectors.firstChunk + (moved % vectors.chunks)) * 16
+            )
+        ).toBe(movedBiome);
+        reportParityProgress(FAMILIES.worldgenBiomes, { javaCarverChunks: compared });
     });
 });

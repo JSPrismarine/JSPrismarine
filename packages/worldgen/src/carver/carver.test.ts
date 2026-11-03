@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
+import biomeVectors from '../../vectors/biome-points.json' with { type: 'json' };
+import carverBiomeVectors from '../../vectors/carver-biomes.json' with { type: 'json' };
 import carverVectors from '../../vectors/surface-carver.json' with { type: 'json' };
 import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import { BiomeManager } from '../biome/BiomeManager';
+import type { BiomeResolver } from '../biome/BiomeSource';
+import { MultiNoiseBiomeSource } from '../biome/BiomeSource';
+import { ClimateParameterList } from '../biome/Climate';
+import { createClimateSampler } from '../biome/ClimateSampler';
+import { RandomState } from '../RandomState';
+import { WorldgenData } from '../WorldgenData';
 import type { WorldGenerationContext } from '../surface/VerticalAnchor';
 import type { CarverConfig } from './Carver';
-import { carveChunk, isStartChunk, largeFeatureRandom, parseCarver } from './Carver';
+import { carveChunk, carversFromNoiseBiome, isStartChunk, largeFeatureRandom, parseCarver } from './Carver';
 import { CarvingMask } from './CarvingMask';
 
 const SEED = BigInt(carverVectors.seed);
@@ -148,4 +157,127 @@ describe('the carving mask', () => {
         expect(mask.maxY).toBe(carverVectors.minY + carverVectors.height - 8);
         expect(mask.isEmpty()).toBe(true);
     });
+});
+
+describe('carver selection from the noise biome', () => {
+    const cave = carverNamed('minecraft:cave');
+    const canyon = carverNamed('minecraft:canyon');
+    const carversOf = (biome: string): readonly CarverConfig[] => (biome === 'test:east' ? [canyon] : [cave]);
+
+    // The biome border runs along the cell column x = 0: everything west of it is `test:west`.
+    const border: BiomeResolver = (quartX) => (quartX < 0 ? 'test:west' : 'test:east');
+
+    it('reads the cell holding the source chunk corner, at quart height zero', () => {
+        const asked: number[][] = [];
+        const carversAt = carversFromNoiseBiome((quartX, quartY, quartZ) => {
+            asked.push([quartX, quartY, quartZ]);
+            return 'test:west';
+        }, carversOf);
+
+        carversAt(3, -5);
+        carversAt(-1, 0);
+
+        // Java: `getNoiseBiome(QuartPos.fromBlock(minBlockX), 0, QuartPos.fromBlock(minBlockZ))`.
+        expect(asked).toEqual([
+            [12, 0, -20],
+            [-4, 0, 0]
+        ]);
+    });
+
+    it('selects the carvers of the biome on each side of a border', () => {
+        const carversAt = carversFromNoiseBiome(border, carversOf);
+
+        expect(carversAt(-1, 7)).toEqual([cave]);
+        expect(carversAt(0, 7)).toEqual([canyon]);
+        expect(carversAt(25, -3)).toEqual([canyon]);
+    });
+
+    it('differs from the jittered lookup, which moves the border by up to a cell', () => {
+        // This is the old behavior: `BiomeManager.getBiome` at the chunk corner and height 0.
+        const manager = new BiomeManager(border, BiomeManager.obfuscateSeed(1234n));
+        const carversAt = carversFromNoiseBiome(border, carversOf);
+
+        let disagreements = 0;
+        for (let chunkZ = -64; chunkZ < 64; chunkZ++) {
+            // Chunk 0 is the first chunk east of the border; the cell west of it is x = -1.
+            const jittered = manager.getBiome(0, 0, chunkZ * 16);
+            if (carversOf(jittered)[0] !== carversAt(0, chunkZ)[0]) disagreements++;
+        }
+
+        expect(disagreements).toBeGreaterThan(0);
+    });
+});
+
+describe('carver selection against the overworld Java generates', () => {
+    const parseDocuments = (source: Record<string, string>): Map<string, unknown> =>
+        new Map(Object.entries(source).map(([id, document]) => [id, JSON.parse(document) as unknown]));
+    const data = new WorldgenData({
+        densityFunctions: parseDocuments(registryVectors.densityFunctions),
+        noises: parseDocuments(registryVectors.noises),
+        noiseSettings: parseDocuments(registryVectors.noiseSettings)
+    });
+    const overworld = biomeVectors.parameterLists.find((list) => list.name === 'minecraft:overworld');
+    if (!overworld) throw new Error('the vector file has no overworld parameter list');
+    const source = new MultiNoiseBiomeSource(
+        new ClimateParameterList(
+            overworld.points.map((row) => {
+                const values = row.split(' ').map(Number);
+                const range = (index: number) => ({ min: values[index] as number, max: values[index + 1] as number });
+                return {
+                    point: {
+                        temperature: range(1),
+                        humidity: range(3),
+                        continentalness: range(5),
+                        erosion: range(7),
+                        depth: range(9),
+                        weirdness: range(11),
+                        offset: values[13] as number
+                    },
+                    value: overworld.biomes[values[0] as number] as string
+                };
+            })
+        )
+    );
+    const seed = BigInt(carverBiomeVectors.seed);
+    const noiseBiome = source.resolver(
+        createClimateSampler(new RandomState(data, seed, data.settings('minecraft:overworld')))
+    );
+    const manager = new BiomeManager(noiseBiome, BiomeManager.obfuscateSeed(seed));
+
+    const chunks: {
+        readonly chunkX: number;
+        readonly chunkZ: number;
+        readonly noise: string;
+        readonly jittered: string;
+    }[] = [];
+    carverBiomeVectors.noise.forEach((noise, index) => {
+        chunks.push({
+            chunkX: carverBiomeVectors.firstChunk + Math.floor(index / carverBiomeVectors.chunks),
+            chunkZ: carverBiomeVectors.firstChunk + (index % carverBiomeVectors.chunks),
+            noise: carverBiomeVectors.biomes[noise] as string,
+            jittered: carverBiomeVectors.biomes[carverBiomeVectors.jittered[index] as number] as string
+        });
+    });
+
+    it('reads the same noise biome as Java for every source chunk of a 48 by 48 window', () => {
+        // Each chunk's carvers come from the biome this returns, so the biome is what is compared.
+        const asked: string[] = [];
+        const carversAt = carversFromNoiseBiome(noiseBiome, (biome) => {
+            asked.push(biome);
+            return [];
+        });
+        for (const chunk of chunks) carversAt(chunk.chunkX, chunk.chunkZ);
+
+        expect(asked).toEqual(chunks.map((chunk) => chunk.noise));
+    }, 120_000);
+
+    it('differs from the jittered biome Java would give at the same corner for some chunks', () => {
+        // The window has chunks where the two biomes differ, so reading the jittered one picks
+        // the wrong biome there. `BiomeManager` itself matches Java at those corners.
+        const moved = chunks.filter((chunk) => chunk.noise !== chunk.jittered);
+        expect(moved.length).toBeGreaterThan(0);
+        for (const chunk of moved) {
+            expect(manager.getBiome(chunk.chunkX * 16, 0, chunk.chunkZ * 16)).toBe(chunk.jittered);
+        }
+    }, 120_000);
 });

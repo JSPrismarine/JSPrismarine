@@ -55,6 +55,7 @@ import {
     SurfaceSystem,
     WorldgenData,
     carveChunk,
+    carversFromNoiseBiome,
     coldEnoughToSnow,
     createClimateSampler,
     memoizeBiomeResolver,
@@ -1766,8 +1767,7 @@ export class DataDrivenGenerator implements Generator {
             seed: pipeline.randomState.seed,
             chunkX: cx,
             chunkZ: cz,
-            carversAt: (sourceChunkX, sourceChunkZ) =>
-                pipeline.carversOf(pipeline.biomes.getBiome(sourceChunkX * 16, 0, sourceChunkZ * 16)),
+            carversAt: carversFromNoiseBiome(pipeline.biomeCells, pipeline.carversOf),
             context: pipeline.surface.generationContext,
             output: mask
         });
