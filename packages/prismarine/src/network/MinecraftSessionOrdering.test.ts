@@ -9,6 +9,11 @@ import type { TransportConnection } from './transport/Transport';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 
+beforeEach(() => {
+    // Root Vitest reuses workers; earlier suites can leave fake timers active and stall setImmediate sends.
+    vi.useRealTimers();
+});
+
 /**
  * The order frames reach RakNet in, which is the order the client applies them in.
  *
@@ -55,11 +60,6 @@ const fakeSession = () => {
 
 describe('network', () => {
     describe('MinecraftSession ordering', () => {
-        beforeEach(() => {
-            // Root Vitest reuses workers; earlier suites can leave fake timers active and stall setImmediate sends.
-            vi.useRealTimers();
-        });
-
         it('frames queued packets from the setImmediate fallback', async () => {
             const { framed, session } = fakeSession();
 
