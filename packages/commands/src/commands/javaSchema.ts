@@ -188,7 +188,7 @@ const registryValues = (registry: string, commands: CommandRegistry<CommandSourc
     return undefined;
 };
 
-const readResourceWithSuffix = (reader: StringReader, registry: string, commands: CommandRegistry<CommandSource>) => {
+const readResourceWithSuffix = (reader: StringReader, resourceParser: BedrockDescribedType<string>) => {
     const token = readStructuredToken(reader);
     const stateStart = token.indexOf('[');
     const componentStart = token.indexOf('{');
@@ -196,10 +196,7 @@ const readResourceWithSuffix = (reader: StringReader, registry: string, commands
         stateStart < 0 ? componentStart : componentStart < 0 ? stateStart : Math.min(stateStart, componentStart);
     const resourceId = suffixStart < 0 ? token : token.slice(0, suffixStart);
     const resourceReader = new StringReader(resourceId);
-    const resource = resourceArgument(registry, registryValues(registry, commands)).parse(
-        resourceReader,
-        EMPTY_PARSE_CONTEXT
-    );
+    const resource = resourceParser.parse(resourceReader, EMPTY_PARSE_CONTEXT);
     const suffix = suffixStart < 0 ? '' : token.slice(suffixStart);
     return `${resource}${suffix}`;
 };
@@ -294,18 +291,22 @@ const javaArgumentType = (
             ] as const);
         case 'minecraft:operation':
             return operationArgument();
-        case 'minecraft:item_stack':
+        case 'minecraft:item_stack': {
+            const resourceParser = resourceArgument('minecraft:item', registryValues('minecraft:item', commands));
             return {
-                ...resourceArgument('minecraft:item', registryValues('minecraft:item', commands)),
-                parse: (reader) => readResourceWithSuffix(reader, 'minecraft:item', commands),
+                ...resourceParser,
+                parse: (reader) => readResourceWithSuffix(reader, resourceParser),
                 bedrockGap: 'Java item components are not a Bedrock parameter type'
             };
-        case 'minecraft:block_state':
+        }
+        case 'minecraft:block_state': {
+            const resourceParser = resourceArgument('minecraft:block', registryValues('minecraft:block', commands));
             return {
-                ...resourceArgument('minecraft:block', registryValues('minecraft:block', commands)),
-                parse: (reader) => readResourceWithSuffix(reader, 'minecraft:block', commands),
+                ...resourceParser,
+                parse: (reader) => readResourceWithSuffix(reader, resourceParser),
                 bedrockGap: 'Java block states are not a Bedrock parameter type'
             };
+        }
         case 'minecraft:block_predicate':
         case 'minecraft:item_predicate':
         case 'minecraft:slot_source':

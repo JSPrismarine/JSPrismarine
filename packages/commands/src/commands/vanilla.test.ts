@@ -203,6 +203,80 @@ describe('the entity commands', () => {
             for (const line of ['setblock 0 0 0 mypack:brass_block', 'give @a mypack:wrench', 'enchant @a mypack:keen'])
                 expect(() => run(line, withPlayer, { content }), line).not.toThrow();
         });
+
+        it('accepts bare and namespaced vanilla ids for Java block and item arguments', () => {
+            const placed: string[] = [];
+            const given: string[] = [];
+            run('setblock 0 0 0 stone', {
+                world: {
+                    setBlock: (_dimension, _position, block) => {
+                        placed.push(block.identifier);
+                        return true;
+                    }
+                }
+            });
+            run('setblock 0 0 0 minecraft:stone');
+            run('give @a stick 1', {
+                entities: {
+                    select: () => [testEntity()],
+                    giveItem: (_entity, item) => {
+                        given.push(item);
+                        return 1;
+                    }
+                }
+            });
+
+            expect(placed).toEqual(['minecraft:stone']);
+            expect(given).toEqual(['minecraft:stick']);
+        });
+
+        it('keeps block-state and item-component suffixes after parsing their resource ids', () => {
+            const blockArguments: string[] = [];
+            const itemArguments: string[] = [];
+            run(
+                'setblock 0 0 0 mypack:brass_block[facing=north]',
+                {
+                    world: {
+                        setBlock: (_dimension, _position, block) => {
+                            blockArguments.push(block.identifier);
+                            return true;
+                        }
+                    }
+                },
+                { content }
+            );
+            run(
+                'give @a mypack:wrench{minecraft:custom_data:{key:1}}',
+                {
+                    entities: {
+                        select: () => [testEntity()],
+                        giveItem: (_entity, item) => {
+                            itemArguments.push(item);
+                            return 1;
+                        }
+                    }
+                },
+                { content }
+            );
+
+            expect(blockArguments).toEqual(['mypack:brass_block[facing=north]']);
+            expect(itemArguments).toEqual(['mypack:wrench{minecraft:custom_data:{key:1}}']);
+        });
+
+        it('uses the ids from each rebuilt command registry', () => {
+            const first = {
+                ...content,
+                blocks: ['minecraft:stone', 'mypack:first_block']
+            } satisfies ContentRegistryIds;
+            const second = {
+                ...content,
+                blocks: ['minecraft:stone', 'mypack:second_block']
+            } satisfies ContentRegistryIds;
+
+            expect(() => run('setblock 0 0 0 mypack:first_block', {}, { content: first })).not.toThrow();
+            expect(() => run('setblock 0 0 0 mypack:second_block', {}, { content: second })).not.toThrow();
+            expect(() => run('setblock 0 0 0 mypack:first_block', {}, { content: second })).toThrow('registry');
+        });
     });
 
     it('/give passes the count and the data value through', () => {
