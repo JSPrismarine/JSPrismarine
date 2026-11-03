@@ -65,6 +65,12 @@ interface BlockChange {
     blockRuntimeId: number;
 }
 
+/** A packet grouped for the wire, with a stable identity for this flush's encoding cache. */
+interface BlockPacket {
+    readonly key: string;
+    readonly packet: NetworkPacket<unknown>;
+}
+
 /** A block entity change waiting for the end of the tick. */
 interface BlockEntityChange {
     position: Vector3;
@@ -108,6 +114,10 @@ const subChunkOrigin = (position: Vector3): BlockPos =>
         Math.floor(position.getY() / SUB_CHUNK_SIZE) * SUB_CHUNK_SIZE,
         toChunk(position.getZ()) * SUB_CHUNK_SIZE
     );
+
+/** Identifies a change including the fixed flags carried by its wire packet. */
+const blockChangeKey = ({ position, blockRuntimeId }: BlockChange): string =>
+    `${position.getX()},${position.getY()},${position.getZ()},${blockRuntimeId >>> 0},${BLOCK_UPDATE_FLAGS}`;
 
 /** The single-block update, which is shorter than a sub chunk packet holding one change. */
 const updateBlockPacket = ({ position, blockRuntimeId }: BlockChange): UpdateBlockPacket => {
@@ -264,7 +274,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         if (!this.server.getConfig().getProximityBroadcast()) {
             await broadcastSharedBatches(
                 players.map((player) => player.getNetworkSession().getConnection()),
-                this.blockPackets(changes),
+                this.blockPackets(changes).map(({ packet }) => packet),
                 this.server.getConfig().getPacketCompressionLevel(),
                 (error) => this.server.getLogger().error(error),
                 // The configured threshold was already negotiated per connection; leave the override unset.
@@ -349,17 +359,32 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const sends: Promise<void>[] = [];
 
         for (const [codec, groups] of groupsByCodec) {
+            const encodedPackets = new Map<string, { packet: NetworkPacket<unknown>; buffer: Buffer }>();
             for (const group of groups.values()) {
                 const visibleChanges = group.indices.map((index) => {
                     const change = changes[index];
                     if (change === undefined) throw new Error(`Missing block change at flush index ${index}`);
                     return change;
                 });
-                // Subchunk packets combine several changes, so packet indexes no longer map
-                // one-to-one to change indexes. Encode each distinct visibility set after
-                // grouping its changes; viewers with the same set still share that encoding.
-                const encoded = encodePacketsForCodec(this.blockPackets(visibleChanges), codec);
-                const { packets, buffers } = encoded;
+                // Viewers can see different sets of chunks while sharing some of them. Cache
+                // each complete wire packet so those shared subchunks are encoded once without
+                // changing aggregation, visibility, or the per-viewer packet stream.
+                const packets: NetworkPacket<unknown>[] = [];
+                const buffers: Buffer[] = [];
+                for (const { key, packet } of this.blockPackets(visibleChanges)) {
+                    let encoded = encodedPackets.get(key);
+                    if (encoded === undefined) {
+                        const prepared = encodePacketsForCodec([packet], codec);
+                        const preparedPacket = prepared.packets[0];
+                        const buffer = prepared.buffers[0];
+                        if (preparedPacket === undefined || buffer === undefined)
+                            throw new Error('Missing encoded block packet');
+                        encoded = { packet: preparedPacket, buffer };
+                        encodedPackets.set(key, encoded);
+                    }
+                    packets.push(encoded.packet);
+                    buffers.push(encoded.buffer);
+                }
 
                 const batch = encodePacketBatchFromBuffersBySize(packets, buffers, {
                     compressionLevel,
@@ -414,9 +439,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * is keyed by position, so each position appears once and the result is the same whichever
      * sub chunk lands first.
      * @param {BlockChange[]} changes - What to put in the batch.
-     * @returns The packets, in sub chunk order.
+     * @returns Packets and stable cache keys, in sub chunk order.
      */
-    private blockPackets(changes: readonly BlockChange[]): NetworkPacket<unknown>[] {
+    private blockPackets(changes: readonly BlockChange[]): BlockPacket[] {
         const bySubChunk = new Map<string, BlockChange[]>();
         for (const change of changes) {
             const key = subChunkKey(change.position);
@@ -425,17 +450,20 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             else bucket.push(change);
         }
 
-        const packets: NetworkPacket<unknown>[] = [];
+        const packets: BlockPacket[] = [];
         for (const bucket of bySubChunk.values()) {
             const single = bucket.length === 1 ? bucket[0] : undefined;
             if (single !== undefined) {
-                packets.push(updateBlockPacket(single));
+                packets.push({ key: `block:${blockChangeKey(single)}`, packet: updateBlockPacket(single) });
                 continue;
             }
 
-            packets.push(
-                new UpdateSubChunkBlocksPacket({
-                    subChunkBlockPosition: subChunkOrigin(bucket[0]!.position),
+            const firstChange = bucket[0];
+            if (firstChange === undefined) throw new Error('A block-change subchunk cannot be empty');
+            packets.push({
+                key: `subchunk:${subChunkKey(firstChange.position)}:${bucket.map(blockChangeKey).join(';')}`,
+                packet: new UpdateSubChunkBlocksPacket({
+                    subChunkBlockPosition: subChunkOrigin(firstChange.position),
                     blocksChanged: {
                         standards: bucket.map(
                             ({ position, blockRuntimeId }) =>
@@ -452,7 +480,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                         extras: []
                     }
                 })
-            );
+            });
         }
 
         return packets;

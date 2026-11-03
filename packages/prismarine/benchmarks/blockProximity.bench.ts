@@ -12,8 +12,11 @@ import { parseArgs } from 'node:util';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { BatchCodec } from '@jsprismarine/protocol';
+import { BatchCodec, type ProtocolCodec } from '@jsprismarine/protocol';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
+import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubChunkBlocksPacket';
+import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/structure/UpdateSubChunkNetworkBlockInfo';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import type Player from '../src/Player';
@@ -22,8 +25,9 @@ import type { Config } from '../src/config/Config';
 import { stub } from '../src/testing/stub.test.helper';
 import type { World } from '../src/world/World';
 import { Position } from '../src/world/Position';
-import { isInView } from '../src/world/Proximity';
+import { isInView, toChunk } from '../src/world/Proximity';
 import { NetworkWorldReplicator } from '../src/network/NetworkWorldReplicator';
+import { encodePacketsForCodec } from '../src/network/encodePacketBatch';
 import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
@@ -97,6 +101,7 @@ const config = stub<Config>({
 const logger = stub<Logger>({ error: () => undefined, verbose: () => undefined });
 const server = stub<Server>({ getConfig: () => config, getLogger: () => logger });
 const stone = BlockRuntimeIds.getByName('minecraft:stone');
+const BLOCK_UPDATE_FLAGS = UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network;
 
 const changes: Change[] = Array.from({ length: CHANGE_COUNT }, (_unused, index) => {
     const viewerIndex = index % PLAYER_COUNT;
@@ -118,15 +123,63 @@ const changes: Change[] = Array.from({ length: CHANGE_COUNT }, (_unused, index) 
     };
 });
 
-const expectedDigest = (): string => {
+const blockPacketsFor = (visibleChanges: readonly Change[]): (UpdateBlockPacket | UpdateSubChunkBlocksPacket)[] => {
+    const bySubChunk = new Map<string, Change[]>();
+    for (const change of visibleChanges) {
+        const { position } = change;
+        const key = `${toChunk(position.getX())},${Math.floor(position.getY() / 16)},${toChunk(position.getZ())}`;
+        const bucket = bySubChunk.get(key);
+        if (bucket === undefined) bySubChunk.set(key, [change]);
+        else bucket.push(change);
+    }
+
+    return [...bySubChunk.values()].map((bucket) => {
+        if (bucket.length === 1) {
+            const change = bucket[0]!;
+            const packet = new UpdateBlockPacket();
+            packet.x = change.position.getX();
+            packet.y = change.position.getY();
+            packet.z = change.position.getZ();
+            packet.blockRuntimeId = change.runtimeId;
+            packet.flags = BLOCK_UPDATE_FLAGS;
+            return packet;
+        }
+
+        const first = bucket[0]!;
+        return new UpdateSubChunkBlocksPacket({
+            subChunkBlockPosition: new BlockPos(
+                toChunk(first.position.getX()) * 16,
+                Math.floor(first.position.getY() / 16) * 16,
+                toChunk(first.position.getZ()) * 16
+            ),
+            blocksChanged: {
+                standards: bucket.map(
+                    ({ position, runtimeId }) =>
+                        new UpdateSubChunkNetworkBlockInfo(
+                            new BlockPos(position.getX(), position.getY(), position.getZ()),
+                            runtimeId,
+                            BLOCK_UPDATE_FLAGS,
+                            0n,
+                            0
+                        )
+                ),
+                extras: []
+            }
+        });
+    });
+};
+
+/** Hashes the exact per-viewer packet sequence after independently rebuilding its reference batches. */
+const expectedDigest = (codec: ProtocolCodec): string => {
     const hash = createHash('sha256');
     for (const [playerIndex, viewer] of viewers.entries()) {
         const viewerPosition = new Position(viewer.x, Y, viewer.z, world);
-        for (const { position, runtimeId } of changes) {
-            if (!isInView({ event: position, viewer: viewerPosition, viewDistance: viewer.viewDistance })) continue;
-            hash.update(
-                `${playerIndex}:${position.getX()},${position.getY()},${position.getZ()},${runtimeId >>> 0},${UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network};`
-            );
+        const visibleChanges = changes.filter(({ position }) =>
+            isInView({ event: position, viewer: viewerPosition, viewDistance: viewer.viewDistance })
+        );
+        for (const buffer of encodePacketsForCodec(blockPacketsFor(visibleChanges), codec).buffers) {
+            hash.update(`${playerIndex}:${buffer.byteLength}:`);
+            hash.update(buffer);
         }
         hash.update('|');
     }
@@ -139,11 +192,8 @@ const digestBatches = (): string => {
     for (const [playerIndex, playerBatches] of batches.entries()) {
         for (const batch of playerBatches) {
             for (const packetBytes of codec.decode(batch)) {
-                const packet = new UpdateBlockPacket(packetBytes);
-                packet.decode();
-                hash.update(
-                    `${playerIndex}:${packet.x},${packet.y},${packet.z},${packet.blockRuntimeId >>> 0},${packet.flags};`
-                );
+                hash.update(`${playerIndex}:${packetBytes.byteLength}:`);
+                hash.update(packetBytes);
             }
         }
         hash.update('|');
@@ -182,7 +232,7 @@ const percentile = (sorted: readonly number[], fraction: number): number =>
     sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 const main = async (): Promise<void> => {
-    const reference = expectedDigest();
+    const reference = expectedDigest(Codec2193);
     for (let warmup = 0; warmup < WARMUPS; warmup++) {
         const sample = await run();
         if (sample.outputDigest !== reference)

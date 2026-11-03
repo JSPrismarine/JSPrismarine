@@ -294,6 +294,37 @@ describe('NetworkWorldReplicator block changes', () => {
         expect(updatesIn(batches[2]!)).toHaveLength(1);
     });
 
+    it('reuses encoded subchunk packets across overlapping but different viewer sets', async () => {
+        let encodes = 0;
+        const codec: ProtocolCodec = {
+            ...Codec2193,
+            prepareOutbound: (packet) => {
+                encodes++;
+                return Codec2193.prepareOutbound(packet);
+            }
+        };
+        const { batches, replicator } = replicatorFor(
+            [
+                { x: 8, z: 8, viewDistance: 1 },
+                { x: 72, z: 8, viewDistance: 1 }
+            ],
+            codec
+        );
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: stone });
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(40, 64, 8), blockRuntimeId: stone });
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(41, 64, 8), blockRuntimeId: stone });
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(72, 64, 8), blockRuntimeId: stone });
+
+        // The viewers have different visible chunk sets, but both see the middle chunk.
+        // Cache whole packets per chunk so its shared update is encoded only once.
+        await replicator.flushBlockChanges();
+
+        expect(encodes).toBe(3);
+        expect(updatesIn(batches[0]!).map(({ x }) => x)).toEqual([8, 40, 41]);
+        expect(updatesIn(batches[1]!).map(({ x }) => x)).toEqual([40, 41, 72]);
+    });
+
     it('uses each viewer’s negotiated algorithm for a shared block update', async () => {
         const { batches, replicator } = replicatorFor(
             [
