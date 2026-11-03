@@ -132,6 +132,105 @@ describe('world', () => {
             ]);
         });
 
+        it('starts more resident chunks in one tick than the generation depth', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 2);
+            const sender = new ChunkSender();
+            sender.setCenter(0, 0);
+            for (const [x, z] of [
+                [4, 0],
+                [3, 0],
+                [2, 0],
+                [1, 0],
+                [0, 0]
+            ])
+                sender.enqueue(x!, z!);
+
+            const delivered: Array<[number, number]> = [];
+            let generationCalls = 0;
+            const recipient: ChunkRecipient = {
+                sender,
+                tryDeliverLoaded: (x, z) => {
+                    delivered.push([x, z]);
+                    return { kind: 'queued', queuedBytes: 1024 };
+                },
+                deliver: async () => {
+                    generationCalls++;
+                },
+                flush: async () => {},
+                isConnected: () => true
+            };
+            scheduler.add(recipient);
+
+            expect(await scheduler.tick()).toBe(5);
+            await scheduler.close();
+
+            expect(delivered).toEqual([
+                [0, 0],
+                [1, 0],
+                [2, 0],
+                [3, 0],
+                [4, 0]
+            ]);
+            expect(generationCalls).toBe(0);
+        });
+
+        it('keeps resident delivery inside the tick budget while exceeding generation depth', async () => {
+            const clock = { now: 0 };
+            const scheduler = new ChunkScheduler(5, () => {}, 1);
+            const sender = new ChunkSender();
+            for (let x = 0; x < 20; x++) sender.enqueue(x, 0);
+
+            const delivered: number[] = [];
+            const recipient: ChunkRecipient = {
+                sender,
+                tryDeliverLoaded: (x) => {
+                    delivered.push(x);
+                    clock.now += 1;
+                    return { kind: 'queued', queuedBytes: 1 };
+                },
+                deliver: async () => {
+                    throw new Error('resident chunks must not enter generation');
+                },
+                flush: async () => {},
+                isConnected: () => true
+            };
+            scheduler.add(recipient);
+
+            const firstTick = await scheduler.tick(() => clock.now);
+            expect(firstTick).toBe(5);
+            expect(delivered).toHaveLength(5);
+            expect(sender.size).toBe(15);
+
+            clock.now += 50;
+            expect(await scheduler.tick(() => clock.now)).toBeGreaterThan(0);
+            await scheduler.close();
+        });
+
+        it('restores a resident chunk when its recipient has reached the byte limit', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const sender = new ChunkSender();
+            sender.enqueue(1, 0);
+            let hasCapacity = false;
+            const recipient: ChunkRecipient = {
+                sender,
+                tryDeliverLoaded: () => (hasCapacity ? { kind: 'queued', queuedBytes: 1 } : { kind: 'backpressure' }),
+                deliver: async () => {
+                    throw new Error('a resident chunk must not enter generation');
+                },
+                flush: async () => {},
+                isConnected: () => true
+            };
+            scheduler.add(recipient);
+
+            expect(await scheduler.tick()).toBe(0);
+            expect(sender.has(1, 0)).toBe(true);
+
+            hasCapacity = true;
+            expect(await scheduler.tick()).toBe(1);
+            expect(sender.has(1, 0)).toBe(false);
+            await scheduler.close();
+        });
+
         it('skips a player who is not connected', async () => {
             const scheduler = new ChunkScheduler(1000);
             const { recipient, delivered } = fakeRecipient([[0, 0]]);

@@ -10,6 +10,10 @@ export interface ScenarioContext {
     createClient: (displayName: string) => Promise<CinnabarClient>;
     /** The display name the client joined with, as the server sees it. */
     playerName: string;
+    /** Milliseconds from connect until the client first reports that PlayerSpawn completed. */
+    playerSpawnMs?: number;
+    /** Milliseconds from connect until the client first reports at least 25 loaded columns. */
+    radius2ChunkReadyMs?: number;
     /** Directory for this scenario's screenshots and recordings. */
     artifacts: string;
     log: (message: string) => void;
@@ -25,6 +29,8 @@ export interface Scenario {
         naturalCowSpawning?: boolean;
         /** Capture the server timing trace for a readiness or performance scenario. */
         profile?: boolean;
+        /** Keep the spawn region resident before the client joins. */
+        preloadRadius?: number;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }

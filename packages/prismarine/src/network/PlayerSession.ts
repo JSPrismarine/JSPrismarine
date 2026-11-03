@@ -103,6 +103,7 @@ import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
 import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
 import CommandParameter, { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import ChunkSender from './ChunkSender';
+import type { CachedChunkDelivery } from '../world/ChunkScheduler';
 import { TextPacketType } from '@jsprismarine/protocol';
 
 /**
@@ -118,6 +119,12 @@ import { TextPacketType } from '@jsprismarine/protocol';
  * ticks a second this still carries far more than generation can produce.
  */
 const CHUNKS_PER_BATCH = 4;
+const MAX_QUEUED_CHUNK_BYTES = 8 * 1024 * 1024;
+
+interface QueuedChunk {
+    readonly chunk: Chunk;
+    readonly payload: Buffer;
+}
 
 /** Weak payload keys let a chunk's full-flush fragment live exactly as long as its cached serialization. */
 const chunkFullFlushFragmentCache = new FullFlushFragmentCache();
@@ -229,7 +236,10 @@ export default class PlayerSession {
      */
     private readonly queuedMoves: Map<number, MoveActorAbsolutePacket> = new Map();
 
-    private readonly chunkSendQueue: Chunk[] = [];
+    private readonly chunkSendQueue: QueuedChunk[] = [];
+    private queuedChunkBytes = 0;
+    private readonly queuedChunkBytesLimit = MAX_QUEUED_CHUNK_BYTES;
+    private readonly chunkQueueCapacityWaiters = new Set<() => void>();
 
     /** Serializes sends when several generated chunks complete at the same time. */
     private chunkBatchFlush: Promise<void> = Promise.resolve();
@@ -390,13 +400,28 @@ export default class PlayerSession {
      * as long as they stay in range of it.
      */
     public async deliver(x: number, z: number): Promise<void> {
+        const epoch = this.chunkEpoch;
         try {
             await this.requestChunk(x, z);
+            if (epoch !== this.chunkEpoch) return;
             if (this.chunkSendQueue.length >= CHUNKS_PER_BATCH) await this.flushChunkBatch();
         } catch (error: unknown) {
             this.loadingChunks.delete(Chunk.packXZ(x, z));
             throw error;
         }
+    }
+
+    /** Queues a resident chunk without entering the generation and disk-read depth gate. */
+    public tryDeliverLoaded(x: number, z: number): CachedChunkDelivery {
+        const chunk = this.player.getWorld().getLoadedChunk(x, z);
+        if (chunk === null) return { kind: 'not-loaded' };
+
+        const payload = chunk.networkSerialize();
+        const queuedBytes = payload.byteLength;
+        if (!this.hasChunkQueueCapacity(queuedBytes)) return { kind: 'backpressure' };
+
+        this.queueChunkNow(chunk, payload);
+        return { kind: 'queued', queuedBytes };
     }
 
     public isConnected(): boolean {
@@ -564,6 +589,8 @@ export default class PlayerSession {
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
         const epoch = this.chunkEpoch;
+        const payloads = chunksToSend.map(({ payload }) => payload);
+        const payloadBytes = payloads.reduce((total, payload) => total + payload.byteLength, 0);
 
         // The publisher update has to come first, and has to be current.
         //
@@ -579,10 +606,8 @@ export default class PlayerSession {
         // before it. What governs visibility is the radius around the position.
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
         const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
-
-        const chunkPayloads = chunksToSend.map((chunk) => chunk.networkSerialize());
         const packets = chunksToSend.map(
-            (chunk, index) =>
+            ({ chunk }, index) =>
                 new LevelChunkPacket({
                     chunkX: chunk.getX(),
                     chunkZ: chunk.getZ(),
@@ -590,52 +615,57 @@ export default class PlayerSession {
                     subChunkCount: chunk.getNetworkSubChunkCount(),
                     clientSubChunkRequestsEnabled: false,
                     cached: false,
-                    payload: chunkPayloads[index]!
+                    payload: payloads[index]!
                 })
         );
 
-        // Asynchronous: compressing a batch of chunks is the biggest single piece of work on
-        // this path, and this is what moves it off the main thread.
         try {
-            await Promise.all([
-                // Queue the publisher update first; sendPacketsAsync flushes the queued
-                // packet batch before reserving the chunk batch's ordered frame.
-                publisherSend,
-                this.connection.sendPacketsAsync(packets, {
-                    direct: false,
-                    compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
-                    compressionAlgorithm: this.connection.compressionAlgorithm,
-                    compressionThreshold: this.connection.compressionThreshold,
-                    fullFlushFragments: this.server.getConfig().getPacketFullFlushFragments?.() ?? false,
-                    fragmentCache: chunkFullFlushFragmentCache,
-                    fragmentKeys: chunkPayloads,
-                    fragmentKeyDiscriminators: chunksToSend.map(
-                        (chunk) =>
-                            `${chunk.getX()}:${chunk.getZ()}:${chunk.getDimension().bedrockId}:${chunk.getNetworkSubChunkCount()}:plain`
-                    )
-                })
-            ]);
-        } catch (error: unknown) {
-            // Nothing reached the client, so nothing may be recorded as loaded. Marking
-            // before the send meant a batch that failed to compress left every chunk in it
-            // flagged as delivered, and the player kept a hole where they were.
-            for (const chunk of chunksToSend) this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
-            throw error;
+            try {
+                // The queued packet batch already owns the serialized payloads, so reuse them rather
+                // than serializing each resident chunk a second time during the send.
+                await Promise.all([
+                    // Queue the publisher update first; sendPacketsAsync flushes the queued
+                    // packet batch before reserving the chunk batch's ordered frame.
+                    publisherSend,
+                    this.connection.sendPacketsAsync(packets, {
+                        direct: false,
+                        compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
+                        compressionAlgorithm: this.connection.compressionAlgorithm,
+                        compressionThreshold: this.connection.compressionThreshold,
+                        fullFlushFragments: this.server.getConfig().getPacketFullFlushFragments?.() ?? false,
+                        fragmentCache: chunkFullFlushFragmentCache,
+                        fragmentKeys: payloads,
+                        fragmentKeyDiscriminators: chunksToSend.map(
+                            ({ chunk }) =>
+                                `${chunk.getX()}:${chunk.getZ()}:${chunk.getDimension().bedrockId}:${chunk.getNetworkSubChunkCount()}:plain`
+                        )
+                    })
+                ]);
+            } catch (error: unknown) {
+                // Nothing reached the client, so nothing may be recorded as loaded. Marking
+                // before the send meant a batch that failed to compress left every chunk in it
+                // flagged as delivered, and the player kept a hole where they were.
+                for (const { chunk } of chunksToSend)
+                    this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
+                throw error;
+            }
+
+            // A world change happened while the batch was compressing. These were the old world's
+            // chunks; the sets were cleared for the new one and the hashes must not come back.
+            if (epoch !== this.chunkEpoch) return;
+
+            // Loaded only once it is actually on the wire.
+            for (const { chunk } of chunksToSend) {
+                const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
+                this.loadedChunks.add(hash);
+                this.loadingChunks.delete(hash);
+            }
+
+            // The spawn status waits for this, not the other way round.
+            await this.announceSpawnIfReady();
+        } finally {
+            this.releaseChunkQueueBytes(payloadBytes);
         }
-
-        // A world change happened while the batch was compressing. These were the old world's
-        // chunks; the sets were cleared for the new one and the hashes must not come back.
-        if (epoch !== this.chunkEpoch) return;
-
-        // Loaded only once it is actually on the wire.
-        for (const chunk of chunksToSend) {
-            const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
-            this.loadedChunks.add(hash);
-            this.loadingChunks.delete(hash);
-        }
-
-        // The spawn status waits for this, not the other way round.
-        await this.announceSpawnIfReady();
     }
 
     /**
@@ -808,8 +838,49 @@ export default class PlayerSession {
     }
 
     public async requestChunk(x: number, z: number): Promise<void> {
+        const epoch = this.chunkEpoch;
         const chunk = await this.player.getWorld().getChunk(x, z, { urgency: this.urgencyOf(x, z) });
-        this.chunkSendQueue.push(chunk);
+        await this.queueChunk(chunk, epoch);
+    }
+
+    private async queueChunk(chunk: Chunk, epoch: number): Promise<void> {
+        let payload: Buffer | null = null;
+        while (epoch === this.chunkEpoch) {
+            payload = chunk.networkSerialize();
+            if (payload.byteLength > this.queuedChunkBytesLimit) {
+                throw new RangeError(
+                    `Chunk payload ${payload.byteLength} exceeds the ${this.queuedChunkBytesLimit}-byte queue limit`
+                );
+            }
+            if (this.hasChunkQueueCapacity(payload.byteLength)) {
+                this.queueChunkNow(chunk, payload);
+                return;
+            }
+
+            // A capacity wait may last across a network send. Drop this temporary serialization
+            // before yielding so the byte cap covers payload memory as well as queued entries.
+            payload = null;
+            if (this.chunkSendQueue.length > 0) {
+                await this.flushChunkBatch();
+            } else {
+                await new Promise<void>((resolve) => this.chunkQueueCapacityWaiters.add(resolve));
+            }
+        }
+    }
+
+    private queueChunkNow(chunk: Chunk, payload: Buffer): void {
+        this.chunkSendQueue.push({ chunk, payload });
+        this.queuedChunkBytes += payload.byteLength;
+    }
+
+    private hasChunkQueueCapacity(bytes: number): boolean {
+        return this.queuedChunkBytes + bytes <= this.queuedChunkBytesLimit;
+    }
+
+    private releaseChunkQueueBytes(bytes: number): void {
+        this.queuedChunkBytes -= bytes;
+        for (const resolve of this.chunkQueueCapacityWaiters) resolve();
+        this.chunkQueueCapacityWaiters.clear();
     }
 
     /**
@@ -850,7 +921,9 @@ export default class PlayerSession {
         this.loadedChunks.clear();
         this.loadingChunks.clear();
         this.chunkSender.clear();
+        const abandonedBytes = this.chunkSendQueue.reduce((total, { payload }) => total + payload.byteLength, 0);
         this.chunkSendQueue.length = 0;
+        this.releaseChunkQueueBytes(abandonedBytes);
 
         // So the next `update` sees a chunk change and asks for terrain again, rather than
         // comparing against where the player stood in the world it just left.

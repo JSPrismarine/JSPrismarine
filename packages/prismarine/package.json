@@ -65,6 +65,7 @@
         "bench:entity-ai-digest": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
         "bench:entity-ai-digest:source": "node --import tsx benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
         "bench:entity-ai-digest:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAiDigest.bench.ts",
+        "bench:chunk-delivery": "node --import tsx benchmarks/playerChunkDelivery.ts --cached",
         "bench:commands": "node benchmarks/run.mjs benchmarks/commandTree.bench.ts",
         "bench:ticker": "node benchmarks/run.mjs benchmarks/tickerCatchup.bench.ts",
         "bench:gc-tuning": "node benchmarks/gcTuning.mjs",

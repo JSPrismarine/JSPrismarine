@@ -4,11 +4,20 @@ import { chunkWorkerCount } from './generators/chunkConcurrency';
 export interface SchedulableSender {
     isEmpty(): boolean;
     next(): { x: number; z: number } | null;
+    /** Restores a coordinate when a loaded-chunk delivery cannot fit this connection's byte cap. */
+    enqueue?(x: number, z: number): void;
 }
+
+/** Whether a recipient could queue a loaded chunk without waiting for generation capacity. */
+export type CachedChunkDelivery =
+    { kind: 'queued'; queuedBytes: number } | { kind: 'not-loaded' } | { kind: 'backpressure' };
 
 /** What the scheduler needs of a player: a queue, and a way to deliver one chunk. */
 export interface ChunkRecipient {
     readonly sender: SchedulableSender;
+
+    /** Queues an already-loaded chunk synchronously, or reports that generation is still needed. */
+    tryDeliverLoaded?(x: number, z: number): CachedChunkDelivery;
 
     /** Resolves once the chunk is on its way; rejects if it could not be produced. */
     deliver(x: number, z: number): Promise<void>;
@@ -57,6 +66,9 @@ export type ChunkFailureHandler = (error: unknown, coord?: { x: number; z: numbe
 export class ChunkScheduler {
     private readonly recipients = new Set<ChunkRecipient>();
 
+    /** Coordinates held for custom senders that do not expose a way to requeue. */
+    private readonly deferred = new Map<ChunkRecipient, Array<{ x: number; z: number }>>();
+
     /** Where the last pass stopped, so the next one does not always start at the same player. */
     private cursor = 0;
 
@@ -88,6 +100,7 @@ export class ChunkScheduler {
     public remove(recipient: ChunkRecipient): void {
         this.recipients.delete(recipient);
         this.readyToFlush.delete(recipient);
+        this.deferred.delete(recipient);
     }
 
     public setBudget(budgetMs: number): void {
@@ -101,13 +114,15 @@ export class ChunkScheduler {
 
     public get pending(): number {
         let total = 0;
-        for (const recipient of this.recipients) if (!recipient.sender.isEmpty()) total++;
+        for (const recipient of this.recipients) {
+            if (!recipient.sender.isEmpty() || (this.deferred.get(recipient)?.length ?? 0) > 0) total++;
+        }
 
         return total;
     }
 
     /**
-     * Starts chunk deliveries that fit in this tick's budget and in-flight depth.
+     * Starts cached deliveries within the tick budget, then generation within budget and depth.
      *
      * @param now - injectable clock, so tests can drive the budget deterministically.
      * @returns How many deliveries started.
@@ -158,19 +173,45 @@ export class ChunkScheduler {
         // One chunk per player per turn - that is the fairness - until either the budget
         // runs out or a full lap finds nobody with anything left to send.
         let emptyInARow = 0;
-        while (emptyInARow < active.length && now() - started < this.budgetMs && this.inFlight.size < this.depth) {
+        while (emptyInARow < active.length && now() - started < this.budgetMs) {
             const recipient = active[this.cursor]!;
             this.cursor = (this.cursor + 1) % active.length;
 
-            const next = recipient.sender.next();
+            const deferred = this.deferred.get(recipient);
+            const next = deferred?.shift() ?? recipient.sender.next();
             if (!next) {
                 emptyInARow++;
                 continue;
             }
 
             emptyInARow = 0;
+
+            const cached = recipient.tryDeliverLoaded?.(next.x, next.z);
+            if (cached?.kind === 'queued') {
+                this.readyToFlush.add(recipient);
+                deliveriesStarted++;
+                continue;
+            }
+
+            if (cached?.kind === 'backpressure' || this.inFlight.size >= this.depth) {
+                if (recipient.sender.enqueue) recipient.sender.enqueue(next.x, next.z);
+                else {
+                    const queued = this.deferred.get(recipient) ?? [];
+                    queued.push(next);
+                    this.deferred.set(recipient, queued);
+                }
+                emptyInARow++;
+                continue;
+            }
+
             begin(recipient, next);
             deliveriesStarted++;
+        }
+
+        // Cached deliveries are queued synchronously, so flush them in this same pass rather
+        // than waiting for the asynchronous completion callback used by generation.
+        for (const recipient of active) {
+            if (this.readyToFlush.has(recipient)) this.flushRecipient(recipient);
         }
 
         return Promise.resolve(deliveriesStarted);
@@ -210,6 +251,7 @@ export class ChunkScheduler {
     public async close(): Promise<void> {
         this.recipients.clear();
         this.readyToFlush.clear();
+        this.deferred.clear();
 
         // A delivery's `finally` may start one last flush, so drain until both sets stay empty.
         while (this.inFlight.size > 0 || this.flushTasks.size > 0) {

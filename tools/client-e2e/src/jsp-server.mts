@@ -57,6 +57,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to ZLib.
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
+ * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -68,6 +69,7 @@ export const startServer = async (
         compressionAlgorithm?: 'zlib' | 'snappy' | 'none';
         raknetWorker?: boolean;
         profile?: boolean;
+        preloadRadius?: number;
     } = {}
 ): Promise<JspServer> => {
     const port = options.port ?? (await reserveFreeUdpPort());
@@ -277,7 +279,7 @@ export const startServer = async (
         },
         'content-world-packs': [behaviorPack],
         'content-datapacks': [datapack],
-        'preload-radius': 0,
+        'preload-radius': options.preloadRadius ?? 0,
         'max-players': 4,
         motd: 'JSPrismarine e2e',
         'packet-full-flush-fragments': process.env.JSP_E2E_FULL_FLUSH_FRAGMENTS === '1'

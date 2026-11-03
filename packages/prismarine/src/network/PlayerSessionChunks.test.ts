@@ -4,6 +4,9 @@ import type Player from '../Player';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { stub } from '../testing/stub.test.helper';
+import { Dimensions } from '../world/Dimension';
+import Chunk from '../world/chunk/Chunk';
+import type { World } from '../world/World';
 import type { ChunkScheduler } from '../world/ChunkScheduler';
 import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
@@ -115,6 +118,31 @@ describe('network', () => {
 
             expect(session.sender.has(50, 50)).toBe(true);
             expect(session.sender.has(0, 0)).toBe(false);
+        });
+
+        it('limits resident chunk payload bytes for one connection', () => {
+            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
+            const secondChunk = new Chunk(2, 2, new Map(), Dimensions.Overworld);
+            const world = stub<World>({
+                getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : x === 2 && z === 2 ? secondChunk : null)
+            });
+            const playerWithWorld = stub<Player>({
+                viewDistance: 2,
+                getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
+                getWorld: () => world
+            });
+            const residentSession = new PlayerSession(server, stub<ClientConnection>(), playerWithWorld);
+            const payloadBytes = chunk.networkSerialize().byteLength;
+
+            expect(residentSession.tryDeliverLoaded(1, 2)).toEqual({ kind: 'queued', queuedBytes: payloadBytes });
+            expect(Reflect.get(residentSession, 'queuedChunkBytes')).toBe(payloadBytes);
+
+            const byteLimit = Reflect.get(residentSession, 'queuedChunkBytesLimit');
+            if (typeof byteLimit !== 'number') throw new Error('Player session chunk byte limit is unavailable');
+            Reflect.set(residentSession, 'queuedChunkBytes', byteLimit);
+
+            expect(residentSession.tryDeliverLoaded(2, 2)).toEqual({ kind: 'backpressure' });
+            expect(Reflect.get(residentSession, 'chunkSendQueue')).toHaveLength(1);
         });
     });
 });

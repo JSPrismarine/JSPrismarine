@@ -51,6 +51,7 @@ import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
 import { dimensionsScenario } from './scenarios/dimensions.mts';
 import { enderDragon } from './scenarios/ender-dragon.mts';
 import { chunkCompletionReadiness } from './scenarios/chunk-completion-readiness.mts';
+import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 
 interface ScenarioSuite {
     name: string;
@@ -61,6 +62,7 @@ const suites: ScenarioSuite[] = [
     {
         name: 'gameplay-and-dimensions',
         scenarios: [
+            cachedChunkDelivery,
             spawn,
             chunkCompletionReadiness,
             movement,
@@ -250,6 +252,13 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             compressionAlgorithm,
             raknetWorker: values['raknet-worker'],
             profile: suite.scenarios.some((scenario) => scenario.serverOptions?.profile === true),
+            ...(suite.scenarios.some((scenario) => scenario.serverOptions?.preloadRadius !== undefined)
+                ? {
+                      preloadRadius: Math.max(
+                          ...suite.scenarios.map((scenario) => scenario.serverOptions?.preloadRadius ?? 0)
+                      )
+                  }
+                : {}),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)
                 ? { naturalCowSpawning: true }
                 : {})
@@ -265,8 +274,40 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         });
 
         const joined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), 120_000);
+        const measureChunkJoin = suite.scenarios.some((scenario) => scenario.name === cachedChunkDelivery.name);
+        const connectStarted = performance.now();
         await client.connect(suiteServer.port);
-        await client.waitFor('in_world', 120_000);
+        let playerSpawnMs: number | undefined;
+        let radius2ChunkReadyMs: number | undefined;
+        if (measureChunkJoin) {
+            const deadline = Date.now() + 120_000;
+            while (playerSpawnMs === undefined || radius2ChunkReadyMs === undefined) {
+                const state = await client.state();
+                const elapsed = performance.now() - connectStarted;
+                if (state.in_world === true) playerSpawnMs ??= elapsed;
+                const chunks = state.chunks;
+                if (
+                    typeof chunks === 'object' &&
+                    chunks !== null &&
+                    'loaded_columns' in chunks &&
+                    typeof chunks.loaded_columns === 'number' &&
+                    chunks.loaded_columns >= 25
+                ) {
+                    radius2ChunkReadyMs ??= elapsed;
+                }
+                if (Date.now() >= deadline) {
+                    throw new Error(
+                        `timed out measuring join stages: in_world=${String(playerSpawnMs)}, ` +
+                            `radius-2 chunks=${String(radius2ChunkReadyMs)}`
+                    );
+                }
+                if (playerSpawnMs === undefined || radius2ChunkReadyMs === undefined) await sleep(20);
+            }
+            await client.waitFor('in_world', 120_000);
+            await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
+        } else {
+            await client.waitFor('in_world', 120_000);
+        }
         await client.waitForScreenAbsent('Loading', 120_000);
         await joined;
         console.log(`${suite.name}: join ok`);
@@ -309,6 +350,8 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                         return additional;
                     },
                     playerName,
+                    ...(playerSpawnMs === undefined ? {} : { playerSpawnMs }),
+                    ...(radius2ChunkReadyMs === undefined ? {} : { radius2ChunkReadyMs }),
                     artifacts: scenarioArtifacts,
                     log: (message) => console.log(`${scenario.name}: ${message}`)
                 });
