@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type Player from './Player';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Entity } from './entity/Entity';
@@ -40,6 +40,20 @@ const move = async (player: Player, blocks: number, type = PositionMode.Normal) 
 };
 
 describe('Player', () => {
+    describe('setPosition', () => {
+        it('broadcasts the new rotation with the position', async () => {
+            const { player, world } = fakePlayer();
+            const rotations: Array<[number, number, number]> = [];
+            vi.spyOn(world, 'broadcastMove').mockImplementation(async (entity) => {
+                rotations.push([entity.pitch, entity.yaw, entity.headYaw]);
+            });
+
+            await player.setPosition({ position: new Vector3(1, 64, 0), pitch: 17, yaw: 123, headYaw: 120 }, false);
+
+            expect(rotations).toStrictEqual([[17, 123, 120]]);
+        });
+    });
+
     describe('isOp', () => {
         it('checks operator status by UUID', () => {
             const { player, isOp } = fakePlayer();

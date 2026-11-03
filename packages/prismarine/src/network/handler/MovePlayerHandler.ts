@@ -49,6 +49,7 @@ export const applyClientMovement = async (
         return;
     }
 
+    const groundChanged = player.isOnGround() !== movement.onGround;
     await player.setPosition(
         {
             position: movement.position,
@@ -61,19 +62,11 @@ export const applyClientMovement = async (
 
     await player.setOnGround(movement.onGround);
 
-    // Finally, the move to everyone in the world who can actually see this player.
-    await Promise.all(
-        player
-            .getWorld()
-            .getPlayers()
-            // By identity rather than by uuid: "except the player itself" is the object, not a
-            // value that happens to differ.
-            .filter((target) => target !== player)
-            // Tracking rather than distance: a client that was never sent a spawn for this
-            // player has nothing to move, and discards the packet anyway.
-            .filter((target) => target.getNetworkSession().tracks(player.getRuntimeId()))
-            .map((target) => target.getNetworkSession().sendMove(player, PositionMode.Normal))
-    );
+    if (groundChanged) {
+        // Position queues a snapshot before landing logic updates the on-ground bit. Replacing
+        // that entry gives observers the final pose and ground state in the one tick update.
+        await player.getWorld().broadcastMove(player);
+    }
 };
 
 /**

@@ -1558,7 +1558,9 @@ export default class Player extends Human {
     ) {
         const previous = this.getPosition();
 
-        await super.setPosition({ position });
+        // Entity broadcasts synchronously from this call. Store the reported rotation before
+        // that broadcast builds the queued MoveActorAbsolute packet for observers.
+        await super.setPosition({ position, pitch, yaw, headYaw });
 
         // A reset or a teleport is not the player walking, so it costs nothing - and it must not
         // count as a fall either, or arriving anywhere below where you left would hurt.
@@ -1568,10 +1570,6 @@ export default class Player extends Human {
         } else {
             this.fallDistance = 0;
         }
-
-        this.pitch = pitch;
-        this.yaw = yaw;
-        this.headYaw = headYaw;
 
         if (!broadcast) return;
         await this.getNetworkSession().sendMove(this, type);

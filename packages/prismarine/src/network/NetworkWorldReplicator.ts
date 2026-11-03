@@ -556,7 +556,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const runtimeId = entity.getRuntimeId();
         for (const player of this.world.getPlayers()) {
             const session = player.getNetworkSession();
-            if (session.tracks(runtimeId)) session.queueMoveActor(entity, teleport);
+            // A player predicts its own movement. Sending that actor back to its controlling
+            // client can rewind the pose it just reported; only observers need this update.
+            if (player !== entity && session.tracks(runtimeId)) session.queueMoveActor(entity, teleport);
         }
     }
 

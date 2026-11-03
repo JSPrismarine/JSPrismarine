@@ -173,6 +173,19 @@ describe('network', () => {
                 expect(watching.spy.queued).toStrictEqual([3n]);
                 expect(blind.spy.queued).toStrictEqual([]);
             });
+
+            it("does not queue a player's movement for that player's own session", () => {
+                const moving = fakePlayer(1n);
+                const observer = fakePlayer(2n);
+                moving.spy.tracked.add(1n);
+                observer.spy.tracked.add(1n);
+
+                const replicator = replicatorOver({ players: [moving.player, observer.player] });
+                replicator.entityMoved(moving.player);
+
+                expect(moving.spy.queued).toStrictEqual([]);
+                expect(observer.spy.queued).toStrictEqual([1n]);
+            });
         });
 
         describe('flushMovement', () => {

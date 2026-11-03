@@ -43,6 +43,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
     const logged: string[] = [];
     const world = stub<World>({
         getPlayers: () => [],
+        broadcastMove: vi.fn(async () => {}),
         hitBlock: async (position, face) =>
             void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),
         getBlock: async () => stub<Block>({ getBreakTime: () => 0 }),
@@ -64,6 +65,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
             async ({ position }: { position: Vector3 }) =>
                 void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
         ),
+        isOnGround: () => false,
         setOnGround: vi.fn(async (onGround: boolean) => void calls.push(`ground ${onGround}`)),
         addJumpExhaustion: () => void calls.push('jump'),
         setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`),

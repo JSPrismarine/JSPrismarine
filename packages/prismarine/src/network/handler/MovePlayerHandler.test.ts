@@ -21,12 +21,14 @@ import MovePlayerHandler from './MovePlayerHandler';
  */
 const fake = () => {
     const dropped: string[] = [];
-    const world = stub<World>({ getPlayers: () => [] });
+    const players: Player[] = [];
+    const world = stub<World>({ getPlayers: () => players, broadcastMove: vi.fn(async () => {}) });
     const player = stub<Player>({
         getName: () => 'tester',
         getRuntimeId: () => 7n,
         getPosition: () => new Position(0, 64, 0, world),
         getWorld: () => world,
+        isOnGround: () => false,
         setPosition: vi.fn(async () => {}),
         setOnGround: vi.fn(async () => {})
     });
@@ -40,7 +42,7 @@ const fake = () => {
         getLogger: () => stub<Logger>({ debug: (...message: string[]) => void dropped.push(message.join(' ')) })
     });
 
-    return { dropped, player, session, server };
+    return { dropped, player, players, session, server };
 };
 
 const move = (configure: (data: MovePlayer) => void = () => {}): MovePlayerPacket => {
@@ -71,6 +73,23 @@ describe('MovePlayerHandler', () => {
         );
         expect(player.setOnGround).toHaveBeenCalledWith(true);
         expect(dropped).toEqual([]);
+    });
+
+    it('does not send a second MovePlayer update to observers', async () => {
+        const { player, players, session, server } = fake();
+        const sendMove = vi.fn(async () => {});
+        const observer = stub<Player>({
+            getNetworkSession: () =>
+                stub<PlayerSession>({
+                    tracks: () => true,
+                    sendMove
+                })
+        });
+        players.push(player, observer);
+
+        await new MovePlayerHandler().handle(move(), server, session);
+
+        expect(sendMove).not.toHaveBeenCalled();
     });
 
     it('accepts the head-only mode the docs allow for a player in a vehicle', async () => {

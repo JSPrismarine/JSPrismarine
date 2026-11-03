@@ -39,6 +39,7 @@ import { summonEntity } from './scenarios/summon-entity.mts';
 import { leverLamp } from './scenarios/lever-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
+import { movementRotation } from './scenarios/movement-rotation.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
 import { placementOverlap } from './scenarios/placement-overlap.mts';
@@ -71,6 +72,7 @@ const suites: ScenarioSuite[] = [
             damage,
             lookDirection,
             gait,
+            movementRotation,
             chat,
             miningDrops,
             edgeChunkBlockChange,
