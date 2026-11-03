@@ -99,35 +99,42 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
                 () => {
                     if (this.stopped) return;
 
-                    const started = monotonicNow();
+                    // Let the poll phase read queued UDP first. Otherwise a timer expiring
+                    // after a blocked game tick can retransmit an already-acknowledged frame
+                    // or time out a session whose traffic is waiting in the kernel buffer.
+                    setImmediate(() => {
+                        if (this.stopped) return;
 
-                    // Rescheduled from `finally`, and each session isolated from the next. This
-                    // is the only thing driving acknowledgment, retransmissions and timeouts
-                    // for *every* connection, so a single session throwing used to stop all of
-                    // them permanently - the loop simply never reached its own next call.
-                    try {
-                        // One reading for the whole pass: sessions in the same tick should be
-                        // judged against the same instant, not against a clock that advances
-                        // between them.
-                        for (const session of this.sessions.values()) {
-                            try {
-                                session.update(started);
-                            } catch (error: unknown) {
-                                this.logger.error(
-                                    `Session update failed for client=${session.getAddress()}, error=${
-                                        error instanceof Error ? error.message : String(error)
-                                    }`,
-                                    'RakNet/ServerSocket/tick'
-                                );
+                        const started = monotonicNow();
+
+                        // Rescheduled from `finally`, and each session isolated from the next. This
+                        // is the only thing driving acknowledgment, retransmissions and timeouts
+                        // for *every* connection, so a single session throwing used to stop all of
+                        // them permanently - the loop simply never reached its own next call.
+                        try {
+                            // One reading for the whole pass: sessions in the same tick should be
+                            // judged against the same instant, not against a clock that advances
+                            // between them.
+                            for (const session of this.sessions.values()) {
+                                try {
+                                    session.update(started);
+                                } catch (error: unknown) {
+                                    this.logger.error(
+                                        `Session update failed for client=${session.getAddress()}, error=${
+                                            error instanceof Error ? error.message : String(error)
+                                        }`,
+                                        'RakNet/ServerSocket/tick'
+                                    );
+                                }
                             }
+                        } finally {
+                            // The interval is what the next pass should *start* after, so the work
+                            // just done comes out of it. Sleeping a flat interval afterwards made the
+                            // real period `interval + work`, which meant the polling rate fell away
+                            // precisely as sessions were added and the work grew.
+                            if (!this.stopped) tick(RAKNET_TICK_INTERVAL_MS - (monotonicNow() - started));
                         }
-                    } finally {
-                        // The interval is what the next pass should *start* after, so the work
-                        // just done comes out of it. Sleeping a flat interval afterwards made the
-                        // real period `interval + work`, which meant the polling rate fell away
-                        // precisely as sessions were added and the work grew.
-                        if (!this.stopped) tick(RAKNET_TICK_INTERVAL_MS - (monotonicNow() - started));
-                    }
+                    });
                 },
                 Math.max(0, delay)
             );

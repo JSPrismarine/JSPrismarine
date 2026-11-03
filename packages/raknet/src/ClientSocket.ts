@@ -391,17 +391,23 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
                 () => {
                     if (this.stopped) return;
 
-                    const started = monotonicNow();
-                    try {
-                        this.tick(started);
-                    } catch (error: unknown) {
-                        this.logger.error(
-                            `Tick failed, error=${error instanceof Error ? error.message : String(error)}`,
-                            'RakNet/ClientSocket/tick'
-                        );
-                    } finally {
-                        if (!this.stopped) tick(RAKNET_TICK_INTERVAL_MS - (monotonicNow() - started));
-                    }
+                    // Let the poll phase apply queued server datagrams before retransmission
+                    // or timeout checks run against stale session state.
+                    setImmediate(() => {
+                        if (this.stopped) return;
+
+                        const started = monotonicNow();
+                        try {
+                            this.tick(started);
+                        } catch (error: unknown) {
+                            this.logger.error(
+                                `Tick failed, error=${error instanceof Error ? error.message : String(error)}`,
+                                'RakNet/ClientSocket/tick'
+                            );
+                        } finally {
+                            if (!this.stopped) tick(RAKNET_TICK_INTERVAL_MS - (monotonicNow() - started));
+                        }
+                    });
                 },
                 Math.max(0, delay)
             );
