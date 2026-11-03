@@ -1,4 +1,6 @@
 import { normalizeIdentifier } from '../identifier';
+import type { ClimateParameter } from '../biome/Climate';
+import { climateSpan } from '../biome/Climate';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { DensityFunctionResolver } from '../density/parse';
 import { parseDensityFunction } from '../density/parse';
@@ -65,6 +67,8 @@ export interface NoiseGeneratorSettings {
     readonly defaultFluid: string;
     /** The eight router slots. */
     readonly noiseRouter: NoiseRouter;
+    /** Climate targets Java uses to choose a noise world's origin chunk. */
+    readonly spawnTargets: readonly SpawnTargetPoint[];
     /** The `material_rule` reference the surface pass resolves. */
     readonly materialRule: string;
     /** The y level the global fluid picker fills to. */
@@ -76,6 +80,15 @@ export interface NoiseGeneratorSettings {
     /** Whether the world seeds its randoms with the 48-bit legacy generator. */
     readonly useLegacyRandomSource: boolean;
 }
+
+/** One density function's climate interval within a Java spawn target. */
+export interface SpawnTargetFunction {
+    readonly density: DensityFunctionNode;
+    readonly parameter: ClimateParameter;
+}
+
+/** The target point with the lowest climate fitness wins at each spawn candidate. */
+export type SpawnTargetPoint = readonly SpawnTargetFunction[];
 
 const asObject = (value: unknown, path: string): Record<string, unknown> => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -101,6 +114,34 @@ const blockState = (value: unknown, path: string): string => {
     if (typeof value === 'string') return normalizeIdentifier(value);
     const raw = asObject(value, path);
     return normalizeIdentifier(raw['Name'] ?? raw['name']);
+};
+
+const parseSpawnTargets = (
+    value: unknown,
+    resolve: DensityFunctionResolver,
+    path: string
+): readonly SpawnTargetPoint[] => {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) throw new TypeError(`${path}: expected an array`);
+
+    return value.map((entry, targetIndex) => {
+        const target = asObject(entry, `${path}[${targetIndex}]`);
+        return Object.entries(target).map(([id, rawParameter]) => {
+            const parameter = Array.isArray(rawParameter) ? rawParameter : undefined;
+            if (parameter === undefined || parameter.length !== 2) {
+                throw new TypeError(`${path}[${targetIndex}].${id}: expected a [min, max] interval`);
+            }
+            const [min, max] = parameter;
+            if (typeof min !== 'number' || !Number.isFinite(min) || typeof max !== 'number' || !Number.isFinite(max)) {
+                throw new TypeError(`${path}[${targetIndex}].${id}: interval bounds must be finite numbers`);
+            }
+            const reference = normalizeIdentifier(id);
+            return {
+                density: parseDensityFunction(reference, resolve, `${path}[${targetIndex}].${id}`),
+                parameter: climateSpan(min, max)
+            } satisfies SpawnTargetFunction;
+        });
+    });
 };
 
 /**
@@ -159,6 +200,7 @@ export const parseNoiseGeneratorSettings = (
             chunkSurfaceLevel: parseSlot('chunk_surface_level'),
             finalDensity: parseSlot('final_density')
         },
+        spawnTargets: parseSpawnTargets(raw['spawn_target'], resolve, `${path}.spawn_target`),
         materialRule: normalizeIdentifier(raw['material_rule']),
         seaLevel: integer(raw['sea_level'], `${path}.sea_level`),
         disableMobGeneration: boolean(raw['disable_mob_generation'], `${path}.disable_mob_generation`),

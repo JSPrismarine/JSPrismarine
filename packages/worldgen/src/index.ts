@@ -37,6 +37,7 @@ export * from './random/randomSupport';
 export * from './random/RandomSource';
 export * from './random/XoroshiroRandomSource';
 export * from './RandomState';
+export * from './spawn/NoiseSpawnFinder';
 export * from './settings/NoiseGeneratorSettings';
 export * from './surface/MaterialRule';
 export * from './surface/MaterialRuleContext';

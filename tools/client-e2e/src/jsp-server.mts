@@ -58,6 +58,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
+ * @param options.worldgenSpawn - Boots the normal Overworld at seed 1234 for spawn testing.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -70,6 +71,7 @@ export const startServer = async (
         raknetWorker?: boolean;
         profile?: boolean;
         preloadRadius?: number;
+        worldgenSpawn?: boolean;
     } = {}
 ): Promise<JspServer> => {
     const port = options.port ?? (await reserveFreeUdpPort());
@@ -259,8 +261,8 @@ export const startServer = async (
         'level-name': 'e2e',
         worlds: {
             e2e: {
-                seed: '1',
-                preset: 'minecraft:flat',
+                seed: options.worldgenSpawn === true ? '1234' : '1',
+                preset: options.worldgenSpawn === true ? 'minecraft:normal' : 'minecraft:flat',
                 dimensions: {
                     'minecraft:the_nether': {
                         type: 'minecraft:the_nether',

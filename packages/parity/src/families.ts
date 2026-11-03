@@ -79,6 +79,8 @@ export const FAMILIES = {
 
     /** The multi-noise biome source against Java's biome parameter vectors (phase 4 exit). */
     worldgenBiomes: 'worldgen.biomes',
+    /** The Java climate-selected spawn chunk across representative world seeds. */
+    worldgenSpawn: 'worldgen.spawn',
     /** Heightmap and terrain class for the reference region against Java's column dump (phase 4 exit). */
     worldgenTerrain: 'worldgen.terrain',
     /** Ore and feature counts against a measured distribution (phase 4 exit). */

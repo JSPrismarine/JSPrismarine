@@ -17,6 +17,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.NoiseSpawnFinder;
 import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.RandomSupport;
@@ -67,6 +68,7 @@ public final class DumpWorldgenVectors {
         write(out.resolve("random.json"), dumpRandom());
         write(out.resolve("noise.json"), dumpNoise());
         write(out.resolve("density.json"), dumpDensity());
+        write(out.resolve("spawn.json"), dumpSpawn());
         write(out.resolve("chunk.json"), dumpChunk());
     }
 
@@ -342,6 +344,32 @@ public final class DumpWorldgenVectors {
             }
         }
         return array(samples);
+    }
+
+    // -------------------------------------------------------------- world spawn
+
+    private static String dumpSpawn() {
+        HolderLookup.Provider provider = VanillaRegistries.createWorldLookup();
+        NoiseGeneratorSettings settings = provider.lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+        long[] seeds = { 0L, 1L, 42L, 1234L, 12345L, 8675309L, 987654321L };
+        List<String> values = new ArrayList<>();
+
+        for (long seed : seeds) {
+            RandomState state = RandomState.create(provider.lookupOrThrow(Registries.NOISE), seed, settings);
+            var context = SamplerContext.builder().enableCaches().build();
+            var samplers = state.samplersWithContext(context);
+            var position = NoiseSpawnFinder.findSpawnPosition(settings.spawnTarget(), samplers);
+            values.add(
+                obj(
+                    field("seed", quote(Long.toString(seed))),
+                    field("block", ints(new int[] { position.getX(), position.getY(), position.getZ() })),
+                    field("chunk", ints(new int[] { position.getX() >> 4, position.getZ() >> 4 }))
+                )
+            );
+        }
+
+        return obj(field("settings", quote("minecraft:overworld")), field("positions", array(values)));
     }
 
     private static String routerSamples(final RandomState state, final DensityFunction function) {

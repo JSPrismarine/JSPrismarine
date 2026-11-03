@@ -5,6 +5,7 @@ import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator, SurfaceProbe } from './Generator';
@@ -99,6 +100,24 @@ const testWorld = (generator: Generator) => {
 };
 
 describe('the spawn search', () => {
+    it('generates only the climate-selected chunk and chooses a dry column inside it', async () => {
+        const generated: [number, number][] = [];
+        const generator: Generator = {
+            generateChunk: async (cx, cz) => {
+                generated.push([cx, cz]);
+                const chunk = new Chunk(cx, cz, new Map(), Dimensions.Overworld);
+                chunk.setBlockRuntimeId(3, 70, 4, BlockRuntimeIds.getByName('minecraft:stone'));
+                return chunk;
+            },
+            spawnChunk: () => ({ chunkX: -3, chunkZ: 5, candidates: 17 })
+        };
+
+        const spawn = await testWorld(generator).getSpawnPosition();
+
+        expect([spawn.getX(), spawn.getY(), spawn.getZ()]).toEqual([-45, 70, 84]);
+        expect(generated).toEqual([[-3, 5]]);
+    });
+
     it('finds the one dry column without generating a chunk', async () => {
         const generator = oceanWithOneIsland(true);
         const spawn = await testWorld(generator).getSpawnPosition();

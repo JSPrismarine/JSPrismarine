@@ -29,6 +29,14 @@ export class GenerationStopped extends Error {
  */
 export type SurfaceProbe = { readonly y: number; readonly name: string } | undefined;
 
+/** The chunk selected by a noise generator's climate-based spawn search. */
+export interface SpawnChunkResult {
+    readonly chunkX: number;
+    readonly chunkZ: number;
+    /** Number of climate candidates evaluated, for profiling the search without timing assertions. */
+    readonly candidates: number;
+}
+
 /**
  * What a structure search was asked for.
  *
@@ -146,6 +154,12 @@ export interface Generator {
      * add here and a caller falls back to generating one.
      */
     surfaceAt?(x: number, z: number, seed?: bigint): SurfaceProbe;
+
+    /**
+     * Selects the spawn chunk from the generator's climate targets without sampling terrain columns.
+     * The world resolves a safe block position from that chunk after it is generated.
+     */
+    spawnChunk?(seed?: bigint): SpawnChunkResult;
 
     /**
      * The y this generator floods to, Java's `ChunkGenerator.getSeaLevel`.

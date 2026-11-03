@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
 import { loadVanillaWorldgenData } from '../../vectors/javaWorldgenData';
 import { expectedFloat, VECTOR_POSITIONS, vectors } from '../../vectors/vectors';
+import { findNoiseSpawnPosition } from '../spawn/NoiseSpawnFinder';
 import { RandomState } from '../RandomState';
 import type { NoiseGeneratorSettings } from '../settings/NoiseGeneratorSettings';
 import { DENSITY_FUNCTION_TYPES } from './DensityFunction';
@@ -68,6 +69,31 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
         expect(failures).toEqual([]);
         expect(data.noiseSettingsIds.length).toBeGreaterThan(0);
         reportProgress(`Java worldgen data has ${vanilla.noiseSettingsCount} noise settings.`);
+    });
+
+    it('matches Java noise spawn positions across seeds, including origin hits', () => {
+        const settings = data.settings(vectors.spawn.settings);
+        const originHitSeeds: string[] = [];
+
+        for (const expected of vectors.spawn.positions) {
+            const state = new RandomState(data, BigInt(expected.seed), settings);
+            const context = state.createContext();
+            const samplers = new Map<DensityFunctionNode, ReturnType<RandomState['sampler']>>();
+            const actual = findNoiseSpawnPosition(settings.spawnTargets, (node, x, y, z) => {
+                let sampler = samplers.get(node);
+                if (sampler === undefined) {
+                    sampler = state.sampler(node);
+                    samplers.set(node, sampler);
+                }
+                return sampler(context, x, y, z);
+            });
+
+            expect([actual.x, actual.y, actual.z], `seed ${expected.seed}`).toEqual(expected.block);
+            expect(actual.candidates, `seed ${expected.seed}`).toBeGreaterThan(0);
+            if (actual.x === 0 && actual.z === 0) originHitSeeds.push(expected.seed);
+        }
+
+        expect(originHitSeeds).toContain('987654321');
     });
 
     it('covers the operator types the vanilla data uses', () => {

@@ -31,6 +31,8 @@ export interface Scenario {
         profile?: boolean;
         /** Keep the spawn region resident before the client joins. */
         preloadRadius?: number;
+        /** Starts the pinned normal Overworld at seed 1234 for the climate-spawn scenario. */
+        worldgenSpawn?: boolean;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }

@@ -42,6 +42,7 @@ import type {
     BiomeSource,
     BiomeSourceDefinition,
     CarverConfig,
+    DensityFunctionNode,
     MaterialRuleNode,
     NoiseGeneratorSettings,
     SurfacePass
@@ -58,6 +59,7 @@ import {
     carversFromNoiseBiome,
     coldEnoughToSnow,
     createClimateSampler,
+    findNoiseSpawnPosition,
     memoizeBiomeResolver,
     parseBiomeClimate,
     parseBiomeSource,
@@ -81,7 +83,8 @@ import type {
     LocateTagRegistry,
     StructureSearchRequest,
     StructureSearchResult,
-    SurfaceProbe
+    SurfaceProbe,
+    SpawnChunkResult
 } from '../../Generator';
 import { findClosestBiome } from './biomeSearch';
 import { GenerationChunk } from './GenerationChunk';
@@ -1069,6 +1072,7 @@ export class DataDrivenGenerator implements Generator {
             generateChunk: (cx, cz, seed = 0n, _config, options) => this.generateUnder(key, cx, cz, seed, options),
             raiseUrgency: (cx, cz, urgency) => this.raiseUrgencyUnder(key, cx, cz, urgency),
             surfaceAt: (x, z, seed = 0n) => this.surfaceUnder(key, x, z, seed),
+            spawnChunk: (seed = 0n) => this.spawnChunkUnder(key, seed),
             locate: (request) => this.locateUnder(key, request),
             locateBiome: (request) => this.locateBiomeUnder(key, request),
             membersOfTag: (registry, tag) => this.membersOfTag(registry, tag),
@@ -1397,6 +1401,36 @@ export class DataDrivenGenerator implements Generator {
     /** @inheritDoc */
     public surfaceAt(x: number, z: number, seed = 0n): SurfaceProbe {
         return this.surfaceUnder(this.defaultKey, x, z, seed);
+    }
+
+    /** @inheritDoc */
+    public spawnChunk(seed = 0n): SpawnChunkResult {
+        return this.spawnChunkUnder(this.defaultKey, seed);
+    }
+
+    /** {@link DataDrivenGenerator.spawnChunk} for one key. */
+    private spawnChunkUnder(key: PipelineKey, seed: bigint): SpawnChunkResult {
+        const pipeline = this.pipelineFor(key, seed);
+        const targets = pipeline.settings.spawnTargets;
+        if (targets.length === 0) return { chunkX: 0, chunkZ: 0, candidates: 0 };
+
+        const context = pipeline.randomState.createContext();
+        const samplers = new Map<DensityFunctionNode, ReturnType<RandomState['sampler']>>();
+        const position = findNoiseSpawnPosition(targets, (node, x, y, z) => {
+            let sampler = samplers.get(node);
+            if (sampler === undefined) {
+                sampler = pipeline.randomState.sampler(node);
+                samplers.set(node, sampler);
+            }
+            return sampler(context, x, y, z);
+        });
+
+        // Java turns the selected block position into its containing chunk before resolving player placement.
+        return {
+            chunkX: Math.floor(position.x / 16),
+            chunkZ: Math.floor(position.z / 16),
+            candidates: position.candidates
+        };
     }
 
     /** {@link DataDrivenGenerator.surfaceAt} for one key. */

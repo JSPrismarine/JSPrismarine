@@ -252,6 +252,24 @@ export const loadJavaColumns = (): JavaColumnVectors =>
     // Parsed JSON boundary; JavaColumnVectors is the dumper's documented shape.
     readJson(join(worldgenRoot, 'vectors/chunk.json')) as JavaColumnVectors;
 
+/** One selected Java spawn block and its containing origin chunk. */
+export interface JavaSpawnPosition {
+    readonly seed: string;
+    readonly block: readonly [number, 0, number];
+    readonly chunk: readonly [number, number];
+}
+
+/** The Java 26.3 NoiseSpawnFinder outputs captured for the Overworld. */
+export interface JavaSpawnVectors {
+    readonly settings: string;
+    readonly positions: readonly JavaSpawnPosition[];
+}
+
+/** Reads the pinned Java server's noise spawn positions. */
+export const loadJavaSpawnPositions = (): JavaSpawnVectors =>
+    // Parsed JSON boundary; JavaSpawnVectors is the dumper's documented shape.
+    readJson(join(worldgenRoot, 'vectors/spawn.json')) as JavaSpawnVectors;
+
 /** The worldgen registry documents the oracle copied out of the jar, each one a JSON string. */
 export interface JavaWorldgenRegistries {
     densityFunctions: Record<string, string>;

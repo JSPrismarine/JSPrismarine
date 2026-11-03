@@ -46,6 +46,7 @@ import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.
 import { placementOverlap } from './scenarios/placement-overlap.mts';
 import { spawn } from './scenarios/spawn.mts';
 import { subChunkBlockChanges } from './scenarios/sub-chunk-block-changes.mts';
+import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
 import { teleport } from './scenarios/teleport.mts';
 import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
 import { dimensionsScenario } from './scenarios/dimensions.mts';
@@ -97,7 +98,8 @@ const suites: ScenarioSuite[] = [
     },
     // Natural spawning needs its own content fixture so roaming cows cannot affect gameplay checks.
     // The canopy one runs last: it roofs the world over, and nothing after it would see the sky.
-    { name: 'natural-spawn', scenarios: [naturalSpawnPlacement, naturalSpawnUnderCanopy] }
+    { name: 'natural-spawn', scenarios: [naturalSpawnPlacement, naturalSpawnUnderCanopy] },
+    { name: 'worldgen-spawn', scenarios: [worldgenSpawn] }
 ];
 
 // pnpm forwards the literal `--` separators it was given; drop them so flags stay flags.
@@ -261,6 +263,9 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                 : {}),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)
                 ? { naturalCowSpawning: true }
+                : {}),
+            ...(suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true)
+                ? { worldgenSpawn: true }
                 : {})
         });
         const suiteServer = server;

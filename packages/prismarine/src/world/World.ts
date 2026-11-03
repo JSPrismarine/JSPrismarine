@@ -1751,6 +1751,22 @@ export class World implements Service {
      * the bare terrain without generating anything.
      */
     private async findSurfaceSpawn(): Promise<Vector3> {
+        const chooseChunk = this.generator.spawnChunk;
+        if (chooseChunk !== undefined) {
+            const selected = chooseChunk.call(this.generator, this.level.seed);
+            const chunk = await this.getChunk(selected.chunkX, selected.chunkZ);
+            const standing = this.spawnSurfaceInChunk(chunk, selected.chunkX, selected.chunkZ);
+            if (standing !== undefined) return new Vector3(standing.x, standing.y, standing.z);
+
+            // The climate search chooses a chunk, not a block; keep the fallback inside that chunk.
+            this.server
+                .getLogger()
+                .warn(
+                    `No dry spawn found in chunk ${selected.chunkX},${selected.chunkZ} for ${this.getFormattedName()}`
+                );
+            return new Vector3(selected.chunkX * 16 + 8, 100, selected.chunkZ * 16 + 8);
+        }
+
         for (let radius = 0; radius <= SPAWN_SEARCH_RADIUS; radius += SPAWN_SEARCH_STEP) {
             for (const [x, z] of World.ringAround(radius, SPAWN_SEARCH_STEP)) {
                 const standing = await this.spawnSurfaceAt(x, z);
@@ -1766,6 +1782,27 @@ export class World implements Service {
         // refuse to start at all.
         this.server.getLogger().warn(`No dry spawn found for ${this.getFormattedName()}, falling back to the origin`);
         return new Vector3(0, 100, 0);
+    }
+
+    /**
+     * Finds a dry top block inside Java's selected spawn chunk, without walking into neighbors.
+     * Climate scoring selects the chunk; block state is only read after that chunk has been built.
+     */
+    private spawnSurfaceInChunk(
+        chunk: Chunk,
+        chunkX: number,
+        chunkZ: number
+    ): { readonly x: number; readonly y: number; readonly z: number } | undefined {
+        for (let localX = 0; localX < 16; localX++) {
+            for (let localZ = 0; localZ < 16; localZ++) {
+                const x = chunkX * 16 + localX;
+                const z = chunkZ * 16 + localZ;
+                const y = chunk.getHighestBlockAt(x, z);
+                if (y === null || UNSUITABLE_SPAWN_SURFACES.has(chunk.getBlock(localX, y, localZ).name)) continue;
+                return { x, y, z };
+            }
+        }
+        return undefined;
     }
 
     /**

@@ -80,6 +80,7 @@
         "bench:entity-only-save": "node --import tsx benchmarks/entityOnlyChunkSave.ts",
         "bench:chunk-reads": "node --import tsx benchmarks/chunkReads.bench.ts",
         "bench:biome-promotion": "node --import tsx benchmarks/biomePromotion.bench.ts",
+        "bench:world-spawn": "node --import tsx benchmarks/worldSpawn.bench.ts",
         "bench:terrain-writes": "node --import tsx benchmarks/terrainWrites.bench.ts",
         "bench:structure-starts": "node --import tsx benchmarks/structureStartDuplication.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",

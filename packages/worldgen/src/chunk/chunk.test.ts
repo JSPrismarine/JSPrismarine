@@ -184,7 +184,8 @@ describe('the global fluid picker', () => {
         seaLevel: 63,
         disableMobGeneration: false,
         aquifers: undefined,
-        useLegacyRandomSource: false
+        useLegacyRandomSource: false,
+        spawnTargets: []
     };
     const picker = createGlobalFluidPicker(settings);
 

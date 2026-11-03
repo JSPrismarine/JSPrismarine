@@ -239,6 +239,13 @@ export const REFERENCES = {
         "Java's carver-selection noise biome for a 48 by 48 window of overworld chunks"
     ),
 
+    /** Java NoiseSpawnFinder's selected Overworld origin positions across representative seeds. */
+    worldgenSpawnPositions: committed(
+        'worldgen-spawn-positions',
+        'packages/worldgen/vectors/spawn.json',
+        "Java's climate-selected spawn positions and containing chunks"
+    ),
+
     /**
      * The generation corpus: what this server's chunk generator produced at a named commit.
      *
