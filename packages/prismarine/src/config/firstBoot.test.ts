@@ -47,6 +47,7 @@ describe('the config file a boot generates', () => {
         'motd',
         'view-distance',
         'preload-radius',
+        'chunk-workers',
         'chunk-send-budget-ms',
         'proximity-broadcast',
         'server-authoritative-block-breaking',
