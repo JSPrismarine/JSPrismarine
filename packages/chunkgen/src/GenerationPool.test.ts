@@ -10,6 +10,9 @@
  * through Node rather than through the bundler and a dev checkout resolves `@jsprismarine/*` to
  * TypeScript. The worker entry itself is this package's own, which Node loads from source.
  */
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -30,10 +33,13 @@ const open = (workers: number, setup?: unknown): GenerationPool =>
     new GenerationPool({ pipeline: FAKE_PIPELINE, workers, ...(setup === undefined ? {} : { setup }) });
 
 let pool: GenerationPool | undefined;
+let snapshotDirectory: string | undefined;
 
 afterEach(async () => {
     await pool?.destroy();
     pool = undefined;
+    if (snapshotDirectory !== undefined) rmSync(snapshotDirectory, { recursive: true, force: true });
+    snapshotDirectory = undefined;
 });
 
 /** Reads the fixture's four numbers back out of the buffer it moved. */
@@ -95,6 +101,21 @@ describe('GenerationPool', () => {
         expect(Atomics.load(stats, 1)).toBeGreaterThan(0n);
         expect(Atomics.load(stats, 2)).toBeGreaterThan(0n);
         expect(Atomics.load(stats, 3)).toBeGreaterThan(0n);
+    }, 60_000);
+
+    it('writes one worker heap snapshot after its first task when a directory is requested', async () => {
+        snapshotDirectory = mkdtempSync(join(tmpdir(), 'jsp-worker-heap-snapshot-'));
+        pool = new GenerationPool({
+            pipeline: FAKE_PIPELINE,
+            workers: 1,
+            workerHeapSnapshotDirectory: snapshotDirectory
+        });
+
+        await pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
+        await pool.run({ status: 'terrain', chunkX: 1, chunkZ: 0, dimension: 0 });
+
+        const snapshots = readdirSync(snapshotDirectory).filter((entry) => /^worker-\d+\.heapsnapshot$/.test(entry));
+        expect(snapshots).toHaveLength(1);
     }, 60_000);
 
     it('runs a status body in a worker and moves the result back', async () => {

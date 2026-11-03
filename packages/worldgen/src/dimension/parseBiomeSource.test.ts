@@ -6,6 +6,7 @@ import {
     MultiNoiseBiomeSource,
     TheEndBiomeSource
 } from '../biome/BiomeSource';
+import { ClimateParameterList, SharedClimateParameterList } from '../biome/Climate';
 import { findVanillaDatapack } from '../../vectors/javaDatapack';
 import type { BiomeSourceDefinition } from './parseBiomeSource';
 import { parseBiomeSource, parseBiomeSourceDefinition } from './parseBiomeSource';
@@ -158,20 +159,31 @@ describe('parseBiomeSource', () => {
         expect(source.possibleBiomes()).toEqual(['minecraft:nether_wastes', 'minecraft:soul_sand_valley']);
     });
 
-    it('uses a shared preset tree when present and builds locally when it is missing', () => {
-        const lists = new Map<string, unknown>([['minecraft:nether', PARAMETERS]]);
-        const definition = { type: 'minecraft:multi_noise', preset: 'minecraft:nether' } as const;
-        const local = parseBiomeSource(definition, lists);
-        if (!(local instanceof MultiNoiseBiomeSource)) throw new Error('wrong biome source');
-        const sharedTrees = new Map([['minecraft:nether', local.parameters.toSharedTree()]]);
+    it('uses a shared climate table when the report document is omitted', () => {
+        const local = MultiNoiseBiomeSource.fromJson(PARAMETERS, 'minecraft:nether');
+        if (!(local.parameters instanceof ClimateParameterList)) throw new Error('Expected local climate list');
+        const sharedTables = new Map([['minecraft:nether', local.parameters.toSharedArrayBuffer()]]);
+        const source = parseBiomeSource(
+            { type: 'minecraft:multi_noise', preset: 'minecraft:nether' },
+            noLists,
+            '<biome_source>',
+            sharedTables
+        );
 
-        const shared = parseBiomeSource(definition, lists, '<biome_source>', sharedTrees);
-        const fallback = parseBiomeSource(definition, lists, '<biome_source>', new Map());
+        if (!(source instanceof MultiNoiseBiomeSource)) throw new Error('Expected multi_noise source');
+        expect(source.parameters).toBeInstanceOf(SharedClimateParameterList);
+        expect(source.possibleBiomes()).toEqual(['minecraft:nether_wastes', 'minecraft:soul_sand_valley']);
+    });
 
-        expect(shared).toBeInstanceOf(MultiNoiseBiomeSource);
-        expect(fallback).toBeInstanceOf(MultiNoiseBiomeSource);
-        expect(shared.possibleBiomes()).toEqual(local.possibleBiomes());
-        expect(fallback.possibleBiomes()).toEqual(local.possibleBiomes());
+    it('falls back to the report document when a shared table cannot be read', () => {
+        const source = parseBiomeSource(
+            { type: 'minecraft:multi_noise', preset: 'minecraft:nether' },
+            new Map([['minecraft:nether', PARAMETERS]]),
+            '<biome_source>',
+            new Map([['minecraft:nether', new SharedArrayBuffer(64)]])
+        );
+
+        expect(source.possibleBiomes()).toEqual(['minecraft:nether_wastes', 'minecraft:soul_sand_valley']);
     });
 
     it('builds a multi_noise source from inline biomes', () => {

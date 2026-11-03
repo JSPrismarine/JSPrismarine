@@ -39,6 +39,7 @@ const templates = findJavaTemplateSource(cacheRoot(), registries.processorLists)
 
 interface ShardMetrics {
     readonly builds: Array<{ key: string; elapsedMs: number }>;
+    readonly terrainTiles: string[];
 }
 
 interface CaseResult {
@@ -48,6 +49,9 @@ interface CaseResult {
     readonly totalBuildStarts: number;
     readonly uniqueBuildStarts: number;
     readonly duplicateBuildStarts: number;
+    readonly totalTerrainTiles: number;
+    readonly uniqueTerrainTiles: number;
+    readonly duplicateTerrainTiles: number;
     readonly totalLayoutMs: number;
     readonly uniqueLayoutMs: number;
     readonly duplicateLayoutMs: number;
@@ -57,13 +61,16 @@ interface CaseResult {
 const runCase = async (workers: number): Promise<CaseResult> => {
     const shards: ShardMetrics[] = [];
     const runnerFactory: TaskRunnerFactory = () => {
-        const metrics: ShardMetrics = { builds: [] };
+        const metrics: ShardMetrics = { builds: [], terrainTiles: [] };
         shards.push(metrics);
         const generator = new DataDrivenGenerator({
             registries,
             templates,
             onStructureStartBuild: (set, chunkX, chunkZ, elapsedMs) => {
                 metrics.builds.push({ key: JSON.stringify([set, chunkX, chunkZ]), elapsedMs });
+            },
+            onTerrainTileBuild: (dimension, seed, chunkX, chunkZ) => {
+                metrics.terrainTiles.push(JSON.stringify([dimension, seed.toString(), chunkX, chunkZ]));
             }
         });
 
@@ -115,6 +122,8 @@ const runCase = async (workers: number): Promise<CaseResult> => {
         if (!firstBuildMs.has(build.key)) firstBuildMs.set(build.key, build.elapsedMs);
     }
     const totalBuildStarts = shards.reduce((total, shard) => total + shard.builds.length, 0);
+    const terrainTiles = shards.flatMap((shard) => shard.terrainTiles);
+    const uniqueTerrainTiles = new Set(terrainTiles).size;
     const uniqueLayoutMs = Array.from(firstBuildMs.values()).reduce((total, elapsedMs) => total + elapsedMs, 0);
     const digest = createHash('sha256');
     for (const result of results) digest.update(`${result.x},${result.z}\0${result.digest}\0`);
@@ -126,6 +135,9 @@ const runCase = async (workers: number): Promise<CaseResult> => {
         totalBuildStarts,
         uniqueBuildStarts: firstBuildMs.size,
         duplicateBuildStarts: totalBuildStarts - firstBuildMs.size,
+        totalTerrainTiles: terrainTiles.length,
+        uniqueTerrainTiles,
+        duplicateTerrainTiles: terrainTiles.length - uniqueTerrainTiles,
         totalLayoutMs,
         uniqueLayoutMs,
         duplicateLayoutMs: totalLayoutMs - uniqueLayoutMs,

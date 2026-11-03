@@ -58,6 +58,23 @@ describe('the world generation registry bundle', () => {
         }
     });
 
+    it('skips raw climate reports when matching shared tables are available', () => {
+        const read = readRegistryBundle(
+            buildRegistryBundle(tiny()),
+            new Map([['minecraft:overworld', new SharedArrayBuffer(0)]])
+        );
+
+        expect(read.biomeParameters).toEqual(new Map());
+        expect(read.biomes).toEqual(tiny().biomes);
+    });
+
+    it('keeps raw climate reports when the shared table set is incomplete', () => {
+        const registries = tiny();
+        const read = readRegistryBundle(buildRegistryBundle(registries), new Map());
+
+        expect(read.biomeParameters).toEqual(registries.biomeParameters);
+    });
+
     it('carries a document whose text is not plain ASCII', () => {
         const registries = { ...tiny(), structures: new Map([['minecraft:village', { name: 'Dorf über — é' }]]) };
 

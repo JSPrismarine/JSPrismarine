@@ -15,7 +15,13 @@ import {
     memoizeBiomeResolver
 } from './BiomeSource';
 import type { ClimateEntry, ClimateTargetPoint } from './Climate';
-import { ClimateParameterList, climateFitness, climateTarget, quantizeClimateCoord } from './Climate';
+import {
+    ClimateParameterList,
+    SharedClimateParameterList,
+    climateFitness,
+    climateTarget,
+    quantizeClimateCoord
+} from './Climate';
 import type { ClimateSampler } from './ClimateSampler';
 import { createClimateSampler } from './ClimateSampler';
 
@@ -104,6 +110,23 @@ describe.each(biomeVectors.parameterLists)('the $name climate parameter list', (
                     expect(parameters.find(target)).toBe(parameters.findBruteForce(target));
                 }
             }
+        }
+    });
+
+    it('shares the flattened tree and preserves lookup order and source entries', () => {
+        const local = new ClimateParameterList(entries);
+        const buffer = local.toSharedArrayBuffer();
+        const shared = new SharedClimateParameterList(buffer);
+        const secondReader = new SharedClimateParameterList(buffer);
+
+        expect(shared.entries).toEqual(entries);
+        expect(shared.distinctValues()).toEqual(local.distinctValues());
+        for (const lookup of list.lookups) {
+            const target = targetOf(lookup.target);
+            expect(shared.find(target)).toBe(local.find(target));
+            expect(shared.findBruteForce(target)).toBe(local.findBruteForce(target));
+            // Each reader has its own candidate and scratch stack over the same bytes.
+            expect(secondReader.find(target)).toBe(local.find(target));
         }
     });
 
@@ -247,15 +270,16 @@ describe('the flattened climate search tree', () => {
             4, 7, 0, 7, 4, 0, 4, 4, 5, 8, 37, 4, 7, 0, 7, 4, 0, 4, 4, 5, 8
         ]);
 
-        const sharedTree = parameters.toSharedTree();
-        expect(sharedTree.bounds).toBeInstanceOf(SharedArrayBuffer);
-        expect(sharedTree.children).toBeInstanceOf(SharedArrayBuffer);
-        const forward = new ClimateParameterList(entries, undefined, sharedTree);
-        const backward = new ClimateParameterList(entries, undefined, sharedTree);
+        const sharedEntries = entries.map((entry) => ({ ...entry, value: String(entry.value) }));
+        const sharedLocal = new ClimateParameterList(sharedEntries);
+        const sharedTree = sharedLocal.toSharedArrayBuffer();
+        expect(sharedTree).toBeInstanceOf(SharedArrayBuffer);
+        const forward = new SharedClimateParameterList(sharedTree);
+        const backward = new SharedClimateParameterList(sharedTree);
         const forwardAnswers = targets.map((target) => forward.find(target));
         const backwardAnswers = [...targets].reverse().map((target) => backward.find(target));
 
-        expect(forwardAnswers).toEqual(targets.map((target) => parameters.find(target)));
+        expect(forwardAnswers).toEqual(targets.map((target) => String(parameters.find(target))));
         expect(backwardAnswers.reverse()).toEqual(forwardAnswers);
     });
 

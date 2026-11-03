@@ -5,8 +5,8 @@ import {
     MultiNoiseBiomeSource,
     TheEndBiomeSource
 } from '../biome/BiomeSource';
-import type { ClimateEntry, ClimateParameterPoint, SharedClimateParameterTree } from '../biome/Climate';
-import { ClimateParameterList, parseClimateParameterPoint } from '../biome/Climate';
+import type { ClimateEntry, ClimateParameterPoint } from '../biome/Climate';
+import { ClimateParameterList, SharedClimateParameterList, parseClimateParameterPoint } from '../biome/Climate';
 import { normalizeIdentifier } from '../identifier';
 import { asArray, asObject, inRange, integer, optional } from './json';
 
@@ -96,30 +96,38 @@ export const parseBiomeSourceDefinition = (json: unknown, path = '<biome_source>
  * `reports/biome_parameters` documents, which {@link MultiNoiseBiomeSource.fromJson} reads.
  *
  * @param parameterLists - Raw parameter list documents, keyed by identifier.
+ * @param sharedParameterLists - Optional immutable tables keyed by preset identifier.
  * @param path - Where the definition came from, for error messages.
- * @param sharedParameterLists - Optional prebuilt trees for preset ids. Missing entries build locally.
  * @throws When a preset is not in `parameterLists`, or the type is not a Java biome source.
  */
 export const parseBiomeSource = (
     definition: BiomeSourceDefinition,
     parameterLists: ReadonlyMap<string, unknown>,
     path = '<biome_source>',
-    sharedParameterLists?: ReadonlyMap<string, SharedClimateParameterTree<string>>
+    sharedParameterLists?: ReadonlyMap<string, SharedArrayBuffer>
 ): BiomeSource => {
     switch (definition.type) {
         case 'minecraft:multi_noise': {
             if ('preset' in definition) {
                 const list = parameterLists.get(definition.preset);
+                const shared = sharedParameterLists?.get(definition.preset);
+                if (shared !== undefined) {
+                    if (list === undefined) {
+                        return new MultiNoiseBiomeSource(new SharedClimateParameterList(shared));
+                    }
+
+                    try {
+                        return new MultiNoiseBiomeSource(new SharedClimateParameterList(shared));
+                    } catch {
+                        // Keep malformed or incompatible tables on the existing parser path.
+                    }
+                }
                 if (list === undefined) {
                     throw new TypeError(
                         `${path}.preset: no multi_noise_biome_source_parameter_list named ${JSON.stringify(definition.preset)}`
                     );
                 }
-                return MultiNoiseBiomeSource.fromJson(
-                    list,
-                    definition.preset,
-                    sharedParameterLists?.get(definition.preset)
-                );
+                return MultiNoiseBiomeSource.fromJson(list, definition.preset);
             }
             const entries: ClimateEntry<string>[] = definition.biomes.map((entry) => ({
                 point: entry.parameters,

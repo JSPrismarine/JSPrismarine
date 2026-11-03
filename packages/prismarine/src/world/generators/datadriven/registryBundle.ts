@@ -151,11 +151,16 @@ export const shareRegistryBundle = (registries: JavaWorldgenRegistries): SharedA
  *
  * @param bundle - The bytes {@link buildRegistryBundle} wrote, as an `ArrayBuffer` or as the
  * `SharedArrayBuffer` several workers hold a handle on.
+ * @param sharedClimateParameters - Preset tables keyed by identifier. The report documents are
+ * omitted only when every bundled identifier has a matching table.
  * @returns The registries, document for document what the loader read off disk.
  * @throws RegistryBundleFormatError when the buffer is shorter than a header, does not carry the
  * magic, carries a format version this build does not read, or names a document past its end.
  */
-export const readRegistryBundle = (bundle: ArrayBufferLike): JavaWorldgenRegistries => {
+export const readRegistryBundle = (
+    bundle: ArrayBufferLike,
+    sharedClimateParameters?: ReadonlyMap<string, SharedArrayBuffer>
+): JavaWorldgenRegistries => {
     if (bundle.byteLength < HEADER_BYTES) throw new RegistryBundleFormatError('it is shorter than a header');
 
     const header = new DataView(bundle);
@@ -177,6 +182,15 @@ export const readRegistryBundle = (bundle: ArrayBufferLike): JavaWorldgenRegistr
 
     const read = new Map<string, JavaRegistry>();
     for (const [registry, entries] of index.registries) {
+        if (
+            registry === 'biomeParameters' &&
+            sharedClimateParameters !== undefined &&
+            entries.every(([id]) => sharedClimateParameters.has(id))
+        ) {
+            read.set(registry, new Map());
+            continue;
+        }
+
         const documents = new Map<string, unknown>();
         for (const [id, offset, length] of entries) {
             const from = documentsAt + offset;

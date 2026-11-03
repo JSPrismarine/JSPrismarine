@@ -167,6 +167,8 @@ export interface GenerationWorkerData {
     readonly workerHeapStats?: SharedArrayBuffer;
     /** Optional benchmark buffer: a leading slot count, then first-task wall/CPU microseconds and heap bytes per worker. */
     readonly workerStartupStats?: SharedArrayBuffer;
+    /** Optional directory where each worker writes one heap snapshot after its first task. */
+    readonly workerHeapSnapshotDirectory?: string;
 }
 
 /** How a {@link GenerationPool} is built. */
@@ -209,6 +211,11 @@ export interface GenerationPoolOptions {
      * first-task elapsed wall microseconds, thread CPU microseconds, and heap-used bytes.
      */
     readonly workerStartupStats?: SharedArrayBuffer;
+    /**
+     * Optional diagnostics directory. Each worker writes one `.heapsnapshot` after its first
+     * completed task, so the snapshot contains the initialized pipeline and one task's result.
+     */
+    readonly workerHeapSnapshotDirectory?: string;
     /**
      * How many tasks may be with the workers at once, which defaults to one more than there are
      * workers.
@@ -380,7 +387,10 @@ class EmbeddedTaskRunner implements TaskRunner {
             pipeline: workerModuleSpecifier(options.pipeline),
             setup: options.setup,
             ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats }),
-            ...(options.workerStartupStats === undefined ? {} : { workerStartupStats: options.workerStartupStats })
+            ...(options.workerStartupStats === undefined ? {} : { workerStartupStats: options.workerStartupStats }),
+            ...(options.workerHeapSnapshotDirectory === undefined
+                ? {}
+                : { workerHeapSnapshotDirectory: options.workerHeapSnapshotDirectory })
         };
     }
 
@@ -533,7 +543,10 @@ const piscinaRunner: TaskRunnerFactory = (options) => {
             pipeline: workerModuleSpecifier(options.pipeline),
             setup: options.setup,
             ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats }),
-            ...(options.workerStartupStats === undefined ? {} : { workerStartupStats: options.workerStartupStats })
+            ...(options.workerStartupStats === undefined ? {} : { workerStartupStats: options.workerStartupStats }),
+            ...(options.workerHeapSnapshotDirectory === undefined
+                ? {}
+                : { workerHeapSnapshotDirectory: options.workerHeapSnapshotDirectory })
         } satisfies GenerationWorkerData
     });
 };

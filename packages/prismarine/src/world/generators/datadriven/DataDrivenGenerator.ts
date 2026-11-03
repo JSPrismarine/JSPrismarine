@@ -45,7 +45,6 @@ import type {
     DensityFunctionNode,
     MaterialRuleNode,
     NoiseGeneratorSettings,
-    SharedClimateParameterTree,
     SurfacePass
 } from '@jsprismarine/worldgen';
 import {
@@ -53,7 +52,6 @@ import {
     CarvingMask,
     ChunkSampler,
     MaterialRuleData,
-    MultiNoiseBiomeSource,
     RandomState,
     SurfaceSystem,
     WorldgenData,
@@ -117,6 +115,7 @@ import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
 import { fingerprintWorldgenInput, TerrainProtoCache, terrainProtoCacheKey } from './TerrainProtoCache';
 import type { TerrainProtoCacheOptions } from './TerrainProtoCache';
 import { shareRegistryBundle } from './registryBundle';
+import { shareClimateTables } from './sharedClimateTables';
 import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
@@ -125,24 +124,17 @@ import type { ChunkCompletionScheduler } from '../../ChunkCompletionQueue';
 /** Re-runs each proven skip through scalar density and aquifer sampling when debugging. */
 const VERIFY_SKIPPED_WORLDGEN_CELLS = process.env['JSP_VERIFY_WORLDGEN_CELL_SKIPS'] === '1';
 
-const sharedClimateTreesOf = (parameterLists: JavaRegistry): ReadonlyMap<string, SharedClimateParameterTree<string>> =>
-    new Map(
-        [...parameterLists].map(([identifier, document]) => [
-            identifier,
-            MultiNoiseBiomeSource.fromJson(document, identifier).parameters.toSharedTree()
-        ])
-    );
-
 /** How a {@link DataDrivenGenerator} is built. */
 export interface DataDrivenGeneratorOptions {
     /** The Java registries, already read off disk. */
     readonly registries: JavaWorldgenRegistries;
     /**
-     * Prebuilt climate trees to map from a parent worker pool. When omitted, a generator that
-     * opens workers prepares the registry presets once on this thread. Presets missing from the
-     * map and inline sources use the local tree builder.
+     * Builds shared immutable climate search tables when a worker pool starts. Defaults to true.
+     * Set false to compare the worker-local table path or to force local parsing.
      */
-    readonly sharedClimateTrees?: ReadonlyMap<string, SharedClimateParameterTree<string>>;
+    readonly shareClimateTables?: boolean;
+    /** Shared climate tables supplied by a parent worker pipeline. */
+    readonly sharedClimateParameters?: ReadonlyMap<string, SharedArrayBuffer>;
     /**
      * The dimension the instance's own `Generator` methods fill. Defaults to the Overworld.
      *
@@ -176,6 +168,8 @@ export interface DataDrivenGeneratorOptions {
     readonly structureBuilders?: ReadonlyMap<string, StructureBuilder>;
     /** Observes each worker-local structure-start cache miss for generation profiling. */
     readonly onStructureStartBuild?: (set: string, chunkX: number, chunkZ: number, elapsedMs: number) => void;
+    /** Observes each terrain tile build for cross-shard duplication measurements. */
+    readonly onTerrainTileBuild?: (dimension: string, seed: bigint, chunkX: number, chunkZ: number) => void;
     /**
      * Where the structure templates `template` and `fossil` stamp come from.
      *
@@ -282,8 +276,10 @@ export interface StagePoolOptions {
     readonly javaTemplates?: boolean;
     /** Optional benchmark buffer with one heap-used byte count per worker after its last task. */
     readonly workerHeapStats?: SharedArrayBuffer;
-    /** Optional benchmark buffer for first-task wall and thread CPU microseconds, plus heap bytes, per worker. */
+    /** First-task wall, thread CPU, and heap measurements for each worker. */
     readonly workerStartupStats?: SharedArrayBuffer;
+    /** Optional directory where each generation worker writes a heap snapshot after its first task. */
+    readonly workerHeapSnapshotDirectory?: string;
     /** Told once when the worker module cannot be loaded and stages fall back to this thread. */
     readonly onUnavailable?: (reason: string) => void;
 }
@@ -301,6 +297,10 @@ export interface TerrainPoolOptions {
     readonly workers: number;
     /** The worker entry, which defaults to `@jsprismarine/chunkgen`'s own. */
     readonly worker?: string;
+    /** Optional benchmark buffer with one heap-used byte count per worker after its last task. */
+    readonly workerHeapStats?: SharedArrayBuffer;
+    /** Optional directory where each terrain worker writes a heap snapshot after its first task. */
+    readonly workerHeapSnapshotDirectory?: string;
     /**
      * Told once, with the reason, when the `terrain` bodies end up on this thread after all.
      *
@@ -738,6 +738,8 @@ export class DataDrivenGenerator implements Generator {
      */
     private readonly chunkDimensions = new Map<string, DimensionType>();
     private readonly worldgen: WorldgenData;
+    /** Preset tables built once before worker setup and shared with each worker. */
+    private sharedClimateParameters: ReadonlyMap<string, SharedArrayBuffer> | undefined;
     private readonly materialRules: MaterialRuleData;
     private readonly structureSpawnOverrides: ReadonlyMap<string, readonly StructureSpawnOverride[]>;
 
@@ -752,12 +754,9 @@ export class DataDrivenGenerator implements Generator {
     private readonly pipelines = new Map<string, SeededPipeline>();
     /** Parsed biome sources by {@link biomeSourceCacheKey}, shared by every seed of one key. */
     private readonly biomeSources = new Map<string, BiomeSource>();
-    /** Immutable preset indexes shared with the workers this generator opens. */
-    private readonly sharedClimateTrees?: ReadonlyMap<string, SharedClimateParameterTree<string>>;
-
     /** Optional disk storage for immutable terrain-status proto tiles. */
     private readonly terrainProtoCache: TerrainProtoCache | undefined;
-    /** Effective data-pack registry and template fingerprints bound into terrain cache keys. */
+    /** Effective registries and templates bound into terrain-cache keys. */
     private readonly terrainProtoCacheFingerprints:
         { readonly registries: string; readonly templates: string } | undefined;
     /** Reuses a bounded number of chunk-local caches in this worker's serialized terrain tasks. */
@@ -839,6 +838,8 @@ export class DataDrivenGenerator implements Generator {
                 templates: templateFingerprint
             };
         }
+        this.sharedClimateParameters =
+            options.sharedClimateParameters?.size === 0 ? undefined : options.sharedClimateParameters;
         this.structureSpawnOverrides = structureSpawnOverridesOf(
             registries.structures,
             naturalSpawnTypesOf(registries.biomes)
@@ -874,11 +875,6 @@ export class DataDrivenGenerator implements Generator {
             }
         );
 
-        const hasWorkers =
-            options.stages !== undefined || options.chunks !== undefined || options.terrain !== undefined;
-        this.sharedClimateTrees =
-            options.sharedClimateTrees ?? (hasWorkers ? sharedClimateTreesOf(registries.biomeParameters) : undefined);
-
         this.stagePool = this.openStagePool(registries);
         this.chunkPool = this.stagePool === undefined ? this.openChunkPool(registries) : undefined;
         // Only when the whole ladder is not already pooled: a worker that builds a chunk runs
@@ -904,6 +900,9 @@ export class DataDrivenGenerator implements Generator {
             workers: stages.workers,
             ...(stages.workerHeapStats === undefined ? {} : { workerHeapStats: stages.workerHeapStats }),
             ...(stages.workerStartupStats === undefined ? {} : { workerStartupStats: stages.workerStartupStats }),
+            ...(stages.workerHeapSnapshotDirectory === undefined
+                ? {}
+                : { workerHeapSnapshotDirectory: stages.workerHeapSnapshotDirectory }),
             ...(stages.worker === undefined ? {} : { worker: stages.worker })
         };
         const reason = GenerationPool.unavailable(where);
@@ -912,11 +911,12 @@ export class DataDrivenGenerator implements Generator {
             return undefined;
         }
 
+        const sharedClimateParameters = this.prepareSharedClimateParameters(registries);
         return new GenerationPool({
             ...where,
             setup: {
                 registryBundle: shareRegistryBundle(registries),
-                ...(this.sharedClimateTrees === undefined ? {} : { sharedClimateTrees: this.sharedClimateTrees }),
+                ...(sharedClimateParameters === undefined ? {} : { sharedClimateParameters }),
                 carve: this.options.carve !== false,
                 structures: this.options.structures !== false,
                 javaTemplates: stages.javaTemplates === true
@@ -948,11 +948,12 @@ export class DataDrivenGenerator implements Generator {
             return undefined;
         }
 
+        const sharedClimateParameters = this.prepareSharedClimateParameters(registries);
         return new ShardedGenerationPool({
             ...where,
             setup: {
                 registryBundle: shareRegistryBundle(registries),
-                ...(this.sharedClimateTrees === undefined ? {} : { sharedClimateTrees: this.sharedClimateTrees }),
+                ...(sharedClimateParameters === undefined ? {} : { sharedClimateParameters }),
                 carve: this.options.carve !== false
             } satisfies ChunkPipelineSetup
         });
@@ -972,6 +973,10 @@ export class DataDrivenGenerator implements Generator {
         const where = {
             pipeline: terrain.pipeline,
             workers: terrain.workers,
+            ...(terrain.workerHeapStats === undefined ? {} : { workerHeapStats: terrain.workerHeapStats }),
+            ...(terrain.workerHeapSnapshotDirectory === undefined
+                ? {}
+                : { workerHeapSnapshotDirectory: terrain.workerHeapSnapshotDirectory }),
             ...(terrain.worker === undefined ? {} : { worker: terrain.worker })
         };
         const reason = GenerationPool.unavailable(where);
@@ -980,11 +985,12 @@ export class DataDrivenGenerator implements Generator {
             return undefined;
         }
 
+        const sharedClimateParameters = this.prepareSharedClimateParameters(registries);
         return new GenerationPool({
             ...where,
             setup: {
                 registryBundle: shareRegistryBundle(registries),
-                ...(this.sharedClimateTrees === undefined ? {} : { sharedClimateTrees: this.sharedClimateTrees }),
+                ...(sharedClimateParameters === undefined ? {} : { sharedClimateParameters }),
                 carve: this.options.carve !== false
             } satisfies TerrainPipelineSetup
         });
@@ -1594,10 +1600,16 @@ export class DataDrivenGenerator implements Generator {
 
         if (tile === undefined) {
             tile = await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline);
+            this.options.onTerrainTileBuild?.(
+                pipeline.dimension.id,
+                pipeline.randomState.seed,
+                chunk.chunkX,
+                chunk.chunkZ
+            );
             if (cache !== undefined && key !== undefined) await cache.write(key, tile.workerInput());
         }
 
-        // Terrain is the immutable status neighbors reuse. Feature patches and finished chunks have different ownership.
+        // Terrain is immutable across neighboring feature passes; derived patches remain local.
         chunk.recordTerrain(tile);
         return chunk;
     }
@@ -2464,10 +2476,22 @@ export class DataDrivenGenerator implements Generator {
             key.biomeSource,
             this.options.registries.biomeParameters,
             `${key.dimension.id}.biome_source`,
-            this.sharedClimateTrees
+            this.sharedClimateParameters
         );
         this.biomeSources.set(cacheKey, parsed);
         return parsed;
+    }
+
+    /** Builds the shared preset set once, after confirming a worker pool can start. */
+    private prepareSharedClimateParameters(
+        registries: JavaWorldgenRegistries
+    ): ReadonlyMap<string, SharedArrayBuffer> | undefined {
+        if (this.sharedClimateParameters !== undefined || this.options.shareClimateTables === false) {
+            return this.sharedClimateParameters;
+        }
+
+        this.sharedClimateParameters = shareClimateTables(registries.biomeParameters);
+        return this.sharedClimateParameters;
     }
 
     /**

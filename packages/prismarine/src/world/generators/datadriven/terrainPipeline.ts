@@ -18,7 +18,6 @@
  * 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
-import type { SharedClimateParameterTree } from '@jsprismarine/worldgen';
 
 import type { TerrainTaskInput } from './DataDrivenGenerator';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
@@ -33,8 +32,8 @@ import { readRegistryBundle } from './registryBundle';
 export interface TerrainPipelineSetup {
     /** The registries as bytes, shared rather than copied to each worker. */
     readonly registryBundle: SharedArrayBuffer;
-    /** Flattened climate indexes whose numeric arrays are shared across workers. */
-    readonly sharedClimateTrees?: ReadonlyMap<string, SharedClimateParameterTree<string>>;
+    /** Prebuilt read-only climate trees, keyed by biome-source preset. */
+    readonly sharedClimateParameters?: ReadonlyMap<string, SharedArrayBuffer>;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve: boolean;
 }
@@ -52,12 +51,16 @@ export class UnsupportedWorkerStatusError extends Error {
 }
 
 /** Whether a value is the setup the pool was built with, checked at the thread boundary. */
+const isSharedClimateParameters = (value: unknown): value is ReadonlyMap<string, SharedArrayBuffer> =>
+    value instanceof Map &&
+    [...value].every(([id, table]) => typeof id === 'string' && table instanceof SharedArrayBuffer);
+
 const isSetup = (value: unknown): value is TerrainPipelineSetup =>
     typeof value === 'object' &&
     value !== null &&
     'registryBundle' in value &&
     value.registryBundle instanceof SharedArrayBuffer &&
-    (!('sharedClimateTrees' in value) || value.sharedClimateTrees instanceof Map);
+    (!('sharedClimateParameters' in value) || isSharedClimateParameters(value.sharedClimateParameters));
 
 /** Whether a task's input is a terrain task's, checked at the same boundary. */
 const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
@@ -84,8 +87,10 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
     if (!isSetup(setup)) throw new TypeError('A terrain worker needs a registry bundle in shared memory.');
 
     const generator = new DataDrivenGenerator({
-        registries: readRegistryBundle(setup.registryBundle),
-        ...(setup.sharedClimateTrees === undefined ? {} : { sharedClimateTrees: setup.sharedClimateTrees }),
+        registries: readRegistryBundle(setup.registryBundle, setup.sharedClimateParameters),
+        ...(setup.sharedClimateParameters === undefined
+            ? {}
+            : { sharedClimateParameters: setup.sharedClimateParameters }),
         carve: setup.carve,
         // Nothing above `terrain` runs here, and a worker that laid structures out would repeat
         // work the main thread has already done and cached.

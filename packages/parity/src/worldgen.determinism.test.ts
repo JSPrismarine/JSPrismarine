@@ -114,7 +114,7 @@ const WORKER_CHUNKS = [
     [-95, 49]
 ] as const;
 
-const terrainDigestForWorkers = async (workers: number, shareClimateTrees: boolean): Promise<string> => {
+const terrainDigestForWorkers = async (workers: number, shareClimateTables: boolean): Promise<string> => {
     const options = {
         registries: environment!.registries,
         decorate: false,
@@ -126,7 +126,7 @@ const terrainDigestForWorkers = async (workers: number, shareClimateTrees: boole
                 throw new Error(`Climate sharing parity needs ${workers} terrain workers: ${reason}`);
             }
         },
-        ...(shareClimateTrees ? {} : { sharedClimateTrees: new Map() })
+        ...(shareClimateTables ? {} : { shareClimateTables: false })
     };
     const generator = new DataDrivenGenerator(options);
     const order = workers % 2 === 0 ? [...WORKER_CHUNKS].reverse() : WORKER_CHUNKS;
@@ -138,7 +138,7 @@ const terrainDigestForWorkers = async (workers: number, shareClimateTrees: boole
                     {
                         id: `worker/${workers}/${chunkX},${chunkZ}`,
                         tier: 'terrain',
-                        why: 'climate tree sharing parity',
+                        why: 'shared climate table parity',
                         seed: WORKER_SEED,
                         chunkX,
                         chunkZ
@@ -233,7 +233,7 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
     }, DETERMINISM_TIMEOUT);
 
     it(
-        'keeps terrain digests across worker counts and the local climate-tree fallback',
+        'keeps terrain digests across worker counts and the local climate-table fallback',
         () => {
             const baseline = workerDigests.get('shared:1');
             if (baseline === undefined) throw new Error('Missing one-worker climate-sharing digest');
@@ -244,14 +244,14 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
                     return parityCase(
                         `climate-workers:${workers}`,
                         `${WORKER_SEED}/-96,48..-95,49`,
-                        `climate tree sharing with ${workers} worker${workers === 1 ? '' : 's'}`,
+                        `climate table sharing with ${workers} worker${workers === 1 ? '' : 's'}`,
                         digest === baseline
                     );
                 }),
                 parityCase(
                     'climate-local-fallback',
                     `${WORKER_SEED}/-96,48..-95,49`,
-                    'local climate tree construction with two workers',
+                    'local climate table construction with two workers',
                     workerDigests.get('local:2') === baseline
                 )
             ];

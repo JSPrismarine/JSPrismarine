@@ -13,9 +13,12 @@
  * `Xoroshiro128++` or `LegacyRandom` derived from the seed, so there is nothing legitimate here
  * to break.
  */
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { getHeapStatistics } from 'node:v8';
 import process from 'node:process';
 import { performance } from 'node:perf_hooks';
+import { writeHeapSnapshot } from 'node:v8';
 import { threadId, workerData } from 'node:worker_threads';
 
 import Piscina from 'piscina';
@@ -68,6 +71,7 @@ const workerStartupStats =
         ? undefined
         : new BigInt64Array(workerDataFromParent.workerStartupStats);
 const workerStartupSlot = workerStartupStats === undefined ? undefined : Atomics.add(workerStartupStats, 0, 1n) + 1n;
+let workerHeapSnapshotWritten = false;
 
 if (workerHeapStats !== undefined && workerHeapSlot !== undefined && workerHeapSlot >= workerHeapStats.length) {
     throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
@@ -118,6 +122,13 @@ export default async function runGenerationTask(task: GenerationTask): Promise<G
         Atomics.store(workerStartupStats, slot, BigInt(Math.round((performance.now() - firstTaskStarted) * 1000)));
         Atomics.store(workerStartupStats, slot + 1, BigInt(cpu.user + cpu.system));
         Atomics.store(workerStartupStats, slot + 2, BigInt(getHeapStatistics().used_heap_size));
+    }
+
+    const snapshotDirectory = workerDataFromParent.workerHeapSnapshotDirectory;
+    if (!workerHeapSnapshotWritten && snapshotDirectory !== undefined) {
+        mkdirSync(snapshotDirectory, { recursive: true });
+        writeHeapSnapshot(join(snapshotDirectory, `worker-${threadId}.heapsnapshot`));
+        workerHeapSnapshotWritten = true;
     }
 
     if (workerHeapStats !== undefined && workerHeapSlot !== undefined) {

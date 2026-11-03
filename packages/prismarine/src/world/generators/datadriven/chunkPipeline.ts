@@ -24,7 +24,6 @@
  * parsed registries in 75 ms against 540 reading the 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
-import type { SharedClimateParameterTree } from '@jsprismarine/worldgen';
 
 import type { PipelineKey, TerrainTaskInput } from './DataDrivenGenerator';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
@@ -42,8 +41,8 @@ import type { GenerationRegionPayload } from './GenerationRegion';
 export interface ChunkPipelineSetup {
     /** The registries as bytes, shared rather than copied to each worker. */
     readonly registryBundle: SharedArrayBuffer;
-    /** Flattened climate indexes whose numeric arrays are shared across workers. */
-    readonly sharedClimateTrees?: ReadonlyMap<string, SharedClimateParameterTree<string>>;
+    /** Prebuilt read-only climate trees, keyed by biome-source preset. */
+    readonly sharedClimateParameters?: ReadonlyMap<string, SharedArrayBuffer>;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve?: boolean;
     /** Whether the decoration pass includes structure placement. Defaults to true. */
@@ -80,12 +79,16 @@ export class UnsupportedChunkStatusError extends Error {
 }
 
 /** Whether a value is the setup the pool was built with, checked at the thread boundary. */
+const isSharedClimateParameters = (value: unknown): value is ReadonlyMap<string, SharedArrayBuffer> =>
+    value instanceof Map &&
+    [...value].every(([id, table]) => typeof id === 'string' && table instanceof SharedArrayBuffer);
+
 const isSetup = (value: unknown): value is ChunkPipelineSetup =>
     typeof value === 'object' &&
     value !== null &&
     'registryBundle' in value &&
     value.registryBundle instanceof SharedArrayBuffer &&
-    (!('sharedClimateTrees' in value) || value.sharedClimateTrees instanceof Map);
+    (!('sharedClimateParameters' in value) || isSharedClimateParameters(value.sharedClimateParameters));
 
 /** Whether a task's input is a chunk task's, checked at the same boundary. */
 const isChunkInput = (value: unknown): value is ChunkTaskInput =>
@@ -153,10 +156,12 @@ const isFeatureInput = (value: unknown): value is FeatureTaskInput =>
 export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
     if (!isSetup(setup)) throw new TypeError('A generation worker needs a registry bundle in shared memory.');
 
-    const registries = readRegistryBundle(setup.registryBundle);
+    const registries = readRegistryBundle(setup.registryBundle, setup.sharedClimateParameters);
     const generator = new DataDrivenGenerator({
         registries,
-        ...(setup.sharedClimateTrees === undefined ? {} : { sharedClimateTrees: setup.sharedClimateTrees }),
+        ...(setup.sharedClimateParameters === undefined
+            ? {}
+            : { sharedClimateParameters: setup.sharedClimateParameters }),
         ...(setup.carve === undefined ? {} : { carve: setup.carve }),
         ...(setup.structures === undefined ? {} : { structures: setup.structures }),
         // Read off disk here rather than carried, because the templates are tens of megabytes

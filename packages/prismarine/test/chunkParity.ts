@@ -61,17 +61,18 @@ if (sources === undefined) {
     process.exit(2);
 }
 
-const open = (mode: 'inline' | 'chunks' | 'stages'): DataDrivenGenerator => {
+const open = (mode: 'inline' | 'chunks' | 'stages', workers = 3, shareClimateTables = true): DataDrivenGenerator => {
     const registries = loadJavaWorldgenRegistries(sources);
 
     return new DataDrivenGenerator({
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
+        shareClimateTables,
         ...(mode === 'chunks'
             ? {
                   chunks: {
                       pipeline: defaultChunkPipeline(),
-                      workers: 3,
+                      workers,
                       // Small, so these chunks fall in more than one region and the run covers
                       // a chunk whose neighbors its worker had never seen.
                       regionChunks: 4,
@@ -85,7 +86,7 @@ const open = (mode: 'inline' | 'chunks' | 'stages'): DataDrivenGenerator => {
               ? {
                     stages: {
                         pipeline: defaultChunkPipeline(),
-                        workers: 3,
+                        workers,
                         javaTemplates: true,
                         onUnavailable: (reason: string) => {
                             process.stderr.write(`the stage pool refused to start: ${reason}\n`);
@@ -102,7 +103,8 @@ const built = (chunk: Chunk): string => chunk.networkSerialize().toString('base6
 
 const inline = open('inline');
 const chunkPool = open('chunks');
-const stagePool = open('stages');
+const localStagePool = open('stages', 1, false);
+const stagePool = open('stages', 3, true);
 
 /** Every chunk of both dimensions, keyed by dimension and position. */
 const buildAll = async (generator: DataDrivenGenerator): Promise<Map<string, string>> => {
@@ -119,22 +121,35 @@ const buildAll = async (generator: DataDrivenGenerator): Promise<Map<string, str
     return actual;
 };
 
-const expected = await buildAll(inline);
+let chunkDifferences: string[] = [];
+let localStageDifferences: string[] = [];
+let stageDifferences: string[] = [];
+try {
+    const expected = await buildAll(inline);
+    const compare = async (generator: DataDrivenGenerator): Promise<string[]> => {
+        const actual = await buildAll(generator);
+        return [...expected]
+            .filter(([position, chunk]) => actual.get(position) !== chunk)
+            .map(([position]) => position);
+    };
 
-const compare = async (generator: DataDrivenGenerator): Promise<string[]> => {
-    const actual = await buildAll(generator);
-    return [...expected].filter(([position, chunk]) => actual.get(position) !== chunk).map(([position]) => position);
-};
+    chunkDifferences = await compare(chunkPool);
+    localStageDifferences = await compare(localStagePool);
+    stageDifferences = await compare(stagePool);
+} finally {
+    inline.stopGenerating();
+    chunkPool.stopGenerating();
+    localStagePool.stopGenerating();
+    stagePool.stopGenerating();
+}
 
-const [chunkDifferences, stageDifferences] = await Promise.all([compare(chunkPool), compare(stagePool)]);
-
-inline.stopGenerating();
-chunkPool.stopGenerating();
-stagePool.stopGenerating();
-
-if (chunkDifferences.length > 0 || stageDifferences.length > 0) {
+if (chunkDifferences.length > 0 || localStageDifferences.length > 0 || stageDifferences.length > 0) {
     if (chunkDifferences.length > 0) process.stderr.write(`whole-chunk pool differs: ${chunkDifferences.join(' ')}\n`);
-    if (stageDifferences.length > 0) process.stderr.write(`stage pool differs: ${stageDifferences.join(' ')}\n`);
+    if (localStageDifferences.length > 0) {
+        process.stderr.write(`one-worker local-table pool differs: ${localStageDifferences.join(' ')}\n`);
+    }
+    if (stageDifferences.length > 0)
+        process.stderr.write(`three-worker shared-table pool differs: ${stageDifferences.join(' ')}\n`);
     process.exit(1);
 }
 

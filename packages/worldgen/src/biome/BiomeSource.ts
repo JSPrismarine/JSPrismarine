@@ -1,7 +1,8 @@
 import { normalizeIdentifier } from '../identifier';
 import { floorMod, quartToBlock } from '../math';
-import type { ClimateEntry, SharedClimateParameterTree } from './Climate';
+import type { ClimateEntry } from './Climate';
 import { ClimateParameterList, parseClimateParameterPoint } from './Climate';
+import type { ClimateParameterIndex } from './Climate';
 import type { ClimateSampler } from './ClimateSampler';
 
 /** Returns the biome identifier of one biome cell. */
@@ -124,21 +125,16 @@ export class CheckerboardBiomeSource implements BiomeSource {
 export class MultiNoiseBiomeSource implements BiomeSource {
     public constructor(
         /** The boxes and the biome each claims. */
-        public readonly parameters: ClimateParameterList<string>
+        public readonly parameters: ClimateParameterIndex<string>
     ) {}
 
     /**
      * Reads a `worldgen/multi_noise_biome_source_parameter_list` document, or the `biomes` list
      * a `multi_noise` biome source carries inline.
      *
-     * @param sharedTree - A preset's prebuilt search tree, if one is shared by the caller.
      * @throws When an entry is missing its `biome` or `parameters` field.
      */
-    public static fromJson(
-        source: unknown,
-        path = '<multi_noise>',
-        sharedTree?: SharedClimateParameterTree<string>
-    ): MultiNoiseBiomeSource {
+    public static fromJson(source: unknown, path = '<multi_noise>'): MultiNoiseBiomeSource {
         const list = Array.isArray(source)
             ? source
             : (() => {
@@ -161,12 +157,12 @@ export class MultiNoiseBiomeSource implements BiomeSource {
                 value: normalizeIdentifier(entry['biome'])
             };
         });
-        return new MultiNoiseBiomeSource(new ClimateParameterList(entries, undefined, sharedTree));
+        return new MultiNoiseBiomeSource(new ClimateParameterList(entries));
     }
 
     /** @inheritDoc */
     public possibleBiomes(): readonly string[] {
-        return [...new Set(this.parameters.entries.map((entry) => entry.value))];
+        return this.parameters.distinctValues();
     }
 
     /** @inheritDoc */

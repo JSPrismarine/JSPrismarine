@@ -5,9 +5,12 @@
  * small message protocol to start its bundled worker from a `data:` URL instead. The pipeline
  * is another SEA asset, imported once per thread, and each result transfers its buffers back.
  */
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { getHeapStatistics } from 'node:v8';
 import process from 'node:process';
 import { performance } from 'node:perf_hooks';
+import { writeHeapSnapshot } from 'node:v8';
 import { parentPort, threadId, workerData } from 'node:worker_threads';
 
 import type { GenerationResult, GenerationTask, GenerationWorkerData, WorkerPipelineFactory } from './GenerationPool';
@@ -46,6 +49,7 @@ const heapStats = data.workerHeapStats === undefined ? undefined : new Int32Arra
 const heapSlot = heapStats === undefined ? undefined : Atomics.add(heapStats, 0, 1) + 1;
 const startupStats = data.workerStartupStats === undefined ? undefined : new BigInt64Array(data.workerStartupStats);
 const startupSlot = startupStats === undefined ? undefined : Atomics.add(startupStats, 0, 1n) + 1n;
+let heapSnapshotWritten = false;
 if (heapStats !== undefined && heapSlot !== undefined && heapSlot >= heapStats.length) {
     throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
 }
@@ -92,6 +96,12 @@ port.on('message', (message: TaskMessage) => {
                 Atomics.store(startupStats, slot, BigInt(Math.round((performance.now() - firstTaskStarted) * 1000)));
                 Atomics.store(startupStats, slot + 1, BigInt(cpu.user + cpu.system));
                 Atomics.store(startupStats, slot + 2, BigInt(getHeapStatistics().used_heap_size));
+            }
+
+            if (!heapSnapshotWritten && data.workerHeapSnapshotDirectory !== undefined) {
+                mkdirSync(data.workerHeapSnapshotDirectory, { recursive: true });
+                writeHeapSnapshot(join(data.workerHeapSnapshotDirectory, `worker-${threadId}.heapsnapshot`));
+                heapSnapshotWritten = true;
             }
             if (heapStats !== undefined && heapSlot !== undefined) {
                 Atomics.store(heapStats, heapSlot, getHeapStatistics().used_heap_size);

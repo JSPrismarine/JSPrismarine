@@ -2,9 +2,9 @@
  * How long the overworld generator takes per chunk, and where the time goes.
  *
  * Run `pnpm --filter @jsprismarine/prismarine run bench:chunks`. Arguments are worker count,
- * chunk count, arm, region size, steal threshold, measured sample count, and climate tree mode;
- * `0` workers runs the whole thing on this thread, which is the figure every other arm is worth
- * comparing against.
+ * chunk count, arm, region size, steal threshold, measured sample count, climate-table mode, and
+ * optional heap-snapshot directory. `0` workers runs the whole thing on this thread, which is the
+ * figure every other arm is worth comparing against.
  *
  * The chunks are a contiguous block rather than scattered positions, because that is the shape
  * a start region and a player's view distance both have: neighbors are shared, and a run over
@@ -27,6 +27,7 @@ import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
 } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+import { shareClimateTables } from '../src/world/generators/datadriven/sharedClimateTables';
 
 // pnpm may keep the `--` script-argument separator in argv; remove it before parsing options.
 const args = process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2);
@@ -37,16 +38,15 @@ const chunks = Number.parseInt(args[1] ?? '16', 10);
  *
  * `terrain` is the noise fill alone, `structures` adds the layout pass that pushes terrain
  * around, and the default runs the decoration pass and the Bedrock translation as well. `stages`
- * runs the shared terrain and feature workers. `climate` runs terrain through the shared status
- * pool with decoration, structures, and carvers off, and reports worker heap and first-task
- * costs.
+ * runs the server's shared terrain and feature workers and reports their heap usage.
  */
 const arm = args[2] ?? 'full';
 /** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
 const regionChunks = Number.parseInt(args[3] ?? '8', 10);
 const stealAfter = Number.parseInt(args[4] ?? '2', 10);
 const sampleCount = Number.parseInt(args[5] ?? '7', 10);
-const climateTreeMode = args[6] ?? 'shared';
+const climateTables = args[6] ?? 'shared';
+const workerHeapSnapshotDirectory = args[7];
 const warmups = 2;
 const seed = 1234n;
 
@@ -56,8 +56,8 @@ if (![workers, chunks, regionChunks, stealAfter, sampleCount].every(Number.isSaf
 if (workers < 0 || chunks < 1 || regionChunks < 1 || stealAfter < 1 || sampleCount < 1) {
     throw new RangeError('Workers must be nonnegative; chunks, region, steal, and samples must be positive');
 }
-if (climateTreeMode !== 'shared' && climateTreeMode !== 'local') {
-    throw new RangeError('Climate tree mode must be shared or local');
+if (climateTables !== 'shared' && climateTables !== 'local') {
+    throw new RangeError('Climate table mode must be shared or local');
 }
 
 const sources = findJavaWorldgenSources();
@@ -73,6 +73,14 @@ const startedLoading = performance.now();
 const registries = loadJavaWorldgenRegistries(sources);
 const templates = findJavaTemplateSource(cacheRoot(), registries.processorLists);
 const loaded = performance.now() - startedLoading;
+const climateTableStarted = performance.now();
+const sharedClimateParameters = climateTables === 'shared' ? shareClimateTables(registries.biomeParameters) : undefined;
+const climateTableInitializationMs = performance.now() - climateTableStarted;
+const effectiveClimateTables = sharedClimateParameters === undefined ? 'local' : 'shared';
+const sharedClimateTableBytes =
+    sharedClimateParameters === undefined
+        ? 0
+        : Array.from(sharedClimateParameters.values()).reduce((total, table) => total + table.byteLength, 0);
 
 let workerPoolUnavailable = false;
 const poolUnavailable = (reason: string): void => {
@@ -80,18 +88,12 @@ const poolUnavailable = (reason: string): void => {
     process.stderr.write(`no worker pool: ${reason}\n`);
 };
 
-let generatorSetupMs = 0;
-const createGenerator = (
-    workerHeapStats?: SharedArrayBuffer,
-    workerStartupStats?: SharedArrayBuffer
-): DataDrivenGenerator => {
-    const started = performance.now();
-    const generator = new DataDrivenGenerator({
+const createGenerator = (workerHeapStats?: SharedArrayBuffer, includeHeapSnapshots = false): DataDrivenGenerator =>
+    new DataDrivenGenerator({
         registries,
         templates,
-        ...(climateTreeMode === 'local' ? { sharedClimateTrees: new Map() } : {}),
-        ...(arm === 'terrain' || arm === 'climate' ? { decorate: false, structures: false } : {}),
-        ...(arm === 'climate' ? { carve: false } : {}),
+        ...(sharedClimateParameters === undefined ? { shareClimateTables: false } : { sharedClimateParameters }),
+        ...(arm === 'terrain' ? { decorate: false, structures: false } : {}),
         ...(arm === 'structures' ? { decorate: false } : {}),
         ...(workers > 0 && arm === 'chunks'
             ? {
@@ -104,33 +106,34 @@ const createGenerator = (
                   }
               }
             : {}),
-        ...(workers > 0 && (arm === 'stages' || arm === 'climate')
+        ...(workers > 0 && arm === 'stages'
             ? {
                   stages: {
                       pipeline: defaultChunkPipeline(),
                       workers,
-                      javaTemplates: arm === 'stages',
+                      javaTemplates: true,
                       ...(workerHeapStats === undefined ? {} : { workerHeapStats }),
-                      ...(workerStartupStats === undefined ? {} : { workerStartupStats }),
+                      ...(includeHeapSnapshots && workerHeapSnapshotDirectory !== undefined
+                          ? { workerHeapSnapshotDirectory }
+                          : {}),
                       onUnavailable: poolUnavailable
                   }
               }
             : {}),
-        ...(workers > 0 && arm !== 'chunks' && arm !== 'stages' && arm !== 'climate'
+        ...(workers > 0 && arm !== 'chunks' && arm !== 'stages'
             ? {
                   terrain: {
                       pipeline: defaultTerrainPipeline(),
                       workers,
+                      ...(workerHeapStats === undefined ? {} : { workerHeapStats }),
+                      ...(includeHeapSnapshots && workerHeapSnapshotDirectory !== undefined
+                          ? { workerHeapSnapshotDirectory }
+                          : {}),
                       onUnavailable: poolUnavailable
                   }
               }
             : {})
     });
-    // Includes the one-time shared climate tree build and pool setup. First-task timings below
-    // include worker module import, pipeline construction, and that worker's first generated task.
-    generatorSetupMs = performance.now() - started;
-    return generator;
-};
 
 /** A square of chunks, side by side, the way a start region fills. */
 const side = Math.ceil(Math.sqrt(chunks));
@@ -138,30 +141,26 @@ const positions = Array.from({ length: chunks }, (_unused, index) => [index % si
 
 interface Run {
     readonly ms: number;
-    readonly generatorSetupMs: number;
+    readonly generatorInitializationMs: number;
     readonly processCpuMs: number;
     readonly mainHeapUsedBytes: number;
+    readonly mainArrayBufferBytes: number;
     readonly rssBytes: number;
     readonly outputDigest: string;
     readonly workerHeapUsedBytes: readonly number[];
-    readonly workerFirstTaskWallUs: readonly number[];
-    readonly workerFirstTaskCpuUs: readonly number[];
-    readonly workerFirstTaskHeapBytes: readonly number[];
     readonly blockIndexBytes: number;
 }
 
-const run = async (): Promise<Run> => {
+const run = async (includeHeapSnapshots = false): Promise<Run> => {
     const workerHeapStats =
-        workers > 0 && (arm === 'stages' || arm === 'climate')
+        workers > 0 && (arm === 'stages' || arm === 'terrain')
             ? new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * (workers + 1))
-            : undefined;
-    const workerStartupStats =
-        workers > 0 && (arm === 'stages' || arm === 'climate')
-            ? new SharedArrayBuffer(BigInt64Array.BYTES_PER_ELEMENT * (workers * 3 + 1))
             : undefined;
     // Each generator retains finished chunks by coordinate, so a fresh instance keeps every
     // warmup and sample on the generation path instead of measuring a cache hit.
-    const generator = createGenerator(workerHeapStats, workerStartupStats);
+    const generatorStarted = performance.now();
+    const generator = createGenerator(workerHeapStats, includeHeapSnapshots);
+    const generatorInitializationMs = performance.now() - generatorStarted;
     const started = performance.now();
     const cpuStarted = process.cpuUsage();
     try {
@@ -196,38 +195,16 @@ const run = async (): Promise<Run> => {
             stats === undefined
                 ? []
                 : Array.from({ length: workerCount }, (_unused, index) => Atomics.load(stats, index + 1));
-        const startupStats = workerStartupStats === undefined ? undefined : new BigInt64Array(workerStartupStats);
-        const startupWorkerCount = startupStats === undefined ? 0 : Number(Atomics.load(startupStats, 0));
-        const workerFirstTaskWallUs =
-            startupStats === undefined
-                ? []
-                : Array.from({ length: startupWorkerCount }, (_unused, index) =>
-                      Number(Atomics.load(startupStats, 1 + index * 3))
-                  );
-        const workerFirstTaskCpuUs =
-            startupStats === undefined
-                ? []
-                : Array.from({ length: startupWorkerCount }, (_unused, index) =>
-                      Number(Atomics.load(startupStats, 2 + index * 3))
-                  );
-        const workerFirstTaskHeapBytes =
-            startupStats === undefined
-                ? []
-                : Array.from({ length: startupWorkerCount }, (_unused, index) =>
-                      Number(Atomics.load(startupStats, 3 + index * 3))
-                  );
 
         return {
             ms: elapsed,
-            generatorSetupMs,
+            generatorInitializationMs,
             processCpuMs: (cpu.user + cpu.system) / 1000,
             mainHeapUsedBytes: memory.heapUsed,
+            mainArrayBufferBytes: memory.arrayBuffers,
             rssBytes: memory.rss,
             outputDigest: output.digest('hex'),
             workerHeapUsedBytes,
-            workerFirstTaskWallUs,
-            workerFirstTaskCpuUs,
-            workerFirstTaskHeapBytes,
             blockIndexBytes
         };
     } finally {
@@ -238,6 +215,7 @@ const run = async (): Promise<Run> => {
 const percentile = (sorted: readonly number[], fraction: number): number =>
     sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
+if (workerHeapSnapshotDirectory !== undefined) await run(true);
 for (let warmup = 0; warmup < warmups; warmup++) await run();
 const cpuBeforeSamples = process.cpuUsage();
 const runs: Run[] = [];
@@ -261,13 +239,16 @@ process.stdout.write(
         requestedWorkerCount: workers,
         chunks,
         arm,
-        climateTreeMode,
+        requestedClimateTables: climateTables,
+        effectiveClimateTables,
         regionChunks,
         stealAfter,
         warmups,
         samples: sampleCount,
-        generatorSetupMsByRun: runs.map(({ generatorSetupMs }) => generatorSetupMs),
         registriesLoadedMs: loaded,
+        climateTableInitializationMs,
+        sharedClimateTableBytes,
+        workerHeapSnapshotDirectory,
         distributionMs: {
             min: times[0] ?? 0,
             p50,
@@ -277,12 +258,11 @@ process.stdout.write(
         processCpuMsForSamples: (cpuForSamples.user + cpuForSamples.system) / 1000,
         throughputChunksPerSecond: (chunks / p50) * 1000,
         processCpuMsByRun: runs.map(({ processCpuMs }) => processCpuMs),
+        generatorInitializationMsByRun: runs.map(({ generatorInitializationMs }) => generatorInitializationMs),
         mainHeapUsedBytesByRun: runs.map(({ mainHeapUsedBytes }) => mainHeapUsedBytes),
+        mainArrayBufferBytesByRun: runs.map(({ mainArrayBufferBytes }) => mainArrayBufferBytes),
         rssBytesByRun: runs.map(({ rssBytes }) => rssBytes),
         workerHeapUsedBytesByRun: runs.map(({ workerHeapUsedBytes }) => workerHeapUsedBytes),
-        workerFirstTaskWallUsByRun: runs.map(({ workerFirstTaskWallUs }) => workerFirstTaskWallUs),
-        workerFirstTaskCpuUsByRun: runs.map(({ workerFirstTaskCpuUs }) => workerFirstTaskCpuUs),
-        workerFirstTaskHeapBytesByRun: runs.map(({ workerFirstTaskHeapBytes }) => workerFirstTaskHeapBytes),
         blockIndexBytes: runs[0]?.blockIndexBytes,
         blockIndexBytesPerChunk: (runs[0]?.blockIndexBytes ?? 0) / chunks,
         outputDigest: runs[0]?.outputDigest
