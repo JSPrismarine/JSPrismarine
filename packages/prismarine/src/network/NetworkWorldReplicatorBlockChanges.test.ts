@@ -256,6 +256,8 @@ describe('NetworkWorldReplicator block changes', () => {
         // corner floors rather than truncating, which is what keeps -1 out of sub chunk 0.
         const origin = only.data.subChunkBlockPosition;
         expect([origin.x, origin.y, origin.z]).toEqual([-16, -16, -16]);
+    });
+
     it('encodes each change once per codec and shares an identical visible batch', async () => {
         const encodesByCodec = { codec2193: 0, codec2225: 0 };
         const codec2193: ProtocolCodec = {
@@ -338,7 +340,8 @@ describe('NetworkWorldReplicator block changes', () => {
             }
             await replicator.flushBlockChanges();
 
-            expect(encodeFragment).toHaveBeenCalledTimes(32);
+            // All 32 changes share a sub chunk packet, so that one packet contributes one fragment.
+            expect(encodeFragment).toHaveBeenCalledTimes(1);
             expect(updatesIn(batches[0]!)).toHaveLength(32);
             expect(updatesIn(batches[1]!)).toEqual(updatesIn(batches[0]!));
         } finally {

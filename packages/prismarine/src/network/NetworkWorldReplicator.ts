@@ -349,40 +349,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const sends: Promise<void>[] = [];
 
         for (const [codec, groups] of groupsByCodec) {
-            // Viewers can see different subsets. Encode the union once for this codec, then
-            // frame only the relevant pre-encoded updates for each distinct visibility set.
-            const neededIndices = [...new Set([...groups.values()].flatMap(({ indices }) => indices))].sort(
-                (left, right) => left - right
-            );
-            const neededChanges = neededIndices.map((index) => {
-                const change = changes[index];
-                if (change === undefined) throw new Error(`Missing block change at flush index ${index}`);
-                return change;
-            });
-            const encoded = encodePacketsForCodec(this.blockPackets(neededChanges), codec);
-            const encodedByIndex = new Map<
-                number,
-                { readonly packet: NetworkPacket<unknown>; readonly buffer: Buffer }
-            >();
-            for (const [encodedIndex, changeIndex] of neededIndices.entries()) {
-                const packet = encoded.packets[encodedIndex];
-                const buffer = encoded.buffers[encodedIndex];
-                if (packet === undefined || buffer === undefined) {
-                    throw new Error(`Missing encoded block change at flush index ${changeIndex}`);
-                }
-                encodedByIndex.set(changeIndex, { packet, buffer });
-            }
-
             for (const group of groups.values()) {
-                const packets: NetworkPacket<unknown>[] = [];
-                const buffers: Buffer[] = [];
-                for (const index of group.indices) {
-                    const encodedChange = encodedByIndex.get(index);
-                    if (encodedChange === undefined)
-                        throw new Error(`Missing block update bytes at flush index ${index}`);
-                    packets.push(encodedChange.packet);
-                    buffers.push(encodedChange.buffer);
-                }
+                const visibleChanges = group.indices.map((index) => {
+                    const change = changes[index];
+                    if (change === undefined) throw new Error(`Missing block change at flush index ${index}`);
+                    return change;
+                });
+                // Subchunk packets combine several changes, so packet indexes no longer map
+                // one-to-one to change indexes. Encode each distinct visibility set after
+                // grouping its changes; viewers with the same set still share that encoding.
+                const encoded = encodePacketsForCodec(this.blockPackets(visibleChanges), codec);
+                const { packets, buffers } = encoded;
 
                 const batch = encodePacketBatchFromBuffersBySize(packets, buffers, {
                     compressionLevel,
