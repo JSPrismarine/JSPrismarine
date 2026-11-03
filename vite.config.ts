@@ -19,7 +19,7 @@ export default defineConfig({
         emptyOutDir: !!process.env.CI,
         minify: false,
         outDir: 'dist',
-        sourcemap: 'inline',
+        sourcemap: true,
         target: 'esnext',
         rolldownOptions: {
             treeshake: true,
