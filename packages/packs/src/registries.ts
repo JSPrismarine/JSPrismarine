@@ -25,6 +25,8 @@ export type RegistryId = (typeof REGISTRY_IDS)[number];
 
 interface RegistryRoute {
     registry: RegistryId;
+    /** How this registry names definitions; path-addressed registries use their pack-relative path. */
+    identifierFrom?: 'path';
     /**
      * The wrapper keys a file of this registry may use, such as
      * `minecraft:entity`. Registries addressed by path have none.
@@ -36,8 +38,8 @@ const ROUTES: Record<string, RegistryRoute> = {
     blocks: { registry: 'blocks', wrapperKeys: ['minecraft:block'] },
     items: { registry: 'items', wrapperKeys: ['minecraft:item'] },
     entities: { registry: 'entities', wrapperKeys: ['minecraft:entity'] },
-    loot_tables: { registry: 'lootTables' },
-    trading: { registry: 'tradeTables' },
+    loot_tables: { registry: 'lootTables', identifierFrom: 'path' },
+    trading: { registry: 'tradeTables', identifierFrom: 'path' },
     spawn_rules: { registry: 'spawnRules', wrapperKeys: ['minecraft:spawn_rules'] },
     recipes: {
         registry: 'recipes',
@@ -55,7 +57,7 @@ const ROUTES: Record<string, RegistryRoute> = {
     biomes: { registry: 'biomes', wrapperKeys: ['minecraft:biome'] },
     features: { registry: 'features' },
     feature_rules: { registry: 'featureRules', wrapperKeys: ['minecraft:feature_rules'] },
-    item_catalog: { registry: 'itemCatalog' }
+    item_catalog: { registry: 'itemCatalog', identifierFrom: 'path' }
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -73,6 +75,14 @@ export const routeForPath = (path: string): RegistryId | undefined => {
 };
 
 /**
+ * Whether a registry identifies a definition by its pack-relative file path.
+ *
+ * @param registry - The registry a file routes to.
+ */
+export const isPathAddressedRegistry = (registry: RegistryId): boolean =>
+    Object.values(ROUTES).some((route) => route.registry === registry && route.identifierFrom === 'path');
+
+/**
  * The identifier a definition is registered under: `description.identifier`
  * from the file's wrapper object where the registry has one, otherwise the
  * pack-relative path. Features declare their wrapper per feature type, so any
@@ -83,7 +93,7 @@ export const routeForPath = (path: string): RegistryId | undefined => {
 export const identifierForDefinition = (registry: RegistryId, path: string, data: unknown): string | undefined => {
     const route = Object.values(ROUTES).find((candidate) => candidate.registry === registry)!;
 
-    if (!route.wrapperKeys && registry !== 'features') return path;
+    if (route.identifierFrom === 'path') return path;
     if (!isRecord(data)) return undefined;
 
     const wrapperKey = route.wrapperKeys

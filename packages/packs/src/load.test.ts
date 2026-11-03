@@ -196,6 +196,78 @@ describe('load', () => {
         );
     });
 
+    it('skips superseded invalid path-addressed files without reporting diagnostics', () => {
+        const base = temporaryDir();
+        const override = temporaryDir();
+        const manifest = readFileSync(join(basePack, 'manifest.json'));
+        for (const pack of [base, override]) writeFileSync(join(pack, 'manifest.json'), manifest);
+        mkdirSync(join(base, 'loot_tables', 'entities'), { recursive: true });
+        mkdirSync(join(override, 'loot_tables', 'entities'), { recursive: true });
+        writeFileSync(join(base, 'loot_tables', 'entities', 'shared.json'), '{');
+        writeFileSync(join(override, 'loot_tables', 'entities', 'shared.json'), JSON.stringify({ pools: [] }));
+
+        const { definitions, diagnostics } = load(
+            [
+                { kind: 'directory', path: base },
+                { kind: 'directory', path: override }
+            ],
+            { strict: true }
+        );
+
+        expect(definitions.lootTables.get('loot_tables/entities/shared.json')?.data).toEqual({ pools: [] });
+        expect(diagnostics.some((diagnostic) => diagnostic.path === 'loot_tables/entities/shared.json')).toBe(false);
+    });
+
+    it('keeps the earlier path-addressed definition when a later pack has an invalid manifest', () => {
+        const base = temporaryDir();
+        const invalidOverride = temporaryDir();
+        writeFileSync(join(base, 'manifest.json'), readFileSync(join(basePack, 'manifest.json')));
+        writeFileSync(join(invalidOverride, 'manifest.json'), readFileSync(join(badManifestPack, 'manifest.json')));
+        mkdirSync(join(base, 'loot_tables', 'entities'), { recursive: true });
+        mkdirSync(join(invalidOverride, 'loot_tables', 'entities'), { recursive: true });
+        writeFileSync(join(base, 'loot_tables', 'entities', 'shared.json'), JSON.stringify({ pools: [] }));
+        writeFileSync(join(invalidOverride, 'loot_tables', 'entities', 'shared.json'), '{');
+
+        const { definitions, diagnostics } = load([
+            { kind: 'directory', path: base },
+            { kind: 'directory', path: invalidOverride }
+        ]);
+
+        expect(definitions.lootTables.get('loot_tables/entities/shared.json')?.data).toEqual({ pools: [] });
+        expect(diagnostics.some((diagnostic) => diagnostic.code === 'manifest.invalid')).toBe(true);
+    });
+
+    it('keeps distinct identifiers from superseded content-addressed files', () => {
+        const base = temporaryDir();
+        const override = temporaryDir();
+        const manifest = readFileSync(join(basePack, 'manifest.json'));
+        const recipe = (identifier: string) => ({
+            format_version: '1.26.0',
+            'minecraft:recipe_shaped': { description: { identifier } }
+        });
+        for (const [pack, identifier] of [
+            [base, 'fixture:layer_one'],
+            [override, 'fixture:layer_two']
+        ] as const) {
+            writeFileSync(join(pack, 'manifest.json'), manifest);
+            mkdirSync(join(pack, 'recipes'), { recursive: true });
+            writeFileSync(join(pack, 'recipes', 'barrel.json'), JSON.stringify(recipe(identifier)));
+        }
+
+        const { definitions } = load(
+            [
+                { kind: 'directory', path: base },
+                { kind: 'directory', path: override }
+            ],
+            {
+                validator: () => []
+            }
+        );
+
+        expect(definitions.recipes.get('fixture:layer_one')?.path).toBe('recipes/barrel.json');
+        expect(definitions.recipes.get('fixture:layer_two')?.path).toBe('recipes/barrel.json');
+    });
+
     it('fails the strict load when nothing supersedes the broken file', () => {
         const broken = packWithBrokenRobot();
         try {

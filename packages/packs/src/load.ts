@@ -7,7 +7,7 @@ import type { JavaRegistryId } from './javaRegistries';
 import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
 import type { RegistryId } from './registries';
-import { identifierForDefinition, routeForPath } from './registries';
+import { identifierForDefinition, isPathAddressedRegistry, routeForPath } from './registries';
 import type { PackFileFilter, PackFiles, PackStack } from './sources';
 import { expandSource } from './sources';
 import type { DefinitionValidator } from './validation';
@@ -93,15 +93,38 @@ const expandStack = (stack: PackStack): StackUnit[] =>
     });
 
 /**
- * Maps each Bedrock pack-relative path to the last pack in the stack that
- * provides it, which is the pack whose copy of the file the composed result
- * uses.
+ * Finds the packs whose manifests allow them to participate in the stack.
+ * This preflight lets path-addressed files skip only when a later pack will
+ * actually load; a later pack with a broken manifest cannot replace anything.
  */
-const lastProviderOfPath = (units: readonly StackUnit[]): Map<string, PackFiles> => {
+const packsWithLoadableManifest = (units: readonly StackUnit[]): Set<PackFiles> => {
+    const loadable = new Set<PackFiles>();
+    for (const unit of units) {
+        if (unit.kind !== 'bedrock') continue;
+        for (const pack of unit.packs) {
+            const bytes = pack.files.get('manifest.json');
+            if (!bytes) continue;
+            try {
+                const parsed = parseLenientJson(decoder.decode(bytes));
+                if (parseManifest(parsed, pack.origin).manifest !== undefined) loadable.add(pack);
+            } catch {
+                // loadManifest reports the parse failure during the normal ordered load below.
+            }
+        }
+    }
+    return loadable;
+};
+
+/** Maps each path to the last loadable Bedrock pack that provides it. */
+const lastProviderOfPath = (
+    units: readonly StackUnit[],
+    loadablePacks: ReadonlySet<PackFiles>
+): Map<string, PackFiles> => {
     const providers = new Map<string, PackFiles>();
     for (const unit of units) {
         if (unit.kind !== 'bedrock') continue;
         for (const pack of unit.packs) {
+            if (!loadablePacks.has(pack)) continue;
             for (const path of pack.files.keys()) providers.set(path, pack);
         }
     }
@@ -114,14 +137,14 @@ const lastProviderOfPath = (units: readonly StackUnit[]): Map<string, PackFiles>
  * definition replaces the earlier one whole, never merged. A pack whose
  * manifest does not validate is skipped and reported.
  *
- * A Bedrock file that does not parse is an error, except when a later pack in
- * the stack provides the same pack-relative path. That copy replaces this one
- * whole, so the broken file cannot reach the composed result and is reported
- * as a warning instead, which keeps a strict load from failing over a file
- * nothing reads. The vanilla layers rely on it: two of them ship an
- * `entities/npc.json` that only patches a saved pack, and a later layer
- * carries the real one. The Java half has no equivalent rule, because its
- * tags merge across packs rather than replacing one another.
+ * A path-addressed Bedrock file is skipped when a later loadable pack provides
+ * the same path, because that path is its identifier and the later copy fully
+ * replaces it. Content-addressed files are still parsed when superseded,
+ * because their wrapper may declare a different identifier; parse and
+ * validation errors from those files are warnings. The vanilla layers rely on
+ * this for `entities/npc.json`, which can patch a saved pack before a later
+ * layer carries the real definition. The Java half has no equivalent rule,
+ * because its tags merge across packs rather than replacing one another.
  *
  * @throws {PackLoadError} In strict mode, when an error is reported. A
  *   warning never fails the load.
@@ -157,7 +180,8 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
     };
 
     const units = expandStack(stack);
-    const lastProvider = lastProviderOfPath(units);
+    const loadablePacks = packsWithLoadableManifest(units);
+    const lastProvider = lastProviderOfPath(units, loadablePacks);
 
     for (const unit of units) {
         if (unit.kind === 'datapack') {
@@ -173,6 +197,11 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
 
             for (const [path, bytes] of pack.files) {
                 const superseded = lastProvider.get(path) !== pack;
+                const registry = routeForPath(path);
+                // A path-addressed definition has the same identifier in every layer, so an
+                // earlier copy cannot contribute to the final registry. Wrapper-addressed
+                // files still need parsing because a new identifier may live at the same path.
+                if (superseded && registry !== undefined && isPathAddressedRegistry(registry)) continue;
                 loadDefinitionFile(registries, packName, path, bytes, superseded, validator, collector);
             }
         }
@@ -221,8 +250,8 @@ const loadManifest = (
 
 /**
  * Parses, validates and registers one definition file; the latest pack wins
- * by identifier. A file a later pack supersedes reports its parse failures as
- * warnings, because its content never reaches the composed result.
+ * by identifier. A superseded content-addressed file reports parse failures
+ * as warnings, because its content cannot reach the composed result.
  */
 const loadDefinitionFile = (
     registries: DefinitionRegistries,

@@ -74,6 +74,8 @@ export const FAMILIES = {
     integrationEntityCoverage: 'integration.entity-coverage',
     /** Registry, creative, and crafting payloads built for a joining Bedrock client. */
     integrationClientPackets: 'integration.client-packets',
+    /** Bedrock pack layers compose to the same active definitions as loading each layer in order. */
+    packsComposition: 'packs.composition',
 
     /** The multi-noise biome source against Java's biome parameter vectors (phase 4 exit). */
     worldgenBiomes: 'worldgen.biomes',

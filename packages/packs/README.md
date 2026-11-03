@@ -171,9 +171,21 @@ for a whole pack costs one line of the report rather than one per file. A collap
 carries `occurrences`, the number of files it covers, and `paths`, the first five of them, so the
 report still leads to the files.
 
-A Bedrock file that does not parse is an error, unless a later pack in the stack provides the same
-pack-relative path. That copy replaces the broken one whole, so the broken file cannot reach the
-composed result, and the loader reports it as a warning instead. The shipped vanilla layers need
-this: two of them carry an `entities/npc.json` that patches a saved pack rather than defining an
+A file counts as superseded only when a later pack with a valid manifest provides the same path.
+A superseded file in a registry keyed by its definition identifier is still parsed: another layer
+can put a different identifier in the same file. A superseded file in a path-addressed registry
+is skipped, because its path is its identifier and the later file fully replaces it. As a result,
+invalid JSON and validation diagnostics from skipped loot tables, trade tables, and item catalogs
+are no longer reported. Other superseded files that fail to parse are reported as warnings, since
+they cannot reach the composed result. The shipped vanilla layers need this for content-addressed
+entities: two layers carry an `entities/npc.json` that patches a saved pack rather than defining an
 entity, and a later layer carries the real one. The Java side has no such rule, because its tags
 merge across packs instead of replacing one another.
+
+To measure a directory stack's load time and how many routed files the loader parses, build the
+package and pass its pack directories in stack order:
+
+```sh
+pnpm --filter @jsprismarine/packs build
+pnpm --filter @jsprismarine/packs run bench:path-addressed -- path/to/base-pack path/to/override-pack
+```
