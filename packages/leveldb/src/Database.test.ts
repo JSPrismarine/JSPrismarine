@@ -276,10 +276,84 @@ describe('leveldb', () => {
                 const db = await Database.open(scratch(), { writeBufferSize: 8 * 1024 });
                 for (const k of chunkKeys(500)) db.put(k, Buffer.alloc(256, 0x41));
 
+                // A full write buffer queues a worker task; wait for that durable boundary before
+                // asserting the table exists.
+                await db.flush();
                 expect(db.stats.totalFiles).toBeGreaterThan(0);
                 expect([...db.keys()]).toHaveLength(500);
                 await db.close();
             }, 15_000);
+
+            it('keeps immutable entries readable while writes continue into a second memtable', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { writeBufferSize: 1 });
+                let releaseWorker = () => {};
+                const workerGate = new Promise<void>((resolve) => {
+                    releaseWorker = resolve;
+                });
+                let signalWorkerStarted = () => {};
+                const workerStarted = new Promise<void>((resolve) => {
+                    signalWorkerStarted = resolve;
+                });
+                const originalWorker = Reflect.get(db, 'runTableWorker');
+                if (typeof originalWorker !== 'function') throw new Error('Database table worker is unavailable');
+                Reflect.set(db, 'runTableWorker', async (...args: unknown[]) => {
+                    signalWorkerStarted();
+                    await workerGate;
+                    return Reflect.apply(originalWorker, db, args);
+                });
+
+                db.put(key('first'), key('written before worker'));
+                await workerStarted;
+                db.put(key('second'), key('written during worker'));
+
+                expect(db.get(key('first'))).toEqual(key('written before worker'));
+                expect(db.get(key('second'))).toEqual(key('written during worker'));
+                expect(entriesOf(db.entries())).toEqual(
+                    entriesOf([
+                        [key('first'), key('written before worker')],
+                        [key('second'), key('written during worker')]
+                    ])
+                );
+
+                releaseWorker();
+                await db.flush();
+                expect(entriesOf(db.entries())).toEqual(
+                    entriesOf([
+                        [key('first'), key('written before worker')],
+                        [key('second'), key('written during worker')]
+                    ])
+                );
+                await db.close();
+            });
+
+            it('restores the open log when installing a flushed table fails', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { writeBufferSize: 1024 * 1024 });
+                const writeManifest = Reflect.get(db, 'writeManifest');
+                if (typeof writeManifest !== 'function') throw new Error('Database manifest writer is unavailable');
+                Reflect.set(db, 'writeManifest', () => {
+                    throw new Error('manifest write failed');
+                });
+
+                db.put(key('first'), key('before failed flush'));
+                await expect(db.flush()).rejects.toThrow('manifest write failed');
+
+                expect(db.get(key('first'))).toEqual(key('before failed flush'));
+                expect(db.stats.totalFiles).toBe(0);
+                Reflect.set(db, 'writeManifest', writeManifest);
+                db.put(key('second'), key('after failed flush'));
+                await db.flush();
+
+                expect(db.get(key('first'))).toEqual(key('before failed flush'));
+                expect(db.get(key('second'))).toEqual(key('after failed flush'));
+                await db.close();
+
+                const reopened = await Database.open(directory);
+                expect(reopened.get(key('first'))).toEqual(key('before failed flush'));
+                expect(reopened.get(key('second'))).toEqual(key('after failed flush'));
+                await reopened.close();
+            });
 
             it('merges level 0 into level 1 without losing a key', async () => {
                 const directory = scratch();
@@ -321,6 +395,43 @@ describe('leveldb', () => {
 
                 // `flush` runs assertSortedRuns after every compaction; getting here is the check.
                 expect(db.levelSizes[1]).toBeGreaterThan(1);
+                await db.close();
+            });
+
+            it('splits compaction outputs at the file cap and compacts oversized levels', async () => {
+                const maximumFileBytes = 16 * 1024;
+                const db = await Database.open(scratch(), {
+                    writeBufferSize: 1024 * 1024,
+                    maxFileSize: maximumFileBytes,
+                    l0CompactionTrigger: 2
+                });
+                let state = 0x1234abcd;
+
+                for (let round = 0; round < 2; round++) {
+                    for (let index = 0; index < 200; index++) {
+                        const value = Buffer.alloc(512);
+                        for (let byte = 0; byte < value.byteLength; byte++) {
+                            state ^= state << 13;
+                            state ^= state >>> 17;
+                            state ^= state << 5;
+                            value[byte] = state >>> 24;
+                        }
+                        db.put(key(`round:${round}:key:${String(index).padStart(4, '0')}`), value);
+                    }
+                    await db.flush();
+                }
+
+                const versions = Reflect.get(db, 'versions');
+                if (!(versions instanceof VersionSet)) throw new Error('Database version set is unavailable');
+                const liveFiles = versions.allFiles();
+                expect(liveFiles.some(({ level }) => level > 1)).toBe(true);
+                expect(liveFiles.every(({ level, file }) => level === 0 || file.size <= maximumFileBytes)).toBe(true);
+                for (let level = 1; level < 6; level++) {
+                    expect(versions.files(level).reduce((total, file) => total + file.size, 0)).toBeLessThanOrEqual(
+                        maximumFileBytes * 10 ** level
+                    );
+                }
+                expect([...db.keys()]).toHaveLength(400);
                 await db.close();
             });
 
@@ -469,19 +580,20 @@ describe('leveldb', () => {
                 // Killed for real, in a child process: simulating it from here would only exercise
                 // the same-process guard, which is a different mechanism.
                 const directory = scratch();
-                const source = path.resolve(import.meta.dirname, 'index.ts');
+                const built = path.resolve(import.meta.dirname, '..', 'dist', 'index.es.js');
+                if (!fs.existsSync(built)) {
+                    throw new Error(`This test needs the built package at ${built} - run its build first`);
+                }
                 const packageRoot = path.resolve(import.meta.dirname, '..');
 
                 const child = spawn(
                     process.execPath,
                     [
-                        '--import',
-                        'tsx',
                         '--input-type=module',
                         '-e',
-                        `import { Database } from ${JSON.stringify(pathToFileURL(source).href)};
-                         const db = await Database.open(${JSON.stringify(directory)});
-                         db.put(Buffer.from('written'), Buffer.from('before the kill'));
+                        `import { Database } from ${JSON.stringify(pathToFileURL(built).href)};
+                         const db = await Database.open(${JSON.stringify(directory)}, { writeBufferSize: 1 });
+                         db.put(Buffer.from('written'), Buffer.alloc(4 * 1024 * 1024, 0x5a));
                          console.log('ready');
                          setInterval(() => {}, 1000);`
                     ],
@@ -503,7 +615,7 @@ describe('leveldb', () => {
                 expect(fs.existsSync(path.join(directory, 'LOCK'))).toBe(true);
 
                 const restarted = await Database.open(directory);
-                expect(restarted.get(key('written'))).toEqual(key('before the kill'));
+                expect(restarted.get(key('written'))).toEqual(Buffer.alloc(4 * 1024 * 1024, 0x5a));
                 await restarted.close();
             });
 

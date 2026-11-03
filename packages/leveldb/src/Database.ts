@@ -1,5 +1,8 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+import { Worker } from 'node:worker_threads';
+import { pathToFileURL } from 'node:url';
 
 import { AppendFile, TableFile, replaceFileAtomically, writeFileSynced } from './db/Storage';
 import { BYTEWISE_COMPARATOR, compareBytewise } from './util/Comparator';
@@ -16,7 +19,6 @@ import { DirectoryLock } from './db/DirectoryLock';
 import { LogWriter, readLogRecords } from './format/LogFormat';
 import { MemTable } from './db/MemTable';
 import { MAX_LEVELS, VersionSet } from './db/VersionSet';
-import { TableBuilder } from './format/TableBuilder';
 import { TableReader } from './format/TableReader';
 import { BlockCache } from './format/BlockCache';
 import {
@@ -24,8 +26,6 @@ import {
     ValueType,
     compareInternalKeys,
     extractUserKey,
-    findShortInternalSuccessor,
-    findShortestInternalSeparator,
     lookupKey,
     parseInternalKey
 } from './format/InternalKey';
@@ -35,16 +35,25 @@ import { resolveOptions } from './DatabaseOptions';
 import type { DatabaseOptions, ResolvedOptions } from './DatabaseOptions';
 import type { FileMetaData, VersionEdit } from './db/VersionEdit';
 import type { BlockCacheStats } from './format/BlockCache';
+import type {
+    TableWorkerReply,
+    TableWorkerResult,
+    TableWorkerTask,
+    WorkerTableMetadata,
+    WorkerTableOptions
+} from './db/TableWorkerProtocol';
 
 export interface DatabaseStats {
     /** Number of unmerged level 0 files. */
     level0Files: number;
     /** Number of live table files at all levels. */
     totalFiles: number;
-    /** Bytes currently held by the mutable table. */
+    /** Bytes currently held by the mutable and immutable tables. */
     memtableBytes: number;
     /** Highest sequence number ever written to this database. */
     lastSequence: bigint;
+    /** Cumulative WAL, table, manifest, and CURRENT bytes written by this instance. */
+    bytesWritten: number;
     /** Shared point-lookup cache usage and hit rate. */
     blockCache: BlockCacheStats;
 }
@@ -67,14 +76,24 @@ export interface KeyRange {
 export class Database {
     private readonly directory: string;
     private readonly options: ResolvedOptions;
-    private readonly versions = new VersionSet();
+    private versions = new VersionSet();
     private readonly tables = new Map<number, { reader: TableReader; file: TableFile }>();
     private readonly blockCache: BlockCache;
 
     private lock: DirectoryLock | null = null;
     private memtable = new MemTable();
+    private immutableMemtable: MemTable | null = null;
     private log: AppendFile | null = null;
     private logWriter: LogWriter | null = null;
+    private tableWorker: Worker | null = null;
+    private tableWorkerRequest: {
+        resolve: (result: TableWorkerResult) => void;
+        reject: (error: Error) => void;
+    } | null = null;
+    private flushPromise: Promise<void> | null = null;
+    private flushRequested = false;
+    private backgroundFlushError: Error | null = null;
+    private bytesWritten = 0;
     private closed = false;
 
     private constructor(directory: string, options: ResolvedOptions) {
@@ -208,6 +227,8 @@ export class Database {
             this.log?.sync();
         }
 
+        await this.stopTableWorker();
+
         this.closed = true;
 
         this.log?.close();
@@ -237,6 +258,9 @@ export class Database {
         // A tombstone in the memtable has to stop the search, or an older table's value surfaces.
         const remembered = this.memtable.get(key);
         if (remembered.found) return remembered.value;
+
+        const immutable = this.immutableMemtable?.get(key);
+        if (immutable?.found) return immutable.value;
 
         // Tables are keyed by internal key, so seek to this user key's newest possible version and
         // take the first entry that lands on it. `candidates` already yields level 0 newest first,
@@ -273,6 +297,9 @@ export class Database {
         const sources: Array<Iterator<{ internalKey: Buffer; value: Buffer | null }>> = [
             this.memtable.iterate()[Symbol.iterator]()
         ];
+        if (this.immutableMemtable !== null) {
+            sources.push(this.immutableMemtable.iterate()[Symbol.iterator]());
+        }
 
         for (const { file } of this.versions.allFiles()) {
             sources.push(this.tableEntries(file)[Symbol.iterator]());
@@ -319,6 +346,85 @@ export class Database {
         return reader;
     }
 
+    private runTableWorker(task: TableWorkerTask): Promise<TableWorkerResult> {
+        if (this.tableWorkerRequest !== null) {
+            throw new Error('The database already has a table worker request in flight');
+        }
+
+        const worker = this.getTableWorker();
+        return new Promise((resolve, reject) => {
+            this.tableWorkerRequest = { resolve, reject };
+            worker.ref();
+            try {
+                worker.postMessage(task);
+            } catch (error) {
+                this.tableWorkerRequest = null;
+                worker.unref();
+                reject(error instanceof Error ? error : new Error(String(error)));
+            }
+        });
+    }
+
+    private getTableWorker(): Worker {
+        if (this.tableWorker !== null) return this.tableWorker;
+
+        const isTypeScript = import.meta.url.endsWith('.ts');
+        const workerPath = new URL(
+            isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.es.js',
+            import.meta.url
+        );
+        const worker = new Worker(workerPath, {
+            execArgv: isTypeScript ? this.tableWorkerExecArgv() : process.execArgv
+        });
+        this.tableWorker = worker;
+        worker.unref();
+
+        worker.on('message', (reply: TableWorkerReply) => {
+            const request = this.tableWorkerRequest;
+            if (request === null) return;
+
+            this.tableWorkerRequest = null;
+            worker.unref();
+            if ('error' in reply) request.reject(new Error(reply.error));
+            else request.resolve(reply.result);
+        });
+
+        worker.on('error', (error) => this.failTableWorker(worker, error));
+        worker.on('exit', (code) => {
+            if (this.tableWorker === worker) this.tableWorker = null;
+            this.failTableWorker(worker, new Error(`Table worker exited before replying with code ${code}`));
+        });
+
+        return worker;
+    }
+
+    private failTableWorker(worker: Worker, error: Error): void {
+        if (this.tableWorker === worker) this.tableWorker = null;
+        const request = this.tableWorkerRequest;
+        this.tableWorkerRequest = null;
+        request?.reject(error);
+    }
+
+    private async stopTableWorker(): Promise<void> {
+        const worker = this.tableWorker;
+        this.tableWorker = null;
+        if (worker !== null) await worker.terminate();
+    }
+
+    private tableWorkerExecArgv(): string[] {
+        const loaderFlags = ['--import', '--loader', '--experimental-loader', '--experimental-transform-types'];
+        if (
+            process.execArgv.some((argument) =>
+                loaderFlags.some((flag) => argument === flag || argument.startsWith(`${flag}=`))
+            )
+        ) {
+            return process.execArgv;
+        }
+
+        const tsxLoader = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
+        return [...process.execArgv, '--import', tsxLoader];
+    }
+
     // ---------------------------------------------------------------- writes
 
     public put(key: Buffer, value: Buffer): void {
@@ -331,13 +437,20 @@ export class Database {
 
     public write(batch: WriteBatch): void {
         this.assertWritable();
+        if (this.backgroundFlushError !== null) {
+            const error = this.backgroundFlushError;
+            this.backgroundFlushError = null;
+            throw error;
+        }
         if (batch.count === 0) return;
 
         // The log first, always. A batch that reached memory but not the log is a batch a crash
         // loses silently, and callers have no way to know which writes made it.
         const sequence = this.versions.lastSequence + 1n;
         this.logWriter!.append(batch.encode(sequence));
-        this.log!.append(this.logWriter!.finish());
+        const logRecord = this.logWriter!.finish();
+        this.log!.append(logRecord);
+        this.bytesWritten += logRecord.byteLength;
         this.logWriter = new LogWriter(this.log!.length);
         if (this.options.sync) this.log!.sync();
 
@@ -345,138 +458,215 @@ export class Database {
         this.versions.lastSequence = sequence + BigInt(batch.count) - 1n;
 
         if (this.memtable.size >= this.options.writeBufferSize) {
-            void this.flush();
+            this.scheduleBackgroundFlush();
         }
     }
 
-    /** Turns everything in memory into a table, compacts if that made level 0 too deep, fsyncs. */
-    public async flush(): Promise<void> {
+    /** Turns the memtable into a table off-thread, then compacts any level over its size budget. */
+    public flush(): Promise<void> {
         this.assertWritable();
-
-        if (!this.memtable.empty) await this.flushMemTable();
-        while (this.versions.files(0).length >= this.options.l0CompactionTrigger) {
-            const compacted = await this.compactLevel0();
-            if (!compacted) break;
+        if (this.flushPromise !== null) {
+            this.flushRequested = true;
+            return this.flushPromise;
         }
+
+        const operation = this.flushLoop();
+        let tracked: Promise<void>;
+        tracked = operation.finally(() => {
+            if (this.flushPromise === tracked) this.flushPromise = null;
+        });
+        this.flushPromise = tracked;
+        return tracked;
+    }
+
+    private async flushLoop(): Promise<void> {
+        do {
+            this.flushRequested = false;
+            if (!this.memtable.empty) await this.flushMemTable();
+            for (;;) {
+                const plan = this.nextCompactionPlan();
+                if (plan === null) break;
+                await this.compact(plan);
+            }
+        } while (this.flushRequested);
+        this.backgroundFlushError = null;
+    }
+
+    private scheduleBackgroundFlush(): void {
+        if (this.flushPromise !== null) {
+            this.flushRequested = true;
+            return;
+        }
+
+        void this.flush().catch((error: unknown) => {
+            this.backgroundFlushError = error instanceof Error ? error : new Error(String(error));
+        });
     }
 
     private async flushMemTable(): Promise<void> {
-        const bounds = this.memtable.bounds();
+        const frozen = this.memtable;
+        const bounds = frozen.bounds();
         if (bounds === null) return;
 
-        const builder = this.newTableBuilder();
-        for (const entry of this.memtable.iterate()) {
-            builder.add(entry.internalKey, entry.value ?? Buffer.alloc(0));
-        }
-
         const number = this.versions.allocateFileNumber();
-        const bytes = builder.finish();
-        writeFileSynced(path.join(this.directory, tableFileName(number)), bytes);
-
-        const previousLog = this.versions.logNumber;
         this.memtable = new MemTable();
+        this.immutableMemtable = frozen;
+        const tablePath = path.join(this.directory, tableFileName(number));
+        const hadOpenLog = this.log !== null;
+        let installed = false;
 
-        // A new log, so recovery after this point does not replay what is now in the table.
-        this.versions.logNumber = this.versions.allocateFileNumber();
-        this.applyAndPersist({
-            logNumber: this.versions.logNumber,
-            newFiles: [[0, { number, size: bytes.byteLength, smallest: bounds.smallest, largest: bounds.largest }]]
-        });
+        try {
+            const result = await this.runTableWorker({
+                kind: 'build',
+                filePath: tablePath,
+                fileNumber: number,
+                entries: [...frozen.iterate()].map(({ internalKey, value }) => ({
+                    internalKey,
+                    value: value ?? Buffer.alloc(0)
+                })),
+                smallest: bounds.smallest,
+                largest: bounds.largest,
+                options: this.workerTableOptions()
+            });
+            if (result.kind !== 'built') throw new Error('Table worker returned a compaction result for a flush');
+            this.bytesWritten += result.file.size;
 
-        this.log?.close();
-        this.openLog();
-        this.discardLog(previousLog);
+            const previousLog = this.versions.logNumber;
+            const nextLog = this.versions.allocateFileNumber();
+            const keepPreviousLog = this.memtable.empty ? 0 : previousLog;
+            this.log?.sync();
+            this.log?.close();
+            this.log = null;
+            this.applyAndPersist({
+                logNumber: nextLog,
+                previousLogNumber: keepPreviousLog,
+                newFiles: [[0, this.toFileMetaData(result.file)]]
+            });
+            installed = true;
+            this.immutableMemtable = null;
+
+            if (hadOpenLog) this.openLog();
+            try {
+                this.discardStaleLogs(nextLog, keepPreviousLog);
+            } catch {
+                // Log cleanup is safe to retry on the next open after the manifest is durable.
+            }
+        } catch (error) {
+            if (installed) {
+                this.immutableMemtable = null;
+                throw error;
+            }
+
+            for (const entry of frozen.iterate()) {
+                const parsed = parseInternalKey(entry.internalKey);
+                this.memtable.add(extractUserKey(entry.internalKey), parsed.sequence, parsed.type, entry.value);
+            }
+            this.immutableMemtable = null;
+            if (hadOpenLog && this.log === null) this.openLog();
+            fs.rmSync(tablePath, { force: true });
+            throw error;
+        }
     }
 
-    /**
-     * Merges all of level 0 with every level 1 file it overlaps.
-     *
-     * Level 0 files overlap each other, so they are merged as a set rather than one at a time.
-     * Levels below 1 are left to the game's own compaction, which will push level 1 down when it
-     * outgrows its budget - a database with a deep level 1 and empty levels beneath is legal.
-     */
-    private async compactLevel0(): Promise<boolean> {
-        const inputs0 = [...this.versions.files(0)];
-        if (inputs0.length === 0) return false;
+    private nextCompactionPlan(): { sourceLevel: number; targetLevel: number; inputs: FileMetaData[] } | null {
+        const level0 = this.versions.files(0);
+        const level0Trigger = Math.max(1, Math.trunc(this.options.l0CompactionTrigger));
+        if (level0.length >= level0Trigger) {
+            // Level 0 is newest first. Promote only the oldest bounded group so one flush never
+            // rewrites every accumulated level 0 table and newer files keep their precedence.
+            return {
+                sourceLevel: 0,
+                targetLevel: 1,
+                inputs: [...level0.slice(-level0Trigger)]
+            };
+        }
 
-        let smallest = inputs0[0]!.smallest;
-        let largest = inputs0[0]!.largest;
-        for (const file of inputs0) {
+        for (let sourceLevel = 1; sourceLevel < MAX_LEVELS - 1; sourceLevel++) {
+            const files = this.versions.files(sourceLevel);
+            const bytes = files.reduce((total, file) => total + file.size, 0);
+            // Leveled runs grow by a factor of ten. This keeps compaction work local to a bounded
+            // source file and its overlaps instead of repeatedly rewriting all of level 1.
+            if (bytes > this.options.maxFileSize * 10 ** sourceLevel) {
+                return { sourceLevel, targetLevel: sourceLevel + 1, inputs: files[0] ? [files[0]] : [] };
+            }
+        }
+
+        return null;
+    }
+
+    private async compact(plan: { sourceLevel: number; targetLevel: number; inputs: FileMetaData[] }): Promise<void> {
+        if (plan.inputs.length === 0) return;
+
+        let smallest = plan.inputs[0]!.smallest;
+        let largest = plan.inputs[0]!.largest;
+        for (const file of plan.inputs) {
             if (compareInternalKeys(file.smallest, smallest) < 0) smallest = file.smallest;
             if (compareInternalKeys(file.largest, largest) > 0) largest = file.largest;
         }
 
-        const inputs1 = this.versions.overlapping(1, smallest, largest);
-        const sources = [...inputs0, ...inputs1].map((file) =>
-            this.table(file).entries({ useCache: false })[Symbol.iterator]()
-        );
+        const overlapping = this.versions.overlapping(plan.targetLevel, smallest, largest);
+        const inputs = [...plan.inputs, ...overlapping];
+        const deeperRanges = this.versions
+            .allFiles()
+            .filter(({ level }) => level > plan.targetLevel)
+            .map(({ file }) => ({ smallest: file.smallest, largest: file.largest }));
+        const result = await this.runTableWorker({
+            kind: 'compact',
+            directory: this.directory,
+            inputs: inputs.map((file) => this.toWorkerFileMetadata(file)),
+            deeperRanges,
+            outputLevel: plan.targetLevel,
+            firstOutputNumber: this.versions.nextFileNumber,
+            maxFileSize: this.options.maxFileSize,
+            options: this.workerTableOptions()
+        });
+        if (result.kind !== 'compacted') throw new Error('Table worker returned a flush result for compaction');
+        for (const [, file] of result.outputs) this.bytesWritten += file.size;
 
-        const outputs: Array<[number, FileMetaData]> = [];
-        let builder: TableBuilder | null = null;
-        let number = 0;
-        let fileSmallest: Buffer | null = null;
-        let fileLargest: Buffer | null = null;
-        let previousUserKey: Buffer | null = null;
-
-        const finishFile = (): void => {
-            if (builder === null || fileSmallest === null || fileLargest === null) return;
-
-            const bytes = builder.finish();
-            writeFileSynced(path.join(this.directory, tableFileName(number)), bytes);
-            outputs.push([1, { number, size: bytes.byteLength, smallest: fileSmallest, largest: fileLargest }]);
-            builder = null;
-            fileSmallest = null;
-            fileLargest = null;
-        };
-
-        for (const entry of mergeSorted(sources, (a, b) => compareInternalKeys(a.key, b.key))) {
-            const userKey = extractUserKey(entry.key);
-
-            // Only the newest version of each key survives. Keep tombstones until no deeper level
-            // can hold an older value, or compaction would make that value visible again.
-            if (previousUserKey !== null && compareBytewise(previousUserKey, userKey) === 0) continue;
-
-            previousUserKey = Buffer.from(userKey);
-            if (parseInternalKey(entry.key).type === ValueType.Deletion && !this.versions.hasOlderFile(1, userKey)) {
-                continue;
+        try {
+            this.applyAndPersist({
+                nextFileNumber: result.nextFileNumber,
+                deletedFiles: [
+                    ...plan.inputs.map((file): [number, number] => [plan.sourceLevel, file.number]),
+                    ...overlapping.map((file): [number, number] => [plan.targetLevel, file.number])
+                ],
+                newFiles: result.outputs.map(([level, file]): [number, FileMetaData] => [
+                    level,
+                    this.toFileMetaData(file)
+                ])
+            });
+        } catch (error) {
+            // The input tables remain authoritative until CURRENT names the replacement manifest.
+            for (const [, file] of result.outputs) {
+                fs.rmSync(path.join(this.directory, tableFileName(file.number)), { force: true });
             }
-
-            if (builder === null) {
-                builder = this.newTableBuilder();
-                number = this.versions.allocateFileNumber();
-                fileSmallest = Buffer.from(entry.key);
-            }
-
-            builder.add(entry.key, entry.value);
-            fileLargest = Buffer.from(entry.key);
-
-            if (builder.size >= this.options.maxFileSize) finishFile();
+            throw error;
         }
 
-        finishFile();
-
-        this.applyAndPersist({
-            deletedFiles: [
-                ...inputs0.map((file): [number, number] => [0, file.number]),
-                ...inputs1.map((file): [number, number] => [1, file.number])
-            ],
-            newFiles: outputs
-        });
-
-        for (const file of [...inputs0, ...inputs1]) this.dropTable(file.number);
+        for (const file of inputs) this.dropTable(file.number);
         this.versions.assertSortedRuns();
-        return true;
     }
 
-    private newTableBuilder(): TableBuilder {
-        return new TableBuilder({
+    private workerTableOptions(): WorkerTableOptions {
+        return {
             blockSize: this.options.blockSize,
             blockRestartInterval: this.options.blockRestartInterval,
             compression: this.options.compression,
-            compressionLevel: this.options.compressionLevel,
-            shortestSeparator: findShortestInternalSeparator,
-            shortSuccessor: findShortInternalSuccessor
-        });
+            compressionLevel: this.options.compressionLevel
+        };
+    }
+
+    private toWorkerFileMetadata(file: FileMetaData): WorkerTableMetadata {
+        return { number: file.number, size: file.size, smallest: file.smallest, largest: file.largest };
+    }
+
+    private toFileMetaData(file: WorkerTableMetadata): FileMetaData {
+        return {
+            number: file.number,
+            size: file.size,
+            smallest: Buffer.from(file.smallest),
+            largest: Buffer.from(file.largest)
+        };
     }
 
     /**
@@ -487,8 +677,11 @@ export class Database {
      * that is missing.
      */
     private applyAndPersist(edit: VersionEdit): void {
-        this.versions.applyEdit(edit);
-        this.writeManifest();
+        const updatedVersions = new VersionSet();
+        updatedVersions.applyEdit(this.versions.snapshot(BYTEWISE_COMPARATOR));
+        updatedVersions.applyEdit(edit);
+        this.writeManifest(updatedVersions);
+        this.versions = updatedVersions;
 
         for (const [, number] of edit.deletedFiles ?? []) {
             try {
@@ -499,16 +692,23 @@ export class Database {
         }
     }
 
-    private writeManifest(): void {
-        const number = this.versions.allocateFileNumber();
+    private writeManifest(versions: VersionSet = this.versions): void {
+        const number = versions.allocateFileNumber();
         const writer = new LogWriter();
-        writer.append(encodeVersionEdit(this.versions.snapshot(BYTEWISE_COMPARATOR)));
+        writer.append(encodeVersionEdit(versions.snapshot(BYTEWISE_COMPARATOR)));
 
         const name = manifestFileName(number);
-        writeFileSynced(path.join(this.directory, name), writer.finish());
-        replaceFileAtomically(path.join(this.directory, CURRENT_FILE_NAME), Buffer.from(`${name}\n`));
+        const manifest = writer.finish();
+        const current = Buffer.from(`${name}\n`);
+        writeFileSynced(path.join(this.directory, name), manifest);
+        replaceFileAtomically(path.join(this.directory, CURRENT_FILE_NAME), current);
+        this.bytesWritten += manifest.byteLength + current.byteLength;
 
-        this.discardStaleManifests(number);
+        try {
+            this.discardStaleManifests(number);
+        } catch {
+            // Cleanup is best-effort after CURRENT has been atomically switched to this manifest.
+        }
     }
 
     private discardStaleManifests(keep: number): void {
@@ -524,26 +724,16 @@ export class Database {
         }
     }
 
-    private discardStaleLogs(keep: number): void {
+    private discardStaleLogs(keep: number, previous: number = 0): void {
         for (const name of fs.readdirSync(this.directory)) {
             const parsed = parseFileName(name);
-            if (parsed?.kind !== FileKind.Log || parsed.number === keep) continue;
+            if (parsed?.kind !== FileKind.Log || parsed.number === keep || parsed.number === previous) continue;
 
             try {
                 fs.unlinkSync(path.join(this.directory, name));
             } catch {
                 // Left behind; harmless, since recovery only replays what the manifest names.
             }
-        }
-    }
-
-    private discardLog(number: number): void {
-        if (number === 0) return;
-
-        try {
-            fs.unlinkSync(path.join(this.directory, logFileName(number)));
-        } catch {
-            // Left behind. Recovery ignores logs older than the recorded log number.
         }
     }
 
@@ -560,8 +750,9 @@ export class Database {
         return {
             level0Files: this.versions.files(0).length,
             totalFiles: this.versions.totalFiles,
-            memtableBytes: this.memtable.size,
+            memtableBytes: this.memtable.size + (this.immutableMemtable?.size ?? 0),
             lastSequence: this.versions.lastSequence,
+            bytesWritten: this.bytesWritten,
             blockCache: this.blockCache.stats
         };
     }

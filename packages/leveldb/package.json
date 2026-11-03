@@ -43,6 +43,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "bench:block-cache": "pnpm run build && node benchmarks/blockCache.bench.mjs",
+        "bench:compaction": "pnpm run build && node benchmarks/compaction.bench.mjs",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
