@@ -45,7 +45,7 @@ describe('parity report comment lookup', () => {
         expect(findParityComment(comments, '<!-- parity-report -->')).toBeUndefined();
     });
 
-    it('shows suite totals and only changed or directly touched cases', () => {
+    it('shows suite totals and lists only outcomes that changed', () => {
         const changed = trackerCase({ status: 'failed' });
         const untouched = trackerCase({
             id: 'packages/parity/src/registry.items.test.ts::registry.items › ships items',
@@ -56,7 +56,6 @@ describe('parity report comment lookup', () => {
         const comment = renderParityComment(
             tracker([changed, untouched]),
             tracker([trackerCase(), untouched]),
-            ['packages/parity/src/registry.blocks.test.ts'],
             '0123456789012345678901234567890123456789',
             'https://jsprismarine.github.io/JSPrismarine/parity.html'
         );
@@ -65,11 +64,33 @@ describe('parity report comment lookup', () => {
         expect(comment).toContain('1 outcome changes');
         expect(comment).toContain('registry.blocks');
         expect(comment).not.toContain('ships items');
+        expect(comment).toContain('Case changes by family');
         expect(comment).toContain('blob/0123456789012345678901234567890123456789/');
         expect(comment).toContain('[Open the full parity tracker]');
     });
 
-    it('reports added gap cases in changed allow-list files', () => {
+    it('summarizes large added inventories by family instead of listing every row', () => {
+        const existing = trackerCase();
+        const added = Array.from({ length: 50 }, (_, index) =>
+            trackerCase({
+                id: `packages/parity/src/registry.blocks.test.ts::registry.blocks › added ${index}`,
+                title: `Added inventory row ${index}`
+            })
+        );
+        const comment = renderParityComment(
+            tracker([existing, ...added]),
+            tracker([existing]),
+            '0123456789012345678901234567890123456789',
+            'https://jsprismarine.github.io/JSPrismarine/parity.html'
+        );
+
+        expect(comment).toContain('50 added');
+        expect(comment).toContain('**registry.blocks:** +50 cases');
+        expect(comment).not.toContain('Added inventory row');
+        expect(comment).not.toContain('more relevant cases');
+    });
+
+    it('reports added gap cases when the base has no matching row', () => {
         const gap = trackerCase({
             id: 'gap:registry.blocks/minecraft:fixture_block',
             title: 'minecraft:fixture_block',
@@ -78,15 +99,14 @@ describe('parity report comment lookup', () => {
             sourceFile: 'packages/parity/src/allowlist.ts'
         });
         const comment = renderParityComment(
-            tracker([gap]),
-            tracker([]),
-            ['packages/parity/src/allowlist.ts'],
+            tracker([trackerCase(), gap]),
+            tracker([trackerCase()]),
             '0123456789012345678901234567890123456789',
             'https://jsprismarine.github.io/JSPrismarine/parity.html'
         );
 
         expect(comment).toContain('Gap: minecraft:fixture_block');
         expect(comment).toContain('intentional');
-        expect(comment).toContain('intentional differences +1');
+        expect(comment).toContain('1 intentional differences');
     });
 });

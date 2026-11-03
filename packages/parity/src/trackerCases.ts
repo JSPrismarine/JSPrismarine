@@ -3,6 +3,18 @@ import { basename, join } from 'node:path';
 
 import type { Family } from './families.ts';
 
+/** Runtime support observed for an entity independently of behavior parity. */
+export type TrackerRuntimeSupportStatus =
+    'not checked' | 'spawnable' | 'partial' | 'missing' | 'substitute' | 'block-backed' | 'unrepresentable';
+
+/** A runtime registration or representation check attached to a Java entity row. */
+export interface TrackerRuntimeSupport {
+    /** What the data-driven entity runtime can currently resolve or represent. */
+    readonly status: TrackerRuntimeSupportStatus;
+    /** Runtime mapping, spawn, or unresolved-component details. */
+    readonly details: string;
+}
+
 /** One data record compared by a parity family. */
 export interface ParityTrackerRecord {
     /** Stable identifier from the Java or Bedrock data being compared. */
@@ -15,6 +27,8 @@ export interface ParityTrackerRecord {
     readonly context?: string;
     /** Specific mismatch details, when the comparison found one. */
     readonly details?: string;
+    /** Entity runtime support, separate from the comparison status. */
+    readonly runtimeSupport?: TrackerRuntimeSupport;
 }
 
 /** Builds a searchable parity record from the result of one data comparison. */

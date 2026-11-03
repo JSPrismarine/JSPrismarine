@@ -122,6 +122,27 @@ const firstMatching = (root: string, depth: number, holds: (path: string) => boo
 
 /** Every reference source the parity comparisons read, with how this checkout gets it. */
 export const REFERENCES = {
+    /** The Java 26.3 block registry, keyed by every block in the generated mapping table. */
+    javaBlockRegistry: committed(
+        'java-block-registry',
+        'packages/mapping/src/tables/blocks.json',
+        'Java block identifiers and their state mapping'
+    ),
+
+    /** The Java 26.3 item registry, keyed by every item in the generated mapping table. */
+    javaItemRegistry: committed(
+        'java-item-registry',
+        'packages/mapping/src/tables/items.json',
+        'Java item identifiers and their Bedrock mapping'
+    ),
+
+    /** The Java 26.3 entity registry, keyed by every entity in the generated mapping table. */
+    javaEntityRegistry: committed(
+        'java-entity-registry',
+        'packages/mapping/src/tables/entities.json',
+        'Java entity identifiers and their Bedrock mapping'
+    ),
+
     /** The committed Bedrock Dedicated Server block palette snapshot and its property domains. */
     bedrockBlockPalette: {
         id: 'bedrock-block-palette',

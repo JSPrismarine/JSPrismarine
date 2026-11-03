@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "docs": "node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress build site",
-        "docs:dev": "node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress dev site"
+        "docs:dev": "pnpm --filter @jsprismarine/bedrock-data run fetch:sources && pnpm --filter @jsprismarine/bedrock-data run datagen:java && node assemble.mts && typedoc && node fix-typedoc-media-links.mts && vitepress dev site"
     },
     "devDependencies": {
         "typedoc": "0.28.20",

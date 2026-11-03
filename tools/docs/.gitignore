@@ -1,0 +1,4 @@
+# Client e2e recordings and previews generated for the docs site in CI.
+site/public/parity-evidence/*.mp4
+site/public/parity-evidence/*.webm
+site/public/parity-evidence/*.png

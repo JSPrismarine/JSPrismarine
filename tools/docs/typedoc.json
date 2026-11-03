@@ -13,7 +13,8 @@
     "out": "./site/api",
     "docsRoot": "./site",
     "readme": "none",
-    "outputFileStrategy": "modules",
+    "membersWithOwnFile": ["Class"],
+    "router": "member",
     "excludeExternals": true,
     "exclude": ["**/node_modules/**", "../../packages/parity"],
     "packageOptions": {
