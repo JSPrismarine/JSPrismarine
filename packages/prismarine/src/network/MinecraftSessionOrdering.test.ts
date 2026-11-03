@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
@@ -10,7 +10,11 @@ import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 
 beforeEach(() => {
-    // Root Vitest reuses workers; earlier suites can leave fake timers active and stall setImmediate sends.
+    // Root Vitest reuses workers; reset their clock before exercising the setImmediate fallback.
+    vi.useRealTimers();
+});
+
+afterEach(() => {
     vi.useRealTimers();
 });
 
@@ -60,10 +64,15 @@ const fakeSession = () => {
 
 describe('network', () => {
     describe('MinecraftSession ordering', () => {
+        // These assertions drain the packet queue directly; only the fallback test below advances a timer.
+        // That keeps ordering checks deterministic when the full monorepo test run is under load.
         it('frames queued packets from the setImmediate fallback', async () => {
             const { framed, session } = fakeSession();
+            vi.useFakeTimers({ toFake: ['setImmediate', 'clearImmediate'] });
 
-            await session.sendDataPacket(message('now'));
+            const sending = session.sendDataPacket(message('now'));
+            await vi.runOnlyPendingTimersAsync();
+            await sending;
 
             expect(framed.length).toBe(1);
         });
@@ -72,19 +81,37 @@ describe('network', () => {
             // Send a chunk batch, break a block while zlib is still working. The UpdateBlock
             // used to take the lower order index, so the client applied the break and then
             // laid the older chunk snapshot back over the top of it.
+            vi.useFakeTimers({ toFake: ['setImmediate', 'clearImmediate'] });
             const { framed, session } = fakeSession();
-
-            const chunks = packetsOf('terrain '.repeat(500));
             const chunkFrame = encodedBatchOf('terrain '.repeat(500));
-            const chunkSend = session.sendPacketsAsync(chunks, { direct: false });
+            let finishCompression: ((frame: Buffer) => void) | undefined;
+            const compression = new Promise<Buffer>((resolve) => {
+                finishCompression = resolve;
+            });
+            const encodeAsync = vi.spyOn(BatchCodec.prototype, 'encodeAsync').mockReturnValue(compression);
 
-            // Synchronous, exactly as a block update broadcast is.
-            const updateSend = session.sendDataPacket(message('block update'));
+            try {
+                const chunkSend = session.sendPacketsAsync(packetsOf('terrain '.repeat(500)), { direct: false });
 
-            await Promise.all([chunkSend, updateSend]);
+                // Queue the update while the older chunk batch is deliberately held in compression.
+                const updateSend = session.sendDataPacket(message('block update'));
+                await vi.runOnlyPendingTimersAsync();
 
-            expect(framed.length).toBe(2);
-            expect(framed[0]).toBe(chunkFrame.toString('base64'));
+                expect(framed).toEqual([]);
+                const release = finishCompression;
+                if (release === undefined) throw new Error('the chunk batch did not start compression');
+                release(chunkFrame);
+
+                await chunkSend;
+                await updateSend;
+
+                expect(framed).toEqual([
+                    chunkFrame.toString('base64'),
+                    encodedBatchOf('block update').toString('base64')
+                ]);
+            } finally {
+                encodeAsync.mockRestore();
+            }
         });
 
         it('flushes queued packets before an asynchronous chunk batch', async () => {
@@ -156,6 +183,7 @@ describe('network', () => {
             session.setCompressionSettings(PacketCompressionAlgorithm.SNAPPY, 1);
             const snappySend = session.sendDataPacket(message('snappy'));
 
+            await session.flushOutboundPackets();
             await Promise.all([zlibSend, snappySend]);
 
             expect(framed).toHaveLength(2);
@@ -194,7 +222,9 @@ describe('network', () => {
                 terrain.getBuffer()
             ]);
             const updateSend = session.sendDataPacket(message('block update'));
-            await Promise.all([chunkSend, updateSend]);
+            await chunkSend;
+            await session.flushOutboundPackets();
+            await updateSend;
 
             expect(framed).toEqual([cachedFrame.toString('base64'), encodedBatchOf('block update').toString('base64')]);
         });
@@ -226,29 +256,36 @@ describe('network', () => {
             });
             const encodeAsync = vi.spyOn(BatchCodec.prototype, 'encodeAsync').mockReturnValue(delayedDeflate);
 
-            const first = session.sendDataPacket(message('large '.repeat(12_000)));
-            const second = session.sendDataPacket(message('later'));
+            try {
+                const first = session.sendDataPacket(message('large '.repeat(12_000)));
+                const second = session.sendDataPacket(message('later'));
 
-            expect(encodeAsync).toHaveBeenCalledOnce();
-            expect(framed).toEqual([]);
-            const finishDeflate = release;
-            if (finishDeflate === undefined) throw new Error('the large batch did not start compression');
-            finishDeflate(Buffer.from('first frame'));
+                expect(encodeAsync).toHaveBeenCalledOnce();
+                expect(framed).toEqual([]);
+                const finishDeflate = release;
+                if (finishDeflate === undefined) throw new Error('the large batch did not start compression');
+                finishDeflate(Buffer.from('first frame'));
 
-            await Promise.all([first, second]);
+                await first;
+                await session.flushOutboundPackets();
+                await second;
 
-            expect(framed).toEqual([
-                Buffer.from('first frame').toString('base64'),
-                encodedBatchOf('later').toString('base64')
-            ]);
-            encodeAsync.mockRestore();
+                expect(framed).toEqual([
+                    Buffer.from('first frame').toString('base64'),
+                    encodedBatchOf('later').toString('base64')
+                ]);
+            } finally {
+                encodeAsync.mockRestore();
+            }
         });
 
         it('frames a later packet after the previous asynchronous batch drains', async () => {
             const { framed, session } = fakeSession();
 
             await session.sendPacketsAsync(packetsOf('terrain'), { direct: false });
-            await session.sendDataPacket(message('after'));
+            const after = session.sendDataPacket(message('after'));
+            await session.flushOutboundPackets();
+            await after;
 
             expect(framed.length).toBe(2);
         });
@@ -262,6 +299,7 @@ describe('network', () => {
             const after = session.sendDataPacket(message('still gets through'));
 
             await expect(failed).rejects.toThrow();
+            await session.flushOutboundPackets();
             await after;
 
             expect(framed.length).toBe(1);
