@@ -3276,7 +3276,14 @@ export class World implements Service {
                 seed: this.getSeed().toString(),
                 tick: this.getTicks(),
                 weather: level.getWeather().saved(),
-                gameRules: [...level.getGameRuleManager().getGameRules()]
+                gameRules: [...level.getGameRuleManager().getGameRules()],
+                // A request already in flight can add a chunk to the simulation later. It is
+                // absent from `chunks` until then, so record its packed position and mutable
+                // priority as part of the state that will determine future ticks. Sort by the
+                // packed position because request arrival order is not world state.
+                pendingChunkLoads: [...this.loading]
+                    .map(([position, load]) => [position, load.urgency.value] as const)
+                    .sort(([left], [right]) => left - right)
             })
         );
 

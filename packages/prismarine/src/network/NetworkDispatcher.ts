@@ -89,6 +89,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly traceTokens = new WeakMap<ClientConnection, string>();
     private readonly replaySequences = new Map<number, number>();
     private nextConnectionId = 1;
+    private nextInboundOrder = 0;
+    private nextReplayOrder = 0;
     /** These codecs hold only immutable settings, so every connection can reuse them. */
     private readonly compressedBatchCodec = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB });
     private readonly uncompressedBatchCodec = BatchCodec.uncompressed();
@@ -354,12 +356,14 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
         const record = {
             connectionId: order.id,
+            order: this.nextInboundOrder,
             sequence: order.next,
             tick: input.tick,
             protocolVersion: connection.codec.protocolVersion,
             packetName: packet.getName(),
             payload: Buffer.from(input.payload)
         };
+        this.nextInboundOrder += 1;
         order.next += 1;
 
         try {
@@ -374,10 +378,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     /**
      * Dispatches one captured packet through a connection admitted by this dispatcher.
      *
-     * The caller advances the server to the record's tick before calling. Packet-local order,
-     * protocol version, and phase checks fail fast when the restored connection differs.
+     * The caller advances the server to the record's tick before calling, and awaits records in
+     * their captured global order. Connection-local order, global order, protocol version, and
+     * phase checks fail fast when the restored session differs.
      *
-     * @throws {Error} When the connection, sequence, tick, protocol, or packet does not match.
+     * @throws {Error} When the connection, global order, sequence, tick, protocol, or packet does not match.
      */
     public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
         const connection = this.connectionsByTraceId.get(record.connectionId);
@@ -392,6 +397,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const current = previous.then(async () => {
             if (this.sessionManager.get(token) !== connection) {
                 throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
+            }
+
+            const expectedOrder = this.nextReplayOrder;
+            if (record.order !== expectedOrder) {
+                throw new Error(`Replay expected inbound order ${expectedOrder}, got ${record.order}`);
             }
 
             const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
@@ -439,6 +449,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // This input is already in the source trace; playback must not append it a second time.
             await this.dispatch(gated[0]!, connection, false);
             this.replaySequences.set(record.connectionId, expectedSequence + 1);
+            this.nextReplayOrder = expectedOrder + 1;
         });
         // A rejected replay record must not prevent the caller from correcting it and retrying.
         this.frameQueues.set(

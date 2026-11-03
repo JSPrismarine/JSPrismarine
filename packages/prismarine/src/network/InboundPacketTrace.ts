@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 export interface InboundPacketRecord {
     /** Process-local identity assigned when the dispatcher admits the connection. */
     readonly connectionId: number;
+    /** Zero-based order across all packets accepted by this server process. */
+    readonly order: number;
     /** Zero-based order among accepted packets from this connection. */
     readonly sequence: number;
     /** Server tick when the containing transport frame arrived, before handler queueing. */
@@ -23,7 +25,8 @@ export interface InboundPacketRecorder {
 }
 
 const TRACE_FORMAT = 'jsprismarine-inbound-packets';
-const TRACE_VERSION = 1;
+const TRACE_VERSION = 2;
+const LEGACY_TRACE_VERSION = 1;
 
 /**
  * A process-local trace that copies packet bytes and can report or serialize its storage cost.
@@ -36,10 +39,13 @@ export class InboundPacketTrace implements InboundPacketRecorder {
 
     /** Adds a private copy of the accepted packet bytes to this trace. */
     public record(packet: InboundPacketRecord): void {
+        if (packet.order !== this.captured.length) {
+            throw new Error(`Inbound packet trace expected order ${this.captured.length}, got ${packet.order}`);
+        }
         this.captured.push({ ...packet, payload: Buffer.from(packet.payload) });
     }
 
-    /** Returns trace records in dispatcher acceptance order with independent packet buffers. */
+    /** Returns trace records in recorder-call order with independent packet buffers. */
     public records(): readonly InboundPacketRecord[] {
         return this.captured.map((record) => ({ ...record, payload: Buffer.from(record.payload) }));
     }
@@ -56,6 +62,7 @@ export class InboundPacketTrace implements InboundPacketRecorder {
             const atTick = records.get(record.tick) ?? [];
             atTick.push({
                 connectionId: record.connectionId,
+                order: record.order,
                 sequence: record.sequence,
                 protocolVersion: record.protocolVersion,
                 packetName: record.packetName,
@@ -80,6 +87,7 @@ export class InboundPacketTrace implements InboundPacketRecorder {
                 version: TRACE_VERSION,
                 records: this.captured.map((record) => ({
                     connectionId: record.connectionId,
+                    order: record.order,
                     sequence: record.sequence,
                     tick: record.tick,
                     protocolVersion: record.protocolVersion,
@@ -104,16 +112,28 @@ export class InboundPacketTrace implements InboundPacketRecorder {
             throw new Error('Invalid inbound packet trace JSON');
         }
 
-        if (!isObject(value) || value['format'] !== TRACE_FORMAT || value['version'] !== TRACE_VERSION) {
+        if (
+            !isObject(value) ||
+            value['format'] !== TRACE_FORMAT ||
+            (value['version'] !== TRACE_VERSION && value['version'] !== LEGACY_TRACE_VERSION)
+        ) {
             throw new Error('Unsupported inbound packet trace format or version');
         }
         if (!Array.isArray(value['records'])) throw new Error('Invalid inbound packet trace records');
 
         const trace = new InboundPacketTrace();
-        for (const valueRecord of value['records']) {
+        for (const [index, valueRecord] of value['records'].entries()) {
+            const order =
+                value['version'] === LEGACY_TRACE_VERSION && isObject(valueRecord)
+                    ? index
+                    : isObject(valueRecord)
+                      ? valueRecord['order']
+                      : undefined;
             if (
                 !isObject(valueRecord) ||
                 !isPositiveInteger(valueRecord['connectionId']) ||
+                !isNonNegativeInteger(order) ||
+                order !== index ||
                 !isNonNegativeInteger(valueRecord['sequence']) ||
                 !isNonNegativeInteger(valueRecord['tick']) ||
                 !isPositiveInteger(valueRecord['protocolVersion']) ||
@@ -127,6 +147,7 @@ export class InboundPacketTrace implements InboundPacketRecorder {
 
             trace.record({
                 connectionId: valueRecord['connectionId'],
+                order,
                 sequence: valueRecord['sequence'],
                 tick: valueRecord['tick'],
                 protocolVersion: valueRecord['protocolVersion'],

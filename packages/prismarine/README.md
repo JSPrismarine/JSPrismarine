@@ -41,19 +41,24 @@ stem's generator is built by the `GeneratorFactories` registry, whose built-in k
 
 Import `InboundPacketTrace` from `@jsprismarine/prismarine/network/InboundPacketTrace` and pass an
 instance as `inboundPacketRecorder` to the `Server` constructor. It captures accepted client
-packets with their process-local connection id, per-connection sequence, arrival tick, protocol
-version, and encoded bytes. `serialize()` writes a versioned JSON trace, and
-`InboundPacketTrace.deserialize()` reads it back. The trace does not include a world snapshot or
-content fingerprints, so it cannot restore a live world by itself. A `NetworkDispatcher` can feed
-each record back through its decoded handler path; the built-in server exposes that method through
+packets with their process-local connection id, server-wide acceptance order, per-connection
+sequence, arrival tick, protocol version, and encoded bytes. Replay records across connections in
+the order returned by `records()`, awaiting each `replayInboundRecord()` call before the next.
+`serialize()` writes a versioned JSON trace, and
+`InboundPacketTrace.deserialize()` reads it back, including traces in the previous format version.
+The trace does not include a restorable world snapshot, content fingerprints, or RNG state, so it
+cannot restore a live world by itself. A `NetworkDispatcher` can feed each record back through its
+decoded handler path; the built-in server exposes that method through
 `server.getKernel().get(networkToken).replayInboundRecord?.(record, tickOffset)`. The caller must
 restore matching connections and advance the server to each recorded tick. Pass an
 `OutboundPacketTrace` as `outboundPacketRecorder` to the `Server` constructor to capture encoded
 clientbound packets and compare their per-tick digests. `World.replayStateDigest()` hashes loaded
-chunks, entities, level weather and rules, and player inventories for a per-tick world comparison.
-Packet bytes may contain login identity data; keep capture opt-in and protect any trace you store.
-Run `pnpm --filter @jsprismarine/prismarine run bench:inbound-packets` to measure packet decode,
-trace recording, replay decode, and serialized storage costs against decode-only work.
+chunks, pending chunk load coordinates and priorities, entities, level weather and rules, and
+player inventories for a per-tick world comparison. The packet benchmark measures dispatcher
+recording and replay CPU plus serialized packet-trace storage; it does not measure snapshot or
+world-digest costs. Packet bytes may contain login identity data, so keep capture opt-in and
+protect any trace you store. Run `pnpm --filter @jsprismarine/prismarine run bench:inbound-packets`
+to reproduce the packet benchmark.
 
 ## JSON Schemas
 

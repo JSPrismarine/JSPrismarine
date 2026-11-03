@@ -127,13 +127,20 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
             if (packet instanceof TextPacket) checksum += packet.getName().length;
         }
     };
+    const logLines: string[] = [];
+    const recordLog =
+        (level: string) =>
+        (...messages: unknown[]) => {
+            logLines.push(`${level}: ${messages.map(String).join(' ')}`);
+        };
     const logger = stub<Logger>({
-        error: () => {},
-        warn: () => {},
-        info: () => {},
-        debug: () => {},
-        verbose: () => {},
-        silly: () => {}
+        isEnabled: () => false,
+        error: recordLog('error'),
+        warn: recordLog('warn'),
+        info: recordLog('info'),
+        debug: recordLog('debug'),
+        verbose: recordLog('verbose'),
+        silly: recordLog('silly')
     });
     const transport = new ReplayTransport();
     const dispatcher = new NetworkDispatcher({
@@ -158,6 +165,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
 
     return {
         checksum: () => checksum,
+        logLines: () => logLines,
         setTick: (value: number) => {
             tick = value;
         },
@@ -208,6 +216,7 @@ const dispatcherReplaySamples: { readonly wallMs: number; readonly cpuMs: number
 let trace: InboundPacketTrace | undefined;
 let encodedTrace = Buffer.alloc(0);
 let checksums = { decoded: 0, baseline: 0, recording: 0, replay: 0 };
+let recorderLogLines: readonly string[] = [];
 
 for (let sample = 0; sample < SAMPLE_COUNT; sample += 1) {
     const decodeBaseline = measureCpuMs(() => {
@@ -228,6 +237,7 @@ for (let sample = 0; sample < SAMPLE_COUNT; sample += 1) {
         await dispatchPackets(recordingHarness, packetCount);
         encodedTrace = currentTrace.serialize();
     });
+    recorderLogLines = recordingHarness.logLines();
     recordingSamples.push(recording);
 
     const replay = measureCpuMs(() => {
@@ -253,6 +263,20 @@ for (let sample = 0; sample < SAMPLE_COUNT; sample += 1) {
 }
 
 if (trace === undefined) throw new Error('benchmark did not collect a packet trace');
+if (trace.records().length !== packetCount || trace.getPayloadBytes() === 0) {
+    throw new Error(
+        `Benchmark captured ${trace.records().length} of ${packetCount} packets; first logs: ${recorderLogLines.slice(0, 5).join(' | ')}`
+    );
+}
+if (
+    checksums.baseline !== checksums.decoded ||
+    checksums.recording !== checksums.baseline ||
+    checksums.replay !== checksums.baseline
+) {
+    throw new Error(
+        `Benchmark workloads diverged: decode ${checksums.decoded}, unrecorded ${checksums.baseline}, recorded ${checksums.recording}, replayed ${checksums.replay}`
+    );
+}
 
 const median = (values: readonly number[]): number =>
     [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)]!;

@@ -92,14 +92,14 @@ const generator = (): Generator => ({
  * A level over the one world folder, with its spawn already known so that opening the Overworld
  * generates nothing.
  */
-const buildLevel = (server: Server, name = WORLD_NAME): Level => {
+const buildLevel = (server: Server, name = WORLD_NAME, worldGenerator = generator()): Level => {
     const folder = path.join(scratch, 'worlds', name);
     return testLevel({
         name,
         path: folder,
         server,
         provider: new LevelDB(folder, server),
-        generator: generator(),
+        generator: worldGenerator,
         spawn: new Vector3(0, 64, 0)
     });
 };
@@ -327,6 +327,32 @@ describe('a player logging out and back in', () => {
         );
 
         expect(reordered).toBe(first);
+    });
+
+    it('includes a chunk load that has started but has not entered the world', async () => {
+        const server = testServer();
+        let finishGeneration: ((chunk: Chunk) => void) | undefined;
+        const generated = new Promise<Chunk>((resolve) => {
+            finishGeneration = resolve;
+        });
+        const delayedGenerator: Generator = { generateChunk: async () => generated };
+        const level = buildLevel(server, 'digest-pending-chunk', delayedGenerator);
+        await level.enable();
+
+        try {
+            const world = await level.world(OVERWORLD_STEM_ID);
+            const beforeLoad = world.replayStateDigest();
+            const loading = world.loadChunk(9, -4);
+            const whileLoading = world.replayStateDigest();
+
+            finishGeneration?.(new Chunk(9, -4, new Map(), Dimensions.Overworld));
+            await loading;
+
+            expect(whileLoading).not.toBe(beforeLoad);
+            expect(world.replayStateDigest()).not.toBe(whileLoading);
+        } finally {
+            await level.disable();
+        }
     });
 
     it('keeps the enchantments, including one no Bedrock number names', () => {

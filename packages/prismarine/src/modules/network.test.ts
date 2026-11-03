@@ -51,6 +51,7 @@ describe('modules/network', () => {
         await expect(
             networking.replayInboundRecord({
                 connectionId: 1,
+                order: 0,
                 sequence: 0,
                 tick: 0,
                 protocolVersion: 2193,
@@ -94,6 +95,7 @@ describe('modules/network', () => {
             await expect(
                 networking.replayInboundRecord({
                     connectionId: 1,
+                    order: 0,
                     sequence: 0,
                     tick: 0,
                     protocolVersion: 2193,

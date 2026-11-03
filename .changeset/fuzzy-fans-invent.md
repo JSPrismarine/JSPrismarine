@@ -2,4 +2,5 @@
 "@jsprismarine/prismarine": patch
 ---
 
-Use the configured server RNG for weather and capture inbound packet traces
+Use the configured server RNG for weather, record global packet order, hash pending chunk loads,
+and validate the inbound replay benchmark workload

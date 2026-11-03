@@ -8,6 +8,7 @@ describe('InboundPacketTrace', () => {
         const trace = new InboundPacketTrace();
         trace.record({
             connectionId: 3,
+            order: 0,
             sequence: 2,
             tick: 99,
             protocolVersion: 2225,
@@ -22,6 +23,7 @@ describe('InboundPacketTrace', () => {
         expect(restored.records()).toEqual([
             {
                 connectionId: 3,
+                order: 0,
                 sequence: 2,
                 tick: 99,
                 protocolVersion: 2225,
@@ -36,6 +38,7 @@ describe('InboundPacketTrace', () => {
         const changed = new InboundPacketTrace();
         changed.record({
             connectionId: 3,
+            order: 0,
             sequence: 2,
             tick: 99,
             protocolVersion: 2225,
@@ -63,7 +66,7 @@ describe('InboundPacketTrace', () => {
 
     it.each([
         { description: 'an unsupported format', format: 'other-format', version: 1 },
-        { description: 'an unsupported version', format: 'jsprismarine-inbound-packets', version: 2 }
+        { description: 'an unsupported version', format: 'jsprismarine-inbound-packets', version: 3 }
     ])('rejects $description', ({ format, version }) => {
         const unsupported = Buffer.from(JSON.stringify({ format, version, records: [] }));
 
@@ -78,5 +81,70 @@ describe('InboundPacketTrace', () => {
         );
 
         expect(() => InboundPacketTrace.deserialize(malformed)).toThrow('Invalid inbound packet trace records');
+    });
+
+    it('assigns legacy trace records their serialized order', () => {
+        const legacy = Buffer.from(
+            JSON.stringify({
+                format: 'jsprismarine-inbound-packets',
+                version: 1,
+                records: [
+                    {
+                        connectionId: 2,
+                        sequence: 0,
+                        tick: 4,
+                        protocolVersion: 2193,
+                        packetName: 'TextPacket',
+                        payload: 'AQ=='
+                    },
+                    {
+                        connectionId: 1,
+                        sequence: 0,
+                        tick: 4,
+                        protocolVersion: 2193,
+                        packetName: 'TextPacket',
+                        payload: 'Ag=='
+                    }
+                ]
+            })
+        );
+
+        const records = InboundPacketTrace.deserialize(legacy).records();
+
+        expect(records.map(({ connectionId, order }) => [connectionId, order])).toEqual([
+            [2, 0],
+            [1, 1]
+        ]);
+    });
+
+    it('rejects a version two trace whose global order repeats', () => {
+        const malformed = Buffer.from(
+            JSON.stringify({
+                format: 'jsprismarine-inbound-packets',
+                version: 2,
+                records: [
+                    {
+                        connectionId: 1,
+                        order: 0,
+                        sequence: 0,
+                        tick: 0,
+                        protocolVersion: 2193,
+                        packetName: 'A',
+                        payload: ''
+                    },
+                    {
+                        connectionId: 2,
+                        order: 0,
+                        sequence: 0,
+                        tick: 0,
+                        protocolVersion: 2193,
+                        packetName: 'B',
+                        payload: ''
+                    }
+                ]
+            })
+        );
+
+        expect(() => InboundPacketTrace.deserialize(malformed)).toThrow('Invalid inbound packet trace record');
     });
 });

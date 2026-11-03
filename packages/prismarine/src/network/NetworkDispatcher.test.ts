@@ -302,7 +302,7 @@ describe('network', () => {
             expect(targets).toStrictEqual([built[0]]);
         });
 
-        it('records accepted packet bytes with connection-local order and the arrival tick', async () => {
+        it('records accepted packet bytes with global order, connection order, and arrival tick', async () => {
             const trace = new InboundPacketTrace();
             let tick = 18;
             const { transport, built } = makeDispatcher({
@@ -336,6 +336,7 @@ describe('network', () => {
             expect(trace.records()).toEqual([
                 {
                     connectionId: 1,
+                    order: 0,
                     sequence: 0,
                     tick: 18,
                     protocolVersion: 2193,
@@ -344,6 +345,7 @@ describe('network', () => {
                 },
                 {
                     connectionId: 1,
+                    order: 1,
                     sequence: 1,
                     tick: 19,
                     protocolVersion: 2193,
@@ -352,6 +354,7 @@ describe('network', () => {
                 },
                 {
                     connectionId: 2,
+                    order: 2,
                     sequence: 0,
                     tick: 19,
                     protocolVersion: 2193,
@@ -359,6 +362,7 @@ describe('network', () => {
                     payload: otherPayload
                 }
             ]);
+            expect(InboundPacketTrace.deserialize(trace.serialize()).records()).toEqual(trace.records());
         });
 
         it('continues packet dispatch when the inbound trace sink throws', async () => {
@@ -409,6 +413,26 @@ describe('network', () => {
 
             expect(handled).toEqual(['bot input', 'bot input']);
             expect(trace.records()).toHaveLength(1);
+        });
+
+        it('requires replay to follow captured order across connections', async () => {
+            const trace = new InboundPacketTrace();
+            const handler = { phases: ['handshake'] as const, handle: async () => {} };
+            const captured = makeDispatcher({ recorder: trace, tick: () => 4, handler });
+            await captured.transport.emitConnect(fakeConnection('first:1').connection);
+            await captured.transport.emitConnect(fakeConnection('second:2').connection);
+            await captured.transport.emitFrame(frameOf(message('first')), address('first:1'));
+            await captured.transport.emitFrame(frameOf(message('second')), address('second:2'));
+
+            const replay = makeDispatcher({ tick: () => 4, handler });
+            await replay.transport.emitConnect(fakeConnection('restored-first:1').connection);
+            await replay.transport.emitConnect(fakeConnection('restored-second:2').connection);
+
+            await expect(replay.dispatcher.replayInboundRecord(trace.records()[1]!)).rejects.toThrow(
+                'Replay expected inbound order 0, got 1'
+            );
+            await replay.dispatcher.replayInboundRecord(trace.records()[0]!);
+            await replay.dispatcher.replayInboundRecord(trace.records()[1]!);
         });
 
         it('rejects a replay record for a connection that was not admitted', async () => {
