@@ -241,6 +241,8 @@ const playerAt = (server: Server, world: World, feet: Vector3, sent: unknown[] =
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
         sendDataPacket: async (packet) => void sent.push(packet),
         sendPacketsAsync: async (packets) => void sent.push(...packets),
+        // Portal tests inspect travel state and sent packets, not the outbound batch queue.
+        flushOutboundPackets: async () => {},
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},
         disconnect: async () => {}
