@@ -67,6 +67,8 @@ import ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDa
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
+import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
+import type ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
@@ -103,6 +105,8 @@ import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum'
 import CommandParameter, { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import ChunkSender from './ChunkSender';
 import ChunkBatchCache from './ChunkBatchCache';
+import { ClientBlobCache } from './ClientBlobCache';
+import type { ClientBlob } from './ClientBlobCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
 import { TextPacketType } from '@jsprismarine/protocol';
 
@@ -122,7 +126,15 @@ const chunkBatchCache = new ChunkBatchCache();
 interface QueuedChunk {
     readonly chunk: Chunk;
     readonly payload: Buffer;
+    /** Full payload retained in the same backing store for a queued cached packet. */
+    readonly uncachedPayload?: Buffer;
     readonly revision: number;
+    /** Full serialized bytes retained by this queued entry, including blob views. */
+    readonly memoryBytes: number;
+    /** Present when the packet carries client-cache metadata. */
+    readonly blobs?: readonly ClientBlob[];
+    /** Hashes in packet metadata order, matching `blobs`. */
+    readonly blobHashes?: readonly bigint[];
 }
 
 /**
@@ -236,6 +248,8 @@ export default class PlayerSession {
     private queuedChunkBytes = 0;
     private readonly queuedChunkBytesLimit = MAX_QUEUED_CHUNK_BYTES;
     private readonly chunkQueueCapacityWaiters = new Set<() => void>();
+    private readonly clientBlobCache = new ClientBlobCache();
+    private clientCacheEnabled = false;
 
     /** Serializes sends when several generated chunks complete at the same time. */
     private chunkBatchFlush: Promise<void> = Promise.resolve();
@@ -412,12 +426,53 @@ export default class PlayerSession {
         const chunk = this.player.getWorld().getLoadedChunk(x, z);
         if (chunk === null) return { kind: 'not-loaded' };
 
-        const payload = chunk.networkSerialize();
-        const queuedBytes = payload.byteLength;
+        const queued = this.prepareQueuedChunk(chunk);
+        const queuedBytes = queued.memoryBytes;
         if (!this.hasChunkQueueCapacity(queuedBytes)) return { kind: 'backpressure' };
 
-        this.queueChunkNow(chunk, payload, chunk.getNetworkRevision());
+        this.queueChunkNow(queued);
         return { kind: 'queued', queuedBytes };
+    }
+
+    /** Selects whether future chunk packets use the cache path offered by this client. */
+    public setClientCacheEnabled(enabled: boolean): void {
+        this.clientCacheEnabled = enabled;
+        if (enabled) return;
+
+        this.clientBlobCache.clear();
+        for (let index = 0; index < this.chunkSendQueue.length; index++) {
+            const queued = this.chunkSendQueue[index]!;
+            if (queued.blobs === undefined) continue;
+
+            // A queued cached packet may outlive the client's opt-in; replace it before sending.
+            const payload = queued.uncachedPayload;
+            if (payload === undefined) throw new Error('Cached chunk queue entry lost its uncached payload');
+            const uncached: QueuedChunk = {
+                chunk: queued.chunk,
+                payload,
+                revision: queued.revision,
+                memoryBytes: payload.byteLength
+            };
+            this.chunkSendQueue[index] = uncached;
+        }
+    }
+
+    /** Whether this session will mark future chunk packets as cached. */
+    public getClientCacheEnabled(): boolean {
+        return this.clientCacheEnabled;
+    }
+
+    /** Responds to requested blob misses and applies the client's acknowledgements. */
+    public async handleClientCacheBlobStatus(packet: ClientCacheBlobStatusPacket): Promise<number> {
+        if (!this.clientCacheEnabled) return 0;
+
+        const blobs = this.clientBlobCache.respond(packet.missingIds, packet.foundIds);
+        if (blobs.length === 0) return 0;
+
+        const response = new ClientCacheMissResponsePacket();
+        response.blobs = blobs;
+        await this.send(response);
+        return blobs.length;
     }
 
     public isConnected(): boolean {
@@ -585,7 +640,7 @@ export default class PlayerSession {
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
         const epoch = this.chunkEpoch;
-        const payloadBytes = chunksToSend.reduce((total, { payload }) => total + payload.byteLength, 0);
+        const payloadBytes = chunksToSend.reduce((total, { memoryBytes }) => total + memoryBytes, 0);
 
         // The publisher update has to come first, and has to be current.
         //
@@ -605,27 +660,31 @@ export default class PlayerSession {
         try {
             await publisherSend;
             const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
-            for (const { chunk, payload, revision } of chunksToSend) {
-                const packets = () => [
-                    new LevelChunkPacket({
-                        chunkX: chunk.getX(),
-                        chunkZ: chunk.getZ(),
-                        dimension: chunk.getDimension().bedrockId,
-                        subChunkCount: chunk.getNetworkSubChunkCount(),
-                        clientSubChunkRequestsEnabled: false,
-                        cached: false,
-                        payload
-                    })
-                ];
+            for (const { chunk, payload, revision, blobs, blobHashes } of chunksToSend) {
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
                     revision,
                     this.connection.codec,
                     compressionLevel,
-                    packets,
+                    () => [
+                        new LevelChunkPacket({
+                            chunkX: chunk.getX(),
+                            chunkZ: chunk.getZ(),
+                            dimension: chunk.getDimension().bedrockId,
+                            subChunkCount: chunk.getNetworkSubChunkCount(),
+                            clientSubChunkRequestsEnabled: false,
+                            cached: blobs !== undefined,
+                            blobHashes: blobHashes === undefined ? undefined : [...blobHashes],
+                            payload
+                        })
+                    ],
                     this.connection.compressionAlgorithm,
-                    this.connection.compressionThreshold
+                    this.connection.compressionThreshold,
+                    blobs === undefined ? 'uncached' : 'client-cache'
                 );
+
+                // Register bytes before the chunk packet can reach the client and trigger a miss report.
+                if (blobs !== undefined) this.clientBlobCache.track(blobs);
 
                 // Shared compression is safe; framing and encryption remain ordered per connection.
                 await this.connection.sendSharedCompressedBatchAsync(
@@ -835,22 +894,19 @@ export default class PlayerSession {
     }
 
     private async queueChunk(chunk: Chunk, epoch: number): Promise<void> {
-        let payload: Buffer | null = null;
         while (epoch === this.chunkEpoch) {
-            payload = chunk.networkSerialize();
-            if (payload.byteLength > this.queuedChunkBytesLimit) {
+            const queued = this.prepareQueuedChunk(chunk);
+            if (queued.memoryBytes > this.queuedChunkBytesLimit) {
                 throw new RangeError(
-                    `Chunk payload ${payload.byteLength} exceeds the ${this.queuedChunkBytesLimit}-byte queue limit`
+                    `Chunk payload ${queued.memoryBytes} exceeds the ${this.queuedChunkBytesLimit}-byte queue limit`
                 );
             }
-            if (this.hasChunkQueueCapacity(payload.byteLength)) {
-                this.queueChunkNow(chunk, payload, chunk.getNetworkRevision());
+            if (this.hasChunkQueueCapacity(queued.memoryBytes)) {
+                this.queueChunkNow(queued);
                 return;
             }
 
-            // A capacity wait may last across a network send. Drop this temporary serialization
-            // before yielding so the byte cap covers payload memory as well as queued entries.
-            payload = null;
+            // A capacity wait may last across a network send. Drop this temporary entry before yielding.
             if (this.chunkSendQueue.length > 0) {
                 await this.flushChunkBatch();
             } else {
@@ -859,9 +915,32 @@ export default class PlayerSession {
         }
     }
 
-    private queueChunkNow(chunk: Chunk, payload: Buffer, revision: number): void {
-        this.chunkSendQueue.push({ chunk, payload, revision });
-        this.queuedChunkBytes += payload.byteLength;
+    private queueChunkNow(queued: QueuedChunk): void {
+        this.chunkSendQueue.push(queued);
+        this.queuedChunkBytes += queued.memoryBytes;
+    }
+
+    private prepareQueuedChunk(chunk: Chunk): QueuedChunk {
+        if (!this.clientCacheEnabled) {
+            const payload = chunk.networkSerialize();
+            return {
+                chunk,
+                payload,
+                revision: chunk.getNetworkRevision(),
+                memoryBytes: payload.byteLength
+            };
+        }
+
+        const prepared = this.clientBlobCache.prepareChunk(chunk);
+        return {
+            chunk,
+            payload: prepared.cachedPayload,
+            uncachedPayload: prepared.payload,
+            revision: chunk.getNetworkRevision(),
+            memoryBytes: prepared.payload.byteLength,
+            blobs: prepared.blobs,
+            blobHashes: prepared.blobHashes
+        };
     }
 
     private hasChunkQueueCapacity(bytes: number): boolean {
@@ -912,7 +991,7 @@ export default class PlayerSession {
         this.loadedChunks.clear();
         this.loadingChunks.clear();
         this.chunkSender.clear();
-        const abandonedBytes = this.chunkSendQueue.reduce((total, { payload }) => total + payload.byteLength, 0);
+        const abandonedBytes = this.chunkSendQueue.reduce((total, { memoryBytes }) => total + memoryBytes, 0);
         this.chunkSendQueue.length = 0;
         this.releaseChunkQueueBytes(abandonedBytes);
 

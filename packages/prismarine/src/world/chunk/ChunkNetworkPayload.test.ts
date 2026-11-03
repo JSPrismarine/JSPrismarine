@@ -190,6 +190,28 @@ describe('world', () => {
             expect(stream.feof()).toBe(true);
         });
 
+        it('reconstructs the uncached payload from subchunk, biome, and cached-packet bytes', () => {
+            const chunk = build(Dimensions.Overworld);
+            const tag = new NBTTagCompound('');
+            tag.addValue('id', new Types.StringVal('Chest'));
+            tag.addValue('x', new Types.NumberVal(49));
+            tag.addValue('y', new Types.NumberVal(-60));
+            tag.addValue('z', new Types.NumberVal(-110));
+            tag.addValue('isMovable', new Types.ByteVal(1));
+            chunk.setBlockEntity(BlockEntityRegistry.fromNBT(tag));
+
+            const uncached = chunk.networkSerialize();
+            const cached = chunk.networkSerializeBlobs();
+            const reconstructed = Buffer.concat([
+                ...cached.subChunks.map(({ bytes }) => bytes),
+                cached.biomes.bytes,
+                cached.cachedPayload
+            ]);
+
+            expect(cached.payload).toEqual(uncached);
+            expect(reconstructed).toEqual(uncached);
+        });
+
         it('rebuilds the payload when a block entity comes or goes', () => {
             // The mutation count only sees block writes, so the cache has to be dropped by hand.
             const chunk = build(Dimensions.Overworld);

@@ -57,6 +57,34 @@ export interface ChunkPersistenceChanges {
     readonly entities: boolean;
 }
 
+/** The serialized bytes and source revision for one chunk blob. */
+export interface ChunkNetworkBlobPart {
+    /** The sub chunk whose network revision identifies these bytes. */
+    readonly subChunk: SubChunk;
+    /** Revision sampled when the bytes were written. */
+    readonly revision: number;
+    /** The exact byte range written into an uncached LevelChunk payload. */
+    readonly bytes: Buffer;
+}
+
+/** A chunk payload split into the client-cache blobs and the uncached packet tail. */
+export interface ChunkNetworkBlobs {
+    /** Chunk revision sampled when all payload bytes were written. */
+    readonly revision: number;
+    /** The ordinary, uncached LevelChunk payload. */
+    readonly payload: Buffer;
+    /** Border blocks and block entities, which remain in a cached LevelChunk payload. */
+    readonly cachedPayload: Buffer;
+    /** Serialized sub chunks in the order they appear in `payload`. */
+    readonly subChunks: readonly ChunkNetworkBlobPart[];
+    /** The biome palette and section revisions used by the final blob. */
+    readonly biomes: {
+        readonly identity: ChunkBiomes;
+        readonly revision: number;
+        readonly bytes: Buffer;
+    };
+}
+
 export default class Chunk {
     private x: number;
     private z: number;
@@ -112,6 +140,8 @@ export default class Chunk {
 
     /** What {@link getNetworkRevision} read when {@link serialized} was built. */
     private serializedAt = -1;
+    /** The same network revision split into client-cache blobs when a client asks for them. */
+    private serializedNetworkBlobs: ChunkNetworkBlobs | null = null;
     private networkRevision = 0;
     private observedSubChunkRevisions: number[] = [];
     private observedStoredSubChunkCount = -1;
@@ -161,7 +191,7 @@ export default class Chunk {
     public setBiomes(biomes: ChunkBiomes): void {
         this.biomes = biomes;
         this.biomesEpoch++;
-        this.serialized = null;
+        this.invalidateNetworkSerialization();
     }
 
     /** The biome at a position, with x and z in world coordinates. */
@@ -430,7 +460,7 @@ export default class Chunk {
 
         this.hasChanged = true;
         this.blockEntityRevision++;
-        this.serialized = null;
+        this.invalidateNetworkSerialization();
     }
 
     public removeBlockEntity(x: number, y: number, z: number): boolean {
@@ -438,7 +468,7 @@ export default class Chunk {
         if (removed) {
             this.hasChanged = true;
             this.blockEntityRevision++;
-            this.serialized = null;
+            this.invalidateNetworkSerialization();
         }
 
         return removed;
@@ -569,7 +599,7 @@ export default class Chunk {
         if (layer === 0 && this.blockEntities.size > 0) this.removeBlockEntity(x, y, z);
 
         this.hasChanged = true;
-        this.serialized = null;
+        this.invalidateNetworkSerialization();
     }
 
     private requireSubChunkIndex(y: number): number {
@@ -604,7 +634,7 @@ export default class Chunk {
         }
 
         this.hasChanged = true;
-        this.serialized = null;
+        this.invalidateNetworkSerialization();
     }
 
     /**
@@ -686,6 +716,7 @@ export default class Chunk {
         // terrain the client got was simply wrong, with nothing to suggest it.
         const mutations = this.getNetworkRevision();
         if (this.serialized && this.serializedAt === mutations) return this.serialized;
+        this.serializedNetworkBlobs = null;
 
         const stream = new BinaryStream();
         const floor = minSubChunk(this.dimension);
@@ -725,6 +756,82 @@ export default class Chunk {
         this.serialized = stream.getBuffer();
         this.serializedAt = mutations;
         return this.serialized;
+    }
+
+    /**
+     * Serializes the LevelChunk payload with byte ranges for each sub chunk and the biome blob.
+     *
+     * The ranges point into the same payload buffer, so an uncached packet and a cache-enabled
+     * packet reconstruct the same bytes without serializing each section a second time.
+     */
+    public networkSerializeBlobs(): ChunkNetworkBlobs {
+        const revision = this.getNetworkRevision();
+        if (this.serializedNetworkBlobs?.revision === revision) return this.serializedNetworkBlobs;
+
+        const stream = new BinaryStream();
+        const floor = minSubChunk(this.dimension);
+        const client = clientRangeOf(this.dimension);
+        const subChunkRanges: Array<{ subChunk: SubChunk; revision: number; start: number; end: number }> = [];
+        let currentOffset = 0;
+        const writeSubChunk = (subChunk: SubChunk): void => {
+            subChunk.networkSerialize(stream);
+            const end = stream.getWriteBuffer().byteLength;
+            subChunkRanges.push({
+                subChunk,
+                revision: subChunk.getRevision(),
+                start: currentOffset,
+                end
+            });
+            currentOffset = end;
+        };
+
+        for (let y = minSubChunk(client); y < floor; ++y) writeSubChunk(Chunk.EMPTY_SUBCHUNK);
+
+        for (let y = floor; y < this.getTopEmpty(); ++y) {
+            writeSubChunk(this.subChunkAtIndex(y) ?? Chunk.EMPTY_SUBCHUNK);
+        }
+
+        const biomeIdentity = this.biomes;
+        const biomeRevision = biomeIdentity.getRevision();
+        const biomeStart = currentOffset;
+        biomeIdentity.networkSerialize(stream, subChunkCount(client));
+        const biomeEnd = stream.getWriteBuffer().byteLength;
+
+        // The client keeps this border-and-actor tail in LevelChunk even while terrain and
+        // biome bytes are supplied as separate cache blobs.
+        stream.writeByte(0);
+        if (this.blockEntities.size > 0) {
+            const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+            writer.setUseVarint(true);
+            for (const blockEntity of this.blockEntities.values()) writer.writeCompound(blockEntity.toNBT());
+        }
+
+        const payload = stream.getWriteBuffer();
+        const result: ChunkNetworkBlobs = {
+            revision,
+            payload,
+            cachedPayload: payload.subarray(biomeEnd),
+            subChunks: subChunkRanges.map(({ subChunk, revision: subChunkRevision, start, end }) => ({
+                subChunk,
+                revision: subChunkRevision,
+                bytes: payload.subarray(start, end)
+            })),
+            biomes: {
+                identity: biomeIdentity,
+                revision: biomeRevision,
+                bytes: payload.subarray(biomeStart, biomeEnd)
+            }
+        };
+
+        this.serialized = payload;
+        this.serializedAt = revision;
+        this.serializedNetworkBlobs = result;
+        return result;
+    }
+
+    private invalidateNetworkSerialization(): void {
+        this.serialized = null;
+        this.serializedNetworkBlobs = null;
     }
 
     /**

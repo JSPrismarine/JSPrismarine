@@ -100,6 +100,60 @@ describe('network', () => {
             ).toHaveLength(1);
         });
 
+        it('keeps cached and uncached chunk packet variants in separate entries', async () => {
+            const cache = new ChunkBatchCache();
+            const chunk = new Chunk();
+            const revision = chunk.getNetworkRevision();
+            const uncached = await cache.getOrCreate(chunk, revision, Codec2193, 1, () => [packetFor(chunk)]);
+            const prepared = chunk.networkSerializeBlobs();
+            const cached = await cache.getOrCreate(
+                chunk,
+                revision,
+                Codec2193,
+                1,
+                () => [
+                    new LevelChunkPacket({
+                        chunkX: chunk.getX(),
+                        chunkZ: chunk.getZ(),
+                        dimension: chunk.getDimension().bedrockId,
+                        subChunkCount: chunk.getNetworkSubChunkCount(),
+                        clientSubChunkRequestsEnabled: false,
+                        cached: true,
+                        blobHashes: [1n],
+                        payload: prepared.cachedPayload
+                    })
+                ],
+                PacketCompressionAlgorithm.ZLIB,
+                1,
+                'client-cache'
+            );
+            const cachedAgain = await cache.getOrCreate(
+                chunk,
+                revision,
+                Codec2193,
+                1,
+                () => [
+                    new LevelChunkPacket({
+                        chunkX: chunk.getX(),
+                        chunkZ: chunk.getZ(),
+                        dimension: chunk.getDimension().bedrockId,
+                        subChunkCount: chunk.getNetworkSubChunkCount(),
+                        clientSubChunkRequestsEnabled: false,
+                        cached: true,
+                        blobHashes: [1n],
+                        payload: prepared.cachedPayload
+                    })
+                ],
+                PacketCompressionAlgorithm.ZLIB,
+                1,
+                'client-cache'
+            );
+
+            expect(cached.content).not.toBe(uncached.content);
+            expect(cachedAgain.content).toBe(cached.content);
+            expect(cache.compressionCount).toBe(2);
+        });
+
         it('invalidates cached batches after block, block entity, and biome edits', async () => {
             const cache = new ChunkBatchCache();
             const chunk = new Chunk();

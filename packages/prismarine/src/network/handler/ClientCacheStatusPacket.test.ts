@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import ClientCacheStatusHandler from './ClientCacheStatusHandler';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
+import type Player from '../../Player';
+import type PlayerSession from '../PlayerSession';
 
 /**
  * The one-bool packet every client sends after login.
@@ -53,5 +56,23 @@ describe('ClientCacheStatusPacket', () => {
         await registry.enable();
 
         expect(registry.getHandler('ClientCacheStatusPacket')).toBeInstanceOf(ClientCacheStatusHandler);
+    });
+
+    it('applies the cache status to the player session', async () => {
+        let enabled: boolean | undefined;
+        const logger = stub<Logger>({ debug: () => {}, verbose: () => {} });
+        const server = stub<Server>({ getLogger: () => logger });
+        const session = stub<PlayerSession>({
+            getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
+            setClientCacheEnabled: (value) => {
+                enabled = value;
+            }
+        });
+        const packet = new ClientCacheStatusPacket();
+        packet.enabled = true;
+
+        await new ClientCacheStatusHandler().handle(packet, server, session);
+
+        expect(enabled).toBe(true);
     });
 });

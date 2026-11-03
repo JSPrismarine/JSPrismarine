@@ -36,7 +36,7 @@ export class ChunkBatchCache {
         return this.retainedBytes;
     }
 
-    /** Number of times this cache has asked zlib to encode a batch. */
+    /** Number of times this cache has asked the batch codec to encode a batch. */
     public get compressionCount(): number {
         return this.compressions;
     }
@@ -51,6 +51,7 @@ export class ChunkBatchCache {
      * @param packets - Builds packets only on a cache miss.
      * @param compressionAlgorithm - The negotiated packet compression algorithm.
      * @param compressionThreshold - The smallest batch payload size that is compressed.
+     * @param variant - Packet payload form, such as cached or uncached chunk data.
      * @returns The shared compressed batch, or a newly encoded batch when it cannot be retained.
      */
     public async getOrCreate(
@@ -60,9 +61,10 @@ export class ChunkBatchCache {
         compressionLevel: number,
         packets: () => readonly NetworkPacket<unknown>[],
         compressionAlgorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB,
-        compressionThreshold = 1
+        compressionThreshold = 1,
+        variant = 'default'
     ): Promise<CachedChunkBatch> {
-        const settings = `${codec.protocolVersion}:${compressionAlgorithm}:${compressionLevel}:${compressionThreshold}`;
+        const settings = `${codec.protocolVersion}:${compressionAlgorithm}:${compressionLevel}:${compressionThreshold}:${variant}`;
         const cacheForChunk = this.entries.get(chunk);
         const cached = cacheForChunk?.get(settings);
         if (cached !== undefined && cacheForChunk !== undefined && cached.revision === revision) {
@@ -74,7 +76,11 @@ export class ChunkBatchCache {
                 memoryBytes: cached.memoryBytes
             };
         }
-        if (cacheForChunk !== undefined) this.removeChunk(chunk, cacheForChunk);
+        if (cached !== undefined && cacheForChunk !== undefined) {
+            cacheForChunk.delete(settings);
+            this.retainedBytes -= cached.memoryBytes;
+            if (cacheForChunk.size === 0) this.entries.delete(chunk);
+        }
 
         const pendingKey = `${settings}:${revision}`;
         let pendingForChunk = this.pending.get(chunk);
