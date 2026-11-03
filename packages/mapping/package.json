@@ -40,6 +40,7 @@
         "generate:tables": "node utils/generate/generate-tables.ts",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
+        "bench:tables": "node benchmarks/tableRepresentations.mjs",
         "test": "vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
