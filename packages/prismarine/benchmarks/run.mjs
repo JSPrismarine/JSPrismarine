@@ -15,8 +15,7 @@
  * out.
  */
 import { createRequire } from 'node:module';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -31,22 +30,33 @@ if (entry === undefined) {
     process.exit(2);
 }
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const outfile = join(mkdtempSync(join(tmpdir(), 'jsprismarine-bench-')), 'bench.mjs');
+const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
+const packageRoot = resolve(benchmarkDirectory, '..');
+const root = resolve(packageRoot, '../..');
+const entryPath = resolve(entry);
 
-await esbuild.build({
-    absWorkingDir: root,
-    bundle: true,
-    entryPoints: [resolve(entry)],
-    external: ['node:*'],
-    format: 'esm',
-    keepNames: false,
-    logLevel: 'warning',
-    outfile,
-    packages: 'bundle',
-    platform: 'node',
-    target: 'node22'
-});
+// `packStack.ts` uses `createRequire(import.meta.url)` to find workspace overlays. Keep the
+// temporary bundle under this package so its resolver can see the package's pnpm links.
+const outputDirectory = mkdtempSync(join(packageRoot, '.jsp-bench-'));
+const outfile = join(outputDirectory, 'bench.mjs');
 
-process.argv = [process.argv[0], outfile, ...args];
-await import(pathToFileURL(outfile).href);
+try {
+    await esbuild.build({
+        absWorkingDir: root,
+        bundle: true,
+        entryPoints: [entryPath],
+        external: ['node:*'],
+        format: 'esm',
+        keepNames: false,
+        logLevel: 'warning',
+        outfile,
+        packages: 'bundle',
+        platform: 'node',
+        target: 'node22'
+    });
+
+    process.argv = [process.argv[0], outfile, ...args];
+    await import(pathToFileURL(outfile).href);
+} finally {
+    rmSync(outputDirectory, { recursive: true, force: true });
+}
