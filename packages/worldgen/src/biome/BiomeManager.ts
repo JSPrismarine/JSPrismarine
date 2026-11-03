@@ -96,8 +96,15 @@ export class BiomeManager {
     private readonly jitterKeyZ = new Int32Array(JITTER_SLOTS);
     private readonly jitterFilled = new Uint8Array(JITTER_SLOTS);
     private readonly jitter = new Float64Array(JITTER_SLOTS * 3);
+    private readonly cornerJitterOffsets = new Int32Array(8);
+    private readonly xDistanceSquares = new Float64Array(8 * 4);
+    private readonly zDistanceSquares = new Float64Array(8 * 4);
     private readonly jitterValue = { hi: 0, lo: 0 };
     private readonly jitterProduct = { hi: 0, lo: 0 };
+    private cachedParentX = 0;
+    private cachedParentY = 0;
+    private cachedParentZ = 0;
+    private hasCachedParentCell = false;
     private readonly zoomSeedHi: number;
     private readonly zoomSeedLo: number;
 
@@ -136,26 +143,32 @@ export class BiomeManager {
         const parentX = absX >> 2;
         const parentY = absY >> 2;
         const parentZ = absZ >> 2;
-        const fractX = (absX & 3) / 4;
         const fractY = (absY & 3) / 4;
-        const fractZ = (absZ & 3) / 4;
+        const fractionX = absX & 3;
+        const fractionZ = absZ & 3;
+
+        if (
+            !this.hasCachedParentCell ||
+            this.cachedParentX !== parentX ||
+            this.cachedParentY !== parentY ||
+            this.cachedParentZ !== parentZ
+        ) {
+            this.cacheParentCell(parentX, parentY, parentZ);
+        }
+
         const jitter = this.jitter;
 
         let bestCorner = 0;
         let bestDistance = Number.POSITIVE_INFINITY;
         for (let corner = 0; corner < 8; corner++) {
-            const xEven = (corner & 4) === 0;
             const yEven = (corner & 2) === 0;
-            const zEven = (corner & 1) === 0;
-            const offset = this.jitterAt(
-                xEven ? parentX : parentX + 1,
-                yEven ? parentY : parentY + 1,
-                zEven ? parentZ : parentZ + 1
-            );
-            const dz = (zEven ? fractZ : fractZ - 1) + (jitter[offset + 2] ?? 0);
+            const offset = this.cornerJitterOffsets[corner] ?? 0;
             const dy = (yEven ? fractY : fractY - 1) + (jitter[offset + 1] ?? 0);
-            const dx = (xEven ? fractX : fractX - 1) + (jitter[offset] ?? 0);
-            const distance = dz * dz + dy * dy + dx * dx;
+            // Keep Java's left-to-right grouping: (dz² + dy²) + dx².
+            const distance =
+                (this.zDistanceSquares[corner * 4 + fractionZ] ?? 0) +
+                dy * dy +
+                (this.xDistanceSquares[corner * 4 + fractionX] ?? 0);
             if (bestDistance > distance) {
                 bestCorner = corner;
                 bestDistance = distance;
@@ -167,6 +180,34 @@ export class BiomeManager {
             (bestCorner & 2) === 0 ? parentY : parentY + 1,
             (bestCorner & 1) === 0 ? parentZ : parentZ + 1
         );
+    }
+
+    /** Caches the eight corner offsets and their x/z squares for one parent biome cell. */
+    private cacheParentCell(parentX: number, parentY: number, parentZ: number): void {
+        const jitter = this.jitter;
+        for (let corner = 0; corner < 8; corner++) {
+            const xEven = (corner & 4) === 0;
+            const yEven = (corner & 2) === 0;
+            const zEven = (corner & 1) === 0;
+            const offset = this.jitterAt(
+                xEven ? parentX : parentX + 1,
+                yEven ? parentY : parentY + 1,
+                zEven ? parentZ : parentZ + 1
+            );
+            this.cornerJitterOffsets[corner] = offset;
+
+            for (let fraction = 0; fraction < 4; fraction++) {
+                const distanceX = (xEven ? fraction / 4 : fraction / 4 - 1) + (jitter[offset] ?? 0);
+                const distanceZ = (zEven ? fraction / 4 : fraction / 4 - 1) + (jitter[offset + 2] ?? 0);
+                this.xDistanceSquares[corner * 4 + fraction] = distanceX * distanceX;
+                this.zDistanceSquares[corner * 4 + fraction] = distanceZ * distanceZ;
+            }
+        }
+
+        this.cachedParentX = parentX;
+        this.cachedParentY = parentY;
+        this.cachedParentZ = parentZ;
+        this.hasCachedParentCell = true;
     }
 
     /**

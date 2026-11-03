@@ -524,9 +524,24 @@ describe('the biome manager', () => {
             return state % bound;
         };
         const positions = Array.from(
-            { length: 128 },
+            { length: 1024 },
             () => [next(60_000_001) - 30_000_000, next(4096) - 2048, next(60_000_001) - 30_000_000] as const
         );
+        // Exercise both sides of parent-cell boundaries in negative and positive coordinates.
+        for (let parentX = -3; parentX <= 3; parentX++) {
+            for (let parentY = -2; parentY <= 2; parentY++) {
+                for (let parentZ = -3; parentZ <= 3; parentZ++) {
+                    const boundaryX = parentX * 4 + 2;
+                    const boundaryY = parentY * 4 + 2;
+                    const boundaryZ = parentZ * 4 + 2;
+                    positions.push(
+                        [boundaryX - 1, boundaryY - 1, boundaryZ - 1],
+                        [boundaryX, boundaryY, boundaryZ],
+                        [boundaryX + 1, boundaryY + 1, boundaryZ + 1]
+                    );
+                }
+            }
+        }
         positions.push([-1, -64, -1], [0, 0, 0], [29_999_999, 319, -30_000_000]);
         for (const [x, y, z] of positions) expect(manager.getBiome(x, y, z)).toBe(expectedAt(x, y, z));
     });
