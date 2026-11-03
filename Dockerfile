@@ -1,6 +1,6 @@
 # Runs the dedicated server from source, the same way `pnpm run start` does.
 # The build context must include the bedrock-data resources submodule.
-FROM eclipse-temurin:25-jdk-jammy@sha256:917e4ad2363fb761904f2e515237171bb6867521f03b1ab2cbf466c8ebd92399 AS temurin-jdk
+FROM eclipse-temurin:25-jdk-jammy@sha256:e4f029273ed9e4444697df30bb6098dbe51477291598aebc54dd0b48d95d6ae7 AS temurin-jdk
 
 FROM node:26-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39
 
