@@ -35,16 +35,31 @@ const gameFrame = (content: Buffer) => {
     return frame;
 };
 
-const ackFor = (...sequenceNumbers: number[]) => {
-    const ack = new ACK();
-    ack.sequenceNumbers = sequenceNumbers;
-    return ack;
+const acknowledgment = (PacketType: typeof ACK | typeof NACK, ...sequenceNumbers: number[]): Buffer => {
+    const packet = new PacketType();
+    packet.sequenceNumbers = sequenceNumbers;
+    packet.encode();
+    return Buffer.from(packet.getBuffer());
 };
 
 const decodeSent = (buffer: Buffer) => {
     const frameSet = new FrameSet(buffer);
     frameSet.decode();
     return frameSet;
+};
+
+const acknowledgeSent = (session: Session, sent: readonly Buffer[], start = 0): Buffer[] => {
+    const datagrams: Buffer[] = [];
+    let next = start;
+
+    while (next < sent.length) {
+        const batch = sent.slice(next, next + 128);
+        next += batch.length;
+        datagrams.push(...batch);
+        session.handle(acknowledgment(ACK, ...batch.map((datagram) => decodeSent(datagram).sequenceNumber)));
+    }
+
+    return datagrams;
 };
 
 describe('C1 - NACK retransmission is verbatim', () => {
@@ -94,38 +109,105 @@ describe('C2 - fragments are independent messages', () => {
         const { session, sent } = makeSession();
         session.sendFrame(gameFrame(Buffer.alloc(4000, 0x41)));
 
-        const fragments = sent.map(decodeSent).map((fs) => fs.frames[0]!);
+        const datagrams = acknowledgeSent(session, sent);
+        const fragments = datagrams.map(decodeSent).map((fs) => fs.frames[0]!);
         expect(fragments.length).toBeGreaterThan(1);
         expect(new Set(fragments.map((f) => f.reliableIndex)).size).toBe(fragments.length);
         expect(fragments.map((f) => f.fragmentIndex)).toEqual(fragments.map((_, i) => i));
         expect(fragments.every((f) => f.orderIndex === 0)).toBe(true); // shared ordering identity
 
         // Retransmitting the FIRST fragment must yield the first fragment, not the last.
-        const nack = new NACK();
-        nack.sequenceNumbers = [decodeSent(sent[0]!).sequenceNumber];
-        const beforeLength = sent.length;
-        session['handleNACK'](nack);
-        const resent = decodeSent(sent[beforeLength]!).frames[0]!;
+        const { session: retrySession, sent: retrySent } = makeSession();
+        retrySession.sendFrame(gameFrame(Buffer.alloc(4000, 0x41)));
+        const lost = decodeSent(retrySent[0]!);
+        retrySession.handle(acknowledgment(NACK, lost.sequenceNumber));
+        const resent = decodeSent(retrySent.at(-1)!).frames[0]!;
         expect(resent.fragmentIndex).toBe(0);
         expect(resent.content.equals(fragments[0]!.content)).toBe(true);
     });
 
-    it('retransmits a lost fragment after the datagram history overflows', () => {
+    it('retransmits an old split fragment after backpressure holds later fragments', () => {
         const { session, sent } = makeSession();
         const frame = gameFrame(Buffer.alloc(1343 * 600, 7));
         session.sendFrame(frame);
 
-        expect(sent).toHaveLength(600);
+        expect(sent).toHaveLength(1);
 
-        // The oldest datagram has left the bounded ACK/NACK history, but its reliable
-        // message must remain pending until an ACK or session teardown.
+        // The oldest fragment is still held for retransmission while the congestion window
+        // prevents the rest of the split message from overrunning the peer.
         session.update(monotonicNow() + 3000);
 
         const retransmissions = sent
-            .slice(600)
+            .slice(1)
             .map(decodeSent)
             .flatMap((frameSet) => frameSet.frames);
-        expect(retransmissions.some((fragment) => fragment.fragmentIndex === 0)).toBe(true);
+        expect(retransmissions).toHaveLength(1);
+        expect(retransmissions[0]).toMatchObject({ fragmentIndex: 0, reliableIndex: 0 });
+    });
+});
+
+describe('P8 - per-session congestion window', () => {
+    it('starts at one MTU and grows by a datagram per ACK during slow start', () => {
+        const { session, sent } = makeSession();
+        session.sendFrame(gameFrame(Buffer.alloc(1343 * 6, 0x41)));
+
+        expect(sent).toHaveLength(1);
+
+        const first = decodeSent(sent[0]!).sequenceNumber;
+        session.handle(acknowledgment(ACK, first));
+        expect(sent).toHaveLength(3);
+
+        const second = decodeSent(sent[1]!).sequenceNumber;
+        session.handle(acknowledgment(ACK, second));
+        expect(sent).toHaveLength(5);
+    });
+
+    it('backs off on NACK, then prioritizes the same reliable frame for retransmission', () => {
+        const { session, sent } = makeSession();
+        session.sendFrame(gameFrame(Buffer.alloc(1343 * 5, 0x42)));
+
+        const firstSequence = decodeSent(sent[0]!).sequenceNumber;
+        session.handle(acknowledgment(ACK, firstSequence));
+        expect(sent).toHaveLength(3);
+
+        const lost = decodeSent(sent[1]!);
+        const otherInFlight = decodeSent(sent[2]!).sequenceNumber;
+        session.handle(acknowledgment(NACK, lost.sequenceNumber));
+        expect(sent).toHaveLength(3);
+
+        session.handle(acknowledgment(ACK, otherInFlight));
+        expect(sent).toHaveLength(5);
+        expect(decodeSent(sent[3]!).frames[0]).toMatchObject({
+            content: lost.frames[0]!.content,
+            fragmentIndex: lost.frames[0]!.fragmentIndex,
+            reliableIndex: lost.frames[0]!.reliableIndex,
+            orderIndex: lost.frames[0]!.orderIndex
+        });
+    });
+
+    it('caps outstanding reliable messages and resumes one queued fragment after an ACK', () => {
+        const { session, sent } = makeSession();
+
+        for (let index = 0; index < 512; index++) {
+            const frame = new Frame();
+            frame.reliability = FrameReliability.UNRELIABLE;
+            frame.orderChannel = 0;
+            frame.content = Buffer.from([index & 0xff]);
+            session.sendFrame(frame, RakNetPriority.IMMEDIATE);
+            const sequence = decodeSent(sent.at(-1)!).sequenceNumber;
+            session.handle(acknowledgment(ACK, sequence));
+        }
+
+        const beforeReliableBurst = sent.length;
+        session.sendFrame(gameFrame(Buffer.alloc(1343 * 600, 0x43)));
+        expect(sent.length - beforeReliableBurst).toBe(512);
+
+        const first = decodeSent(sent[beforeReliableBurst]!);
+        expect(first.frames[0]!.fragmentIndex).toBe(0);
+        session.handle(acknowledgment(ACK, first.sequenceNumber));
+
+        const next = decodeSent(sent.at(-1)!);
+        expect(next.frames[0]!.fragmentIndex).toBe(512);
     });
 });
 
@@ -333,7 +415,7 @@ describe('H1 - retransmission on timeout', () => {
         expect(resent.frames[0]!.content.toString()).toBe('tail');
 
         // Acknowledging it ends the retransmissions.
-        session['handleACK'](ackFor(resent.sequenceNumber));
+        session.handle(acknowledgment(ACK, resent.sequenceNumber));
         session.update(monotonicNow() + 6000);
         expect(sent.length).toBe(2);
     });
@@ -344,7 +426,7 @@ describe('H1 - retransmission on timeout', () => {
 
         session.sendFrame(gameFrame(Buffer.from('x')));
         session.sendFrameQueue();
-        session['handleACK'](ackFor(decodeSent(sent[0]!).sequenceNumber));
+        session.handle(acknowledgment(ACK, decodeSent(sent[0]!).sequenceNumber));
 
         expect(session.getRTT()).not.toBeNull();
         expect(session.getRTT()!).toBeGreaterThanOrEqual(0);
@@ -690,8 +772,9 @@ describe('P6 - output queue MTU accounting', () => {
         for (let i = 0; i < perDatagram * 2; i++) session.sendFrame(gameFrame(Buffer.alloc(100, 0x42)));
         session.sendFrameQueue();
 
-        expect(sent.length).toBe(2);
-        for (const datagram of sent) {
+        const datagrams = acknowledgeSent(session, sent);
+        expect(datagrams.length).toBe(2);
+        for (const datagram of datagrams) {
             expect(decodeSent(datagram).frames.length).toBe(perDatagram);
             expect(datagram.byteLength).toBeLessThanOrEqual(USABLE);
         }
@@ -702,7 +785,9 @@ describe('P6 - output queue MTU accounting', () => {
             const { session, sent } = makeSession(MTU);
             for (let i = 0; i < 40; i++) session.sendFrame(gameFrame(Buffer.alloc(size, 0x42)));
             session.sendFrameQueue();
-            for (const datagram of sent) expect(datagram.byteLength).toBeLessThanOrEqual(USABLE);
+            for (const datagram of acknowledgeSent(session, sent)) {
+                expect(datagram.byteLength).toBeLessThanOrEqual(USABLE);
+            }
         }
     });
 
@@ -717,6 +802,8 @@ describe('P6 - output queue MTU accounting', () => {
         for (let i = 0; i < 12; i++) session.sendFrame(gameFrame(Buffer.alloc(100, 0x42)));
         expect(sent.length).toBe(1); // still nothing flushed: exactly 12 fit
         session.sendFrameQueue();
+        expect(sent.length).toBe(1); // the in-flight datagram still owns the one-MTU window
+        session.handle(acknowledgment(ACK, decodeSent(sent[0]!).sequenceNumber));
         expect(decodeSent(sent[1]!).frames.length).toBe(12);
     });
 });
@@ -800,10 +887,11 @@ describe('P1 - split reassembly is byte-exact', () => {
         const { session: sender, sent } = makeSession();
         const payload = patterned(64 * 1024);
         sender.sendFrame(gameFrame(payload));
-        expect(sent.length).toBeGreaterThan(1); // it really was split
+        const datagrams = acknowledgeSent(sender, sent);
+        expect(datagrams.length).toBeGreaterThan(1); // it really was split
 
         const { session: receiver, received } = makeReceiver();
-        for (const datagram of sent) receiver.handle(datagram);
+        for (const datagram of datagrams) receiver.handle(datagram);
 
         expect(received.length).toBe(1);
         expect(received[0]!.content.byteLength).toBe(payload.byteLength);
@@ -814,9 +902,10 @@ describe('P1 - split reassembly is byte-exact', () => {
         const { session: sender, sent } = makeSession();
         const payload = patterned(16 * 1024);
         sender.sendFrame(gameFrame(payload));
+        const datagrams = acknowledgeSent(sender, sent);
 
         const { session: receiver, received } = makeReceiver();
-        for (const datagram of [...sent].reverse()) receiver.handle(datagram);
+        for (const datagram of [...datagrams].reverse()) receiver.handle(datagram);
 
         expect(received.length).toBe(1);
         expect(received[0]!.content.equals(payload)).toBe(true);
@@ -828,12 +917,12 @@ describe('P1 - split reassembly is byte-exact', () => {
         const second = patterned(12 * 1024);
         second[1] = 0xaa; // make the two payloads distinguishable
         sender.sendFrame(gameFrame(first));
+        const a = acknowledgeSent(sender, sent);
         const boundary = sent.length;
         sender.sendFrame(gameFrame(second));
+        const b = acknowledgeSent(sender, sent, boundary);
 
         // Interleave the two messages' datagrams.
-        const a = sent.slice(0, boundary);
-        const b = sent.slice(boundary);
         const interleaved: Buffer[] = [];
         for (let i = 0; i < Math.max(a.length, b.length); i++) {
             if (a[i]) interleaved.push(a[i]!);
@@ -881,7 +970,9 @@ describe('H8 - split unreliable messages are upgraded', () => {
         frame.content = Buffer.alloc(4000, 0x41);
         session.sendFrame(frame);
 
-        const fragments = sent.map(decodeSent).map((fs) => fs.frames[0]!);
+        const fragments = acknowledgeSent(session, sent)
+            .map(decodeSent)
+            .map((fs) => fs.frames[0]!);
         expect(fragments.length).toBeGreaterThan(1);
         expect(fragments.every((f) => f.reliability === FrameReliability.RELIABLE)).toBe(true);
         expect(fragments.every((f) => f.isReliable())).toBe(true);

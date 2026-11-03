@@ -90,6 +90,13 @@ interface ResendEntry {
     timesSent: number;
 }
 
+interface DatagramHistoryEntry {
+    messageNumbers: number[];
+    sentAt: number;
+    byteLength: number;
+    nextActionTime: number;
+}
+
 /** A split message being reassembled. */
 interface SplitEntry {
     fragments: Map<number, Frame>;
@@ -109,6 +116,11 @@ export default class Session {
     private outputSequenceNumber = 0;
     private outputReliableIndex = 0;
     private outputFragmentIndex = 0;
+    private congestionWindowBytes = 0;
+    private slowStartThresholdBytes = Number.POSITIVE_INFINITY;
+    private bytesInFlight = 0;
+    private readonly pendingFrameSets: FrameSet[] = [];
+    private readonly queuedRetransmissions = new Set<number>();
 
     private readonly outputOrderIndex: number[];
     private readonly outputSequenceIndex: number[];
@@ -131,7 +143,7 @@ export default class Session {
      * and provides the send timestamp the RTT estimate is derived from.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.h#L351 (datagramHistory)
      */
-    private readonly datagramHistory: Map<number, { messageNumbers: number[]; sentAt: number }> = new Map();
+    private readonly datagramHistory = new Map<number, DatagramHistoryEntry>();
 
     // ---------------------------------------------------------------- incoming state
 
@@ -205,6 +217,7 @@ export default class Session {
     ) {
         this.lastUpdate = monotonicNow();
         this.address = new InetAddress(rinfo.address, rinfo.port);
+        this.congestionWindowBytes = this.getMTU();
 
         this.outputOrderIndex = new Array(MAX_CHANNELS).fill(0);
         this.outputSequenceIndex = new Array(MAX_CHANNELS).fill(0);
@@ -270,7 +283,7 @@ export default class Session {
 
         return this.disconnectMode === DisconnectMode.ON_NO_ACK
             ? this.ackQueue.size === 0
-            : this.resendBuffer.size === 0;
+            : this.resendBuffer.size === 0 && !this.hasQueuedReliableFrames();
     }
 
     // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L635
@@ -366,17 +379,23 @@ export default class Session {
      */
     private handleACK(ack: ACK): void {
         const now = monotonicNow();
+        let acknowledgedDatagrams = 0;
 
         for (const seq of this.matchDatagramHistory(ack)) {
             const entry = this.datagramHistory.get(seq)!;
 
-            this.datagramHistory.delete(seq);
+            this.forgetDatagram(seq);
             this.onRoundTripSample(now - entry.sentAt);
+            acknowledgedDatagrams++;
 
             for (const reliableIndex of entry.messageNumbers) {
                 this.resendBuffer.delete(reliableIndex);
+                this.cancelQueuedRetransmission(reliableIndex);
             }
         }
+
+        for (let index = 0; index < acknowledgedDatagrams; index++) this.growCongestionWindow();
+        if (acknowledgedDatagrams > 0) this.sendFrameQueue();
     }
 
     /**
@@ -411,28 +430,33 @@ export default class Session {
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L840
      */
     private handleNACK(nack: NACK): void {
-        let requeued = false;
+        const retransmissions: Frame[] = [];
+        let lostDatagrams = 0;
 
         for (const seq of this.matchDatagramHistory(nack)) {
             const entry = this.datagramHistory.get(seq)!;
 
-            // This datagram is gone for good; the messages stay in the resend buffer
-            // until acknowledged, and will be re-registered under the new datagram.
-            this.datagramHistory.delete(seq);
+            // NACKed datagrams leave the byte window immediately; their reliable messages
+            // stay pending until an ACK names an original or retransmitted copy.
+            this.forgetDatagram(seq);
+            lostDatagrams++;
 
             for (const reliableIndex of entry.messageNumbers) {
                 const pending = this.resendBuffer.get(reliableIndex);
                 // Already acknowledged through another datagram: skip it.
-                if (!pending) continue;
+                if (!pending || this.queuedRetransmissions.has(reliableIndex)) continue;
 
-                this.addFrameToQueue(pending.frame, RakNetPriority.NORMAL);
-                requeued = true;
+                pending.nextActionTime = Number.POSITIVE_INFINITY;
+                this.queuedRetransmissions.add(reliableIndex);
+                retransmissions.push(pending.frame);
             }
         }
 
-        // Pack the retransmissions into as few datagrams as the MTU allows.
-        if (requeued) {
-            this.sendFrameQueue();
+        if (lostDatagrams > 0) {
+            this.reduceCongestionWindow();
+            this.queueOutputFrameSet();
+            this.queueRetransmissions(retransmissions);
+            this.drainPendingFrameSets();
         }
     }
 
@@ -1032,22 +1056,19 @@ export default class Session {
     // ---------------------------------------------------------------- transmission
 
     public sendFrameQueue(): void {
-        if (this.outputFrameQueue.frames.length > 0) {
-            this.outputFrameQueue.sequenceNumber = this.outputSequenceNumber;
-            // Datagram sequence numbers are 24 bit on the wire, and datagramHistory is
-            // keyed by them, so they have to wrap rather than grow past the field width.
-            this.outputSequenceNumber = (this.outputSequenceNumber + 1) % TRIAD_RANGE;
-            this.sendFrameSet(this.outputFrameQueue);
-            this.outputFrameQueue = new FrameSet();
-            this.outputFrameQueueByteLength = DATAGRAM_HEADER_BYTE_LENGTH;
-        }
+        this.queueOutputFrameSet();
+        this.drainPendingFrameSets();
     }
 
     private sendFrameSet(frameSet: FrameSet): void {
-        this.sendPacket(frameSet);
+        frameSet.sequenceNumber = this.outputSequenceNumber;
+        // Datagram sequence numbers are 24 bit on the wire, and datagramHistory is
+        // keyed by them, so they have to wrap rather than grow past the field width.
+        this.outputSequenceNumber = (this.outputSequenceNumber + 1) % TRIAD_RANGE;
 
         const sentAt = monotonicNow();
         const deadline = sentAt + this.getRetransmissionTimeout();
+        const byteLength = frameSet.getByteLength();
 
         // Record which messages rode in this datagram, so an ACK/NACK naming its
         // sequence number can be resolved back to them.
@@ -1061,6 +1082,7 @@ export default class Session {
                 existing.nextActionTime = deadline;
                 existing.timesSent++;
                 this.retransmissionCount++;
+                this.queuedRetransmissions.delete(frame.reliableIndex);
             } else {
                 this.resendBuffer.set(frame.reliableIndex, { frame, nextActionTime: deadline, timesSent: 1 });
             }
@@ -1068,10 +1090,16 @@ export default class Session {
             messageNumbers.push(frame.reliableIndex);
         }
 
-        if (messageNumbers.length > 0) {
-            this.datagramHistory.set(frameSet.sequenceNumber, { messageNumbers, sentAt });
-            this.pruneDatagramHistory();
-        }
+        // ACK/NACK cover every data datagram, including unreliable ones, so keep each
+        // in-flight byte count until feedback arrives or its timeout declares it lost.
+        this.datagramHistory.set(frameSet.sequenceNumber, {
+            messageNumbers,
+            sentAt,
+            byteLength,
+            nextActionTime: deadline
+        });
+        this.bytesInFlight += byteLength;
+        this.sendPacket(frameSet);
     }
 
     /**
@@ -1081,19 +1109,131 @@ export default class Session {
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1908
      */
     private resendTimedOutMessages(timestamp: number): void {
-        let requeued = false;
+        const expired = Array.from(this.datagramHistory).filter(([, entry]) => entry.nextActionTime <= timestamp);
+        if (expired.length === 0) return;
 
-        for (const entry of this.resendBuffer.values()) {
-            if (entry.nextActionTime > timestamp) continue;
+        const retransmissions: Frame[] = [];
+        for (const [sequenceNumber, entry] of expired) {
+            this.forgetDatagram(sequenceNumber);
 
-            // sendFrameSet refreshes nextActionTime once the frame actually goes out.
-            this.addFrameToQueue(entry.frame, RakNetPriority.NORMAL);
-            requeued = true;
+            for (const reliableIndex of entry.messageNumbers) {
+                const pending = this.resendBuffer.get(reliableIndex);
+                if (!pending || this.queuedRetransmissions.has(reliableIndex)) continue;
+
+                // Keep the timeout dormant while backpressure holds this retry in the
+                // queue. The next deadline is installed only when its datagram is sent.
+                pending.nextActionTime = Number.POSITIVE_INFINITY;
+                this.queuedRetransmissions.add(reliableIndex);
+                retransmissions.push(pending.frame);
+            }
         }
 
-        if (requeued) {
-            this.sendFrameQueue();
+        this.reduceCongestionWindow();
+        this.queueOutputFrameSet();
+        this.queueRetransmissions(retransmissions);
+    }
+
+    /** Moves the assembled MTU-sized batch to the send queue without assigning a sequence. */
+    private queueOutputFrameSet(): void {
+        if (this.outputFrameQueue.frames.length === 0) return;
+
+        this.pendingFrameSets.push(this.outputFrameQueue);
+        this.outputFrameQueue = new FrameSet();
+        this.outputFrameQueueByteLength = DATAGRAM_HEADER_BYTE_LENGTH;
+    }
+
+    /**
+     * Adds retries ahead of new data while retaining their original reliable and order
+     * indices. This is why retries are rebuilt as datagrams rather than sent through
+     * {@link sendFrame}, which would assign fresh message identities.
+     */
+    private queueRetransmissions(frames: readonly Frame[]): void {
+        if (frames.length === 0) return;
+
+        const datagrams: FrameSet[] = [];
+        let frameSet = new FrameSet();
+        let byteLength = DATAGRAM_HEADER_BYTE_LENGTH;
+
+        for (const frame of frames) {
+            const frameLength = frame.getByteLength();
+            if (byteLength + frameLength > this.getMTU()) {
+                datagrams.push(frameSet);
+                frameSet = new FrameSet();
+                byteLength = DATAGRAM_HEADER_BYTE_LENGTH;
+            }
+
+            frameSet.frames.push(frame);
+            byteLength += frameLength;
         }
+        if (frameSet.frames.length > 0) datagrams.push(frameSet);
+
+        this.pendingFrameSets.unshift(...datagrams);
+    }
+
+    /** Sends queued datagrams only while both the byte window and bookkeeping limits allow. */
+    private drainPendingFrameSets(): void {
+        while (this.pendingFrameSets.length > 0) {
+            const frameSet = this.pendingFrameSets[0]!;
+            const byteLength = frameSet.getByteLength();
+            if (this.bytesInFlight + byteLength > this.congestionWindowBytes) return;
+            if (this.datagramHistory.size >= MAX_DATAGRAM_HISTORY) return;
+
+            const newReliableMessages = frameSet.frames.filter(
+                (frame) =>
+                    frame.isReliable() &&
+                    typeof frame.reliableIndex === 'number' &&
+                    !this.resendBuffer.has(frame.reliableIndex)
+            ).length;
+            // Keep each message recoverable until its ACK arrives. A full resend buffer
+            // applies backpressure to new reliable data instead of evicting an older entry.
+            if (this.resendBuffer.size + newReliableMessages > MAX_DATAGRAM_HISTORY) return;
+
+            this.pendingFrameSets.shift();
+            this.sendFrameSet(frameSet);
+        }
+    }
+
+    private forgetDatagram(sequenceNumber: number): void {
+        const entry = this.datagramHistory.get(sequenceNumber);
+        if (!entry) return;
+
+        this.datagramHistory.delete(sequenceNumber);
+        this.bytesInFlight -= entry.byteLength;
+    }
+
+    private growCongestionWindow(): void {
+        const mtu = this.getMTU();
+        // Slow start adds one MTU per acknowledged datagram; after loss, AIMD adds a
+        // fraction of an MTU so the window grows linearly instead of doubling.
+        if (this.congestionWindowBytes < this.slowStartThresholdBytes) {
+            this.congestionWindowBytes += mtu;
+        } else {
+            this.congestionWindowBytes += (mtu * mtu) / this.congestionWindowBytes;
+        }
+    }
+
+    private reduceCongestionWindow(): void {
+        this.slowStartThresholdBytes = this.congestionWindowBytes / 2;
+        this.congestionWindowBytes = this.getMTU();
+    }
+
+    private cancelQueuedRetransmission(reliableIndex: number): void {
+        if (!this.queuedRetransmissions.delete(reliableIndex)) return;
+
+        // A late ACK may arrive after a NACK put this frame in the priority queue. Remove
+        // that stale retry so an acknowledged message cannot be put back in resendBuffer.
+        for (let index = this.pendingFrameSets.length - 1; index >= 0; index--) {
+            const frameSet = this.pendingFrameSets[index]!;
+            frameSet.frames = frameSet.frames.filter((frame) => frame.reliableIndex !== reliableIndex);
+            if (frameSet.frames.length === 0) this.pendingFrameSets.splice(index, 1);
+        }
+    }
+
+    private hasQueuedReliableFrames(): boolean {
+        const containsReliableFrame = (frameSet: FrameSet): boolean =>
+            frameSet.frames.some((frame) => frame.isReliable() && typeof frame.reliableIndex === 'number');
+
+        return containsReliableFrame(this.outputFrameQueue) || this.pendingFrameSets.some(containsReliableFrame);
     }
 
     /**
@@ -1148,6 +1288,8 @@ export default class Session {
     }
 
     private sendAcknowledgePackets(sequences: Set<number>, create: () => AcknowledgePacket): void {
+        // ACK/NACK are feedback for the peer's window; delaying them behind our data
+        // window can keep both peers stalled, so control packets bypass congestion gating.
         // Worst case every record is a range: 1 flag byte plus two triads. Sizing against
         // that means consecutive runs, which collapse into one record, only under-fill.
         const recordsPerPacket = Math.max(1, Math.floor((this.getMTU() - 3) / 7));
@@ -1157,20 +1299,6 @@ export default class Session {
             const packet = create();
             packet.sequenceNumbers = sorted.slice(i, i + recordsPerPacket);
             this.sendPacket(packet);
-        }
-    }
-
-    /**
-     * Bounds only the ACK/NACK lookup history. Reliable messages stay in the resend buffer
-     * until acknowledged or the session ends, even after their original sequence mapping is
-     * pruned; retransmitting one then gives a later ACK a fresh mapping.
-     * Insertion order in a Map is the send order, so the head is always the oldest entry.
-     * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakNetDefines.h#L105 (RESEND_BUFFER_ARRAY_LENGTH)
-     */
-    private pruneDatagramHistory(): void {
-        while (this.datagramHistory.size > MAX_DATAGRAM_HISTORY) {
-            const oldest = this.datagramHistory.keys().next().value!;
-            this.datagramHistory.delete(oldest);
         }
     }
 
