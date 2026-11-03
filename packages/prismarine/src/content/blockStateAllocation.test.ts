@@ -17,7 +17,7 @@ describe('resolved block state allocation', () => {
         );
         const digest = createHash('sha256').update(JSON.stringify(states)).digest('hex');
 
-        // The previous literal came from a stale pack-stack snapshot; this is the pre-optimization output here.
-        expect(digest).toBe('658e550f96956261b4256594eb8e24901ef0c90f49ce0bc9e68ca92a6d0f171a');
+        // Captured from the complete pinned stack at the direct parent of the #2728 change.
+        expect(digest).toBe('6694d4cfa8d680caba19e4ca8cc7cc26aa2900b30ab6dbb680b4aad56a900dac');
     });
 });

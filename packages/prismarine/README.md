@@ -83,3 +83,9 @@ content-build, command-build, and world-manager-enable phases.
 pnpm --filter @jsprismarine/prismarine run bench:startup
 pnpm --filter @jsprismarine/prismarine run bench:trends -- --scenarios startup --write /tmp/startup-baseline.json
 ```
+
+## Block-state allocation benchmark
+
+`bench:block-state-allocation` measures retained heap after `buildServerContent()` and CPU time
+inside `resolveBlocks()` with the default vanilla stack. The [benchmark notes](benchmarks/block-state-allocation.md)
+record the baseline comparison, current PR head measurements, and commands for reproducing both.

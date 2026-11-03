@@ -55,6 +55,7 @@
         "build:watch": "vite build --watch",
         "bench:compile-cache": "node --import tsx benchmarks/compileCache.ts",
         "bench:startup": "node --import tsx benchmarks/compileCache.ts --startup-only",
+        "bench:block-state-allocation": "node --expose-gc --import tsx benchmarks/blockStateAllocation.mts",
         "bench:chunks": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts",
         "bench:chunks:source": "node --import tsx benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts",
         "bench:chunks:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts",
