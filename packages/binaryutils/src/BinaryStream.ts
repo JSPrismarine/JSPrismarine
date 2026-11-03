@@ -79,6 +79,22 @@ export class BinaryStream {
     }
 
     /**
+     * Writes a UTF-8 string directly into the stream's backing buffer.
+     * @param value - The string to encode.
+     */
+    public writeUTF8String(value: string): void {
+        const byteLength = Buffer.byteLength(value, 'utf8');
+        if (byteLength === 0) {
+            return;
+        }
+
+        this.ensureCapacity(byteLength);
+        // Reserve by encoded byte length, then let Buffer encode directly into that space.
+        const bytesWritten = this.writeBuffer!.write(value, this.writeIndex, byteLength, 'utf8');
+        this.writeIndex += bytesWritten;
+    }
+
+    /**
      * Reads an unsigned byte (0 to 255).
      * @returns {number}
      */
@@ -629,7 +645,12 @@ export class BinaryStream {
      */
     public writeVarLong(v: bigint) {
         const n = BigInt.asIntN(64, v);
-        return this.writeUnsignedVarLong((n << 1n) ^ (n >> 63n));
+        const zigzag = (n << 1n) ^ (n >> 63n);
+        // Zigzag values in uint32 range have identical LEB128 bytes and avoid the BigInt split.
+        if (zigzag >= 0n && zigzag <= 0xffff_ffffn) {
+            return this.writeUnsignedVarInt(Number(zigzag));
+        }
+        return this.writeUnsignedVarLong(zigzag);
     }
 
     /**
@@ -686,6 +707,11 @@ export class BinaryStream {
         // writeUnsignedVarLong(9007199254741119n) emitted a leading 0x00 - a terminator -
         // and the value read back as 0n. Negative inputs emitted ten unterminated bytes;
         // they are now well-defined as their two's complement, matching protobuf.
+        // Number is exact for uint32 values, and both writers emit the same unsigned LEB128.
+        if (v >= 0n && v <= 0xffff_ffffn) {
+            return this.writeUnsignedVarInt(Number(v));
+        }
+
         this.ensureCapacity(10);
         const buf = this.writeBuffer!;
         let i = this.writeIndex;

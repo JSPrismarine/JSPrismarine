@@ -19,7 +19,8 @@ export default class NetworkBinaryStream extends BinaryStream {
      * @param str - The string to write.
      */
     public writeString(str: string): void {
-        this.writeLengthPrefixed(Buffer.from(str, 'utf-8'));
+        this.writeUnsignedVarInt(Buffer.byteLength(str, 'utf-8'));
+        this.writeUTF8String(str);
     }
 
     /**

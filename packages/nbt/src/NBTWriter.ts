@@ -42,14 +42,14 @@ export default class NBTWriter {
 
     private writeStringValue(value: string | null): void {
         if (value !== null) {
-            const bytes = Buffer.from(value, 'utf8');
+            const byteLength = Buffer.byteLength(value, 'utf8');
             if (this.useVarint) {
-                this.buf.writeUnsignedVarInt(Buffer.byteLength(value));
+                this.buf.writeUnsignedVarInt(byteLength);
             } else {
-                this.writeStringLength(Buffer.byteLength(value));
+                this.writeStringLength(byteLength);
             }
 
-            this.buf.write(bytes);
+            this.buf.writeUTF8String(value);
         } else if (this.useVarint) {
             this.writeByteValue(0);
         } else {

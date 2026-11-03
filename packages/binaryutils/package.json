@@ -37,6 +37,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "bench": "pnpm run build && node --expose-gc bench/bench.mjs",
+        "bench:write-paths": "pnpm run build && node bench/write-paths.bench.mjs",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {

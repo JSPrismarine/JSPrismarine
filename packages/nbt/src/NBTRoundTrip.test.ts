@@ -68,6 +68,19 @@ describe('nbt', () => {
                     expect(parsed.getString('string', '')).toBe('hello');
                 });
 
+                it('writes UTF-8 strings by byte length, including empty values', () => {
+                    const root = new NBTTagCompound('根😀');
+                    root.addValue('空😀', new StringVal(''));
+                    root.addValue('motd', new StringVal('§eBedrock — 雪'));
+
+                    const { root: parsed, unread } = roundTrip(root, order, varints);
+
+                    expect(unread).toBe(0);
+                    expect(parsed.getName()).toBe('根😀');
+                    expect(parsed.getString('空😀', 'missing')).toBe('');
+                    expect(parsed.getString('motd', '')).toBe('§eBedrock — 雪');
+                });
+
                 it('carries negative shorts and ints', () => {
                     // The whole reason this suite exists: the writer used to route these through
                     // unsigned writers, which assert on anything below zero. Every real Bedrock
