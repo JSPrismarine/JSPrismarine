@@ -77,18 +77,6 @@ while (pageUrl !== undefined) {
 }
 
 const previousComment = findParityComment(comments, COMMENT_MARKER);
-const changedFiles: string[] = [];
-let changedFilesUrl: string | undefined = `${apiRoot}/repos/${repository}/pulls/${pullNumber}/files?per_page=100`;
-while (changedFilesUrl !== undefined) {
-    const response = await request(changedFilesUrl);
-    const page: unknown = await response.json();
-    if (!Array.isArray(page)) throw new Error('GitHub returned an unexpected pull request file response.');
-    for (const value of page) {
-        if (isRecord(value) && typeof value.filename === 'string') changedFiles.push(value.filename);
-    }
-    changedFilesUrl = nextPageUrl(response.headers.get('link'));
-}
-
 // These are generated from the Vitest JSON reporter by the adjacent dashboard step.
 const current = JSON.parse(readFileSync(trackerPath, 'utf8')) as TrackerData;
 const baselineReport = readFileSync(requiredEnvironment('PARITY_BASELINE_REPORT_PATH'), 'utf8');
@@ -114,7 +102,6 @@ const baselineTracker: TrackerData = baselineReport.trimStart().startsWith('{')
 const body = renderParityComment(
     current,
     baselineTracker,
-    changedFiles,
     headSha,
     'https://jsprismarine.github.io/JSPrismarine/parity.html'
 );

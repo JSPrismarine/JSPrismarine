@@ -4,7 +4,12 @@ import type { AllowListEntry } from '../allowlist.ts';
 import { FAMILIES } from '../families.ts';
 import type { VitestJsonReport } from './render.ts';
 import type { ReportedParityCase } from './tracker.ts';
-import { buildTrackerData, trackerProgressPercent, trackerProgressTotal } from './tracker.ts';
+import {
+    buildTrackerData,
+    trackerPrimaryProgressPercent,
+    trackerProgressPercent,
+    trackerProgressTotal
+} from './tracker.ts';
 
 const repositoryRoot = '/workspace';
 const parityRoot = `${repositoryRoot}/packages/parity`;
@@ -75,10 +80,17 @@ describe('parity tracker data', () => {
         expect(trackerProgressTotal({ checks: 100, deferred: 3, defects: 2 })).toBe(105);
     });
 
-    it('does not round an incomplete parity score up to 100 percent', () => {
-        expect(trackerProgressPercent(32_000, 32_000)).toBe('100.0000');
-        expect(trackerProgressPercent(31_999, 32_000)).toBe('99.9969');
-        expect(trackerProgressPercent(1_000_000, 1_000_001)).toBe('99.9999');
+    it('shows concise progress without rounding incomplete coverage up to 100 percent', () => {
+        expect(trackerProgressPercent(0, 0)).toBe('0');
+        expect(trackerProgressPercent(32_000, 32_000)).toBe('100');
+        expect(trackerProgressPercent(31_999, 32_000)).toBe('99.9');
+        expect(trackerProgressPercent(1_000_000, 1_000_001)).toBe('99.9');
+    });
+
+    it('shows the primary tracked-case pass rate to two decimal places', () => {
+        expect(trackerPrimaryProgressPercent(49_678, 52_806)).toBe('94.08');
+        expect(trackerPrimaryProgressPercent(9_999, 10_000)).toBe('99.99');
+        expect(trackerPrimaryProgressPercent(10_000, 10_000)).toBe('100');
     });
 
     it('includes explicit data comparisons and excludes ordinary parity-suite assertions', () => {
@@ -125,6 +137,44 @@ describe('parity tracker data', () => {
             { text: 'https://example.com/decision', href: 'https://example.com/decision' }
         ]);
         expect(tracker.cases[3]).toMatchObject({ status: 'deferred' });
+    });
+
+    it('merges measured entity runtime support into the not-measured behavior row', () => {
+        const tracker = buildTrackerData(report, [], repositoryRoot, parityRoot, {}, [
+            {
+                family: FAMILIES.entitiesBehavior,
+                id: 'runtime-behavior:minecraft:ender_dragon',
+                title: 'minecraft:ender_dragon',
+                context: 'Complete Java entity behavior parity is not measured.',
+                status: 'not measured',
+                sourceFile: 'packages/parity/src/runtime-behavior-coverage.test.ts',
+                runtimeSupport: {
+                    status: 'not checked',
+                    details: 'Runtime source data is unavailable.'
+                }
+            },
+            {
+                family: FAMILIES.entitiesBehavior,
+                id: 'runtime-behavior:minecraft:ender_dragon',
+                title: 'minecraft:ender_dragon',
+                status: 'not measured',
+                sourceFile: 'packages/parity/src/integration.test.ts',
+                runtimeSupport: {
+                    status: 'partial',
+                    details: 'Spawnable with unresolved component declarations.'
+                }
+            }
+        ]);
+
+        const dragonCases = tracker.cases.filter(({ title }) => title === 'minecraft:ender_dragon');
+        expect(dragonCases).toHaveLength(1);
+        expect(dragonCases[0]).toMatchObject({
+            family: FAMILIES.entitiesBehavior,
+            status: 'not measured',
+            context: 'Complete Java entity behavior parity is not measured.',
+            sourceFile: 'packages/parity/src/integration.test.ts',
+            runtimeSupport: { status: 'partial', details: 'Spawnable with unresolved component declarations.' }
+        });
     });
 
     it('omits families with no parity cases from the snapshot', () => {

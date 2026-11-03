@@ -1,0 +1,17 @@
+/* The primary and secondary accents match the JSPrismarine website. */
+:root {
+    --prismarine-accent: #5ca48a;
+    --prismarine-forest: #003829;
+
+    --vp-c-brand-1: var(--prismarine-forest);
+    --vp-c-brand-2: color-mix(in srgb, var(--prismarine-forest) 80%, var(--prismarine-accent));
+    --vp-c-brand-3: color-mix(in srgb, var(--prismarine-forest) 55%, var(--prismarine-accent));
+    --vp-c-brand-soft: color-mix(in srgb, var(--prismarine-accent) 14%, transparent);
+}
+
+.dark {
+    --vp-c-brand-1: var(--prismarine-accent);
+    --vp-c-brand-2: color-mix(in srgb, var(--prismarine-accent) 86%, var(--vp-c-white));
+    --vp-c-brand-3: color-mix(in srgb, var(--prismarine-forest) 55%, var(--prismarine-accent));
+    --vp-c-brand-soft: color-mix(in srgb, var(--prismarine-accent) 16%, transparent);
+}

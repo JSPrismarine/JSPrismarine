@@ -1,5 +1,6 @@
 import DefaultTheme from 'vitepress/theme';
 
+import './brand.css';
 import ParityTracker from './ParityTracker.vue';
 
 export default {

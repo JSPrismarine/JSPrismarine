@@ -22,6 +22,7 @@
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
         "build:docs": "pnpm --filter @jsprismarine/docs run docs",
+        "dev:docs": "pnpm --filter @jsprismarine/docs run docs:dev",
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
         "test": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && vitest run --coverage",

@@ -17,6 +17,8 @@ import {
     javaEntityTypeToBedrock,
     javaItemToBedrock
 } from '@jsprismarine/mapping';
+import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
+import { entitiesTable } from '@jsprismarine/mapping/tables';
 import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
@@ -40,6 +42,7 @@ import { loadBlockPaletteCapture, loadRequiredItemList } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
+import type { TrackerRuntimeSupport } from './trackerCases.ts';
 import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
@@ -68,6 +71,7 @@ interface EntityCoverageCounts {
     declared: number;
     hookBacked: number;
     dataOnly: number;
+    registeredNoHook: number;
     triggers: number;
     goals: number;
     unimplemented: number;
@@ -1055,12 +1059,23 @@ interface EntityRuntimeCase {
     readonly identifier: string;
     readonly components: readonly string[];
     readonly gaps: readonly string[];
+    readonly runtimeSupport: TrackerRuntimeSupport;
+}
+
+interface JavaEntityRuntimeCase {
+    readonly identifier: string;
+    readonly runtimeSupport: TrackerRuntimeSupport;
 }
 
 /** Compares every entity declaration with its resolved type, component path, and live spawn/tick. */
 const compareEntityRuntimeCoverage = (
     stack: RealStack
-): { gaps: string[]; measurements: Record<string, number>; cases: EntityRuntimeCase[] } => {
+): {
+    gaps: string[];
+    measurements: Record<string, number>;
+    cases: EntityRuntimeCase[];
+    javaCases: JavaEntityRuntimeCase[];
+} => {
     const { content, runtime, reports, reportContext } = stack;
     const source = content.definitions.entities;
     const types = content.entities.registry;
@@ -1074,6 +1089,7 @@ const compareEntityRuntimeCoverage = (
     const runtimeIdentifiers = new Set([...types].map(([identifier]) => identifier));
     const measurements: Record<string, number> = {};
     const entityCoverage = new Map<string, EntityCoverageCounts>();
+    const runtimeSupportByIdentifier = new Map<string, TrackerRuntimeSupport>();
     let spawnedTypes = 0;
     let tickedTypes = 0;
     let missingRuntimeTypes = 0;
@@ -1100,6 +1116,10 @@ const compareEntityRuntimeCoverage = (
         if (type === undefined) {
             missingRuntimeTypes += 1;
             gaps.push(`missing-runtime-type:${identifier}`);
+            runtimeSupportByIdentifier.set(identifier, {
+                status: 'missing',
+                details: `No resolved runtime entity definition exists for ${identifier}.`
+            });
             continue;
         }
 
@@ -1108,6 +1128,7 @@ const compareEntityRuntimeCoverage = (
             declared: type.declaredComponents.length,
             hookBacked: 0,
             dataOnly: 0,
+            registeredNoHook: 0,
             triggers: 0,
             goals: 0,
             unimplemented: 0,
@@ -1125,6 +1146,9 @@ const compareEntityRuntimeCoverage = (
             unimplementedComponents.push(component);
             gaps.push(`unimplemented-component:${identifier}:${component}`);
         }
+        const implementationIssues = type.unimplementedComponents.map(
+            (component) => `Unimplemented component ${component}.`
+        );
 
         if (unimplementedComponents.length > 0) {
             measurements[`entity:${identifier}:unimplemented-components:${unimplementedComponents.join(',')}`] =
@@ -1147,6 +1171,7 @@ const compareEntityRuntimeCoverage = (
                 coverage.hookBacked += 1;
             } else {
                 registeredComponentDeclarationsWithoutHooks += 1;
+                coverage.registeredNoHook += 1;
                 registeredNoHookComponents.push(component);
             }
         }
@@ -1169,18 +1194,30 @@ const compareEntityRuntimeCoverage = (
                 data === undefined ? {} : { data }
             );
         } catch (error) {
-            gaps.push(`spawn-failed:${identifier}:${error instanceof Error ? error.message : String(error)}`);
+            const reason = error instanceof Error ? error.message : String(error);
+            gaps.push(`spawn-failed:${identifier}:${reason}`);
+            runtimeSupportByIdentifier.set(identifier, {
+                status: 'missing',
+                details: `Runtime type ${identifier} is registered but cannot spawn: ${reason}`
+            });
             reportContext.identifier = undefined;
             continue;
         }
         if (entity === undefined) {
             gaps.push(`spawn-failed:${identifier}:runtime returned no entity`);
+            runtimeSupportByIdentifier.set(identifier, {
+                status: 'missing',
+                details: `Runtime type ${identifier} is registered, but spawn returned no entity.`
+            });
             reportContext.identifier = undefined;
             continue;
         }
 
         spawnedTypes += 1;
-        if (entity.identifier !== identifier) gaps.push(`spawned-wrong-type:${identifier}:${entity.identifier}`);
+        if (entity.identifier !== identifier) {
+            gaps.push(`spawned-wrong-type:${identifier}:${entity.identifier}`);
+            implementationIssues.push(`Spawned ${entity.identifier} instead of ${identifier}.`);
+        }
         const activeComponentNames = entity.instance.activeComponents().toSorted();
         const activeGoalNames = entity.instance.goals.names().toSorted();
         const componentCoverage = entityCoverage.get(identifier);
@@ -1192,21 +1229,37 @@ const compareEntityRuntimeCoverage = (
         for (const component of activeComponentNames) {
             if (!declaredComponentsForEntity.has(component)) {
                 gaps.push(`active-component-without-declaration:${identifier}:${component}`);
+                implementationIssues.push(`Active component ${component} has no declaration.`);
             }
         }
         for (const goal of activeGoalNames) {
-            if (!declaredComponentsForEntity.has(goal))
+            if (!declaredComponentsForEntity.has(goal)) {
                 gaps.push(`active-goal-without-declaration:${identifier}:${goal}`);
+                implementationIssues.push(`Active goal ${goal} has no declaration.`);
+            }
         }
         try {
             runtime.tick(++tick);
             tickedTypes += 1;
         } catch (error) {
-            gaps.push(`tick-failed:${identifier}:${error instanceof Error ? error.message : String(error)}`);
+            const reason = error instanceof Error ? error.message : String(error);
+            gaps.push(`tick-failed:${identifier}:${reason}`);
+            implementationIssues.push(`Runtime tick failed: ${reason}`);
         } finally {
             runtime.remove(entity.id, 'parity entity coverage check complete');
             reportContext.identifier = undefined;
         }
+
+        runtimeSupportByIdentifier.set(identifier, {
+            status: implementationIssues.length === 0 ? 'spawnable' : 'partial',
+            details: [
+                `Runtime type ${identifier} resolves and spawns. ${coverage.declared} declared components: ${coverage.hookBacked} hook-backed, ${coverage.dataOnly} data-only, ${coverage.triggers} triggers, ${coverage.goals} AI goals, ${coverage.registeredNoHook} registered without direct hooks, and ${coverage.unimplemented} unresolved. ${activeComponentNames.length} components and ${activeGoalNames.length} AI goals are active at spawn.`,
+                ...(type.unimplementedComponents.length === 0
+                    ? []
+                    : [`Unresolved: ${type.unimplementedComponents.join(', ')}.`]),
+                ...implementationIssues
+            ].join(' ')
+        });
     }
 
     const componentTypes = [...declaredComponents];
@@ -1244,12 +1297,76 @@ const compareEntityRuntimeCoverage = (
     const cases = sourceIdentifiers.map((identifier): EntityRuntimeCase => {
         const type = types.get(identifier);
         const relatedGaps = gaps.filter((gap) => gap.includes(`${identifier}:`) || gap.endsWith(`:${identifier}`));
-        return { identifier, components: type?.declaredComponents ?? [], gaps: relatedGaps };
+        return {
+            identifier,
+            components: type?.declaredComponents ?? [],
+            gaps: relatedGaps,
+            runtimeSupport: runtimeSupportByIdentifier.get(identifier) ?? {
+                status: 'missing',
+                details: `No runtime check result exists for ${identifier}.`
+            }
+        };
+    });
+    const javaIdentifiers = [
+        ...new Set([...Object.keys(entitiesTable.entities), ...ENTITY_LOSSES.map(({ javaId }) => javaId)])
+    ].toSorted((left, right) => left.localeCompare(right, 'en'));
+    const javaCases = javaIdentifiers.map((identifier): JavaEntityRuntimeCase => {
+        const mapping = javaEntityTypeToBedrock(identifier);
+        if (mapping.kind === 'mapped') {
+            return {
+                identifier,
+                runtimeSupport: runtimeSupportByIdentifier.get(mapping.bedrock) ?? {
+                    status: 'missing',
+                    details: `Java ${identifier} maps to ${mapping.bedrock}, but that runtime type was not checked.`
+                }
+            };
+        }
+        if (mapping.kind === 'loss') {
+            if (mapping.loss.kind === 'block') {
+                return {
+                    identifier,
+                    runtimeSupport: {
+                        status: 'block-backed',
+                        details: `${mapping.loss.reason} Runtime entity spawn does not apply.`
+                    }
+                };
+            }
+            if (mapping.loss.bedrockFallback === undefined) {
+                return {
+                    identifier,
+                    runtimeSupport: { status: 'unrepresentable', details: mapping.loss.reason }
+                };
+            }
+
+            const fallbackSupport = runtimeSupportByIdentifier.get(mapping.loss.bedrockFallback);
+            return {
+                identifier,
+                runtimeSupport:
+                    fallbackSupport === undefined || fallbackSupport.status === 'missing'
+                        ? {
+                              status: 'missing',
+                              details: `${mapping.loss.reason} The substitute ${mapping.loss.bedrockFallback} has no working runtime spawn.`
+                          }
+                        : {
+                              status: 'substitute',
+                              details: `${mapping.loss.reason} Substitute runtime: ${fallbackSupport.details}`
+                          }
+            };
+        }
+
+        return {
+            identifier,
+            runtimeSupport: {
+                status: 'missing',
+                details: `Java entity ${identifier} does not have a known Bedrock runtime mapping.`
+            }
+        };
     });
 
     return {
         gaps,
         cases,
+        javaCases,
         measurements: {
             ...measurements,
             sourceEntityDeclarations: source.size,
@@ -1287,16 +1404,35 @@ describeFamily(
             reportParityCases(
                 FAMILIES.integrationEntityCoverage,
                 import.meta.filename,
-                comparison.cases.map(({ identifier, components, gaps }) => ({
+                comparison.cases.map(({ identifier, components, gaps, runtimeSupport }) => ({
                     id: identifier,
                     title: identifier,
                     context: `Declared entity components: ${components.join(', ')}`,
                     status: gaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+                    runtimeSupport,
                     ...(gaps.length === 0 ? {} : { details: gaps.join('; ') })
+                }))
+            );
+            reportParityCases(
+                FAMILIES.entitiesBehavior,
+                import.meta.filename,
+                comparison.javaCases.map(({ identifier, runtimeSupport }) => ({
+                    id: `runtime-behavior:${identifier}`,
+                    title: identifier,
+                    status: 'not measured',
+                    runtimeSupport
                 }))
             );
 
             reportParityProgress(FAMILIES.integrationEntityCoverage, comparison.measurements);
+            expect(comparison.javaCases.map(({ identifier }) => identifier)).toContain('minecraft:ender_dragon');
+            expect(
+                comparison.javaCases.find(({ identifier }) => identifier === 'minecraft:ender_dragon')?.runtimeSupport
+                    .details
+            ).toContain('minecraft:ender_dragon');
+            expect(comparison.javaCases).toHaveLength(
+                new Set([...Object.keys(entitiesTable.entities), ...ENTITY_LOSSES.map(({ javaId }) => javaId)]).size
+            );
             expect(verdict.unexpected).toEqual([]);
             expect(verdict.stale).toEqual([]);
         });

@@ -3,8 +3,9 @@ import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type { AllowListEntry } from '../allowlist.ts';
 import { ALL_FAMILIES, familyOf } from '../families.ts';
 import type { Family } from '../families.ts';
-import type { ParityTrackerRecord } from '../trackerCases.ts';
+import type { ParityTrackerRecord, TrackerRuntimeSupport } from '../trackerCases.ts';
 import type { ReportedTest, VitestJsonReport } from './render.ts';
+export { trackerPrimaryProgressPercent, trackerProgressPercent, trackerProgressTotal } from './trackerProgress.ts';
 
 /** The outcome recorded for a comparison or an allow-listed parity gap. */
 export type TrackerStatus = 'passed' | 'failed' | 'not measured' | 'intentional' | 'deferred' | 'defect';
@@ -13,6 +14,18 @@ export type TrackerStatus = 'passed' | 'failed' | 'not measured' | 'intentional'
 export interface TrackerReferencePart {
     readonly text: string;
     readonly href?: string;
+}
+
+/** A recording associated with a parity case and hosted in the docs site's public assets. */
+export interface TrackerVideo {
+    /** Short label that distinguishes this clip, such as "Before fix" or "After fix". */
+    readonly label: string;
+    /** Path relative to the VitePress public directory. */
+    readonly src: string;
+    /** Additional context shown below the player. */
+    readonly caption?: string;
+    /** Optional path relative to the VitePress public directory for the preview frame. */
+    readonly poster?: string;
 }
 
 /** One named data comparison or expected difference shown in the public parity tracker. */
@@ -37,6 +50,10 @@ export interface TrackerCase {
     readonly details?: string;
     /** Human-readable reference text, with repository files and URLs made clickable. */
     readonly references?: readonly TrackerReferencePart[];
+    /** Optional screen recordings that demonstrate this case. */
+    readonly videos?: readonly TrackerVideo[];
+    /** Runtime entity support, reported separately from behavior parity. */
+    readonly runtimeSupport?: TrackerRuntimeSupport;
 }
 
 /** The case counts and entries for one behavior family. */
@@ -67,16 +84,6 @@ export interface TrackerData {
     readonly deferred: number;
     readonly defects: number;
 }
-
-/** Comparisons and unresolved differences that count against parity progress. */
-export const trackerProgressTotal = (counts: Pick<TrackerData, 'checks' | 'deferred' | 'defects'>): number =>
-    counts.checks + counts.deferred + counts.defects;
-
-/** Formats parity progress without rounding an incomplete score up to 100 percent. */
-export const trackerProgressPercent = (passed: number, tracked: number): string => {
-    const score = tracked === 0 ? 0 : (passed / tracked) * 100;
-    return Math.min(score, passed < tracked ? 99.9999 : 100).toFixed(4);
-};
 
 /** Metadata that identifies the checkout used to produce a tracker snapshot. */
 export interface TrackerMetadata {
@@ -137,8 +144,34 @@ const dataCase = (record: ReportedParityCase, repoRoot: string, parityRoot: stri
     kind: 'check',
     status: record.status,
     sourceFile: sourcePath(record.sourceFile, repoRoot, parityRoot),
-    ...(record.details === undefined ? {} : { details: record.details })
+    ...(record.details === undefined ? {} : { details: record.details }),
+    ...(record.runtimeSupport === undefined ? {} : { runtimeSupport: record.runtimeSupport })
 });
+
+const mergedParityCases = (records: readonly ReportedParityCase[]): ReportedParityCase[] => {
+    const merged = new Map<string, ReportedParityCase>();
+
+    for (const record of records) {
+        const key = `${record.family}\0${record.id}`;
+        const current = merged.get(key);
+        if (current === undefined) {
+            merged.set(key, record);
+            continue;
+        }
+
+        const hasMeasuredSupport =
+            record.runtimeSupport !== undefined && record.runtimeSupport.status !== 'not checked';
+        const runtimeSupport = hasMeasuredSupport ? record.runtimeSupport : current.runtimeSupport;
+        const sourceFile = hasMeasuredSupport ? record.sourceFile : current.sourceFile;
+        merged.set(key, {
+            ...current,
+            sourceFile,
+            ...(runtimeSupport === undefined ? {} : { runtimeSupport })
+        });
+    }
+
+    return [...merged.values()];
+};
 
 const referenceParts = (reference: string, revision: string): readonly TrackerReferencePart[] => {
     const repositoryRevision = /^[0-9a-f]{40}$/i.test(revision) ? revision : 'master';
@@ -221,7 +254,7 @@ export const buildTrackerData = (
     metadata: TrackerMetadata = {},
     parityCases: readonly ReportedParityCase[] = []
 ): TrackerData => {
-    const cases: TrackerCase[] = parityCases.map((record) => dataCase(record, repoRoot, parityRoot));
+    const cases: TrackerCase[] = mergedParityCases(parityCases).map((record) => dataCase(record, repoRoot, parityRoot));
 
     for (const file of report.testResults) {
         const filePath = sourcePath(file.name, repoRoot, parityRoot);

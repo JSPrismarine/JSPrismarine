@@ -55,11 +55,17 @@ export const FAMILIES = {
     entitiesStats: 'entities.stats',
     /** The `AddActorPacket` payload per advertised actor type (phase 3 exit). */
     entitiesAddActor: 'entities.addactor',
+    /** Java entity-specific runtime behavior coverage, listed separately from registry and packet data. */
+    entitiesBehavior: 'entities.behavior',
 
     /** Java and Bedrock tag data through the resolved runtime registries. */
     integrationTags: 'integration.tags',
     /** Vanilla block behaviors write states accepted by the Bedrock block catalog. */
     integrationBlockBehaviors: 'integration.block-behaviors',
+    /** Java block runtime behavior coverage, listed separately from block data comparisons. */
+    blocksBehavior: 'blocks.behavior',
+    /** Java item runtime behavior coverage, listed separately from item data comparisons. */
+    itemsBehavior: 'items.behavior',
     /** A representative vanilla data-driven entity through an event, tick, and physics step. */
     integrationEntityRuntime: 'integration.entity-runtime',
     /** The composed vanilla spawn rules through the natural spawn loop. */
