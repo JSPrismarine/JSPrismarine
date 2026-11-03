@@ -204,6 +204,7 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         players: new Map(),
         entities: new Map(),
         dimension: Dimensions.Overworld,
+        systems: {},
         server
     });
     const player = stub<Player>({
@@ -220,7 +221,8 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
     world.attachChangeSink({ ...NULL_WORLD_CHANGE_SINK, worldChanged: (change) => void written.push(change) });
 
     /** One spawner pass over every chunk, the way the tick runs it. */
-    const tick = () => world['tickSpawners']({ simulates: () => true } as never);
+    const references = { getRevision: () => 0, simulates: () => true };
+    const tick = () => world['tickSpawners'](references as never);
 
     return { world, chunk, spawned, written, tick };
 };

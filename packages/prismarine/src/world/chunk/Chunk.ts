@@ -8,11 +8,13 @@ import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
+import { Furnace, MobSpawner } from '../../blockentity/BlockEntities';
 import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionType } from '../Dimension';
 import type { EntitySpawn } from '../EntitySpawn';
 import { ChunkBiomes } from './ChunkBiomes';
 import SubChunk from './SubChunk';
+import { sectionTakesRandomTicks } from '../randomTickSections';
 
 /**
  * The vertical range the client gives a dimension id, which is the range a chunk payload has to
@@ -94,6 +96,10 @@ export default class Chunk {
     private readonly subChunks: Array<SubChunk | undefined>;
     private readonly subChunkOrder: number[] = [];
     private storedSubChunkCount = 0;
+    private subChunkLayoutRevision = 0;
+    private cachedRandomTickLayoutRevision = -1;
+    private cachedRandomTickSectionRevision = -1;
+    private cachedRandomTickSections: readonly number[] = [];
 
     /**
      * The chests, signs and furnaces standing in this chunk, keyed by position.
@@ -102,6 +108,17 @@ export default class Chunk {
      * its contents travel together, and a chunk that was never loaded cannot lose them.
      */
     private readonly blockEntities: Map<number, BlockEntity> = new Map();
+    /** Stable insertion positions keep filtered tick indexes in the Map's iteration order. */
+    private readonly blockEntityOrder = new Map<number, number>();
+    private nextBlockEntityOrder = 0;
+    private readonly furnaces: Array<{ readonly index: number; readonly order: number; readonly entity: Furnace }> = [];
+    private readonly mobSpawners: Array<{
+        readonly index: number;
+        readonly order: number;
+        readonly entity: MobSpawner;
+    }> = [];
+    private cachedFurnaces: readonly Furnace[] | undefined;
+    private cachedMobSpawners: readonly MobSpawner[] | undefined;
     private blockEntityRevision = 0;
 
     /** Actor changes are separate from block state, so moving one never dirties its block records. */
@@ -436,7 +453,33 @@ export default class Chunk {
             this.subChunkOrder.push(index);
             this.storedSubChunkCount++;
         }
+        if (this.subChunks[offset] !== subChunk) this.subChunkLayoutRevision++;
         this.subChunks[offset] = subChunk;
+    }
+
+    /** Sections that can draw random-tick positions, cached until their stored blocks change. */
+    public getRandomTickSections(): readonly number[] {
+        // SubChunk revisions only increase, so their sum changes on every block write. The
+        // separate layout revision catches replacing a section with another at a lower revision.
+        let sectionRevision = 0;
+        for (const index of this.subChunkOrder)
+            sectionRevision += this.subChunks[index - this.minSubChunkY]!.getRevision();
+
+        if (
+            this.cachedRandomTickLayoutRevision === this.subChunkLayoutRevision &&
+            this.cachedRandomTickSectionRevision === sectionRevision
+        )
+            return this.cachedRandomTickSections;
+
+        const sections: number[] = [];
+        for (const index of this.subChunkOrder) {
+            if (sectionTakesRandomTicks(this.subChunks[index - this.minSubChunkY]!)) sections.push(index);
+        }
+
+        this.cachedRandomTickLayoutRevision = this.subChunkLayoutRevision;
+        this.cachedRandomTickSectionRevision = sectionRevision;
+        this.cachedRandomTickSections = sections;
+        return sections;
     }
 
     /**
@@ -456,7 +499,25 @@ export default class Chunk {
     /** Files a block entity at its own position, which it carries in world coordinates. */
     public setBlockEntity(blockEntity: BlockEntity): void {
         const position = blockEntity.getPosition();
-        this.blockEntities.set(this.blockEntityIndex(position.getX(), position.getY(), position.getZ()), blockEntity);
+        const index = this.blockEntityIndex(position.getX(), position.getY(), position.getZ());
+        const previous = this.blockEntities.get(index);
+        let order = this.blockEntityOrder.get(index);
+        if (order === undefined) {
+            order = this.nextBlockEntityOrder++;
+            this.blockEntityOrder.set(index, order);
+        } else if (previous instanceof Furnace) {
+            this.removeIndexedBlockEntity(this.furnaces, index);
+        } else if (previous instanceof MobSpawner) {
+            this.removeIndexedBlockEntity(this.mobSpawners, index);
+        }
+
+        if (previous instanceof Furnace || blockEntity instanceof Furnace) this.cachedFurnaces = undefined;
+        if (previous instanceof MobSpawner || blockEntity instanceof MobSpawner) this.cachedMobSpawners = undefined;
+        this.blockEntities.set(index, blockEntity);
+        if (blockEntity instanceof Furnace)
+            this.insertIndexedBlockEntity(this.furnaces, { index, order, entity: blockEntity });
+        else if (blockEntity instanceof MobSpawner)
+            this.insertIndexedBlockEntity(this.mobSpawners, { index, order, entity: blockEntity });
 
         this.hasChanged = true;
         this.blockEntityRevision++;
@@ -464,8 +525,18 @@ export default class Chunk {
     }
 
     public removeBlockEntity(x: number, y: number, z: number): boolean {
-        const removed = this.blockEntities.delete(this.blockEntityIndex(x, y, z));
+        const index = this.blockEntityIndex(x, y, z);
+        const removedEntity = this.blockEntities.get(index);
+        const removed = this.blockEntities.delete(index);
         if (removed) {
+            this.blockEntityOrder.delete(index);
+            if (removedEntity instanceof Furnace) {
+                this.removeIndexedBlockEntity(this.furnaces, index);
+                this.cachedFurnaces = undefined;
+            } else if (removedEntity instanceof MobSpawner) {
+                this.removeIndexedBlockEntity(this.mobSpawners, index);
+                this.cachedMobSpawners = undefined;
+            }
             this.hasChanged = true;
             this.blockEntityRevision++;
             this.invalidateNetworkSerialization();
@@ -496,6 +567,45 @@ export default class Chunk {
 
     public getBlockEntities(): IterableIterator<BlockEntity> {
         return this.blockEntities.values();
+    }
+
+    /** Furnaces in their original insertion order, without scanning unrelated entities. */
+    public getFurnaces(): IterableIterator<Furnace> {
+        const snapshot = (this.cachedFurnaces ??= this.furnaces.map(({ entity }) => entity));
+        return snapshot[Symbol.iterator]();
+    }
+
+    /** Spawners in their original insertion order, without scanning unrelated entities. */
+    public getMobSpawners(): IterableIterator<MobSpawner> {
+        const snapshot = (this.cachedMobSpawners ??= this.mobSpawners.map(({ entity }) => entity));
+        return snapshot[Symbol.iterator]();
+    }
+
+    /** Number of block entities with a per-tick update. */
+    public getTickableBlockEntityCount(): number {
+        return this.furnaces.length + this.mobSpawners.length;
+    }
+
+    private insertIndexedBlockEntity<T extends BlockEntity>(
+        entries: Array<{ readonly index: number; readonly order: number; readonly entity: T }>,
+        entry: { readonly index: number; readonly order: number; readonly entity: T }
+    ): void {
+        let low = 0;
+        let high = entries.length;
+        while (low < high) {
+            const middle = (low + high) >>> 1;
+            if (entries[middle]!.order < entry.order) low = middle + 1;
+            else high = middle;
+        }
+        entries.splice(low, 0, entry);
+    }
+
+    private removeIndexedBlockEntity<T extends BlockEntity>(
+        entries: Array<{ readonly index: number; readonly order: number; readonly entity: T }>,
+        index: number
+    ): void {
+        const entryIndex = entries.findIndex((entry) => entry.index === index);
+        if (entryIndex !== -1) entries.splice(entryIndex, 1);
     }
 
     /**

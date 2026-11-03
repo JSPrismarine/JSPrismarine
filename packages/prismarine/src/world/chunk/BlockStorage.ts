@@ -36,6 +36,7 @@ export default class BlockStorage {
     private palette: number[];
     private nonAirBlocks: number;
     private readonly airRuntimeId: number;
+    private revision = 0;
 
     /**
      * Where each runtime id sits in {@link palette}.
@@ -102,6 +103,11 @@ export default class BlockStorage {
         return state;
     }
 
+    /** The number of writes made through this storage's mutable block API. */
+    public getRevision(): number {
+        return this.revision;
+    }
+
     /**
      * The runtime id at a position, without resolving it to a state.
      *
@@ -121,6 +127,7 @@ export default class BlockStorage {
 
         if (previous === this.airRuntimeId && runtimeId !== this.airRuntimeId) this.nonAirBlocks++;
         else if (previous !== this.airRuntimeId && runtimeId === this.airRuntimeId) this.nonAirBlocks--;
+        this.revision++;
     }
 
     /**

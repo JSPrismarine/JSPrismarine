@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import BlockStorage from './chunk/BlockStorage';
+import Chunk from './chunk/Chunk';
 import SubChunk from './chunk/SubChunk';
 import { sectionTakesRandomTicks, takesRandomTicks } from './randomTickSections';
 
@@ -99,5 +100,33 @@ describe('sectionTakesRandomTicks', () => {
 
         expect(sectionTakesRandomTicks(new SubChunk(new Map([[0, storage]])))).toBe(true);
         expect(storage.blockReads).toBe(0);
+    });
+});
+
+describe('chunk random-tick section cache', () => {
+    it('reuses its section list until a stored section changes', () => {
+        const section = new SubChunk();
+        section.setBlock(1, 2, 3, idOf('minecraft:stone'), 0);
+        const chunk = new Chunk(0, 0, new Map([[0, section]]));
+
+        const stoneSections = chunk.getRandomTickSections();
+        expect(stoneSections).toEqual([]);
+        expect(chunk.getRandomTickSections()).toBe(stoneSections);
+
+        section.setBlock(1, 2, 3, idOf('minecraft:wheat'), 0);
+        const cropSections = chunk.getRandomTickSections();
+        expect(cropSections).toEqual([0]);
+        expect(cropSections).not.toBe(stoneSections);
+        expect(chunk.getRandomTickSections()).toBe(cropSections);
+    });
+
+    it('invalidates when a caller writes through the live block storage', () => {
+        const storage = new BlockStorage({});
+        const chunk = new Chunk(0, 0, new Map([[0, new SubChunk(new Map([[0, storage]]))]]));
+        expect(chunk.getRandomTickSections()).toEqual([]);
+
+        storage.setBlock(1, 2, 3, idOf('minecraft:wheat'));
+
+        expect(chunk.getRandomTickSections()).toEqual([0]);
     });
 });

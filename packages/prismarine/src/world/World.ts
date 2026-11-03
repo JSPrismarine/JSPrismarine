@@ -8,7 +8,6 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { ActorEvent } from '@jsprismarine/minecraft';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
-import { MobSpawner } from '../blockentity/BlockEntities';
 import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { BlockView } from '../entity/ai/BlockView';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -60,7 +59,6 @@ import { GenerationStopped } from './Generator';
 import { createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
-import { sectionTakesRandomTicks } from './randomTickSections';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { Weather } from '@jsprismarine/engine-systems';
 import type { ContentPosition } from '../content/world/adapter';
@@ -228,8 +226,12 @@ interface ChunkPlayerCounts {
 class PlayerChunkRefCounts {
     private readonly players = new Map<number, PlayerChunkCoverage>();
     private readonly chunks = new Map<number, ChunkPlayerCounts>();
+    private readonly loadedChunks = new Set<number>();
+    private readonly unloadCandidates = new Set<number>();
+    private revision = 0;
 
     public synchronize(players: ReadonlyMap<number, Player>): void {
+        let changed = false;
         for (const [runtimeId, player] of players) {
             const position = player.getPosition();
             const coverage = {
@@ -249,6 +251,7 @@ class PlayerChunkRefCounts {
             if (previous !== undefined) this.changeCoverage(previous, -1);
             this.changeCoverage(coverage, 1);
             this.players.set(runtimeId, coverage);
+            changed = true;
         }
 
         for (const [runtimeId, coverage] of this.players) {
@@ -256,7 +259,35 @@ class PlayerChunkRefCounts {
 
             this.changeCoverage(coverage, -1);
             this.players.delete(runtimeId);
+            changed = true;
         }
+
+        if (changed) this.revision++;
+    }
+
+    public getRevision(): number {
+        return this.revision;
+    }
+
+    /** Adds one loaded chunk to the maintained set eligible for distant unload. */
+    public chunkLoaded(chunk: Chunk): void {
+        const x = chunk.getX();
+        const z = chunk.getZ();
+        const index = Chunk.packXZ(x, z);
+        this.loadedChunks.add(index);
+        if (this.retains(x, z)) this.unloadCandidates.delete(index);
+        else this.unloadCandidates.add(index);
+    }
+
+    /** Removes an unloaded chunk from both maintained chunk indexes. */
+    public chunkUnloaded(chunk: Chunk): void {
+        const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
+        this.loadedChunks.delete(index);
+        this.unloadCandidates.delete(index);
+    }
+
+    public getUnloadCandidates(): Iterable<number> {
+        return this.unloadCandidates;
     }
 
     public simulates(chunkX: number, chunkZ: number): boolean {
@@ -289,6 +320,11 @@ class PlayerChunkRefCounts {
                 const key = Chunk.packXZ(chunkX, chunkZ);
                 const counts = this.chunks.get(key) ?? { simulation: 0, retention: 0, light: 0 };
                 counts[area] += change;
+
+                if (area === 'retention') {
+                    if (counts.retention > 0) this.unloadCandidates.delete(key);
+                    else if (this.loadedChunks.has(key)) this.unloadCandidates.add(key);
+                }
 
                 if (counts.simulation === 0 && counts.retention === 0 && counts.light === 0) this.chunks.delete(key);
                 else this.chunks.set(key, counts);
@@ -428,6 +464,10 @@ export class World implements Service {
     private readonly chunks: Map<number, Chunk> = new Map();
     private blockWriteVersion = World.nextBlockWriteVersion++;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
+    private loadedChunksRevision = 0;
+    private simulationChunksCache:
+        | { readonly coverageRevision: number; readonly loadedRevision: number; readonly chunks: readonly Chunk[] }
+        | undefined;
 
     /**
      * The chunk loads that have been started and have not finished, by packed position.
@@ -723,10 +763,8 @@ export class World implements Service {
         const content = this.server.getContent?.();
         if (content === undefined) return;
 
-        for (const chunk of this.chunks.values()) {
-            if (!playerChunkRefCounts.simulates(chunk.getX(), chunk.getZ())) continue;
-
-            for (const blockEntity of [...chunk.getBlockEntities()]) {
+        for (const chunk of this.simulationChunks(playerChunkRefCounts)) {
+            for (const blockEntity of chunk.getFurnaces()) {
                 const position = blockEntity.getPosition();
                 const x = position.getX();
                 const y = position.getY();
@@ -787,11 +825,8 @@ export class World implements Service {
         let random: (() => number) | undefined;
         let view: BlockView | undefined;
 
-        for (const chunk of this.chunks.values()) {
-            if (!playerChunkRefCounts.simulates(chunk.getX(), chunk.getZ())) continue;
-
-            for (const blockEntity of [...chunk.getBlockEntities()]) {
-                if (!(blockEntity instanceof MobSpawner)) continue;
+        for (const chunk of this.simulationChunks(playerChunkRefCounts)) {
+            for (const blockEntity of chunk.getMobSpawners()) {
                 random ??= this.server.getRandom();
                 view ??= new BlockView(this);
 
@@ -1289,6 +1324,8 @@ export class World implements Service {
             options
         );
         this.chunks.set(index, chunk);
+        this.loadedChunksRevision++;
+        this.getPlayerChunkRefCounts().chunkLoaded(chunk);
         this.getPortalIndex().chunkLoaded(chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
         // The only thing that changes what `getLoadedChunk` should answer.
@@ -2263,7 +2300,7 @@ export class World implements Service {
      * however much of the world is in memory - which is also why nobody's furnaces burn while
      * they are logged off. And within a chunk, only the sections whose palette holds something
      * that takes random ticks, which is Java's `LevelChunkSection.isRandomlyTicking`; see
-     * {@link sectionTakesRandomTicks}. The three hundred blocks of air over an Overworld column
+     * {@link Chunk.getRandomTickSections}. The three hundred blocks of air over an Overworld column
      * and the stone under it are both skipped.
      *
      * The section test has to be Java's rather than merely cheap, because the draw state is one
@@ -2282,15 +2319,10 @@ export class World implements Service {
         if (this.players.size === 0) return [];
 
         const visited: RandomTickChunk[] = [];
-        for (const chunk of this.chunks.values()) {
+        for (const chunk of this.simulationChunks(playerChunkRefCounts)) {
             const x = chunk.getX();
             const z = chunk.getZ();
-            if (!playerChunkRefCounts.simulates(x, z)) continue;
-
-            const sections: number[] = [];
-            for (const [index, subChunk] of chunk.getSubChunkEntries()) {
-                if (sectionTakesRandomTicks(subChunk)) sections.push(index);
-            }
+            const sections = chunk.getRandomTickSections();
             if (sections.length > 0) visited.push({ x, z, sections });
         }
 
@@ -2298,7 +2330,31 @@ export class World implements Service {
     }
 
     private getPlayerChunkRefCounts(): PlayerChunkRefCounts {
-        return (this.playerChunkRefCounts ??= new PlayerChunkRefCounts());
+        if (this.playerChunkRefCounts === undefined) {
+            this.playerChunkRefCounts = new PlayerChunkRefCounts();
+            for (const chunk of this.chunks.values()) this.playerChunkRefCounts.chunkLoaded(chunk);
+        }
+        return this.playerChunkRefCounts;
+    }
+
+    /** Loaded chunks eligible for tick work, preserving the loaded-map order on cache rebuild. */
+    private simulationChunks(playerChunkRefCounts: PlayerChunkRefCounts): readonly Chunk[] {
+        const coverageRevision = playerChunkRefCounts.getRevision();
+        const loadedRevision = this.loadedChunksRevision;
+        const cached = this.simulationChunksCache;
+        if (
+            cached !== undefined &&
+            cached.coverageRevision === coverageRevision &&
+            cached.loadedRevision === loadedRevision
+        )
+            return cached.chunks;
+
+        const chunks: Chunk[] = [];
+        for (const chunk of this.chunks.values()) {
+            if (playerChunkRefCounts.simulates(chunk.getX(), chunk.getZ())) chunks.push(chunk);
+        }
+        this.simulationChunksCache = { coverageRevision, loadedRevision, chunks };
+        return chunks;
     }
 
     /** Whether the current simulation area can safely read light-dependent world state. */
@@ -2738,10 +2794,11 @@ export class World implements Service {
         if (this.players.size === 0) return [];
 
         const candidates: Chunk[] = [];
-        for (const chunk of this.chunks.values()) {
+        for (const index of playerChunkRefCounts.getUnloadCandidates()) {
             if (candidates.length >= CHUNK_UNLOAD_BATCH_SIZE) break;
 
-            const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
+            const chunk = this.chunks.get(index);
+            if (chunk === undefined) continue;
             if (this.loading.has(index) || this.chunkNeededByPlayers(chunk)) continue;
             candidates.push(chunk);
         }
@@ -2820,6 +2877,8 @@ export class World implements Service {
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
+        this.loadedChunksRevision++;
+        this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
         this.portalIndex?.chunkUnloaded(chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name, chunk.getX(), chunk.getZ());
         this.lastChunkIndex = -1;

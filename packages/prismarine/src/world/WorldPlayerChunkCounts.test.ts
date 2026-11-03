@@ -23,6 +23,7 @@ const worldWith = (
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
+        loadedChunksRevision: 0,
         players,
         loading: new Map(),
         level: fakeLevel({ provider: stub<BaseProvider & Provider>({ supportsChunkUnload: unloadable, writeChunk }) }),
@@ -100,7 +101,7 @@ describe('world player chunk counts', () => {
         world['players'].set(2, second);
 
         const chunks = Array.from(world['chunks'].values());
-        const checks = chunks.map((chunk) => vi.spyOn(chunk, 'getSubChunkEntries'));
+        const checks = chunks.map((chunk) => vi.spyOn(chunk, 'getRandomTickSections'));
 
         world.randomTickChunks();
         expect(checks.map(({ mock }) => mock.calls.length)).toEqual([1, 1, 0, 0]);
@@ -112,6 +113,25 @@ describe('world player chunk counts', () => {
         world['players'].delete(2);
         world.randomTickChunks();
         expect(checks.map(({ mock }) => mock.calls.length)).toEqual([2, 3, 2, 2]);
+    });
+
+    it('does not revisit loaded chunks for tick work while player coverage is stable', () => {
+        const positions = Array.from(
+            { length: 4_225 },
+            (_entry, index) => [(index % 65) - 32, Math.floor(index / 65) - 32] as const
+        );
+        const world = worldWith(positions);
+        world['players'].set(1, playerAt(world, 0, 0));
+        world['getPlayerChunkRefCounts']();
+        const distant = world.getLoadedChunk(32, 32)!;
+        const getX = vi.spyOn(distant, 'getX');
+
+        world.randomTickChunks();
+        const firstTickReads = getX.mock.calls.length;
+        world.randomTickChunks();
+
+        expect(firstTickReads).toBe(1);
+        expect(getX).toHaveBeenCalledTimes(1);
     });
 
     it('uses view distance for retention while tracking player movement and radius changes', async () => {
@@ -139,8 +159,12 @@ describe('world player chunk counts', () => {
 
         playerX = 100;
         player.viewDistance = 4;
-        world['chunks'].set(Chunk.packXZ(90, 0), new Chunk(90, 0));
-        world['chunks'].set(Chunk.packXZ(89, 0), new Chunk(89, 0));
+        for (const x of [90, 89]) {
+            const chunk = new Chunk(x, 0);
+            world['chunks'].set(Chunk.packXZ(x, 0), chunk);
+            world['loadedChunksRevision']++;
+            world['getPlayerChunkRefCounts']()['chunkLoaded'](chunk);
+        }
 
         await world['unloadDistantChunks']();
         expect(world.getLoadedChunk(90, 0)).not.toBeNull();

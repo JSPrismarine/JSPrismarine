@@ -26,22 +26,16 @@ export default class SubChunk {
      */
     public sourceVersion: SubChunkVersion = 9;
 
-    /**
-     * Bumped on every write, so the owning chunk can tell whether its serialised copy is
-     * still good.
-     *
-     * It only ever goes up, and only by one write at a time, which is what lets `Chunk` sum
-     * these into a single number and trust that a change can never leave the sum where it
-     * was.
-     */
-    private revision = 0;
-
     public constructor(storages: Map<number, BlockStorage> = new Map()) {
         for (const [index, storage] of storages) this.setStorage(index, storage);
     }
 
     public getRevision(): number {
-        return this.revision;
+        // Storage objects are exposed by getStorages(), so their own write revisions must
+        // participate in the section revision used by serialization and random-tick caches.
+        let revision = 0;
+        for (const index of this.storageOrder) revision += this.storages[index]!.getRevision();
+        return revision;
     }
 
     /**
@@ -109,7 +103,6 @@ export default class SubChunk {
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number, layer: number): void {
         this.getOrCreateStorage(layer).setBlock(bx, by, bz, runtimeId);
-        this.revision++;
     }
 
     public networkSerialize(stream: BinaryStream): void {
