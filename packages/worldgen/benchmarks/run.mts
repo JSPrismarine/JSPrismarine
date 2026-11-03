@@ -15,7 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
 
-const ARMS = ['fill', 'router', 'density', 'generated'] as const;
+const ARMS = ['fill', 'router', 'density', 'generated', 'skip'] as const;
 
 interface ArmResult {
     readonly arm: string;
@@ -29,6 +29,10 @@ interface ArmResult {
     readonly generatedFunctionCount: number;
     readonly generatedFunctionBytes: number;
     readonly closureFallbackCount: number;
+    readonly skippedCellsPerChunk: number;
+    readonly skippedBlocksPerChunk: number;
+    readonly densityCallsSkippedPerChunk: number;
+    readonly aquiferCallsSkippedPerChunk: number;
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +67,13 @@ try {
                 `${result.cellsPerChunk} cells/chunk, ` +
                 `${result.octaveSamplesPerChunk} octave samples/chunk, digest ${result.digest}\n`
         );
+        if (result.skippedCellsPerChunk > 0) {
+            process.stdout.write(
+                `  skipped ${result.skippedCellsPerChunk} cells and ${result.skippedBlocksPerChunk} blocks/chunk, ` +
+                    `${result.densityCallsSkippedPerChunk} density calls, ` +
+                    `${result.aquiferCallsSkippedPerChunk} aquifer calls\n`
+            );
+        }
         if (arm !== 'density') {
             process.stdout.write(
                 `  compile ${result.compileMilliseconds.toFixed(2)} ms, ` +

@@ -21,9 +21,9 @@ import type { Noise } from '../src/noise/GradientNoise';
 import { NoiseStack } from '../src/noise/NoiseStack';
 
 /** The arms this file knows how to run. */
-export type BenchmarkArm = 'density' | 'fill' | 'generated' | 'router';
+export type BenchmarkArm = 'density' | 'fill' | 'generated' | 'router' | 'skip';
 
-const ARMS: readonly BenchmarkArm[] = ['fill', 'router', 'density', 'generated'];
+const ARMS: readonly BenchmarkArm[] = ['fill', 'router', 'density', 'generated', 'skip'];
 
 const CHUNKS = [
     [3, -5],
@@ -114,8 +114,8 @@ const fillChunk = (sampler: ChunkSampler, includeDigest: boolean): WalkResult =>
     let placed = 0;
     let digest = FNV_OFFSET;
     for (let cell = 0; cell < sampler.cellCount; cell++) {
-        sampler.forEachCellBlock(cell, (_x, _y, _z, block) => {
-            if (includeDigest) digest = hashText(digest, block);
+        sampler.forEachCellBlock(cell, (_x, _y, _z, block, scheduleFluidUpdate) => {
+            if (includeDigest) digest = hashText(digest, `${block}|${scheduleFluidUpdate ? 1 : 0}`);
             if (block !== 'minecraft:air') placed++;
         });
     }
@@ -167,11 +167,15 @@ const run = (
     generatedFunctionCount: number;
     generatedFunctionBytes: number;
     closureFallbackCount: number;
+    skippedCellsPerChunk: number;
+    skippedBlocksPerChunk: number;
+    densityCallsSkippedPerChunk: number;
+    aquiferCallsSkippedPerChunk: number;
 } => {
     const walk = arm === 'density' ? fillDensity : fillChunk;
-    // Compile every slot before anything is measured in the router arm. This matches a running
-    // server after the surface pass compiled `chunk_surface_level`.
-    if (arm === 'router' || arm === 'generated') {
+    // Compile every slot in these arms. This matches a running server after the surface pass
+    // compiled `chunk_surface_level` and lets the router and skip timings compare directly.
+    if (arm === 'router' || arm === 'generated' || arm === 'skip') {
         for (const slot of Object.values(settings.noiseRouter)) state.sampler(slot);
         for (const slot of Object.values(settings.noiseRouter)) countedState.sampler(slot);
     }
@@ -179,11 +183,15 @@ const run = (
     let checksum = 0;
     let digest = FNV_OFFSET;
     let cellsPerChunk = 0;
+    let skippedCells = 0;
+    let skippedBlocks = 0;
+    let densityCallsSkipped = 0;
+    let aquiferCallsSkipped = 0;
     let best = Number.POSITIVE_INFINITY;
     for (let round = 0; round < WARMUPS + REPETITIONS; round++) {
         const started = performance.now();
         for (const [chunkX, chunkZ] of CHUNKS) {
-            const sampler = new ChunkSampler(state, { chunkX, chunkZ });
+            const sampler = new ChunkSampler(state, { chunkX, chunkZ, skipProvenCells: arm === 'skip' });
             cellsPerChunk = sampler.cellCount;
             const result = walk(sampler, false);
             checksum += result.count;
@@ -195,8 +203,13 @@ const run = (
     // Keep the digest and octave counter out of the timed passes so instrumentation does not hide
     // the cache's throughput change.
     for (const [chunkX, chunkZ] of CHUNKS) {
-        const sampler = new ChunkSampler(countedState, { chunkX, chunkZ });
+        const sampler = new ChunkSampler(countedState, { chunkX, chunkZ, skipProvenCells: arm === 'skip' });
         digest = hashWord(digest, walk(sampler, true).digest);
+        const stats = sampler.cellSkipStats;
+        skippedCells += stats.cellsSkipped;
+        skippedBlocks += stats.blocksSkipped;
+        densityCallsSkipped += stats.densityCallsSkipped;
+        aquiferCallsSkipped += stats.aquiferCallsSkipped;
     }
     return {
         arm,
@@ -209,7 +222,11 @@ const run = (
         compileHeapBytes,
         generatedFunctionCount: compileState.generatedFunctionCount,
         generatedFunctionBytes: compileState.generatedFunctionBytes,
-        closureFallbackCount: compileState.closureFallbackCount
+        closureFallbackCount: compileState.closureFallbackCount,
+        skippedCellsPerChunk: skippedCells / CHUNKS.length,
+        skippedBlocksPerChunk: skippedBlocks / CHUNKS.length,
+        densityCallsSkippedPerChunk: densityCallsSkipped / CHUNKS.length,
+        aquiferCallsSkippedPerChunk: aquiferCallsSkipped / CHUNKS.length
     };
 };
 

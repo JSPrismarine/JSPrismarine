@@ -126,6 +126,17 @@ export class RandomState {
         return this.compiler.interpolationCellSizeOf(node);
     }
 
+    /** @internal Returns an exact maximum from the reusable buffer of one interpolation cell. */
+    public interpolatedCellMaximum(
+        node: DensityFunctionNode,
+        context: SampleContext,
+        x: number,
+        y: number,
+        z: number
+    ): number | undefined {
+        return this.compiler.interpolatedCellMaximum(node, context, x, y, z);
+    }
+
     /** How many density samplers the optional code generator emitted. */
     public get generatedFunctionCount(): number {
         return this.compiler.generatedFunctionCount;

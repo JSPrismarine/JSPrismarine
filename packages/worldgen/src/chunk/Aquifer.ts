@@ -191,6 +191,15 @@ export class NoiseBasedAquifer implements Aquifer {
         return this.scheduleFluidUpdate;
     }
 
+    /** @internal Whether a non-positive density at this y can only use the dimension-wide fluid picker.
+     *
+     * Java's aquifer returns its global fluid above this strict cutoff without sampling aquifer
+     * cells, and it clears the fluid-update flag on that path.
+     */
+    public isGlobalFluidOnlyAt(blockY: number): boolean {
+        return blockY > this.skipSamplingAboveY;
+    }
+
     /** @inheritDoc */
     public computeSubstance(blockX: number, blockY: number, blockZ: number, density: number): string | undefined {
         if (density > 0) {

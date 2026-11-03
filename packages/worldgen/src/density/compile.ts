@@ -250,6 +250,47 @@ export class DensityFunctionCompiler {
         return size;
     }
 
+    /** @internal Returns the exact maximum from one reusable interpolation-cell buffer. */
+    public interpolatedCellMaximum(
+        node: DensityFunctionNode,
+        context: SampleContext,
+        x: number,
+        y: number,
+        z: number
+    ): number | undefined {
+        if (node.type !== 'interpolated' || !this.precomputeInterpolationCells) return undefined;
+
+        const cellSizeXz = node.cellSizeXz;
+        const cellSizeY = node.cellSizeY;
+        const valueCount = cellSizeXz * cellSizeY * cellSizeXz;
+        if (cellSizeXz <= 0 || cellSizeY <= 0 || valueCount > MAX_INTERPOLATION_BUFFER_VALUES) return undefined;
+
+        const cellX = floorDiv(x, cellSizeXz) * cellSizeXz;
+        const cellY = floorDiv(y, cellSizeY) * cellSizeY;
+        const cellZ = floorDiv(z, cellSizeXz) * cellSizeXz;
+        if (cellSizeXz === 1 && cellSizeY === 1) return undefined;
+
+        // The interpolation closure returns a lattice corner before it considers its cell buffer.
+        // Sample one interior point to make it fill the reusable buffer the chunk walker uses.
+        const sampleX = cellX + (cellSizeXz > 1 ? 1 : 0);
+        const sampleY = cellY + (cellSizeXz === 1 && cellSizeY > 1 ? 1 : 0);
+        const sampler = this.compile(node);
+        const bufferingBeforeSample = context.interpolationBuffersEnabled;
+        context.interpolationBuffersEnabled = true;
+        try {
+            sampler(context, sampleX, sampleY, cellZ);
+        } finally {
+            context.interpolationBuffersEnabled = bufferingBeforeSample;
+        }
+
+        const id = this.cacheId(node);
+        if (context.interpolationBufferValue(id, cellX, cellY, cellZ, 0) === undefined) return undefined;
+
+        let maximum = Number.NEGATIVE_INFINITY;
+        for (const value of context.interpolationBuffer(id, valueCount)) maximum = Math.max(maximum, value);
+        return maximum;
+    }
+
     /**
      * Compiles a tree, reusing the closure when the same tree was compiled before.
      *

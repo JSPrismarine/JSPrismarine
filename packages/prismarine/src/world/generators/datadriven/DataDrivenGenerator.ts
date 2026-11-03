@@ -118,6 +118,9 @@ import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 import type { ChunkCompletionScheduler } from '../../ChunkCompletionQueue';
 
+/** Re-runs each proven skip through scalar density and aquifer sampling when debugging. */
+const VERIFY_SKIPPED_WORLDGEN_CELLS = process.env['JSP_VERIFY_WORLDGEN_CELL_SKIPS'] === '1';
+
 /** How a {@link DataDrivenGenerator} is built. */
 export interface DataDrivenGeneratorOptions {
     /** The Java registries, already read off disk. */
@@ -1688,7 +1691,12 @@ export class DataDrivenGenerator implements Generator {
         const region = this.createRegion(cx, cz, 0, pipeline);
         const context = this.sampleContexts.acquire();
         try {
-            const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz, context });
+            const sampler = new ChunkSampler(pipeline.randomState, {
+                chunkX: cx,
+                chunkZ: cz,
+                context,
+                verifySkippedCells: VERIFY_SKIPPED_WORLDGEN_CELLS
+            });
             return await this.buildTerrainWithSampler(cx, cz, pipeline, beard, junctions, region, sampler);
         } finally {
             this.sampleContexts.release(context);

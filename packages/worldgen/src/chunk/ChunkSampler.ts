@@ -1,8 +1,9 @@
 import type { DensitySampler } from '../density/compile';
+import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { SampleContext } from '../density/SampleContext';
 import type { RandomState } from '../RandomState';
 import type { Aquifer, AquiferVolume } from './Aquifer';
-import { createDisabledAquifer, createNoiseAquifer } from './Aquifer';
+import { createDisabledAquifer, createNoiseAquifer, NoiseBasedAquifer } from './Aquifer';
 import type { FluidPicker } from './FluidPicker';
 import { AIR, createGlobalFluidPicker } from './FluidPicker';
 
@@ -30,7 +31,34 @@ export interface ChunkSamplerOptions {
     readonly fluidPicker?: FluidPicker;
     /** An exclusive caller-owned context; reset and reuse it only after this sampler has finished. */
     readonly context?: SampleContext;
+    /** Whether to skip proven cells whose final density cannot be positive. Defaults to true. */
+    readonly skipProvenCells?: boolean;
+    /** Re-samples skipped blocks through the scalar path and checks their states and fluid flags. */
+    readonly verifySkippedCells?: boolean;
 }
+
+interface InterpolatedDensityProof {
+    readonly node: Extract<DensityFunctionNode, { type: 'interpolated' }>;
+    readonly cellSizeXz: number;
+    readonly cellSizeY: number;
+}
+
+/**
+ * The vanilla final-density path whose sign can be proved from one interpolated node.
+ *
+ * Its exact shape is `min(squeeze(interpolated(input)), other) + beardifier`. If the runtime
+ * beardifier is absent, it contributes zero. `min` cannot raise the squeezed value, and squeeze
+ * preserves the sign. Unsupported graph shapes deliberately use per-block density sampling.
+ */
+const interpolatedDensityProofOf = (
+    node: DensityFunctionNode
+): Extract<DensityFunctionNode, { type: 'interpolated' }> | undefined => {
+    if (node.type !== 'add' || node.right.type !== 'beardifier') return undefined;
+    if (node.left.type !== 'min' || node.left.left.type !== 'squeeze') return undefined;
+
+    const interpolated = node.left.left.input;
+    return interpolated.type === 'interpolated' ? interpolated : undefined;
+};
 
 /**
  * Samples one chunk column: the final density per block, then the aquifer's verdict on what
@@ -65,6 +93,13 @@ export class ChunkSampler {
     private readonly cellsY: number;
     private readonly cellsZ: number;
     private readonly fluidPicker: FluidPicker;
+    private readonly interpolatedDensityProof: InterpolatedDensityProof | undefined;
+    private readonly skipProvenCells: boolean;
+    private readonly verifySkippedCells: boolean;
+    private skippedCells = 0;
+    private skippedBlocks = 0;
+    private densityCallsSkipped = 0;
+    private aquiferCallsSkipped = 0;
     private noiseAquifer: Aquifer | undefined;
     private walkingCell = false;
 
@@ -87,6 +122,20 @@ export class ChunkSampler {
         this.context = options.context ?? randomState.createContext();
         this.finalDensity = randomState.sampler(settings.noiseRouter.finalDensity);
         this.defaultBlock = settings.defaultBlock;
+        this.verifySkippedCells = options.verifySkippedCells ?? false;
+
+        const proofNode = interpolatedDensityProofOf(settings.noiseRouter.finalDensity);
+        this.interpolatedDensityProof = proofNode
+            ? {
+                  node: proofNode,
+                  cellSizeXz: proofNode.cellSizeXz,
+                  cellSizeY: proofNode.cellSizeY
+              }
+            : undefined;
+        this.skipProvenCells =
+            (options.skipProvenCells ?? true) &&
+            options.fluidPicker === undefined &&
+            this.interpolatedDensityProof !== undefined;
 
         this.fluidPicker = options.fluidPicker ?? createGlobalFluidPicker(settings);
 
@@ -121,6 +170,21 @@ export class ChunkSampler {
               )
             : createDisabledAquifer(this.fluidPicker);
         return this.noiseAquifer;
+    }
+
+    /** Counts the cells and per-block calls avoided by the proven-cell path. */
+    public get cellSkipStats(): Readonly<{
+        cellsSkipped: number;
+        blocksSkipped: number;
+        densityCallsSkipped: number;
+        aquiferCallsSkipped: number;
+    }> {
+        return {
+            cellsSkipped: this.skippedCells,
+            blocksSkipped: this.skippedBlocks,
+            densityCallsSkipped: this.densityCallsSkipped,
+            aquiferCallsSkipped: this.aquiferCallsSkipped
+        };
     }
 
     /** The final density at one block position. */
@@ -229,13 +293,40 @@ export class ChunkSampler {
         const firstZ = Math.max(volume.minBlockZ, originZ * this.cellSizeXz);
         const lastZ = Math.min(volume.maxBlockZ, originZ * this.cellSizeXz + this.cellSizeXz - 1);
 
+        const aquifer = this.aquifer;
+        if (
+            this.skipProvenCells &&
+            this.context.beardifier === undefined &&
+            this.isGlobalFluidOnlyCell(aquifer, firstY) &&
+            this.interpolatedCellMaximum(firstX, lastX, firstY, lastY, firstZ, lastZ) <= 0
+        ) {
+            const blockCount = (lastX - firstX + 1) * (lastY - firstY + 1) * (lastZ - firstZ + 1);
+            this.skippedCells++;
+            this.skippedBlocks += blockCount;
+            this.densityCallsSkipped += blockCount;
+            this.aquiferCallsSkipped += blockCount;
+
+            for (let x = firstX; x <= lastX; x++) {
+                for (let z = firstZ; z <= lastZ; z++) {
+                    for (let y = lastY; y >= firstY; y--) {
+                        const state = this.fluidPicker(x, y, z).at(y);
+                        if (this.verifySkippedCells) {
+                            this.verifySkippedBlock(x, y, z, state, false, aquifer);
+                        }
+                        visit(x, y, z, state, false);
+                    }
+                }
+            }
+            return;
+        }
+
         const walkingCellBefore = this.walkingCell;
         this.walkingCell = true;
         try {
             for (let x = firstX; x <= lastX; x++) {
                 for (let z = firstZ; z <= lastZ; z++) {
                     for (let y = lastY; y >= firstY; y--) {
-                        const substance = this.aquifer.computeSubstance(x, y, z, this.density(x, y, z));
+                        const substance = aquifer.computeSubstance(x, y, z, this.density(x, y, z));
                         visit(
                             x,
                             y,
@@ -248,6 +339,70 @@ export class ChunkSampler {
             }
         } finally {
             this.walkingCell = walkingCellBefore;
+        }
+    }
+
+    private isGlobalFluidOnlyCell(aquifer: Aquifer, firstY: number): boolean {
+        if (this.randomState.settings.aquifers === undefined) return true;
+        return aquifer instanceof NoiseBasedAquifer && aquifer.isGlobalFluidOnlyAt(firstY);
+    }
+
+    /** Returns the exact maximum of the supported interpolation cell, or NaN when unsupported. */
+    private interpolatedCellMaximum(
+        firstX: number,
+        lastX: number,
+        firstY: number,
+        lastY: number,
+        firstZ: number,
+        lastZ: number
+    ): number {
+        const proof = this.interpolatedDensityProof;
+        if (
+            proof === undefined ||
+            proof.cellSizeXz <= 0 ||
+            proof.cellSizeY <= 0 ||
+            proof.cellSizeXz !== this.cellSizeXz ||
+            proof.cellSizeY !== this.cellSizeY ||
+            proof.cellSizeXz * proof.cellSizeY * proof.cellSizeXz > 4096 ||
+            Math.floor(firstX / proof.cellSizeXz) !== Math.floor(lastX / proof.cellSizeXz) ||
+            Math.floor(firstY / proof.cellSizeY) !== Math.floor(lastY / proof.cellSizeY) ||
+            Math.floor(firstZ / proof.cellSizeXz) !== Math.floor(lastZ / proof.cellSizeXz)
+        ) {
+            return Number.NaN;
+        }
+
+        return this.randomState.interpolatedCellMaximum(proof.node, this.context, firstX, firstY, firstZ) ?? Number.NaN;
+    }
+
+    private verifySkippedBlock(
+        x: number,
+        y: number,
+        z: number,
+        expectedState: string,
+        expectedScheduleFluidUpdate: boolean,
+        aquifer: Aquifer
+    ): void {
+        const bufferingBeforeSample = this.context.interpolationBuffersEnabled;
+        this.context.interpolationBuffersEnabled = false;
+        try {
+            const density = this.finalDensity(this.context, x, y, z);
+            if (density > 0) {
+                throw new Error(`Skipped cell had positive scalar density ${density} at ${x},${y},${z}`);
+            }
+
+            const substance = aquifer.computeSubstance(x, y, z, density);
+            const scalarState = substance ?? this.defaultBlock;
+            const scalarScheduleFluidUpdate =
+                substance !== undefined && substance !== AIR && aquifer.shouldScheduleFluidUpdate();
+            if (scalarState !== expectedState || scalarScheduleFluidUpdate !== expectedScheduleFluidUpdate) {
+                throw new Error(
+                    `Skipped cell differed from scalar sampling at ${x},${y},${z}: ` +
+                        `global=${expectedState}/${expectedScheduleFluidUpdate}, ` +
+                        `scalar=${scalarState}/${scalarScheduleFluidUpdate}`
+                );
+            }
+        } finally {
+            this.context.interpolationBuffersEnabled = bufferingBeforeSample;
         }
     }
 
