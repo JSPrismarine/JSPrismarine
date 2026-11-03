@@ -15,6 +15,7 @@
  * Everything here is extracted game data and therefore untrusted. The bytes are parsed by
  * `@jsprismarine/structures` and nothing in them is executed or resolved against the file system.
  */
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -50,12 +51,14 @@ const INNER_JAR = /^META-INF\/versions\/[^/]+\/server-[^/]+\.jar$/;
  */
 export const createTemplateSource = (
     files: () => ReadonlyMap<string, Uint8Array>,
-    processorLists: JavaRegistry
+    processorLists: JavaRegistry,
+    worldgenFingerprint?: () => string
 ): TemplateSource => {
     const decoded = new Map<string, JavaStructureTemplate | undefined>();
     let bytes: ReadonlyMap<string, Uint8Array> | undefined;
 
     return {
+        ...(worldgenFingerprint === undefined ? {} : { worldgenFingerprint }),
         template: (identifier) => {
             if (decoded.has(identifier)) return decoded.get(identifier);
 
@@ -83,10 +86,15 @@ export const createTemplateSource = (
  * Each template is read when it is first asked for, so a world that places one village reads
  * the dozen files that village is made of rather than all 1511.
  */
-export const createDirectoryTemplateSource = (root: string, processorLists: JavaRegistry): TemplateSource => {
+export const createDirectoryTemplateSource = (
+    root: string,
+    processorLists: JavaRegistry,
+    worldgenFingerprint?: () => string
+): TemplateSource => {
     const decoded = new Map<string, JavaStructureTemplate | undefined>();
 
     return {
+        ...(worldgenFingerprint === undefined ? {} : { worldgenFingerprint }),
         template: (identifier) => {
             if (decoded.has(identifier)) return decoded.get(identifier);
 
@@ -125,10 +133,30 @@ const pathPartsOf = (identifier: string): readonly string[] => {
  */
 export const findJavaTemplateSource = (cacheRoot: string, processorLists: JavaRegistry): TemplateSource => {
     const directory = javaTemplateDirectory(cacheRoot);
-    return directory === undefined
-        ? createTemplateSource(() => findJavaTemplates(cacheRoot) ?? new Map(), processorLists)
-        : createDirectoryTemplateSource(directory, processorLists);
+    if (directory !== undefined) {
+        return createDirectoryTemplateSource(directory, processorLists, () =>
+            fingerprintTemplateFiles(readTemplateDirectory(directory))
+        );
+    }
+
+    let files: ReadonlyMap<string, Uint8Array> | undefined;
+    const readFiles = (): ReadonlyMap<string, Uint8Array> => {
+        files ??= findJavaTemplates(cacheRoot) ?? new Map();
+        return files;
+    };
+    return createTemplateSource(readFiles, processorLists, () => fingerprintTemplateFiles(readFiles()));
 };
+
+/** Hashes names and raw bytes so template edits invalidate terrain built with structure beards. */
+const fingerprintTemplateFiles = (files: ReadonlyMap<string, Uint8Array>): string => {
+    const hash = createHash('sha256');
+    for (const [identifier, bytes] of [...files].sort(([left], [right]) => compareStrings(left, right))) {
+        hash.update(identifier).update('\0').update(bytes);
+    }
+    return hash.digest('hex');
+};
+
+const compareStrings = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
 
 /** The extracted template directory, from the override or the cache, when there is one. */
 export const javaTemplateDirectory = (cacheRoot: string): string | undefined => {

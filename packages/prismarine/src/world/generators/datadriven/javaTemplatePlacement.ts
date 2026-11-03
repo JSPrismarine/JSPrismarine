@@ -41,6 +41,13 @@ import { blockEntityOf } from './javaStructureTemplatePiece';
 /** Where the templates and their processor lists are read from. */
 export interface TemplateSource {
     /**
+     * Stable content fingerprint for persistent world generation caches.
+     *
+     * Custom sources may omit it when disk caching is unused. An opted-in persistent cache
+     * requires a fingerprint so a changed template source cannot reuse an old terrain tile.
+     */
+    readonly worldgenFingerprint?: () => string;
+    /**
      * The template for an identifier such as `minecraft:fossil/spine_1`.
      *
      * @returns The template, or undefined when this server does not carry it, which makes the

@@ -89,3 +89,28 @@ pnpm --filter @jsprismarine/prismarine run bench:trends -- --scenarios startup -
 `bench:block-state-allocation` measures retained heap after `buildServerContent()` and CPU time
 inside `resolveBlocks()` with the default vanilla stack. The [benchmark notes](benchmarks/block-state-allocation.md)
 record the baseline comparison, current PR head measurements, and commands for reproducing both.
+
+## Terrain proto cache
+
+Callers that construct `DataDrivenGenerator` can opt into a bounded disk cache for immutable
+`terrain` status tiles with `persistentProtoCache`. The default stays off. Records are keyed by the
+seed, dimension, worldgen settings, effective datapack registries, template contents, generator
+version, cache schema, and chunk position. A corrupt or incompatible record is removed, then the
+generator rebuilds that terrain tile. Choose a dedicated directory and a byte limit for it.
+
+```ts
+const generator = new DataDrivenGenerator({
+    registries,
+    templates,
+    persistentProtoCache: {
+        directory: join(worldDirectory, 'terrain-proto-cache'),
+        maxBytes: 512 * 1024 * 1024
+    }
+});
+```
+
+Custom template sources need a stable `worldgenFingerprint` for the cache to start. Custom
+structure builders and worker pipelines are not supported with persistent terrain caching. Run
+`pnpm --filter @jsprismarine/prismarine run bench:terrain-cache` to compare an 11 by 11 preload and
+a 3 by 3 player return after six distant chunk requests. The benchmark reports cache storage,
+record bytes written, write amplification, and time saved against regeneration.

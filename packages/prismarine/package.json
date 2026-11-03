@@ -59,6 +59,7 @@
         "bench:chunks": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts",
         "bench:chunks:source": "node --import tsx benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts",
         "bench:chunks:dist": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/chunkGeneration.ts",
+        "bench:terrain-cache": "node --import tsx benchmarks/runExternal.mjs benchmarks/terrainProtoCache.ts",
         "bench:full-flush-fragments": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/fullFlushFragments.bench.ts",
         "bench:entity-ai": "node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",
         "bench:entity-ai:source": "node --import tsx benchmarks/runExternal.mjs benchmarks/entityAi.bench.ts",

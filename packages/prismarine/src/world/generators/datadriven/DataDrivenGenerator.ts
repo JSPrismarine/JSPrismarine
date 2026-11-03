@@ -114,6 +114,8 @@ import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
+import { fingerprintWorldgenInput, TerrainProtoCache, terrainProtoCacheKey } from './TerrainProtoCache';
+import type { TerrainProtoCacheOptions } from './TerrainProtoCache';
 import { shareRegistryBundle } from './registryBundle';
 import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
@@ -181,6 +183,14 @@ export interface DataDrivenGeneratorOptions {
      * datapack the rest of the registries are read from, so a caller that wants them says so.
      */
     readonly templates?: TemplateSource;
+    /**
+     * Persist immutable `terrain` status tiles across restarts and holder eviction.
+     *
+     * This cache is off by default. Its directory should be dedicated to terrain records, and
+     * `maxBytes` sets the record budget. Custom template sources must provide a stable
+     * `worldgenFingerprint`; custom structure builders and worker pipelines cannot use this cache.
+     */
+    readonly persistentProtoCache?: TerrainProtoCacheOptions;
     /**
      * How many chunks of one world are built at once.
      *
@@ -667,7 +677,11 @@ const TERRAIN_YIELD_BUDGET_MS = 4;
 const DEFAULT_BIOME_SOURCE: BiomeSourceDefinition = { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' };
 
 /** The source a generator with no templates uses, which places the structures that need none. */
-const EMPTY_TEMPLATES: TemplateSource = { template: () => undefined, processorList: () => undefined };
+const EMPTY_TEMPLATES: TemplateSource = {
+    worldgenFingerprint: () => 'empty-template-source-v1',
+    template: () => undefined,
+    processorList: () => undefined
+};
 
 const identifiersOf = (value: unknown): readonly string[] => {
     if (typeof value === 'string') return [value];
@@ -740,6 +754,12 @@ export class DataDrivenGenerator implements Generator {
     private readonly biomeSources = new Map<string, BiomeSource>();
     /** Immutable preset indexes shared with the workers this generator opens. */
     private readonly sharedClimateTrees?: ReadonlyMap<string, SharedClimateParameterTree<string>>;
+
+    /** Optional disk storage for immutable terrain-status proto tiles. */
+    private readonly terrainProtoCache: TerrainProtoCache | undefined;
+    /** Effective data-pack registry and template fingerprints bound into terrain cache keys. */
+    private readonly terrainProtoCacheFingerprints:
+        { readonly registries: string; readonly templates: string } | undefined;
     /** Reuses a bounded number of chunk-local caches in this worker's serialized terrain tasks. */
     private readonly sampleContexts = new SampleContextPool();
     /**
@@ -792,6 +812,33 @@ export class DataDrivenGenerator implements Generator {
 
     public constructor(private readonly options: DataDrivenGeneratorOptions) {
         const registries = options.registries;
+        if (options.persistentProtoCache !== undefined) {
+            if (options.structureBuilders !== undefined) {
+                throw new TypeError('Persistent terrain caching does not support custom structure builders');
+            }
+            if (
+                (options.terrain !== undefined &&
+                    (options.terrain.pipeline !== defaultTerrainPipeline() || options.terrain.worker !== undefined)) ||
+                (options.stages !== undefined &&
+                    (options.stages.pipeline !== defaultChunkPipeline() || options.stages.worker !== undefined)) ||
+                (options.chunks !== undefined &&
+                    (options.chunks.pipeline !== defaultChunkPipeline() || options.chunks.worker !== undefined))
+            ) {
+                throw new TypeError('Persistent terrain caching does not support custom worker pipelines');
+            }
+
+            const templates = options.templates ?? EMPTY_TEMPLATES;
+            const templateFingerprint = templates.worldgenFingerprint?.();
+            if (templateFingerprint === undefined) {
+                throw new TypeError('Persistent terrain caching requires a template source worldgenFingerprint');
+            }
+
+            this.terrainProtoCache = new TerrainProtoCache(options.persistentProtoCache);
+            this.terrainProtoCacheFingerprints = {
+                registries: fingerprintWorldgenInput(registries),
+                templates: templateFingerprint
+            };
+        }
         this.structureSpawnOverrides = structureSpawnOverridesOf(
             registries.structures,
             naturalSpawnTypesOf(registries.biomes)
@@ -1525,8 +1572,51 @@ export class DataDrivenGenerator implements Generator {
      */
     private async runTerrain(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): Promise<GenerationChunk> {
         const chunk = region.center;
-        chunk.recordTerrain(await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline));
+        const cache = this.terrainProtoCache;
+        const key = cache === undefined ? undefined : this.terrainCacheKey(chunk.chunkX, chunk.chunkZ, pipeline);
+        let tile: GenerationRegion | undefined;
+
+        if (cache !== undefined && key !== undefined) {
+            const payload = await cache.read(key, {
+                chunkX: chunk.chunkX,
+                chunkZ: chunk.chunkZ,
+                minY: pipeline.dimension.minY,
+                height: pipeline.dimension.height
+            });
+            if (payload !== undefined) {
+                try {
+                    tile = this.adoptRegion(payload, pipeline);
+                } catch {
+                    await cache.invalidate(key);
+                }
+            }
+        }
+
+        if (tile === undefined) {
+            tile = await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline);
+            if (cache !== undefined && key !== undefined) await cache.write(key, tile.workerInput());
+        }
+
+        // Terrain is the immutable status neighbors reuse. Feature patches and finished chunks have different ownership.
+        chunk.recordTerrain(tile);
         return chunk;
+    }
+
+    private terrainCacheKey(cx: number, cz: number, pipeline: SeededPipeline): string {
+        const fingerprints = this.terrainProtoCacheFingerprints;
+        if (fingerprints === undefined) throw new Error('The terrain proto cache has no worldgen fingerprints');
+
+        return terrainProtoCacheKey({
+            seed: pipeline.randomState.seed.toString(),
+            dimension: pipeline.dimension,
+            pipeline: pipeline.key,
+            settings: pipeline.settings,
+            effectiveDataPackRegistryFingerprint: fingerprints.registries,
+            templateFingerprint: fingerprints.templates,
+            carve: this.options.carve !== false,
+            structures: this.options.structures !== false,
+            chunk: { x: cx, z: cz }
+        });
     }
 
     /**

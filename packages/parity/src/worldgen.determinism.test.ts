@@ -1,3 +1,7 @@
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import {
     DataDrivenGenerator,
     defaultChunkPipeline,
@@ -341,4 +345,136 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
             }
         });
     });
+
+    it(
+        'preserves the chunk digest across cache miss, restart, corruption, and seed invalidation',
+        async () => {
+            const subject = SUBJECTS[0];
+            if (subject === undefined || environment === undefined) throw new Error('Worldgen parity data is missing');
+
+            const directory = mkdtempSync(join(tmpdir(), 'jsp-terrain-proto-parity-'));
+            const events: string[] = [];
+            const generatorWithCache = (): DataDrivenGenerator =>
+                new DataDrivenGenerator({
+                    registries: environment.registries,
+                    templates: environment.templates,
+                    persistentProtoCache: {
+                        directory,
+                        maxBytes: 64 * 1024 * 1024,
+                        onEvent: ({ type }) => events.push(type)
+                    }
+                });
+            const digest = (chunk: Parameters<typeof captureChunk>[1], seed: number): string =>
+                captureChunk(
+                    {
+                        id: 'persistent terrain cache',
+                        tier: 'full',
+                        why: 'cache reload preserves the generated chunk',
+                        seed,
+                        chunkX: subject.chunkX,
+                        chunkZ: subject.chunkZ
+                    },
+                    chunk
+                ).digest.digests.blocks;
+
+            try {
+                const baseline = fresh(environment);
+                let expected: string;
+                try {
+                    expected = digest(
+                        await baseline.generateChunk(subject.chunkX, subject.chunkZ, BigInt(subject.seed)),
+                        subject.seed
+                    );
+                } finally {
+                    baseline.stopGenerating();
+                }
+
+                const first = generatorWithCache();
+                try {
+                    const missed = digest(
+                        await first.generateChunk(subject.chunkX, subject.chunkZ, BigInt(subject.seed)),
+                        subject.seed
+                    );
+                    expect(missed).toBe(expected);
+                    expect(events).toContain('write');
+                } finally {
+                    first.stopGenerating();
+                }
+
+                const records = readdirSync(directory).filter((name) => name.endsWith('.bin'));
+                expect(records.length).toBeGreaterThan(0);
+                const corruptPath = join(directory, records[0]!);
+                const corruptRecord = readFileSync(corruptPath);
+                const finalByte = corruptRecord.at(-1);
+                if (finalByte === undefined) throw new Error('Terrain cache record is empty');
+                corruptRecord[corruptRecord.length - 1] = finalByte ^ 1;
+                writeFileSync(corruptPath, corruptRecord);
+
+                events.length = 0;
+                const restarted = generatorWithCache();
+                try {
+                    const restored = digest(
+                        await restarted.generateChunk(subject.chunkX, subject.chunkZ, BigInt(subject.seed)),
+                        subject.seed
+                    );
+                    expect(restored).toBe(expected);
+                    expect(events).toContain('hit');
+                    expect(events).toContain('corrupt');
+                    expect(events).toContain('write');
+                } finally {
+                    restarted.stopGenerating();
+                }
+
+                const nextSeed = subject.seed + 1;
+                events.length = 0;
+                const changedWorld = generatorWithCache();
+                try {
+                    const changed = digest(
+                        await changedWorld.generateChunk(subject.chunkX, subject.chunkZ, BigInt(nextSeed)),
+                        nextSeed
+                    );
+                    expect(events).toContain('miss');
+
+                    const changedBaseline = fresh(environment);
+                    try {
+                        expect(changed).toBe(
+                            digest(
+                                await changedBaseline.generateChunk(subject.chunkX, subject.chunkZ, BigInt(nextSeed)),
+                                nextSeed
+                            )
+                        );
+                    } finally {
+                        changedBaseline.stopGenerating();
+                    }
+
+                    reportParityCases(FAMILIES.worldgenDeterminism, import.meta.filename, [
+                        parityCase(
+                            'proto-cache:miss',
+                            '0/0,0',
+                            'Fresh cache records keep the fresh chunk digest',
+                            true
+                        ),
+                        parityCase('proto-cache:restart', '0/0,0', 'Restart cache hits keep the chunk digest', true),
+                        parityCase(
+                            'proto-cache:corruption',
+                            '0/0,0',
+                            'Corrupt records regenerate with the same digest',
+                            true
+                        ),
+                        parityCase(
+                            'proto-cache:seed',
+                            '0/0,0',
+                            'A changed seed misses and keeps its fresh digest',
+                            true
+                        )
+                    ]);
+                } finally {
+                    changedWorld.stopGenerating();
+                }
+            } finally {
+                rmSync(directory, { recursive: true, force: true });
+            }
+        },
+        DETERMINISM_TIMEOUT
+    );
 });
