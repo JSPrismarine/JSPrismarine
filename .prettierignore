@@ -28,6 +28,7 @@ packages/minecraft/src/generated/*
 packages/blocks/src/tables/blockGeometry.json
 packages/minecraft/datagen/snapshot/*
 packages/parity/goldens/*
+tools/docs/site/public/parity-tracker.json
 
 # Test files
 # Fixture pack JSON exercises lenient parsing (comments, trailing commas), which Prettier rejects.
