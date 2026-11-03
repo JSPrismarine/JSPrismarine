@@ -21,6 +21,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { Worker } from 'node:worker_threads';
 
 import Piscina from 'piscina';
 
@@ -32,25 +33,45 @@ import type { ChunkStatus } from './ChunkStatus';
  * Undefined everywhere else.
  */
 declare const JSP_EMBEDDED_GENERATION_WORKER: string | undefined;
+/** The SEA asset name is defined by `scripts/package-sea.mts`. */
+declare const JSP_SEA_GENERATION_WORKER: string | undefined;
 
 /** The embedded worker entry of a compiled Bun executable, or undefined outside one. */
 const embeddedGenerationWorker = (): string | undefined =>
     typeof JSP_EMBEDDED_GENERATION_WORKER === 'undefined' ? undefined : JSP_EMBEDDED_GENERATION_WORKER;
+
+/** Whether Node is running this process as a single executable application. */
+const isSingleExecutable = (): boolean => {
+    try {
+        return (createRequire(process.execPath)('node:sea') as typeof import('node:sea')).isSea();
+    } catch {
+        return false;
+    }
+};
+
+/** Reads an embedded SEA module and gives a worker an importable URL for it. */
+const singleExecutableModuleUrl = (asset: string): string | undefined => {
+    try {
+        const sea = createRequire(process.execPath)('node:sea') as typeof import('node:sea');
+        if (!sea.isSea()) return undefined;
+        return `data:text/javascript;base64,${Buffer.from(sea.getAsset(asset)).toString('base64')}`;
+    } catch {
+        return undefined;
+    }
+};
 
 /** Whether a specifier names a module inside a compiled Bun executable's virtual filesystem. */
 const insideCompiledBundle = (specifier: string): boolean =>
     specifier.includes('/$bunfs/') || specifier.includes('~BUN');
 
 /**
- * Whether this process is a compiled executable, which keeps its modules inside the binary.
+ * Whether this process is a compiled executable, whose worker modules need an embedded entry.
  *
- * Both packagers this project ships produce one, and both leave a worker thread with no file to
- * import. Node's single executable answers through `node:sea`; a Bun-compiled binary reports a
- * main module under Bun's virtual filesystem root. The `node:sea` lookup is deliberately a
- * `require` inside a `try`: Bun implements no such module and resolving the specifier statically
- * throws `No such built-in module` before anything runs, which is what used to kill the compiled
- * binary at startup. This package depends on nothing but `piscina`, so the predicate lives here
- * rather than in a package it would have to take a dependency on to reach.
+ * Node's single executable reports through `node:sea`; a Bun-compiled binary reports a main
+ * module under Bun's virtual filesystem root. The `node:sea` lookup is deliberately a `require`
+ * inside a `try`: Bun implements no such module and resolving the specifier statically throws
+ * before anything runs. This package depends on nothing but `piscina`, so the predicate lives
+ * here rather than in a package it would have to take a dependency on to reach.
  */
 const inCompiledBinary = (): boolean => {
     const main = (globalThis as { Bun?: { main?: string } }).Bun?.main;
@@ -162,9 +183,8 @@ export interface GenerationPoolOptions {
      */
     readonly pipeline: string;
     /**
-     * The worker entry itself, which defaults to {@link defaultGenerationWorker}.
-     *
-     * Named only by a caller that has its own, and by the tests.
+     * The worker entry, which defaults to {@link defaultGenerationWorker}. A `data:` URL uses
+     * the embedded worker message protocol; file paths and URLs use piscina.
      */
     readonly worker?: string;
     /**
@@ -234,15 +254,19 @@ interface Waiting {
 }
 
 /**
- * This package's own worker entry, beside this file.
+ * This package's own worker entry, beside this file or embedded in a packaged executable.
  *
  * `.es.js` in a built package and `.ts` in a dev checkout, which a worker thread can import
- * either way because Node strips types. Resolved rather than configured, so a caller does not
- * have to know which of the two it is running against.
+ * either way because Node strips types. Single executables load their embedded worker from a
+ * data URL. Resolved rather than configured, so a caller does not have to know which is running.
  */
 export const defaultGenerationWorker = (): string => {
     const embedded = embeddedGenerationWorker();
     if (embedded !== undefined) return embedded;
+
+    if (typeof JSP_SEA_GENERATION_WORKER !== 'undefined') {
+        return singleExecutableModuleUrl(JSP_SEA_GENERATION_WORKER) ?? `sea-asset:${JSP_SEA_GENERATION_WORKER}`;
+    }
 
     const beside = import.meta.url.endsWith('.ts') ? './generationWorker.ts' : './generationWorker.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));
@@ -310,6 +334,143 @@ const typeScriptLoader = (module: string): string | undefined => {
     }
 };
 
+/** A task sent to a module worker started from a data URL. */
+interface EmbeddedTask {
+    readonly id: number;
+    readonly task: GenerationTask;
+    readonly resolve: (result: GenerationResult) => void;
+    readonly reject: (error: Error) => void;
+}
+
+/** What the embedded worker posts back after running a task. */
+interface EmbeddedReply {
+    readonly id: number;
+    readonly ok: boolean;
+    readonly result?: GenerationResult;
+    readonly error?: { readonly name: string; readonly message: string; readonly stack?: string };
+}
+
+/** One persistent module worker, with at most one task in flight. */
+interface EmbeddedWorkerSlot {
+    readonly worker: Worker;
+    busy?: EmbeddedTask;
+}
+
+/** Runs a small persistent worker pool whose entry is bundled as a data URL. */
+class EmbeddedTaskRunner implements TaskRunner {
+    private readonly slots: EmbeddedWorkerSlot[] = [];
+    private readonly waiting: EmbeddedTask[] = [];
+    private readonly workerUrl: URL;
+    private readonly workerData: GenerationWorkerData;
+    private readonly maxWorkers: number;
+    private nextId = 0;
+    private closed = false;
+
+    public constructor(options: GenerationPoolOptions, workerUrl: URL) {
+        this.workerUrl = workerUrl;
+        this.maxWorkers = options.workers;
+        this.workerData = {
+            pipeline: workerModuleSpecifier(options.pipeline),
+            setup: options.setup,
+            ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats })
+        };
+    }
+
+    public get threads(): readonly unknown[] {
+        return this.slots.map(({ worker }) => worker);
+    }
+
+    public run(task: GenerationTask): Promise<GenerationResult> {
+        if (this.closed) return Promise.reject(new Error('The embedded generation worker pool is closed'));
+
+        return new Promise((resolve, reject) => {
+            this.waiting.push({ id: this.nextId++, task, resolve, reject });
+            this.dispatch();
+        });
+    }
+
+    public async destroy(): Promise<void> {
+        if (this.closed) return;
+        this.closed = true;
+
+        for (const task of this.waiting) task.reject(new Error('The embedded generation worker pool was closed'));
+        this.waiting.length = 0;
+
+        await Promise.all(
+            this.slots.map(async ({ worker, busy }) => {
+                busy?.reject(new Error('The embedded generation worker pool was closed'));
+                await worker.terminate();
+            })
+        );
+        this.slots.length = 0;
+    }
+
+    private dispatch(): void {
+        while (!this.closed && this.waiting.length > 0) {
+            let slot = this.slots.find((candidate) => candidate.busy === undefined);
+            if (slot === undefined && this.slots.length < this.maxWorkers) {
+                try {
+                    slot = this.startWorker();
+                } catch (error) {
+                    this.waiting.shift()!.reject(error instanceof Error ? error : new Error(String(error)));
+                    continue;
+                }
+            }
+            if (slot === undefined) return;
+
+            const task = this.waiting.shift()!;
+            slot.busy = task;
+            try {
+                slot.worker.postMessage({ id: task.id, task: task.task });
+            } catch (error) {
+                this.failWorker(slot, error instanceof Error ? error : new Error(String(error)));
+            }
+        }
+    }
+
+    private startWorker(): EmbeddedWorkerSlot {
+        const worker = new Worker(this.workerUrl, { workerData: this.workerData });
+        const slot: EmbeddedWorkerSlot = { worker };
+        this.slots.push(slot);
+
+        worker.on('message', (reply: EmbeddedReply) => {
+            const busy = slot.busy;
+            if (busy === undefined || reply.id !== busy.id) {
+                this.failWorker(slot, new Error('The embedded generation worker returned an unexpected task id'));
+                return;
+            }
+
+            slot.busy = undefined;
+            if (reply.ok && reply.result !== undefined) busy.resolve(reply.result);
+            else {
+                const error = new Error(
+                    reply.error?.message ?? 'The embedded generation worker failed without an error'
+                );
+                error.name = reply.error?.name ?? 'Error';
+                if (reply.error?.stack !== undefined) error.stack = reply.error.stack;
+                busy.reject(error);
+            }
+            this.dispatch();
+        });
+        worker.on('error', (error) => this.failWorker(slot, error));
+        worker.on('exit', (code) => {
+            if (!this.closed) this.failWorker(slot, new Error(`Generation worker exited with code ${code}`));
+        });
+
+        return slot;
+    }
+
+    private failWorker(slot: EmbeddedWorkerSlot, error: Error): void {
+        const index = this.slots.indexOf(slot);
+        if (index < 0) return;
+        this.slots.splice(index, 1);
+        slot.busy?.reject(error);
+        slot.busy = undefined;
+        void slot.worker.terminate();
+        this.dispatch();
+    }
+}
+
 /**
  * The flags the workers start with, or undefined when inheriting this thread's is right.
  *
@@ -349,6 +510,9 @@ export const workerExecArgv = (
  * to 400 ms that went into it.
  */
 const piscinaRunner: TaskRunnerFactory = (options) => {
+    const worker = options.worker ?? defaultGenerationWorker();
+    if (worker.startsWith('data:')) return new EmbeddedTaskRunner(options, new URL(worker));
+
     const execArgv = workerExecArgv(options);
 
     return new Piscina<GenerationTask, GenerationResult>({
@@ -388,11 +552,10 @@ export class GenerationPool {
     /**
      * Why this process cannot run workers, or undefined when it can.
      *
-     * A worker thread is a second module loader rather than a copy of this one, so it reads the
-     * worker entry and the pipeline off disk through Node's own resolution. A single executable
-     * keeps its modules inside the binary and has neither file, and piscina's own worker entry
-     * is in there with them. Asking before building is what lets a caller log one line and do
-     * the work on its own thread, instead of starting six workers that reject every task.
+     * A worker thread is a second module loader rather than a copy of this one. The Node single
+     * executable packages its worker and pipelines as assets; other hosts need those modules
+     * available through Node's resolution. Asking before building lets a caller log one line
+     * and do the work on its own thread instead of starting workers that cannot import modules.
      *
      * This does not promise the pipeline imports cleanly once a worker has it. That depends on
      * the loader the host was started with, which only the import itself can settle, so a
@@ -402,16 +565,28 @@ export class GenerationPool {
      * @returns A sentence naming what is missing, or undefined when nothing is.
      */
     public static unavailable(options: GenerationPoolOptions): string | undefined {
-        // A compiled Bun executable embeds the worker entry and the pipeline modules as extra
-        // compile entrypoints, named by build-time constants, so its workers import them from
-        // inside the binary. Only a compiled binary built without them - Node's single
-        // executable has no equivalent - has nothing a worker thread could import.
-        if (inCompiledBinary() && embeddedGenerationWorker() === undefined) {
+        // Bun embeds worker entrypoints in its virtual filesystem. Node's single executable
+        // embeds assets and opens them as data URLs, with the pipeline loaded by the worker.
+        const seaWorker = typeof JSP_SEA_GENERATION_WORKER !== 'undefined' && isSingleExecutable();
+        if (inCompiledBinary() && embeddedGenerationWorker() === undefined && !seaWorker) {
             return 'this executable was compiled without its worker entrypoints, which keeps its modules where a worker thread cannot import them';
         }
 
+        if (isSingleExecutable() && !options.pipeline.startsWith('sea-asset:')) {
+            return `the pipeline module ${options.pipeline} is not embedded in this executable; rebuild it with the default generation pipeline to enable workers`;
+        }
+
+        if (isSingleExecutable() && options.worker !== undefined && !options.worker.startsWith('data:')) {
+            return `the worker entry ${options.worker} is not embedded in this executable; rebuild it with the default generation worker to enable workers`;
+        }
+
+        const worker = options.worker ?? defaultGenerationWorker();
+        if (isSingleExecutable() && worker.startsWith('sea-asset:')) {
+            return `the embedded worker asset ${worker.slice('sea-asset:'.length)} could not be loaded; rebuild the single executable`;
+        }
+
         const entries = [
-            ['worker entry', options.worker ?? defaultGenerationWorker()],
+            ['worker entry', worker],
             ['pipeline module', options.pipeline]
         ] as const;
         for (const [what, specifier] of entries) {

@@ -273,18 +273,16 @@ export interface TerrainPoolOptions {
 }
 
 /**
- * This package's own terrain pipeline module, beside this file.
+ * This package's own terrain pipeline module, beside this file or in a packaged executable.
  *
- * `.ts` in a dev checkout and `.es.js` in a built package, resolved rather than configured so a
- * caller does not have to know which of the two it is running. A worker can import either: it
- * inherits `process.execArgv`, so a host started with `--import tsx` hands its workers the same
- * loader, and that loader is what follows the extensionless `@jsprismarine/*` imports the
- * TypeScript is full of.
+ * `.ts` in a dev checkout, `.es.js` in a built package, or a SEA asset specifier in the packaged
+ * executable. A worker inherits `process.execArgv`, so a host started with `--import tsx` hands
+ * its workers the same loader, and the single executable loads its bundled asset from `node:sea`.
  *
- * @returns The path to the module. It may not exist, which is a single executable's answer and
- * is what {@link TerrainPoolOptions.onUnavailable} reports.
+ * @returns The module path or embedded SEA asset specifier.
  */
 export const defaultTerrainPipeline = (): string => {
+    if (typeof JSP_SEA_TERRAIN_PIPELINE !== 'undefined') return `sea-asset:${JSP_SEA_TERRAIN_PIPELINE}`;
     if (typeof JSP_EMBEDDED_TERRAIN_PIPELINE !== 'undefined') return JSP_EMBEDDED_TERRAIN_PIPELINE;
     const beside = import.meta.url.endsWith('.ts') ? './terrainPipeline.ts' : './terrainPipeline.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));
@@ -297,15 +295,19 @@ export const defaultTerrainPipeline = (): string => {
  */
 declare const JSP_EMBEDDED_CHUNK_PIPELINE: string | undefined;
 declare const JSP_EMBEDDED_TERRAIN_PIPELINE: string | undefined;
+/** SEA asset names are defined by `scripts/package-sea.mts`. */
+declare const JSP_SEA_CHUNK_PIPELINE: string | undefined;
+declare const JSP_SEA_TERRAIN_PIPELINE: string | undefined;
 
 /**
- * This package's shared-status and legacy whole-chunk pipeline module, beside this file.
+ * This package's shared-status and legacy whole-chunk pipeline module, beside this file or in a packaged executable.
  *
  * Resolved the same way, and for the same reasons, as {@link defaultTerrainPipeline}.
  *
- * @returns The path to the module.
+ * @returns The module path or embedded SEA asset specifier.
  */
 export const defaultChunkPipeline = (): string => {
+    if (typeof JSP_SEA_CHUNK_PIPELINE !== 'undefined') return `sea-asset:${JSP_SEA_CHUNK_PIPELINE}`;
     if (typeof JSP_EMBEDDED_CHUNK_PIPELINE !== 'undefined') return JSP_EMBEDDED_CHUNK_PIPELINE;
     const beside = import.meta.url.endsWith('.ts') ? './chunkPipeline.ts' : './chunkPipeline.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));

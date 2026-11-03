@@ -85,7 +85,9 @@ described in the next section when they can, and fall back to the plain line con
 cache is warm: run `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen` and
 `pnpm --filter @jsprismarine/bedrock-data run extract:structures` first, because the executable
 carries that data inside it — the Java vanilla datapack, the biome parameter reports, the
-structure templates, and this project's overlay packs.
+structure templates, and this project's overlay packs. The build enables Node's SEA code cache
+for the main entry. To build a comparison without it, save the first executable before running
+`pnpm run package -- --no-code-cache`; the remaining packaging inputs stay the same.
 
 The first time the executable runs in a directory, it unpacks that embedded data and downloads
 the pinned Bedrock Dedicated Server zip (~95 MB) from Mojang, verifying its digest and keeping
@@ -95,9 +97,10 @@ files, so later runs start without a network. On a machine that cannot reach Moj
 `JSP_VANILLA_BEHAVIOR_PACK` to a local copy of a Bedrock Dedicated Server `behavior_packs`
 folder.
 
-Inside the executable the terminal UI and the chunk worker pool are unavailable — the binary's
-modules cannot be imported by a worker thread — so it runs the plain line console and generates
-terrain on the server thread, and says so.
+The executable uses the plain line console. It embeds the default chunk worker and generation
+pipelines as SEA assets, so terrain workers can run without importing modules from disk. If an
+asset is missing or a custom pipeline is not embedded, the server logs the reason and generates
+terrain on the server thread instead.
 
 `pnpm run package:scriptc` is an experimental ahead-of-time build. It embeds no data and does
 not provision any on first run yet, so its output needs a directory whose

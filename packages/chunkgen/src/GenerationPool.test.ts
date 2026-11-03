@@ -56,6 +56,23 @@ describe('GenerationPool', () => {
         expect(pool.workers).toBe(1);
     }, 60_000);
 
+    it('runs a bundled worker entry from a data URL', async () => {
+        const source = [
+            "import { parentPort } from 'node:worker_threads';",
+            "parentPort.on('message', ({ id, task }) => {",
+            '    const blocks = new Int32Array([task.chunkX, task.chunkZ]).buffer;',
+            '    const result = { payload: { chunkX: task.chunkX, chunkZ: task.chunkZ, blocks }, transferList: [blocks] };',
+            '    parentPort.postMessage({ id, ok: true, result }, [blocks]);',
+            '});'
+        ].join('\n');
+        const worker = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+        pool = new GenerationPool({ pipeline: FAKE_PIPELINE, worker, workers: 1 });
+
+        const result = await pool.run({ status: 'terrain', chunkX: 12, chunkZ: -4, dimension: 0 });
+
+        expect(new Int32Array(result.transferList[0]!)).toEqual(new Int32Array([12, -4]));
+    }, 60_000);
+
     it('reports per-worker heap when the benchmark buffer is requested', async () => {
         const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2);
         const stats = new Int32Array(buffer);

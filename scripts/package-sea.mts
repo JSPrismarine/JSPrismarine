@@ -33,6 +33,12 @@ if (major! < 25 || (major === 25 && minor! < 5)) {
 }
 const seaDir = path.join(repoRoot, 'dist', 'sea');
 const executable = path.join(repoRoot, 'dist', process.platform === 'win32' ? 'prismarine.exe' : 'prismarine');
+const args = process.argv.slice(2);
+const packageArgs = args[0] === '--' ? args.slice(1) : args;
+if (packageArgs.some((argument) => argument !== '--no-code-cache')) {
+    throw new Error('Usage: pnpm run package [--no-code-cache]');
+}
+const useCodeCache = !packageArgs.includes('--no-code-cache');
 
 mkdirSync(seaDir, { recursive: true });
 
@@ -40,6 +46,13 @@ console.log('Bundling the server...');
 const bundle = await rolldown({
     input: path.join(repoRoot, 'packages', 'server', 'src', 'Server.ts'),
     platform: 'node',
+    transform: {
+        define: {
+            JSP_SEA_GENERATION_WORKER: "'generation-worker'",
+            JSP_SEA_CHUNK_PIPELINE: "'chunk-pipeline'",
+            JSP_SEA_TERRAIN_PIPELINE: "'terrain-pipeline'"
+        }
+    },
     // The terminal UI loads a native library through `@opentui/core`, whose top-level await
     // cannot be bundled into the CommonJS SEA entry. The host imports `@jsprismarine/console`
     // dynamically and falls back to the plain line console when that import fails, which is
@@ -56,9 +69,29 @@ const bundle = await rolldown({
 await bundle.write({
     file: path.join(seaDir, 'server.cjs'),
     format: 'cjs',
-    inlineDynamicImports: true
+    codeSplitting: false
 });
 await bundle.close();
+
+console.log('Bundling generation workers...');
+const generationAssets = [
+    ['generation-worker', 'packages/chunkgen/src/singleExecutableWorker.ts'],
+    ['chunk-pipeline', 'packages/prismarine/src/world/generators/datadriven/chunkPipeline.ts'],
+    ['terrain-pipeline', 'packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts']
+] as const;
+for (const [name, entry] of generationAssets) {
+    const workerBundle = await rolldown({
+        input: path.join(repoRoot, entry),
+        platform: 'node',
+        resolve: { alias: { 'jsonc-parser': 'jsonc-parser/lib/esm/main.js' } }
+    });
+    await workerBundle.write({
+        file: path.join(seaDir, `${name}.mjs`),
+        format: 'esm',
+        codeSplitting: false
+    });
+    await workerBundle.close();
+}
 
 console.log('Encoding the data bundle...');
 
@@ -79,7 +112,7 @@ console.log(
 const manifestPath = path.join(seaDir, 'data-manifest.json');
 writeFileSync(manifestPath, packaged.manifest);
 
-console.log('Building the single executable...');
+console.log(`Building the single executable (code cache ${useCodeCache ? 'enabled' : 'disabled'})...`);
 const seaConfig = path.join(seaDir, 'sea-config.json');
 writeFileSync(
     seaConfig,
@@ -88,9 +121,11 @@ writeFileSync(
             main: path.join(seaDir, 'server.cjs'),
             output: executable,
             disableExperimentalSEAWarning: true,
+            useCodeCache,
             assets: {
                 'data-bundle': bundlePath,
-                'data-manifest': manifestPath
+                'data-manifest': manifestPath,
+                ...Object.fromEntries(generationAssets.map(([name]) => [name, path.join(seaDir, `${name}.mjs`)]))
             }
         },
         null,
