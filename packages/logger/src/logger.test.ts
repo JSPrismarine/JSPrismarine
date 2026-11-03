@@ -12,6 +12,23 @@ const makeLogger = (level: LogLevel = 'info') => {
 };
 
 describe('level guard', () => {
+    it('reports whether a level is enabled', () => {
+        const { logger } = makeLogger('info');
+
+        expect(logger.isEnabled('error')).toBe(true);
+        expect(logger.isEnabled('info')).toBe(true);
+        expect(logger.isEnabled('verbose')).toBe(false);
+        expect(logger.isEnabled('silly')).toBe(false);
+    });
+
+    it('reports every level disabled after shutdown', async () => {
+        const { logger } = makeLogger('silly');
+        await logger.disable();
+
+        expect(logger.isEnabled('error')).toBe(false);
+        expect(logger.isEnabled('silly')).toBe(false);
+    });
+
     it('does not reach the transport for a suppressed level', () => {
         const { logger, written } = makeLogger('info');
         logger.debug('should not appear');

@@ -18,6 +18,7 @@ import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
 import { HandSlot } from '@jsprismarine/protocol';
 import { encodePacketBatch } from './encodePacketBatch';
+import { PacketLogFilter } from './PacketLogFilter';
 
 const START_GAME_CAPTURE = readFileSync(
     new URL('../../../protocol/src/packet/__fixtures__/start-game-bds-1.26.51.1.bin', import.meta.url)
@@ -34,7 +35,8 @@ const START_GAME_DATA = new StartGamePacket().deserialize(new NetworkBinaryStrea
 const fakeSession = (
     codec: ProtocolCodec,
     getCompressionLevel?: () => number,
-    getCompressionThreshold?: () => number
+    getCompressionThreshold?: () => number,
+    trafficLogEnabled = false
 ) => {
     const framed: Buffer[] = [];
     const connection = stub<TransportConnection>({
@@ -42,12 +44,21 @@ const fakeSession = (
         sendFrame: (payload: Buffer) => void framed.push(payload),
         close: () => {}
     });
-    const logger = stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} });
+    const sillyLines: string[] = [];
+    const logger = stub<Logger>({
+        isEnabled: () => trafficLogEnabled,
+        silly: (line: string) => void sillyLines.push(line),
+        error: () => {},
+        warn: () => {}
+    });
+    const logFilter = new PacketLogFilter();
+    const shouldLog = vi.spyOn(logFilter, 'shouldLog');
+    const shouldLogName = vi.spyOn(logFilter, 'shouldLogName');
 
     const session = new MinecraftSession(
         connection,
         logger,
-        undefined,
+        logFilter,
         undefined,
         undefined,
         undefined,
@@ -56,7 +67,7 @@ const fakeSession = (
     );
     session.codec = codec;
     session.setCompressionSettings(PacketCompressionAlgorithm.ZLIB, getCompressionThreshold?.() ?? 1);
-    return { framed, session };
+    return { framed, session, sillyLines, shouldLog, shouldLogName };
 };
 
 /** The packets inside an uncompressed batch frame, as raw encoded buffers. */
@@ -181,6 +192,7 @@ describe('network', () => {
                 close: () => {}
             });
             const logger = stub<Logger>({
+                isEnabled: () => false,
                 silly: () => {},
                 error: (error: unknown) => void errors.push(error),
                 warn: () => {}
@@ -364,6 +376,31 @@ describe('network', () => {
             expect(decodedPacketStreamDigest(thresholded.framed)).toBe(
                 decodedPacketStreamDigest(alwaysCompressed.framed)
             );
+        });
+
+        it('keeps silly traffic lines unchanged and skips outbound filters at info', async () => {
+            const silly = fakeSession(Codec2193, undefined, undefined, true);
+            const batch = encodePacketBatch([animate()], Codec2193, { compressed: false });
+
+            await silly.session.sendPacketsAsync([animate()], { compressed: false });
+            await silly.session.sendSharedBatch(batch.content, batch.packets);
+            await silly.session.sendDataPacket(animate(), false);
+
+            expect(silly.sillyLines).toEqual([
+                'Sent §bAnimatePacket§r packet',
+                'Sent §bAnimatePacket§r packet',
+                'Sent §bAnimatePacket§r packet'
+            ]);
+
+            const info = fakeSession(Codec2193);
+            const shared = encodePacketBatch([animate()], Codec2193, { compressed: false });
+            await info.session.sendPacketsAsync([animate()], { compressed: false });
+            await info.session.sendSharedBatch(shared.content, shared.packets);
+            await info.session.sendDataPacket(animate(), false);
+
+            expect(info.shouldLog).not.toHaveBeenCalled();
+            expect(info.shouldLogName).not.toHaveBeenCalled();
+            expect(info.sillyLines).toEqual([]);
         });
 
         it('coalesces concurrently queued sends without changing the decoded packet stream', async () => {

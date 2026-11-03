@@ -4,3 +4,5 @@
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/logger)](https://www.npmjs.com/package/@jsprismarine/logger)
 
 Leveled logger with a console transport that buffers boot output until a console attaches, plus a plain-text file transport.
+
+Call `logger.isEnabled(level)` before formatting an expensive message. It reports whether that level will be written, so hot paths can skip both the message and its arguments when the logger would suppress them.

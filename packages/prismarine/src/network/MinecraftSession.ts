@@ -250,9 +250,11 @@ export default class MinecraftSession {
 
                 // One line per packet, as `sendDataPacket` writes, so a join trace shows the
                 // chunks between the publisher updates instead of a gap where they went out.
-                for (const packet of batch.packets) {
-                    const name = packet.getName();
-                    if (this.logFilter.shouldLogName(name)) this.logger.silly(`Sent §b${name}§r packet`);
+                if (this.logger.isEnabled('silly')) {
+                    for (const packet of batch.packets) {
+                        const name = packet.getName();
+                        if (this.logFilter.shouldLogName(name)) this.logger.silly(`Sent §b${name}§r packet`);
+                    }
                 }
             });
         } finally {
@@ -323,7 +325,11 @@ export default class MinecraftSession {
         if (this.dropsPackets(packets)) return;
 
         this.frameAndRecord(content, packets, direct, packetBuffers);
-        if (representative !== undefined && this.logFilter.shouldLog(representative)) {
+        if (
+            representative !== undefined &&
+            this.logger.isEnabled('silly') &&
+            this.logFilter.shouldLog(representative)
+        ) {
             this.logger.silly(`Sent §b${representative.getName()}§r packet`);
         }
     }
@@ -398,7 +404,8 @@ export default class MinecraftSession {
         }
 
         if (this.dropped.has(packet.getName())) {
-            this.dump(encodedPacket);
+            // Transient encoding does not populate `packet.getBuffer()`, so dump the captured bytes.
+            this.dump(encodedPacket, buffer);
             this.drops(packet.getName());
             return;
         }
@@ -457,8 +464,10 @@ export default class MinecraftSession {
                     queued.some(({ direct }) => direct),
                     buffers
                 );
-                for (const { packet } of queued) {
-                    if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
+                if (this.logger.isEnabled('silly')) {
+                    for (const { packet } of queued) {
+                        if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
+                    }
                 }
             } catch (error: unknown) {
                 for (const { reject } of queued) reject(error);
@@ -612,7 +621,7 @@ export default class MinecraftSession {
         if (this.drops(encodedPacket.getName())) return;
 
         this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
-        if (this.logFilter.shouldLog(encodedPacket)) {
+        if (this.logger.isEnabled('silly') && this.logFilter.shouldLog(encodedPacket)) {
             this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
         }
     }

@@ -12,3 +12,5 @@ category: Types
 -   `verbose` Extra information (eg timings)
 -   `debug` Debug information (eg each command ids registered)
 -   `silly` Verbose debug information (eg every packet sent/received)
+
+Before formatting an expensive message, call `logger.isEnabled(level)`. The check uses the same level threshold as the matching log method and returns `false` after the logger is disabled.

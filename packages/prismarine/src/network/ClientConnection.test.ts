@@ -11,7 +11,8 @@ import type { RakNetTransportConnection } from './transport/RakNetTransport';
 
 describe('network', () => {
     describe('ClientConnection', () => {
-        const fakeConnection = () => new ClientConnection(stub<RakNetTransportConnection>(), stub<Logger>());
+        const fakeConnection = () =>
+            new ClientConnection(stub<RakNetTransportConnection>(), stub<Logger>({ isEnabled: () => false }));
 
         /**
          * A player whose teardown is `disable`.

@@ -283,7 +283,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     /** Logs the packets the traffic-log filter admits; drops nothing. */
     private logInbound(packet: NetworkPacket<unknown>): readonly NetworkPacket<unknown>[] {
-        if (this.logFilter.shouldLog(packet)) this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
+        if (this.logger.isEnabled('silly') && this.logFilter.shouldLog(packet)) {
+            this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
+        }
         return [packet];
     }
 

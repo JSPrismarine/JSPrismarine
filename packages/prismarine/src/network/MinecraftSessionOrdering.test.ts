@@ -48,7 +48,7 @@ const fakeSession = () => {
         },
         close: () => {}
     });
-    const logger = stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} });
+    const logger = stub<Logger>({ isEnabled: () => false, silly: () => {}, error: () => {}, warn: () => {} });
 
     return { framed, direct, session: new MinecraftSession(connection, logger) };
 };

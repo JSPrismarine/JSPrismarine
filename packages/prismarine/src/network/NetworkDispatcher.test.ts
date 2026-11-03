@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
@@ -78,10 +78,11 @@ const fakeConnection = (token: string) => {
 };
 
 /** A logger that records each level's lines. */
-const fakeLogger = () => {
+const fakeLogger = (sillyEnabled: boolean) => {
     const lines: { level: string; message: string }[] = [];
     const record = (level: string) => (message: unknown) => void lines.push({ level, message: String(message) });
     const logger = stub<Logger>({
+        isEnabled: () => sillyEnabled,
         error: record('error'),
         warn: record('warn'),
         info: record('info'),
@@ -141,6 +142,8 @@ const makeDispatcher = (options?: {
     outboundRecorder?: OutboundPacketRecorder;
     compressed?: boolean;
     tick?: () => number;
+    loggerEnabled?: boolean;
+    logFilter?: PacketLogFilter;
     handler?: {
         phases: readonly SessionPhase[];
         handle: (packet: unknown, server: Server, target: unknown) => Promise<void>;
@@ -148,7 +151,8 @@ const makeDispatcher = (options?: {
 }) => {
     const transport = new FakeTransport();
     const sessionManager = new SessionManager();
-    const { logger, lines } = fakeLogger();
+    const { logger, lines } = fakeLogger(options?.loggerEnabled ?? true);
+    const logFilter = options?.logFilter ?? new PacketLogFilter();
     const server = stub<Server>({ getTick: options?.tick ?? (() => 0) });
     const packetHandlerRegistry = stub<PacketHandlerRegistry>({
         getHandler: () => {
@@ -170,7 +174,7 @@ const makeDispatcher = (options?: {
         events: stub<EventEmitter>({ emit: async () => {} }),
         server,
         logger,
-        logFilter: new PacketLogFilter(),
+        logFilter,
         inboundPacketRecorder: options?.recorder,
         outboundPacketRecorder: options?.outboundRecorder,
         createConnection: () => {
@@ -189,7 +193,7 @@ const makeDispatcher = (options?: {
         query: { enabled: () => false, onRaw: async () => Buffer.alloc(0) }
     });
 
-    return { transport, sessionManager, lines, server, built, dispatcher, outboundRecorderSetup };
+    return { transport, sessionManager, lines, server, built, dispatcher, outboundRecorderSetup, logFilter };
 };
 
 describe('network', () => {
@@ -255,6 +259,29 @@ describe('network', () => {
             expect(lines.some(({ level, message: m }) => level === 'error' && m.includes('closed connection'))).toBe(
                 true
             );
+        });
+
+        it('keeps the silly inbound line and skips the filter when silly is disabled', async () => {
+            const silly = makeDispatcher({
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await silly.transport.emitConnect(fakeConnection('silly:1').connection);
+            await silly.transport.emitFrame(frameOf(message('logged')), address('silly:1'));
+
+            expect(silly.lines).toContainEqual({ level: 'silly', message: 'Received §bTextPacket§r packet' });
+
+            const filter = new PacketLogFilter();
+            const shouldLog = vi.spyOn(filter, 'shouldLog');
+            const info = makeDispatcher({
+                loggerEnabled: false,
+                logFilter: filter,
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await info.transport.emitConnect(fakeConnection('info:1').connection);
+            await info.transport.emitFrame(frameOf(message('not logged')), address('info:1'));
+
+            expect(shouldLog).not.toHaveBeenCalled();
+            expect(info.lines.some(({ level }) => level === 'silly')).toBe(false);
         });
 
         it('hands a handshake-phase handler the bare connection', async () => {

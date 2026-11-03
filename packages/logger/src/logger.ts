@@ -113,6 +113,18 @@ export class Logger {
         return !this.closed && isAtLeastLevel(level, this.level);
     }
 
+    /**
+     * Check whether a message at `level` would be written.
+     *
+     * Call this before formatting expensive messages so suppressed log lines do not allocate
+     * strings or argument arrays on hot paths.
+     * @param {LogLevel} level - The level the message would use.
+     * @returns {boolean} `true` when the logger is open and the level is enabled.
+     */
+    public isEnabled(level: LogLevel): boolean {
+        return this.isLevelEnabled(level);
+    }
+
     private emit(level: LogLevel, message: string, namespace: string): void {
         const now = new Date();
         const timestamp = [now.getHours(), now.getMinutes(), now.getSeconds()]

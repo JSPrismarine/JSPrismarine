@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -39,6 +41,7 @@ const fakeSession = (dropped: Iterable<string>, dumped: Iterable<string> = [], d
         close: () => {}
     });
     const logger = stub<Logger>({
+        isEnabled: () => false,
         silly: () => {},
         error: () => {},
         warn: (message: unknown) => void warnings.push(String(message))
@@ -78,7 +81,11 @@ describe('network', () => {
             const files = fs.readdirSync(dumpDir);
             expect(files.length).toBe(1);
             expect(files[0]).toMatch(/^\d+-127\.0\.0\.1-19132-TextPacket\.bin$/);
-            expect(fs.readFileSync(path.join(dumpDir, files[0]!))).toEqual(packet.getBuffer());
+            // Queued sends use transient bytes, so compare the dump with the actual wire payload.
+            const [wirePacket] = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
+                framed[0]!
+            );
+            expect(fs.readFileSync(path.join(dumpDir, files[0]!))).toEqual(wirePacket);
             expect(framed.length).toBe(1);
             expect(warnings[0]).toContain('Dumped §bTextPacket§r packet');
         });

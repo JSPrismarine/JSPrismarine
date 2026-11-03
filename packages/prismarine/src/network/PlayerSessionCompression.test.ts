@@ -25,7 +25,7 @@ describe('PlayerSession movement compression', () => {
                 sendFrame: (frame) => void frames.push(frame),
                 close: () => {}
             }),
-            stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} }),
+            stub<Logger>({ isEnabled: () => false, silly: () => {}, error: () => {}, warn: () => {} }),
             undefined,
             () => configuredLevel
         );
