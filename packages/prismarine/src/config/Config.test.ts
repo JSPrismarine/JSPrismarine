@@ -123,6 +123,18 @@ describe('config', () => {
             expect(config.getPacketCompressionThreshold()).toBe(256);
         });
 
+        it('keeps full-flush packet fragments disabled until retail clients validate them', () => {
+            expect(config.getPacketFullFlushFragments()).toBe(false);
+        });
+
+        it('reads the full-flush packet fragment flag from config.json', async () => {
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "packet-full-flush-fragments": true }\n');
+            const configured = new Config();
+            await configured.enable();
+
+            expect(configured.getPacketFullFlushFragments()).toBe(true);
+        });
+
         it('reads the packet compression threshold from config.json', async () => {
             writeFileSync(path.join(configDirectory, 'config.json'), '{ "packet-compression-threshold": 512 }\n');
             const configured = new Config();

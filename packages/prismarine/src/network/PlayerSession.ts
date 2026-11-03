@@ -49,6 +49,7 @@ import CoordinateUtils from '../world/CoordinateUtils';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
+import { FullFlushFragmentCache } from './encodePacketBatch';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
@@ -117,6 +118,9 @@ import { TextPacketType } from '@jsprismarine/protocol';
  * ticks a second this still carries far more than generation can produce.
  */
 const CHUNKS_PER_BATCH = 4;
+
+/** Weak payload keys let a chunk's full-flush fragment live exactly as long as its cached serialization. */
+const chunkFullFlushFragmentCache = new FullFlushFragmentCache();
 
 /**
  * How close a chunk has to be for a player to be counted as waiting on it.
@@ -576,8 +580,9 @@ export default class PlayerSession {
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
         const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
 
+        const chunkPayloads = chunksToSend.map((chunk) => chunk.networkSerialize());
         const packets = chunksToSend.map(
-            (chunk) =>
+            (chunk, index) =>
                 new LevelChunkPacket({
                     chunkX: chunk.getX(),
                     chunkZ: chunk.getZ(),
@@ -585,7 +590,7 @@ export default class PlayerSession {
                     subChunkCount: chunk.getNetworkSubChunkCount(),
                     clientSubChunkRequestsEnabled: false,
                     cached: false,
-                    payload: chunk.networkSerialize()
+                    payload: chunkPayloads[index]!
                 })
         );
 
@@ -600,7 +605,14 @@ export default class PlayerSession {
                     direct: false,
                     compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
                     compressionAlgorithm: this.connection.compressionAlgorithm,
-                    compressionThreshold: this.connection.compressionThreshold
+                    compressionThreshold: this.connection.compressionThreshold,
+                    fullFlushFragments: this.server.getConfig().getPacketFullFlushFragments?.() ?? false,
+                    fragmentCache: chunkFullFlushFragmentCache,
+                    fragmentKeys: chunkPayloads,
+                    fragmentKeyDiscriminators: chunksToSend.map(
+                        (chunk) =>
+                            `${chunk.getX()}:${chunk.getZ()}:${chunk.getDimension().bedrockId}:${chunk.getNetworkSubChunkCount()}:plain`
+                    )
                 })
             ]);
         } catch (error: unknown) {

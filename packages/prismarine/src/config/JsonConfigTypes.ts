@@ -140,6 +140,8 @@ export interface ConfigFile {
     'packet-compression-algorithm'?: 'zlib' | 'snappy' | 'none';
     /** The minimum batch-body size to compress, in bytes. Zero disables compression. @asType integer @minimum 0 @maximum 65535 */
     'packet-compression-threshold'?: number;
+    /** Whether to use the unvalidated, experimental cached full-flush batch fragments. */
+    'packet-full-flush-fragments'?: boolean;
     /** Whether to answer the Minecraft and Source query protocols. */
     'enable-query'?: boolean;
     /** Whether to show the tick rate in the process title. */
@@ -194,6 +196,7 @@ export const CONFIG_KEY_ORDER = [
     'packet-compression-level',
     'packet-compression-algorithm',
     'packet-compression-threshold',
+    'packet-full-flush-fragments',
     'enable-query',
     'enable-process-title',
     'enable-ticking',

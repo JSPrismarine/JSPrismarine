@@ -227,6 +227,9 @@ Older servers kept their settings in `config.yml` or `config.yaml`. The server
 does not read those files and ignores them if they exist. Move any settings you
 still need into `config.json` (where `//` comments are allowed).
 
+`packet-full-flush-fragments` is an opt-in compression prototype. It stays off by default until
+the server has been checked with retail Bedrock clients on Windows and Android.
+
 ### Worlds
 
 Each entry under `worlds` is one world: its `seed`, the `provider` that stores it on disk and

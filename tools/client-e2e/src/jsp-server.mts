@@ -279,7 +279,8 @@ export const startServer = async (
         'content-datapacks': [datapack],
         'preload-radius': 0,
         'max-players': 4,
-        motd: 'JSPrismarine e2e'
+        motd: 'JSPrismarine e2e',
+        'packet-full-flush-fragments': process.env.JSP_E2E_FULL_FLUSH_FRAGMENTS === '1'
     };
     fs.writeFileSync(path.join(dir, 'config.json'), `${JSON.stringify(config, null, 4)}\n`);
 

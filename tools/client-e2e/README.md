@@ -27,6 +27,7 @@ pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2193
 pnpm run e2e:client
 pnpm run e2e:client movement chat
 pnpm run e2e:client:dist spawn movement
+JSP_E2E_FULL_FLUSH_FRAGMENTS=1 pnpm run e2e:client:dist spawn movement
 pnpm run e2e:client -- --protocol 2193 movement chat
 pnpm run e2e:client -- --compression-algorithm snappy movement chat
 pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence

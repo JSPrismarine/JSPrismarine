@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -31,7 +31,8 @@ const replicatorFor = (
     compression: (viewerIndex: number) => { algorithm: PacketCompressionAlgorithm; threshold: number } = () => ({
         algorithm: PacketCompressionAlgorithm.ZLIB,
         threshold: 256
-    })
+    }),
+    fullFlushFragments = false
 ) => {
     const world = stub<World>({ getName: () => 'test' });
     const batches = viewers.map((): Buffer[] => []);
@@ -61,7 +62,8 @@ const replicatorFor = (
             stub<Config>({
                 getProximityBroadcast: () => true,
                 getPacketCompressionLevel: () => 1,
-                getPacketCompressionThreshold: () => 256
+                getPacketCompressionThreshold: () => 256,
+                getPacketFullFlushFragments: () => fullFlushFragments
             }),
         getLogger: () => stub<Logger>({ error: () => {}, verbose: () => {} })
     });
@@ -311,5 +313,36 @@ describe('NetworkWorldReplicator block changes', () => {
         expect(batches[1]![0]![1]).toBe(0xff);
         expect(updatesIn(batches[0]!)).toHaveLength(1);
         expect(updatesIn(batches[1]!)).toHaveLength(1);
+    });
+
+    it('assembles opted-in clustered block updates from cached full-flush fragments', async () => {
+        const { batches, replicator } = replicatorFor(
+            [
+                { x: 8, z: 8, viewDistance: 4 },
+                { x: 9, z: 8, viewDistance: 4 }
+            ],
+            Codec2193,
+            () => ({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 256 }),
+            true
+        );
+        const stoneRuntimeId = BlockRuntimeIds.tryGetByState('minecraft:stone', {});
+        if (stoneRuntimeId === null) throw new Error('minecraft:stone must be in the block palette');
+        const encodeFragment = vi.spyOn(BatchCodec.prototype, 'encodeFullFlushFragment');
+        try {
+            for (let index = 0; index < 32; index++) {
+                replicator.worldChanged({
+                    kind: 'block-set',
+                    position: new Vector3(index % 8, 64, Math.trunc(index / 8)),
+                    blockRuntimeId: stoneRuntimeId
+                });
+            }
+            await replicator.flushBlockChanges();
+
+            expect(encodeFragment).toHaveBeenCalledTimes(32);
+            expect(updatesIn(batches[0]!)).toHaveLength(32);
+            expect(updatesIn(batches[1]!)).toEqual(updatesIn(batches[0]!));
+        } finally {
+            vi.restoreAllMocks();
+        }
     });
 });

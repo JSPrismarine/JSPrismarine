@@ -1,5 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import Player from '../Player';
 import type Server from '../Server';
@@ -118,11 +118,13 @@ const fakeMob = (runtimeId: bigint) => {
 const replicatorOver = ({
     players = [],
     entities = [],
-    proximity = true
+    proximity = true,
+    fullFlushFragments = false
 }: {
     players?: Player[];
     entities?: Entity[];
     proximity?: boolean;
+    fullFlushFragments?: boolean;
 } = {}) => {
     const world = stub<World>({
         getName: () => 'test',
@@ -135,7 +137,8 @@ const replicatorOver = ({
             stub<Config>({
                 getProximityBroadcast: () => proximity,
                 getPacketCompressionLevel: () => 1,
-                getPacketCompressionThreshold: () => 256
+                getPacketCompressionThreshold: () => 256,
+                getPacketFullFlushFragments: () => fullFlushFragments
             }),
         getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} })
     });
@@ -320,6 +323,29 @@ describe('network', () => {
                     first.spy.frames[0]!
                 )
             ).toHaveLength(1);
+        });
+
+        it('reuses opted-in movement fragments across tracking viewers', async () => {
+            const first = fakePlayer(1n);
+            const second = fakePlayer(2n);
+            const mobs = Array.from({ length: 20 }, (_unused, index) => fakeMob(BigInt(index + 10)));
+            for (const mob of mobs) {
+                first.spy.tracked.add(mob.getRuntimeId());
+                second.spy.tracked.add(mob.getRuntimeId());
+            }
+            const replicator = replicatorOver({ players: [first.player, second.player], fullFlushFragments: true });
+            const encodeFragment = vi.spyOn(BatchCodec.prototype, 'encodeFullFlushFragment');
+            try {
+                for (const mob of mobs) replicator.entityMoved(mob);
+                await replicator.flushMovement();
+
+                expect(encodeFragment).toHaveBeenCalledTimes(mobs.length);
+                const decoder = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 256 });
+                expect(decoder.decode(first.spy.frames[0]!)).toHaveLength(mobs.length);
+                expect(second.spy.frames).toStrictEqual(first.spy.frames);
+            } finally {
+                vi.restoreAllMocks();
+            }
         });
 
         it('shares entity-state packets while retaining the per-session path for an entity player', async () => {

@@ -27,7 +27,7 @@ import type { WorldChange } from '../world/WorldChange';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
 import { broadcastSharedBatches } from './MinecraftSession';
 import type ClientConnection from './ClientConnection';
-import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec } from './encodePacketBatch';
+import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFragmentCache } from './encodePacketBatch';
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
@@ -255,14 +255,21 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const players = this.world.getPlayers();
         if (players.length === 0) return;
 
+        const config = this.server.getConfig();
+        const fullFlushFragments = config.getPacketFullFlushFragments?.() ?? false;
+        const fragmentCache = fullFlushFragments ? new FullFlushFragmentCache() : undefined;
+
         // With proximity off every client is told about everything, so the bytes are identical and
         // one compression per protocol version serves every client who speaks it.
         if (!this.server.getConfig().getProximityBroadcast()) {
-            broadcastSharedBatches(
+            await broadcastSharedBatches(
                 players.map((player) => player.getNetworkSession().getConnection()),
                 this.blockPackets(changes),
                 this.server.getConfig().getPacketCompressionLevel(),
-                (error) => this.server.getLogger().error(error)
+                (error) => this.server.getLogger().error(error),
+                // The configured threshold was already negotiated per connection; leave the override unset.
+                undefined,
+                { fullFlushFragments, fragmentCache }
             );
             return;
         }
@@ -380,7 +387,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 const batch = encodePacketBatchFromBuffersBySize(packets, buffers, {
                     compressionLevel,
                     compressionAlgorithm: group.compressionAlgorithm,
-                    compressionThreshold: group.compressionThreshold
+                    compressionThreshold: group.compressionThreshold,
+                    fullFlushFragments,
+                    fragmentCache,
+                    fragmentCodec: codec
                 });
                 if (batch instanceof Promise) {
                     const failedPacket = packets[0];
@@ -813,6 +823,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
 
         const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
+        const fullFlushFragments = this.server.getConfig().getPacketFullFlushFragments?.() ?? false;
+        const fragmentCache = fullFlushFragments ? new FullFlushFragmentCache() : undefined;
         const sends: Promise<void>[] = [];
 
         for (const [codec, players] of playersByCodec) {
@@ -899,7 +911,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                     batch = encodePacketBatchFromBuffersBySize(group.packets, group.buffers, {
                         compressionLevel,
                         compressionAlgorithm: group.compressionAlgorithm,
-                        compressionThreshold: group.compressionThreshold
+                        compressionThreshold: group.compressionThreshold,
+                        fullFlushFragments,
+                        fragmentCache,
+                        fragmentCodec: codec
                     });
                     batchByVisibility.set(signature, batch);
                 }

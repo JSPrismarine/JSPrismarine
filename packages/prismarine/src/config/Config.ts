@@ -74,6 +74,8 @@ const COMMENTS = {
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
     'packet-compression-threshold': 'The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.',
+    'packet-full-flush-fragments':
+        'Prototype: reuse independently compressed packet fragments. Requires retail client validation.',
     'enable-query': 'Whether to answer the Minecraft and Source query protocols.',
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
@@ -120,6 +122,7 @@ const DEFAULTS = {
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
+    'packet-full-flush-fragments': false,
     'enable-query': true,
     'enable-process-title': true,
     'enable-ticking': true,
@@ -207,6 +210,7 @@ export class Config {
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
     private packetCompressionThreshold: number = DEFAULTS['packet-compression-threshold'];
+    private packetFullFlushFragments: boolean = DEFAULTS['packet-full-flush-fragments'];
 
     /**
      * Controls if the minecraft/source query response should be enabled.
@@ -304,6 +308,7 @@ export class Config {
             'packet-compression-threshold',
             DEFAULTS['packet-compression-threshold']
         );
+        this.packetFullFlushFragments = read('packet-full-flush-fragments', DEFAULTS['packet-full-flush-fragments']);
         this.enableQuery = read('enable-query', this.enableQuery);
         this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
         this.enableTicking = read('enable-ticking', this.enableTicking);
@@ -578,6 +583,11 @@ export class Config {
     /** The minimum uncompressed batch-body size that is compressed and advertised to clients. */
     public getPacketCompressionThreshold(): number {
         return toPacketCompressionThreshold(this.packetCompressionThreshold);
+    }
+
+    /** Whether the unvalidated full-flush batch prototype is enabled for shared movement, blocks, and chunks. */
+    public getPacketFullFlushFragments(): boolean {
+        return this.packetFullFlushFragments;
     }
 
     public getEnableQuery() {

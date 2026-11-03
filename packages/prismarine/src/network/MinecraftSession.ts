@@ -669,8 +669,9 @@ export const broadcastSharedBatches = (
     packets: NetworkPacket<unknown> | readonly NetworkPacket<unknown>[],
     compressionLevel: number,
     onError: (error: unknown) => void,
-    compressionThreshold?: number
-): void => {
+    compressionThreshold?: number,
+    fragmentOptions: Pick<PacketBatchOptions, 'fullFlushFragments' | 'fragmentCache'> = {}
+): Promise<void> => {
     const packetList = packets instanceof Array ? packets : [packets];
     const sends: Promise<void>[] = [];
     const groups: {
@@ -701,7 +702,9 @@ export const broadcastSharedBatches = (
             const batch = encodePacketBatchBySize(packetList, codec, {
                 compressionLevel,
                 compressionAlgorithm: algorithm,
-                compressionThreshold: threshold
+                compressionThreshold: threshold,
+                ...fragmentOptions,
+                fragmentCodec: codec
             });
             if (batch instanceof Promise) {
                 const failedPacket = packetList[0];
@@ -717,7 +720,12 @@ export const broadcastSharedBatches = (
         }
     }
 
-    void Promise.all(sends).catch(onError);
+    return Promise.all(sends).then(
+        () => undefined,
+        (error: unknown) => {
+            onError(error);
+        }
+    );
 };
 
 /** Options for a session to frame packets as one batch. */

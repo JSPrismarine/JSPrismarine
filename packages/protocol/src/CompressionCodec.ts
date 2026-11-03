@@ -1,6 +1,6 @@
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { promisify } from 'node:util';
-import { deflateRaw, deflateRawSync, inflateRaw, inflateRawSync } from 'node:zlib';
+import { constants as zlibConstants, deflateRaw, deflateRawSync, inflateRaw, inflateRawSync } from 'node:zlib';
 import { snappyCompress, snappyDecompress } from './Snappy';
 
 const deflateRawAsync = promisify(deflateRaw);
@@ -137,6 +137,32 @@ export class CompressionCodec {
             default:
                 return payload;
         }
+    }
+
+    /**
+     * Compresses one packet payload into a reusable, non-final raw-deflate fragment.
+     * @param payload - One packet's varint length and encoded bytes.
+     * @returns A byte-aligned fragment that ended with `Z_FULL_FLUSH`.
+     */
+    public compressFullFlush(payload: Buffer): Buffer {
+        if (this.settings.algorithm !== PacketCompressionAlgorithm.ZLIB) {
+            throw new Error('Full-flush fragments require zlib compression');
+        }
+
+        return deflateRawSync(payload, { level: this.level, finishFlush: zlibConstants.Z_FULL_FLUSH });
+    }
+
+    /**
+     * Compresses one packet payload into a reusable full-flush fragment on libuv's pool.
+     * @param payload - One packet's varint length and encoded bytes.
+     * @returns The byte-aligned raw-deflate fragment.
+     */
+    public async compressFullFlushAsync(payload: Buffer): Promise<Buffer> {
+        if (this.settings.algorithm !== PacketCompressionAlgorithm.ZLIB) {
+            throw new Error('Full-flush fragments require zlib compression');
+        }
+
+        return deflateRawAsync(payload, { level: this.level, finishFlush: zlibConstants.Z_FULL_FLUSH });
     }
 
     public static decompress(

@@ -148,6 +148,30 @@ describe('BatchCodec, once compression is negotiated', () => {
         expect(codec.decode(encoded)).toEqual(packets);
     });
 
+    it.each([1, 2, 4, 9])('round-trips %i independently compressed full-flush fragments', (count) => {
+        const packets = Array.from({ length: count }, (_unused, index) => {
+            const length = [1, 127, 128, 1_024, 16_385][index % 5]!;
+            return Buffer.from(Array.from({ length }, (_byte, offset) => (index * 37 + offset * 13) & 0xff));
+        });
+        const codec = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, level: 1 });
+        const fragments = packets.map((packet) => codec.encodeFullFlushFragment(packet));
+        const encoded = codec.encodeFullFlushFragments(packets, fragments);
+
+        expect(codec.decode(encoded)).toEqual(packets);
+    });
+
+    it('matches the async fragment path and falls back when the configured threshold is not met', async () => {
+        const packets = [Buffer.alloc(32_768, 0x2a), Buffer.from([0x09, 0x01])];
+        const codec = zlib();
+        const fragments = await Promise.all(packets.map((packet) => codec.encodeFullFlushFragmentAsync(packet)));
+        const assembled = codec.encodeFullFlushFragments(packets, fragments);
+
+        expect(codec.decode(assembled)).toEqual(packets);
+
+        const uncompressed = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 0 });
+        expect(uncompressed.encodeFullFlushFragments(packets, [])).toEqual(uncompressed.encode(packets));
+    });
+
     it('keeps decoded packet digests while inflating small bodies synchronously and large ones asynchronously', async () => {
         const codec = zlib();
         const frames = [codec.encode([noisyBytes(150)]), codec.encode([noisyBytes(32 * 1024)])];

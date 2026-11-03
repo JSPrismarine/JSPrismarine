@@ -5,6 +5,9 @@ import { CompressionCodec } from './CompressionCodec';
 /** The id every batch carries, and the only packet id RakNet ever sees from Minecraft. */
 export const BATCH_PACKET_ID = 0xfe;
 
+/** An empty final fixed-Huffman block that closes a concatenation of full-flush fragments. */
+const FINAL_DEFLATE_BLOCK = Buffer.from([0x03, 0x00]);
+
 /** Small compressed bodies are cheaper to inflate on the caller than to queue in libuv. */
 const SYNC_INFLATE_BODY_LIMIT = 8 * 1024;
 
@@ -67,6 +70,52 @@ export class BatchCodec {
         const payload = BatchCodec.joinPackets(packets);
         const algorithm = this.compression.algorithmFor(payload.byteLength);
         return BatchCodec.frame(algorithm, await this.compression.compressAsync(payload));
+    }
+
+    /**
+     * Encodes one packet's length and bytes as an independently reusable raw-deflate fragment.
+     * @param packet - One already encoded packet.
+     * @returns The non-final raw-deflate fragment for that packet.
+     */
+    public encodeFullFlushFragment(packet: Buffer): Buffer {
+        if (this.compression === null) throw new Error('Full-flush fragments require negotiated compression');
+
+        return this.compression.compressFullFlush(BatchCodec.joinPackets([packet]));
+    }
+
+    /**
+     * Encodes one packet fragment using zlib's asynchronous API.
+     * @param packet - One already encoded packet.
+     * @returns The non-final raw-deflate fragment for that packet.
+     */
+    public encodeFullFlushFragmentAsync(packet: Buffer): Promise<Buffer> {
+        if (this.compression === null) throw new Error('Full-flush fragments require negotiated compression');
+
+        return this.compression.compressFullFlushAsync(BatchCodec.joinPackets([packet]));
+    }
+
+    /**
+     * Assembles a normal Bedrock batch from cached full-flush fragments.
+     *
+     * The final empty block is the only final marker in the stream. Each fragment ended with
+     * `Z_FULL_FLUSH`, so it has no back-reference into another packet and can be shared safely.
+     * @param packets - The decoded packet bytes in the order the client must receive them.
+     * @param fragments - One cached `encodeFullFlushFragment` result per packet.
+     * @returns A compressed Bedrock batch carrying the concatenated packet stream.
+     */
+    public encodeFullFlushFragments(packets: readonly Buffer[], fragments: readonly Buffer[]): Buffer {
+        const payload = BatchCodec.joinPackets(packets);
+        if (this.compression === null) return Buffer.concat([Buffer.from([BATCH_PACKET_ID]), payload]);
+
+        const algorithm = this.compression.algorithmFor(payload.byteLength);
+        if (algorithm !== PacketCompressionAlgorithm.ZLIB) return this.encode(packets);
+        if (packets.length !== fragments.length) {
+            throw new RangeError(
+                `Packet and fragment counts differ: ${packets.length} packets, ${fragments.length} fragments`
+            );
+        }
+
+        return BatchCodec.frame(algorithm, Buffer.concat([...fragments, FINAL_DEFLATE_BLOCK]));
     }
 
     public decode(batch: Buffer): Buffer[] {
