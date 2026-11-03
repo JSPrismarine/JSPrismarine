@@ -89,6 +89,9 @@ export interface StructurePiece {
     /**
      * Writes the piece.
      *
+     * A piece stays in the worker that built it: this method cannot cross a structured-clone
+     * boundary, and each destination chunk gives it a different writer and structure random.
+     *
      * @param random - The chunk's structure random, reseeded per chunk the way Java reseeds it,
      *   so a piece that spans two chunks draws two streams exactly as Java does.
      */

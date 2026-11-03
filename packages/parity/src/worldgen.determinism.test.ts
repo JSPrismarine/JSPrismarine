@@ -1,10 +1,15 @@
-import { DataDrivenGenerator } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import {
+    DataDrivenGenerator,
+    defaultChunkPipeline
+} from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import { chunkWorkerCount } from '@jsprismarine/prismarine/world/generators/chunkConcurrency';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import type { GenerationEnvironment } from './generation/capture.ts';
 import { captureChunk, openGeneration } from './generation/capture.ts';
+import type { CorpusChunk } from './generation/plan.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
@@ -61,6 +66,36 @@ const NEIGHBORS = [
     [0, -1]
 ] as const;
 
+/** Chunks on one ancient city's box, split across the whole-chunk pool's eight-chunk regions. */
+const SHARD_POOL_SUBJECTS = [
+    {
+        id: '987654321/22,23/full',
+        seed: 987_654_321,
+        chunkX: 22,
+        chunkZ: 23,
+        tier: 'full',
+        why: 'west side of an ancient city crossing shard regions'
+    },
+    {
+        id: '987654321/26,23/full',
+        seed: 987_654_321,
+        chunkX: 26,
+        chunkZ: 23,
+        tier: 'full',
+        why: 'middle of an ancient city crossing shard regions'
+    },
+    {
+        id: '987654321/34,23/full',
+        seed: 987_654_321,
+        chunkX: 34,
+        chunkZ: 23,
+        tier: 'full',
+        why: 'east side of an ancient city crossing shard regions'
+    }
+] as const satisfies readonly CorpusChunk[];
+
+const SHARD_POOL_WORKERS = [...new Set([1, Math.max(2, chunkWorkerCount())])];
+
 const environment = openGeneration();
 
 const fresh = (where: GenerationEnvironment): DataDrivenGenerator =>
@@ -94,6 +129,40 @@ const readingsFor = async (subject: (typeof SUBJECTS)[number]): Promise<Readings
     // have been generated in the same generator.
     for (const [x, z] of NEIGHBORS) await first.generateChunk(chunkX + x, chunkZ + z, worldSeed);
     return { alone, repeated, afterNeighbors, afterHandoff: digest(chunk) };
+};
+
+/** Builds the structure-bearing chunks through the whole-chunk worker pool. */
+const shardPoolDigestsFor = async (workers: number): Promise<ReadonlyMap<string, string>> => {
+    let unavailable: string | undefined;
+    const generator = new DataDrivenGenerator({
+        registries: environment!.registries,
+        templates: environment!.templates,
+        chunks: {
+            pipeline: defaultChunkPipeline(),
+            workers,
+            onUnavailable: (reason) => {
+                unavailable = reason;
+            }
+        }
+    });
+
+    try {
+        // Reverse the request order at larger pool sizes. The same chunk digest must survive
+        // both a different shard count and a different order for chunks crossed by one layout.
+        const subjects = workers === 1 ? SHARD_POOL_SUBJECTS : [...SHARD_POOL_SUBJECTS].reverse();
+        const results = await Promise.all(
+            subjects.map(async (subject) => {
+                const chunk = await generator.generateChunk(subject.chunkX, subject.chunkZ, BigInt(subject.seed));
+                const digest = captureChunk(subject, chunk).digest.digests;
+                return [subject.id, JSON.stringify(digest)] as const;
+            })
+        );
+
+        if (unavailable !== undefined) throw new Error(`Whole-chunk workers unavailable: ${unavailable}`);
+        return new Map(results);
+    } finally {
+        generator.stopGenerating();
+    }
 };
 
 describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFERENCES.javaServerJar], () => {
@@ -149,6 +218,41 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
                     `read again after its neighbors ${found.afterHandoff}`
             ).toEqual([]);
             expect(verdict.stale).toEqual([]);
+        });
+    });
+
+    describe('whole-chunk shard pools', () => {
+        const digests = new Map<number, ReadonlyMap<string, string>>();
+
+        beforeAll(async () => {
+            for (const workers of SHARD_POOL_WORKERS) {
+                digests.set(workers, await shardPoolDigestsFor(workers));
+            }
+        }, DETERMINISM_TIMEOUT);
+
+        it('keeps structure output digests stable across pool sizes and request order', () => {
+            const baseline = digests.get(SHARD_POOL_WORKERS[0]!);
+            if (baseline === undefined) throw new Error('The one-worker shard-pool digest was not captured');
+
+            const found = digests.get(SHARD_POOL_WORKERS.at(-1)!);
+            if (found === undefined) throw new Error('The multi-worker shard-pool digest was not captured');
+
+            reportParityCases(
+                FAMILIES.worldgenDeterminism,
+                import.meta.filename,
+                SHARD_POOL_SUBJECTS.map((subject) =>
+                    parityCase(
+                        `shard-pool:${subject.id}`,
+                        subject.id,
+                        `Ancient city chunk digest across ${SHARD_POOL_WORKERS[0]} and ${SHARD_POOL_WORKERS.at(-1)} workers`,
+                        baseline.get(subject.id) === found.get(subject.id)
+                    )
+                )
+            );
+
+            for (const subject of SHARD_POOL_SUBJECTS) {
+                expect(found.get(subject.id), subject.id).toBe(baseline.get(subject.id));
+            }
         });
     });
 });
