@@ -212,6 +212,11 @@ export class DensityFunctionCompiler {
         return sampler;
     }
 
+    /** Whether every operation in a tree is independent of its y coordinate. */
+    public isYIndependent(node: DensityFunctionNode): boolean {
+        return (this.domainAxes(node) & Y_AXIS) === 0;
+    }
+
     private build(node: DensityFunctionNode): DensitySampler {
         switch (node.type) {
             case 'constant':

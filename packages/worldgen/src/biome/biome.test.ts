@@ -143,6 +143,48 @@ describe('the multi-noise biome source', () => {
         };
         expect(source.resolver(sampler)(0, 0, 0)).toBe('minecraft:crimson_forest');
     });
+    it('reuses y-independent climate parameters per quart column and keeps depth y-dependent', () => {
+        const settings = worldgenData.settings('minecraft:overworld');
+        const state = new RandomState(worldgenData, 1234n, settings);
+        const context = state.createContext();
+        const cached = createClimateSampler(state, context);
+        const nodes = [
+            settings.noiseRouter.temperature,
+            settings.noiseRouter.vegetation,
+            settings.noiseRouter.continents,
+            settings.noiseRouter.erosion,
+            settings.noiseRouter.depth,
+            settings.noiseRouter.ridges
+        ];
+        const direct = nodes.map((node) => state.sampler(node));
+        const depths = new Set<number>();
+
+        for (const quartX of [-137, -65, -1, 0, 31, 63, 128]) {
+            for (const quartZ of [-129, -3, 0, 29, 130]) {
+                for (const quartY of [-32, 0, 24, 96]) {
+                    const x = quartX * 4;
+                    const y = quartY * 4;
+                    const z = quartZ * 4;
+                    const expected = climateTarget(
+                        direct[0]?.(context, x, y, z) ?? 0,
+                        direct[1]?.(context, x, y, z) ?? 0,
+                        direct[2]?.(context, x, y, z) ?? 0,
+                        direct[3]?.(context, x, y, z) ?? 0,
+                        direct[4]?.(context, x, y, z) ?? 0,
+                        direct[5]?.(context, x, y, z) ?? 0
+                    );
+                    expect(cached.sample(quartX, quartY, quartZ)).toEqual(expected);
+                    if (quartX === 0 && quartZ === 0) depths.add(expected.depth);
+                }
+            }
+        }
+
+        expect(
+            nodes.filter((node) => node !== settings.noiseRouter.depth).every((node) => state.isYIndependent(node))
+        ).toBe(true);
+        expect(state.isYIndependent(settings.noiseRouter.depth)).toBe(false);
+        expect(depths.size).toBeGreaterThan(1);
+    });
 });
 
 describe('the end biome source', () => {

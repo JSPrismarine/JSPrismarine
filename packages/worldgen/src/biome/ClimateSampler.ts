@@ -1,4 +1,3 @@
-import type { DensitySampler } from '../density/compile';
 import { SampleContext } from '../density/SampleContext';
 import { quartToBlock } from '../math';
 import type { RandomState } from '../RandomState';
@@ -27,28 +26,60 @@ export interface ClimateSampler {
  */
 export const createClimateSampler = (randomState: RandomState, context = new SampleContext()): ClimateSampler => {
     const router = randomState.settings.noiseRouter;
-    const temperature = randomState.sampler(router.temperature);
-    const humidity = randomState.sampler(router.vegetation);
-    const continentalness = randomState.sampler(router.continents);
-    const erosion = randomState.sampler(router.erosion);
+    const temperature = createColumnSampler(randomState, router.temperature, context);
+    const humidity = createColumnSampler(randomState, router.vegetation, context);
+    const continentalness = createColumnSampler(randomState, router.continents, context);
+    const erosion = createColumnSampler(randomState, router.erosion, context);
     const depth = randomState.sampler(router.depth);
-    const weirdness = randomState.sampler(router.ridges);
-    const at = (sampler: DensitySampler, x: number, y: number, z: number): number => sampler(context, x, y, z);
-
+    const weirdness = createColumnSampler(randomState, router.ridges, context);
     return {
         sample: (quartX, quartY, quartZ) => {
             const x = quartToBlock(quartX);
             const y = quartToBlock(quartY);
             const z = quartToBlock(quartZ);
             return climateTarget(
-                at(temperature, x, y, z),
-                at(humidity, x, y, z),
-                at(continentalness, x, y, z),
-                at(erosion, x, y, z),
-                at(depth, x, y, z),
-                at(weirdness, x, y, z)
+                temperature(x, y, z),
+                humidity(x, y, z),
+                continentalness(x, y, z),
+                erosion(x, y, z),
+                depth(context, x, y, z),
+                weirdness(x, y, z)
             );
         },
-        erosion: (x, y, z) => at(erosion, x, y, z)
+        erosion: (x, y, z) => erosion(x, y, z)
+    };
+};
+
+const CLIMATE_COLUMN_CACHE_SIDE = 32;
+const CLIMATE_COLUMN_CACHE_SHIFT = Math.log2(CLIMATE_COLUMN_CACHE_SIDE);
+const CLIMATE_COLUMN_CACHE_SLOTS = CLIMATE_COLUMN_CACHE_SIDE * CLIMATE_COLUMN_CACHE_SIDE;
+
+/** Stores one climate function's values for the current horizontal columns. */
+const createColumnSampler = (
+    randomState: RandomState,
+    node: Parameters<RandomState['sampler']>[0],
+    context: SampleContext
+): ((x: number, y: number, z: number) => number) => {
+    const sampler = randomState.sampler(node);
+    if (!randomState.isYIndependent(node)) return (x, y, z) => sampler(context, x, y, z);
+
+    const keyX = new Float64Array(CLIMATE_COLUMN_CACHE_SLOTS);
+    const keyZ = new Float64Array(CLIMATE_COLUMN_CACHE_SLOTS);
+    const values = new Float64Array(CLIMATE_COLUMN_CACHE_SLOTS);
+    const filled = new Uint8Array(CLIMATE_COLUMN_CACHE_SLOTS);
+
+    return (x, _y, z) => {
+        const slot =
+            (x & (CLIMATE_COLUMN_CACHE_SIDE - 1)) |
+            ((z & (CLIMATE_COLUMN_CACHE_SIDE - 1)) << CLIMATE_COLUMN_CACHE_SHIFT);
+        if (filled[slot] === 1 && keyX[slot] === x && keyZ[slot] === z) return values[slot] ?? 0;
+
+        // Y-independent trees are evaluated at Java's y=0 slice; exact X/Z keys make collisions recompute.
+        const value = sampler(context, x, 0, z);
+        keyX[slot] = x;
+        keyZ[slot] = z;
+        values[slot] = value;
+        filled[slot] = 1;
+        return value;
     };
 };

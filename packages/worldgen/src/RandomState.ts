@@ -88,6 +88,11 @@ export class RandomState {
         return this.compiler.compile(node);
     }
 
+    /** Whether a density tree's proven input axes exclude y. */
+    public isYIndependent(node: DensityFunctionNode): boolean {
+        return this.compiler.isYIndependent(node);
+    }
+
     /**
      * The cell the `interpolated` nodes compiled so far hold their corners still across, or
      * undefined when none of them has been compiled yet.
