@@ -63,4 +63,42 @@ describe('FrameSet', () => {
 
         expect(frameSet.getBuffer()).toEqual(datagram(BitFlags.VALID));
     });
+
+    it('gathers existing frame payloads into the same datagram bytes', () => {
+        const reliable = new Frame();
+        reliable.reliability = FrameReliability.RELIABLE_ORDERED;
+        reliable.reliableIndex = 0x010203;
+        reliable.orderIndex = 0x040506;
+        reliable.orderChannel = 2;
+        reliable.content = Buffer.from([0xfe, 0x21]);
+
+        const fragment = new Frame();
+        fragment.reliability = FrameReliability.UNRELIABLE;
+        fragment.fragmentSize = 2;
+        fragment.fragmentId = 0x1234;
+        fragment.fragmentIndex = 1;
+        fragment.content = Buffer.from([0xfe, 0x22, 0x23]);
+
+        const frameSet = new FrameSet();
+        frameSet.sequenceNumber = 0x0a0b0c;
+        frameSet.frames = [reliable, fragment];
+        frameSet.encode();
+
+        const parts = frameSet.toBuffers();
+        expect(parts).toHaveLength(5);
+        expect(parts[2]).toBe(reliable.content);
+        expect(parts[4]).toBe(fragment.content);
+        expect(Buffer.concat(parts)).toEqual(frameSet.getBuffer());
+
+        const decoded = new FrameSet(Buffer.concat(parts));
+        decoded.decode();
+        expect(decoded.sequenceNumber).toBe(frameSet.sequenceNumber);
+        expect(decoded.frames.map((frame) => frame.content)).toEqual([reliable.content, fragment.content]);
+        expect(decoded.frames[0]?.reliableIndex).toBe(reliable.reliableIndex);
+        expect(decoded.frames[0]?.orderIndex).toBe(reliable.orderIndex);
+        expect(decoded.frames[0]?.orderChannel).toBe(reliable.orderChannel);
+        expect(decoded.frames[1]?.fragmentSize).toBe(fragment.fragmentSize);
+        expect(decoded.frames[1]?.fragmentId).toBe(fragment.fragmentId);
+        expect(decoded.frames[1]?.fragmentIndex).toBe(fragment.fragmentIndex);
+    });
 });

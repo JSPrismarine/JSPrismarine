@@ -44,8 +44,8 @@ export default class FrameSet extends Packet {
      *
      * This overrides {@link Packet.encode} rather than filling in `encodePayload` because
      * the whole point is to know the final size before writing the first byte:
-     * {@link getByteLength} already gives it exactly. `Packet.getBuffer` returns the
-     * buffer once set, so `ServerSocket.sendPacket` (encode, then getBuffer) is unchanged.
+     * {@link getByteLength} already gives it exactly. The copy send path and callers that
+     * inspect `getBuffer()` keep this cached contiguous encoding.
      */
     public encode(): void {
         const out = Buffer.allocUnsafe(this.getByteLength());
@@ -70,5 +70,30 @@ export default class FrameSet extends Packet {
             length += frame.getByteLength();
         }
         return length;
+    }
+
+    /**
+     * Returns the datagram as headers and existing frame payloads, without copying payload
+     * bytes into a new full-size buffer. Node's dgram socket sends these parts as one UDP
+     * datagram. Callers must keep the frame content alive until the send callback runs.
+     * @returns The datagram as a sequence of header buffers and the original frame contents.
+     */
+    public toBuffers(): Buffer[] {
+        let headerLength = 4;
+        for (const frame of this.frames) headerLength += frame.getByteLength() - frame.content.byteLength;
+
+        const headers = Buffer.allocUnsafe(headerLength);
+        headers[0] = this.getId();
+        let offset = headers.writeUIntLE(this.sequenceNumber, 1, 3);
+        const parts: Buffer[] = [headers.subarray(0, offset)];
+
+        for (const frame of this.frames) {
+            const start = offset;
+            offset = frame.writeHeaderInto(headers, offset);
+            parts.push(headers.subarray(start, offset), frame.content);
+        }
+
+        assert(offset === headers.byteLength, `FrameSet wrote ${offset} header bytes, expected ${headers.byteLength}`);
+        return parts;
     }
 }

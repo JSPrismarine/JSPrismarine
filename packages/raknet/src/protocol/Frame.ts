@@ -149,6 +149,17 @@ export default class Frame {
      * {@link getByteLength}, so there is nothing to grow.
      */
     public writeInto(out: Buffer, offset: number): number {
+        offset = this.writeHeaderInto(out, offset);
+        return offset + this.content.copy(out, offset);
+    }
+
+    /**
+     * Writes only this frame's header, leaving its existing content buffer untouched.
+     * @param out - The header destination buffer.
+     * @param offset - The first byte to write.
+     * @returns The offset just past the header.
+     */
+    public writeHeaderInto(out: Buffer, offset: number): number {
         const fragmented = this.isFragmented();
 
         out[offset++] = (this.reliability << 5) | (fragmented ? BitFlags.SPLIT : 0);
@@ -177,7 +188,7 @@ export default class Frame {
             offset = out.writeUInt32BE(this.fragmentIndex, offset);
         }
 
-        return offset + this.content.copy(out, offset);
+        return offset;
     }
 
     public getByteLength(): number {

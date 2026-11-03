@@ -6,6 +6,7 @@ import { SessionStatus } from './Session';
 import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
+import type { DatagramSendMode } from './ServerSocket';
 
 /**
  * A loopback pair has to behave exactly as a UDP pair does, because single player is meant
@@ -62,8 +63,8 @@ interface Pair {
     clientInbox: Buffer[];
 }
 
-const udpPair = async (): Promise<Pair> => {
-    const server = new ServerSocket(10, false, serverName, logger);
+const udpPair = async (sendMode: DatagramSendMode = 'copy'): Promise<Pair> => {
+    const server = new ServerSocket(10, false, serverName, logger, {}, sendMode);
     server.start('127.0.0.1', 0);
     const port = await new Promise<number>((resolve, reject) => {
         const socket = server['socket'];
@@ -108,6 +109,7 @@ const loopbackPair = async (): Promise<Pair> => {
 
 describe.each([
     ['over UDP', udpPair],
+    ['over UDP with scatter-gather sends', () => udpPair('scatter-gather')],
     ['over loopback', loopbackPair]
 ])('a connected pair %s', (_name, makePair) => {
     it('completes the handshake on both ends', async () => {

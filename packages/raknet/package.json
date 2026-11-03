@@ -37,6 +37,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "bench:frame-set-sends": "vitest bench benchmarks/frame-set-sends.bench.ts",
         "bench:socket-buffers": "node benchmarks/socketBuffers.bench.mjs",
         "bench:offline-ping": "node benchmarks/offlinePing.bench.mjs"
     },

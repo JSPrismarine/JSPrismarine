@@ -49,3 +49,12 @@ void [properties, creative, crafting];
 For payload types, NBT helpers, and block palette checks, import from
 `@jsprismarine/protocol/payload`. Packet classes and structures are exported from the package
 root and from their individual module subpaths.
+
+## Compression benchmark
+
+Run `pnpm --filter @jsprismarine/protocol run bench:compression-variants` to compare Node's
+synchronous and asynchronous zlib paths, a resettable zlib stream, and the libdeflate WebAssembly
+prototype on movement-like and chunk-sized batches. The benchmark checks that each compressed body
+inflates to the same packet bytes and reports CPU time, throughput, setup cost, allocation notes,
+and wire size. The WebAssembly package is a development dependency; the server continues to use
+Node zlib.

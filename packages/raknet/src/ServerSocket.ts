@@ -8,11 +8,18 @@ import BitFlags from './protocol/BitFlags';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 import { OfflineHandler } from './protocol/OfflineHandler';
 import type Packet from './protocol/Packet';
+import FrameSet from './protocol/FrameSet';
 import { monotonicNow } from './utils/Clock';
 import type { Logger, RakNetPeer } from './RakNetPeer';
 import type { ServerName } from './utils/ServerName';
 import { configureSocketBuffers, validateSocketBufferOptions } from './SocketBuffers';
 import type { SocketBufferOptions } from './SocketBuffers';
+
+/** Whether connected datagrams are copied into one buffer or sent as header/content parts. */
+export type DatagramSendMode = 'copy' | 'scatter-gather';
+
+/** Keep the iovec count conservative because UDP vector limits vary by platform. */
+const MAX_SCATTER_GATHER_FRAMES = 32;
 
 export default class ServerSocket extends EventEmitter implements RakNetPeer {
     private readonly socket: Dgram.Socket;
@@ -37,13 +44,15 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
      * @param serverName - the MOTD line; the socket feeds it the guid and the bound port.
      * @param logger - where the socket reports.
      * @param socketBufferOptions - requested UDP buffers, which the OS may cap.
+     * @param datagramSendMode - experimental frame-set send path; copy remains the default.
      */
     public constructor(
         private maxConnections: number,
         _onlineMode: boolean,
         public readonly serverName: ServerName,
         private readonly logger: Logger,
-        private readonly socketBufferOptions: SocketBufferOptions = {}
+        private readonly socketBufferOptions: SocketBufferOptions = {},
+        private readonly datagramSendMode: DatagramSendMode = 'copy'
     ) {
         super();
         validateSocketBufferOptions(socketBufferOptions);
@@ -270,8 +279,28 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
     }
 
     public sendPacket<T extends Packet>(packet: T, rinfo: RemoteInfo): void {
+        if (
+            this.datagramSendMode === 'scatter-gather' &&
+            packet instanceof FrameSet &&
+            packet.frames.length <= MAX_SCATTER_GATHER_FRAMES
+        ) {
+            this.sendBuffers(packet.toBuffers(), rinfo);
+            return;
+        }
+
         packet.encode();
         this.sendBuffer(packet.getBuffer(), rinfo);
+    }
+
+    private sendBuffers(buffers: readonly Buffer[], rinfo: RemoteInfo): void {
+        if (this.stopped) return;
+
+        this.socket.send(buffers, rinfo.port, rinfo.address, (error) => {
+            // The frame contents are borrowed buffers, so retain the vector until libuv has
+            // finished reading it. Report asynchronous send failures just as the socket does.
+            void buffers;
+            if (error) this.logger.error(error, 'RakNet/ServerSocket/sendBuffers');
+        });
     }
 
     public sendBuffer(buffer: Buffer, rinfo: RemoteInfo): void {

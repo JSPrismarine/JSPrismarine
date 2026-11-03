@@ -1515,6 +1515,9 @@ importers:
       '@jsprismarine/packs':
         specifier: workspace:*
         version: link:../packs
+      '@mtcute/wasm':
+        specifier: 0.32.6
+        version: 0.32.6
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -2431,6 +2434,9 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
+
+  '@mtcute/wasm@0.32.6':
+    resolution: {integrity: sha512-vDq8YdLoaZQfDKmc/ANa3cBg0i+vkWn+LRFUPzv4dt24BNC695b1c0M8coI8+z4JcwaVFnzjBusXTe8bL0W2Qg==}
 
   '@napi-rs/nice-android-arm-eabi@1.1.1':
     resolution: {integrity: sha512-kjirL3N6TnRPv5iuHw36wnucNqXAO46dzK9oPb0wj076R5Xm8PfUVA9nAFB5ZNMmfJQJVKACAPd/Z2KYMppthw==}
@@ -5614,6 +5620,8 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
+
+  '@mtcute/wasm@0.32.6': {}
 
   '@napi-rs/nice-android-arm-eabi@1.1.1':
     optional: true

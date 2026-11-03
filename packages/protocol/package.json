@@ -42,6 +42,7 @@
     "scripts": {
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "bench:compression": "vitest bench benchmarks/compression.bench.ts",
+        "bench:compression-variants": "vitest bench benchmarks/compression-variants.bench.ts",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
@@ -58,6 +59,7 @@
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
+        "@mtcute/wasm": "0.32.6",
         "@types/node": "24.19.2",
         "glob": "13.0.6",
         "typescript": "7.0.2",
