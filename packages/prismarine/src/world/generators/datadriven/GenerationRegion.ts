@@ -275,6 +275,11 @@ export class GenerationRegion {
     private paletteIndex = new Map<string, number>([[AIR, 0]]);
     private isAirByPaletteSlot: boolean[] = [];
 
+    /** Lazily computed heightmaps, one entry per heightmap and region column. */
+    private readonly heightmapCaches = new Map<HeightmapType, Int32Array<ArrayBuffer>>();
+    /** Predicates are shared across lookups so a height query does not allocate a closure. */
+    private readonly heightmapPredicates = new Map<HeightmapType, (state: BlockState) => boolean>();
+
     /** The highest y holding anything other than air, per region column. */
     private highest: Int32Array<ArrayBuffer>;
 
@@ -621,6 +626,7 @@ export class GenerationRegion {
                 if (sourceColumn === -1 || targetColumn === -1) continue;
 
                 const sourceTop = source.highest[sourceColumn]!;
+                let copiedState = false;
                 for (let y = this.minY; y <= sourceTop; y++) {
                     const sourceIndex = sourceColumn * this.height + (y - this.minY);
                     const sourceSlot = source.states[sourceIndex]!;
@@ -632,6 +638,7 @@ export class GenerationRegion {
                     const block = this.palette[targetSlot]!;
 
                     this.states[targetIndex] = targetSlot;
+                    copiedState = true;
                     this.blockEntities.delete(targetIndex);
                     if (this.trackingWrites) {
                         this.trackedBlockEntities.delete(targetIndex);
@@ -639,6 +646,7 @@ export class GenerationRegion {
                     }
                     if (y > this.highest[targetColumn]!) this.highest[targetColumn] = y;
                 }
+                if (copiedState) this.invalidateHeightmapCache(targetColumn);
             }
         }
         for (const blockEntity of source.centerBlockEntities()) {
@@ -706,6 +714,7 @@ export class GenerationRegion {
         if (this.trackingWrites) this.trackedBlockEntities.delete(index);
 
         const column = this.columnIndex(x, z);
+        this.invalidateHeightmapCache(column);
         const written = this.sparseWrites?.get(index);
         const isAir =
             written === undefined ? this.isAirByPaletteSlot[this.states[index]!]! : this.isAirByPaletteSlot[written]!;
@@ -956,12 +965,30 @@ export class GenerationRegion {
         const column = this.columnIndex(x, z);
         if (column === -1) return this.minY;
 
+        let cache = this.heightmapCaches.get(heightmap);
+        if (cache === undefined) {
+            // A valid heightmap answer is at least minY, so minY - 1 marks an uncached column.
+            cache = new Int32Array(this.highest.length).fill(this.minY - 1);
+            this.heightmapCaches.set(heightmap, cache);
+        }
+        const cachedHeight = cache[column]!;
+        if (cachedHeight !== this.minY - 1) return cachedHeight;
+
         const matches = this.heightmapPredicate(heightmap);
         for (let y = this.highest[column]!; y >= this.minY; y--) {
-            if (matches(this.stateAt(x, y, z))) return y + 1;
+            if (matches(this.stateAt(x, y, z))) {
+                cache[column] = y + 1;
+                return y + 1;
+            }
         }
 
+        cache[column] = this.minY;
         return this.minY;
+    }
+
+    /** Invalidates heightmap answers after a block changes in one column. */
+    private invalidateHeightmapCache(column: number): void {
+        for (const cache of this.heightmapCaches.values()) cache[column] = this.minY - 1;
     }
 
     private paletteSlot(state: BlockState): number {
@@ -1015,20 +1042,30 @@ export class GenerationRegion {
     }
 
     private heightmapPredicate(heightmap: HeightmapType): (state: BlockState) => boolean {
+        const cached = this.heightmapPredicates.get(heightmap);
+        if (cached !== undefined) return cached;
+
         const blocks = this.options.blocks;
+        let matches: (state: BlockState) => boolean;
         switch (heightmap) {
             case 'WORLD_SURFACE':
             case 'WORLD_SURFACE_WG':
-                return (state) => !blocks.isAir(state);
+                matches = (state) => !blocks.isAir(state);
+                break;
             case 'OCEAN_FLOOR':
             case 'OCEAN_FLOOR_WG':
-                return (state) => blocks.isSolid(state);
+                matches = (state) => blocks.isSolid(state);
+                break;
             case 'MOTION_BLOCKING':
-                return (state) => blocks.isSolid(state) || blocks.fluid(state) !== 'empty';
+                matches = (state) => blocks.isSolid(state) || blocks.fluid(state) !== 'empty';
+                break;
             case 'MOTION_BLOCKING_NO_LEAVES':
-                return (state) =>
+                matches = (state) =>
                     (blocks.isSolid(state) || blocks.fluid(state) !== 'empty') &&
                     !blocks.hasTag(state, 'minecraft:leaves');
+                break;
         }
+        this.heightmapPredicates.set(heightmap, matches);
+        return matches;
     }
 }

@@ -6,6 +6,7 @@
  * survives the trip from `@jsprismarine/features` into a chunk, not that the hook was called.
  */
 import { WorldgenRandom, bonusChest, endGateway, endSpike, monsterRoom } from '@jsprismarine/features';
+import type { HeightmapType } from '@jsprismarine/features';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
@@ -16,6 +17,14 @@ import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 const STONE = { name: 'minecraft:stone', properties: {} };
 const AIR = { name: 'minecraft:air', properties: {} };
 const CAVE_AIR = 'minecraft:cave_air';
+const HEIGHTMAPS = [
+    'WORLD_SURFACE_WG',
+    'WORLD_SURFACE',
+    'OCEAN_FLOOR_WG',
+    'OCEAN_FLOOR',
+    'MOTION_BLOCKING',
+    'MOTION_BLOCKING_NO_LEAVES'
+] as const satisfies readonly HeightmapType[];
 
 const SEED = 1234n;
 
@@ -100,6 +109,35 @@ const fillStone = (built: GenerationRegion, top: number): void => {
             for (let y = top - 24; y <= top; y++) built.write(x, y, z, STONE);
         }
     }
+};
+
+const scanHeight = (
+    built: GenerationRegion,
+    blocks: ReturnType<typeof createJavaBlockOracle>,
+    type: HeightmapType
+): number => {
+    for (let y = built.maxY; y >= built.minY; y--) {
+        const state = built.stateAt(0, y, 0);
+        const matches = (() => {
+            switch (type) {
+                case 'WORLD_SURFACE':
+                case 'WORLD_SURFACE_WG':
+                    return !blocks.isAir(state);
+                case 'OCEAN_FLOOR':
+                case 'OCEAN_FLOOR_WG':
+                    return blocks.isSolid(state);
+                case 'MOTION_BLOCKING':
+                    return blocks.isSolid(state) || blocks.fluid(state) !== 'empty';
+                case 'MOTION_BLOCKING_NO_LEAVES':
+                    return (
+                        (blocks.isSolid(state) || blocks.fluid(state) !== 'empty') &&
+                        !blocks.hasTag(state, 'minecraft:leaves')
+                    );
+            }
+        })();
+        if (matches) return y + 1;
+    }
+    return built.minY;
 };
 
 describe('setBlockEntity', () => {
@@ -408,6 +446,57 @@ describe('neighbor chunk data', () => {
         destinationWorld.setBlockEntity?.(position, { id: 'minecraft:chest' });
         destination.applyPatch(patch);
         expect(destination.centerBlockEntities()).toHaveLength(0);
+    });
+});
+
+describe('heightmap cache', () => {
+    const blocks = createJavaBlockOracle(new Map([['minecraft:leaves', { values: ['minecraft:oak_leaves'] }]]));
+
+    const assertMatchesScan = (built: GenerationRegion): void => {
+        const world = built.featureWorld();
+        for (const type of HEIGHTMAPS) {
+            expect(world.getHeight(type, 0, 0)).toBe(scanHeight(built, blocks, type));
+        }
+    };
+
+    it('invalidates all heightmaps after ordinary writes', () => {
+        const built = new GenerationRegion({ ...featureRegionOptions(), blocks });
+
+        built.writeName(0, 10, 0, 'minecraft:stone');
+        built.writeName(0, 18, 0, 'minecraft:water');
+        built.writeName(0, 25, 0, 'minecraft:oak_leaves');
+        assertMatchesScan(built);
+        expect(built.featureWorld().getHeight('WORLD_SURFACE', 0, 0)).toBe(26);
+
+        built.writeName(0, 25, 0, 'minecraft:air');
+        assertMatchesScan(built);
+        expect(built.featureWorld().getHeight('WORLD_SURFACE', 0, 0)).toBe(19);
+
+        built.writeName(0, 30, 0, 'minecraft:dirt');
+        assertMatchesScan(built);
+        built.writeName(0, 30, 0, 'minecraft:air');
+        assertMatchesScan(built);
+    });
+
+    it('invalidates cached columns copied directly from a terrain tile', () => {
+        const built = new GenerationRegion({ ...featureRegionOptions(), blocks });
+        const source = new GenerationRegion({
+            ...featureRegionOptions(),
+            chunkX: 0,
+            chunkZ: 0,
+            radius: 0,
+            blocks
+        });
+
+        built.writeName(0, 10, 0, 'minecraft:stone');
+        assertMatchesScan(built);
+        source.writeName(0, 40, 0, 'minecraft:stone');
+        source.writeName(0, 50, 0, 'minecraft:water');
+        built.copyCenterFrom(source);
+
+        assertMatchesScan(built);
+        expect(built.featureWorld().getHeight('WORLD_SURFACE', 0, 0)).toBe(51);
+        expect(built.featureWorld().getHeight('OCEAN_FLOOR', 0, 0)).toBe(41);
     });
 });
 

@@ -7,6 +7,7 @@
  */
 import { createHash } from 'node:crypto';
 import os from 'node:os';
+import type { HeightmapType } from '@jsprismarine/features';
 
 import { GenerationRegion } from '../src/world/generators/datadriven/GenerationRegion';
 import type { GenerationRegionOptions } from '../src/world/generators/datadriven/GenerationRegion';
@@ -18,6 +19,14 @@ const WARMUPS = 2;
 const SEED = 1234n;
 const MIN_Y = -64;
 const HEIGHT = 384;
+const HEIGHTMAP_TYPES = [
+    'WORLD_SURFACE_WG',
+    'WORLD_SURFACE',
+    'OCEAN_FLOOR_WG',
+    'OCEAN_FLOOR',
+    'MOTION_BLOCKING',
+    'MOTION_BLOCKING_NO_LEAVES'
+] as const satisfies readonly HeightmapType[];
 
 if (!Number.isSafeInteger(SAMPLES) || SAMPLES < 1) throw new RangeError('Samples must be a positive integer');
 
@@ -79,11 +88,51 @@ const digestOf = (view: GenerationRegion): string => {
     return hash.digest('hex');
 };
 
+/** Counts block reads for repeated heightmap lookups over one chunk's columns. */
+const measureHeightmapReads = (view: GenerationRegion) => {
+    let blockReads = 0;
+    let firstPassBlockReads = 0;
+    const originalBlockAt = view.blockAt.bind(view);
+    view.blockAt = (x, y, z) => {
+        blockReads++;
+        return originalBlockAt(x, y, z);
+    };
+
+    const world = view.featureWorld();
+    const started = performance.now();
+    let queries = 0;
+    for (let repeat = 0; repeat < 4; repeat++) {
+        for (let localX = 0; localX < 16; localX++) {
+            for (let localZ = 0; localZ < 16; localZ++) {
+                const x = localX;
+                const z = localZ;
+                for (const type of HEIGHTMAP_TYPES) {
+                    world.getHeight(type, x, z);
+                    queries++;
+                }
+            }
+        }
+        if (repeat === 0) firstPassBlockReads = blockReads;
+    }
+    const heightmapLookupMs = performance.now() - started;
+    view.blockAt = originalBlockAt;
+    return {
+        queries,
+        blockReads,
+        uncachedBlockReads: firstPassBlockReads * 4,
+        heightmapLookupMs
+    };
+};
+
 interface Sample {
     readonly ms: number;
     readonly peakHeapDeltaBytes: number;
     readonly peakArrayBufferDeltaBytes: number;
     readonly outputDigest: string;
+    readonly heightmapQueries: number;
+    readonly heightmapBlockReads: number;
+    readonly uncachedHeightmapBlockReads: number;
+    readonly heightmapLookupMs: number;
 }
 
 const sample = (readThrough: boolean): Sample => {
@@ -100,13 +149,18 @@ const sample = (readThrough: boolean): Sample => {
           })();
     const peakAfterView = process.memoryUsage();
     const ms = performance.now() - started;
+    const heightmapMeasurements = measureHeightmapReads(view);
 
     return {
         ms,
         peakHeapDeltaBytes: Math.max(peakAfterClone.heapUsed, peakAfterView.heapUsed) - before.heapUsed,
         peakArrayBufferDeltaBytes:
             Math.max(peakAfterClone.arrayBuffers, peakAfterView.arrayBuffers) - before.arrayBuffers,
-        outputDigest: digestOf(view)
+        outputDigest: digestOf(view),
+        heightmapQueries: heightmapMeasurements.queries,
+        heightmapBlockReads: heightmapMeasurements.blockReads,
+        uncachedHeightmapBlockReads: heightmapMeasurements.uncachedBlockReads,
+        heightmapLookupMs: heightmapMeasurements.heightmapLookupMs
     };
 };
 
@@ -119,6 +173,11 @@ const summarize = (runs: readonly Sample[]) => {
     const buffers = runs
         .map(({ peakArrayBufferDeltaBytes }) => peakArrayBufferDeltaBytes)
         .sort((left, right) => left - right);
+    const heightmapBlockReads = runs.map(({ heightmapBlockReads }) => heightmapBlockReads).sort((a, b) => a - b);
+    const uncachedHeightmapBlockReads = runs
+        .map(({ uncachedHeightmapBlockReads }) => uncachedHeightmapBlockReads)
+        .sort((a, b) => a - b);
+    const heightmapLookupMs = runs.map(({ heightmapLookupMs }) => heightmapLookupMs).sort((a, b) => a - b);
     const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
     return {
         distributionMs: {
@@ -129,6 +188,10 @@ const summarize = (runs: readonly Sample[]) => {
         },
         peakHeapDeltaBytes: percentile(heap, 0.5),
         peakArrayBufferDeltaBytes: percentile(buffers, 0.5),
+        heightmapQueries: runs[0]?.heightmapQueries ?? 0,
+        heightmapBlockReads: percentile(heightmapBlockReads, 0.5),
+        uncachedHeightmapBlockReads: percentile(uncachedHeightmapBlockReads, 0.5),
+        heightmapLookupMs: percentile(heightmapLookupMs, 0.5),
         outputDigest: digests.size === 1 ? runs[0]?.outputDigest : 'unstable'
     };
 };
