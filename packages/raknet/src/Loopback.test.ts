@@ -7,6 +7,7 @@ import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 import type { DatagramSendMode } from './ServerSocket';
+import type { SocketBufferOptions } from './SocketBuffers';
 
 /**
  * A loopback pair has to behave exactly as a UDP pair does, because single player is meant
@@ -63,8 +64,11 @@ interface Pair {
     clientInbox: Buffer[];
 }
 
-const udpPair = async (sendMode: DatagramSendMode = 'copy'): Promise<Pair> => {
-    const server = new ServerSocket(10, false, serverName, logger, {}, sendMode);
+const udpPair = async (
+    sendMode: DatagramSendMode = 'copy',
+    socketBufferOptions: SocketBufferOptions = {}
+): Promise<Pair> => {
+    const server = new ServerSocket(10, false, serverName, logger, socketBufferOptions, sendMode);
     server.start('127.0.0.1', 0);
     const port = await new Promise<number>((resolve, reject) => {
         const socket = server['socket'];
@@ -76,7 +80,7 @@ const udpPair = async (sendMode: DatagramSendMode = 'copy'): Promise<Pair> => {
         }
     });
 
-    const client = new ClientSocket(logger);
+    const client = new ClientSocket(logger, socketBufferOptions);
     teardown.push(() => {
         client.kill();
         server.kill();
@@ -165,6 +169,32 @@ describe.each([
         await new Promise((resolve) => setTimeout(resolve, 150));
         expect(pair.clientInbox.map((buffer) => buffer[0])).not.toContain(MessageIdentifiers.CONNECTED_PONG);
     });
+});
+
+describe('UDP socket buffer burst', () => {
+    it(
+        'delivers every payload through RakNet reliability with configured buffers',
+        {
+            tags: ['performance']
+        },
+        async () => {
+            const pair = await udpPair('copy', { recvBufferSize: 256 * 1024, sendBufferSize: 256 * 1024 });
+            const payloads = Array.from({ length: 16 }, (_, index) => {
+                const payload = Buffer.alloc(24 * 1024, index & 0xff);
+                payload[0] = 0xfe;
+                payload.writeUInt32LE(index, 1);
+                return payload;
+            });
+
+            // Each payload fragments into immediate sends, so enqueueing them synchronously
+            // gives the OS a burst of hundreds of datagrams before ACKs can be processed.
+            for (const payload of payloads) pair.clientSession.sendFrame(gameFrame(payload));
+            pair.clientSession.sendFrameQueue();
+
+            expect(await until(() => pair.serverInbox.length === payloads.length, 15_000)).toBe(true);
+            expect(pair.serverInbox).toEqual(payloads);
+        }
+    );
 });
 
 describe('LoopbackSocket specifics', () => {
