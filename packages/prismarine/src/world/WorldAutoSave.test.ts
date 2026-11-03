@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { GenericBlockEntity } from '../blockentity/GenericBlockEntity';
+import { GenericEntity } from '../entity/GenericEntity';
+import type Player from '../Player';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
@@ -17,8 +19,9 @@ import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
-import { inertEntityRuntime } from '../testing/entityServer';
+import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { DimensionTravel } from './portal/DimensionTravel';
+import { Position } from './Position';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
@@ -63,6 +66,7 @@ const testServer = (): Server => {
         // Nothing preloads here: the chunks these tests save are loaded by hand, so the
         // interesting state is reached in milliseconds rather than in a start region.
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
+        getContent: () => testContent(),
         // No data-driven runtime: this world runs the written entity classes.
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getEntityRuntime: () => inertEntityRuntime(),
@@ -278,6 +282,64 @@ describe('the autosave a tick starts', () => {
         // Every chunk reached disk before the database closed, and nothing threw on the way.
         expect(shutDown).toBe(true);
         expect(provider.written).toBeGreaterThanOrEqual(CHUNK_COUNT);
+    });
+
+    it('lets a tick finish while an unload write is pending, then round trips its entity', async () => {
+        const { world, provider, level } = await loadedWorld('unload-tick');
+        const chunk = await world.getChunk(11, 0);
+        const dirt = BlockRuntimeIds.getByName('minecraft:dirt');
+        chunk.setBlockRuntimeId(0, GROUND + 1, 0, dirt);
+
+        const players = Reflect.get(world, 'players');
+        if (!(players instanceof Map)) throw new Error('World player map is unavailable');
+        players.set(
+            1n,
+            stub<Player>({
+                viewDistance: 10,
+                isOnline: () => false,
+                getPosition: () => new Position(0, 64, 0, world)
+            })
+        );
+
+        const live = Object.assign(world.dataEntities(), { unload: () => false });
+        const server = Reflect.get(world, 'server');
+        if (typeof server !== 'object' || server === null) throw new Error('World server is unavailable');
+        Reflect.set(server, 'getEntityRuntime', () => live);
+
+        const actor = new GenericEntity({
+            identifier: 'minecraft:cow',
+            position: new Position(11 * 16 + 0.5, GROUND + 1, 0.5, world)
+        });
+        await world.addEntity(actor);
+
+        level.setTicks(1);
+        const update = world.update(1);
+        await provider.parked;
+        const updateFinished = await Promise.race([
+            update.then(() => true),
+            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 100))
+        ]);
+
+        expect(world.getLoadedChunk(11, 0)).toBe(chunk);
+        provider.openGate();
+        await update;
+        const unloading = Reflect.get(world, 'unloading');
+        if (!(unloading instanceof Promise)) throw new Error('World unload task is unavailable');
+        await unloading;
+
+        expect(updateFinished).toBe(true);
+        expect(world.getLoadedChunk(11, 0)).toBeNull();
+
+        const restored = await provider.readChunk(Dimensions.Overworld, 11, 0, 1234n, generator);
+        const [storedActor] = restored.takeStoredEntities();
+        expect(storedActor?.getString('identifier', '')).toBe('minecraft:cow');
+        expect([...(storedActor?.getList('Pos', false) ?? [])].map((value) => value.getValue())).toEqual([
+            11 * 16 + 0.5,
+            GROUND + 1,
+            0.5
+        ]);
+
+        await level.disable();
     });
 });
 

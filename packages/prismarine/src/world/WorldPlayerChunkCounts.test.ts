@@ -100,7 +100,7 @@ describe('world player chunk counts', () => {
         world['players'].set(2, second);
 
         const chunks = Array.from(world['chunks'].values());
-        const checks = chunks.map((chunk) => vi.spyOn(chunk, 'getSubChunks'));
+        const checks = chunks.map((chunk) => vi.spyOn(chunk, 'getSubChunkEntries'));
 
         world.randomTickChunks();
         expect(checks.map(({ mock }) => mock.calls.length)).toEqual([1, 1, 0, 0]);

@@ -451,6 +451,8 @@ export class World implements Service {
      * than only the socket.
      */
     private saving: Promise<void> | null = null;
+    /** One selected unload batch, queued behind the same writer as saves. */
+    private unloading: Promise<void> | null = null;
     private readonly server: Server;
     private readonly level: Level;
     private readonly stem: LevelStem;
@@ -678,6 +680,7 @@ export class World implements Service {
         // the save still has to happen, so its failure must not take this path down with it.
         await this.startingRegion?.catch(() => {});
 
+        await this.unloading;
         await this.save();
     }
 
@@ -1002,7 +1005,7 @@ export class World implements Service {
 
         const endUnloadProfile = startProfile?.(`World.unloadChunks:${this.name}`);
         try {
-            await this.unloadDistantChunks();
+            this.beginDistantChunkUnloads();
         } finally {
             endUnloadProfile?.();
         }
@@ -1080,9 +1083,9 @@ export class World implements Service {
      * make that asynchronous and quietly generate terrain as a mob walked towards it.
      * The last answer is remembered, because the callers ask in runs: the light engine scans a
      * column of 384 blocks, and a path finder reads a few hundred around one position, each
-     * through this. The cache is one entry and is dropped whenever {@link chunks} gains one, so
-     * the only way to make it lie is to remove a chunk from the map without going through
-     * {@link loadChunk} - which nothing does, since chunks are never unloaded.
+     * through this. The cache is one entry and is dropped whenever {@link chunks} gains or loses
+     * one, so the only way to make it lie is to change the map without going through the load or
+     * unload path.
      * @param {number} cx - Chunk x.
      * @param {number} cz - Chunk z.
      * @returns {Chunk | null} The loaded chunk, or null - never a generated one.
@@ -2663,21 +2666,49 @@ export class World implements Service {
      * player is online, chunks beyond the largest area that player needs can be read back from
      * the provider instead of accumulating for the life of the server.
      */
-    private async unloadDistantChunks(): Promise<void> {
-        if (this.getProvider().supportsChunkUnload !== true) return;
-
+    private chunksOutsidePlayerRetention(): Chunk[] {
+        if (this.getProvider().supportsChunkUnload !== true) return [];
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
-        if (this.players.size === 0) return;
+        if (this.players.size === 0) return [];
 
-        let unloaded = 0;
+        const candidates: Chunk[] = [];
         for (const chunk of this.chunks.values()) {
-            if (unloaded >= CHUNK_UNLOAD_BATCH_SIZE) break;
+            if (candidates.length >= CHUNK_UNLOAD_BATCH_SIZE) break;
 
             const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
             if (this.loading.has(index) || this.chunkNeededByPlayers(chunk)) continue;
-            if (await this.unloadChunk(chunk)) unloaded++;
+            candidates.push(chunk);
         }
+
+        return candidates;
+    }
+
+    /** Starts one tick-selected batch without holding the tick on a queued chunk write. */
+    private beginDistantChunkUnloads(): void {
+        if (this.closing || this.unloading !== null) return;
+
+        const candidates = this.chunksOutsidePlayerRetention();
+        if (candidates.length === 0) return;
+
+        let tracked: Promise<void>;
+        tracked = this.unloadChunks(candidates)
+            .catch((error: unknown) => {
+                this.server.getLogger().error(`Failed to unload distant chunks for ${this.getFormattedName()}`);
+                this.server.getLogger().error(error);
+            })
+            .finally(() => {
+                if (this.unloading === tracked) this.unloading = null;
+            });
+        this.unloading = tracked;
+    }
+
+    private async unloadDistantChunks(): Promise<void> {
+        await this.unloadChunks(this.chunksOutsidePlayerRetention());
+    }
+
+    private async unloadChunks(candidates: readonly Chunk[]): Promise<void> {
+        for (const chunk of candidates) await this.unloadChunk(chunk);
     }
 
     /** Saves and removes one chunk and the non-player entities it holds. */
