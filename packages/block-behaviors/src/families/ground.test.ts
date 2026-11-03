@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
 import { FALL_DELAY } from '../rules/gravity';
-import { dripstoneFamily, iceFamily, MELT_LIGHT, snowFamily, soilFamily } from './ground';
+import { createVoxelWorld } from '../voxelWorld';
+import { dripstoneFamily, iceFamily, MAINTAINS_FARMLAND_TAG, MELT_LIGHT, snowFamily, soilFamily } from './ground';
 
 const origin = { x: 0, y: 4, z: 0 };
 
@@ -65,25 +66,54 @@ describe('soilFamily: farmland', () => {
         expect(harness.dimension.stateAt(origin, 'moisturized_amount')).toBe(6);
     });
 
-    // Java's `shouldMaintainFarmland`: only bare farmland turns back to dirt, so a dry field
-    // keeps the wheat standing in it rather than popping the crop on a random tick.
-    it('keeps the crop it carries when it dries all the way out', () => {
-        const harness = bindFamily(soilFamily, 'minecraft:farmland');
-        harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 0 });
-        harness.dimension.set({ x: 0, y: 5, z: 0 }, 'minecraft:wheat', { growth: 3 });
+    /**
+     * Java's `shouldMaintainFarmland` reads `#minecraft:maintains_farmland`, and the tag is
+     * not the set of things that grow: a torchflower holds the field with no growth of its
+     * own, and a sweet berry bush grows and does not hold it.
+     */
+    describe('drying all the way out', () => {
+        const dryFarmlandUnder = (planted?: { identifier: string; states?: Record<string, string | number> }) => {
+            const world = createVoxelWorld();
+            world.overworld.tag(MAINTAINS_FARMLAND_TAG, 'minecraft:wheat', 'minecraft:torchflower');
+            const harness = bindFamily(soilFamily, 'minecraft:farmland', { world });
+            harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 0 });
+            if (planted !== undefined) {
+                harness.dimension.set({ x: 0, y: 5, z: 0 }, planted.identifier, planted.states ?? {});
+            }
 
-        harness.randomTick(origin);
+            harness.randomTick(origin);
+            return harness.dimension.identifierAt(origin);
+        };
 
-        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:farmland');
-    });
+        it('keeps the field under a block the tag names', () => {
+            expect(dryFarmlandUnder({ identifier: 'minecraft:wheat', states: { growth: 3 } })).toBe(
+                'minecraft:farmland'
+            );
+        });
 
-    it('turns bare dry farmland back to dirt', () => {
-        const harness = bindFamily(soilFamily, 'minecraft:farmland');
-        harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 0 });
+        it('keeps the field under a tagged block that does not grow', () => {
+            expect(dryFarmlandUnder({ identifier: 'minecraft:torchflower' })).toBe('minecraft:farmland');
+        });
 
-        harness.randomTick(origin);
+        it('gives up the field under a growing block the tag leaves out', () => {
+            expect(dryFarmlandUnder({ identifier: 'minecraft:sweet_berry_bush', states: { growth: 2 } })).toBe(
+                'minecraft:dirt'
+            );
+        });
 
-        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:dirt');
+        it('gives up bare farmland', () => {
+            expect(dryFarmlandUnder()).toBe('minecraft:dirt');
+        });
+
+        it('keeps a crop on a host that answers no tags at all', () => {
+            const harness = bindFamily(soilFamily, 'minecraft:farmland');
+            harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 0 });
+            harness.dimension.set({ x: 0, y: 5, z: 0 }, 'minecraft:wheat', { growth: 3 });
+
+            harness.randomTick(origin);
+
+            expect(harness.dimension.identifierAt(origin)).toBe('minecraft:farmland');
+        });
     });
 
     it('turns back to dirt when something lands on it', () => {

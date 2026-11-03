@@ -5,7 +5,7 @@ import type { BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
 import { MAX_CROP_GROWTH } from '../rules/growth';
-import { OVERWORLD, VoxelDimension, VoxelWorld } from '../voxelWorld';
+import { createVoxelWorld, OVERWORLD, VoxelDimension, VoxelWorld } from '../voxelWorld';
 import {
     bambooFamily,
     climbingFamily,
@@ -21,45 +21,27 @@ import {
 const ground = { x: 0, y: 0, z: 0 };
 const plant = { x: 0, y: 1, z: 0 };
 
-class BambooSupportDimension extends VoxelDimension {
-    public hasBlockTag(block: HookBlock, tag: string): boolean {
-        return tag === 'minecraft:supports_bamboo' && block.identifier === 'minecraft:gravel';
-    }
-}
+/** A world that answers the one support tag bamboo reads. */
+const bambooSupportWorld = (): VoxelWorld => {
+    const world = createVoxelWorld();
+    world.overworld.tag('minecraft:supports_bamboo', 'minecraft:gravel');
+    return world;
+};
 
-class BambooSupportWorld extends VoxelWorld {
-    private readonly bambooDimension = new BambooSupportDimension(OVERWORLD);
-
-    public override at(dimension = OVERWORLD): BambooSupportDimension {
-        if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
-        return this.bambooDimension;
-    }
-}
-
-class VegetationSupportDimension extends VoxelDimension {
-    public hasBlockTag(block: HookBlock, tag: string): boolean {
-        return (
-            (tag === 'minecraft:supports_dry_vegetation' && block.identifier === 'minecraft:sand') ||
-            (tag === 'minecraft:supports_vegetation' && block.identifier === 'minecraft:dirt') ||
-            (tag === 'minecraft:supports_cactus' && block.identifier === 'minecraft:sand') ||
-            (tag === 'minecraft:supports_sugar_cane' && block.identifier === 'minecraft:sand') ||
-            (tag === 'minecraft:supports_lily_pad' && block.identifier === 'minecraft:water') ||
-            (tag === 'minecraft:supports_azalea' && block.identifier === 'minecraft:rooted_dirt') ||
-            (tag === 'minecraft:supports_mangrove_propagule' &&
-                block.identifier === 'minecraft:muddy_mangrove_roots') ||
-            (tag === 'minecraft:supports_wither_rose' && block.identifier === 'minecraft:netherrack')
-        );
-    }
-}
-
-class VegetationSupportWorld extends VoxelWorld {
-    private readonly vegetationDimension = new VegetationSupportDimension(OVERWORLD);
-
-    public override at(dimension = OVERWORLD): VegetationSupportDimension {
-        if (dimension !== OVERWORLD) throw new Error(`Unexpected test dimension: ${dimension}`);
-        return this.vegetationDimension;
-    }
-}
+/** A world that answers the plant support tags, one ground block each. */
+const vegetationSupportWorld = (): VoxelWorld => {
+    const world = createVoxelWorld();
+    const ground = world.overworld;
+    ground.tag('minecraft:supports_dry_vegetation', 'minecraft:sand');
+    ground.tag('minecraft:supports_vegetation', 'minecraft:dirt');
+    ground.tag('minecraft:supports_cactus', 'minecraft:sand');
+    ground.tag('minecraft:supports_sugar_cane', 'minecraft:sand');
+    ground.tag('minecraft:supports_lily_pad', 'minecraft:water');
+    ground.tag('minecraft:supports_azalea', 'minecraft:rooted_dirt');
+    ground.tag('minecraft:supports_mangrove_propagule', 'minecraft:muddy_mangrove_roots');
+    ground.tag('minecraft:supports_wither_rose', 'minecraft:netherrack');
+    return world;
+};
 
 class MissingGroundDimension extends VoxelDimension {
     public override getBlock(position: BlockPosition): HookBlock | undefined {
@@ -175,7 +157,7 @@ describe('cropFamily', () => {
     });
 
     it('keeps a berry bush on tagged vegetation support when its ground updates', () => {
-        const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush', { world: new VegetationSupportWorld() });
+        const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush', { world: vegetationSupportWorld() });
         harness.dimension.set(ground, 'minecraft:dirt');
         harness.dimension.set(plant, 'minecraft:sweet_berry_bush', { growth: 1 });
 
@@ -186,7 +168,7 @@ describe('cropFamily', () => {
     });
 
     it('pops a berry bush when its support tag rejects the ground', () => {
-        const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush', { world: new VegetationSupportWorld() });
+        const harness = bindFamily(cropFamily, 'minecraft:sweet_berry_bush', { world: vegetationSupportWorld() });
         harness.dimension.set(ground, 'minecraft:stone');
         harness.dimension.set(plant, 'minecraft:sweet_berry_bush', { growth: 1 });
 
@@ -248,7 +230,7 @@ describe('saplingFamily', () => {
 
     it('keeps a propagule on its tagged mangrove support when the ground updates', () => {
         const harness = bindFamily(saplingFamily, 'minecraft:mangrove_propagule', {
-            world: new VegetationSupportWorld()
+            world: vegetationSupportWorld()
         });
         harness.dimension.set(ground, 'minecraft:muddy_mangrove_roots');
         harness.dimension.set(plant, 'minecraft:mangrove_propagule');
@@ -399,7 +381,7 @@ describe('floraFamily', () => {
     });
 
     it('keeps a dead bush when its tagged sand support updates', () => {
-        const harness = bindFamily(floraFamily, 'minecraft:deadbush', { world: new VegetationSupportWorld() });
+        const harness = bindFamily(floraFamily, 'minecraft:deadbush', { world: vegetationSupportWorld() });
         harness.dimension.set(ground, 'minecraft:sand');
         harness.dimension.set(plant, 'minecraft:deadbush');
 
@@ -416,7 +398,7 @@ describe('floraFamily', () => {
         ['azalea', 'rooted_dirt'],
         ['wither_rose', 'netherrack']
     ])('keeps %s on its tagged %s support when the ground updates', (name, support) => {
-        const harness = bindFamily(floraFamily, `minecraft:${name}`, { world: new VegetationSupportWorld() });
+        const harness = bindFamily(floraFamily, `minecraft:${name}`, { world: vegetationSupportWorld() });
         harness.dimension.set(ground, `minecraft:${support}`);
         harness.dimension.set(plant, `minecraft:${name}`);
 
@@ -567,7 +549,7 @@ describe('bambooFamily', () => {
     });
 
     it('keeps a stalk rooted on gravel, which the bamboo support tag allows', () => {
-        const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: new BambooSupportWorld() });
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: bambooSupportWorld() });
         harness.dimension.set(ground, 'minecraft:gravel');
         harness.dimension.set(plant, 'minecraft:bamboo');
 
@@ -589,7 +571,7 @@ describe('bambooFamily', () => {
     });
 
     it('pops a stalk whose ground is outside the bamboo support tag', () => {
-        const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: new BambooSupportWorld() });
+        const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: bambooSupportWorld() });
         harness.dimension.set(ground, 'minecraft:stone');
         harness.dimension.set(plant, 'minecraft:bamboo');
 

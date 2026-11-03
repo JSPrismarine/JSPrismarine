@@ -94,6 +94,8 @@ export class VoxelDimension implements WorldActions {
     private readonly light = new Map<string, number>();
     private readonly lightDampening = new Map<string, number>();
     private readonly properties = new Map<string, BlockProperties>();
+    /** Undefined until a test names a tag; see {@link VoxelDimension.tag}. */
+    private tags: Map<string, Set<string>> | undefined;
     private readonly randoms: number[] = [];
     private seed = 1;
 
@@ -192,6 +194,23 @@ export class VoxelDimension implements WorldActions {
         this.properties.set(identifier, { ...DEFAULT_BLOCK_PROPERTIES, ...properties });
     }
 
+    /**
+     * Puts block identifiers in a Java tag, which is what
+     * {@link WorldActions.hasBlockTag} then answers for.
+     *
+     * A world nobody tags answers no tag at all rather than answering no: the member is
+     * optional, and a family reads "the host cannot say" differently from "the host says no".
+     * Naming one tag is what turns that on, so a test that cares states its own membership and
+     * every other test keeps the tagless world the fallback paths are written for.
+     */
+    public tag(tag: string, ...identifiers: readonly string[]): void {
+        const tags = (this.tags ??= new Map());
+        const members = tags.get(tag) ?? new Set<string>();
+        for (const identifier of identifiers) members.add(identifier);
+        tags.set(tag, members);
+        this.hasBlockTag ??= (block, named) => tags.get(named)?.has(block.identifier) ?? false;
+    }
+
     /** Queues the next values {@link WorldActions.random} returns, in order. */
     public queueRandom(...values: readonly number[]): void {
         this.randoms.push(...values);
@@ -212,6 +231,16 @@ export class VoxelDimension implements WorldActions {
     public propertiesOf(identifier: string): BlockProperties {
         return this.properties.get(identifier) ?? DEFAULT_BLOCK_PROPERTIES;
     }
+
+    /**
+     * Whether a block is in a Java tag, installed by {@link VoxelDimension.tag} and absent
+     * until a test calls it.
+     *
+     * A property rather than a method on purpose: a family reads the member being missing as
+     * "this host cannot answer tags" and takes its fallback, so a method that always existed
+     * and always answered no would take every family down the tag path with an empty stack.
+     */
+    public hasBlockTag?: (block: HookBlock, tag: string) => boolean;
 
     /** The light dampening a test gave a block type, or the vanilla default. */
     public lightDampeningOf(block: HookBlock): number {

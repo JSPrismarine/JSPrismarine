@@ -22,6 +22,47 @@ export const FARMLAND_WATER_RANGE = 4;
 /** The light level at which ice and snow melt. */
 export const MELT_LIGHT = 12;
 
+/** Java's `#minecraft:maintains_farmland`, which decides whether dry farmland stays farmland. */
+export const MAINTAINS_FARMLAND_TAG = 'minecraft:maintains_farmland';
+
+/**
+ * Java's `#minecraft:maintains_farmland`, for a host that answers no tags at all.
+ *
+ * The tag is the source of truth and this is only reached when `hasBlockTag` is absent, so
+ * these are the vanilla members written in Bedrock's spelling - `beetroot` for Java's
+ * `beetroots` - minus what a tagless host cannot resolve: `#minecraft:fence_gates` is a nested
+ * tag and `moving_piston` is a block this server does not have. Java's two attached stems are
+ * not here because Bedrock has no block for them; an attached stem is a state of the stem.
+ */
+const MAINTAINS_FARMLAND_FALLBACK_NAMES: ReadonlySet<string> = new Set([
+    'wheat',
+    'carrots',
+    'potatoes',
+    'beetroot',
+    'pumpkin_stem',
+    'melon_stem',
+    'torchflower_crop',
+    'torchflower',
+    'pitcher_crop'
+]);
+
+/**
+ * Whether what stands on a farmland block keeps it from turning back to dirt.
+ *
+ * Java's `FarmBlock.shouldMaintainFarmland`, which is a tag rather than a shape: an attached
+ * melon stem has no growth of its own and still holds the field, a fence gate over farmland
+ * holds it, and a sweet berry bush - which does grow - does not.
+ */
+const maintainsFarmland = (world: WorldActions, block: HookBlock): boolean => {
+    const planted = world.getBlock(offset(block.position, 'up'));
+    if (planted === undefined) return false;
+
+    return (
+        world.hasBlockTag?.(planted, MAINTAINS_FARMLAND_TAG) ??
+        MAINTAINS_FARMLAND_FALLBACK_NAMES.has(bareName(planted.identifier))
+    );
+};
+
 /** Whether water is within {@link FARMLAND_WATER_RANGE} of a farmland block. */
 export const isHydrated = (world: WorldActions, block: HookBlock): boolean => {
     for (let x = -FARMLAND_WATER_RANGE; x <= FARMLAND_WATER_RANGE; x += 1) {
@@ -74,11 +115,7 @@ export const soilFamily = defineFamily(
                     setStates(world, event.block, { moisturized_amount: moisture - 1 });
                     return;
                 }
-                // Java's `shouldMaintainFarmland`: a dry field keeps the crop standing in it,
-                // and only bare farmland turns back to dirt. The crop is whatever grows, which
-                // is what carrying a `growth` state says.
-                const planted = world.getBlock(offset(event.block.position, 'up'));
-                if (planted !== undefined && hasState(planted, 'growth')) return;
+                if (maintainsFarmland(world, event.block)) return;
                 world.setBlock(event.block.position, sibling(event.block.identifier, 'dirt'));
                 return;
             }
