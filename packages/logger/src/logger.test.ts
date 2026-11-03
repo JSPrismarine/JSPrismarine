@@ -52,6 +52,24 @@ describe('level guard', () => {
     });
 });
 
+describe('message punctuation', () => {
+    it.each([
+        ['plain text', 'plain text.'],
+        ['already ended.', 'already ended.'],
+        ['already ended!', 'already ended!'],
+        ['already ended?', 'already ended?'],
+        ['', '']
+    ])('formats %j as %j', (input, expected) => {
+        const { logger } = makeLogger();
+        const messages: string[] = [];
+        logger.onLine((message) => messages.push(message));
+
+        logger.info(input);
+
+        expect(messages).toEqual([expected]);
+    });
+});
+
 describe('namespace resolution', () => {
     // getNamespace() picks frame 3 of the stack to name the caller. The level guard has to
     // stay inline in every log method for that to hold: wrapping the log call in a shared

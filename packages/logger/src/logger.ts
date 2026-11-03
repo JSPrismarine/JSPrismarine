@@ -146,9 +146,8 @@ export class Logger {
         const output = input.join('§r ');
 
         // Make sure log messages end with a period.
-        if (['.', '!', '?'].includes(output.charAt(-1))) {
-            return `${output}.`;
-        }
+        const lastCharacter = output.at(-1);
+        if (output && lastCharacter !== '.' && lastCharacter !== '!' && lastCharacter !== '?') return `${output}.`;
 
         return output;
     };
