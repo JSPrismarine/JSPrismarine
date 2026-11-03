@@ -47,13 +47,29 @@ const fakeWatch = () => {
 /** A generator the test finishes by hand, so a change can arrive while it runs. */
 const manualGenerator = () => {
     let finish: ((ok: boolean) => void) | undefined;
+    let calls = 0;
+    const waiters = new Map<number, Set<() => void>>();
     const generate = vi.fn(
         () =>
             new Promise<boolean>((done) => {
+                calls += 1;
+                for (const [target, callbacks] of waiters) {
+                    if (target > calls) continue;
+                    for (const callback of callbacks) callback();
+                    waiters.delete(target);
+                }
                 finish = done;
             })
     );
-    return { generate, finish: (ok: boolean) => finish?.(ok) };
+    const waitForCall = (target: number): Promise<void> => {
+        if (calls >= target) return Promise.resolve();
+        return new Promise((resolve) => {
+            const callbacks = waiters.get(target) ?? new Set();
+            callbacks.add(resolve);
+            waiters.set(target, callbacks);
+        });
+    };
+    return { generate, finish: (ok: boolean) => finish?.(ok), waitForCall };
 };
 
 const DEBOUNCE_MS = 20;
@@ -80,25 +96,18 @@ const startWatcher = async (
     return { events, requestRestart, watcher, fs, started };
 };
 
-const debounced = () => new Promise((done) => setTimeout(done, DEBOUNCE_MS * 3));
-
-const until = async (ready: () => boolean, ms = 3000): Promise<void> => {
-    const deadline = Date.now() + ms;
-    while (!ready()) {
-        if (Date.now() > deadline) throw new Error('timed out');
-        await new Promise((done) => setTimeout(done, 5));
-    }
-};
+const advanceDebounce = () => vi.advanceTimersByTimeAsync(DEBOUNCE_MS * 3);
 
 afterEach(() => {
     for (const watcher of watchers.splice(0)) watcher.close();
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+    vi.useRealTimers();
 });
 
 describe('Watcher', () => {
     beforeEach(() => {
-        // The root Vitest config reuses workers; debounce waits must not inherit another suite's fake clock.
-        vi.useRealTimers();
+        // Advance the watcher's own debounce clock explicitly; shared Vitest workers can inherit unrelated timers.
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     });
 
     it('generates once on start and reports what it watches', async () => {
@@ -132,7 +141,7 @@ describe('Watcher', () => {
 
         fs.change(path.join(packagesDir, 'alpha', 'src'), 'a.ts');
         fs.change(path.join(packagesDir, 'alpha', 'src'), 'b.ts');
-        await debounced();
+        await advanceDebounce();
 
         expect(requestRestart).toHaveBeenCalledTimes(1);
         expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'src', 'a.ts'));
@@ -146,7 +155,7 @@ describe('Watcher', () => {
 
         const overlayDir = path.join(packagesDir, 'blocks', 'vanilla_overlay');
         fs.change(overlayDir, path.join('blocks', 'acacia_log.block.json'));
-        await debounced();
+        await advanceDebounce();
 
         const reason = path.join('packages', 'blocks', 'vanilla_overlay', 'blocks', 'acacia_log.block.json');
         expect(requestRestart).toHaveBeenCalledOnce();
@@ -165,7 +174,7 @@ describe('Watcher', () => {
         fs.change(path.join(packagesDir, 'blocks', 'vanilla_overlay'), path.join('blocks', 'acacia_log.block.json'));
         fs.change(packDir, path.join('data', 'custom', 'function', 'setup.mcfunction'));
         fs.change(packDir, 'README.md');
-        await debounced();
+        await advanceDebounce();
 
         const reason = path.relative(path.dirname(packagesDir), path.join(packDir, 'blocks', 'marble.block.json'));
         expect(requestRestart).toHaveBeenCalledOnce();
@@ -182,7 +191,7 @@ describe('Watcher', () => {
         await started;
 
         fs.change(path.dirname(archive), path.basename(archive));
-        await debounced();
+        await advanceDebounce();
 
         expect(requestRestart).toHaveBeenCalledWith(path.relative(path.dirname(packagesDir), archive));
     });
@@ -196,7 +205,7 @@ describe('Watcher', () => {
         fs.change(path.join(packagesDir, 'bedrock-data', 'src'), path.join('generated', 'x.json'));
         fs.change(path.join(packagesDir, 'alpha', 'src'), 'notes.md');
         fs.change(path.join(packagesDir, 'alpha', 'src'), null);
-        await debounced();
+        await advanceDebounce();
 
         expect(requestRestart).not.toHaveBeenCalled();
     });
@@ -235,19 +244,21 @@ describe('Watcher', () => {
 
     it('holds restarts while the generator runs and requests one when it finishes', async () => {
         const packagesDir = makePackages();
-        const { generate, finish } = manualGenerator();
+        const { generate, finish, waitForCall } = manualGenerator();
         const { requestRestart, fs, started } = await startWatcher(packagesDir, generate);
         finish(true);
         await started;
 
         fs.change(path.join(packagesDir, 'bedrock-data', 'utils'), 'build.js');
-        await until(() => generate.mock.calls.length === 2);
+        const secondRun = waitForCall(2);
+        await advanceDebounce();
+        await secondRun;
         fs.change(path.join(packagesDir, 'alpha', 'src'), 'a.ts');
-        await debounced();
+        await advanceDebounce();
         expect(requestRestart).not.toHaveBeenCalled();
 
         finish(true);
-        await debounced();
+        await advanceDebounce();
 
         expect(requestRestart).toHaveBeenCalledTimes(1);
         expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'bedrock-data', 'src', 'generated'));
@@ -255,19 +266,22 @@ describe('Watcher', () => {
 
     it('runs the generator once more when its inputs change mid-run', async () => {
         const packagesDir = makePackages();
-        const { generate, finish } = manualGenerator();
+        const { generate, finish, waitForCall } = manualGenerator();
         const { fs, started } = await startWatcher(packagesDir, generate);
         finish(true);
         await started;
 
         fs.change(path.join(packagesDir, 'bedrock-data', 'utils'), 'build.js');
-        await until(() => generate.mock.calls.length === 2);
+        const secondRun = waitForCall(2);
+        await advanceDebounce();
+        await secondRun;
         fs.change(path.join(packagesDir, 'bedrock-data', 'src', 'resources'), 'blocks.json');
-        await debounced();
+        await advanceDebounce();
         expect(generate).toHaveBeenCalledTimes(2);
 
+        const thirdRun = waitForCall(3);
         finish(true);
-        await until(() => generate.mock.calls.length === 3);
+        await thirdRun;
     });
 
     it('closes every watch', async () => {
