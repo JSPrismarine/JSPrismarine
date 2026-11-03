@@ -228,6 +228,19 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
 
+            # The prebuild job only warms the latest protocol. A protocol with no cache of its own
+            # restores that build next to its own, and the ensure step copies its Cargo output
+            # directories so only the dependencies that differ between the pins compile. Nothing
+            # matched means no cache at all, so a stale cache from an older pin is left alone.
+            - name: Restore the latest protocol build to seed this protocol
+              if: ${{ matrix.protocol != needs.protocol-matrix.outputs.latest && steps.cinnabar-cache.outputs.cache-matched-key == '' }}
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ needs.protocol-matrix.outputs.latest }}
+                  key: ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-
+
             - name: Prepare the shared Rust compiler cache
               uses: Mozilla-Actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
               with:
@@ -265,7 +278,7 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
               run: |
                   # shellcheck disable=SC2086
-                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" $RECORD $SCENARIOS
+                  pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 1 $RECORD $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage

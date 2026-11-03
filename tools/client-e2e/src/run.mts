@@ -164,7 +164,9 @@ const resetBetweenScenarios = async (
     server.command(`gamemode survival ${playerName}`);
     server.command(`clear ${playerName}`);
     server.command('kill @e[type=item]');
-    server.command('fill -2 63 -2 2 63 4 minecraft:stone');
+    // Movement travels about twelve blocks in three seconds; keep a floor under its full path
+    // so cleanup can respawn a player that finishes the scenario away from the spawn pad.
+    server.command('fill -2 63 -2 2 63 20 minecraft:stone');
     server.command(`execute in minecraft:overworld run teleport ${playerName} 0.5 64 0.5`);
     server.command(`say ${reset}`);
     await resetComplete;

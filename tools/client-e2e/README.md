@@ -45,13 +45,16 @@ command also collects V8 coverage from the server processes and writes an LCOV r
 In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protocol in
 `packages/bedrock-data/sources.json` and runs the full suite on macOS for each one. Each matrix job
 uploads protocol-specific evidence and an LCOV report to Codecov. A preceding macOS job builds the
-latest pinned client with sccache, so the matrix can reuse compiler outputs for dependencies shared
-between protocol pins. Locally, source checkouts live
+latest pinned client with sccache. A matrix job for another protocol with no build cache of its own
+restores that latest build too, and `ensure` copies its `build/` and `target/` directories into the
+new protocol cache, so only the dependencies that differ between the pins compile. Locally, source checkouts live
 outside the repository at `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>/<commit>/repo`, falling
 back to `~/.cache/jsprismarine/cinnabar/v<protocol>/<commit>/repo`. Cargo and Go build outputs live in
 one shared `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>` directory per protocol, outside all
 checkouts and worktrees. Cargo's final artifacts go in `target/`, and its intermediates go in
-`build/`. Pins with different commits therefore reuse that protocol's build cache. When `sccache` is
+`build/`. Pins with different commits therefore reuse that protocol's build cache. A protocol with
+neither directory starts from a copy of the closest protocol that has a finished build (a clone on
+APFS, so it costs no extra disk). When `sccache` is
 installed, Rust outputs are also reused across protocol caches and worktrees; on macOS, install it
 with `brew install sccache`. Its local cache is shared at `<cache-root>/sccache` and is capped at
 sccache's 10 GB default. Set

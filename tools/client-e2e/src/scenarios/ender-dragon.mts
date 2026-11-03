@@ -41,6 +41,9 @@ export const enderDragon: Scenario = {
     name: 'ender-dragon',
     description: 'the End fight opens its exit fountain and the first portal exit shows credits',
     run: async ({ client, server, playerName, artifacts, log }) => {
+        // The scratch End has no terrain under the arena. Keep the player above the void while
+        // the dragon fight and portal checks run; otherwise the next scenario inherits a death.
+        server.command('execute in minecraft:the_end run fill -4 9 -4 4 9 4 minecraft:stone');
         server.command(`execute in minecraft:the_end run teleport ${playerName} 0 10 0`);
         await waitForDimension(client, [2, 'minecraft:the_end', 'The End']);
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);

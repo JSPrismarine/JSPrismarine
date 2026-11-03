@@ -5,20 +5,27 @@ import type { Scenario } from '../scenario.mts';
 import { sleep, vec3 } from '../scenario.mts';
 
 const dimensions = [
-    { id: 'minecraft:nether', acceptedState: [1, 'minecraft:nether', 'Nether'], position: [8, 10, 8] },
-    { id: 'minecraft:overworld', acceptedState: [0, 'minecraft:overworld', 'Overworld'], position: [0, 5, 0] },
-    { id: 'minecraft:the_end', acceptedState: [2, 'minecraft:the_end', 'The End'], position: [8, 10, 8] },
-    { id: 'minecraft:overworld', acceptedState: [0, 'minecraft:overworld', 'Overworld'], position: [0, 5, 0] },
-    { id: 'client_e2e:custom', acceptedState: [1000, 'client_e2e:custom'], position: [8, 80, 8] },
-    { id: 'minecraft:overworld', acceptedState: [0, 'minecraft:overworld', 'Overworld'], position: [0, 5, 0] }
+    { id: 'minecraft:nether', acceptedState: [1, 'minecraft:nether', 'Nether'] },
+    { id: 'minecraft:overworld', acceptedState: [0, 'minecraft:overworld', 'Overworld'] },
+    { id: 'minecraft:the_end', acceptedState: [2, 'minecraft:the_end', 'The End'] },
+    { id: 'minecraft:overworld', acceptedState: [0, 'minecraft:overworld', 'Overworld'] },
+    { id: 'client_e2e:custom', acceptedState: [1000, 'client_e2e:custom'] },
+    { id: 'minecraft:overworld', acceptedState: [0, 'minecraft:overworld', 'Overworld'] }
 ] as const;
+
+const platform = { from: 5, to: 11, y: 63 };
+const arrivalPosition = [8, platform.y + 1, 8] as const;
 
 export const dimensionsScenario: Scenario = {
     name: 'dimensions',
     description: 'the client changes between the Overworld, Nether, End, and a custom dimension',
     run: async ({ client, server, playerName, log }) => {
         for (const [index, destination] of dimensions.entries()) {
-            const [x, y, z] = destination.position;
+            const [x, y, z] = arrivalPosition;
+            server.command(
+                `execute in ${destination.id} run fill ${platform.from} ${platform.y} ${platform.from} ` +
+                    `${platform.to} ${platform.y} ${platform.to} minecraft:stone`
+            );
             server.command(`execute in ${destination.id} run teleport ${playerName} ${x} ${y} ${z}`);
 
             const deadline = Date.now() + 30_000;

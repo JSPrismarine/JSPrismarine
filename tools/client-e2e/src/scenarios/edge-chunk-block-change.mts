@@ -19,14 +19,17 @@ export const edgeChunkBlockChange: Scenario = {
     description: 'a block update across the -1/0 chunk edge reaches the client',
     run: async ({ server, client, playerName, log }) => {
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
+        // Keep the player four blocks from the drop: at arm's length it is picked up before a
+        // state snapshot can see it, which made the assertion unrelated to the chunk update.
+        server.command('setblock -1 63 -4 minecraft:stone');
         server.command('setblock -1 63 -1 minecraft:stone');
         server.command('setblock -1 64 0 minecraft:stone');
-        server.command(`teleport ${playerName} -0.5 64 -0.5`);
+        server.command(`teleport ${playerName} -0.5 64 -3.5`);
 
         const deadline = Date.now() + 15_000;
         for (;;) {
             const feet = vec3(await client.state(), 'feet');
-            if (Math.hypot(feet[0] + 0.5, feet[1] - 64, feet[2] + 0.5) < 1) break;
+            if (Math.hypot(feet[0] + 0.5, feet[1] - 64, feet[2] + 3.5) < 1) break;
             assert.ok(Date.now() < deadline, `client did not reach the negative chunk edge; at ${feet.join(', ')}`);
             await sleep(250);
         }

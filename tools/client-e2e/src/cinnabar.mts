@@ -156,12 +156,73 @@ export const ensureCheckout = (pin: CinnabarPin, protocolVersion: number): strin
 
 const stampFile = (protocolCache: string): string => path.join(protocolCache, '.jsprismarine-e2e-stamp');
 
+/** Cargo's output directories inside a protocol cache. A cold protocol copies both from a donor. */
+const seededDirectories = ['build', 'target'] as const;
+
+/** Protocols other than `protocolVersion` with a finished build that can seed a new cache. */
+const builtDonors = (protocolVersion: number): number[] => {
+    let entries: fs.Dirent[];
+    try {
+        entries = fs.readdirSync(cacheRoot(), { withFileTypes: true });
+    } catch {
+        return [];
+    }
+    return entries
+        .flatMap((entry) => {
+            const match = entry.isDirectory() ? /^v(\d+)$/.exec(entry.name) : null;
+            return match ? [Number(match[1])] : [];
+        })
+        .filter((protocol) => {
+            const protocolCache = protocolCacheDirectory(protocol);
+            return (
+                protocol !== protocolVersion &&
+                readStamp(protocolCache) !== undefined &&
+                seededDirectories.every((name) => fs.existsSync(path.join(protocolCache, name)))
+            );
+        });
+};
+
+/**
+ * Starts a protocol with no build of its own from the closest protocol that has one.
+ *
+ * Cargo keys registry dependencies by name, version, features, and toolchain, not by checkout
+ * path, so the donor's `build/` and `target/` let the new pin compile only its workspace crates and
+ * the dependencies whose versions differ. A protocol that already has either directory, even from
+ * an older pin, keeps its own cache. Each directory is copied under a temporary name and renamed,
+ * so an interrupted copy leaves nothing behind that looks like a partial cache.
+ */
+const seedFromDonor = (protocolVersion: number): void => {
+    const protocolCache = protocolCacheDirectory(protocolVersion);
+    if (seededDirectories.some((name) => fs.existsSync(path.join(protocolCache, name)))) return;
+    const [donor] = builtDonors(protocolVersion).sort(
+        (left, right) => Math.abs(left - protocolVersion) - Math.abs(right - protocolVersion) || right - left
+    );
+    if (donor === undefined) return;
+
+    console.log(`seeding the protocol ${protocolVersion} build cache from protocol ${donor}...`);
+    fs.mkdirSync(protocolCache, { recursive: true });
+    const staged = seededDirectories.map((name) => {
+        const staging = path.join(protocolCache, `${name}.seeding`);
+        fs.rmSync(staging, { recursive: true, force: true });
+        // Cargo compares file times to decide what is stale, so the copy must keep them. A clone
+        // makes the copy free where the filesystem supports it (APFS) and falls back to a real copy.
+        fs.cpSync(path.join(protocolCacheDirectory(donor), name), staging, {
+            recursive: true,
+            preserveTimestamps: true,
+            mode: fs.constants.COPYFILE_FICLONE
+        });
+        return [staging, path.join(protocolCache, name)] as const;
+    });
+    for (const [staging, destination] of staged) fs.renameSync(staging, destination);
+};
+
 /**
  * Builds the client (with developer control), the MCP controller, and the Go core.
  *
  * The first build fetches the vanilla asset pack and compiles the whole client, which takes a
  * while and needs the network. One external build cache per protocol makes repeated calls a fast
- * no-op and lets separate worktrees reuse the same build.
+ * no-op and lets separate worktrees reuse the same build. A protocol without a cache starts from
+ * a copy of the closest built protocol's cache, so only the differing dependencies compile.
  *
  * @param protocolVersion - Wire protocol whose cache should hold the build.
  * @throws When a required toolchain (cargo, go) is missing or a build step fails.
@@ -184,6 +245,7 @@ export const ensureBuilt = (checkout: string, protocolVersion: number): void => 
     if (!commandExists('ffmpeg')) {
         console.warn('ffmpeg is not on PATH; the client builds, but record_start will fail');
     }
+    seedFromDonor(protocolVersion);
     fs.mkdirSync(cargoBuildDir, { recursive: true });
     fs.mkdirSync(targetDir, { recursive: true });
     const sharedCompilerCacheEnv = commandExists('sccache')
