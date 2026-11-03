@@ -16,6 +16,39 @@ const LEVEL_COLOR: Record<LogLevel, string> = {
 };
 
 /**
+ * Parse V8's trailing `:line:column` without backtracking across a caller-controlled stack frame.
+ * @param {string} frame - One trimmed or untrimmed stack frame.
+ * @returns {[string, string, string] | undefined} The file, line, and column, if present.
+ */
+const locationFromFrame = (frame: string): [string, string, string] | undefined => {
+    const locationAtEnd = (location: string): [string, string, string] | undefined => {
+        const columnSeparator = location.lastIndexOf(':');
+        const lineSeparator = location.lastIndexOf(':', columnSeparator - 1);
+        if (lineSeparator <= 0 || columnSeparator <= lineSeparator) return undefined;
+
+        const line = location.slice(lineSeparator + 1, columnSeparator);
+        const column = location.slice(columnSeparator + 1);
+        if (!line || !column) return undefined;
+        for (const digit of line) if (digit < '0' || digit > '9') return undefined;
+        for (const digit of column) if (digit < '0' || digit > '9') return undefined;
+
+        return [location.slice(0, lineSeparator), line, column];
+    };
+
+    const caller = frame.trim();
+    if (caller.endsWith(')')) {
+        const openParenthesis = caller.lastIndexOf('(');
+        if (openParenthesis >= 0) {
+            const location = locationAtEnd(caller.slice(openParenthesis + 1, -1));
+            if (location) return location;
+        }
+    }
+
+    // Node also prints native frames without parentheses: `at file.js:line:column`.
+    return caller.startsWith('at ') ? locationAtEnd(caller.slice(3).trim()) : undefined;
+};
+
+/**
  * Helper class for general logging.
  * @document ../../../docs/log-levels.md
  * @class
@@ -114,9 +147,8 @@ export class Logger {
         const caller = (stack.split('\n')[3] || '').trim();
         if (!caller) return '';
 
-        // Prefer the location in parentheses, then handle native stack frames without them.
-        const location =
-            caller.match(/\((.+):(\d+):(\d+)\)\s*$/)?.slice(1) ?? caller.match(/^at\s+(.+):(\d+):(\d+)\s*$/u)?.slice(1);
+        // Stack text can include library-controlled input; parse coordinates without backtracking regexes.
+        const location = locationFromFrame(caller);
         if (!location) return '';
 
         const [rawFile, line, column] = location;

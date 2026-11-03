@@ -106,4 +106,29 @@ describe('namespace resolution', () => {
 
         expect(logger['getNamespace'](stack)).toBe(expected);
     });
+
+    it('parses native stack frames without parentheses', () => {
+        const { logger } = makeLogger();
+        const stack = [
+            'Error',
+            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            '    at file:///repo/packages/prismarine/src/Worker.ts:42:5'
+        ].join('\n');
+
+        expect(logger['getNamespace'](stack)).toBe('Worker');
+    });
+
+    it('rejects long malformed frame locations without regex backtracking', () => {
+        const { logger } = makeLogger();
+        const malformedPath = 'part:1'.repeat(5_000);
+        const stack = [
+            'Error',
+            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            `    at invoke (${malformedPath}:not-a-line)`
+        ].join('\n');
+
+        expect(logger['getNamespace'](stack)).toBe('');
+    });
 });
