@@ -7,7 +7,7 @@ import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
 import type { ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
 import { DEFAULT_WORLD_PRESET } from './normalizeWorldData';
 
-import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
+import { Difficulty, getGametypeName, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -36,6 +36,8 @@ export const difficultyName = (difficulty: Difficulty): string =>
 
 /** What the server compresses at when the configured level is unusable. */
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
+/** Keep ZLib as the default until retail Bedrock clients are verified with other algorithms. */
+const DEFAULT_PACKET_COMPRESSION_ALGORITHM = 'zlib';
 
 /**
  * What each key means, written above it the first time the server adds it to the file.
@@ -64,6 +66,8 @@ const COMMENTS = {
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
     'online-mode': 'Whether players must be signed in to Xbox Live.',
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
+    'packet-compression-algorithm':
+        'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
     'enable-query': 'Whether to answer the Minecraft and Source query protocols.',
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
@@ -106,6 +110,7 @@ const DEFAULTS = {
     'entity-tracking-interval': 4,
     'online-mode': true,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
+    'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'enable-query': true,
     'enable-process-title': true,
     'enable-ticking': true,
@@ -173,6 +178,8 @@ export class Config {
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
     private onlineMode: boolean = DEFAULTS['online-mode'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
+    private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
+        DEFAULTS['packet-compression-algorithm'];
 
     /**
      * Controls if the minecraft/source query response should be enabled.
@@ -260,6 +267,10 @@ export class Config {
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
         this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
+        this.packetCompressionAlgorithm = read(
+            'packet-compression-algorithm',
+            DEFAULTS['packet-compression-algorithm']
+        );
         this.enableQuery = read('enable-query', this.enableQuery);
         this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
         this.enableTicking = read('enable-ticking', this.enableTicking);
@@ -496,6 +507,21 @@ export class Config {
      */
     public getPacketCompressionLevel(): number {
         return toPacketCompressionLevel(this.packetCompressionLevel);
+    }
+
+    /**
+     * The algorithm selected for new connections. Each `NetworkSettings` packet advertises it,
+     * and the connection stores the same value for all later batches.
+     */
+    public getPacketCompressionAlgorithm(): PacketCompressionAlgorithm {
+        switch (this.packetCompressionAlgorithm) {
+            case 'snappy':
+                return PacketCompressionAlgorithm.SNAPPY;
+            case 'none':
+                return PacketCompressionAlgorithm.NONE;
+            default:
+                return PacketCompressionAlgorithm.ZLIB;
+        }
     }
 
     public getEnableQuery() {

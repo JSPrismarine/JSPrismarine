@@ -11,6 +11,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
+import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import Codec2193 from '../codec/Codec2193';
@@ -37,6 +38,7 @@ const fakeConnection = () => {
         disconnect,
         connection: stub<ClientConnection>({
             hasCompression: false,
+            setCompressionSettings: vi.fn(),
             sendDataPacket: async (packet, comp) => {
                 sent.push({ packet, comp });
                 order.push(packet.getName());
@@ -51,7 +53,12 @@ const request = (protocolVersion: number): RequestNetworkSettingsPacket =>
 
 describe('RequestNetworkSettingsHandler', () => {
     const info = vi.fn();
-    const server = stub<Server>({ getLogger: () => stub<Logger>({ info }) });
+    const serverFor = (algorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB) =>
+        stub<Server>({
+            getLogger: () => stub<Logger>({ info }),
+            getConfig: () => stub<Config>({ getPacketCompressionAlgorithm: () => algorithm })
+        });
+    const server = serverFor();
 
     it('answers a matching protocol with the network settings', async () => {
         const { sent, disconnect, connection } = fakeConnection();
@@ -86,6 +93,26 @@ describe('RequestNetworkSettingsHandler', () => {
         await new RequestNetworkSettingsHandler().handle(request(Codec2225.protocolVersion), server, newer.connection);
         expect(newer.connection.codec).toBe(Codec2225);
         expect(newer.disconnect).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        [PacketCompressionAlgorithm.ZLIB, CompressionThreshold.COMPRESS_EVERYTHING],
+        [PacketCompressionAlgorithm.SNAPPY, CompressionThreshold.COMPRESS_EVERYTHING],
+        [PacketCompressionAlgorithm.NONE, CompressionThreshold.COMPRESS_NOTHING]
+    ] as const)('advertises and stores the selected algorithm %s', async (algorithm, threshold) => {
+        const { sent, connection } = fakeConnection();
+
+        await new RequestNetworkSettingsHandler().handle(
+            request(Codec2193.protocolVersion),
+            serverFor(algorithm),
+            connection
+        );
+
+        expect(sent[0]!.packet.getPacketData()).toMatchObject({
+            compressionThreshold: threshold,
+            compressionAlgorithm: algorithm
+        });
+        expect(connection.setCompressionSettings).toHaveBeenCalledWith(algorithm, threshold);
     });
 
     it('tells an older client that it is out of date', async () => {

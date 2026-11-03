@@ -132,6 +132,8 @@ export interface ConfigFile {
     'online-mode'?: boolean;
     /** The zlib level for outgoing batches. @asType integer @minimum -1 @maximum 9 */
     'packet-compression-level'?: number;
+    /** The batch compression algorithm advertised in `NetworkSettings`. */
+    'packet-compression-algorithm'?: 'zlib' | 'snappy' | 'none';
     /** Whether to answer the Minecraft and Source query protocols. */
     'enable-query'?: boolean;
     /** Whether to show the tick rate in the process title. */
@@ -182,6 +184,7 @@ export const CONFIG_KEY_ORDER = [
     'entity-tracking-interval',
     'online-mode',
     'packet-compression-level',
+    'packet-compression-algorithm',
     'enable-query',
     'enable-process-title',
     'enable-ticking',

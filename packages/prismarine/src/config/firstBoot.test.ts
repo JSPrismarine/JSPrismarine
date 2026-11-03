@@ -54,6 +54,7 @@ describe('the config file a boot generates', () => {
         'entity-tracking-interval',
         'online-mode',
         'packet-compression-level',
+        'packet-compression-algorithm',
         'enable-query',
         'enable-process-title',
         'enable-ticking',

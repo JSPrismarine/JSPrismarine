@@ -29,14 +29,20 @@ export default class RequestNetworkSettingsHandler implements ConnectionPacketHa
         connection.codec = codec;
         connection.phase = 'login';
 
+        const compressionAlgorithm = server.getConfig().getPacketCompressionAlgorithm();
+        const compressionThreshold =
+            compressionAlgorithm === PacketCompressionAlgorithm.NONE
+                ? CompressionThreshold.COMPRESS_NOTHING
+                : CompressionThreshold.COMPRESS_EVERYTHING;
         const networkSettings = new NetworkSettingsPacket({
-            compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
-            compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+            compressionThreshold,
+            compressionAlgorithm,
             clientThrottlingEnabled: false,
             clientThrottleThreshold: 0,
             clientThrottleScalar: 0
         });
 
+        connection.setCompressionSettings(compressionAlgorithm, compressionThreshold);
         connection.hasCompression = true;
 
         // Send as uncompressed, this will initialize compression

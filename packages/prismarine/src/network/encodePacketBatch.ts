@@ -8,6 +8,10 @@ import type { ProtocolCodec } from '@jsprismarine/protocol';
 export interface PacketBatchOptions {
     /** Whether the negotiated batch format includes a compression prefix. */
     compressed?: boolean;
+    /** Algorithm advertised by this connection in `NetworkSettings`. */
+    compressionAlgorithm?: PacketCompressionAlgorithm;
+    /** Smallest batch payload size to compress; zero leaves every batch uncompressed. */
+    compressionThreshold?: number;
     /** zlib level for this batch; omitted to use Protocol's default. */
     compressionLevel?: number;
 }
@@ -88,11 +92,16 @@ const preparePackets = (
     return { packets: encodedPackets, buffers };
 };
 
-const batchCodecFor = ({ compressed = true, compressionLevel }: PacketBatchOptions): BatchCodec =>
+const batchCodecFor = ({
+    compressed = true,
+    compressionAlgorithm = PacketCompressionAlgorithm.ZLIB,
+    compressionThreshold = 1,
+    compressionLevel
+}: PacketBatchOptions): BatchCodec =>
     compressed
         ? BatchCodec.compressed({
-              algorithm: PacketCompressionAlgorithm.ZLIB,
+              algorithm: compressionAlgorithm,
               ...(compressionLevel === undefined ? {} : { level: compressionLevel }),
-              threshold: 1
+              threshold: compressionThreshold
           })
         : BatchCodec.uncompressed();

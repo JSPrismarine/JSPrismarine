@@ -102,6 +102,7 @@ const { values, positionals } = parseArgs({
         artifacts: { type: 'string' },
         port: { type: 'string' },
         protocol: { type: 'string' },
+        'compression-algorithm': { type: 'string', default: 'zlib' },
         concurrency: { type: 'string', default: '2' }
     },
     allowPositionals: true
@@ -131,6 +132,16 @@ const protocolVersion = values.protocol === undefined ? undefined : Number(value
 if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || protocolVersion <= 0)) {
     throw new Error('--protocol must be a positive integer');
 }
+const compressionAlgorithm = (() => {
+    switch (values['compression-algorithm']) {
+        case 'zlib':
+        case 'snappy':
+        case 'none':
+            return values['compression-algorithm'];
+        default:
+            throw new Error('--compression-algorithm must be zlib, snappy, or none');
+    }
+})();
 const concurrency = Number(values.concurrency);
 if (!Number.isSafeInteger(concurrency) || concurrency <= 0) {
     throw new Error('--concurrency must be a positive integer');
@@ -229,6 +240,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
     try {
         server = await startServer({
             port: requestedPort,
+            compressionAlgorithm,
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)
                 ? { naturalCowSpawning: true }
                 : {})

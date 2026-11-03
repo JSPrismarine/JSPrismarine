@@ -1,6 +1,7 @@
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { promisify } from 'node:util';
 import { deflateRaw, deflateRawSync, inflateRaw, inflateRawSync } from 'node:zlib';
+import { snappyCompress, snappyDecompress } from './Snappy';
 
 const deflateRawAsync = promisify(deflateRaw);
 const inflateRawAsync = promisify(inflateRaw);
@@ -111,7 +112,7 @@ export class CompressionCodec {
             case PacketCompressionAlgorithm.ZLIB:
                 return deflateRawSync(payload, { level: this.level });
             case PacketCompressionAlgorithm.SNAPPY:
-                throw new Error('Snappy compression is not implemented');
+                return snappyCompress(payload);
             default:
                 return payload;
         }
@@ -132,7 +133,7 @@ export class CompressionCodec {
             case PacketCompressionAlgorithm.ZLIB:
                 return deflateRawAsync(payload, { level: this.level });
             case PacketCompressionAlgorithm.SNAPPY:
-                throw new Error('Snappy compression is not implemented');
+                return snappyCompress(payload);
             default:
                 return payload;
         }
@@ -149,7 +150,7 @@ export class CompressionCodec {
             case PacketCompressionAlgorithm.ZLIB:
                 return inflateRawSync(payload, { maxOutputLength });
             case PacketCompressionAlgorithm.SNAPPY:
-                throw new Error('Snappy compression is not implemented');
+                return snappyDecompress(payload, maxOutputLength);
             default:
                 throw new Error(`Unsupported compression algorithm: ${algorithm}`);
         }
@@ -166,7 +167,7 @@ export class CompressionCodec {
             case PacketCompressionAlgorithm.ZLIB:
                 return inflateRawAsync(payload, { maxOutputLength });
             case PacketCompressionAlgorithm.SNAPPY:
-                throw new Error('Snappy compression is not implemented');
+                return snappyDecompress(payload, maxOutputLength);
             default:
                 throw new Error(`Unsupported compression algorithm: ${algorithm}`);
         }

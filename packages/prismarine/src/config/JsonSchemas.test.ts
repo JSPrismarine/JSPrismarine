@@ -77,6 +77,7 @@ describe('JSON schemas', () => {
                 'entity-tracking-interval': 4,
                 'online-mode': false,
                 'packet-compression-level': 7,
+                'packet-compression-algorithm': 'zlib',
                 'enable-query': true,
                 'enable-process-title': true,
                 'enable-ticking': true,

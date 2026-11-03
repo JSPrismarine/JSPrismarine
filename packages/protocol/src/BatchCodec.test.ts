@@ -106,6 +106,27 @@ describe('BatchCodec, once compression is negotiated', () => {
         expect(await codec.encodeAsync(packets)).toEqual(codec.encode(packets));
         expect(await codec.decodeAsync(codec.encode(packets))).toEqual(packets);
     });
+
+    it('round-trips Snappy batches in both codec paths', async () => {
+        const packets = [Buffer.from([0x09, 0x01]), Buffer.alloc(512, 0x41), Buffer.from('bedrock batch')];
+        const codec = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.SNAPPY });
+        const encoded = codec.encode(packets);
+
+        expect(encoded[1]).toBe(PacketCompressionAlgorithm.SNAPPY);
+        expect(codec.decode(encoded)).toEqual(packets);
+        expect(await codec.encodeAsync(packets)).toEqual(encoded);
+        expect(await codec.decodeAsync(encoded)).toEqual(packets);
+    });
+
+    it('frames a no-compression negotiation with the one-byte None prefix', () => {
+        const packets = [Buffer.alloc(512, 0x41)];
+        const codec = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.NONE });
+        const encoded = codec.encode(packets);
+
+        expect(encoded[1]).toBe(UNCOMPRESSED_BATCH);
+        expect(encoded.byteLength).toBeGreaterThan(packets[0]!.byteLength);
+        expect(codec.decode(encoded)).toEqual(packets);
+    });
 });
 
 describe('BatchCodec, malformed input', () => {
@@ -170,10 +191,22 @@ describe('CompressionCodec prefix widths', () => {
         expect(CompressionCodec.toPrefix(PacketCompressionAlgorithm.ZLIB)).toBe(PacketCompressionAlgorithm.ZLIB);
     });
 
-    it('reports snappy as unimplemented rather than producing wrong bytes', () => {
+    it('reads and writes Snappy blocks, including overlapping copies', () => {
         const snappy = new CompressionCodec({ algorithm: PacketCompressionAlgorithm.SNAPPY });
+        const repeated = Buffer.from('xababab');
+        // 7-byte output, then literal "xab", then offset=2 / length=4 overlapping copy.
+        const peerBlock = Buffer.from([0x07, 0x08, 0x78, 0x61, 0x62, 0x0e, 0x02, 0x00]);
 
-        expect(() => snappy.compress(Buffer.alloc(64))).toThrow(/Snappy/);
-        expect(() => CompressionCodec.decompress(PacketCompressionAlgorithm.SNAPPY, Buffer.alloc(4))).toThrow(/Snappy/);
+        expect(CompressionCodec.decompress(PacketCompressionAlgorithm.SNAPPY, peerBlock)).toEqual(repeated);
+        expect(CompressionCodec.decompress(PacketCompressionAlgorithm.SNAPPY, snappy.compress(repeated))).toEqual(
+            repeated
+        );
+    });
+
+    it('rejects Snappy blocks that exceed the decoded-size ceiling', () => {
+        // Five-byte length prefix for 100 bytes, followed by one literal tag.
+        expect(() => CompressionCodec.decompress(PacketCompressionAlgorithm.SNAPPY, Buffer.from([100, 0]), 64)).toThrow(
+            /limit is 64/
+        );
     });
 });

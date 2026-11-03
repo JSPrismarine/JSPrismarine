@@ -54,10 +54,17 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.dir - Scratch server directory; defaults to a temporary directory.
  * @param options.seconds - Startup budget before the boot is declared failed. Default 120.
  * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios.
+ * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to ZLib.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
-    options: { port?: number; dir?: string; seconds?: number; naturalCowSpawning?: boolean } = {}
+    options: {
+        port?: number;
+        dir?: string;
+        seconds?: number;
+        naturalCowSpawning?: boolean;
+        compressionAlgorithm?: 'zlib' | 'snappy' | 'none';
+    } = {}
 ): Promise<JspServer> => {
     const port = options.port ?? (await reserveFreeUdpPort());
     if (options.port !== undefined) {
@@ -241,6 +248,7 @@ export const startServer = async (
     const config = {
         port: port,
         'online-mode': false,
+        'packet-compression-algorithm': options.compressionAlgorithm ?? 'zlib',
         'level-name': 'e2e',
         worlds: {
             e2e: {

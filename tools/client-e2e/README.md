@@ -27,8 +27,12 @@ pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol 2193
 pnpm run e2e:client
 pnpm run e2e:client movement chat
 pnpm run e2e:client -- --protocol 2193 movement chat
+pnpm run e2e:client -- --compression-algorithm snappy movement chat
 pnpm run e2e:client -- --concurrency 1 --record --artifacts /tmp/evidence
 ```
+
+`--compression-algorithm` selects the algorithm the scratch server advertises: `zlib` (the
+default), `snappy`, or `none`.
 
 Gameplay and dimension scenarios share one server and client; natural spawning uses a separate
 server because it needs a cow spawn fixture that could affect gameplay checks. The runner resets

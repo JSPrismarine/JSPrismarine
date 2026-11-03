@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel } from './Config';
 import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
@@ -70,6 +70,26 @@ describe('config', () => {
 
         it('should have the default packet compression level', () => {
             expect(config.getPacketCompressionLevel()).toBe(7);
+        });
+
+        it('keeps zlib as the default packet compression algorithm', () => {
+            expect(config.getPacketCompressionAlgorithm()).toBe(PacketCompressionAlgorithm.ZLIB);
+        });
+
+        it.each([
+            ['zlib', PacketCompressionAlgorithm.ZLIB],
+            ['snappy', PacketCompressionAlgorithm.SNAPPY],
+            ['none', PacketCompressionAlgorithm.NONE],
+            ['unknown', PacketCompressionAlgorithm.ZLIB]
+        ] as const)('selects the configured packet compression algorithm: %s', async (value, expected) => {
+            writeFileSync(
+                path.join(configDirectory, 'config.json'),
+                JSON.stringify({ 'packet-compression-algorithm': value })
+            );
+            const fromFile = new Config();
+            await fromFile.enable();
+
+            expect(fromFile.getPacketCompressionAlgorithm()).toBe(expected);
         });
 
         it('should write every key with a comment explaining it', () => {

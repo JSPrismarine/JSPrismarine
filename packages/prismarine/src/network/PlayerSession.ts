@@ -593,7 +593,9 @@ export default class PlayerSession {
         try {
             await this.connection.sendPacketsAsync(packets, {
                 direct: false,
-                compressionLevel: this.server.getConfig().getPacketCompressionLevel()
+                compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
+                compressionAlgorithm: this.connection.compressionAlgorithm,
+                compressionThreshold: this.connection.compressionThreshold
             });
         } catch (error: unknown) {
             // Nothing reached the client, so nothing may be recorded as loaded. Marking

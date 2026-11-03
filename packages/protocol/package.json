@@ -41,6 +41,7 @@
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "vite build && node ../../scripts/emit-dts.mts",
+        "bench:compression": "vitest bench benchmarks/compression.bench.ts",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
