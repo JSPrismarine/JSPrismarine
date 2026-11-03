@@ -72,4 +72,20 @@ describe('namespace resolution', () => {
         expect(frames[2]).toMatch(/\binfo\b/);
         expect(frames[3]).toMatch(/logger\.test/);
     });
+
+    it.each([
+        ['source files', 'file:///repo/packages/prismarine/src/Server.ts:42:5', 'Server'],
+        ['built files', 'file:///repo/packages/prismarine/dist/Server.es.js:42:5', 'Server'],
+        ['bundled files', 'file:///app/server.bundle.js:42:5', 'server.bundle']
+    ])('derives a module name from %s without source maps', (_description, location, expected) => {
+        const { logger } = makeLogger();
+        const stack = [
+            'Error',
+            '    at Logger.getNamespace (file:///repo/packages/logger/dist/logger.es.js:1:1)',
+            '    at Logger.info (file:///repo/packages/logger/dist/logger.es.js:2:2)',
+            `    at invoke (${location})`
+        ].join('\n');
+
+        expect(logger['getNamespace'](stack)).toBe(expected);
+    });
 });

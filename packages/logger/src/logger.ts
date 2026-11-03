@@ -108,29 +108,34 @@ export class Logger {
      * @private
      * @internal
      */
-    private getNamespace = () => {
-        const stack = new Error().stack?.replaceAll('\\', '/');
+    private getNamespace = (stack = new Error().stack) => {
         if (!stack) return '';
 
         const caller = (stack.split('\n')[3] || '').trim();
         if (!caller) return '';
 
-        // Get path inside of the parentheses in the caller string, excluding the line:col.
-        const file = caller.match(/\(([^)]+)\)/)?.[1]?.split('src/')[1] || '';
-        if (!file) return '';
+        // Prefer the location in parentheses, then handle native stack frames without them.
+        const location =
+            caller.match(/\((.+):(\d+):(\d+)\)\s*$/)?.slice(1) ?? caller.match(/^at\s+(.+):(\d+):(\d+)\s*$/u)?.slice(1);
+        if (!location) return '';
 
-        // Get path and line:col from the file string, then remove the file extension.
-        const path = file.split(':').slice(0, -2).join(':').slice(0, -3);
-        if (!path) return '';
+        const [rawFile, line, column] = location;
+        const normalizedFile = rawFile?.replaceAll('\\', '/') ?? '';
+        const moduleFile =
+            normalizedFile.match(/\/(?:src|dist)\/(.+)$/u)?.[1] ?? normalizedFile.split('/').at(-1) ?? '';
+        if (!moduleFile) return '';
 
-        const lineCol = file.split(':').slice(-2).join(':');
-        if (!lineCol) return '';
+        // Bundlers commonly add `.es` before `.js`; it is a format suffix, not part of the module name.
+        const sourceFile = moduleFile.replace(/\.es(?=\.js$)/u, '');
+        const extension = sourceFile.match(/\.(?:[cm]?[jt]s|tsx|jsx)$/u)?.[0] ?? '';
+        const modulePath = extension ? sourceFile.slice(0, -extension.length) : sourceFile;
+        if (!modulePath) return '';
 
         if (this.level === 'silly' || this.level === 'debug' || this.level === 'verbose') {
-            return `${path}.ts:${lineCol}`;
+            return `${modulePath}${extension}:${line}:${column}`;
         }
 
-        return path.split('/').at(-1) || '';
+        return modulePath.split('/').at(-1) || '';
     };
 
     /**
