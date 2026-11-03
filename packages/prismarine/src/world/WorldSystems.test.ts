@@ -272,6 +272,101 @@ describe('world', () => {
                 expect(deferred.systems.lighting.hasChunk(2, 2)).toBe(true);
             });
 
+            it('matches full light digests with revision-cached palette hints', () => {
+                const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+                const stone = BlockRuntimeIds.getByName('minecraft:stone');
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) chunk.fillColumn(x, z, 36, 40, stone);
+                }
+                chunk.setBlockRuntimeId(8, 41, 8, BlockRuntimeIds.getByName('minecraft:glowstone'));
+                chunk.setBlockRuntimeId(4, 44, 4, BlockRuntimeIds.getByName('minecraft:glass'));
+                chunk.setBlockRuntimeId(8, 42, 8, BlockRuntimeIds.getByName('minecraft:water'));
+
+                const build = (hints: boolean) => {
+                    let paletteScans = 0;
+                    const view: WorldSystemsView = {
+                        dimension: Dimensions.Overworld,
+                        blockAt: (x, y, z) => {
+                            const block = chunk.getBlock(x & 0xf, y, z & 0xf);
+                            return { name: block.name, states: block.properties };
+                        },
+                        topOfColumn: (x, z) =>
+                            (chunk.getHighestBlockAt(x & 0xf, z & 0xf) ?? maxY(Dimensions.Overworld)) + 1,
+                        loadedChunks: () => [{ x: 0, z: 0 }],
+                        ...(hints && {
+                            lightSectionAt: (_chunkX: number, sectionY: number, _chunkZ: number) => {
+                                const subChunk = chunk.getSubChunk(sectionY);
+                                const storage = subChunk?.getStorages()[0];
+                                return {
+                                    revision: subChunk?.getRevision() ?? -1,
+                                    runtimeIds: (function* () {
+                                        paletteScans++;
+                                        yield* storage?.getPalette() ?? [];
+                                    })()
+                                };
+                            }
+                        })
+                    };
+                    return {
+                        systems: new WorldSystems({ view, world: createTestWorld() }),
+                        paletteScans: () => paletteScans
+                    };
+                };
+
+                const plain = build(false).systems;
+                const hinted = build(true);
+                plain.onChunkLoaded(0, 0);
+                hinted.systems.onChunkLoaded(0, 0);
+                plain.lighting.flush();
+                hinted.systems.lighting.flush();
+                expect(lightDigest(hinted.systems, 0, 0)).toBe(lightDigest(plain, 0, 0));
+
+                const scansBeforeRefresh = hinted.paletteScans();
+                hinted.systems.onChunkLoaded(0, 0);
+                hinted.systems.lighting.flush();
+                expect(hinted.paletteScans()).toBe(scansBeforeRefresh);
+
+                const torch = BlockRuntimeIds.getByName('minecraft:torch');
+                chunk.setBlockRuntimeId(10, 45, 10, torch);
+                plain.onChunkLoaded(0, 0);
+                hinted.systems.onChunkLoaded(0, 0);
+                plain.lighting.flush();
+                hinted.systems.lighting.flush();
+                expect(hinted.paletteScans()).toBeGreaterThan(scansBeforeRefresh);
+                expect(lightDigest(hinted.systems, 0, 0)).toBe(lightDigest(plain, 0, 0));
+            });
+
+            it('does not reuse section palette hints after a chunk unload', () => {
+                let runtimeId: number | undefined;
+                let blockReads = 0;
+                const systems = new WorldSystems({
+                    view: {
+                        dimension: Dimensions.Overworld,
+                        blockAt: (_x, y, _z) => {
+                            if (y < 32 || y >= 48) return AIR;
+                            blockReads++;
+                            return STONE;
+                        },
+                        lightSectionAt: () => ({
+                            revision: 0,
+                            runtimeIds: runtimeId === undefined ? [] : [runtimeId]
+                        }),
+                        topOfColumn: () => 48,
+                        loadedChunks: () => [{ x: 0, z: 0 }]
+                    },
+                    world: createTestWorld()
+                });
+
+                systems.onChunkLoaded(0, 0);
+                expect(blockReads).toBe(0);
+
+                systems.onChunkUnloaded(0, 0);
+                runtimeId = BlockRuntimeIds.getByName('minecraft:stone');
+                systems.onChunkLoaded(0, 0);
+
+                expect(blockReads).toBeGreaterThan(0);
+            });
+
             it('waits for light to settle before drawing random ticks', () => {
                 const { blocks, view, world } = worldOf();
                 for (let x = 0; x < 16; x++) {

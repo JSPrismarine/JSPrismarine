@@ -18,6 +18,14 @@ export interface BlockLightProperties {
     readonly lightDampening: number;
 }
 
+/** Palette facts that let a section scan skip states which cannot affect one light layer. */
+export interface LightSectionHint {
+    /** At least one palette state emits block light. */
+    readonly mayEmit: boolean;
+    /** No palette state dampens light, so the section cannot move the sky heightmap. */
+    readonly allTransparent: boolean;
+}
+
 /**
  * The world as the light engine sees it: one lookup that answers what a block does to light, and
  * whether that block is loaded at all.
@@ -50,6 +58,17 @@ export interface BlockLightView {
      * chunk holding the position is not loaded.
      */
     blockAt(x: number, y: number, z: number): BlockLightProperties | undefined;
+
+    /**
+     * Facts about every block state in a chunk section's palette, when the view can answer them.
+     * A missing hint keeps the full block scan. Palette entries that are unused may cause extra
+     * reads, but never let the engine skip a block that could emit or dampen light.
+     * @param {number} chunkX - The chunk x.
+     * @param {number} sectionY - The signed subchunk y.
+     * @param {number} chunkZ - The chunk z.
+     * @returns {LightSectionHint | undefined} The section facts, or no hint for a generic view.
+     */
+    sectionHintAt?(chunkX: number, sectionY: number, chunkZ: number): LightSectionHint | undefined;
 
     /**
      * One past the highest y in a block column that does anything to light, so a chunk's first

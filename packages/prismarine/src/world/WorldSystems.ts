@@ -7,7 +7,7 @@
  * the engine, and keeps all three inside a budget so no single tick can stall on a light flood
  * or a backlog of fluid ticks.
  */
-import type { BlockPosition, LightFlushResult } from '@jsprismarine/lighting';
+import type { BlockPosition, LightFlushResult, LightSectionHint } from '@jsprismarine/lighting';
 import { LightEngine } from '@jsprismarine/lighting';
 import type { BlockLightProperties, BlockLightView } from '@jsprismarine/lighting';
 import type { Engine, EngineOptions, ScheduledTick, SectionOrigin, TickKind } from '@jsprismarine/engine-systems';
@@ -21,6 +21,7 @@ import {
 } from '@jsprismarine/engine-systems';
 import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import { isLiquid } from '@jsprismarine/block-behaviors';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
 import type { DimensionType } from './Dimension';
@@ -69,6 +70,12 @@ export interface RandomTickChunk {
     readonly sections: Iterable<number>;
 }
 
+/** A chunk section's runtime-id palette and the revision that owns it. */
+export interface LightSectionPalette {
+    readonly revision: number;
+    readonly runtimeIds: Iterable<number>;
+}
+
 /** What {@link WorldSystems} reads out of the world it serves. */
 export interface WorldSystemsView {
     readonly dimension: DimensionType;
@@ -99,6 +106,8 @@ export interface WorldSystemsView {
     lightChunks?(): Iterable<{ readonly x: number; readonly z: number }>;
     /** Whether a newly loaded chunk should be initialized for light immediately. */
     shouldInitializeLight?(chunkX: number, chunkZ: number): boolean;
+    /** The block-layer palette in a section, for revision-keyed light scan hints. */
+    lightSectionAt?(chunkX: number, sectionY: number, chunkZ: number): LightSectionPalette | undefined;
     /** `random_tick_speed`, which is draws per section rather than a rate. */
     randomTickSpeed?(): number;
     /**
@@ -173,6 +182,8 @@ export class WorldSystems {
 
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
     private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
+    /** Per chunk section facts, replaced whenever that section's palette revision changes. */
+    private readonly lightHintsByChunk = new Map<string, Map<number, { revision: number; hint: LightSectionHint }>>();
 
     public constructor(options: WorldSystemsOptions) {
         this.view = options.view;
@@ -244,6 +255,8 @@ export class WorldSystems {
     public onChunkUnloaded(chunkX: number, chunkZ: number): void {
         this.lighting.onChunkUnloaded(chunkX, chunkZ);
         this.litChunks.delete(this.lightChunkKey(chunkX, chunkZ));
+        // A different chunk at these coordinates may start with the same revision.
+        this.lightHintsByChunk.delete(this.lightChunkKey(chunkX, chunkZ));
         this.redstoneUpdateHandlers?.forgetChunk(chunkX, chunkZ);
     }
 
@@ -374,8 +387,46 @@ export class WorldSystems {
             maxY: maxY(dimension) + 1,
             hasSkyLight: dimension.java.hasSkylight,
             blockAt: (x, y, z) => this.lightPropertiesAt(x, y, z),
+            sectionHintAt: (chunkX, sectionY, chunkZ) => this.lightSectionHintAt(chunkX, sectionY, chunkZ),
             topOfColumn: (x, z) => this.view.topOfColumn?.(x, z) ?? maxY(dimension) + 1
         };
+    }
+
+    private lightSectionHintAt(chunkX: number, sectionY: number, chunkZ: number): LightSectionHint | undefined {
+        const palette = this.view.lightSectionAt?.(chunkX, sectionY, chunkZ);
+        if (palette === undefined) return undefined;
+
+        const chunkKey = `${chunkX},${chunkZ}`;
+        let hints = this.lightHintsByChunk.get(chunkKey);
+        const previous = hints?.get(sectionY);
+        if (previous?.revision === palette.revision) return previous.hint;
+
+        let mayEmit = false;
+        let allTransparent = true;
+        for (const runtimeId of palette.runtimeIds) {
+            const properties = this.lightPropertiesForRuntimeId(runtimeId);
+            if (properties.lightEmission > 0) mayEmit = true;
+            if (properties.lightDampening > 0) allTransparent = false;
+            if (mayEmit && !allTransparent) break;
+        }
+
+        hints ??= new Map();
+        hints.set(sectionY, { revision: palette.revision, hint: { mayEmit, allTransparent } });
+        this.lightHintsByChunk.set(chunkKey, hints);
+        return hints.get(sectionY)!.hint;
+    }
+
+    private lightPropertiesForRuntimeId(runtimeId: number): BlockLightProperties {
+        const cached = this.lightByRuntimeId.get(runtimeId);
+        if (cached !== undefined) return cached;
+
+        const state = BlockRuntimeIds.getState(runtimeId);
+        const properties =
+            state === null
+                ? TRANSPARENT
+                : (lightPropertiesOf({ name: state.name, states: state.properties }) ?? TRANSPARENT);
+        this.lightByRuntimeId.set(runtimeId, properties);
+        return properties;
     }
 
     private ensureLightForRead(x: number, y: number, z: number): void {

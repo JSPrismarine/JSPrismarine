@@ -103,6 +103,11 @@ the highest block with a dampening above 0. Everything at or above it reads 15. 
 propagates with the same attenuation block light uses, which is how the space under an overhang
 falls one level per block away from the edge and how water fades with depth.
 
+When a view can answer section palette hints, the initial scan skips sections whose palette cannot
+emit or dampen light. The hint is derived from the palette's runtime ids and cached against the
+subchunk revision, so a later block edit refreshes the facts. Views without palette data keep the
+full scan. Border seeding walks only nonempty light sections and keeps the existing x/z/y order.
+
 Only two kinds of sky-exposed cell have anywhere to send their 15: the one at the heightmap, which
 lights the column below, and the ones facing a horizontal neighbor whose heightmap is higher, which
 light that neighbor sideways. Seeding is therefore proportional to local relief rather than to the

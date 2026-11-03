@@ -2,6 +2,7 @@
 import { performance } from 'node:perf_hooks';
 
 import { createTestWorld } from '@jsprismarine/engine-systems';
+import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import type { WorldSystemsView } from '../src/world/WorldSystems';
 import { WorldSystems } from '../src/world/WorldSystems';
 import { Dimensions } from '../src/world/Dimension';
@@ -18,9 +19,11 @@ const coordinates = Array.from({ length: (VIEW_DISTANCE * 2 + 1) ** 2 }, (_unuse
 const loaded = new Set(coordinates.map(({ x, z }) => `${x},${z}`));
 const AIR = { lightEmission: 0, lightDampening: 0 } as const;
 const STONE = { lightEmission: 0, lightDampening: 15 } as const;
+const STONE_RUNTIME_ID = BlockRuntimeIds.getByName('minecraft:stone');
 
-const measure = (deferred: boolean) => {
+const measure = (deferred: boolean, paletteHints: boolean) => {
     let blockReads = 0;
+    let paletteScans = 0;
     const view: WorldSystemsView = {
         dimension: Dimensions.Overworld,
         blockAt: (x, y, z) => {
@@ -30,6 +33,15 @@ const measure = (deferred: boolean) => {
         },
         topOfColumn: () => 41,
         loadedChunks: () => coordinates,
+        ...(paletteHints && {
+            lightSectionAt: (_x: number, sectionY: number, _z: number) => ({
+                revision: 0,
+                runtimeIds: (function* () {
+                    paletteScans++;
+                    if (sectionY === 2) yield STONE_RUNTIME_ID;
+                })()
+            })
+        }),
         ...(deferred && {
             shouldInitializeLight: (x, z) => Math.abs(x) <= LIGHT_RADIUS && Math.abs(z) <= LIGHT_RADIUS,
             lightChunks: function* () {
@@ -48,6 +60,7 @@ const measure = (deferred: boolean) => {
     return {
         initializedChunks: deferred ? LIGHT_CHUNK_COUNT : coordinates.length,
         blockReads,
+        paletteScans,
         initializationMs: Number(elapsedMs.toFixed(2)),
         msPerInitializedChunk: Number((elapsedMs / (deferred ? LIGHT_CHUNK_COUNT : coordinates.length)).toFixed(4))
     };
@@ -60,7 +73,7 @@ console.log(
         simulationDistance: SIMULATION_DISTANCE,
         lightGuardChunks: LIGHT_GUARD_CHUNKS,
         loadedChunks: coordinates.length,
-        eager: measure(false),
-        deferred: measure(true)
+        eager: { withoutHints: measure(false, false), withPaletteHints: measure(false, true) },
+        deferred: { withoutHints: measure(true, false), withPaletteHints: measure(true, true) }
     })
 );

@@ -562,6 +562,7 @@ export class World implements Service {
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
                 lightChunks: () => this.lightChunks(),
                 shouldInitializeLight: (chunkX, chunkZ) => this.chunkNeedsLight(chunkX, chunkZ),
+                lightSectionAt: (chunkX, sectionY, chunkZ) => this.lightSectionPalette(chunkX, sectionY, chunkZ),
                 randomTickSpeed: () => {
                     const [value] = this.getGameRuleManager().getGameRule(GameRules.RandomTickSpeed) ?? [];
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
@@ -2320,6 +2321,20 @@ export class World implements Service {
             if (!playerChunkRefCounts.lights(chunk.getX(), chunk.getZ())) continue;
             yield { x: chunk.getX(), z: chunk.getZ() };
         }
+    }
+
+    /** The block layer palette for one section; its revision invalidates cached light facts. */
+    private lightSectionPalette(chunkX: number, sectionY: number, chunkZ: number) {
+        const chunk = this.chunks.get(Chunk.packXZ(chunkX, chunkZ));
+        if (chunk === undefined) return undefined;
+
+        const subChunk = chunk.getSubChunk(sectionY);
+        // The light view reads layer 0, so layer 1's waterlogged palette must not affect its hint.
+        const blockStorage = subChunk?.getStorages()[0];
+        return {
+            revision: subChunk?.getRevision() ?? -1,
+            runtimeIds: blockStorage?.getPalette() ?? []
+        };
     }
 
     /**

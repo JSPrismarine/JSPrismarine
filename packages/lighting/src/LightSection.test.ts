@@ -16,6 +16,20 @@ describe('LightSection', () => {
 
         expect(section.get(0, 0, 0)).toBe(0);
         expect(section.get(15, 15, 15)).toBe(0);
+        expect(section.isEmpty()).toBe(true);
+    });
+
+    it('tracks when the last lit cell goes dark', () => {
+        const section = new LightSection();
+
+        section.set(0, 0, 0, 15);
+        section.set(0, 1, 0, 1);
+        expect(section.isEmpty()).toBe(false);
+
+        section.set(0, 0, 0, 0);
+        expect(section.isEmpty()).toBe(false);
+        section.set(0, 1, 0, 0);
+        expect(section.isEmpty()).toBe(true);
     });
 
     it('keeps the two levels that share a byte independent', () => {

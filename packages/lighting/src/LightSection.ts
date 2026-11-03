@@ -30,6 +30,7 @@ const indexOf = (x: number, y: number, z: number): number => {
  */
 export class LightSection {
     private readonly levels = new Uint8Array(BYTE_LENGTH);
+    private litBlocks = 0;
 
     /** The size of the packed backing store in bytes, 2048 for the 4096 cells. */
     public get byteLength(): number {
@@ -51,6 +52,11 @@ export class LightSection {
         return (index & 1) === 0 ? byte & 0xf : byte >> 4;
     }
 
+    /** Whether every cell is dark, for border passes that need only re-seed lit sections. */
+    public isEmpty(): boolean {
+        return this.litBlocks === 0;
+    }
+
     /**
      * Writes the light level at a position inside the section.
      * @param {number} x - Section-local x, 0 to 15.
@@ -67,6 +73,10 @@ export class LightSection {
         const index = indexOf(x, y, z);
         const byteIndex = index >> 1;
         const byte = this.levels[byteIndex]!;
+        const previous = (index & 1) === 0 ? byte & 0xf : byte >> 4;
+
+        if (previous === 0 && level > 0) this.litBlocks++;
+        else if (previous > 0 && level === 0) this.litBlocks--;
 
         this.levels[byteIndex] = (index & 1) === 0 ? (byte & 0xf0) | level : (byte & 0x0f) | (level << 4);
     }

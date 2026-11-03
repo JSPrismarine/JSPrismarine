@@ -1,4 +1,4 @@
-import type { BlockLightProperties, BlockLightView } from './BlockLightView';
+import type { BlockLightProperties, BlockLightView, LightSectionHint } from './BlockLightView';
 import { CHUNK_COLUMN_COUNT, CHUNK_SIZE, chunkOf, columnKeyOf, heightmapIndexOf } from './coordinates';
 import { LightQueue } from './LightQueue';
 import { LightSection, MAX_LIGHT_LEVEL } from './LightSection';
@@ -146,9 +146,16 @@ export class LightEngine {
 
         const baseX = chunkX * CHUNK_SIZE;
         const baseZ = chunkZ * CHUNK_SIZE;
+        const sectionHints = new Map<number, LightSectionHint | undefined>();
+        const hintAt = (sectionY: number): LightSectionHint | undefined => {
+            if (!sectionHints.has(sectionY)) {
+                sectionHints.set(sectionY, this.view.sectionHintAt?.(chunkX, sectionY, chunkZ));
+            }
+            return sectionHints.get(sectionY);
+        };
         for (let localX = 0; localX < CHUNK_SIZE; localX++) {
             for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
-                this.scanColumn(column, baseX + localX, baseZ + localZ);
+                this.scanColumn(column, baseX + localX, baseZ + localZ, hintAt);
             }
         }
 
@@ -297,19 +304,31 @@ export class LightEngine {
      * hundred blocks of open sky above the ground, which neither emit nor dampen and so move
      * neither the heightmap nor a source.
      */
-    private scanColumn(column: LightColumn, x: number, z: number): void {
+    private scanColumn(
+        column: LightColumn,
+        x: number,
+        z: number,
+        hintAt: (sectionY: number) => LightSectionHint | undefined
+    ): void {
         let height = this.view.minY;
         const top = Math.min(this.view.topOfColumn?.(x, z) ?? this.view.maxY, this.view.maxY);
 
-        for (let y = top - 1; y >= this.view.minY; y--) {
-            const block = this.view.blockAt(x, y, z);
-            if (block === undefined) continue;
+        for (let sectionY = (top - 1) >> 4; sectionY >= this.view.minY >> 4; sectionY--) {
+            const hint = hintAt(sectionY);
+            if (hint?.allTransparent && !hint.mayEmit) continue;
 
-            if (height === this.view.minY && block.lightDampening > 0) height = y + 1;
+            const fromY = Math.max(this.view.minY, sectionY << 4);
+            const toY = Math.min(top, (sectionY + 1) << 4);
+            for (let y = toY - 1; y >= fromY; y--) {
+                const block = this.view.blockAt(x, y, z);
+                if (block === undefined) continue;
 
-            if (block.lightEmission > 0) {
-                this.write(BLOCK_LAYER, column, x, y, z, this.sourceLevel(BLOCK_LAYER, block));
-                this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+                if (!hint?.allTransparent && height === this.view.minY && block.lightDampening > 0) height = y + 1;
+
+                if (hint?.mayEmit !== false && block.lightEmission > 0) {
+                    this.write(BLOCK_LAYER, column, x, y, z, this.sourceLevel(BLOCK_LAYER, block));
+                    this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+                }
             }
         }
 
@@ -363,11 +382,21 @@ export class LightEngine {
         const column = this.columnAt(fromX, fromZ);
         if (column === undefined) return;
 
+        // Keep the former x/z/y enqueue order while avoiding an empty-height scan when no light
+        // section exists there. Empty sections are dropped after their last level goes dark.
+        const blockSections = [...column.blockSections.entries()]
+            .filter(([, section]) => !section.isEmpty())
+            .sort(([a], [b]) => a - b);
+
         for (let x = fromX; x <= toX; x++) {
             for (let z = fromZ; z <= toZ; z++) {
-                for (let y = this.view.minY; y < this.view.maxY; y++) {
-                    if (this.read(BLOCK_LAYER, column, x, y, z) > 1) {
-                        this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+                for (const [sectionY, section] of blockSections) {
+                    const fromY = Math.max(this.view.minY, sectionY << 4);
+                    const toY = Math.min(this.view.maxY, (sectionY + 1) << 4);
+                    for (let y = fromY; y < toY; y++) {
+                        if (section.get(x & 15, y & 15, z & 15) > 1) {
+                            this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+                        }
                     }
                 }
 
