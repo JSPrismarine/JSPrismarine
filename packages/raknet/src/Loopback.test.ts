@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ClientSocket from './ClientSocket';
 import LoopbackSocket, { LOOPBACK_MTU_SIZE, MAX_FRAME_CONTENT_BYTE_LENGTH } from './LoopbackSocket';
 import ServerSocket from './ServerSocket';
@@ -29,6 +29,11 @@ let teardown: Array<() => void> = [];
 afterEach(() => {
     teardown.forEach((fn) => fn());
     teardown = [];
+});
+
+beforeEach(() => {
+    // Vitest reuses workers; another suite's fake clock can stall these real-socket waits.
+    vi.useRealTimers();
 });
 
 const until = async (predicate: () => boolean, timeoutMs = 3_000) => {
