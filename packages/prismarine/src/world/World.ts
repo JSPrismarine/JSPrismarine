@@ -823,7 +823,11 @@ export class World implements Service {
                 const z = position.getZ();
                 const state = chunk.getBlock(x, y, z);
                 const ticked = tickFurnace(content, blockEntity, state.name);
-                if (ticked === undefined) continue;
+                if (ticked === undefined) {
+                    // Send idle values after opening; PlayerSession skips unchanged values on later ticks.
+                    this.sendCookingProgress({ x, y, z }, furnaceScreenData(blockEntity));
+                    continue;
+                }
 
                 const blockChanged = state.name !== ticked.blockIdentifier;
                 if (blockChanged) {

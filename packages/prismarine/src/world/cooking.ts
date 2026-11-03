@@ -70,15 +70,21 @@ export const FURNACE_DATA_BURN_DURATION = 2;
 /**
  * What a cooking screen has to be told after a tick, by property id.
  *
- * @param tags - The block entity {@link tickFurnace} just wrote.
+ * @param source - The current furnace entity or its serialized block entity.
  * @returns The three furnace properties, for a caller to send to whoever is watching.
  */
-export const furnaceScreenData = (tags: NBTTagCompound): ReadonlyMap<number, number> =>
-    new Map([
-        [FURNACE_DATA_COOK_TICKS, tags.getShort('CookTime', 0)],
-        [FURNACE_DATA_BURN_REMAINING, tags.getShort('BurnTime', 0)],
-        [FURNACE_DATA_BURN_DURATION, tags.getShort('BurnDuration', 0)]
+export const furnaceScreenData = (source: Furnace | NBTTagCompound): ReadonlyMap<number, number> => {
+    const values: readonly [number, number, number] =
+        source instanceof Furnace
+            ? [source.getCookTime(), source.getBurnTime(), source.getBurnDuration()]
+            : [source.getShort('CookTime', 0), source.getShort('BurnTime', 0), source.getShort('BurnDuration', 0)];
+
+    return new Map<number, number>([
+        [FURNACE_DATA_COOK_TICKS, values[0]],
+        [FURNACE_DATA_BURN_REMAINING, values[1]],
+        [FURNACE_DATA_BURN_DURATION, values[2]]
     ]);
+};
 
 /** Java's `AbstractFurnaceBlockEntity` input and fuel slots. */
 const INPUT_SLOT = 0;

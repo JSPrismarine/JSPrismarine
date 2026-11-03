@@ -110,6 +110,11 @@ export class Furnace extends Container {
         return this.cookTime;
     }
 
+    /** The initial fuel time used to draw the flame fraction on a furnace screen. */
+    public getBurnDuration(): number {
+        return this.extra.getShort('BurnDuration', 0);
+    }
+
     public isLit(): boolean {
         return this.burnTime > 0;
     }

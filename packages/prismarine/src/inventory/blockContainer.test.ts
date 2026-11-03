@@ -292,6 +292,8 @@ const buildPlayer = (world: World, server: Server, name: string): Player => {
         sendDataPacket: async (packet: NetworkPacket<unknown>) => {
             sentPackets.push({ name: packet.getName(), packet });
         },
+        // World ticks drain the connection queue after sending cooking progress; this fixture records packets immediately.
+        flushOutboundPackets: async () => {},
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},
         disconnect: async () => {}

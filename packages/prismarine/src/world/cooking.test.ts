@@ -2,6 +2,7 @@ import { createRecipeBook } from '@jsprismarine/recipes';
 import type { CookingRecipe, RecipeInput } from '@jsprismarine/recipes';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type Player from '../Player';
+import type PlayerSession from '../network/PlayerSession';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,7 +92,16 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         systems: { onBlockChanged: () => {} },
         server: { getContent: () => content, getLogger: () => ({ error: vi.fn() }) }
     });
-    players.set(1, stub<Player>({ viewDistance: 10, getPosition: () => new Position(8, 64, 8, world) }));
+    const session = stub<PlayerSession>({ getOpenBlockContainer: () => undefined });
+    players.set(
+        1,
+        stub<Player>({
+            isOnline: () => true,
+            viewDistance: 10,
+            getPosition: () => new Position(8, 64, 8, world),
+            getNetworkSession: () => session
+        })
+    );
 
     const changes: WorldChange[] = [];
     world.attachChangeSink({
