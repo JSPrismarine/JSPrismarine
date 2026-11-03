@@ -5,10 +5,10 @@ env:
     GIT_CONFIG_VALUE_0: master
 
 on:
-    workflow_run:
-        workflows: ['Linting']
-        types: [completed]
-        branches: [master]
+    # A push run reports on the master commit it publishes; a workflow_run would attach to the default branch head.
+    push:
+        branches:
+            - master
 
 permissions:
     actions: read
@@ -20,9 +20,26 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    await-lint:
+        name: ⏳ Wait for linting
+        runs-on: ubuntu-latest
+        steps:
+            - name: ⏳ Wait for the Linting run of this commit
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TARGET_SHA: ${{ github.sha }}
+              run: |
+                  for _ in $(seq 1 30); do
+                      run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/lint.yml/runs?head_sha=$TARGET_SHA&event=push&branch=master&per_page=100" --jq '.workflow_runs[0].id // ""')"
+                      [ -n "$run_id" ] && break
+                      sleep 10
+                  done
+                  [ -n "$run_id" ] || { echo "No Linting run found for $TARGET_SHA" >&2; exit 1; }
+                  gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status
+
     find-client-e2e:
         name: 🔎 Find existing client e2e artifact
-        if: github.event.workflow_run.conclusion == 'success'
+        needs: await-lint
         runs-on: ubuntu-latest
         outputs:
             run_id: ${{ steps.find.outputs.run_id }}
@@ -31,7 +48,7 @@ jobs:
               id: find
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+                  TARGET_SHA: ${{ github.sha }}
               run: |
                   run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/client-e2e.yml/runs?head_sha=$TARGET_SHA&event=push&branch=master&per_page=100" --jq '.workflow_runs[0].id // ""')"
                   echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
@@ -50,7 +67,7 @@ jobs:
 
     parity-evidence:
         name: 🎬 Record parity evidence
-        if: ${{ github.event.workflow_run.conclusion == 'success' && needs.find-client-e2e.outputs.run_id == '' }}
+        if: ${{ needs.find-client-e2e.outputs.run_id == '' }}
         needs: find-client-e2e
         uses: ./.github/workflows/client-e2e.yml
         with:
@@ -62,7 +79,7 @@ jobs:
     build-and-publish-docs:
         name: 📖 Build and Publish Docs
         runs-on: ubuntu-latest
-        if: ${{ always() && github.event.workflow_run.conclusion == 'success' && (needs.await-client-e2e.result == 'success' || needs.parity-evidence.result == 'success') }}
+        if: ${{ always() && (needs.await-client-e2e.result == 'success' || needs.parity-evidence.result == 'success') }}
         needs: [find-client-e2e, await-client-e2e, parity-evidence]
         permissions:
             actions: read
@@ -105,4 +122,4 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./tools/docs/site/.vitepress/dist
                   enable_jekyll: false
-                  commit_message: ${{ github.event.workflow_run.head_commit.message }}
+                  commit_message: ${{ github.event.head_commit.message }}
