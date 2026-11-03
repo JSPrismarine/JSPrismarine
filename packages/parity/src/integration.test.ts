@@ -1,6 +1,7 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
 import {
     bambooFamily,
+    soilFamily,
     bindFamily,
     climbingFamily,
     floraFamily,
@@ -856,6 +857,44 @@ describeFamily(
                     }
                 ]);
                 expect(placement, found.id).toEqual(found.expected);
+            }
+        });
+
+        /**
+         * Java's `FarmBlock.shouldMaintainFarmland` is a tag read, not a shape read, so the
+         * real `#minecraft:maintains_farmland` has to decide it: the torchflower holds a field
+         * without growing and the sweet berry bush grows without holding one.
+         */
+        it('reads the real maintains_farmland tag when farmland dries out', { timeout: 180_000 }, () => {
+            const { content } = realStack();
+            const farmland = { x: 0, y: 0, z: 0 };
+            const planted = { x: 0, y: 1, z: 0 };
+
+            for (const [identifier, stays] of [
+                ['minecraft:wheat', true],
+                ['minecraft:torchflower', true],
+                ['minecraft:pumpkin_stem', true],
+                ['minecraft:sweet_berry_bush', false]
+            ] as const) {
+                const tagged = content.tags.includes('block', 'minecraft:maintains_farmland', identifier);
+                const harness = bindFamily(soilFamily, 'minecraft:farmland', { world: new JavaTagWorld(content) });
+                harness.dimension.set(farmland, 'minecraft:farmland', { moisturized_amount: 0 });
+                harness.dimension.set(planted, identifier);
+
+                harness.randomTick(farmland);
+
+                const kept = harness.dimension.identifierAt(farmland) === 'minecraft:farmland';
+                reportParityCases(FAMILIES.integrationTags, import.meta.filename, [
+                    {
+                        id: `minecraft:farmland/maintains:${identifier}`,
+                        title: 'minecraft:farmland',
+                        context: `Java #minecraft:maintains_farmland under ${identifier}`,
+                        status: kept === stays ? 'passed' : 'failed'
+                    }
+                ]);
+                expect(kept, identifier).toBe(stays);
+                // The tag is what decided it, rather than the block happening to grow.
+                expect(tagged, identifier).toBe(stays);
             }
         });
 

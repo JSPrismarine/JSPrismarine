@@ -12,6 +12,7 @@ import {
     advanceCounter,
     cropGrowthChance,
     FARMLAND_NAMES,
+    SUPPORTS_CROPS_TAG,
     hasNearbyLog,
     MAX_CROP_GROWTH,
     SOIL_NAMES
@@ -185,7 +186,7 @@ export const cropFamily = defineFamily(
             if (name === 'cocoa' || name === 'nether_wart') return;
             if (event.face !== 'down') return;
             if (stateBoolean(event.block, 'upper_block_bit')) return;
-            popWithoutGround(world, event.block, FARMLAND_NAMES);
+            popWithoutGround(world, event.block, FARMLAND_NAMES, SUPPORTS_CROPS_TAG);
         },
         onPlayerInteract: (event, world) => {
             const name = bareName(event.block.identifier);

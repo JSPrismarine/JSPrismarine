@@ -19,7 +19,18 @@ export const MAX_CROP_GROWTH = 7;
 /** The light a crop needs above it to grow at all. */
 export const MIN_CROP_LIGHT = 9;
 
-/** The blocks a crop accepts under it. */
+/** Java's `#minecraft:supports_crops`, the ground a crop may stand on. */
+export const SUPPORTS_CROPS_TAG = 'minecraft:supports_crops';
+
+/** Java's `#minecraft:grows_crops`, the ground a crop draws its growth rate from. */
+export const GROWS_CROPS_TAG = 'minecraft:grows_crops';
+
+/**
+ * The blocks a crop accepts under it, for a host that answers no tags.
+ *
+ * Both crop tags hold farmland and nothing else in vanilla; the tags are the source of truth
+ * and this is only reached when `hasBlockTag` is absent.
+ */
 export const FARMLAND_NAMES: ReadonlySet<string> = new Set(['farmland']);
 
 /** The blocks a sapling, a flower or a tall plant accepts under it. */
@@ -47,7 +58,9 @@ export const SOIL_NAMES: ReadonlySet<string> = new Set([
  */
 export const cropGrowthChance = (world: WorldActions, block: HookBlock): number => {
     const below = world.getBlock(offset(block.position, 'down'));
-    if (below === undefined || !FARMLAND_NAMES.has(bareName(below.identifier))) return 0;
+    if (below === undefined) return 0;
+    const grows = world.hasBlockTag?.(below, GROWS_CROPS_TAG) ?? FARMLAND_NAMES.has(bareName(below.identifier));
+    if (!grows) return 0;
     if (world.lightLevel(offset(block.position, 'up')) < MIN_CROP_LIGHT) return 0;
     const moisture = stateNumber(below, 'moisturized_amount');
     return moisture > 0 ? 1 / 4 : 1 / 8;

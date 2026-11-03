@@ -66,14 +66,27 @@ export const popWithoutSupport = (
 };
 
 /**
- * Breaks a block unless the block it stands on is one of the named ones.
+ * Breaks a block unless the block it stands on is ground it accepts.
  *
- * @param names - Bare names, such as `farmland`, that the block accepts below it.
+ * @param names - Bare names, such as `farmland`, that the block accepts below it. Read only
+ *   when no `tag` is given or the host answers no tags, which is what makes them a fallback.
+ * @param tag - The Java tag the ground belongs to, such as `minecraft:supports_crops`, which
+ *   is the rule itself wherever the host can resolve one.
  * @returns True when the block popped.
  */
-export const popWithoutGround = (world: WorldActions, block: HookBlock, names: ReadonlySet<string>): boolean => {
+export const popWithoutGround = (
+    world: WorldActions,
+    block: HookBlock,
+    names: ReadonlySet<string>,
+    tag?: string
+): boolean => {
     const below = world.getBlock(offset(block.position, 'down'));
-    if (below !== undefined && names.has(below.identifier.replace(/^[^:]*:/, ''))) return false;
+    const supported =
+        below !== undefined &&
+        (tag === undefined
+            ? names.has(below.identifier.replace(/^[^:]*:/, ''))
+            : (world.hasBlockTag?.(below, tag) ?? names.has(below.identifier.replace(/^[^:]*:/, ''))));
+    if (supported) return false;
     popBlock(world, block);
     return true;
 };
