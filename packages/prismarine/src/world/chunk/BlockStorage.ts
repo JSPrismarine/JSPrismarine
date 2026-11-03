@@ -15,6 +15,7 @@ interface BlockStorageData {
 
 /** How many blocks one sub chunk holds. */
 const BLOCKS_PER_SUBCHUNK = 4096;
+const MAX_BYTE_INDEX_PALETTE_SIZE = 256;
 
 /**
  * The widest palette a `Uint16Array` of indices can address.
@@ -28,11 +29,10 @@ export default class BlockStorage {
     /**
      * One palette index per block, in XZY order.
      *
-     * A `Uint16Array` rather than a `number[]`: V8 stores a plain array of small integers as 8
-     * bytes per element, so a 24 section Overworld column retained about 1000 KiB of block
-     * indices. Packed, the same column is 192 KiB.
+     * Eight bit indices cover the palettes used by almost every section. The storage widens to
+     * sixteen bits when an insertion needs a 257th palette entry.
      */
-    private blocks: Uint16Array;
+    private blocks: Uint8Array | Uint16Array;
     private palette: number[];
 
     /**
@@ -47,10 +47,15 @@ export default class BlockStorage {
 
     public constructor({ blocks, palette, [OWNED_INDICES]: ownsIndices }: BlockStorageData) {
         this.palette = palette ?? [BlockRuntimeIds.getByName('minecraft:air')];
-        if (ownsIndices && blocks instanceof Uint16Array && blocks.length === BLOCKS_PER_SUBCHUNK) {
+        const useByteIndices = this.palette.length <= MAX_BYTE_INDEX_PALETTE_SIZE;
+        if (
+            ownsIndices &&
+            blocks?.length === BLOCKS_PER_SUBCHUNK &&
+            ((useByteIndices && blocks instanceof Uint8Array) || (!useByteIndices && blocks instanceof Uint16Array))
+        ) {
             this.blocks = blocks;
         } else {
-            this.blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+            this.blocks = useByteIndices ? new Uint8Array(BLOCKS_PER_SUBCHUNK) : new Uint16Array(BLOCKS_PER_SUBCHUNK);
             if (blocks) this.blocks.set(blocks);
         }
         this.paletteIndex = new Map(this.palette.map((runtimeId, index) => [runtimeId, index]));
@@ -63,7 +68,7 @@ export default class BlockStorage {
      * @param blocks - The 4096 palette slots, in XZY order.
      * @param palette - Runtime ids in the order those slots refer to.
      */
-    public static fromOwnedIndices(blocks: Uint16Array, palette: number[]): BlockStorage {
+    public static fromOwnedIndices(blocks: Uint8Array | Uint16Array, palette: number[]): BlockStorage {
         return new BlockStorage({ blocks, palette, [OWNED_INDICES]: true });
     }
 
@@ -96,7 +101,9 @@ export default class BlockStorage {
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
-        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.getOrAddPaletteIndex(runtimeId);
+        // Adding the 257th state may replace the byte array, so resolve the slot before indexing it.
+        const paletteIndex = this.getOrAddPaletteIndex(runtimeId);
+        this.blocks[BlockStorage.getIndex(bx, by, bz)] = paletteIndex;
     }
 
     /**
@@ -136,6 +143,13 @@ export default class BlockStorage {
 
         if (this.palette.length >= MAX_PALETTE_SIZE) {
             throw new RangeError(`A sub chunk palette holds at most ${MAX_PALETTE_SIZE} entries`);
+        }
+
+        if (this.palette.length === MAX_BYTE_INDEX_PALETTE_SIZE && this.blocks instanceof Uint8Array) {
+            // Index 256 does not fit in a byte, so widen before publishing the new palette slot.
+            const widened = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+            widened.set(this.blocks);
+            this.blocks = widened;
         }
 
         const index = this.palette.push(runtimeId) - 1;

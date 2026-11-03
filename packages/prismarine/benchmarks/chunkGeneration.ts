@@ -123,6 +123,7 @@ interface Run {
     readonly rssBytes: number;
     readonly outputDigest: string;
     readonly workerHeapUsedBytes: readonly number[];
+    readonly blockIndexBytes: number;
 }
 
 const run = async (): Promise<Run> => {
@@ -145,9 +146,20 @@ const run = async (): Promise<Run> => {
         const cpu = process.cpuUsage(cpuStarted);
         const memory = process.memoryUsage();
         const output = createHash('sha256');
+        let blockIndexBytes = 0;
         for (const { x, z, chunk } of generated) {
             output.update(`${x},${z}\0`);
             output.update(chunk.networkSerialize());
+            for (const subChunk of chunk.getSubChunks().values()) {
+                for (const storage of subChunk.getStorages()) {
+                    // Inspect the private palette buffer here without widening the runtime API.
+                    const indices = Reflect.get(storage, 'blocks');
+                    if (!(indices instanceof Uint8Array || indices instanceof Uint16Array)) {
+                        throw new Error('BlockStorage has an unsupported index buffer');
+                    }
+                    blockIndexBytes += indices.byteLength;
+                }
+            }
         }
 
         const stats = workerHeapStats === undefined ? undefined : new Int32Array(workerHeapStats);
@@ -163,7 +175,8 @@ const run = async (): Promise<Run> => {
             mainHeapUsedBytes: memory.heapUsed,
             rssBytes: memory.rss,
             outputDigest: output.digest('hex'),
-            workerHeapUsedBytes
+            workerHeapUsedBytes,
+            blockIndexBytes
         };
     } finally {
         generator.stopGenerating();
@@ -210,6 +223,8 @@ process.stdout.write(
         mainHeapUsedBytesByRun: runs.map(({ mainHeapUsedBytes }) => mainHeapUsedBytes),
         rssBytesByRun: runs.map(({ rssBytes }) => rssBytes),
         workerHeapUsedBytesByRun: runs.map(({ workerHeapUsedBytes }) => workerHeapUsedBytes),
+        blockIndexBytes: runs[0]?.blockIndexBytes,
+        blockIndexBytesPerChunk: (runs[0]?.blockIndexBytes ?? 0) / chunks,
         outputDigest: runs[0]?.outputDigest
     })}\n`
 );

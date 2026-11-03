@@ -36,14 +36,12 @@ describe('world', () => {
             expect(storage.getRuntimeId(0, 0, 0)).toBe(air());
         });
 
-        it('keeps the 4096 indices in a packed array rather than a plain one', () => {
-            // A plain array of 4096 small integers costs 8 bytes each in V8; a full Overworld
-            // column of them retained about 1000 KiB, against 166 KiB packed.
+        it('stores palettes of at most 256 entries in a byte array', () => {
             const storage = new BlockStorage({ blocks: new Uint16Array(4096), palette: [air()] });
 
             const blocks: unknown = Reflect.get(storage, 'blocks');
-            expect(blocks).toBeInstanceOf(Uint16Array);
-            expect((blocks as Uint16Array).byteLength).toBe(8192);
+            expect(blocks).toBeInstanceOf(Uint8Array);
+            expect((blocks as Uint8Array).byteLength).toBe(4096);
         });
 
         it('copies the indices it is given, so the caller may reuse its buffer', () => {
@@ -54,6 +52,17 @@ describe('world', () => {
             indices[0] = 0;
 
             expect(storage.getRuntimeId(0, 0, 0)).toBe(stone());
+        });
+
+        it('widens to sixteen bits when adding a 257th palette entry', () => {
+            const storage = new BlockStorage({ palette: Array.from({ length: 256 }, () => stone()) });
+            expect(Reflect.get(storage, 'blocks')).toBeInstanceOf(Uint8Array);
+
+            storage.setBlock(1, 2, 3, dirt());
+
+            expect(Reflect.get(storage, 'blocks')).toBeInstanceOf(Uint16Array);
+            expect(storage.getPaletteIndexAt(1, 2, 3)).toBe(256);
+            expect(storage.getRuntimeId(1, 2, 3)).toBe(dirt());
         });
 
         it('reads palette slots by their XZY linear index', () => {
@@ -75,6 +84,19 @@ describe('world', () => {
             expect(read.getRuntimeId(4, 5, 6)).toBe(stone());
             expect(read.getRuntimeId(7, 8, 9)).toBe(dirt());
             expect(read.getRuntimeId(0, 0, 0)).toBe(air());
+            expect(Reflect.get(read, 'blocks')).toBeInstanceOf(Uint8Array);
+        });
+
+        it('uses sixteen-bit indices when decoding a wide network palette', () => {
+            const palette = Array.from({ length: 257 }, (_unused, index) => (index % 2 === 0 ? stone() : dirt()));
+            const indices = Uint16Array.from({ length: 4096 }, (_unused, index) => index % 257);
+            const source = new BlockStorage({ blocks: indices, palette });
+            const stream = new BinaryStream();
+            source.networkSerialize(stream);
+
+            const restored = BlockStorage.networkDeserialize(new BinaryStream(stream.getBuffer()));
+            expect(Reflect.get(restored, 'blocks')).toBeInstanceOf(Uint16Array);
+            expect(restored.getRuntimeId(0, 1, 0)).toBe(palette[1]);
         });
 
         it('uses zero-bit network storage for uniform air and non-air palettes', () => {

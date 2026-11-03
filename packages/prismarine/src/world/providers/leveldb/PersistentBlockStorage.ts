@@ -96,7 +96,12 @@ export const decodePersistentStorage = (stream: BinaryStream): BlockStorage => {
         }
     }
 
-    // The decoded indices are already one 16 bit slot per block, which is how a storage holds
-    // them, so they go across whole rather than through 4096 single writes.
+    // Narrow after validation, once the persistent palette count tells us the smallest safe width.
+    if (paletteSize <= 256) {
+        const byteIndices = new Uint8Array(BLOCKS_PER_SUBCHUNK);
+        byteIndices.set(indices);
+        return BlockStorage.fromOwnedIndices(byteIndices, palette);
+    }
+
     return BlockStorage.fromOwnedIndices(indices, palette);
 };

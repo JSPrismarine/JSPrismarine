@@ -136,6 +136,14 @@ const networkEncodingSizes = (storage: BlockStorage): { readonly bytes: number; 
     };
 };
 
+const indexMemoryBytes = (storage: BlockStorage): number => {
+    const indices = Reflect.get(storage, 'blocks');
+    if (!(indices instanceof Uint8Array || indices instanceof Uint16Array)) {
+        throw new Error('BlockStorage has an unsupported index buffer');
+    }
+    return indices.byteLength;
+};
+
 const scenarios: Array<[string, () => BlockStorage]> = [
     ['sparse', () => storageOf(false)],
     ['dense', () => storageOf(true)],
@@ -168,6 +176,8 @@ for (const [scenario, createStorage] of scenarios) {
                 max: sorted.at(-1) ?? 0
             },
             allocations,
+            blockIndexBytes: indexMemoryBytes(storage),
+            blockIndexBytesSaved: 8192 - indexMemoryBytes(storage),
             networkBytes: network.bytes,
             networkBytesSaved: network.savedBytes,
             outputDigest: digests.size === 1 ? runs[0]?.digest : 'unstable'

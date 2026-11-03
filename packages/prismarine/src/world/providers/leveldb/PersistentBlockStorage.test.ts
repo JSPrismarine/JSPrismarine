@@ -62,14 +62,24 @@ describe('PersistentBlockStorage', () => {
         const decoded = decodePersistentStorage(new BinaryStream(stream.getBuffer()));
 
         expect(decoded.getRuntimeId(1, 2, 3)).toBe(BlockRuntimeIds.getByName('minecraft:stone'));
-        expect(Reflect.get(decoded, 'blocks')).toBeInstanceOf(Uint16Array);
+        expect(Reflect.get(decoded, 'blocks')).toBeInstanceOf(Uint8Array);
     });
 
     it('takes ownership only through the internal factory', () => {
-        const indices = new Uint16Array(4096);
+        const indices = new Uint8Array(4096);
         const storage = BlockStorage.fromOwnedIndices(indices, runtimeIds(['minecraft:air', 'minecraft:stone']));
 
         expect(Reflect.get(storage, 'blocks')).toBe(indices);
+    });
+
+    it('keeps sixteen-bit indices when a decoded palette exceeds 256 entries', () => {
+        const palette = Array.from({ length: 257 }, () => BlockRuntimeIds.getByName('minecraft:stone'));
+        const source = BlockStorage.fromOwnedIndices(new Uint16Array(4096), palette);
+        const stream = new BinaryStream();
+        encodePersistentStorage(source, stream);
+
+        const decoded = decodePersistentStorage(new BinaryStream(stream.getBuffer()));
+        expect(Reflect.get(decoded, 'blocks')).toBeInstanceOf(Uint16Array);
     });
 
     it('keeps the public constructor defensive when given a typed index buffer', () => {
