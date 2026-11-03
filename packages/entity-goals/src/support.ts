@@ -126,6 +126,11 @@ export class GoalSupport {
         return this.entity.random.next();
     }
 
+    /** Java's mob inactivity counter, used by `RandomStrollGoal.canUse`. */
+    public noActionTime(): number {
+        return this.entity.noActionTime;
+    }
+
     /** Draws a Java bounded integer, preserving the world's integer RNG stream when available. */
     public randomInt(bound: number): number {
         const random = this.entity.random;

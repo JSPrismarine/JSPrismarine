@@ -100,7 +100,8 @@ export const dragonDeath = goal<GoalBody>({
             },
             stop: () => {
                 remaining = 0;
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

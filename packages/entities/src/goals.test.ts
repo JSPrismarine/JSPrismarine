@@ -7,6 +7,8 @@ import { GoalScheduler } from './goals';
 class RecordingGoal implements Goal {
     public readonly log: string[] = [];
     public ready = false;
+    public everyTick = false;
+    public canStartCalls = 0;
 
     public constructor(
         private readonly label: string,
@@ -14,7 +16,12 @@ class RecordingGoal implements Goal {
     ) {}
 
     public canStart(): boolean {
+        this.canStartCalls += 1;
         return this.ready;
+    }
+
+    public requiresUpdateEveryTick(): boolean {
+        return this.everyTick;
     }
 
     public start(): void {
@@ -149,6 +156,32 @@ describe('GoalScheduler', () => {
         scheduler.tick();
 
         expect(asked).toEqual(['canStart', 'canContinue']);
+    });
+
+    it('ticks only every-tick goals between selector updates', () => {
+        const scheduler = new GoalScheduler();
+        const log: string[] = [];
+        const regular = new RecordingGoal('regular', log);
+        const everyTick = new RecordingGoal('every', log);
+        everyTick.everyTick = true;
+        regular.ready = true;
+        everyTick.ready = true;
+        scheduler.add(entry('regular', 1, [], regular));
+        scheduler.add(entry('every', 2, [], everyTick));
+        scheduler.tick();
+
+        regular.ready = false;
+        everyTick.ready = false;
+        log.length = 0;
+        const regularChecks = regular.canStartCalls;
+        const everyChecks = everyTick.canStartCalls;
+
+        scheduler.tick(false);
+
+        expect(log).toEqual(['tick every']);
+        expect(regular.canStartCalls).toBe(regularChecks);
+        expect(everyTick.canStartCalls).toBe(everyChecks);
+        expect(scheduler.runningGoals()).toEqual(['regular', 'every']);
     });
 
     it('falls back to canStart when a goal declares no canContinue', () => {

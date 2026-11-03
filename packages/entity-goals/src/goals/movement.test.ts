@@ -56,6 +56,39 @@ describe('minecraft:behavior.random_stroll', () => {
         expect(harness.running()).toEqual([]);
     });
 
+    it('uses Java reduced selector delay for the random interval', () => {
+        const bounds: number[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.random_stroll': { priority: 6, interval: 120 } },
+            components: walker,
+            randomInt: (bound) => {
+                bounds.push(bound);
+                return bound - 1;
+            }
+        });
+
+        harness.entity.tick();
+
+        expect(bounds).toEqual([60]);
+    });
+
+    it('does not draw a stroll interval after 100 ticks without player activity', () => {
+        const bounds: number[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.random_stroll': { priority: 6, interval: 120 } },
+            components: walker,
+            randomInt: (bound) => {
+                bounds.push(bound);
+                return bound - 1;
+            }
+        });
+
+        for (let tick = 0; tick < 120; tick += 1) harness.entity.tick();
+
+        expect(harness.entity.noActionTime).toBe(120);
+        expect(bounds).toHaveLength(50);
+    });
+
     it('does not start when the path finder reaches nothing', () => {
         const view = voxelGrid([['#'], ['.']]);
         const harness = new GoalHarness({

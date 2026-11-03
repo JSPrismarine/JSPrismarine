@@ -128,7 +128,8 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
         stop: () => {
             support.navigator.stop();
             target = undefined;
-        }
+        },
+        requiresUpdateEveryTick: () => true
     };
 };
 
@@ -338,7 +339,8 @@ export const rangedAttack = goal<RangedAttackParams>({
             stop: () => {
                 support.navigator.stop();
                 target = undefined;
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });
@@ -799,7 +801,8 @@ export const swell = goal<SwellParams>({
             },
             stop: () => {
                 target = undefined;
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

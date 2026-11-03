@@ -140,9 +140,12 @@ const spawned = (fixture: EntityFixture, identifier: string, at: EntityPosition)
     return entity;
 };
 
-/** Runs the runtime for a number of ticks, starting from tick 1. */
+/** Runs the runtime for a number of game ticks, starting from tick 1. */
 const run = (fixture: EntityFixture, ticks: number): void => {
-    for (let tick = 1; tick <= ticks; tick += 1) fixture.runtime.tick(tick);
+    for (let tick = 1; tick <= ticks; tick += 1) {
+        fixture.world.advance();
+        fixture.runtime.tick(tick);
+    }
 };
 
 describe('the goal world over the entity runtime', () => {
@@ -208,7 +211,8 @@ describe('the goal world over the entity runtime', () => {
             fixture.runtime.setInLove(first.id, 400);
             fixture.runtime.setInLove(second.id, 400);
 
-            run(fixture, 80);
+            // The 60-tick courtship goal advances on selector updates, every other game tick.
+            run(fixture, 120);
 
             const babies = fixture.runtime.all().filter((entity) => entity.instance.hasComponent('minecraft:is_baby'));
             expect(babies).toHaveLength(1);
@@ -436,7 +440,7 @@ describe('the goal world over the entity runtime', () => {
             const prey = spawned(fixture, 'jsprismarine:coward', groundAt(3, 0));
             cat.target = prey.id;
 
-            run(fixture, 2);
+            run(fixture, 3);
 
             expect(cat.position.x).toBeGreaterThan(0);
             expect(cat.position.y).toBeGreaterThan(FLOOR_Y + 1);

@@ -1037,6 +1037,79 @@ describeFamily(
             runtime.remove(piglin.id, 'parity brain goal check complete');
         });
 
+        it(
+            'phases Java goal selectors by entity id and resets inactivity only near players',
+            { timeout: 180_000 },
+            () => {
+                const { runtime, world } = realStack();
+                const cow = runtime.spawn('minecraft:cow', { x: 0.5, y: 64.5, z: 0.5 });
+                if (cow === undefined) throw new Error('the vanilla stack declares no minecraft:cow');
+
+                let selectorStarts = 0;
+                let selectorTicks = 0;
+                let everyTickTicks = 0;
+                cow.instance.goals.add({
+                    name: 'parity:selector-cadence',
+                    priority: 100,
+                    controlFlags: [],
+                    goal: {
+                        canStart: () => {
+                            selectorStarts += 1;
+                            return true;
+                        },
+                        canContinue: () => false,
+                        tick: () => {
+                            selectorTicks += 1;
+                        }
+                    }
+                });
+                cow.instance.goals.add({
+                    name: 'parity:every-tick',
+                    priority: 101,
+                    controlFlags: [],
+                    goal: {
+                        canStart: () => true,
+                        tick: () => {
+                            everyTickTicks += 1;
+                        },
+                        requiresUpdateEveryTick: () => true
+                    }
+                });
+
+                let expectedSelectorTicks = 0;
+                for (let tick = 1; tick <= 8; tick += 1) {
+                    if (tick === 1 || (tick + cow.id) % 2 === 0) expectedSelectorTicks += 1;
+                    runtime.tick(tick);
+                }
+
+                expect(selectorStarts).toBe(expectedSelectorTicks);
+                expect(selectorTicks).toBe(expectedSelectorTicks);
+                expect(everyTickTicks).toBe(8);
+                expect(cow.instance.noActionTime).toBe(8);
+
+                world.players = [
+                    {
+                        id: 100_001,
+                        identifier: 'minecraft:player',
+                        position: { x: cow.position.x + 31.99, y: cow.position.y, z: cow.position.z }
+                    }
+                ];
+                runtime.tick(9);
+                expect(cow.instance.noActionTime).toBe(1);
+
+                world.players = [
+                    {
+                        id: 100_001,
+                        identifier: 'minecraft:player',
+                        position: { x: cow.position.x + 32, y: cow.position.y, z: cow.position.z }
+                    }
+                ];
+                runtime.tick(10);
+                expect(cow.instance.noActionTime).toBe(2);
+                runtime.remove(cow.id, 'parity goal cadence complete');
+            }
+        );
+
         it('selects the nearest Java axolotl water and frog land targets', { timeout: 180_000 }, () => {
             const { runtime, world } = realStack();
             world.setBlock({ x: 103, y: 64, z: 0 }, 'minecraft:water');

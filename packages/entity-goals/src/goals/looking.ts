@@ -200,7 +200,8 @@ export const randomLookAround = goal<RandomLookAroundParams>({
             },
             stop: () => {
                 remaining = 0;
-            }
+            },
+            requiresUpdateEveryTick: () => true
         };
     }
 });

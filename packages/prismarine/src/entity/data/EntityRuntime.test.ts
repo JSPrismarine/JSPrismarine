@@ -50,6 +50,26 @@ const moverRuntime = (world = new TestEntityWorld()) =>
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
 describe('EntityRuntime', () => {
+    describe('mob inactivity', () => {
+        it('resets Java no-action time only while a player is strictly within 32 blocks', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = runtimeOf(world);
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+
+            for (let tick = 0; tick < 100; tick += 1) runtime.tick(tick);
+            expect(cow.instance.noActionTime).toBe(100);
+
+            world.players = [{ id: 99, identifier: 'minecraft:player', position: { x: 32, y: 64, z: 0 } }];
+            runtime.tick(100);
+            expect(cow.instance.noActionTime).toBe(101);
+
+            world.players = [{ id: 99, identifier: 'minecraft:player', position: { x: 31.99, y: 64, z: 0 } }];
+            runtime.tick(101);
+            expect(cow.instance.noActionTime).toBe(1);
+        });
+    });
+
     describe('warden sonic boom', () => {
         it('routes a hit on a host-owned player through the host effect seam', () => {
             const player: ContentEntity = {

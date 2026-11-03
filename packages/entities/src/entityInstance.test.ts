@@ -337,6 +337,27 @@ describe('goals', () => {
         expect(log).toContain('moveTo 1');
     });
 
+    it('selects goals on the first tick, then on the entity id phase', () => {
+        const { types } = load(zombie);
+        const entity = types.spawn('minecraft:zombie', { id: 1 });
+        let checks = 0;
+        entity.goals.add({
+            name: 'test:selector-phase',
+            priority: 0,
+            controlFlags: [],
+            goal: { canStart: () => (checks += 1) > 1 }
+        });
+
+        entity.tick();
+        expect(checks).toBe(1);
+        expect(entity.noActionTime).toBe(1);
+        entity.tick();
+        expect(checks).toBe(1);
+        entity.tick();
+        expect(checks).toBe(2);
+        expect(entity.noActionTime).toBe(3);
+    });
+
     it('takes a goal off the scheduler when its group is removed', () => {
         const { actuator: control } = actuator();
         const { types } = load(walker);

@@ -202,6 +202,15 @@ const SCENARIOS: readonly Scenario[] = [
     }
 ];
 
+/** Java goal-selector cadence from #2782; update these only with reviewed behavior changes. */
+const EXPECTED_DIGESTS: Readonly<Record<string, string>> = {
+    hostile: 'ac6e4551cd5974484d44d06c22a5189c66a77297391710cff2549b038c3a7d95',
+    farm: '06ce634e1500f6f52a238a0bcb352eaf8edb4d904090570ddc541d836dde699e',
+    mixed: '86d28a23d6324db532c95e9271b7524a940cff78b0026f4d06ddb8d0fc2ac614',
+    stacked: '61ecca73ee3d869c94612b3cd2a411e14ab702cda7bc578d04624122ccbf0a7b',
+    sparse: '29aa8215bd262c183f42147a7cdc299fede76de05bbe2859721f7e9e8bdb3300'
+};
+
 /** One number's exact bits, so a digest catches a change below printed precision. */
 const bits = (value: number): string => {
     const view = new DataView(new ArrayBuffer(8));
@@ -309,6 +318,13 @@ const selected = SCENARIOS.filter((entry) => only.length === 0 || only.includes(
 for (const scenario of selected) {
     const started = performance.now();
     const original = digestOf(scenario, undefined);
+    const expected = EXPECTED_DIGESTS[scenario.name];
+    // Keep the Java behavior golden as the parity guard; replay adds a separate per-tick stability check.
+    if (original.outputDigest !== expected) {
+        throw new Error(
+            `${scenario.name} entity AI digest changed: expected ${expected}, got ${original.outputDigest}`
+        );
+    }
     let replaySummary = '';
 
     if (verifyReplay) {

@@ -45,6 +45,9 @@ const FLEE_Y_DISTANCE = 7;
 /** How close counts as arriving when a goal names no radius, in blocks. */
 const DEFAULT_GOAL_RADIUS = 1;
 
+/** Java stops starting stroll goals after this many ticks without a nearby player. */
+const RANDOM_STROLL_NO_ACTION_TIME = 100;
+
 /** The shape every "pick a spot and walk there" goal takes. */
 interface WalkOptions {
     /** Picks the destination, or returns undefined when there is nowhere to go. */
@@ -54,6 +57,10 @@ interface WalkOptions {
     readonly interval: number;
     /** How close counts as arriving, in blocks. */
     readonly goalRadius: number;
+    /** Whether the Java goal updates between selector runs. */
+    readonly requiresUpdateEveryTick?: boolean;
+    /** Checks Java preconditions before a start-interval random draw. */
+    canStart?(): boolean;
     /** Runs when the entity arrives. */
     onArrive?(): void;
 }
@@ -65,7 +72,12 @@ const walkTo = (support: GoalSupport, options: WalkOptions): Goal => {
 
     return {
         canStart: () => {
-            if (options.interval > 0 && !support.chance(1 / options.interval)) return false;
+            if (options.canStart?.() === false) return false;
+            if (options.interval > 0) {
+                // Goal.reducedTickDelay halves delays for goals that only update on selector ticks.
+                const interval = options.requiresUpdateEveryTick ? options.interval : Math.ceil(options.interval / 2);
+                if (support.randomInt(interval) !== 0) return false;
+            }
             destination = options.find();
             return destination !== undefined;
         },
@@ -84,7 +96,8 @@ const walkTo = (support: GoalSupport, options: WalkOptions): Goal => {
             walking = false;
             destination = undefined;
             support.navigator.stop();
-        }
+        },
+        requiresUpdateEveryTick: () => options.requiresUpdateEveryTick === true
     };
 };
 
@@ -120,6 +133,8 @@ export const randomStroll = goal<WanderParams>({
     create: (params, support) =>
         walkTo(support, {
             find: () => support.navigator.randomTarget(params.xzDistance, params.yDistance, () => support.random()),
+            // Java checks this before drawing RandomStrollGoal's start interval.
+            canStart: () => support.noActionTime() < RANDOM_STROLL_NO_ACTION_TIME,
             speedMultiplier: params.speedMultiplier,
             interval: params.interval,
             goalRadius: DEFAULT_GOAL_RADIUS
@@ -149,6 +164,7 @@ export const randomSwim = goal<WanderParams & { readonly avoidSurface: boolean }
                 if (view === undefined) return candidate;
                 return view.isWater(candidate) ? candidate : undefined;
             },
+            canStart: () => support.noActionTime() < RANDOM_STROLL_NO_ACTION_TIME,
             speedMultiplier: params.speedMultiplier,
             interval: params.interval,
             goalRadius: DEFAULT_GOAL_RADIUS
@@ -390,7 +406,8 @@ export const float = goal<{ readonly chancePerTickToFloat: number; readonly dism
         canStart: () => support.flag('in_water') || support.flag('in_lava'),
         tick: () => {
             if (support.chance(params.chancePerTickToFloat)) support.actuator?.jump();
-        }
+        },
+        requiresUpdateEveryTick: () => true
     })
 });
 
@@ -853,6 +870,7 @@ const walkToBlock = (support: GoalSupport, params: MoveToBlockParams): Goal => {
         speedMultiplier: params.speedMultiplier,
         interval: params.tickInterval,
         goalRadius: params.goalRadius,
+        requiresUpdateEveryTick: true,
         onArrive: () => {
             support.fireAll(params.onReach);
             staying = params.stayDuration;

@@ -148,6 +148,8 @@ const PLAYER_LEASH_HOLDER_PREFIX = 'player:';
 /** How long a projectile ignores its owner and stays alive, in ticks. */
 const PROJECTILE_OWNER_GRACE = 5;
 const PROJECTILE_MAX_LIFE = 1200;
+/** Java's mob no-despawn distance; a nearby player resets `noActionTime`. */
+const MOB_NO_DESPAWN_DISTANCE = 32;
 const PROJECTILE_KNOCKBACK = 0.4;
 const PROJECTILE_KNOCKBACK_LIFT = 0.1;
 
@@ -956,6 +958,7 @@ export class EntityRuntime implements EntityScene {
             }
             this.updateMedium(entity);
             this.tickTimers(entity.body);
+            if (entity.runsGoals) this.resetNoActionTimeNearPlayers(entity);
             entity.instance.tick(entity.runsGoals);
             this.tickDaylightBurn(entity);
             this.tickVoid(entity);
@@ -979,6 +982,18 @@ export class EntityRuntime implements EntityScene {
         }
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
+    }
+
+    /** Mirrors `Mob.checkDespawn`: a player strictly inside 32 blocks resets idle time. */
+    private resetNoActionTimeNearPlayers(entity: DataEntity): void {
+        const maximumDistanceSquared = MOB_NO_DESPAWN_DISTANCE * MOB_NO_DESPAWN_DISTANCE;
+        const nearbyPlayer = this.host.players().some((player) => {
+            const dx = player.position.x - entity.position.x;
+            const dy = player.position.y - entity.position.y;
+            const dz = player.position.z - entity.position.z;
+            return dx * dx + dy * dy + dz * dz < maximumDistanceSquared;
+        });
+        if (nearbyPlayer) entity.instance.resetNoActionTime();
     }
 
     /**

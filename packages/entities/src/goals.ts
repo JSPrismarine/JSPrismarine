@@ -39,6 +39,8 @@ export interface Goal {
     stop?(): void;
     /** Runs once per tick while the goal holds its control flags. */
     tick?(): void;
+    /** Whether Java ticks this goal on selector gaps as well as selector ticks. */
+    requiresUpdateEveryTick?(): boolean;
 }
 
 /** The two fields every `minecraft:behavior.*` component carries. */
@@ -183,8 +185,20 @@ export class GoalScheduler {
     /**
      * Runs one tick: stops the running goals that cannot continue, starts the
      * best candidate for each free or preemptible flag, then ticks what runs.
+     *
+     * @param updateSelector - When false, only running goals that request
+     *   every-tick updates are ticked; selection and cleanup wait for the next
+     *   selector pass.
      */
-    public tick(): void {
+    public tick(updateSelector = true): void {
+        if (!updateSelector) {
+            for (const entry of this.sorted()) {
+                if (this.running.has(entry.name) && entry.goal.requiresUpdateEveryTick?.() === true)
+                    entry.goal.tick?.();
+            }
+            return;
+        }
+
         for (const entry of this.sorted()) {
             if (!this.running.has(entry.name)) continue;
             const keep = entry.goal.canContinue?.() ?? entry.goal.canStart();

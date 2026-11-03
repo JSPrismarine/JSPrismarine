@@ -202,6 +202,10 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private readonly typeHolder: Holder<EntityType>;
     private readonly environment: EntityEnvironment;
     private readonly identity: string | number;
+    /** Java's living tick count, which phases goal-selector updates by entity id. */
+    private tickCount = 0;
+    /** Java's inactivity counter, cleared by despawn checks when a player is close. */
+    private noActionTimeTicks = 0;
     /** Whether this instance is being restored from saved state. */
     public readonly restoring: boolean;
     private active = new Map<string, ActiveComponent>();
@@ -248,6 +252,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** The entity's live property values. */
     public get properties(): PropertyValues {
         return this.state.properties;
+    }
+
+    /** Ticks since nearby players last kept this entity active. */
+    public get noActionTime(): number {
+        return this.noActionTimeTicks;
+    }
+
+    /** Clears the inactivity counter, as `Mob.checkDespawn` does near a player. */
+    public resetNoActionTime(): void {
+        this.noActionTimeTicks = 0;
     }
 
     /** The entity's `variable.*` Molang storage. */
@@ -422,10 +436,19 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
      * @param runGoals - Whether to advance the Bedrock goal scheduler for this tick.
      */
     public tick(runGoals = true): void {
+        this.tickCount += 1;
+        this.noActionTimeTicks += 1;
         this.applyQueuedEvents();
 
         this.dispatch('onTick', this);
-        if (runGoals) this.goals.tick();
+        if (runGoals) this.goals.tick(this.shouldUpdateGoalSelector());
+    }
+
+    /** Java selects goals every other entity tick, with the first AI tick always selected. */
+    private shouldUpdateGoalSelector(): boolean {
+        if (this.tickCount <= 1) return true;
+        const id = typeof this.identity === 'number' ? this.identity : 0;
+        return (this.tickCount + id) % 2 === 0;
     }
 
     /**
