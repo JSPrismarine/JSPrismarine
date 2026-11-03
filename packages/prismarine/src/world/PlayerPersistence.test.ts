@@ -18,6 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type Console from '../Console';
+import { Entity } from '../entity/Entity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import type { Logger } from '@jsprismarine/logger';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
@@ -89,16 +90,43 @@ const generator = (): Generator => ({
  * A level over the one world folder, with its spawn already known so that opening the Overworld
  * generates nothing.
  */
-const buildLevel = (server: Server): Level => {
-    const folder = path.join(scratch, 'worlds', WORLD_NAME);
+const buildLevel = (server: Server, name = WORLD_NAME): Level => {
+    const folder = path.join(scratch, 'worlds', name);
     return testLevel({
-        name: WORLD_NAME,
+        name,
         path: folder,
         server,
         provider: new LevelDB(folder, server),
         generator: generator(),
         spawn: new Vector3(0, 64, 0)
     });
+};
+
+const digestWithInsertionOrder = async (
+    name: string,
+    chunkOrder: Array<[number, number]>,
+    reverseEntityInsertion: boolean
+): Promise<string> => {
+    const server = testServer();
+    const level = buildLevel(server, name);
+    await level.enable();
+
+    try {
+        const world = await level.world(OVERWORLD_STEM_ID);
+        for (const [x, z] of chunkOrder) await world.loadChunk(x, z);
+
+        const first = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000001'));
+        const second = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000002'));
+        // A non-player entity verifies the digest path that has no inventory to record.
+        const mob = new Entity({ position: new Position(4.5, 65, 0.5, world) });
+        // Construct entities in runtime-id order, then reverse map insertion to test canonical sorting.
+        const entities = reverseEntityInsertion ? [second, mob, first] : [first, mob, second];
+        for (const entity of entities) await world.addEntity(entity);
+
+        return world.replayStateDigest();
+    } finally {
+        await level.disable();
+    }
 };
 
 /** A player of a fixed identity, so the second one reads the first one's record. */
@@ -252,6 +280,30 @@ describe('a player logging out and back in', () => {
         expect(digests.duplicatedStackDigest).not.toBe(digests.oneStackDigest);
         expect(digests.mismatchedStackDigest).not.toBe(digests.duplicatedStackDigest);
         expect(digests.restoredDigest).toBe(digests.baselineDigest);
+    });
+
+    it('keeps the replay digest independent of chunk and entity insertion order', async () => {
+        // The equal X coordinates exercise Z sorting; the different X coordinate exercises X sorting.
+        const first = await digestWithInsertionOrder(
+            'digest-first',
+            [
+                [1, 0],
+                [0, 1],
+                [0, 0]
+            ],
+            false
+        );
+        const reordered = await digestWithInsertionOrder(
+            'digest-reordered',
+            [
+                [0, 0],
+                [0, 1],
+                [1, 0]
+            ],
+            true
+        );
+
+        expect(reordered).toBe(first);
     });
 
     it('keeps the enchantments, including one no Bedrock number names', () => {
