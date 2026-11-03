@@ -2,12 +2,12 @@
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
 import { burnTimeOf, DEFAULT_PROVIDER_CONTEXT, FAST_COOKING_CONTEXT, itemTypesTable } from '@jsprismarine/items';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
-import { Types } from '@jsprismarine/nbt';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
-import type { ServerContent } from '../content/ServerContent';
+import { Furnace } from '../blockentity/BlockEntities';
 import type { BlockEntity } from '../blockentity/BlockEntity';
 import { applyBlockEntityRecord, blockEntityRecord } from '../blockentity/contentRecord';
+import type { ServerContent } from '../content/ServerContent';
 
 /** The cooking rule and lit block name for one furnace block. */
 interface Cooker {
@@ -80,6 +80,28 @@ export const furnaceScreenData = (tags: NBTTagCompound): ReadonlyMap<number, num
         [FURNACE_DATA_BURN_DURATION, tags.getShort('BurnDuration', 0)]
     ]);
 
+/** Java's `AbstractFurnaceBlockEntity` input and fuel slots. */
+const INPUT_SLOT = 0;
+const FUEL_SLOT = 1;
+
+/** Whether a loaded furnace has the input and fuel stacks required to leave the idle state. */
+const hasInputAndFuel = (furnace: Furnace): boolean => {
+    let hasInput = false;
+    let hasFuel = false;
+    let index = 0;
+    for (const item of furnace.getItems()) {
+        if (!(item instanceof NBTTagCompound)) continue;
+        const itemSlot = item.getByte('Slot', index);
+        index++;
+        if (item.getString('Name', '') === '' || item.getByte('Count', 0) <= 0) continue;
+        if (itemSlot === INPUT_SLOT) hasInput = true;
+        else if (itemSlot === FUEL_SLOT) hasFuel = true;
+        if (hasInput && hasFuel) return true;
+    }
+
+    return false;
+};
+
 /** One cooker update and the block identifier that represents its resulting burn state. */
 export interface FurnaceTick {
     /** The complete block entity after its timers and inventory advance. */
@@ -147,21 +169,33 @@ export const tickFurnace = (
     const cooker = COOKERS[identifier];
     if (cooker === undefined) return undefined;
 
+    if (
+        furnace instanceof Furnace &&
+        identifier === cooker.unlitIdentifier &&
+        furnace.getBurnTime() === 0 &&
+        furnace.getCookTime() === 0 &&
+        !hasInputAndFuel(furnace)
+    ) {
+        // Nothing in this state can advance. Avoid serializing and rebuilding an idle inventory
+        // just to normalize its NBT layout on the first tick after load.
+        return undefined;
+    }
+
     const tags = furnace.toNBT();
     const record = blockEntityRecord(tags);
     const items: (ItemDrop | undefined)[] = [...(record.items ?? [])];
     const input = items[0];
     const fuel = items[1];
     const output = items[2];
+    let burnTime = tags.getShort('BurnTime', 0);
     const inputId = input === undefined ? undefined : javaItemIdOf(input.identifier, input.meta);
     const matched =
-        input !== undefined && inputId !== undefined
+        input !== undefined && inputId !== undefined && (burnTime > 0 || fuel !== undefined)
             ? content.recipes.match({ station: cooker.station, item: { id: inputId, count: input.count } })
             : undefined;
     const result = matched === undefined ? undefined : outputOf(content, matched.result.id, matched.result.count);
     const canCook = matched !== undefined && result !== undefined && fitsOutput(content, output, result);
 
-    let burnTime = tags.getShort('BurnTime', 0);
     let cookTicks = tags.getShort('CookTime', 0);
     let burnDuration = tags.getShort('BurnDuration', 0);
     let inventoryChanged = false;
