@@ -21,6 +21,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { DimensionTravel } from './portal/DimensionTravel';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 /**
  * The autosave, and the fact that a tick must not wait for it.
@@ -63,6 +64,7 @@ const testServer = (): Server => {
         // interesting state is reached in milliseconds rather than in a start region.
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
         // No data-driven runtime: this world runs the written entity classes.
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getEntityRuntime: () => inertEntityRuntime(),
         // Weather can draw randomness during a tick; keep persistence tests reproducible.
         getRandom: () => () => 0.5,

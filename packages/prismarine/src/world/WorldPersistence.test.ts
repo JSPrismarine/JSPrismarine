@@ -21,6 +21,7 @@ import { parseWorldPersistenceData, worldPersistenceJsonOf } from './WorldPersis
 import type { WorldPersistenceData } from './WorldPersistence';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 const LEGACY_ITEM_COUNT = 1744;
 const NEXT_DROP_COUNT = World.ITEM_ENTITY_LIMIT - LEGACY_ITEM_COUNT + 1;
@@ -39,6 +40,7 @@ const testServer = (warnings: string[]): Server =>
                 verbose: () => {}
             }),
         getConfig: () => stub({ getPreloadRadius: () => 0 }),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime()
     });

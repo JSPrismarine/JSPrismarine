@@ -7,7 +7,7 @@
  */
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import type { Logger } from '@jsprismarine/logger';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
@@ -17,13 +17,20 @@ import Chunk from './chunk/Chunk';
 import type { DimensionType } from './Dimension';
 import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
+import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
+import { WorldSystems } from './WorldSystems';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /** A world whose provider counts its reads and answers only when the test lets it. */
-const testWorld = (readChunk: BaseProvider['readChunk'], generator: Generator = stub<Generator>({})) => {
+const testWorld = (
+    readChunk: BaseProvider['readChunk'],
+    generator: Generator = stub<Generator>({}),
+    completionQueue?: ChunkCompletionScheduler
+) => {
     const logger = stub<Logger>({
         info: () => {},
         warn: () => {},
@@ -45,7 +52,8 @@ const testWorld = (readChunk: BaseProvider['readChunk'], generator: Generator = 
         server,
         level: fakeLevel({ server, provider: stub<BaseProvider & Provider>({ readChunk }) }),
         stem: TEST_OVERWORLD_STEM,
-        generator
+        generator,
+        ...(completionQueue === undefined ? {} : { completionQueue })
     });
 };
 
@@ -60,6 +68,8 @@ const deferred = <T>(): { promise: Promise<T>; resolve: (value: T) => void } => 
 };
 
 describe('world chunk requests', () => {
+    afterEach(() => vi.restoreAllMocks());
+
     it('generates a chunk once when several callers ask for it in the same turn', async () => {
         const gate = deferred<void>();
         const readChunk = vi.fn(async (_dimension: DimensionType, x: number, z: number) => {
@@ -142,6 +152,56 @@ describe('world chunk requests', () => {
         await Promise.all([slow, urgent]);
 
         expect(raised).toEqual([[5, 6, 'immediate']]);
+    });
+
+    it('defers background chunk lighting, then promotes it when a player asks for the same chunk', async () => {
+        let now = 0;
+        const queue = new ChunkCompletionQueue(() => now);
+        const order: string[] = [];
+        queue.activate();
+        queue.defer(
+            () => {
+                order.push('older-idle');
+                now += 1;
+            },
+            { priority: 'idle' }
+        );
+        const light = vi.spyOn(WorldSystems.prototype, 'onChunkLoaded').mockImplementation((x, z) => {
+            order.push(`lighting-${x},${z}`);
+            now += 1;
+        });
+        const world = testWorld(
+            async (_dimension, x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld),
+            stub<Generator>({}),
+            queue
+        );
+
+        const background = world.getChunk(5, 6, { urgency: 'idle' });
+        await Promise.resolve();
+        expect(queue.snapshot().byLabel['chunk-lighting']?.completed).toBeUndefined();
+        expect(queue.pending).toBe(2);
+
+        let soonReady = false;
+        const soon = world.getChunk(5, 6, { urgency: 'soon' }).then((chunk) => {
+            soonReady = true;
+            return chunk;
+        });
+        await Promise.resolve();
+        expect(soonReady).toBe(false);
+
+        const visible = world.getChunk(5, 6, { urgency: 'immediate' });
+        now += 5;
+        expect(order).toEqual(['lighting-5,6']);
+        expect(queue.drain(1)).toBe(1);
+        expect(order).toEqual(['lighting-5,6', 'older-idle']);
+        queue.drain(10);
+
+        const [backgroundChunk, soonChunk, visibleChunk] = await Promise.all([background, soon, visible]);
+        expect(soonChunk).toBe(backgroundChunk);
+        expect(visibleChunk).toBe(backgroundChunk);
+        expect(order).toEqual(['lighting-5,6', 'older-idle']);
+        expect(queue.snapshot().byLabel['chunk-lighting']?.completed).toBe(1);
+        light.mockRestore();
     });
 
     it('lets a later caller try again after a request failed', async () => {

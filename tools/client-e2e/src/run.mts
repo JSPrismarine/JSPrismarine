@@ -49,6 +49,7 @@ import { teleport } from './scenarios/teleport.mts';
 import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
 import { dimensionsScenario } from './scenarios/dimensions.mts';
 import { enderDragon } from './scenarios/ender-dragon.mts';
+import { chunkCompletionReadiness } from './scenarios/chunk-completion-readiness.mts';
 
 interface ScenarioSuite {
     name: string;
@@ -60,6 +61,7 @@ const suites: ScenarioSuite[] = [
         name: 'gameplay-and-dimensions',
         scenarios: [
             spawn,
+            chunkCompletionReadiness,
             movement,
             jump,
             attackEntity,
@@ -245,6 +247,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             port: requestedPort,
             compressionAlgorithm,
             raknetWorker: values['raknet-worker'],
+            profile: suite.scenarios.some((scenario) => scenario.serverOptions?.profile === true),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)
                 ? { naturalCowSpawning: true }
                 : {})
@@ -322,12 +325,43 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             console.warn(`${suite.name}: client cleanup failed: ${String(error)}`);
         });
         if (server) {
-            const log = `${server.lines.join('\n')}\n`;
-            serverLogs[index] = `=== ${suite.name} ===\n${log}`;
-            fs.writeFileSync(path.join(artifacts, `${suite.name}.server.log`), log);
+            const captureProfile = suite.scenarios.some((scenario) => scenario.serverOptions?.profile === true);
             await server.stop().catch((error: unknown) => {
                 console.warn(`${suite.name}: server cleanup failed: ${String(error)}`);
             });
+
+            const log = `${server.lines.join('\n')}\n`;
+            serverLogs[index] = `=== ${suite.name} ===\n${log}`;
+            fs.writeFileSync(path.join(artifacts, `${suite.name}.server.log`), log);
+            if (captureProfile) {
+                const profileDirectory = path.join(server.dir, 'profiles');
+                const profile = fs.existsSync(profileDirectory)
+                    ? fs.readdirSync(profileDirectory).find((name) => name.endsWith('.trace.json'))
+                    : undefined;
+                if (profile === undefined) {
+                    console.warn(`${suite.name}: no server timing trace was produced`);
+                } else {
+                    const source = path.join(profileDirectory, profile);
+                    const saved = path.join(artifacts, `${suite.name}.trace.json`);
+                    fs.copyFileSync(source, saved);
+                    const trace = JSON.parse(fs.readFileSync(source, 'utf8')) as {
+                        traceEvents: Array<{ args?: Record<string, number>; name?: string; ph?: string }>;
+                    };
+                    const samples = trace.traceEvents.filter(
+                        (event) => event.ph === 'C' && event.name === 'Server.chunkCompletions.queue'
+                    );
+                    const latest = samples.at(-1)?.args;
+                    if (latest !== undefined) {
+                        console.log(
+                            `${suite.name}: completion profile ${saved}; samples=${samples.length}, ` +
+                                `worker results=${latest.workerResults}, worker CPU=${latest.workerResultCpuMs?.toFixed(2)} ms, ` +
+                                `lighting=${latest.chunkLighting}, lighting CPU=${latest.chunkLightingCpuMs?.toFixed(2)} ms, ` +
+                                `max queue age=${latest.maxQueueAgeMs?.toFixed(2)} ms, peak pending=${latest.peakPending}`
+                        );
+                    }
+                }
+                fs.rmSync(server.dir, { recursive: true, force: true });
+            }
         }
     }
 

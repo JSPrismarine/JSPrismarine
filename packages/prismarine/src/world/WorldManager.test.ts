@@ -29,6 +29,7 @@ import type { DimensionType } from './Dimension';
 import type { Generator } from './Generator';
 import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenData';
 import WorldManager from './WorldManager';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 /** The kinds the tests register, so no level here needs the Java data to build a world. */
 const TEST_KIND = 'jsprismarine:test';
@@ -149,6 +150,7 @@ const buildManager = (
                 getPreloadRadius: () => 0,
                 getEntityTrackingInterval: () => 20
             }),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => content,
         getEntityRuntime: () => inertEntityRuntime(),
         getWorldReplicators: () =>

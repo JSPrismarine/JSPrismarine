@@ -10,6 +10,7 @@ import { attachProfiler, ServerProfiler } from '../profiling/ServerProfiler';
 import { ServerTicker, tickerModule } from './ticker';
 import type { TickerServer } from './ticker';
 import { tickerToken } from './tokens';
+import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 
 /** One tick period of the loop under test, in milliseconds. */
 const TICK_MS = 50;
@@ -17,6 +18,7 @@ const TICK_MS = 50;
 const buildHarness = (overrides: Partial<TickerServer> = {}) => {
     const tickEvents: TickEvent[] = [];
     const warnings: string[] = [];
+    const completionQueue = new ChunkCompletionQueue();
     let stopping = false;
     const deps: TickerServer = {
         emitTick: async (event) => {
@@ -29,6 +31,7 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
             setBudget: () => {},
             tick: async () => {}
         }),
+        getChunkCompletionQueue: () => completionQueue,
         getChunkSendBudgetMs: () => 10,
         isTickingEnabled: () => true,
         isProcessTitleEnabled: () => false,
@@ -121,6 +124,39 @@ describe('modules/ticker', () => {
         } finally {
             await handle.stop();
         }
+    });
+
+    it('activates and drains background chunk completions before world updates', async () => {
+        const order: string[] = [];
+        const queue = {
+            activate: () => order.push('activate'),
+            deactivate: () => order.push('deactivate'),
+            drain: () => {
+                order.push('completion');
+                return 1;
+            }
+        };
+        const harness = buildHarness({
+            getChunkCompletionQueue: () => queue,
+            getWorlds: () => [
+                {
+                    getName: () => 'overworld',
+                    update: async () => {
+                        order.push('world');
+                    }
+                }
+            ]
+        });
+        const handle = await startTestModule(tickerModule(harness.ticker));
+
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+            expect(order.slice(0, 3)).toEqual(['activate', 'completion', 'world']);
+        } finally {
+            await handle.stop();
+        }
+
+        expect(order.at(-1)).toBe('deactivate');
     });
 
     it('closes every tick profiling span when profiling is enabled', async () => {

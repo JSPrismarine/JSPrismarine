@@ -110,6 +110,7 @@ import { shareRegistryBundle } from './registryBundle';
 import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
+import type { ChunkCompletionScheduler } from '../../ChunkCompletionQueue';
 
 /** How a {@link DataDrivenGenerator} is built. */
 export interface DataDrivenGeneratorOptions {
@@ -197,6 +198,8 @@ export interface DataDrivenGeneratorOptions {
      * its own `terrain` inside it.
      */
     readonly chunks?: ChunkPoolOptions;
+    /** Defers chunk translation when a tick can budget the non-gameplay completion work. */
+    readonly completionQueue?: ChunkCompletionScheduler;
 }
 
 /** Where a generator runs whole chunks. */
@@ -934,11 +937,13 @@ export class DataDrivenGenerator implements Generator {
         }
 
         // The worker's own payload, arriving across a thread boundary the compiler cannot
-        // follow. Nothing but `chunkPipeline` puts anything on the other end of this.
-        const payload = result.payload as GenerationRegionPayload;
-        const region = this.adoptRegion(payload, pipeline);
-
-        return this.toChunk(cx, cz, region, pipeline);
+        // follow. Adoption and Bedrock translation both stay behind the same bounded completion
+        // seam, so a burst of results does not turn into a burst of main-thread work.
+        return this.deferChunkCompletion(cx, cz, pipeline, () => {
+            const payload = result.payload as GenerationRegionPayload;
+            const region = this.adoptRegion(payload, pipeline);
+            return this.toChunk(cx, cz, region, pipeline);
+        });
     }
 
     /**
@@ -1103,10 +1108,25 @@ export class DataDrivenGenerator implements Generator {
 
             // `full` leaves the merged region and `terrain` leaves only its own tile, which is
             // what a generator with decoration off stops at.
-            const chunk = this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline);
+            const chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
+                this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline)
+            );
             staged.recordChunk(chunk);
             return chunk;
         });
+    }
+
+    /** Runs a finished chunk's main-thread promotion on the tick queue while it remains background work. */
+    private deferChunkCompletion<T>(cx: number, cz: number, pipeline: SeededPipeline, complete: () => T): Promise<T> {
+        const completionQueue = this.options.completionQueue;
+        const priority = this.urgencyOf(pipeline, cx, cz);
+
+        // A player waiting on this chunk keeps the existing completion path; bounded work is
+        // for background promotion, where delaying the chunk cannot hold gameplay updates.
+        if (completionQueue === undefined || priority === 'immediate') return Promise.resolve(complete());
+
+        const key = this.urgencyKey(pipeline, cx, cz);
+        return completionQueue.defer(complete, { priority, label: 'worker-result', key });
     }
 
     /**
@@ -1815,6 +1835,7 @@ export class DataDrivenGenerator implements Generator {
         this.pool?.promote(here, urgency);
         this.stagePool?.promote(here, urgency);
         this.chunkPool?.promote(here, urgency);
+        this.options.completionQueue?.promote(urgencyKey, urgency);
     }
 
     private trimCache<T>(cache: Map<string, T>): void {

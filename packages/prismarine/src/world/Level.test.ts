@@ -38,6 +38,7 @@ import { Position } from './Position';
 import { readLevelDat } from './providers/leveldb/LevelDat';
 import LevelDB from './providers/leveldb/LevelDB';
 import type { World } from './World';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
 
@@ -85,6 +86,7 @@ const testServer = (preloadRadius = 0, random: () => number = Math.random): Serv
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => preloadRadius, getEntityTrackingInterval: () => 20 }),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime(),
         getRandom: () => random,

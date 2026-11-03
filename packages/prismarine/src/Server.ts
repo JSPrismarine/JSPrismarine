@@ -44,6 +44,7 @@ import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
 import ChunkScheduler from './world/ChunkScheduler';
+import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
 import { DimensionTravel } from './world/portal/DimensionTravel';
 import WorldManager from './world/WorldManager';
 
@@ -106,6 +107,8 @@ export default class Server extends EventEmitter {
         );
         this.logger.error(error);
     });
+    /** Budgets background chunk promotion and lighting independently from network sends. */
+    private readonly chunkCompletionQueue = new ChunkCompletionQueue();
     /**
      * The network's view of each world: who is watching it, and what they are told.
      *
@@ -215,7 +218,10 @@ export default class Server extends EventEmitter {
         this.logger = logger;
         this.config = config;
         this.profiler = profile ? new ServerProfiler() : undefined;
-        if (this.profiler) attachProfiler(this, this.profiler);
+        if (this.profiler) {
+            attachProfiler(this, this.profiler);
+            attachProfiler(this.chunkCompletionQueue, this.profiler);
+        }
         this.packetHandlerRegistry = new PacketHandlerRegistry(this);
         this.worldManager = new WorldManager(this);
         this.consoleSender = new ConsoleSender(this);
@@ -228,6 +234,7 @@ export default class Server extends EventEmitter {
             getWorlds: () => this.worldManager.getLevels(),
             tickFunctions: () => this.commandManager.tickFunctions(),
             getChunkScheduler: () => this.chunkScheduler,
+            getChunkCompletionQueue: () => this.chunkCompletionQueue,
             getChunkSendBudgetMs: () => this.config.getChunkSendBudgetMs(),
             isTickingEnabled: () => this.config.getEnableTicking(),
             isProcessTitleEnabled: () => this.config.getEnableProcessTitle(),
@@ -590,6 +597,11 @@ export default class Server extends EventEmitter {
      */
     public getChunkScheduler(): ChunkScheduler {
         return this.chunkScheduler;
+    }
+
+    /** The bounded queue for worker-result translation and background chunk lighting. */
+    public getChunkCompletionQueue(): ChunkCompletionQueue {
+        return this.chunkCompletionQueue;
     }
 
     /**

@@ -42,6 +42,7 @@ import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { Level } from './Level';
 import { testLevel } from '../testing/level';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 const WORLD_NAME = 'persistence';
 
@@ -68,6 +69,7 @@ const testServer = (): Server => {
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime(),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',

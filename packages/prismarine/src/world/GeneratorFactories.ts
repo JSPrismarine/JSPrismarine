@@ -12,6 +12,7 @@ import type { ServerContent } from '../content/ServerContent';
 import type { GeneratorLogger } from './BaseGenerator';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
+import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import { builtInGeneratorFactories } from './generators/factories';
 import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 
@@ -34,6 +35,8 @@ export interface GeneratorBuildContext {
     readonly worldgen: () => JavaWorldgenRegistries;
     /** Where a factory or its generator reports a decision a person should see. */
     readonly logger: GeneratorLogger;
+    /** Server-wide tick queue for non-gameplay work that finishes a generated chunk. */
+    readonly completionQueue?: ChunkCompletionScheduler;
     /**
      * How many worker threads the generator may start.
      *

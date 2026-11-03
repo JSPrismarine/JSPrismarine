@@ -52,6 +52,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import type { Level } from './Level';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };
@@ -126,6 +127,7 @@ const buildScene = async (name: string) => {
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;

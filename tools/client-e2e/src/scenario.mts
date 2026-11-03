@@ -21,6 +21,8 @@ export interface Scenario {
     serverOptions?: {
         /** Add the minimal cow definition and natural spawn rule used by the spawn-placement scenario. */
         naturalCowSpawning?: boolean;
+        /** Capture the server timing trace for a readiness or performance scenario. */
+        profile?: boolean;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }

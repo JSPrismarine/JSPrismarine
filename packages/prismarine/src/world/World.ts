@@ -71,6 +71,7 @@ import type { DragonFightState } from './WorldPersistence';
 import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
+import type { ChunkCompletionScheduler } from './ChunkCompletionQueue';
 import { isPortalBlock } from './portal/rules';
 import { furnaceScreenData, tickFurnace } from './cooking';
 import { tickSpawner } from './spawners';
@@ -345,6 +346,8 @@ export interface WorldData {
     stem: LevelStem;
     /** The generator the level's factories built for {@link WorldData.stem}. */
     generator: Generator;
+    /** Shared ticker queue for lighting chunks that are still background work. */
+    completionQueue?: ChunkCompletionScheduler;
     config?: WorldConfig;
     /** Defaults to the level's resolved type for the stem, or the Overworld when it has none. */
     dimension?: DimensionType;
@@ -416,7 +419,10 @@ export class World implements Service {
      * What makes a second request for a chunk already on its way wait for that one instead of
      * generating it again. See {@link World.loadChunk}.
      */
-    private readonly loading: Map<number, { readonly chunk: Promise<Chunk> }> = new Map();
+    private readonly loading: Map<
+        number,
+        { readonly chunk: Promise<Chunk>; readonly urgency: { value: NonNullable<ChunkRequestOptions['urgency']> } }
+    > = new Map();
 
     /** The last chunk {@link getLoadedChunk} answered with. A packed key is never negative. */
     private lastChunkIndex = -1;
@@ -446,6 +452,7 @@ export class World implements Service {
     private readonly level: Level;
     private readonly stem: LevelStem;
     private readonly generator: Generator;
+    private readonly completionQueue: ChunkCompletionScheduler | undefined;
     private readonly config: WorldConfig;
     private readonly dimension: DimensionType;
     private readonly startRegion: 'prepared' | 'deferred';
@@ -510,6 +517,7 @@ export class World implements Service {
         level,
         stem,
         generator,
+        completionQueue,
         config,
         dimension,
         startRegion,
@@ -522,6 +530,7 @@ export class World implements Service {
         this.level = level;
         this.stem = stem;
         this.generator = generator;
+        this.completionQueue = completionQueue;
         this.config = config ?? {};
         this.dimension = dimension ?? level.getDimensionTypes().get(stem.type) ?? Dimensions.Overworld;
         this.startRegion = startRegion ?? 'prepared';
@@ -1045,6 +1054,10 @@ export class World implements Service {
      */
     public async getChunk(cx: number, cz: number, options?: ChunkRequestOptions): Promise<Chunk> {
         const index = Chunk.packXZ(cx, cz);
+        // The light engine needs a newly inserted chunk in the world map while it initializes
+        // it. Keep callers on the load promise until that completion finishes, so a client
+        // cannot send the chunk in the gap before its light is ready.
+        if (this.loading.has(index)) return this.loadChunk(cx, cz, options);
         if (!this.chunks.has(index)) return this.loadChunk(cx, cz, options);
 
         return this.chunks.get(index)!;
@@ -1196,14 +1209,21 @@ export class World implements Service {
         const index = Chunk.packXZ(x, z);
         const running = this.loading.get(index);
         if (running !== undefined) {
-            this.generator.raiseUrgency?.(x, z, options?.urgency ?? 'immediate');
+            const urgency = options?.urgency ?? 'immediate';
+            const priorities = ['immediate', 'soon', 'idle'] as const;
+            if (priorities.indexOf(urgency) < priorities.indexOf(running.urgency.value)) {
+                running.urgency.value = urgency;
+                this.generator.raiseUrgency?.(x, z, urgency);
+                this.completionQueue?.promote(this.lightingCompletionKey(index), urgency);
+            }
             return running.chunk;
         }
 
         // The entry is dropped whether the load worked or not, so a chunk whose provider threw
         // is asked for again next time rather than handing out the same failure forever.
-        const chunk = this.readChunkInto(index, x, z, options);
-        this.loading.set(index, { chunk });
+        const urgency = { value: options?.urgency ?? 'immediate' };
+        const chunk = this.readChunkInto(index, x, z, options, urgency);
+        this.loading.set(index, { chunk, urgency });
         try {
             return await chunk;
         } finally {
@@ -1212,7 +1232,13 @@ export class World implements Service {
     }
 
     /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
-    private async readChunkInto(index: number, x: number, z: number, options?: ChunkRequestOptions): Promise<Chunk> {
+    private async readChunkInto(
+        index: number,
+        x: number,
+        z: number,
+        options: ChunkRequestOptions | undefined,
+        urgency: { value: NonNullable<ChunkRequestOptions['urgency']> }
+    ): Promise<Chunk> {
         // Try - catch for provider errors
         const chunk = await this.getProvider().readChunk(
             this.dimension,
@@ -1231,7 +1257,18 @@ export class World implements Service {
         this.markEntitiesInChunkChanged(chunk);
 
         // After the chunk is in the map: the engine reads the blocks back through the world.
-        this.systems.onChunkLoaded(x, z);
+        // Background chunks can wait for the ticker's separate completion slice; a chunk the
+        // player is waiting on keeps lighting on the current path for readiness and gameplay.
+        const lightChunk = () => this.systems.onChunkLoaded(x, z);
+        if (urgency.value === 'immediate' || this.completionQueue === undefined) {
+            lightChunk();
+        } else {
+            await this.completionQueue.defer(lightChunk, {
+                priority: urgency.value,
+                label: 'chunk-lighting',
+                key: this.lightingCompletionKey(index)
+            });
+        }
 
         const discardedStacklessItems = await this.createStoredEntities(chunk);
         await this.createGeneratedEntities(chunk);
@@ -1252,6 +1289,11 @@ export class World implements Service {
 
         // TODO: event here, eg onChunkLoad
         return chunk;
+    }
+
+    /** Unique queue key for this world's one-time light initialization of a loaded chunk. */
+    private lightingCompletionKey(index: number): string {
+        return `${this.uuid}:lighting:${index}`;
     }
 
     /** Restores the actor NBT the provider read for this chunk. */

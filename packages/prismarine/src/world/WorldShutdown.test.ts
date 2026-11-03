@@ -22,6 +22,7 @@ import { inertEntityRuntime } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { Level } from './Level';
 import { testLevel } from '../testing/level';
+import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 /**
  * Shutting a world down while its start region is still being generated.
@@ -63,7 +64,8 @@ const testServer = (): Server =>
             }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => PRELOAD_RADIUS }),
         // No data-driven runtime: this world runs the written entity classes.
-        getEntityRuntime: () => inertEntityRuntime()
+        getEntityRuntime: () => inertEntityRuntime(),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue()
     });
 
 /**

@@ -2,12 +2,15 @@ import type { Module } from '@jsprismarine/kernel';
 
 import { TickEvent } from '../events/Events';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
+import type { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
+import { DEFAULT_CHUNK_COMPLETION_BUDGET_MS } from '../world/ChunkCompletionQueue';
 import { tickerToken } from './tokens';
 
 type LateTickProfile = {
     elapsedMs: number;
     tickHandlersMs: number;
     worldUpdatesMs: number;
+    chunkCompletionsMs: number;
     chunkSchedulerMs: number;
     timerDelayMs: number;
     slowestWorldName: string | null;
@@ -41,16 +44,29 @@ const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
             elapsedMs: summary.elapsedMs + profile.elapsedMs,
             tickHandlersMs: summary.tickHandlersMs + profile.tickHandlersMs,
             worldUpdatesMs: summary.worldUpdatesMs + profile.worldUpdatesMs,
+            chunkCompletionsMs: summary.chunkCompletionsMs + profile.chunkCompletionsMs,
             chunkSchedulerMs: summary.chunkSchedulerMs + profile.chunkSchedulerMs,
             timerDelayMs: summary.timerDelayMs + profile.timerDelayMs,
             otherMs:
                 summary.otherMs +
                 Math.max(
                     0,
-                    profile.elapsedMs - profile.tickHandlersMs - profile.worldUpdatesMs - profile.chunkSchedulerMs
+                    profile.elapsedMs -
+                        profile.tickHandlersMs -
+                        profile.worldUpdatesMs -
+                        profile.chunkCompletionsMs -
+                        profile.chunkSchedulerMs
                 )
         }),
-        { elapsedMs: 0, tickHandlersMs: 0, worldUpdatesMs: 0, chunkSchedulerMs: 0, timerDelayMs: 0, otherMs: 0 }
+        {
+            elapsedMs: 0,
+            tickHandlersMs: 0,
+            worldUpdatesMs: 0,
+            chunkCompletionsMs: 0,
+            chunkSchedulerMs: 0,
+            timerDelayMs: 0,
+            otherMs: 0
+        }
     );
     const average = (duration: number) => `${(duration / profiles.length).toFixed(0)} ms`;
     const slowestWorld = profiles.reduce<LateTickProfile | undefined>(
@@ -61,7 +77,7 @@ const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
         ? `; slowest world update ${slowestWorld.slowestWorldName} (${slowestWorld.slowestWorldMs.toFixed(0)} ms)`
         : '';
 
-    return `Lag profile over ${profiles.length} late tick(s): avg work ${average(totals.elapsedMs)}/tick (tick handlers ${average(totals.tickHandlersMs)}, world updates ${average(totals.worldUpdatesMs)}, chunk scheduler ${average(totals.chunkSchedulerMs)}, other ${average(totals.otherMs)}); timer callback delays ${totals.timerDelayMs.toFixed(0)} ms total${slowestWorldDetail}`;
+    return `Lag profile over ${profiles.length} late tick(s): avg work ${average(totals.elapsedMs)}/tick (tick handlers ${average(totals.tickHandlersMs)}, world updates ${average(totals.worldUpdatesMs)}, chunk completions ${average(totals.chunkCompletionsMs)}, chunk scheduler ${average(totals.chunkSchedulerMs)}, other ${average(totals.otherMs)}); timer callback delays ${totals.timerDelayMs.toFixed(0)} ms total${slowestWorldDetail}`;
 };
 
 /** One world as the tick loop sees it: a name for the lag profile, and an update to await. */
@@ -97,6 +113,8 @@ export interface TickerServer {
         setBudget(budgetMs: number): void;
         tick(): Promise<unknown>;
     };
+    /** Deferred worker translations and background lighting, budgeted separately from packet sends. */
+    getChunkCompletionQueue(): Pick<ChunkCompletionQueue, 'activate' | 'deactivate' | 'drain'>;
     /** This tick's chunk-send budget, read fresh each tick so config reloads apply. */
     getChunkSendBudgetMs(): number;
     /** Whether the loop should run at all. Read once per `start()`. */
@@ -251,6 +269,7 @@ export class ServerTicker implements Ticker, TickControl {
     public start(): void {
         if (this.running || !this.server.isTickingEnabled()) return;
         this.running = true;
+        this.server.getChunkCompletionQueue().activate();
 
         const server = this.server;
         const logger = server.getLogger();
@@ -288,6 +307,7 @@ export class ServerTicker implements Ticker, TickControl {
             const timerDelayMs = Math.max(0, tickStartedAt - nextTickExpectedStartAt);
             let tickHandlersMs = 0;
             let worldUpdatesMs = 0;
+            let chunkCompletionsMs = 0;
             let chunkSchedulerMs = 0;
             let slowestWorldName: string | null = null;
             let slowestWorldMs = 0;
@@ -304,13 +324,21 @@ export class ServerTicker implements Ticker, TickControl {
                 // Worker networking owns UDP and reliability timers, but gameplay handlers
                 // still run on the game thread in deterministic queue order at tick start.
                 server.pollNetwork();
+                const endCompletionProfile = startProfile?.('Server.chunkCompletions');
+                let phaseStartedAt = now();
+                try {
+                    server.getChunkCompletionQueue().drain(DEFAULT_CHUNK_COMPLETION_BUDGET_MS);
+                } finally {
+                    chunkCompletionsMs = now() - phaseStartedAt;
+                    endCompletionProfile?.();
+                }
                 const event = new TickEvent(this.getTick());
 
                 // Awaited, so a plugin's tick handler runs *inside* this tick like every
                 // other piece of tick work. Discarding the promise let its continuation
                 // land in the middle of some later tick, and its rejection could not
                 // reach the catch below - it surfaced as an unhandled rejection instead.
-                let phaseStartedAt = now();
+                phaseStartedAt = now();
                 const endTickHandlersProfile = startProfile?.('Server.tickHandlers');
                 try {
                     await server.emitTick(event);
@@ -428,6 +456,7 @@ export class ServerTicker implements Ticker, TickControl {
                         elapsedMs,
                         tickHandlersMs,
                         worldUpdatesMs,
+                        chunkCompletionsMs,
                         chunkSchedulerMs,
                         timerDelayMs,
                         slowestWorldName,
@@ -483,6 +512,7 @@ export class ServerTicker implements Ticker, TickControl {
         this.running = false;
         this.cancelPendingTick?.();
         this.cancelPendingTick = undefined;
+        this.server.getChunkCompletionQueue().deactivate();
     }
 }
 

@@ -56,6 +56,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios.
  * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to ZLib.
  * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
+ * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -66,6 +67,7 @@ export const startServer = async (
         naturalCowSpawning?: boolean;
         compressionAlgorithm?: 'zlib' | 'snappy' | 'none';
         raknetWorker?: boolean;
+        profile?: boolean;
     } = {}
 ): Promise<JspServer> => {
     const port = options.port ?? (await reserveFreeUdpPort());
@@ -293,7 +295,8 @@ export const startServer = async (
             path.join(serverPackage, 'src', 'Server.ts'),
             '--no-tui',
             '--port',
-            String(port)
+            String(port),
+            ...(options.profile ? ['--devtools'] : [])
         ],
         {
             cwd: serverPackage,
@@ -365,6 +368,11 @@ export const startServer = async (
         throw error;
     }
 
+    if (options.profile) {
+        const inspectorLine = lines.findLast((line) => line.startsWith('JSPrismarine inspector:'));
+        if (inspectorLine !== undefined) console.log(`e2e ${inspectorLine}`);
+    }
+
     return {
         port,
         dir,
@@ -378,7 +386,7 @@ export const startServer = async (
                 await exited;
                 clearTimeout(killer);
             }
-            fs.rmSync(dir, { recursive: true, force: true });
+            if (!options.profile) fs.rmSync(dir, { recursive: true, force: true });
         }
     };
 };

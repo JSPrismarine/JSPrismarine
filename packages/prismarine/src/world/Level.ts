@@ -439,7 +439,8 @@ export class Level {
             seed: this.seed,
             content: () => this.server.getContent(),
             worldgen: this.worldgen,
-            logger: this.server.getLogger()
+            logger: this.server.getLogger(),
+            completionQueue: this.server.getChunkCompletionQueue()
         });
 
         // Closed over rather than passed, because a world's handlers are built while the world
@@ -453,6 +454,7 @@ export class Level {
             stem,
             dimension,
             generator,
+            completionQueue: this.server.getChunkCompletionQueue(),
             config: this.config,
             // An eager world is built as the level opens and generates its start region then.
             // A lazy one is built on its first visit, from inside a server tick, where a start

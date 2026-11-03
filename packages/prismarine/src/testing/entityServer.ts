@@ -23,6 +23,7 @@ import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type { LiveBodies } from '../entity/data/liveBodies';
 import type Server from '../Server';
+import { ChunkCompletionQueue } from '../world/ChunkCompletionQueue';
 import { stub } from './stub.test.helper';
 
 /** @see {@link testContent} */
@@ -104,14 +105,18 @@ export interface TestEntityServerOptions {
  * const world = stub<World>({ getName: () => 'test', getServer: () => testEntityServer() });
  * ```
  */
-export const testEntityServer = (options: TestEntityServerOptions = {}): Server =>
-    stub<Server>({
+export const testEntityServer = (options: TestEntityServerOptions = {}): Server => {
+    // One queue per double, as a real server has one. It is never activated, so a chunk's
+    // lighting completes inline rather than waiting for a ticker that no test runs.
+    const chunkCompletionQueue = new ChunkCompletionQueue();
+    return stub<Server>({
         // The listener count, which is what the emitter answers and nothing here reads.
         post: () => 0,
         getTick: () => options.tick ?? 0,
         getRandom: () => () => options.chance ?? 0.5,
         getContent: () => options.content ?? testContent(),
         getEntityRuntime: () => options.entityRuntime ?? inertEntityRuntime(),
+        getChunkCompletionQueue: () => chunkCompletionQueue,
         getConfig: () =>
             stub<Config>({
                 getDifficulty: () => options.difficulty ?? Difficulty.NORMAL
@@ -125,3 +130,4 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
                 error: (...message) => void options.logged?.push(String(message[0]))
             })
     });
+};

@@ -54,6 +54,7 @@ import type { World } from '../World';
 import type WorldManager from '../WorldManager';
 import { DimensionTravel, END_ARRIVAL_YAW } from './DimensionTravel';
 import type { PortalBlockRef } from './DimensionTravel';
+import { ChunkCompletionQueue } from '../ChunkCompletionQueue';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
 const END_STEM_ID = 'minecraft:the_end';
@@ -133,6 +134,7 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
+        getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;

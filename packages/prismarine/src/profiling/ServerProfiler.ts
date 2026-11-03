@@ -39,15 +39,22 @@ type TraceEvent = CompleteEvent | CounterEvent | MetadataEvent;
 const MAX_TRACE_EVENTS = 200_000;
 const NOOP = (): void => {};
 const profileSpanStarters = new WeakMap<object, (name: string) => () => void>();
+const profileCounterRecorders = new WeakMap<object, (name: string, values: Record<string, number>) => void>();
 
 /** Connects an opt-in profiler to an owner whose code records spans. */
 export const attachProfiler = (owner: object, profiler: ServerProfiler): void => {
     profileSpanStarters.set(owner, (name) => profiler.start(name));
+    profileCounterRecorders.set(owner, (name, values) => profiler.recordCounter(name, values));
 };
 
 /** Resolves an owner's profiler once so unprofiled callers can skip building span names. */
 export const profileSpanStarter = (owner: object): ((name: string) => () => void) | undefined =>
     profileSpanStarters.get(owner);
+
+/** Resolves an owner's profiler once so unprofiled callers can skip building counter data. */
+export const profileCounterRecorder = (
+    owner: object
+): ((name: string, values: Record<string, number>) => void) | undefined => profileCounterRecorders.get(owner);
 
 /** Starts a trace span when the owner has profiling enabled; otherwise returns a shared no-op. */
 export const startProfileSpan = (owner: object, name: string): (() => void) =>
@@ -91,6 +98,19 @@ export class ServerProfiler {
                 ts: startedAt * 1000
             });
         };
+    }
+
+    /** Records a Chrome trace counter sample at the current monotonic time. */
+    public recordCounter(name: string, values: Record<string, number>): void {
+        this.append({
+            args: values,
+            cat: 'jsprismarine',
+            name,
+            ph: 'C',
+            pid: process.pid,
+            tid: threadId,
+            ts: performance.now() * 1000
+        });
     }
 
     /**
