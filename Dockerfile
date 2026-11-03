@@ -2,7 +2,7 @@
 # The build context must include the bedrock-data resources submodule.
 FROM eclipse-temurin:25-jdk-jammy@sha256:917e4ad2363fb761904f2e515237171bb6867521f03b1ab2cbf466c8ebd92399 AS temurin-jdk
 
-FROM node:26-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec
+FROM node:26-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39
 
 COPY --from=temurin-jdk /opt/java/openjdk /opt/java/openjdk
 
