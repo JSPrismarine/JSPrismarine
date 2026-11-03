@@ -145,6 +145,7 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
         recipesJava: new Map(),
         advancements: new Map(),
         tags: new Map(),
+        blockTransformers: new Map(),
         enchantments: new Map(),
         damageTypes: new Map(),
         predicates: new Map(),

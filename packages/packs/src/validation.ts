@@ -139,6 +139,8 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     recipesJava: { required: { type: 'string' } },
     advancements: { required: { criteria: 'object' } },
     tags: { required: { values: 'array' } },
+    // A transformer file is a bare list of entries, one per tool pass over the block.
+    blockTransformers: { allowsArrayRoot: true },
     enchantments: {
         optional: { effects: 'object', weight: 'number', max_level: 'number', slots: 'array' }
     },

@@ -102,6 +102,9 @@ const harness = (initial: Record<string, ContentBlock> = {}, placeEndCrystal?: (
     return { items, blockAt: (at: ContentPosition) => stored.get(key(at)), sounds, spawned, delegated };
 };
 
+/** A position for the transforms, which read a neighbor only through rules these tests skip. */
+const ORIGIN = { x: 0, y: 64, z: 0 };
+
 describe('item', () => {
     describe('content item group', () => {
         it('puts a block down where a placement says', () => {
@@ -192,7 +195,13 @@ describe('item', () => {
         it('declines a block transformer and a potion the server was given no table for', () => {
             const { items } = harness();
 
-            expect(items.transform('minecraft:axe', { identifier: 'minecraft:oak_log', states: {} })).toBeUndefined();
+            expect(
+                items.transform(
+                    'minecraft:axe',
+                    { identifier: 'minecraft:oak_log', states: {}, position: ORIGIN },
+                    'up'
+                )
+            ).toBeUndefined();
             expect(items.effectsOf('minecraft:swiftness')).toEqual([]);
         });
 
@@ -227,8 +236,20 @@ describe('item', () => {
                 potions: () => [{ id: 'minecraft:speed', durationTicks: 3600, amplifier: 0, showIcon: true }]
             });
 
-            expect(items.transform('minecraft:axe', { identifier: 'minecraft:oak_log', states: {} })).toEqual(stripped);
-            expect(items.transform('minecraft:hoe', { identifier: 'minecraft:oak_log', states: {} })).toBeUndefined();
+            expect(
+                items.transform(
+                    'minecraft:axe',
+                    { identifier: 'minecraft:oak_log', states: {}, position: ORIGIN },
+                    'up'
+                )
+            ).toEqual(stripped);
+            expect(
+                items.transform(
+                    'minecraft:hoe',
+                    { identifier: 'minecraft:oak_log', states: {}, position: ORIGIN },
+                    'up'
+                )
+            ).toBeUndefined();
             expect(items.effectsOf('minecraft:swiftness')).toHaveLength(1);
         });
     });

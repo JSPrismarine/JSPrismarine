@@ -68,11 +68,11 @@ export const blockTransformerBehavior: ItemBehaviorSpec = {
     create: (context) => {
         if (!('minecraft:block_transformer' in context.components)) return {};
 
-        const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block }) => {
+        const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
             const transformer = itemStack.params(blockTransformer);
             if (typeof transformer !== 'string') return undefined;
 
-            const placement = context.world.transform(transformer, block);
+            const placement = context.world.transform(transformer, block, blockFace);
             if (placement === undefined) return undefined;
 
             context.world.perform({ kind: 'place-block', position: block.position, placement });

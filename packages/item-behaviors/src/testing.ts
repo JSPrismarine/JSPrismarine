@@ -123,7 +123,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         targetOf: () => target,
         includes: (set: HolderSet, member: string) =>
             set.kind === 'tag' ? (tags.get(set.tag)?.has(member) ?? false) : set.entries.includes(member),
-        transform: (transformer, block) => transforms.get(`${transformer}|${block.identifier}`),
+        transform: (transformer, block, _face) => transforms.get(`${transformer}|${block.identifier}`),
         effectsOf: (potion) => potions.get(potion) ?? [],
         random: () => randoms[Math.min(draws++, randoms.length - 1)]!,
         locate: (destination) => structures.get(destination),
