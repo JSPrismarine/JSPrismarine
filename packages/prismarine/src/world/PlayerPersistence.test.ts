@@ -222,6 +222,12 @@ const logOutAndIn = async () => {
     const returningInventory = returning.getInventory();
     const original = returningInventory.getEntry(0);
     const baselineDigest = back.replayStateDigest();
+    returningInventory.setCursor(new Item({ name: 'minecraft:diamond', count: 1 }));
+    const oneCursorDigest = back.replayStateDigest();
+    returningInventory.setCursor(new Item({ name: 'minecraft:diamond', count: 2 }));
+    const twoCursorDigest = back.replayStateDigest();
+    returningInventory.setCursor(null);
+    const clearedCursorDigest = back.replayStateDigest();
     returningInventory.setItem(
         0,
         new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 1 }), count: 1 })
@@ -244,7 +250,16 @@ const logOutAndIn = async () => {
     await reopened.disable();
     return {
         returning,
-        digests: { baselineDigest, oneStackDigest, duplicatedStackDigest, mismatchedStackDigest, restoredDigest }
+        digests: {
+            baselineDigest,
+            oneCursorDigest,
+            twoCursorDigest,
+            clearedCursorDigest,
+            oneStackDigest,
+            duplicatedStackDigest,
+            mismatchedStackDigest,
+            restoredDigest
+        }
     };
 };
 
@@ -282,6 +297,12 @@ describe('a player logging out and back in', () => {
         expect(digests.duplicatedStackDigest).not.toBe(digests.oneStackDigest);
         expect(digests.mismatchedStackDigest).not.toBe(digests.duplicatedStackDigest);
         expect(digests.restoredDigest).toBe(digests.baselineDigest);
+    });
+
+    it('includes the transient cursor in the world digest', () => {
+        expect(digests.oneCursorDigest).not.toBe(digests.baselineDigest);
+        expect(digests.twoCursorDigest).not.toBe(digests.oneCursorDigest);
+        expect(digests.clearedCursorDigest).toBe(digests.baselineDigest);
     });
 
     it('keeps the replay digest independent of chunk and entity insertion order', async () => {

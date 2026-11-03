@@ -35,7 +35,7 @@ import type { Entity } from '../entity/Entity';
 import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import { GenericEntity } from '../entity/GenericEntity';
 import ContainerEntry from '../inventory/ContainerEntry';
-import { storedInventory } from '../inventory/persistence';
+import { storedInventory, storedItem } from '../inventory/persistence';
 import { Item } from '../item/Item';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
@@ -3323,10 +3323,18 @@ export class World implements Service {
                             : { entryCount: entry.getCount(), itemCount: entry.getItem().getAmount() };
                     })
                 );
+                const cursor = inventory.getCursor();
 
                 // A slot can carry two counts that normally agree; preserve both so the digest
                 // catches the same split state that can duplicate a stack during inventory moves.
-                hash.update(JSON.stringify({ inventory: storedInventory(inventory), stackCounts }));
+                // The cursor is transient and is not part of storedInventory's persistence record.
+                hash.update(
+                    JSON.stringify({
+                        inventory: storedInventory(inventory),
+                        cursor: cursor === null ? null : storedItem(cursor),
+                        stackCounts
+                    })
+                );
             }
         }
 
