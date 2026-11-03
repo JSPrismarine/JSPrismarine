@@ -455,6 +455,14 @@ const pipelineKeyOf = (stem: StemKey): PipelineKey => ({
     dimension: pipelineDimensionOf(stem.dimension)
 });
 
+/** Projects worker task input back to the fields that identify a compiled worldgen pipeline. */
+const pipelineIdentityOf = (key: PipelineKey): PipelineKey => ({
+    noiseSettings: key.noiseSettings,
+    ...(key.inlineNoiseSettings === undefined ? {} : { inlineNoiseSettings: key.inlineNoiseSettings }),
+    biomeSource: key.biomeSource,
+    dimension: key.dimension
+});
+
 /** Whether a value cloned across the worker boundary has every field of a {@link PipelineKey}. */
 export const isPipelineKey = (value: unknown): value is PipelineKey =>
     typeof value === 'object' &&
@@ -2726,11 +2734,14 @@ export class DataDrivenGenerator implements Generator {
 
     /** The compiled pipeline for one key and seed, built on first use and kept. */
     private pipelineFor(key: PipelineKey, seed: bigint): SeededPipeline {
-        const cacheKey = pipelineCacheKey(key, seed);
+        // Whole-chunk task inputs extend PipelineKey with candidates and owner-built structure plans.
+        // Keep that request data out of the cached pipeline and its shared-terrain fingerprint.
+        const identity = pipelineIdentityOf(key);
+        const cacheKey = pipelineCacheKey(identity, seed);
         const cached = this.pipelines.get(cacheKey);
         if (cached) return cached;
 
-        const built = this.buildPipeline(key, seed);
+        const built = this.buildPipeline(identity, seed);
         this.pipelines.set(cacheKey, built);
         return built;
     }
