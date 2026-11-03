@@ -119,6 +119,8 @@ export default class Session {
     private congestionWindowBytes = 0;
     private slowStartThresholdBytes = Number.POSITIVE_INFINITY;
     private bytesInFlight = 0;
+    /** Earliest datagram timeout, so ordinary update ticks can skip the history walk. */
+    private earliestResendAt = Number.POSITIVE_INFINITY;
     private readonly pendingFrameSets: FrameSet[] = [];
     private readonly queuedRetransmissions = new Set<number>();
 
@@ -401,23 +403,40 @@ export default class Session {
     /**
      * The datagrams of ours that an acknowledgment names, oldest sequence number first.
      *
-     * Resolved by walking our own history rather than the peer's records: the answer is
-     * `records ∩ datagramHistory` either way, but the history is bounded by
-     * {@link MAX_DATAGRAM_HISTORY} while the records are bounded only by what the peer
-     * felt like claiming.
+     * Probe the history map for narrow ranges, and walk the bounded history for wider ones
+     * so a peer cannot make us expand its full 24-bit sequence space.
      *
      * The ascending order matters. `onRoundTripSample` folds each measurement into a
      * running estimate, and `handleNACK` re-queues in the order it iterates, so both
      * depend on the sequence being walked the way a well formed acknowledgment lists it.
      */
     private matchDatagramHistory(packet: AcknowledgePacket): number[] {
-        const matched: number[] = [];
-
-        for (const seq of this.datagramHistory.keys()) {
-            if (packet.contains(seq)) matched.push(seq);
+        let coveredSequenceCount = packet.sequenceNumbers.length;
+        for (const range of packet.ranges) {
+            coveredSequenceCount += Math.max(0, range.end - range.start + 1);
+            if (coveredSequenceCount > this.datagramHistory.size) break;
         }
 
-        return matched.sort((a, b) => a - b);
+        const matched = new Set<number>();
+        if (coveredSequenceCount <= this.datagramHistory.size) {
+            // Narrow ACK ranges are cheaper to resolve by probing the bounded history map.
+            for (const range of packet.ranges) {
+                for (let sequenceNumber = range.start; sequenceNumber <= range.end; sequenceNumber++) {
+                    if (this.datagramHistory.has(sequenceNumber)) matched.add(sequenceNumber);
+                }
+            }
+            for (const sequenceNumber of packet.sequenceNumbers) {
+                if (this.datagramHistory.has(sequenceNumber)) matched.add(sequenceNumber);
+            }
+        } else {
+            // A peer may name the full 24-bit space in one record; walk our bounded history
+            // instead of expanding that range into millions of map lookups.
+            for (const sequenceNumber of this.datagramHistory.keys()) {
+                if (packet.contains(sequenceNumber)) matched.add(sequenceNumber);
+            }
+        }
+
+        return [...matched].sort((a, b) => a - b);
     }
 
     /**
@@ -1069,6 +1088,7 @@ export default class Session {
         const sentAt = monotonicNow();
         const deadline = sentAt + this.getRetransmissionTimeout();
         const byteLength = frameSet.getByteLength();
+        this.earliestResendAt = Math.min(this.earliestResendAt, deadline);
 
         // Record which messages rode in this datagram, so an ACK/NACK naming its
         // sequence number can be resolved back to them.
@@ -1109,7 +1129,18 @@ export default class Session {
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1908
      */
     private resendTimedOutMessages(timestamp: number): void {
-        const expired = Array.from(this.datagramHistory).filter(([, entry]) => entry.nextActionTime <= timestamp);
+        if (timestamp < this.earliestResendAt) return;
+
+        const expired: Array<[number, DatagramHistoryEntry]> = [];
+        let nextEarliestResendAt = Number.POSITIVE_INFINITY;
+        for (const [sequenceNumber, entry] of this.datagramHistory) {
+            if (entry.nextActionTime <= timestamp) {
+                expired.push([sequenceNumber, entry]);
+            } else {
+                nextEarliestResendAt = Math.min(nextEarliestResendAt, entry.nextActionTime);
+            }
+        }
+        this.earliestResendAt = nextEarliestResendAt;
         if (expired.length === 0) return;
 
         const retransmissions: Frame[] = [];

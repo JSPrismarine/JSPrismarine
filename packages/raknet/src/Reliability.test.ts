@@ -1,6 +1,7 @@
 import type { RemoteInfo } from 'node:dgram';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it, vi } from 'vitest';
+import { RTO_MAX_MS } from './Constants';
 import Session, { RakNetPriority, SessionStatus } from './Session';
 import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
@@ -61,6 +62,63 @@ const acknowledgeSent = (session: Session, sent: readonly Buffer[], start = 0): 
 
     return datagrams;
 };
+
+describe('P9 - retransmission deadlines', () => {
+    it('retransmits only messages whose datagram deadline passed in each update', () => {
+        vi.useFakeTimers({ toFake: ['performance'] });
+
+        try {
+            const { session, sent } = makeSession();
+            const send = (content: number): void => {
+                session.sendFrame(gameFrame(Buffer.alloc(650, content)));
+                session.sendFrameQueue();
+            };
+
+            send(0x61);
+            vi.advanceTimersByTime(1000);
+            send(0x62);
+            expect(sent).toHaveLength(2);
+
+            vi.advanceTimersByTime(RTO_MAX_MS - 1001);
+            session.update(performance.now());
+            expect(sent).toHaveLength(2);
+
+            vi.advanceTimersByTime(1);
+            session.update(performance.now());
+            expect(sent).toHaveLength(3);
+            expect(decodeSent(sent[2]!).frames.map((frame) => frame.content[0])).toEqual([0x61]);
+
+            vi.advanceTimersByTime(999);
+            session.update(performance.now());
+            expect(sent).toHaveLength(3);
+
+            vi.advanceTimersByTime(1);
+            session.update(performance.now());
+            expect(sent).toHaveLength(4);
+            expect(decodeSent(sent[3]!).frames.map((frame) => frame.content[0])).toEqual([0x62]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('applies an inclusive ACK range to only the named in-flight messages', () => {
+        const { session, sent } = makeSession();
+
+        for (const content of ['first', 'acked-one', 'acked-two', 'last']) {
+            session.sendFrame(gameFrame(Buffer.from(content)));
+            session.sendFrameQueue();
+        }
+
+        const sequences = sent.map((datagram) => decodeSent(datagram).sequenceNumber);
+        session.handle(acknowledgment(ACK, sequences[1]!, sequences[2]!));
+        session.update(monotonicNow() + RTO_MAX_MS + 1);
+
+        const retriedContents = sent
+            .slice(4)
+            .flatMap((datagram) => decodeSent(datagram).frames.map((frame) => frame.content.toString()));
+        expect(retriedContents).toEqual(['first', 'last']);
+    });
+});
 
 describe('C1 - NACK retransmission is verbatim', () => {
     it('keeps reliableIndex and orderIndex identical across the retransmission', () => {
