@@ -1,4 +1,4 @@
-import { DisconnectReason } from '@jsprismarine/minecraft';
+import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
 import { latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
@@ -24,6 +24,7 @@ import { describe, expect, it } from 'vitest';
 
 import type ClientConnection from '@jsprismarine/prismarine/network/ClientConnection';
 import type Server from '@jsprismarine/prismarine/Server';
+import type { Config } from '@jsprismarine/prismarine/config/Config';
 
 import { FAMILIES } from './families.ts';
 import { parityCase, reportParityCases } from './trackerCases.ts';
@@ -57,6 +58,7 @@ const connectionRecorder = () => {
 
     const connection = stub<ClientConnection>({
         hasCompression: false,
+        setCompressionSettings: () => {},
         sendDataPacket: async (packet) => void sent.push(packet),
         disconnect: async (reason = '', _hideReason = true, code = DisconnectReason.DISCONNECTED) =>
             void hangups.push({ message: reason, reason: code })
@@ -89,7 +91,10 @@ const listSkin = () =>
         PieceTintColors: []
     });
 
-const server = stub<Server>({ getLogger: () => stub<ReturnType<Server['getLogger']>>({ info: () => {} }) });
+const server = stub<Server>({
+    getConfig: () => stub<Config>({ getPacketCompressionAlgorithm: () => PacketCompressionAlgorithm.ZLIB }),
+    getLogger: () => stub<ReturnType<Server['getLogger']>>({ info: () => {} })
+});
 
 const negotiate = async (protocolVersion: number) => {
     const recorder = connectionRecorder();

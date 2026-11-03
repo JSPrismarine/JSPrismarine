@@ -68,7 +68,8 @@ describe('modules/network', () => {
                     getGamemode: () => 'survival',
                     getMaxPlayers: () => 1,
                     getMotd: () => 'test server',
-                    getOnlineMode: () => false
+                    getOnlineMode: () => false,
+                    getUseRakNetWorker: () => false
                 }),
             getLogger: () =>
                 stub<Logger>({
