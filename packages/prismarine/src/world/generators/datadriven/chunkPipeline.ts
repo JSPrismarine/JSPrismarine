@@ -116,6 +116,12 @@ const isRegionPayload = (value: unknown): value is GenerationRegionPayload =>
     'highest' in value &&
     value.highest instanceof ArrayBuffer &&
     (!('frozenSurface' in value) || value.frozenSurface === undefined || value.frozenSurface instanceof ArrayBuffer) &&
+    (!('biomeSections' in value) || value.biomeSections === undefined || value.biomeSections instanceof ArrayBuffer) &&
+    (!('biomeSectionOffsets' in value) ||
+        value.biomeSectionOffsets === undefined ||
+        value.biomeSectionOffsets instanceof ArrayBuffer) &&
+    ('biomeSections' in value && value.biomeSections !== undefined) ===
+        ('biomeSectionOffsets' in value && value.biomeSectionOffsets !== undefined) &&
     'blockEntities' in value &&
     Array.isArray(value.blockEntities) &&
     'entitySpawns' in value &&

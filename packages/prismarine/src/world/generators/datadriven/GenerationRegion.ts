@@ -126,6 +126,14 @@ export interface CenterBlockSlots {
     readonly columnTops: Int32Array;
 }
 
+/** A chunk's Bedrock biome sections, compacted for a single worker transfer. */
+export interface PackedBiomeSections {
+    /** One id for a uniform section, or 4096 block ids for a nonuniform section. */
+    readonly ids: Uint16Array<ArrayBuffer>;
+    /** Start offsets for each section, with one trailing offset. */
+    readonly offsets: Uint32Array<ArrayBuffer>;
+}
+
 /**
  * A region flattened into something `postMessage` moves rather than copies.
  *
@@ -150,6 +158,10 @@ export interface GenerationRegionPayload {
     readonly highest: ArrayBuffer;
     /** `Int32Array` of the frozen `WORLD_SURFACE_WG` heights, absent before the fill froze them. */
     readonly frozenSurface?: ArrayBuffer;
+    /** Compact per-section Bedrock biome IDs, transferred separately from the terrain tile. */
+    readonly biomeSections?: ArrayBuffer;
+    /** `Uint32Array` offsets delimiting each uniform or nonuniform section in `biomeSections`. */
+    readonly biomeSectionOffsets?: ArrayBuffer;
     /** The block entities, each with the state index it is attached to. */
     readonly blockEntities: ReadonlyArray<readonly [index: number, entity: RegionBlockEntity]>;
     readonly entitySpawns: readonly RegionEntitySpawn[];
@@ -273,6 +285,8 @@ export class GenerationRegion {
     private palette: RegionBlock[] = [{ java: AIR_STATE }];
     private paletteIndex = new Map<string, number>([[AIR, 0]]);
     private isAirByPaletteSlot: boolean[] = [];
+    private biomeSectionIds: Uint16Array<ArrayBuffer> | undefined;
+    private biomeSectionOffsets: Uint32Array<ArrayBuffer> | undefined;
 
     /** Lazily computed heightmaps, one entry per heightmap and region column. */
     private readonly heightmapCaches = new Map<HeightmapType, Int32Array<ArrayBuffer>>();
@@ -392,6 +406,8 @@ export class GenerationRegion {
      */
     public transfer(): GenerationRegionTransfer {
         this.directTerrainWriting = false;
+        const biomeSections = this.biomeSectionIds;
+        const biomeSectionOffsets = this.biomeSectionOffsets;
         const payload: GenerationRegionPayload = {
             chunkX: this.chunkX,
             chunkZ: this.chunkZ,
@@ -402,12 +418,21 @@ export class GenerationRegion {
             states: this.states.buffer,
             highest: this.highest.buffer,
             ...(this.frozenSurface === null ? {} : { frozenSurface: this.frozenSurface.buffer }),
+            ...(biomeSections === undefined || biomeSectionOffsets === undefined
+                ? {}
+                : {
+                      biomeSections: biomeSections.buffer,
+                      biomeSectionOffsets: biomeSectionOffsets.buffer
+                  }),
             blockEntities: [...this.blockEntities],
             entitySpawns: this.entitySpawns
         };
 
         const transferList = [this.states.buffer, this.highest.buffer];
         if (this.frozenSurface !== null) transferList.push(this.frozenSurface.buffer);
+        if (biomeSections !== undefined && biomeSectionOffsets !== undefined) {
+            transferList.push(biomeSections.buffer, biomeSectionOffsets.buffer);
+        }
 
         return { payload, transferList };
     }
@@ -468,9 +493,49 @@ export class GenerationRegion {
         region.states = new Uint16Array(payload.states);
         region.highest = new Int32Array(payload.highest);
         region.frozenSurface = payload.frozenSurface === undefined ? null : new Int32Array(payload.frozenSurface);
+        if ((payload.biomeSections === undefined) !== (payload.biomeSectionOffsets === undefined)) {
+            throw new RangeError('A generation region must carry both biome section buffers or neither');
+        }
+        if (payload.biomeSections !== undefined && payload.biomeSectionOffsets !== undefined) {
+            region.setBiomeSections({
+                ids: new Uint16Array(payload.biomeSections),
+                offsets: new Uint32Array(payload.biomeSectionOffsets)
+            });
+        }
         region.blockEntities = new Map(payload.blockEntities);
         region.entitySpawns = [...payload.entitySpawns];
         return region;
+    }
+
+    /** Stores the biome IDs computed for this chunk, ready for promotion or transfer. */
+    public setBiomeSections(sections: PackedBiomeSections): void {
+        const { ids, offsets } = sections;
+        if (offsets.length < 2 || offsets[0] !== 0 || offsets.at(-1) !== ids.length) {
+            throw new RangeError('Biome section offsets must span the biome ID buffer');
+        }
+
+        for (let section = 0; section < offsets.length - 1; section++) {
+            const length = offsets[section + 1]! - offsets[section]!;
+            if (length !== 1 && length !== 4096) {
+                throw new RangeError(`Biome section ${section} must hold one or 4096 IDs, got ${length}`);
+            }
+        }
+
+        this.biomeSectionIds = ids;
+        this.biomeSectionOffsets = offsets;
+    }
+
+    /** One section's biome IDs, either a uniform id or its packed 16³ blocks. */
+    public biomeSection(index: number): number | Uint16Array<ArrayBuffer> | undefined {
+        const ids = this.biomeSectionIds;
+        const offsets = this.biomeSectionOffsets;
+        if (ids === undefined || offsets === undefined) return undefined;
+
+        const start = offsets[index];
+        const end = offsets[index + 1];
+        if (start === undefined || end === undefined) return undefined;
+        if (end - start === 1) return ids[start];
+        return ids.subarray(start, end);
     }
 
     /** The state at a block position, air outside the region. */

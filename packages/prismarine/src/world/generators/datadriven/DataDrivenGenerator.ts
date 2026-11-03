@@ -91,6 +91,7 @@ import type {
     GenerationRegionOptions,
     GenerationRegionPayload,
     GenerationRegionTransfer,
+    PackedBiomeSections,
     RegionChunkPatch
 } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
@@ -1120,7 +1121,7 @@ export class DataDrivenGenerator implements Generator {
             // `full` leaves the merged region and `terrain` leaves only its own tile, which is
             // what a generator with decoration off stops at.
             const chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
-                this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline)
+                this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline, staged.terrain)
             );
             staged.recordChunk(chunk);
             return chunk;
@@ -1156,7 +1157,7 @@ export class DataDrivenGenerator implements Generator {
      * @param cz - Chunk z.
      * @param seed - The world seed, which with the key pins the pipeline.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
-     * @returns The payload, with an empty transfer list.
+     * @returns The merged region, copying its cached terrain buffers and transferring its new biome buffers.
      * @throws When the ladder reached `full` without leaving a region, which would mean a
      * status body stopped writing one.
      */
@@ -1175,7 +1176,14 @@ export class DataDrivenGenerator implements Generator {
             throw new Error(`The chunk at ${cx}, ${cz} reached full without leaving a region to hand back.`);
         }
 
-        return { payload: region.transfer().payload, transferList: [] };
+        region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
+        const transferred = region.transfer();
+        // The worker keeps its terrain tiles for later requests, so only these fresh promotion
+        // buffers move; the shared region buffers remain cloneable for future chunk reads.
+        const transferList = [transferred.payload.biomeSections, transferred.payload.biomeSectionOffsets].filter(
+            (buffer): buffer is ArrayBuffer => buffer !== undefined
+        );
+        return { payload: transferred.payload, transferList };
     }
 
     /**
@@ -1237,7 +1245,9 @@ export class DataDrivenGenerator implements Generator {
         key: PipelineKey = this.defaultKey
     ): Promise<GenerationRegionTransfer> {
         const pipeline = this.pipelineFor(key, seed);
-        return (await this.buildTerrain(cx, cz, pipeline, beard, junctions)).transfer();
+        const region = await this.buildTerrain(cx, cz, pipeline, beard, junctions);
+        region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
+        return region.transfer();
     }
 
     /** @inheritDoc */
@@ -2019,7 +2029,13 @@ export class DataDrivenGenerator implements Generator {
      * column's blocks, which is the work that has to happen on the main thread after a worker
      * hands a chunk back and therefore the work that caps the pool.
      */
-    private toChunk(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): Chunk {
+    private toChunk(
+        cx: number,
+        cz: number,
+        region: GenerationRegion,
+        pipeline: SeededPipeline,
+        biomeRegion: GenerationRegion = region
+    ): Chunk {
         const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), this.chunkDimensionOf(pipeline));
         // The constructor is a load rather than a write, so nothing has told the chunk it is
         // unsaved. A generated chunk is exactly the thing that has never been written to disk.
@@ -2027,7 +2043,7 @@ export class DataDrivenGenerator implements Generator {
 
         this.recordBlockEntities(region, chunk, pipeline);
         this.recordEntitySpawns(region, chunk);
-        this.recordBiomes(cx, cz, chunk, pipeline);
+        this.recordBiomes(cx, cz, chunk, pipeline, biomeRegion);
         return chunk;
     }
 
@@ -2141,6 +2157,80 @@ export class DataDrivenGenerator implements Generator {
         }
     }
 
+    /** Samples and packs the Bedrock IDs for one chunk's biome sections. */
+    private packBiomeSections(cx: number, cz: number, pipeline: SeededPipeline): PackedBiomeSections {
+        const sections = subChunkCount(pipeline.dimension);
+        const sampled = new Uint16Array(sections * BIOME_CELLS_PER_SUBCHUNK);
+        const uniform = new Uint8Array(sections);
+        const offsets = new Uint32Array(sections + 1);
+        let packedLength = 0;
+
+        for (let section = 0; section < sections; section++) {
+            const sectionMinY = pipeline.dimension.minY + section * 16;
+            const sectionStart = section * BIOME_CELLS_PER_SUBCHUNK;
+            let first: number | undefined;
+            let isUniform = true;
+
+            for (let cellX = 0; cellX < 4; cellX++) {
+                for (let cellZ = 0; cellZ < 4; cellZ++) {
+                    for (let cellY = 0; cellY < 4; cellY++) {
+                        const id = bedrockBiomeIdOf(
+                            pipeline.biomeCells(
+                                (cx * 16 + cellX * 4) >> 2,
+                                (sectionMinY + cellY * 4) >> 2,
+                                (cz * 16 + cellZ * 4) >> 2
+                            )
+                        );
+                        const cell = sectionStart + (cellX * 4 + cellZ) * 4 + cellY;
+                        sampled[cell] = id;
+                        if (first === undefined) first = id;
+                        else if (id !== first) isUniform = false;
+                    }
+                }
+            }
+
+            offsets[section] = packedLength;
+            uniform[section] = isUniform ? 1 : 0;
+            packedLength += isUniform ? 1 : BLOCKS_PER_SUBCHUNK;
+        }
+        offsets[sections] = packedLength;
+
+        const ids = new Uint16Array(packedLength);
+        for (let section = 0; section < sections; section++) {
+            const start = offsets[section]!;
+            const cellStart = section * BIOME_CELLS_PER_SUBCHUNK;
+            if (uniform[section] === 1) {
+                ids[start] = sampled[cellStart]!;
+                continue;
+            }
+
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const cell = cellStart + ((localX >> 2) * 4 + (localZ >> 2)) * 4;
+                    const target = start + (localX << 8) + (localZ << 4);
+                    for (let localY = 0; localY < 16; localY++) {
+                        ids[target + localY] = sampled[cell + (localY >> 2)]!;
+                    }
+                }
+            }
+        }
+
+        return { ids, offsets };
+    }
+
+    /** Returns one compact section from the worker-transfer layout. */
+    private biomeSectionOf(
+        sections: PackedBiomeSections,
+        index: number
+    ): number | Uint16Array<ArrayBuffer> | undefined {
+        const start = sections.offsets[index];
+        const end = sections.offsets[index + 1];
+        if (start === undefined || end === undefined) return undefined;
+        if (end - start === 1) return sections.ids[start];
+        if (end - start === BLOCKS_PER_SUBCHUNK) return sections.ids.subarray(start, end);
+        return undefined;
+    }
+
     /**
      * Fills the chunk's biome column from the biome source.
      *
@@ -2148,52 +2238,28 @@ export class DataDrivenGenerator implements Generator {
      * one per block, so each cell fills its 64 blocks. That is the same expansion Geyser does
      * when it translates a Java chunk.
      *
-     * A section is resolved as its sixty-four cells and handed over whole, so a section whose
-     * cells all agree costs one number rather than the 4096 writes that would expand it to 8 KiB
-     * and then collapse it again.
+     * Workers return compact section IDs: one value for a uniform section, or 4096 packed values
+     * for a nonuniform one. Inline generation uses the same packer as its fallback.
      */
-    private recordBiomes(cx: number, cz: number, chunk: Chunk, pipeline: SeededPipeline): void {
+    private recordBiomes(
+        cx: number,
+        cz: number,
+        chunk: Chunk,
+        pipeline: SeededPipeline,
+        biomeRegion: GenerationRegion
+    ): void {
         const biomes = chunk.getBiomes();
         const sections = subChunkCount(pipeline.dimension);
         const floor = minSubChunk(pipeline.dimension);
-        const resolver = pipeline.biomeCells;
-        const cells = new Uint16Array(BIOME_CELLS_PER_SUBCHUNK);
+        const packed = biomeRegion.biomeSection(0) === undefined ? this.packBiomeSections(cx, cz, pipeline) : undefined;
 
         for (let section = 0; section < sections; section++) {
-            const sectionMinY = pipeline.dimension.minY + section * 16;
-            let uniform = true;
-            for (let cellX = 0; cellX < 4; cellX++) {
-                for (let cellZ = 0; cellZ < 4; cellZ++) {
-                    for (let cellY = 0; cellY < 4; cellY++) {
-                        const id = bedrockBiomeIdOf(
-                            resolver(
-                                (cx * 16 + cellX * 4) >> 2,
-                                (sectionMinY + cellY * 4) >> 2,
-                                (cz * 16 + cellZ * 4) >> 2
-                            )
-                        );
-                        cells[(cellX * 4 + cellZ) * 4 + cellY] = id;
-                        if (id !== cells[0]) uniform = false;
-                    }
-                }
+            const sectionIds =
+                packed === undefined ? biomeRegion.biomeSection(section) : this.biomeSectionOf(packed, section);
+            if (sectionIds === undefined) {
+                throw new Error(`The chunk at ${cx}, ${cz} has no biome IDs for section ${section}`);
             }
-
-            if (uniform) {
-                biomes.setSection(floor + section, cells[0]!);
-                continue;
-            }
-
-            const packed = new Uint16Array(BLOCKS_PER_SUBCHUNK);
-            for (let localX = 0; localX < 16; localX++) {
-                for (let localZ = 0; localZ < 16; localZ++) {
-                    const cell = ((localX >> 2) * 4 + (localZ >> 2)) * 4;
-                    const target = (localX << 8) | (localZ << 4);
-                    for (let localY = 0; localY < 16; localY++) {
-                        packed[target | localY] = cells[cell + (localY >> 2)]!;
-                    }
-                }
-            }
-            biomes.setSection(floor + section, packed);
+            biomes.setSection(floor + section, sectionIds);
         }
     }
 

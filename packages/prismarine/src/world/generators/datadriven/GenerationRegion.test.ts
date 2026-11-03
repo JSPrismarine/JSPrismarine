@@ -769,6 +769,32 @@ describe('terrain name writer', () => {
 });
 
 describe('transfer', () => {
+    it('round trips compact biome sections through the transfer list', () => {
+        const built = terrainTile(1, -2);
+        const nonuniform = new Uint16Array(4096).fill(7);
+        nonuniform[0] = 3;
+        const ids = new Uint16Array(4097);
+        ids[0] = 1;
+        ids.set(nonuniform, 1);
+        const offsets = new Uint32Array([0, 1, 4097]);
+        built.setBiomeSections({ ids, offsets });
+
+        const transferred = built.transfer();
+        expect(transferred.transferList).toContain(ids.buffer);
+        expect(transferred.transferList).toContain(offsets.buffer);
+        const delivered = structuredClone(transferred.payload, { transfer: [...transferred.transferList] });
+        const landed = GenerationRegion.adopt(delivered, {
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        });
+
+        expect(landed.biomeSection(0)).toBe(1);
+        expect(landed.biomeSection(1)).toEqual(nonuniform);
+        expect(landed.workerInput()).not.toHaveProperty('biomeSections');
+    });
+
     it('rebuilds air classification before updating an adopted column ceiling', () => {
         const built = terrainTile(0, 0);
         built.writeName(0, -64, 0, STONE.name);
