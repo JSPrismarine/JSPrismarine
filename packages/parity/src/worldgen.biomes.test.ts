@@ -18,6 +18,7 @@ import { FAMILIES } from './families.ts';
 import {
     loadJavaBiomePoints,
     loadJavaCarverBiomes,
+    loadJavaClimateTies,
     loadJavaWorldgenRegistries,
     loadNetworkBiomes,
     unpackClimatePoint
@@ -126,7 +127,12 @@ const overworldAt = (seed: bigint) => {
     return { entries, registries, sampler: createClimateSampler(state) };
 };
 
-const needs = [REFERENCES.worldgenBiomePoints, REFERENCES.worldgenCarverBiomes, REFERENCES.bedrockBiomeDefinitions];
+const needs = [
+    REFERENCES.worldgenBiomePoints,
+    REFERENCES.worldgenClimateTies,
+    REFERENCES.worldgenCarverBiomes,
+    REFERENCES.bedrockBiomeDefinitions
+];
 
 describeFamily(FAMILIES.worldgenBiomes, needs, () => {
     const { gaps, lookups, boxes, detail, cases } = compareBiomeSource();
@@ -170,6 +176,30 @@ describeFamily(FAMILIES.worldgenBiomes, needs, () => {
         expect(vectors.parameterLists.length).toBeGreaterThan(0);
         expect(lookups).toBe(expectedLookups);
         expect(boxes).toBe(expectedBoxes);
+    });
+
+    it('answers an exact tie the way a Java thread with no history does, whatever was looked up before', () => {
+        const vectors = loadJavaClimateTies();
+        const { entries, sampler } = overworldAt(BigInt(vectors.seed));
+        const gaps: string[] = [];
+
+        for (const cell of vectors.cells) {
+            const [quartX, quartY, quartZ] = cell.quart as [number, number, number];
+            const target = sampler.sample(quartX, quartY, quartZ);
+            // Both sides of the tie are real: Java's own answer follows the earlier lookup.
+            expect(new Set(cell.primed.map((entry) => entry.answer))).toEqual(new Set(cell.tied));
+            expect(Object.values(target)).toEqual(cell.target);
+
+            for (const side of cell.primed) {
+                const parameters = new ClimateParameterList(entries);
+                parameters.find(targetOf(side.primer));
+                const found = parameters.find(target);
+                if (found !== cell.fresh) gaps.push(`${cell.quart.join(',')} after ${side.primedWith}: ${found}`);
+            }
+        }
+
+        expect(gaps).toEqual([]);
+        reportParityProgress(FAMILIES.worldgenBiomes, { javaTieCells: vectors.cells.length });
     });
 
     it("selects a data pack's carvers from the noise biome Java reads, not the jittered one", () => {

@@ -289,6 +289,27 @@ export const loadJavaBiomePoints = (): JavaBiomePointVectors =>
     // Parsed JSON boundary; the dumper writes one entry per climate parameter list.
     readJson(join(worldgenRoot, 'vectors/biome-points.json')) as JavaBiomePointVectors;
 
+/** Overworld cells where two climate boxes tie, and what Java answers with and without history. */
+export interface JavaClimateTieVectors {
+    seed: string;
+    cells: {
+        quart: number[];
+        /** The quantized climate target at the cell. */
+        target: number[];
+        /** The biomes the tied boxes belong to. */
+        tied: string[];
+        /** The answer of a Java thread that has looked nothing up. */
+        fresh: string;
+        /** The answer after an earlier lookup landed on each tied biome. */
+        primed: { primedWith: string; primer: number[]; answer: string }[];
+    }[];
+}
+
+/** Reads the tie cells the oracle dumped from Java's search tree. */
+export const loadJavaClimateTies = (): JavaClimateTieVectors =>
+    // Parsed JSON boundary; the dumper writes this file.
+    readJson(join(worldgenRoot, 'vectors/climate-ties.json')) as JavaClimateTieVectors;
+
 /** The biome Java reads a chunk's carvers from, and the jittered biome at the same corner. */
 export interface JavaCarverBiomeVectors {
     seed: string;

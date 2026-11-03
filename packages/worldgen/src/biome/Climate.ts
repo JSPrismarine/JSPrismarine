@@ -144,6 +144,12 @@ export const climateFitness = (point: ClimateParameterPoint, target: ClimateTarg
 };
 
 abstract class TreeNode<T> {
+    /**
+     * The depth-first position of the first leaf under this node, counting leaves in the order
+     * {@link TreeSubtree.search} visits them. It is assigned once the tree is built.
+     */
+    public firstRank = 0;
+
     public constructor(public readonly parameterSpace: readonly ClimateParameter[]) {}
 
     /** The lower bound on the distance from the target to anything inside this node. */
@@ -205,6 +211,11 @@ class TreeLeaf<T> extends TreeNode<T> {
         super(parameterSpaceOf(point));
     }
 
+    /** The leaf's depth-first position, which settles an exact tie between two leaves. */
+    public get rank(): number {
+        return this.firstRank;
+    }
+
     public search(): TreeLeaf<T> {
         return this;
     }
@@ -218,15 +229,33 @@ class TreeSubtree<T> extends TreeNode<T> {
         super(parameterSpace ?? buildParameterSpace(children));
     }
 
+    /**
+     * Returns the nearest leaf, and among leaves at the same distance the one that comes first
+     * in depth-first order, whatever `candidate` is.
+     *
+     * Java's search keeps the candidate on a tie, because it replaces it only on a strictly
+     * smaller distance. Its candidate is the thread's previous result, so which of two tied
+     * leaves comes back depends on what the thread looked up before. That is a race here, where
+     * chunk tasks finish in any order. A search with no candidate returns the first tied leaf
+     * in depth-first order, so this reproduces that answer for every candidate: a node whose
+     * lower bound equals the best distance is searched when it starts before the best leaf, and
+     * a tied leaf replaces the best only when it ranks earlier.
+     */
     public search(target: ClimateTargetPoint, candidate: TreeLeaf<T> | undefined): TreeLeaf<T> {
         let minDistance = candidate === undefined ? Number.POSITIVE_INFINITY : candidate.distance(target);
         let closest = candidate;
         for (const child of this.children) {
             const childDistance = child.distance(target);
-            if (minDistance > childDistance) {
+            if (
+                minDistance > childDistance ||
+                (minDistance === childDistance && (closest as TreeLeaf<T>).rank > child.firstRank)
+            ) {
                 const leaf = child.search(target, closest);
                 const leafDistance = child === leaf ? childDistance : leaf.distance(target);
-                if (minDistance > leafDistance) {
+                if (
+                    minDistance > leafDistance ||
+                    (minDistance === leafDistance && (closest as TreeLeaf<T>).rank > leaf.rank)
+                ) {
                     minDistance = leafDistance;
                     closest = leaf;
                 }
@@ -236,6 +265,20 @@ class TreeSubtree<T> extends TreeNode<T> {
         return closest as TreeLeaf<T>;
     }
 }
+
+/**
+ * Numbers the leaves in the order a search visits them and records each node's first number.
+ *
+ * Returns how many leaves the node holds, so the next sibling starts after them.
+ */
+const assignRanks = <T>(node: TreeNode<T>, first: number): number => {
+    node.firstRank = first;
+    if (!(node instanceof TreeSubtree)) return 1;
+
+    let next = first;
+    for (const child of node.children) next += assignRanks(child, next);
+    return next - first;
+};
 
 const buildParameterSpace = <T>(children: readonly TreeNode<T>[]): ClimateParameter[] => {
     if (children.length === 0) throw new RangeError('A search tree node needs at least one child');
@@ -339,8 +382,12 @@ export interface ClimateEntry<T> {
  * lower-bound distance already exceeds the best box found so far. {@link findBruteForce} is
  * the same query by linear scan, and the two agree for every target.
  *
- * One query seeds the next with its result, as Java's per-thread `lastResult` does, so a
- * sequence of lookups has to be replayed in order to reproduce how ties are broken.
+ * Two boxes can sit at exactly the same distance from a target. Java breaks that tie in favor of
+ * the box a thread found last, so its answer depends on that thread's earlier lookups. This
+ * list keeps Java's seeding, because starting the search near the answer prunes most of the
+ * tree, but breaks the tie by tree order instead: a lookup returns the first nearest box in
+ * depth-first order, which is what Java returns for a thread with no earlier result. A lookup
+ * is then a function of the target alone, and chunks generated in any order see the same biomes.
  */
 export class ClimateParameterList<T> {
     private readonly root: TreeNode<T>;
@@ -354,6 +401,7 @@ export class ClimateParameterList<T> {
         if (entries.length === 0) throw new RangeError('A climate parameter list needs at least one entry');
         const leaves = entries.map((entry) => new TreeLeaf(entry.point, entry.value));
         this.root = buildTree<T>(leaves, childrenPerNode);
+        assignRanks(this.root, 0);
     }
 
     /** Returns the value of the box nearest the target, through the search tree. */

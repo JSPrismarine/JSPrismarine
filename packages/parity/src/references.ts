@@ -225,6 +225,13 @@ export const REFERENCES = {
         "Java's multi-noise biome lookups for the overworld and the end"
     ),
 
+    /** The overworld cells whose nearest climate box is tied, with Java's answer after each history. */
+    worldgenClimateTies: committed(
+        'worldgen-climate-ties',
+        'packages/worldgen/vectors/climate-ties.json',
+        "Java's multi-noise lookups at exact ties, with and without an earlier lookup"
+    ),
+
     /** The biome Java reads a source chunk's carvers from, beside the jittered biome at its corner. */
     worldgenCarverBiomes: committed(
         'worldgen-carver-biomes',

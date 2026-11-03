@@ -215,8 +215,12 @@ here too.
 ranges plus the tie-breaking offset, quantized by Java's single-precision multiply by 10000.
 `ClimateParameterList` builds the same search tree Java builds over the vanilla overworld's 7594
 parameter points and answers a nearest-box query through it; `findBruteForce` is the linear scan
-the tests check it against. `FixedBiomeSource`, `CheckerboardBiomeSource` and `TheEndBiomeSource`
-cover the other three layouts.
+the tests check it against. When two boxes are exactly as near, Java keeps the one its thread found
+last, so its answer depends on that thread's earlier lookups. `ClimateParameterList` returns the box
+that comes first in the tree instead, which is Java's answer for a thread with no earlier lookup.
+A biome then depends on the seed and the position only, whatever order chunks generate in.
+`FixedBiomeSource`, `CheckerboardBiomeSource` and `TheEndBiomeSource` cover the other three
+layouts.
 
 `BiomeManager` is the per-block getter the surface pass needs. A biome source answers per 4 by 4
 by 4 cell, and Java does not snap a block to its own cell: it picks whichever of the eight
@@ -242,6 +246,7 @@ steps.
 | One synthetic rule per condition type | 15 rules, 9 columns each | exact |
 | Climate parameter lookup | 7594 overworld points, 5 nether points, 8 targets each | exact |
 | Search tree against a brute-force scan | 8 oracle targets plus a 405-point grid per list | identical |
+| Climate ties | 3 overworld cells, a fresh thread and a thread primed with each tied biome | fresh-thread answer, whatever the history |
 | Biome zoomer and its seed hash | 6 positions, 6 seeds | exact |
 | End biome source | 32 cells over all five end biomes | exact |
 | Carvers | `cave` and `canyon`, 5 chunks each, every opened block | exact |
@@ -270,6 +275,9 @@ pnpm prettier --write packages/worldgen/vectors/surface-*.json packages/worldgen
 
 Run it from inside `node_modules/.cache/jsprismarine/`: Mojang's logger writes a `logs/` directory
 into the working directory.
+
+`utils/oracle/DumpClimateTies.java` writes `vectors/climate-ties.json` the same way. It runs every
+lookup on a new thread, because Java keeps the previous result in a thread-local.
 
 `utils/oracle/DumpCarverBiomes.java` writes `vectors/carver-biomes.json` and takes one argument,
 the output directory. Compile and run it the same way as the surface dumper.

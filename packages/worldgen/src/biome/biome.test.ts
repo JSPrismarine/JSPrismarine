@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import biomeVectors from '../../vectors/biome-points.json' with { type: 'json' };
+import tieVectors from '../../vectors/climate-ties.json' with { type: 'json' };
 import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
@@ -121,6 +122,87 @@ describe.each(biomeVectors.parameterLists)('the $name climate parameter list', (
             );
             expect(fitness).toBe(nearest(target));
             expect(wide.findBruteForce(target)).toBeTypeOf('string');
+        }
+    });
+});
+
+describe('climate lookups at exact ties', () => {
+    // Two boxes can sit at the same distance from a target. Java keeps whichever one the thread
+    // found last, so `climate-ties.json` records both the answer with no history and the answers
+    // after each tied side was looked up first.
+    const overworld = biomeVectors.parameterLists.find((list) => list.name === 'minecraft:overworld');
+    if (!overworld) throw new Error('the vector file has no overworld parameter list');
+    const entries = overworld.points.map((row) => unpack(row, overworld.biomes));
+    const randomState = new RandomState(
+        worldgenData,
+        BigInt(tieVectors.seed),
+        worldgenData.settings('minecraft:overworld')
+    );
+
+    it('is a case Java itself answers by history', () => {
+        // Without this the rows below would pass for a list that never had a tie to break.
+        for (const cell of tieVectors.cells) {
+            expect(cell.tied.length).toBeGreaterThan(1);
+            expect(new Set(cell.primed.map((entry) => entry.answer))).toEqual(new Set(cell.tied));
+        }
+    });
+
+    it.each(tieVectors.cells)('samples the same climate as Java at quart $quart', (cell) => {
+        const [quartX, quartY, quartZ] = cell.quart as [number, number, number];
+        const target = createClimateSampler(randomState).sample(quartX, quartY, quartZ);
+        expect(target).toEqual(targetOf(cell.target));
+    });
+
+    it.each(tieVectors.cells)('answers the lookup of a fresh Java thread at quart $quart', (cell) => {
+        const target = targetOf(cell.target);
+        expect(new ClimateParameterList(entries).find(target)).toBe(cell.fresh);
+        expect(new ClimateParameterList(entries).findBruteForce(target)).toBeTypeOf('string');
+    });
+
+    it.each(tieVectors.cells)('ignores which tied side an earlier lookup landed on at quart $quart', (cell) => {
+        const target = targetOf(cell.target);
+        for (const side of cell.primed) {
+            const parameters = new ClimateParameterList(entries);
+            // The primer resolves to the tied biome, which is what leaves its box as the
+            // starting candidate. Java's own answer to the next lookup follows that box.
+            expect(parameters.find(targetOf(side.primer))).toBe(side.primedWith);
+            expect(parameters.find(target)).toBe(cell.fresh);
+        }
+    });
+
+    it('answers every lookup the same way whichever order the cells are visited in', () => {
+        const sampler = createClimateSampler(randomState);
+        const targets: ClimateTargetPoint[] = [];
+        // The neighborhood of the tied cells, in column order as a chunk fill visits it.
+        for (let quartX = 60; quartX < 70; quartX++) {
+            for (let quartY = -16; quartY < 48; quartY += 4) {
+                for (let quartZ = -190; quartZ < -182; quartZ++) {
+                    targets.push(sampler.sample(quartX, quartY, quartZ));
+                }
+            }
+        }
+
+        // The two lists see opposite histories in front of every lookup.
+        const forward = new ClimateParameterList(entries);
+        const backward = new ClimateParameterList(entries);
+        const forwardAnswers = targets.map((target) => forward.find(target));
+        const backwardAnswers = [...targets].reverse().map((target) => backward.find(target));
+        expect(forwardAnswers).toEqual(backwardAnswers.reverse());
+        expect(targets.length).toBeGreaterThan(1000);
+    });
+
+    it('keeps the same tree order when the branching factor is small', () => {
+        // A deeper tree reorders leaves, which moves the tied box that comes first. The answer
+        // still has to be the same however the lookups before it went.
+        for (const cell of tieVectors.cells) {
+            const target = targetOf(cell.target);
+            const answers = new Set<string>();
+            for (const side of cell.primed) {
+                const parameters = new ClimateParameterList(entries, 3);
+                parameters.find(targetOf(side.primer));
+                answers.add(parameters.find(target));
+            }
+            expect(answers.size).toBe(1);
         }
     });
 });

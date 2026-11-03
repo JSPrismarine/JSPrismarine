@@ -1,0 +1,62 @@
+{
+    "seed": "1234",
+    "cells": [
+        {
+            "quart": [65, 0, -186],
+            "target": [2000, -2593, -6130, 2835, 2740, 66],
+            "distance": 7507600,
+            "tied": ["minecraft:deep_ocean", "minecraft:deep_lukewarm_ocean"],
+            "fresh": "minecraft:deep_ocean",
+            "primed": [
+                {
+                    "primedWith": "minecraft:deep_ocean",
+                    "primer": [-1500, -10000, -10500, -10000, 0, -10000],
+                    "answer": "minecraft:deep_ocean"
+                },
+                {
+                    "primedWith": "minecraft:deep_lukewarm_ocean",
+                    "primer": [3750, 0, -7525, 0, 0, 0],
+                    "answer": "minecraft:deep_lukewarm_ocean"
+                }
+            ]
+        },
+        {
+            "quart": [65, 16, -186],
+            "target": [2000, -2593, -6130, 2835, -2259, 66],
+            "distance": 5103081,
+            "tied": ["minecraft:deep_ocean", "minecraft:deep_lukewarm_ocean"],
+            "fresh": "minecraft:deep_ocean",
+            "primed": [
+                {
+                    "primedWith": "minecraft:deep_ocean",
+                    "primer": [-1500, -10000, -10500, -10000, 0, -10000],
+                    "answer": "minecraft:deep_ocean"
+                },
+                {
+                    "primedWith": "minecraft:deep_lukewarm_ocean",
+                    "primer": [3750, 0, -7525, 0, 0, 0],
+                    "answer": "minecraft:deep_lukewarm_ocean"
+                }
+            ]
+        },
+        {
+            "quart": [65, 40, -186],
+            "target": [2000, -2593, -6130, 2835, -9759, 66],
+            "distance": 95238081,
+            "tied": ["minecraft:deep_ocean", "minecraft:deep_lukewarm_ocean"],
+            "fresh": "minecraft:deep_ocean",
+            "primed": [
+                {
+                    "primedWith": "minecraft:deep_ocean",
+                    "primer": [-1500, -10000, -10500, -10000, 0, -10000],
+                    "answer": "minecraft:deep_ocean"
+                },
+                {
+                    "primedWith": "minecraft:deep_lukewarm_ocean",
+                    "primer": [3750, 0, -7525, 0, 0, 0],
+                    "answer": "minecraft:deep_lukewarm_ocean"
+                }
+            ]
+        }
+    ]
+}
