@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { MAX_SCHEDULED_TICKS_PER_TICK, TICK_PRIORITIES, TickList, TickScheduler } from './scheduler';
+import type { ScheduledTick } from './scheduler';
 import type { BlockPosition } from './world';
 
 const at = (x: number, y = 0, z = 0): BlockPosition => ({ x, y, z });
@@ -10,6 +11,58 @@ const drain = (list: TickList, tick: number, maxTicks?: number): string[] => {
     list.tick(tick, (scheduled) => ran.push(`${scheduled.type}@${scheduled.at.x}`), maxTicks);
     return ran;
 };
+
+interface ReferenceTickList {
+    readonly queue: ScheduledTick[];
+    readonly queued: Set<string>;
+    nextOrder: number;
+}
+
+const referenceIdentity = (at: BlockPosition, type: string): string => `${at.x},${at.y},${at.z}|${type}`;
+
+const referenceSchedule = (
+    list: ReferenceTickList,
+    position: BlockPosition,
+    type: string,
+    triggerTick: number,
+    priority: number
+): boolean => {
+    const key = referenceIdentity(position, type);
+    if (list.queued.has(key)) return false;
+    list.queued.add(key);
+    list.queue.push({ type, at: position, triggerTick, priority, subTickOrder: list.nextOrder++ });
+    return true;
+};
+
+const referenceTick = (
+    list: ReferenceTickList,
+    currentTick: number,
+    maxTicks: number,
+    run: (tick: ScheduledTick) => void
+): number => {
+    list.queue.sort(
+        (left, right) =>
+            left.triggerTick - right.triggerTick ||
+            left.priority - right.priority ||
+            left.subTickOrder - right.subTickOrder
+    );
+
+    const collected: ScheduledTick[] = [];
+    while (collected.length < maxTicks) {
+        const next = list.queue[0];
+        if (next === undefined || next.triggerTick > currentTick) break;
+        list.queue.shift();
+        list.queued.delete(referenceIdentity(next.at, next.type));
+        collected.push(next);
+    }
+
+    collected.sort((left, right) => left.priority - right.priority || left.subTickOrder - right.subTickOrder);
+    for (const tick of collected) run(tick);
+    return collected.length;
+};
+
+const tickSignature = (tick: ScheduledTick): string =>
+    `${tick.at.x},${tick.at.y},${tick.at.z}|${tick.type}|${tick.triggerTick}|${tick.priority}|${tick.subTickOrder}`;
 
 describe('TickList', () => {
     it('runs nothing before the trigger tick and the tick on it', () => {
@@ -102,6 +155,76 @@ describe('TickList', () => {
         list.schedule(at(1), 'early', 3);
 
         expect(drain(list, 10, 1)).toEqual(['early@1']);
+    });
+
+    it('matches the prior drain order across generated queues, budgets, and handler scheduling', () => {
+        let randomState = 0x51c0ffee;
+        const random = (limit: number): number => {
+            randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+            return randomState % limit;
+        };
+
+        for (let sample = 0; sample < 40; sample++) {
+            const actual = new TickList();
+            const reference: ReferenceTickList = { queue: [], queued: new Set(), nextOrder: 0 };
+
+            for (let index = 0; index < 80; index++) {
+                const position = at(random(32) - 16, random(5) - 2, random(32) - 16);
+                const type = `type:${random(6)}`;
+                const triggerTick = random(8) + 1;
+                const priority = random(7) - 3;
+                expect(actual.schedule(position, type, triggerTick, priority)).toBe(
+                    referenceSchedule(reference, position, type, triggerTick, priority)
+                );
+            }
+
+            for (let currentTick = 1; currentTick <= 8; currentTick++) {
+                const maxTicks = random(7);
+                const actualRun: string[] = [];
+                const referenceRun: string[] = [];
+                const runActual = (tick: ScheduledTick): void => {
+                    actualRun.push(tickSignature(tick));
+                    if (tick.type !== 'followup' && tick.subTickOrder % 7 === 0) {
+                        actual.schedule(at(1000 + tick.subTickOrder), 'followup', currentTick, tick.priority);
+                    }
+                };
+                const runReference = (tick: ScheduledTick): void => {
+                    referenceRun.push(tickSignature(tick));
+                    if (tick.type !== 'followup' && tick.subTickOrder % 7 === 0) {
+                        referenceSchedule(
+                            reference,
+                            at(1000 + tick.subTickOrder),
+                            'followup',
+                            currentTick,
+                            tick.priority
+                        );
+                    }
+                };
+
+                expect(actual.tick(currentTick, runActual, maxTicks)).toBe(
+                    referenceTick(reference, currentTick, maxTicks, runReference)
+                );
+                expect(actualRun).toEqual(referenceRun);
+                expect(actual.count()).toBe(reference.queue.length);
+            }
+        }
+    });
+
+    it('removes a due prefix with one splice instead of shifting each due tick', () => {
+        const list = new TickList();
+        const pending = 1000;
+        const due = 125;
+        for (let index = 0; index < pending; index++) list.schedule(at(index), 'bulk', index < due ? 1 : 2);
+
+        const splice = vi.spyOn(Array.prototype, 'splice');
+        try {
+            expect(list.tick(1, () => undefined)).toBe(due);
+            expect(splice.mock.calls).toEqual([[0, due]]);
+            // The one prefix splice moves each of the 875 future entries once, regardless of the due count.
+            expect(list.count()).toBe(pending - due);
+        } finally {
+            splice.mockRestore();
+        }
     });
 
     it('drops queued ticks at a position that was cleared', () => {

@@ -161,14 +161,16 @@ export class TickList {
     tick(currentTick: number, run: TickHandler, maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK): number {
         this.queue.sort(drainOrder);
 
-        const collected: ScheduledTick[] = [];
-        while (collected.length < maxTicks) {
-            const next = this.queue[0];
+        let dueCount = 0;
+        while (dueCount < maxTicks) {
+            const next = this.queue[dueCount];
             if (next === undefined || next.triggerTick > currentTick) break;
-            this.queue.shift();
-            this.queued.delete(identity(next));
-            collected.push(next);
+            dueCount++;
         }
+
+        // A single prefix splice moves the remaining queue once; shifting each due tick moves it repeatedly.
+        const collected = this.queue.splice(0, dueCount);
+        for (const tick of collected) this.queued.delete(identity(tick));
 
         collected.sort(intraTickDrainOrder);
         this.batch = collected;
