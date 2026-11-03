@@ -788,7 +788,6 @@
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getMaxY`",
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getMinY`",
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getOrCreateSubChunk`",
-    "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getSubChunks`",
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getX`",
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getZ`",
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.networkSerialize`",

@@ -44,8 +44,10 @@ export default class Chunk {
     private z: number;
     private hasChanged: boolean;
     private readonly dimension: DimensionType;
-
-    private readonly subChunks: Map<number, SubChunk> = new Map();
+    private readonly minSubChunkY: number;
+    private readonly subChunks: Array<SubChunk | undefined>;
+    private readonly subChunkOrder: number[] = [];
+    private storedSubChunkCount = 0;
 
     /**
      * The chests, signs and furnaces standing in this chunk, keyed by position.
@@ -99,11 +101,13 @@ export default class Chunk {
         this.z = chunkZ;
         this.hasChanged = false;
         this.dimension = dimension;
+        this.minSubChunkY = minSubChunk(dimension);
+        this.subChunks = new Array(subChunkCount(dimension));
         this.biomes = new ChunkBiomes(dimension);
 
         // The argument used to be ignored, so every chunk read back from disk came out empty and
         // the provider silently regenerated terrain on each load.
-        for (const [index, subChunk] of subChunks) this.subChunks.set(index, subChunk);
+        for (const [index, subChunk] of subChunks) this.setSubChunk(index, subChunk);
     }
 
     /** The biome of every block in this chunk, live, for a generator or a provider to write. */
@@ -195,7 +199,7 @@ export default class Chunk {
     }
 
     public getHeight(): number {
-        return this.subChunks.size;
+        return this.storedSubChunkCount;
     }
 
     /**
@@ -209,7 +213,7 @@ export default class Chunk {
         const floor = minSubChunk(this.dimension);
         let topEmpty = maxSubChunk(this.dimension);
 
-        while (topEmpty >= floor && (this.subChunks.get(topEmpty)?.isEmpty() ?? true)) {
+        while (topEmpty >= floor && (this.subChunkAtIndex(topEmpty)?.isEmpty() ?? true)) {
             topEmpty--;
         }
 
@@ -237,7 +241,7 @@ export default class Chunk {
      */
     public getTopStoredY(): number {
         let top = this.dimension.minY;
-        for (const index of this.subChunks.keys()) {
+        for (const index of this.subChunkOrder) {
             const above = (index + 1) * 16;
             if (above > top) top = above;
         }
@@ -254,17 +258,44 @@ export default class Chunk {
             throw new Error(`Invalid subchunk height: ${y}`);
         }
 
-        return this.subChunks.get(y) ?? null;
+        return this.subChunkAtIndex(y);
     }
 
     public getOrCreateSubChunk(y: number): SubChunk {
         const subChunk = new SubChunk();
-        this.subChunks.set(y, subChunk);
+        this.setSubChunk(y, subChunk);
         return subChunk;
     }
 
+    /** Iterates stored sub chunks in insertion order without allocating a Map view. */
+    public *getSubChunkEntries(): IterableIterator<[number, SubChunk]> {
+        for (const index of this.subChunkOrder) {
+            yield [index, this.subChunks[index - this.minSubChunkY]!];
+        }
+    }
+
+    /** Returns a Map snapshot of stored sub chunks in insertion order. */
     public getSubChunks(): Map<number, SubChunk> {
-        return this.subChunks;
+        return new Map(this.getSubChunkEntries());
+    }
+
+    private subChunkAtIndex(index: number): SubChunk | null {
+        const offset = index - this.minSubChunkY;
+        if (offset < 0 || offset >= this.subChunks.length) return null;
+        return this.subChunks[offset] ?? null;
+    }
+
+    private setSubChunk(index: number, subChunk: SubChunk): void {
+        const offset = index - this.minSubChunkY;
+        if (offset < 0 || offset >= this.subChunks.length) {
+            throw new Error(`Invalid subchunk height: ${index}`);
+        }
+
+        if (this.subChunks[offset] === undefined) {
+            this.subChunkOrder.push(index);
+            this.storedSubChunkCount++;
+        }
+        this.subChunks[offset] = subChunk;
     }
 
     /**
@@ -372,7 +403,8 @@ export default class Chunk {
         if (y < this.dimension.minY || y > maxY(this.dimension)) return null;
 
         // `>> 4` floors towards negative infinity, which is what a floor below zero needs.
-        return this.subChunks.get(y >> 4) ?? null;
+        // The y guard also guarantees this offset is inside the dimension-sized array.
+        return this.subChunks[(y >> 4) - this.minSubChunkY] ?? null;
     }
 
     /**
@@ -451,7 +483,7 @@ export default class Chunk {
 
         for (let y = fromY; y <= toY;) {
             const index = this.requireSubChunkIndex(y);
-            const subChunk = this.subChunks.get(index) ?? this.getOrCreateSubChunk(index);
+            const subChunk = this.subChunkAtIndex(index) ?? this.getOrCreateSubChunk(index);
 
             // Stop at whichever comes first: the end of the run, or the sub chunk boundary.
             const spanEnd = Math.min(toY, (index + 1) * 16 - 1);
@@ -502,8 +534,8 @@ export default class Chunk {
      * nothing to collide.
      */
     private mutationCount(): number {
-        let total = this.subChunks.size;
-        for (const subChunk of this.subChunks.values()) total += subChunk.getRevision();
+        let total = this.storedSubChunkCount;
+        for (const index of this.subChunkOrder) total += this.subChunkAtIndex(index)!.getRevision();
 
         return total;
     }
@@ -538,7 +570,7 @@ export default class Chunk {
         }
 
         for (let y = floor; y < this.getTopEmpty(); ++y) {
-            (this.subChunks.get(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
+            (this.subChunkAtIndex(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
         }
 
         // One biome section per sub chunk of the client's column, which is the client's full

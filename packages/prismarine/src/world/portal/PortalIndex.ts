@@ -110,7 +110,7 @@ export class PortalIndex {
     public chunkLoaded(chunk: Chunk): void {
         const originX = chunk.getX() * SUB_CHUNK_SIDE;
         const originZ = chunk.getZ() * SUB_CHUNK_SIDE;
-        for (const [index, subChunk] of chunk.getSubChunks()) {
+        for (const [index, subChunk] of chunk.getSubChunkEntries()) {
             const storage = subChunk.getStorages()[0];
             if (storage === undefined) continue;
 

@@ -150,7 +150,7 @@ const run = async (): Promise<Run> => {
         for (const { x, z, chunk } of generated) {
             output.update(`${x},${z}\0`);
             output.update(chunk.networkSerialize());
-            for (const subChunk of chunk.getSubChunks().values()) {
+            for (const [, subChunk] of chunk.getSubChunkEntries()) {
                 for (const storage of subChunk.getStorages()) {
                     // Inspect the private palette buffer here without widening the runtime API.
                     const indices = Reflect.get(storage, 'blocks');

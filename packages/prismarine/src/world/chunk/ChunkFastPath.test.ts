@@ -37,6 +37,25 @@ describe('world', () => {
             expect(chunk.getNetworkSubChunkCount()).toBe(5);
         });
 
+        it('indexes the bottom and top sub chunks while preserving insertion order in the map view', () => {
+            const chunk = new Chunk(0, 0);
+            chunk.getOrCreateSubChunk(19);
+            chunk.getOrCreateSubChunk(-4);
+
+            expect(chunk.getHeight()).toBe(2);
+            expect([...chunk.getSubChunkEntries()].map(([index]) => index)).toEqual([19, -4]);
+            expect([...chunk.getSubChunks().keys()]).toEqual([19, -4]);
+
+            const view = chunk.getSubChunks();
+            view.delete(-4);
+            expect(chunk.getSubChunk(-4)).not.toBeNull();
+
+            chunk.setBlockRuntimeId(0, -64, 0, BlockRuntimeIds.getByName('minecraft:stone'));
+            chunk.setBlockRuntimeId(0, 319, 0, BlockRuntimeIds.getByName('minecraft:dirt'));
+            expect(chunk.getBlockRuntimeId(0, -64, 0)).toBe(BlockRuntimeIds.getByName('minecraft:stone'));
+            expect(chunk.getBlockRuntimeId(0, 319, 0)).toBe(BlockRuntimeIds.getByName('minecraft:dirt'));
+        });
+
         it('fillColumn covers exactly the requested range, inclusive', () => {
             const stone = BlockRuntimeIds.getByName('minecraft:stone');
             const chunk = new Chunk(0, 0);

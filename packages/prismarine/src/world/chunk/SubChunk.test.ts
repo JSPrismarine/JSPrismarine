@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import BinaryStream from '@jsprismarine/binaryutils';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import BlockStorage from './BlockStorage';
 import SubChunk from './SubChunk';
 
 describe('SubChunk', () => {
@@ -31,5 +32,18 @@ describe('SubChunk', () => {
         expect(subChunk.getBlockRuntimeId(0, 0, 0, 0)).toBe(BlockRuntimeIds.getByName('minecraft:air'));
         expect(subChunk.getBlockRuntimeId(0, 0, 0, 1)).toBe(stone);
         expect(subChunk.getRevision()).toBe(1);
+    });
+
+    it('keeps storage iteration in the order supplied by the decoder', () => {
+        const lower = new BlockStorage({});
+        const upper = new BlockStorage({});
+        const subChunk = new SubChunk(
+            new Map([
+                [1, upper],
+                [0, lower]
+            ])
+        );
+
+        expect(subChunk.getStorages()).toEqual([upper, lower]);
     });
 });

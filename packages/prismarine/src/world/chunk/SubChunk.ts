@@ -17,7 +17,8 @@ export const isSubChunkVersion = (version: number): version is SubChunkVersion =
     version === 1 || version === 8 || version === 9;
 
 export default class SubChunk {
-    private storages: Map<number, BlockStorage> = new Map();
+    private storages: Array<BlockStorage | undefined> = [];
+    private readonly storageOrder: number[] = [];
 
     /**
      * The version this sub chunk was read from, so writing it back does not silently upgrade it.
@@ -36,7 +37,7 @@ export default class SubChunk {
     private revision = 0;
 
     public constructor(storages: Map<number, BlockStorage> = new Map()) {
-        this.storages = storages;
+        for (const [index, storage] of storages) this.setStorage(index, storage);
     }
 
     public getRevision(): number {
@@ -47,22 +48,28 @@ export default class SubChunk {
      * Returns if the SubChunk is all air (basically empty).
      */
     public isEmpty(): boolean {
-        for (const storage of this.storages.values()) {
+        for (const index of this.storageOrder) {
+            const storage = this.storages[index]!;
             if (!storage.isEmpty()) return false;
         }
         return true;
     }
 
+    private setStorage(index: number, storage: BlockStorage): void {
+        if (this.storages[index] === undefined) this.storageOrder.push(index);
+        this.storages[index] = storage;
+    }
+
     private getOrCreateStorage(index: number): BlockStorage {
         for (let i = 0; i <= index; i++) {
-            if (!this.storages.has(i)) this.storages.set(i, new BlockStorage({}));
+            if (this.storages[i] === undefined) this.setStorage(i, new BlockStorage({}));
         }
 
-        return this.storages.get(index)!;
+        return this.storages[index]!;
     }
 
     public getStorages(): BlockStorage[] {
-        return Array.from(this.storages.values());
+        return this.storageOrder.map((index) => this.storages[index]!);
     }
 
     /**
@@ -78,7 +85,7 @@ export default class SubChunk {
             return this.getBlock(bx.getX(), bx.getY(), bx.getZ(), layer);
         }
 
-        const storage = this.storages.get(layer);
+        const storage = this.storages[layer];
         if (storage) return storage.getBlock(bx, by, bz);
 
         // An absent layer is all air; allocating it on a read changes the serialized layer count.
@@ -97,7 +104,7 @@ export default class SubChunk {
      * @param layer - block storage layer
      */
     public getBlockRuntimeId(bx: number, by: number, bz: number, layer = 0): number {
-        return this.storages.get(layer)?.getRuntimeId(bx, by, bz) ?? BlockRuntimeIds.getByName('minecraft:air');
+        return this.storages[layer]?.getRuntimeId(bx, by, bz) ?? BlockRuntimeIds.getByName('minecraft:air');
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number, layer: number): void {
@@ -109,10 +116,8 @@ export default class SubChunk {
         // SubChunk version
         stream.writeByte(8);
         // Layer count
-        stream.writeByte(this.storages.size);
-        for (const storage of this.storages.values()) {
-            storage.networkSerialize(stream);
-        }
+        stream.writeByte(this.storageOrder.length);
+        for (const index of this.storageOrder) this.storages[index]!.networkSerialize(stream);
     }
 
     public static networkDeserialize(stream: BinaryStream): SubChunk {
@@ -135,7 +140,7 @@ export default class SubChunk {
         if (version === 9) stream.readSignedByte();
 
         for (let i = 0; i < layerCount; i++) {
-            subChunk.storages.set(i, BlockStorage.networkDeserialize(stream));
+            subChunk.setStorage(i, BlockStorage.networkDeserialize(stream));
         }
 
         return subChunk;

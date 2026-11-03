@@ -565,7 +565,7 @@ describeFamily(
                         dimension.minY,
                         dimension.minY + dimension.height - 1
                     ]);
-                    for (const index of chunk.getSubChunks().keys()) {
+                    for (const [index] of chunk.getSubChunkEntries()) {
                         expect(index, `${stemId} sub chunk`).toBeGreaterThanOrEqual(minSubChunk(dimension));
                         expect(index, `${stemId} sub chunk`).toBeLessThanOrEqual(maxSubChunk(dimension));
                     }

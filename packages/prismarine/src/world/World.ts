@@ -2261,7 +2261,7 @@ export class World implements Service {
             if (!playerChunkRefCounts.simulates(x, z)) continue;
 
             const sections: number[] = [];
-            for (const [index, subChunk] of chunk.getSubChunks()) {
+            for (const [index, subChunk] of chunk.getSubChunkEntries()) {
                 if (sectionTakesRandomTicks(subChunk)) sections.push(index);
             }
             if (sections.length > 0) visited.push({ x, z, sections });
