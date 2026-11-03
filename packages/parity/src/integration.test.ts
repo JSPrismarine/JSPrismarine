@@ -12,6 +12,7 @@ import type { HookBlock } from '@jsprismarine/blocks';
 import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
 import {
     bedrockBiomeToJava,
+    bedrockBlockToJava,
     bedrockBlockStateToJava,
     javaBlockStateToBedrock,
     javaEntityTypeToBedrock,
@@ -19,6 +20,7 @@ import {
 } from '@jsprismarine/mapping';
 import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
 import { entitiesTable } from '@jsprismarine/mapping/tables';
+import { Item as PrismarineItem } from '@jsprismarine/prismarine/item/Item';
 import { buildServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import type { ServerContent } from '@jsprismarine/prismarine/content/ServerContent';
 import { singleDimension } from '@jsprismarine/prismarine/content/world/adapter';
@@ -768,6 +770,39 @@ describeFamily(
                 );
             }
         );
+
+        /**
+         * Java's `minecraft:tool` rules name Java blocks, and Java has no lit variants: its
+         * furnace and its redstone ore light up as a state rather than as a block of their
+         * own. A pickaxe that read the Bedrock name against `#minecraft:mineable/pickaxe` was
+         * the wrong tool for every lit block, so mining one dropped nothing of it.
+         */
+        it('keeps a pickaxe the correct tool for the lit Bedrock-only blocks', { timeout: 180_000 }, () => {
+            const { content } = realStack();
+            const pickaxe = new PrismarineItem({ name: 'minecraft:diamond_pickaxe', content });
+
+            for (const identifier of [
+                'minecraft:lit_furnace',
+                'minecraft:lit_blast_furnace',
+                'minecraft:lit_smoker',
+                'minecraft:lit_redstone_ore',
+                'minecraft:lit_deepslate_redstone_ore'
+            ]) {
+                const harvests = pickaxe.harvests(identifier);
+                const asFastAsUnlit =
+                    pickaxe.getMiningSpeed(identifier) === pickaxe.getMiningSpeed(bedrockBlockToJava(identifier)[0]!);
+                reportParityCases(FAMILIES.integrationTags, import.meta.filename, [
+                    {
+                        id: `${identifier}/mineable-pickaxe`,
+                        title: identifier,
+                        context: 'Java #minecraft:mineable/pickaxe through the block mapping',
+                        status: harvests && asFastAsUnlit ? 'passed' : 'failed'
+                    }
+                ]);
+                expect(harvests, identifier).toBe(true);
+                expect(asFastAsUnlit, identifier).toBe(true);
+            }
+        });
 
         it('keeps bamboo on real Java sand and gravel supports', { timeout: 180_000 }, () => {
             const { content } = realStack();

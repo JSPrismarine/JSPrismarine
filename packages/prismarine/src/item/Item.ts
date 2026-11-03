@@ -11,6 +11,8 @@ import {
 
 import type { ItemStackDescriptorData } from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
 
+import { bedrockBlockToJava } from '@jsprismarine/mapping';
+
 import type { ServerContent } from '../content/ServerContent';
 import { javaItemTagsForBedrock } from '../content/javaTags';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -94,6 +96,20 @@ const enchantmentMap = (
 
 /** The default stack size for an item no table names. */
 const DEFAULT_MAX_STACK_SIZE = 64;
+
+/**
+ * The names a `minecraft:tool` rule may know one block by.
+ *
+ * The rules name Java blocks, and Java has no lit variants: its furnace and its redstone ore
+ * light up as a state rather than as a block of their own. A rule read against the Bedrock
+ * name alone made every pickaxe the wrong tool for `minecraft:lit_furnace`, so mining one
+ * spilled the coal and dropped no furnace. A block the mapping does not know keeps its own
+ * name, which is what a pack's custom block goes by in its own tags.
+ */
+const toolRuleNamesOf = (block: string): readonly string[] => {
+    const javaIdentifiers = bedrockBlockToJava(block);
+    return javaIdentifiers.includes(block) ? javaIdentifiers : [block, ...javaIdentifiers];
+};
 
 /**
  * The item numbering the wire a stack is being written to or read from speaks.
@@ -539,9 +555,10 @@ export class Item {
         if (!rules) return false;
 
         const tags: TagLookup | undefined = content?.tags;
+        const names = toolRuleNamesOf(block);
         for (const rule of rules) {
             if (rule.correct_for_drops === undefined) continue;
-            if (holderSetIncludes(tags, rule.blocks, block)) return rule.correct_for_drops;
+            if (names.some((name) => holderSetIncludes(tags, rule.blocks, name))) return rule.correct_for_drops;
         }
         return false;
     }
@@ -570,9 +587,10 @@ export class Item {
         const tags: TagLookup | undefined = this.content?.tags;
 
         let speed = parameters?.default_mining_speed ?? 1;
+        const names = toolRuleNamesOf(block);
         for (const rule of parameters?.rules ?? []) {
             if (rule.speed === undefined) continue;
-            if (holderSetIncludes(tags, rule.blocks, block)) {
+            if (names.some((name) => holderSetIncludes(tags, rule.blocks, name))) {
                 speed = rule.speed;
                 break;
             }

@@ -41,6 +41,19 @@ describe('Item.withCount', () => {
         expect(new Item({ name: 'minecraft:diamond_pickaxe' }).harvests('minecraft:stone')).toBe(false);
     });
 
+    // The tag names Java blocks and Java has no lit variants: its lamp, furnace and redstone
+    // ore light up as a state rather than as a block of their own. A pickaxe that read the
+    // Bedrock name against the tag was the wrong tool for every one of them, so a mined lit
+    // furnace spilled its coal and kept the furnace.
+    it('harvests a lit block through the Java name its tag knows', () => {
+        expect(pickaxe().harvests('minecraft:lit_redstone_lamp')).toBe(true);
+        expect(pickaxe().getMiningSpeed('minecraft:lit_redstone_lamp')).toBe(
+            pickaxe().getMiningSpeed('minecraft:redstone_lamp')
+        );
+        // A block outside the tag stays outside it, whichever edition names it.
+        expect(pickaxe().harvests('minecraft:dirt')).toBe(false);
+    });
+
     it('holds the new count in a new object and leaves the original alone', () => {
         const stone = new Item({ name: 'minecraft:stone', count: 10, customName: 'Rock' });
         const part = stone.withCount(4);
