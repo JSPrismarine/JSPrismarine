@@ -18,6 +18,14 @@ describe('world', () => {
             expect(storage.isEmpty()).toBe(true);
         });
 
+        it('does not treat a uniform non-air palette as empty', () => {
+            const water = BlockRuntimeIds.getByName('minecraft:water');
+            const storage = new BlockStorage({ palette: [water] });
+
+            expect(storage.getRuntimeId(0, 0, 0)).toBe(water);
+            expect(storage.isEmpty()).toBe(false);
+        });
+
         it('reads back every block it was given', () => {
             const storage = new BlockStorage({});
             storage.setBlock(1, 2, 3, stone());

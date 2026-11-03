@@ -230,6 +230,7 @@ export default class BlockStorage {
     }
 
     public isEmpty(): boolean {
-        return this.palette.length === 1;
+        // A one-entry palette is uniform; only uniform air can be omitted from the chunk.
+        return this.palette.length === 1 && this.palette[0] === BlockRuntimeIds.getByName('minecraft:air');
     }
 }

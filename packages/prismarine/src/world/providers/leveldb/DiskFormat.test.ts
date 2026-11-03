@@ -363,6 +363,17 @@ describe('world', () => {
             expect(subChunk.sourceVersion).toBe(9);
         });
 
+        it('preserves a uniform non-air section in the persistent format', () => {
+            const water = id('minecraft:water');
+            const subChunk = new SubChunk(new Map([[0, new BlockStorage({ palette: [water] })]]));
+
+            const restored = decodeSubChunk(encodeSubChunk(subChunk, 0, 9)).subChunk;
+
+            expect(restored.isEmpty()).toBe(false);
+            expect(restored.getBlockRuntimeId(0, 0, 0)).toBe(water);
+            expect(restored.getBlockRuntimeId(15, 15, 15)).toBe(water);
+        });
+
         it('round-trips every sub chunk index the Overworld uses', () => {
             for (let index = -4; index <= 19; index++) {
                 expect(decodeSubChunk(encodeSubChunk(filled(), index, 9)).index).toBe(index);

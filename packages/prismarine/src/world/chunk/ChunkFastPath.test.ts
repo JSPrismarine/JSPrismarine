@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { Block } from '../../block/Block';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { BlockStateSchema, BlockStateSchemas } from '../../block/state/BlockStateSchema';
+import BlockStorage from './BlockStorage';
 import Chunk from './Chunk';
+import SubChunk from './SubChunk';
 
 const blockOf = (name: string): Block => new Block({ name });
 
@@ -24,6 +26,15 @@ describe('world', () => {
             for (let y = 0; y < 80; y++) {
                 expect(filled.getBlock(3, y, 9).name).toBe(placed.getBlock(3, y, 9).name);
             }
+        });
+
+        it('counts a uniform non-air section for height and network delivery', () => {
+            const water = BlockRuntimeIds.getByName('minecraft:water');
+            const subChunk = new SubChunk(new Map([[0, new BlockStorage({ palette: [water] })]]));
+            const chunk = new Chunk(0, 0, new Map([[0, subChunk]]));
+
+            expect(chunk.getHighestBlockAt(2, 3)).toBe(15);
+            expect(chunk.getNetworkSubChunkCount()).toBe(5);
         });
 
         it('fillColumn covers exactly the requested range, inclusive', () => {
