@@ -2167,6 +2167,30 @@ describe('EntityRuntime', () => {
             expect(runtime.spawn('minecraft:goat', GROUND)?.runsGoals).toBe(false);
         });
 
+        it('does not run Bedrock goals for a brain-only piglin', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'minecraft:piglin': {
+                        components: {
+                            'minecraft:health': { value: 16, max: 16 },
+                            'minecraft:movement': { value: 0.35 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.95 },
+                            'minecraft:barter': {},
+                            'minecraft:behavior.barter': { priority: 5 }
+                        }
+                    }
+                }
+            );
+
+            const piglin = runtime.spawn('minecraft:piglin', GROUND);
+            runtime.tick(1);
+
+            expect(piglin?.runsGoals).toBe(false);
+            expect(piglin?.instance.goals.runningGoals()).toEqual([]);
+        });
+
         it('routes a walking brain mob around solid blocks', () => {
             const world = new TestEntityWorld();
             world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');

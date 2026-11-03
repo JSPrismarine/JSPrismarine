@@ -360,6 +360,7 @@ export class EntityRuntime implements EntityScene {
      * moment at which an instance is not yet in the index.
      */
     private spawning: MobBody | undefined;
+    private spawningRunsGoals = true;
     /** The pool each entity's spawn counted against, for `SpawnWorld.poolCount`. */
     private readonly pools = new Map<number, string>();
     /** The start height and pass-through blocks for each active falling-block entity. */
@@ -650,6 +651,7 @@ export class EntityRuntime implements EntityScene {
 
         const facts = this.typeFacts().get(reference);
         if (facts === undefined) return undefined;
+        const brainMob = brainMobFor(content.entities.brains, reference);
 
         const id = this.drawId();
 
@@ -664,6 +666,7 @@ export class EntityRuntime implements EntityScene {
         body.owner = options.ownerId;
         body.ownerIdentity = options.ownerId === undefined ? undefined : this.host.playerIdentityOf?.(options.ownerId);
         this.spawning = body;
+        this.spawningRunsGoals = brainMob === undefined || brainMob.alsoRunsGoals;
         const executeEntityEvent = this.world.blocks.executeEntityEvent;
         const filterContext = entityFilterContextOf(body, this);
         const goalWorld = goalWorldOf(body, this);
@@ -741,8 +744,8 @@ export class EntityRuntime implements EntityScene {
         body.containerCapacity = this.containerCapacityOf(instance);
 
         this.spawning = undefined;
+        this.spawningRunsGoals = true;
 
-        const brainMob = brainMobFor(content.entities.brains, reference);
         let entityForBarter: DataEntity | undefined;
         const brain = brainMob?.makeBrain({
             baby: instance.hasComponent('minecraft:is_baby'),
@@ -950,7 +953,7 @@ export class EntityRuntime implements EntityScene {
             }
             this.updateMedium(entity);
             this.tickTimers(entity.body);
-            entity.instance.tick();
+            entity.instance.tick(entity.runsGoals);
             this.tickDaylightBurn(entity);
             this.tickVoid(entity);
             if (entity.removed !== undefined) continue;
@@ -1183,7 +1186,10 @@ export class EntityRuntime implements EntityScene {
         const body = this.bodyOf(instance);
         if (body === undefined) return undefined;
         const entity = this.byInstance.get(instance);
-        if (entity !== undefined && !entity.runsGoals) return undefined;
+        // Goal components resolve their support during construction, before the instance is in
+        // `byInstance`, so use the brain definition already resolved for the spawning body.
+        if (entity !== undefined ? !entity.runsGoals : this.spawning !== undefined && !this.spawningRunsGoals)
+            return undefined;
         return goalWorldOf(body, this);
     }
 

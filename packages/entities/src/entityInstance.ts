@@ -416,14 +416,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     }
 
     /**
-     * Runs one server tick: applies the queued events, then the active
-     * components' tick handlers, then the goal scheduler.
+     * Runs one server tick: applies queued events and active component tick handlers, then the
+     * goal scheduler when this entity uses the Bedrock goal system.
+     *
+     * @param runGoals - Whether to advance the Bedrock goal scheduler for this tick.
      */
-    public tick(): void {
+    public tick(runGoals = true): void {
         this.applyQueuedEvents();
 
         this.dispatch('onTick', this);
-        this.goals.tick();
+        if (runGoals) this.goals.tick();
     }
 
     /**

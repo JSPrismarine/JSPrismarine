@@ -1978,7 +1978,7 @@ describe('the data-driven entity runtime over a live world', () => {
             ]);
         });
 
-        it('opens a screen for a player and holds the villager still while it is open', async () => {
+        it('opens a screen for a player without running goals on a brain-only villager', async () => {
             const player = addPlayer(2, 0);
             const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
@@ -1988,7 +1988,8 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(3);
 
             expect(villager.body.tradingPlayer).toBe(id);
-            expect(villager.instance.goals.runningGoals()).toContain('minecraft:behavior.trade_with_player');
+            // Java's villager trade behavior is brain-driven, so it must not start a parallel Bedrock goal.
+            expect(villager.instance.goals.runningGoals()).not.toContain('minecraft:behavior.trade_with_player');
         });
     });
 

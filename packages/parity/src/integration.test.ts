@@ -1015,6 +1015,26 @@ describeFamily(
             expect(cube.body.velocity.y).toBeGreaterThan(0);
             runtime.remove(cube.id, 'parity runtime check complete');
         });
+
+        it('ticks the Java piglin brain without selecting Bedrock goals', { timeout: 180_000 }, () => {
+            const { runtime } = realStack();
+            const piglin = runtime.spawn('minecraft:piglin', { x: 0.5, y: 64.5, z: 0.5 });
+            if (piglin === undefined) throw new Error('the vanilla stack declares no minecraft:piglin');
+
+            let goalChecks = 0;
+            piglin.instance.goals.add({
+                name: 'parity:brain-goal-probe',
+                priority: 0,
+                controlFlags: [],
+                goal: { canStart: () => (goalChecks += 1) > 0 }
+            });
+            runtime.tick(1);
+
+            expect(piglin.brainMob?.id).toBe('minecraft:piglin');
+            expect(piglin.brain).toBeDefined();
+            expect(goalChecks).toBe(0);
+            runtime.remove(piglin.id, 'parity brain goal check complete');
+        });
     },
     { tags: ['real-data'] }
 );
