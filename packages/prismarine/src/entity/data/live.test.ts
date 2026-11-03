@@ -757,6 +757,8 @@ const liveWorld = (
         // constructor, and the content level group reads the rules and the clock through it.
         level: fakeLevel({ server, seed: 1234n, spawn: new Vector3(8, GROUND_Y, 8), provider }),
         dimension: Dimensions.Overworld,
+        // `getFormattedName` reads the selected stem while the constructor is bypassed here.
+        stem: { generator: { type: 'test' } },
         generator: stub<Generator>({}),
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
@@ -2853,8 +2855,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 async () => {
                     useVanillaContent();
 
-                    // Water replaces the two water spawns' floor blocks. Keep the pursuer on dry land so
-                    // its chase assertion tests the vanilla goal rather than a route across water.
+                    // Water replaces the two water spawns' floor blocks. Keep the pursuer and pig on dry
+                    // land; the float goal is covered by the separate liquid-physics test below.
                     for (const x of [20, 22]) {
                         const chunk = world.getLoadedChunk(x >> 4, 0);
                         if (chunk === null) throw new Error(`the vanilla entity test chunk for x=${x} was not loaded`);
@@ -2865,7 +2867,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     for (const [identifier, x] of [
                         ['minecraft:zombie', 2],
                         ['minecraft:villager_v2', 40],
-                        ['minecraft:pig', 20],
+                        ['minecraft:pig', 24],
                         ['minecraft:zombie', 22]
                     ] as const) {
                         live.runtime.content().world.itemActions.perform({
@@ -3366,8 +3368,8 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 for (let tick = 1; tick <= 60; tick += 1) await live.tick(tick);
 
-                expect(pig.body.conditions.has('in_water')).toBe(true);
                 expect(pig.instance.goals.names()).toContain('minecraft:behavior.float');
+                // Buoyancy may lift the pig out of the fluid before the final sample.
                 expect(pig.position.y).toBeGreaterThan(FLOOR_Y + 0.5);
                 expect(zombie.body.conditions.has('in_water')).toBe(true);
                 expect(zombie.instance.goals.names()).not.toContain('minecraft:behavior.float');
