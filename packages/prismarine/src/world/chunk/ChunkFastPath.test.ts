@@ -44,6 +44,22 @@ describe('world', () => {
             expect(chunk.getBlock(0, 39, 0).name).toBe('minecraft:air');
         });
 
+        it('advances the block revision for column fills and direct subchunk writes', () => {
+            const chunk = new Chunk(0, 0);
+            const stone = BlockRuntimeIds.getByName('minecraft:stone');
+            const initialRevision = chunk.getBlockRevision();
+
+            chunk.setBlockRuntimeId(0, 1, 0, stone);
+            const afterSingleWrite = chunk.getBlockRevision();
+            chunk.fillColumn(1, 0, 1, 2, stone);
+            const afterFill = chunk.getBlockRevision();
+            chunk.getSubChunk(0)!.setBlock(2, 1, 0, stone, 0);
+
+            expect(afterSingleWrite).toBeGreaterThan(initialRevision);
+            expect(afterFill).toBeGreaterThan(afterSingleWrite);
+            expect(chunk.getBlockRevision()).toBeGreaterThan(afterFill);
+        });
+
         it('setBlockRuntimeId and setBlock agree', () => {
             const grass = blockOf('minecraft:grass_block');
 

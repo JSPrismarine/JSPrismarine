@@ -508,6 +508,14 @@ export default class Chunk {
         return total;
     }
 
+    /**
+     * The block-state revision used to keep per-chunk navigation reads valid.
+     * Subchunk revisions also cover direct {@link SubChunk.setBlock} writes and column fills.
+     */
+    public getBlockRevision(): number {
+        return this.mutationCount();
+    }
+
     public networkSerialize(): Buffer {
         // Asking the sub chunks rather than trusting a flag set by the two methods here that
         // happen to remember to. `getSubChunk` hands out the real, mutable sub chunk - the

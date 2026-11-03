@@ -47,7 +47,16 @@ import type { World } from './World';
 /** The six members of `ContentBlockAccess` the world subsystem implements. */
 export type WorldBlockGroup = Pick<
     ContentBlockAccess,
-    'blockRevision' | 'light' | 'skyLight' | 'isLoaded' | 'surfaceY' | 'biome' | 'biomeTags'
+    | 'blockRevision'
+    | 'blockChunkIdentityAt'
+    | 'blockChunkRevisionAt'
+    | 'runtimeIdAt'
+    | 'light'
+    | 'skyLight'
+    | 'isLoaded'
+    | 'surfaceY'
+    | 'biome'
+    | 'biomeTags'
 >;
 
 /** The four groups of `ServerWorldAdapter` the world subsystem owns. */
@@ -233,6 +242,12 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
 
     const blocks: WorldBlockGroup = {
         blockRevision: () => live().getBlockWriteVersion(),
+        blockChunkIdentityAt: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) ?? undefined,
+        blockChunkRevisionAt: (at) =>
+            live()
+                .getLoadedChunk(at.x >> 4, at.z >> 4)
+                ?.getBlockRevision(),
+        runtimeIdAt: (at) => live().loadedBlockRuntimeIdAt(at.x, at.y, at.z),
         // Preserve dimension ambient light and the visual sky-light factor when the data-driven
         // rules ask for brightness. The End and Nether suppress sky light, but their ambient
         // floors keep the dimension from reading as pitch black.

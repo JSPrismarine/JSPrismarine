@@ -88,6 +88,12 @@ export interface ContentBlockAccess {
     get(at: ContentPosition): ContentBlock | undefined;
     /** The dimension's monotonic block-write version, when the host can provide one. */
     blockRevision?(): number;
+    /** The loaded chunk object holding a block, for caches that span ticks. */
+    blockChunkIdentityAt?(at: ContentPosition): object | undefined;
+    /** The loaded chunk's block mutation revision, or undefined when it is not loaded. */
+    blockChunkRevisionAt?(at: ContentPosition): number | undefined;
+    /** The block's runtime id without constructing a block record. */
+    runtimeIdAt?(at: ContentPosition): number | undefined;
     /**
      * Replaces the block at a position.
      *

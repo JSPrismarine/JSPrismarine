@@ -960,7 +960,7 @@ export class EntityRuntime implements EntityScene {
     public tick(tick: number, shouldTick?: (position: EntityPosition) => boolean): void {
         this.refreshOnlineOwners();
         this.interest.resetBlockCache();
-        this.navigationView?.invalidateBlockCache();
+        if (this.navigationView?.persistsAcrossTicks !== true) this.navigationView?.invalidateBlockCache();
         const allEntities = this.all();
         const entities =
             shouldTick === undefined ? allEntities : allEntities.filter((entity) => shouldTick(entity.position));
@@ -1052,10 +1052,14 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
-    /** Invalidates block reads cached by the point-of-interest and navigation views. */
-    public invalidateBlockCaches(): void {
+    /**
+     * Invalidates block reads cached by the point-of-interest and navigation views.
+     * @param chunkX - The changed chunk's x coordinate; omit both coordinates to clear all chunks.
+     * @param chunkZ - The changed chunk's z coordinate.
+     */
+    public invalidateBlockCaches(chunkX?: number, chunkZ?: number): void {
         this.interest.invalidateBlockCache();
-        this.navigationView?.invalidateBlockCache();
+        this.navigationView?.invalidateBlockCache(chunkX, chunkZ);
     }
 
     /**

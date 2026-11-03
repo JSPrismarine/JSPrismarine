@@ -1259,7 +1259,7 @@ export class World implements Service {
         );
         this.chunks.set(index, chunk);
         this.getPortalIndex().chunkLoaded(chunk);
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, x, z);
         // The only thing that changes what `getLoadedChunk` should answer.
         this.lastChunkIndex = -1;
         this.markEntitiesInChunkChanged(chunk);
@@ -2091,7 +2091,7 @@ export class World implements Service {
         const previous = chunk.getBlock(x, y, z);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
         this.blockWriteVersion = World.nextBlockWriteVersion++;
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, x >> 4, z >> 4);
         const state = chunk.getBlock(x, y, z);
         this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
         const next: SystemBlock = { name: state.name, states: state.properties };
@@ -2717,7 +2717,7 @@ export class World implements Service {
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
         this.portalIndex?.chunkUnloaded(chunk);
-        this.server.invalidateEntityBlockCaches?.(this.dimension.name);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, chunk.getX(), chunk.getZ());
         this.lastChunkIndex = -1;
         this.lastChunk = null;
         this.lastChunkSource = null;

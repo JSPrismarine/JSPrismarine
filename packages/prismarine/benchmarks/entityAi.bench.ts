@@ -4,14 +4,18 @@
  * Everything below the harness is real: the vanilla behavior pack is loaded
  * through the real pack stack, so a zombie here carries the goals the shipped
  * `zombie.json` declares, and the goals run against the real `EntityRuntime`,
- * the real goal world and the real path finder. Only the chunk storage is
- * replaced, by a flat stone floor with air above it.
+ * the real goal world and the real path finder. Set `ENTITY_AI_REAL_CHUNKS=1`
+ * to back a 441-chunk scene with production `Chunk` storage and report its
+ * underlying runtime-id reads.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
+ * Production-shaped run: ENTITY_AI_REAL_CHUNKS=1 ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 
+import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { singleDimension } from '../src/content/world/adapter';
 import type {
     ContentBlock,
@@ -27,9 +31,14 @@ import type { ServerContent } from '../src/content/ServerContent';
 import { entityContentGroups } from '../src/entity/contentAdapter';
 import { EntityRuntime } from '../src/entity/data/EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '../src/entity/data/host';
+import Chunk from '../src/world/chunk/Chunk';
 
 /** The y the flat floor's top sits at; everything above it is air. */
 const FLOOR_Y = 63;
+const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1';
+const CHUNK_RADIUS = PRODUCTION_CHUNKS ? 10 : 0;
+const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
+const SPREAD = PRODUCTION_CHUNKS ? 320 : 64;
 
 /** A deterministic random source, so two runs of the harness draw the same numbers. */
 const seededRandom = (seed: number): RandomSource => {
@@ -51,6 +60,23 @@ const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
 /** The flat world the mobs stand in, built once rather than per read. */
 const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
     const placed = new Map<string, ContentBlock>();
+    const chunks = new Map<string, Chunk>();
+    const chunkAt = (at: ContentPosition): Chunk | undefined => chunks.get(`${at.x >> 4},${at.z >> 4}`);
+    let blockRevision = 0;
+    if (PRODUCTION_CHUNKS) {
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        for (let x = -CHUNK_RADIUS; x <= CHUNK_RADIUS; x += 1) {
+            for (let z = -CHUNK_RADIUS; z <= CHUNK_RADIUS; z += 1) {
+                const chunk = new Chunk(x, z);
+                for (let localX = 0; localX < 16; localX += 1) {
+                    for (let localZ = 0; localZ < 16; localZ += 1) {
+                        chunk.fillColumn(localX, localZ, FLOOR_Y, FLOOR_Y, stone);
+                    }
+                }
+                chunks.set(`${x},${z}`, chunk);
+            }
+        }
+    }
     const world: EntityWorldFacts = {
         level: {
             dimension: 'minecraft:overworld',
@@ -70,6 +96,12 @@ const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
         blocks: {
             get: (at) => {
                 blockReads.count++;
+                if (PRODUCTION_CHUNKS) {
+                    const chunk = chunkAt(at);
+                    if (chunk === undefined) return undefined;
+                    const state = BlockRuntimeIds.getState(chunk.getBlockRuntimeId(at.x, at.y, at.z));
+                    return state === null ? undefined : { identifier: state.name, states: state.properties };
+                }
                 return (
                     placed.get(keyOf(at)) ?? {
                         identifier: at.y > FLOOR_Y ? 'minecraft:air' : 'minecraft:stone',
@@ -78,14 +110,35 @@ const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
                 );
             },
             set: (at, block) => {
+                if (PRODUCTION_CHUNKS) {
+                    const chunk = chunkAt(at);
+                    const runtimeId = BlockRuntimeIds.tryGetByState(block.identifier, block.states);
+                    if (chunk === undefined || runtimeId === null) return;
+                    chunk.setBlockRuntimeId(at.x & 0xf, at.y, at.z & 0xf, runtimeId);
+                    blockRevision += 1;
+                    return;
+                }
                 placed.set(keyOf(at), block);
             },
+            ...(PRODUCTION_CHUNKS
+                ? {
+                      blockRevision: () => blockRevision,
+                      blockChunkIdentityAt: (at: ContentPosition) => chunkAt(at),
+                      blockChunkRevisionAt: (at: ContentPosition) => chunkAt(at)?.getBlockRevision(),
+                      runtimeIdAt: (at: ContentPosition) => {
+                          const chunk = chunkAt(at);
+                          if (chunk === undefined) return undefined;
+                          blockReads.count += 1;
+                          return chunk.getBlockRuntimeId(at.x, at.y, at.z);
+                      }
+                  }
+                : {}),
             notifyNeighbors: () => undefined,
             data: () => undefined,
             setData: () => undefined,
             light: (at) => (at.y > FLOOR_Y ? 15 : 0),
             power: () => 0,
-            isLoaded: () => true,
+            isLoaded: (at) => !PRODUCTION_CHUNKS || chunkAt(at) !== undefined,
             surfaceY: () => FLOOR_Y + 1,
             biome: () => 'minecraft:plains',
             biomeTags: () => ['minecraft:plains']
@@ -134,9 +187,6 @@ const MIX = [
     'minecraft:spider',
     'minecraft:chicken'
 ] as const;
-
-/** How wide the box the mobs are spread over is, in blocks. */
-const SPREAD = 64;
 
 /** How many players walk among the mobs, which is what keeps the targeting goals live. */
 const PLAYERS = 2;
@@ -275,7 +325,8 @@ const report = (count: number): void => {
     console.log(
         row.join('  ') +
             `  (${BREEDING_PAIRS > 0 ? `${BREEDING_PAIRS} breeding pairs, ` : ''}` +
-            `${result.measuredBlockReads} measured block reads)`
+            `${result.measuredBlockReads} measured block reads` +
+            `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''})`
     );
 };
 

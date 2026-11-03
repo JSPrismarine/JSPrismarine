@@ -55,6 +55,19 @@ const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
 
 const digestWorld = (random: RandomSource, sounds: string[]) => {
     const placed = new Map<string, ContentBlock>();
+    const chunkIdentities = new Map<string, object>();
+    const chunkRevisions = new Map<string, number>();
+    let blockRevision = 0;
+    const chunkKeyAt = (at: ContentPosition): string => `${at.x >> 4},${at.z >> 4}`;
+    const chunkIdentityAt = (at: ContentPosition): object => {
+        const key = chunkKeyAt(at);
+        let identity = chunkIdentities.get(key);
+        if (identity === undefined) {
+            identity = {};
+            chunkIdentities.set(key, identity);
+        }
+        return identity;
+    };
     const world: EntityWorldFacts = {
         level: {
             dimension: 'minecraft:overworld',
@@ -79,7 +92,13 @@ const digestWorld = (random: RandomSource, sounds: string[]) => {
                 },
             set: (at, block) => {
                 placed.set(keyOf(at), block);
+                const key = chunkKeyAt(at);
+                chunkRevisions.set(key, (chunkRevisions.get(key) ?? 0) + 1);
+                blockRevision += 1;
             },
+            blockRevision: () => blockRevision,
+            blockChunkIdentityAt: chunkIdentityAt,
+            blockChunkRevisionAt: (at) => chunkRevisions.get(chunkKeyAt(at)) ?? 0,
             notifyNeighbors: () => undefined,
             data: () => undefined,
             setData: () => undefined,

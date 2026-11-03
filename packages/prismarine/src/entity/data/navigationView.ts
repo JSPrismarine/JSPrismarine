@@ -10,6 +10,7 @@
 import type { NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
+import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { ServerContent } from '../../content/ServerContent';
 import type { ContentBlock, ContentBlockAccess, ContentLevelFacts } from '../../content/world/adapter';
 import { isDay } from '../../world/DayCycle';
@@ -39,15 +40,30 @@ const CLIMBABLE = new Set(['minecraft:ladder', 'minecraft:vine', 'minecraft:scaf
 /** The two portals, which `avoid_portals` steers around. */
 const PORTALS = new Set(['minecraft:portal', 'minecraft:end_portal', 'minecraft:end_gateway']);
 
-/** The number of distinct block cells the view will retain between invalidations. */
+/** The maximum block cells the view retains across all loaded chunks. */
 const MAX_CACHED_BLOCKS = 100_000;
+/** Keeps sparse chunk caches bounded when a pathfinder roams a very large world. */
+const MAX_CACHED_CHUNKS = 1_024;
 const NO_BLOCK = Symbol('no loaded block');
+const TICK_SCOPED_CHUNK = {};
+
+type CachedBlock = ContentBlock | number | typeof NO_BLOCK;
+
+interface CachedChunkBlocks {
+    readonly x: number;
+    readonly z: number;
+    identity: object;
+    revision: number;
+    readonly cells: Map<number, CachedBlock>;
+}
 
 /** The path finder's block view and the cache control the owning runtime needs. */
 export interface CachedNavigationView {
     readonly view: NavigationView;
-    /** Drops cached reads after a block or chunk changes. */
-    invalidateBlockCache(): void;
+    /** Whether loaded chunk identities and revisions make reads safe to retain between ticks. */
+    readonly persistsAcrossTicks: boolean;
+    /** Drops all cached reads, or just the reads for one changed or unloaded chunk. */
+    invalidateBlockCache(chunkX?: number, chunkZ?: number): void;
 }
 
 /**
@@ -62,23 +78,26 @@ export interface CachedNavigationView {
  * @param blocks - Block state and lighting queries for the dimension.
  * @param content - The loaded content, for its block behavior table.
  * @param level - The dimension clock and sky settings; omitted by callers with no level view.
+ * @param maxCachedBlocks - A smaller bound for deterministic eviction tests.
  */
 export const navigationViewOf = (
     blocks: ContentBlockAccess,
     content: () => ServerContent,
-    level?: ContentLevelFacts
+    level?: ContentLevelFacts,
+    maxCachedBlocks = MAX_CACHED_BLOCKS
 ): CachedNavigationView => {
-    /**
-     * Block reads shared by every path search in the current tick. A* searches
-     * often visit the same cells for nearby entities, and resolving each read
-     * through the chunk adapter rebuilds the same block record repeatedly.
-     */
-    const cachedBlocks = new Map<number, Map<number, Map<number, ContentBlock | typeof NO_BLOCK>>>();
+    /** Cell answers are grouped by chunk so writes and unloads evict only one group. */
+    const cachedBlocks = new Map<number, Map<number, CachedChunkBlocks>>();
+    /** Map insertion order is the LRU order, with the most recently used chunk at the end. */
+    const leastRecentlyUsed = new Map<CachedChunkBlocks, undefined>();
     let cachedBlockCount = 0;
-    let cacheEnabled = true;
+    const cacheLimit = Math.max(0, Math.floor(maxCachedBlocks));
+    const chunkLimit = Math.min(MAX_CACHED_CHUNKS, cacheLimit);
+    const persistsAcrossTicks = blocks.blockChunkIdentityAt !== undefined && blocks.blockChunkRevisionAt !== undefined;
     let lastChunkX: number | undefined;
     let lastChunkZ: number | undefined;
-    let lastCells: Map<number, ContentBlock | typeof NO_BLOCK> | undefined;
+    let lastChunk: CachedChunkBlocks | undefined;
+    let mostRecentlyUsed: CachedChunkBlocks | undefined;
     /** Reuses a block identifier when adjacent water and lava checks ask about the same cell. */
     let hasLastIdentifier = false;
     let lastIdentifierX: number | undefined;
@@ -86,69 +105,126 @@ export const navigationViewOf = (
     let lastIdentifierZ: number | undefined;
     let lastIdentifier: string | undefined;
 
-    const invalidateBlockCache = (): void => {
-        cachedBlocks.clear();
-        cachedBlockCount = 0;
-        cacheEnabled = true;
+    const touch = (chunk: CachedChunkBlocks): void => {
+        if (mostRecentlyUsed === chunk) return;
+        leastRecentlyUsed.delete(chunk);
+        leastRecentlyUsed.set(chunk, undefined);
+        mostRecentlyUsed = chunk;
+    };
+
+    const forgetChunk = (chunk: CachedChunkBlocks): void => {
+        const byZ = cachedBlocks.get(chunk.x);
+        if (byZ?.get(chunk.z) !== chunk) return;
+
+        byZ.delete(chunk.z);
+        if (byZ.size === 0) cachedBlocks.delete(chunk.x);
+        leastRecentlyUsed.delete(chunk);
+        if (mostRecentlyUsed === chunk) mostRecentlyUsed = undefined;
+        cachedBlockCount -= chunk.cells.size;
+        if (lastChunk === chunk) lastChunk = undefined;
+    };
+
+    const evictLeastRecentlyUsed = (keep?: CachedChunkBlocks): boolean => {
+        const oldest = leastRecentlyUsed.keys().next().value;
+        if (oldest === undefined || oldest === keep) return false;
+        forgetChunk(oldest);
+        return true;
+    };
+
+    const makeRoom = (keep?: CachedChunkBlocks): boolean => {
+        while (cachedBlockCount >= cacheLimit || leastRecentlyUsed.size >= chunkLimit) {
+            if (!evictLeastRecentlyUsed(keep)) return false;
+        }
+        return cacheLimit > 0 && chunkLimit > 0;
+    };
+
+    const clearChunkCells = (chunk: CachedChunkBlocks, identity: object, revision: number): void => {
+        cachedBlockCount -= chunk.cells.size;
+        chunk.cells.clear();
+        chunk.identity = identity;
+        chunk.revision = revision;
+    };
+
+    const chunkAt = (
+        chunkX: number,
+        chunkZ: number,
+        identity: object,
+        revision: number
+    ): CachedChunkBlocks | undefined => {
+        let chunk = lastChunkX === chunkX && lastChunkZ === chunkZ ? lastChunk : undefined;
+        if (chunk === undefined) chunk = cachedBlocks.get(chunkX)?.get(chunkZ);
+        if (chunk === undefined) return undefined;
+
+        lastChunkX = chunkX;
+        lastChunkZ = chunkZ;
+        lastChunk = chunk;
+        if (chunk.identity !== identity || chunk.revision !== revision) clearChunkCells(chunk, identity, revision);
+        touch(chunk);
+        return chunk;
+    };
+
+    const invalidateBlockCache = (chunkX?: number, chunkZ?: number): void => {
+        if (chunkX !== undefined && chunkZ !== undefined) {
+            const changed = cachedBlocks.get(chunkX)?.get(chunkZ);
+            if (changed !== undefined) forgetChunk(changed);
+        } else {
+            cachedBlocks.clear();
+            leastRecentlyUsed.clear();
+            cachedBlockCount = 0;
+            mostRecentlyUsed = undefined;
+        }
+
         lastChunkX = undefined;
         lastChunkZ = undefined;
-        lastCells = undefined;
+        lastChunk = undefined;
         hasLastIdentifier = false;
     };
 
-    /** Reads a block once per cell until the runtime invalidates its view. */
-    const blockAt = (position: EntityPosition): ContentBlock | undefined => {
-        if (
-            !cacheEnabled ||
-            !Number.isInteger(position.x) ||
-            !Number.isInteger(position.y) ||
-            !Number.isInteger(position.z)
-        )
-            return blocks.get(position);
+    const readCell = (position: EntityPosition): CachedBlock => {
+        if (blocks.runtimeIdAt !== undefined) return blocks.runtimeIdAt(position) ?? NO_BLOCK;
+        return blocks.get(position) ?? NO_BLOCK;
+    };
+
+    /** Reads a block once per cell until its owning chunk changes. */
+    const blockAt = (position: EntityPosition): CachedBlock => {
+        if (!Number.isInteger(position.x) || !Number.isInteger(position.y) || !Number.isInteger(position.z))
+            return blocks.get(position) ?? NO_BLOCK;
 
         const chunkX = Math.floor(position.x / 16);
         const chunkZ = Math.floor(position.z / 16);
         const localX = position.x - chunkX * 16;
         const localZ = position.z - chunkZ * 16;
         const cell = position.y * 256 + localZ * 16 + localX;
-        let cells = lastChunkX === chunkX && lastChunkZ === chunkZ ? lastCells : undefined;
-        if (cells === undefined) {
-            cells = cachedBlocks.get(chunkX)?.get(chunkZ);
+        const identity = persistsAcrossTicks ? blocks.blockChunkIdentityAt!(position) : TICK_SCOPED_CHUNK;
+        if (identity === undefined) return readCell(position);
+
+        const revision = persistsAcrossTicks ? blocks.blockChunkRevisionAt!(position) : 0;
+        if (revision === undefined) return readCell(position);
+
+        let chunk = chunkAt(chunkX, chunkZ, identity, revision);
+        const cached = chunk?.cells.get(cell);
+        if (cached !== undefined) return cached;
+
+        const block = readCell(position);
+        if (chunk === undefined) {
+            if (!makeRoom()) return block;
+            let byZ = cachedBlocks.get(chunkX);
+            if (byZ === undefined) {
+                byZ = new Map();
+                cachedBlocks.set(chunkX, byZ);
+            }
+            chunk = { x: chunkX, z: chunkZ, identity, revision, cells: new Map() };
+            byZ.set(chunkZ, chunk);
+            leastRecentlyUsed.set(chunk, undefined);
+            mostRecentlyUsed = chunk;
             lastChunkX = chunkX;
             lastChunkZ = chunkZ;
-            lastCells = cells;
-        }
-        const cached = cells?.get(cell);
-        if (cached !== undefined) {
-            const block = cached;
-            return block === NO_BLOCK ? undefined : block;
-        }
-
-        const block = blocks.get(position);
-        if (cachedBlockCount >= MAX_CACHED_BLOCKS) {
-            // Stop retaining cells for this tick once the bound is reached;
-            // clearing here keeps memory bounded without repeatedly thrashing.
-            invalidateBlockCache();
-            cacheEnabled = false;
+            lastChunk = chunk;
+        } else if (!makeRoom(chunk)) {
             return block;
         }
 
-        let byChunkZ = cachedBlocks.get(chunkX);
-        if (byChunkZ === undefined) {
-            byChunkZ = new Map();
-            cachedBlocks.set(chunkX, byChunkZ);
-        }
-
-        cells = byChunkZ.get(chunkZ);
-        if (cells === undefined) {
-            cells = new Map();
-            byChunkZ.set(chunkZ, cells);
-        }
-
-        lastChunkX = chunkX;
-        lastChunkZ = chunkZ;
-        lastCells = cells;
-        cells.set(cell, block ?? NO_BLOCK);
+        chunk.cells.set(cell, block);
         cachedBlockCount += 1;
         return block;
     };
@@ -178,10 +254,55 @@ export const navigationViewOf = (
         return built.blocks.table.solid[runtimeId] === 1;
     };
 
+    interface RuntimeBlockFacts {
+        readonly identifier: string | undefined;
+        readonly solid: boolean | undefined;
+    }
+
+    /** Facts decoded once for each chunk runtime id and current content build. */
+    let runtimeFacts: { blocks: ServerContent['blocks']; byRuntimeId: Map<number, RuntimeBlockFacts> } | undefined;
+    const factsForRuntimeId = (runtimeId: number): RuntimeBlockFacts => {
+        const built = content();
+        if (runtimeFacts?.blocks !== built.blocks) runtimeFacts = { blocks: built.blocks, byRuntimeId: new Map() };
+        const cached = runtimeFacts.byRuntimeId.get(runtimeId);
+        if (cached !== undefined) return cached;
+
+        const state = BlockRuntimeIds.getState(runtimeId);
+        let facts: RuntimeBlockFacts;
+        if (state === null) {
+            facts = { identifier: undefined, solid: undefined };
+        } else {
+            const identifier = state.name;
+            const palette = built.blocks.palette;
+            let contentId: number | undefined;
+            if (palette.entry(identifier)) {
+                try {
+                    contentId = palette.runtimeId(identifier, state.properties);
+                } catch {
+                    // A plugin or a minimal fixture may not declare every runtime state's schema.
+                    contentId = undefined;
+                }
+            }
+            facts = {
+                identifier,
+                solid: contentId === undefined ? undefined : built.blocks.table.solid[contentId] === 1
+            };
+        }
+
+        runtimeFacts.byRuntimeId.set(runtimeId, facts);
+        return facts;
+    };
+
+    const identifierOf = (block: CachedBlock): string | undefined => {
+        if (block === NO_BLOCK) return undefined;
+        return typeof block === 'number' ? factsForRuntimeId(block).identifier : block.identifier;
+    };
+
     /** The `solid` column of the block at a position, or undefined outside the loaded world. */
     const solidAt = (position: EntityPosition): boolean | undefined => {
         const block = blockAt(position);
-        if (block === undefined) return undefined;
+        if (block === NO_BLOCK) return undefined;
+        if (typeof block === 'number') return factsForRuntimeId(block).solid;
 
         if (Object.keys(block.states).length > 0) return solidOf(block);
 
@@ -194,6 +315,7 @@ export const navigationViewOf = (
 
     const identifierAt = (position: EntityPosition): string | undefined => {
         if (
+            !persistsAcrossTicks &&
             hasLastIdentifier &&
             lastIdentifierX === position.x &&
             lastIdentifierY === position.y &&
@@ -204,7 +326,7 @@ export const navigationViewOf = (
         lastIdentifierX = position.x;
         lastIdentifierY = position.y;
         lastIdentifierZ = position.z;
-        lastIdentifier = blockAt(position)?.identifier;
+        lastIdentifier = identifierOf(blockAt(position));
         hasLastIdentifier = true;
         return lastIdentifier;
     };
@@ -254,6 +376,7 @@ export const navigationViewOf = (
                 return -lightCost;
             }
         },
+        persistsAcrossTicks,
         invalidateBlockCache
     };
 };

@@ -15,6 +15,7 @@ import { bedrockBiomeToJava, javaIdentifierToBedrock } from '@jsprismarine/mappi
 import { constantRandom } from '@jsprismarine/predicates';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { definitionOf } from '../content/ContentOptions';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
@@ -128,6 +129,25 @@ describe('the biome a chunk stores', () => {
         // The neighbouring column is still what the chunk was filled with.
         expect(blocks.biome({ x: 4, y: 64, z: 9 })).toBe('minecraft:plains');
         expect(blocks.biomeTags({ x: 4, y: 64, z: 9 })).toEqual([]);
+    });
+
+    it('exposes a loaded chunk revision and runtime id for navigation reads', () => {
+        const chunk = new Chunk(0, 0);
+        const { blocks } = groupsOver(chunk, contentWith({}));
+        const at = { x: 3, y: 64, z: 9 };
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        const air = BlockRuntimeIds.getByName('minecraft:air');
+
+        chunk.setBlockRuntimeId(at.x, at.y, at.z, stone);
+        const firstRevision = blocks.blockChunkRevisionAt?.(at);
+        expect(blocks.blockChunkIdentityAt?.(at)).toBe(chunk);
+        expect(firstRevision).toBe(chunk.getBlockRevision());
+        expect(blocks.runtimeIdAt?.(at)).toBe(stone);
+
+        chunk.fillColumn(at.x, at.z, at.y + 1, at.y + 1, stone);
+        expect(blocks.blockChunkRevisionAt?.(at)).toBeGreaterThan(firstRevision ?? -1);
+        chunk.setBlockRuntimeId(at.x, at.y, at.z, air);
+        expect(blocks.runtimeIdAt?.(at)).toBe(air);
     });
 });
 
