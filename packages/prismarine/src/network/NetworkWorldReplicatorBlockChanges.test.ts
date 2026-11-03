@@ -16,6 +16,10 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
+import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubChunkBlocksPacket';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
+import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
+import { PacketIdentifier } from '@jsprismarine/protocol';
 import { isInView } from '../world/Proximity';
 
 /** A player and the block updates the replicator batches for it. */
@@ -49,23 +53,48 @@ const replicatorFor = (
     return { batches, players, replicator: new NetworkWorldReplicator(visibleWorld, server) };
 };
 
-/** Decodes every block update sent in one player's batches, in packet order. */
-const updatesIn = (batches: readonly Buffer[]) =>
+/** One block change as the client receives it, whichever of the two packets carried it. */
+interface ReceivedUpdate {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly runtimeId: number;
+    readonly flags: number;
+}
+
+/** Every packet the batches hold, in order, decoded as whichever of the two it is. */
+const packetsIn = (batches: readonly Buffer[]) =>
     batches.flatMap((batch) =>
         BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB })
             .decode(batch)
             .map((packetBytes) => {
+                if (readPacketId(packetBytes) === PacketIdentifier.UPDATE_SUB_CHUNK_BLOCKS) {
+                    const stream = new NetworkBinaryStream(Buffer.from(packetBytes));
+                    return { kind: 'sub-chunk' as const, data: new UpdateSubChunkBlocksPacket().deserialize(stream) };
+                }
+
                 const packet = new UpdateBlockPacket(packetBytes);
                 packet.decode();
-                return {
-                    x: packet.x,
-                    y: packet.y,
-                    z: packet.z,
-                    runtimeId: packet.blockRuntimeId,
-                    flags: packet.flags
-                };
+                return { kind: 'block' as const, packet };
             })
     );
+
+/** Decodes every block change sent in one player's batches, in packet order. */
+const updatesIn = (batches: readonly Buffer[]): ReceivedUpdate[] =>
+    packetsIn(batches).flatMap((decoded): ReceivedUpdate[] => {
+        if (decoded.kind === 'block') {
+            const { x, y, z, blockRuntimeId, flags } = decoded.packet;
+            return [{ x, y, z, runtimeId: blockRuntimeId, flags }];
+        }
+
+        return decoded.data.blocksChanged.standards.map((info) => ({
+            x: info.position.x,
+            y: info.position.y,
+            z: info.position.z,
+            runtimeId: info.runtimeId,
+            flags: info.updateFlags
+        }));
+    });
 
 describe('NetworkWorldReplicator block changes', () => {
     it('asks the client to update neighboring block visuals', async () => {
@@ -135,5 +164,79 @@ describe('NetworkWorldReplicator block changes', () => {
 
             expect(updatesIn(batches[index]!)).toEqual(expected);
         }
+    });
+
+    /**
+     * A `/fill` used to go out as one `UpdateBlockPacket` per block, and a real client drops
+     * the connection a few seconds after a batch of twenty thousand of them. The sub chunk
+     * packet is what the protocol has for a bulk change, and it is what keeps the count down.
+     */
+    it('sends one sub chunk packet for the blocks a fill changed inside it', async () => {
+        const { batches, replicator } = replicatorFor([{ x: 8, z: 8, viewDistance: 4 }]);
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        const changed: Vector3[] = [];
+
+        // One whole sub chunk layer at the origin, which is 256 blocks in one sub chunk.
+        for (let x = 0; x < 16; x += 1) {
+            for (let z = 0; z < 16; z += 1) {
+                const position = new Vector3(x, 64, z);
+                changed.push(position);
+                replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: stone });
+            }
+        }
+
+        await replicator.flushBlockChanges();
+
+        const packets = packetsIn(batches[0]!);
+        expect(packets).toHaveLength(1);
+        const [only] = packets;
+        if (only?.kind !== 'sub-chunk') throw new Error('Expected one sub chunk packet');
+
+        const origin = only.data.subChunkBlockPosition;
+        expect([origin.x, origin.y, origin.z]).toEqual([0, 64, 0]);
+        expect(only.data.blocksChanged.extras).toEqual([]);
+        expect(updatesIn(batches[0]!)).toEqual(
+            changed.map((position) => ({
+                x: position.getX(),
+                y: position.getY(),
+                z: position.getZ(),
+                runtimeId: stone >>> 0,
+                flags: UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network
+            }))
+        );
+    });
+
+    it('keeps a lone change in a sub chunk as a single block update', async () => {
+        const { batches, replicator } = replicatorFor([{ x: 8, z: 8, viewDistance: 4 }]);
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+
+        // Two changes, one sub chunk apart on each axis, so neither has company.
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(1, 64, 1), blockRuntimeId: stone });
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(1, 80, 1), blockRuntimeId: stone });
+
+        await replicator.flushBlockChanges();
+
+        expect(packetsIn(batches[0]!).map(({ kind }) => kind)).toEqual(['block', 'block']);
+    });
+
+    it('names the sub chunk a negative column belongs to by its own origin corner', async () => {
+        const { batches, replicator } = replicatorFor([{ x: -8, z: -8, viewDistance: 4 }]);
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+
+        for (const position of [new Vector3(-1, -1, -1), new Vector3(-16, -16, -16)]) {
+            replicator.worldChanged({ kind: 'block-set', position, blockRuntimeId: stone });
+        }
+
+        await replicator.flushBlockChanges();
+
+        const packets = packetsIn(batches[0]!);
+        expect(packets).toHaveLength(1);
+        const [only] = packets;
+        if (only?.kind !== 'sub-chunk') throw new Error('Expected one sub chunk packet');
+
+        // Both positions are in the sub chunk that starts at -16 on every axis, and the
+        // corner floors rather than truncating, which is what keeps -1 out of sub chunk 0.
+        const origin = only.data.subChunkBlockPosition;
+        expect([origin.x, origin.y, origin.z]).toEqual([-16, -16, -16]);
     });
 });

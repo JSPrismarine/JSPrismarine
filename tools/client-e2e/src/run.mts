@@ -30,6 +30,7 @@ import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
 import { placementOverlap } from './scenarios/placement-overlap.mts';
 import { spawn } from './scenarios/spawn.mts';
+import { subChunkBlockChanges } from './scenarios/sub-chunk-block-changes.mts';
 import { teleport } from './scenarios/teleport.mts';
 import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
 import { dimensionsScenario } from './scenarios/dimensions.mts';
@@ -49,6 +50,7 @@ const suites: ScenarioSuite[] = [
             chat,
             miningDrops,
             edgeChunkBlockChange,
+            subChunkBlockChanges,
             teleport,
             furnace,
             recipeBook,
