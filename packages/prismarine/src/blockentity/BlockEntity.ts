@@ -30,6 +30,9 @@ export abstract class BlockEntity {
     /** Every tag this class does not model, kept verbatim so writing back loses nothing. */
     protected readonly extra: NBTTagCompound;
 
+    /** A live mutable value escaped, so a cached serialized form can no longer be trusted. */
+    private reusableSerialization = true;
+
     protected constructor(position: Vector3, extra: NBTTagCompound) {
         this.position = position;
         this.extra = extra;
@@ -41,6 +44,19 @@ export abstract class BlockEntity {
 
     public getPosition(): Vector3 {
         return this.position;
+    }
+
+    /**
+     * Whether a caller can safely reuse a previously serialized form of this block entity.
+     * Mutable getters and setters disable reuse because their changes cannot be observed here.
+     */
+    public canReuseSerialization(): boolean {
+        return this.reusableSerialization;
+    }
+
+    /** Marks the entity as requiring a fresh serialization before comparing writes. */
+    protected markDirty(): void {
+        this.reusableSerialization = false;
     }
 
     /** Whether a piston may push this. Vanilla stores it on every block entity. */
@@ -55,7 +71,7 @@ export abstract class BlockEntity {
     protected static takeCommon(nbt: NBTTagCompound): { position: Vector3; extra: NBTTagCompound } {
         const position = new Vector3(nbt.getNumber('x', 0), nbt.getNumber('y', 0), nbt.getNumber('z', 0));
 
-        const extra = clone(nbt);
+        const extra = cloneDeep(nbt);
         extra.remove('id');
         extra.remove('x');
         extra.remove('y');
@@ -69,7 +85,7 @@ export abstract class BlockEntity {
      * Subclasses override, call `super.toNBT()`, and add theirs to the result.
      */
     public toNBT(): NBTTagCompound {
-        const nbt = clone(this.extra);
+        const nbt = cloneDeep(this.extra);
         nbt.addValue('id', new Types.StringVal(this.getId()));
         nbt.addValue('x', new Types.NumberVal(this.position.getX()));
         nbt.addValue('y', new Types.NumberVal(this.position.getY()));
@@ -88,6 +104,23 @@ export const clone = (nbt: NBTTagCompound): NBTTagCompound => {
     for (const [key, value] of nbt.entries()) copy.children.set(key, value);
 
     return copy;
+};
+
+/** Copies mutable NBT containers at block-entity boundaries while sharing immutable scalar tags. */
+const cloneDeep = (nbt: NBTTagCompound): NBTTagCompound => {
+    const copy = new NBTTagCompound(nbt.getName() ?? '');
+    for (const [key, value] of nbt.entries()) copy.children.set(key, cloneValue(value));
+
+    return copy;
+};
+
+const cloneValue = (value: unknown): unknown => {
+    if (value instanceof NBTTagCompound) return cloneDeep(value);
+    if (value instanceof Set) return new Set([...value].map(cloneValue));
+    if (Buffer.isBuffer(value)) return Buffer.from(value);
+    if (Array.isArray(value)) return value.slice();
+
+    return value;
 };
 
 export default BlockEntity;

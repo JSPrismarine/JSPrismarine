@@ -3,6 +3,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import type { BlockEntity } from './BlockEntity';
+import { Chest } from './BlockEntities';
 import type { BlockEntityWorld } from './blockEntityWrite';
 import { writeBlockEntity } from './blockEntityWrite';
 
@@ -62,6 +63,19 @@ const chestTags = (at: { x: number; y: number; z: number }, label: string): NBTT
     return tags;
 };
 
+const itemTag = (name: string): NBTTagCompound => {
+    const item = new NBTTagCompound('');
+    item.addValue('Name', new Types.StringVal(name));
+    item.addValue('Count', new Types.ByteVal(1));
+    return item;
+};
+
+const chestWithItems = (at: { x: number; y: number; z: number }, items: Set<NBTTagCompound>): NBTTagCompound => {
+    const tags = chestTags(at, 'loot');
+    tags.addValue('Items', items);
+    return tags;
+};
+
 const AT = { x: 33, y: 70, z: -18 };
 
 describe('blockentity', () => {
@@ -116,6 +130,58 @@ describe('blockentity', () => {
 
             expect(reported).toHaveLength(2);
             expect(reported[1]!.tags.getString('CustomName', '')).toBe('spoils');
+        });
+
+        it('keeps cached comparisons valid when input or output compounds are later mutated', () => {
+            const { world, chunks } = worldHolding();
+            const inputItem = itemTag('minecraft:diamond');
+            const inputItems = new Set([inputItem]);
+            writeBlockEntity(world, chestWithItems(AT, inputItems));
+
+            // Neither the caller's original NBT nor a compound returned for a save may mutate
+            // the block entity behind its cached network serialization.
+            inputItem.addValue('Count', new Types.ByteVal(12));
+            inputItems.add(itemTag('minecraft:emerald'));
+            const output = [...chunks.held.values()][0]!.toNBT();
+            output.getList('Items', false)!.add(itemTag('minecraft:gold_ingot'));
+
+            expect(writeBlockEntity(world, chestWithItems(AT, new Set([itemTag('minecraft:diamond')])))).toBe(false);
+            expect(chunks.writes).toBe(1);
+        });
+
+        it('falls back to fresh comparison after a mutable inventory escapes', () => {
+            const { world, chunks, reported } = worldHolding();
+            const original = chestWithItems(AT, new Set([itemTag('minecraft:diamond')]));
+            writeBlockEntity(world, original);
+
+            const standing = [...chunks.held.values()][0]!;
+            expect(standing).toBeInstanceOf(Chest);
+            if (standing instanceof Chest) standing.getItems().add(itemTag('minecraft:emerald'));
+
+            expect(writeBlockEntity(world, chestWithItems(AT, new Set([itemTag('minecraft:diamond')])))).toBe(true);
+            expect(reported).toHaveLength(2);
+            expect(chunks.writes).toBe(2);
+        });
+
+        it('reports the first legacy furnace normalization and suppresses its canonical replay', () => {
+            const { world, chunks, reported } = worldHolding();
+            const legacy = new NBTTagCompound('');
+            legacy.addValue('id', new Types.StringVal('Furnace'));
+            legacy.addValue('x', new Types.NumberVal(AT.x));
+            legacy.addValue('y', new Types.NumberVal(AT.y));
+            legacy.addValue('z', new Types.NumberVal(AT.z));
+            legacy.addValue('BurnTime', new Types.NumberVal(4));
+            legacy.addValue('CookTime', new Types.NumberVal(2));
+
+            expect(writeBlockEntity(world, legacy)).toBe(true);
+            const normalized = [...chunks.held.values()][0]!.toNBT();
+            expect(normalized.children.get('BurnTime')).toBeInstanceOf(Types.ShortVal);
+            expect(normalized.children.get('CookTime')).toBeInstanceOf(Types.ShortVal);
+            expect(reported[0]!.tags).toStrictEqual(normalized);
+
+            expect(writeBlockEntity(world, legacy)).toBe(false);
+            expect(chunks.writes).toBe(1);
+            expect(reported).toHaveLength(1);
         });
 
         it('tells positions apart', () => {

@@ -35,7 +35,11 @@ import { BlockEntityRegistry } from './BlockEntityRegistry';
 
 /** A chunk as a block entity write reads and writes one, which is the little of `Chunk` it uses. */
 export interface BlockEntityChunk {
-    getBlockEntity(x: number, y: number, z: number): { toNBT(): NBTTagCompound } | null;
+    getBlockEntity(
+        x: number,
+        y: number,
+        z: number
+    ): { toNBT(): NBTTagCompound; canReuseSerialization(): boolean } | null;
     setBlockEntity(blockEntity: BlockEntity): void;
 }
 
@@ -53,6 +57,9 @@ export interface BlockEntityWorld {
      */
     blockEntityChanged(position: Vector3, tags: NBTTagCompound): void;
 }
+
+/** Encoded forms for entities whose mutable NBT has not escaped through a public getter. */
+const serializedSnapshots = new WeakMap<object, Buffer>();
 
 /**
  * The bytes a compound travels as: network NBT, little endian with varint lengths.
@@ -90,13 +97,20 @@ export const writeBlockEntity = (world: BlockEntityWorld, tags: NBTTagCompound):
 
     const written = BlockEntityRegistry.fromNBT(tags);
     const settled = written.toNBT();
+    const settledBytes = networkTags(settled);
 
     const standing = chunk.getBlockEntity(x, y, z);
-    if (standing !== null && standing !== undefined && networkTags(standing.toNBT()).equals(networkTags(settled))) {
-        return false;
+    if (standing !== null && standing !== undefined) {
+        const standingBytes = standing.canReuseSerialization()
+            ? (serializedSnapshots.get(standing) ?? networkTags(standing.toNBT()))
+            : networkTags(standing.toNBT());
+
+        if (standing.canReuseSerialization()) serializedSnapshots.set(standing, standingBytes);
+        if (standingBytes.equals(settledBytes)) return false;
     }
 
     chunk.setBlockEntity(written);
+    if (written.canReuseSerialization()) serializedSnapshots.set(written, settledBytes);
     world.blockEntityChanged(new Vector3(x, y, z), settled);
 
     return true;

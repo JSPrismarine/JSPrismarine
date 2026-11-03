@@ -19,11 +19,15 @@ import { BlockEntity, clone } from './BlockEntity';
 /** A container's items, kept as written until the server has an inventory model to put them in. */
 abstract class Container extends BlockEntity {
     public getItems(): Set<NBTTagCompound> {
-        return this.extra.getList('Items', false) ?? new Set<NBTTagCompound>();
+        const items = this.extra.getList('Items', false);
+        if (items === null) return new Set<NBTTagCompound>();
+
+        this.markDirty();
+        return items;
     }
 
     public isEmpty(): boolean {
-        return this.getItems().size === 0;
+        return (this.extra.getList('Items', false)?.size ?? 0) === 0;
     }
 
     /** A container's display name, when the player has renamed it in an anvil. */
@@ -211,7 +215,11 @@ export class Banner extends BlockEntity {
 
     /** The layered pattern compounds, kept as written. */
     public getPatterns(): Set<NBTTagCompound> {
-        return this.extra.getList('Patterns', false) ?? new Set<NBTTagCompound>();
+        const patterns = this.extra.getList('Patterns', false);
+        if (patterns === null) return new Set<NBTTagCompound>();
+
+        this.markDirty();
+        return patterns;
     }
 }
 
@@ -224,7 +232,9 @@ export class ItemFrame extends BlockEntity {
     }
 
     public getItem(): NBTTagCompound | null {
-        return this.extra.getCompound('Item', false);
+        const item = this.extra.getCompound('Item', false);
+        if (item !== null) this.markDirty();
+        return item;
     }
 
     public getRotation(): number {
