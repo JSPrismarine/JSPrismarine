@@ -46,18 +46,41 @@ sequence, arrival tick, protocol version, and encoded bytes. Replay records acro
 the order returned by `records()`, awaiting each `replayInboundRecord()` call before the next.
 `serialize()` writes a versioned JSON trace, and
 `InboundPacketTrace.deserialize()` reads it back, including traces in the previous format version.
-The trace does not include a restorable world snapshot, content fingerprints, or RNG state, so it
-cannot restore a live world by itself. A `NetworkDispatcher` can feed each record back through its
-decoded handler path; the built-in server exposes that method through
+The packet trace is separate from the initial-state manifest. `Level.captureReplayInitialState()`
+records effective content and world-generation fingerprints, serializable RNG state, and digests
+for ready loaded worlds. `Level.restoreReplayRandomState()` verifies that boundary and restores RNG
+state, but does not restore world data: the manifest is non-atomic, excludes unloaded persistent
+state, and does not fingerprint executable server or plugin code. Capturing also fails when the
+server uses a custom random callback without a serializable state contract. A `NetworkDispatcher`
+can feed each record back through its decoded handler path; the built-in server exposes that method through
 `server.getKernel().get(networkToken).replayInboundRecord?.(record, tickOffset)`. The caller must
 restore matching connections and advance the server to each recorded tick. Pass an
 `OutboundPacketTrace` as `outboundPacketRecorder` to the `Server` constructor to capture encoded
 clientbound packets and compare their per-tick digests. `World.replayStateDigest()` hashes loaded
 chunks, pending chunk load coordinates and priorities, entities, level weather and rules, and
-player inventories for a per-tick world comparison. The packet benchmark measures dispatcher
-recording and replay CPU plus serialized packet-trace storage; it does not measure snapshot or
-world-digest costs. Packet bytes may contain login identity data, so keep capture opt-in and
-protect any trace you store. Run `pnpm --filter @jsprismarine/prismarine run bench:inbound-packets`
+player inventories for a per-tick comparison; it does not cover unloaded chunks or every pending
+simulation subsystem.
+
+`packages/client/src/SessionReplay.test.ts` exercises the live replay path with two fresh flat
+replay worlds using seed `2847`. It captures four scripted `MovePlayerPacket` records from a real
+client, logs the same two identities into each replay world, then replays the play-phase movement
+segment through `networkToken`. The test compares the world and outbound packet digests at each
+tick. It seeds `Server` randomness, fixes the remaining global random calls, and disables natural
+mob spawning in the flat fixture so unrelated spawn timing does not change the world digest. It
+keeps login live because no API restores the initial world or pre-login session yet; the test maps
+the captured connection order and input entity id onto each live session. Its per-tick outbound
+digest normalizes process-local actor ids by the logged-in players and by first-seen packet order
+for other actors before hashing the packet bytes.
+It does not cover session login replay, frame grouping, nonloaded world state, Java-verified entity
+update order, or recorder and digest cost during live world ticks. Close those gaps by adding
+restorable world state, content fingerprints, and RNG state; recording connection lifecycle and
+frame boundaries; extending the digest's world-state coverage; proving entity update order against
+Java; and measuring live tick, snapshot, and digest costs. Packet bytes may contain login identity
+data, so keep capture opt-in and protect any trace you store. The packet benchmark measures
+dispatcher recording and replay CPU plus serialized packet-trace storage; it does not measure
+snapshot or world-digest costs. Run
+`pnpm --filter @jsprismarine/client exec vitest run --config vitest.config.ts src/SessionReplay.test.ts`
+to run the live replay test, or `pnpm --filter @jsprismarine/prismarine run bench:inbound-packets`
 to reproduce the packet benchmark.
 
 ## JSON Schemas
