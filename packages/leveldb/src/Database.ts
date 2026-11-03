@@ -417,12 +417,14 @@ export class Database {
         for (const entry of mergeSorted(sources, (a, b) => compareInternalKeys(a.key, b.key))) {
             const userKey = extractUserKey(entry.key);
 
-            // Only the newest version of each key survives, and a deletion can be dropped outright
-            // because there is no older level left below to shadow.
+            // Only the newest version of each key survives. Keep tombstones until no deeper level
+            // can hold an older value, or compaction would make that value visible again.
             if (previousUserKey !== null && compareBytewise(previousUserKey, userKey) === 0) continue;
 
             previousUserKey = Buffer.from(userKey);
-            if (parseInternalKey(entry.key).type === ValueType.Deletion) continue;
+            if (parseInternalKey(entry.key).type === ValueType.Deletion && !this.versions.hasOlderFile(1, userKey)) {
+                continue;
+            }
 
             if (builder === null) {
                 builder = this.newTableBuilder();

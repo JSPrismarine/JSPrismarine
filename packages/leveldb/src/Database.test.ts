@@ -10,6 +10,7 @@ import { CompressionType } from './compression/Compression';
 import { Database } from './Database';
 import { DatabaseLockedError } from './Errors';
 import { WriteBatch } from './format/WriteBatch';
+import { VersionSet } from './db/VersionSet';
 
 /**
  * Every test gets its own directory. Vitest runs files in parallel forks, and two databases in one
@@ -30,6 +31,29 @@ afterEach(() => {
 const key = (text: string) => Buffer.from(text);
 const chunkKeys = (count: number) =>
     Array.from({ length: count }, (_, i) => key(`chunk:${String(i).padStart(6, '0')}`));
+
+/** Moves level 1 tables into level 2 to model a deeper run written by Bedrock. */
+const moveLevelOneFilesToLevelTwo = (db: Database): void => {
+    const versions = Reflect.get(db, 'versions');
+    if (!(versions instanceof VersionSet)) throw new Error('Database version set is unavailable');
+
+    const files = [...versions.files(1)];
+    if (files.length === 0) throw new Error('Database has no level 1 files to move');
+
+    versions.applyEdit({
+        deletedFiles: files.map((file): [number, number] => [1, file.number]),
+        newFiles: files.map((file): [number, typeof file] => [2, file])
+    });
+
+    const writeManifest = Reflect.get(db, 'writeManifest');
+    if (typeof writeManifest !== 'function') throw new Error('Database manifest writer is unavailable');
+    writeManifest.call(db);
+};
+
+const entriesOf = (entries: Iterable<[Buffer, Buffer]>): Array<[string, string]> =>
+    [...entries]
+        .map(([entryKey, value]): [string, string] => [entryKey.toString(), value.toString()])
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
 
 describe('leveldb', () => {
     describe('Database', () => {
@@ -312,6 +336,58 @@ describe('leveldb', () => {
                 expect(db.get(key('doomed'))).toBeNull();
                 expect([...db.keys()].map(String)).toEqual(['other']);
                 await db.close();
+            });
+
+            it('keeps a tombstone when an older value remains in a deeper level', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { l0CompactionTrigger: 1 });
+                db.put(key('actor'), key('old actor'));
+                await db.flush();
+                moveLevelOneFilesToLevelTwo(db);
+
+                db.del(key('actor'));
+                await db.flush();
+
+                expect(db.get(key('actor'))).toBeNull();
+                await db.close();
+
+                const reopened = await Database.open(directory);
+                expect(reopened.get(key('actor'))).toBeNull();
+                await reopened.close();
+            });
+
+            it('matches random put and delete operations with a map across compactions and reopen', async () => {
+                const directory = scratch();
+                const db = await Database.open(directory, { l0CompactionTrigger: 2, maxFileSize: 512 });
+                const expected = new Map<string, string>();
+                let state = 0x7f4a7c15;
+
+                for (let operation = 0; operation < 240; operation++) {
+                    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                    const entryKey = `key:${String(state % 37).padStart(2, '0')}`;
+                    if ((state & 3) === 0) {
+                        db.del(key(entryKey));
+                        expected.delete(entryKey);
+                    } else {
+                        const value = `value:${operation}`;
+                        db.put(key(entryKey), key(value));
+                        expected.set(entryKey, value);
+                    }
+
+                    if (operation % 12 === 0) {
+                        await db.flush();
+                        expect(entriesOf(db.entries())).toEqual(
+                            entriesOf([...expected].map(([k, v]) => [key(k), key(v)]))
+                        );
+                    }
+                }
+
+                await db.close();
+                const reopened = await Database.open(directory);
+                expect(entriesOf(reopened.entries())).toEqual(
+                    entriesOf([...expected].map(([k, v]) => [key(k), key(v)]))
+                );
+                await reopened.close();
             });
         });
 

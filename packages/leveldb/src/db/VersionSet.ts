@@ -137,6 +137,20 @@ export class VersionSet {
         );
     }
 
+    /**
+     * Whether any level below `level` can still contain an older version of `userKey`.
+     *
+     * @param level - The level being compacted into.
+     * @param userKey - The user key without its sequence number or value type.
+     */
+    public hasOlderFile(level: number, userKey: Buffer): boolean {
+        for (let deeper = level + 1; deeper < MAX_LEVELS; deeper++) {
+            if (this.findFile(this.levels[deeper]!, userKey) !== null) return true;
+        }
+
+        return false;
+    }
+
     /** A single edit that reproduces the whole current state, for a freshly written manifest. */
     public snapshot(comparator: string): VersionEdit {
         return {
