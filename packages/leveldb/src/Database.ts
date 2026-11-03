@@ -43,6 +43,9 @@ import type {
     WorkerTableOptions
 } from './db/TableWorkerProtocol';
 
+/** The worker asset name defined by `scripts/package-sea.mts` for Node SEA builds. */
+declare const JSP_SEA_TABLE_BUILDER_WORKER: string | undefined;
+
 export interface DatabaseStats {
     /** Number of unmerged level 0 files. */
     level0Files: number;
@@ -373,10 +376,15 @@ export class Database {
         if (this.tableWorker !== null) return this.tableWorker;
 
         const isTypeScript = import.meta.url.endsWith('.ts');
-        const workerPath = new URL(
-            isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.es.js',
-            import.meta.url
-        );
+        // A SEA executable has no adjacent dist tree. Read the self-contained worker from its
+        // embedded asset instead of resolving a path beside the bundled Database module.
+        const workerPath =
+            typeof JSP_SEA_TABLE_BUILDER_WORKER === 'undefined'
+                ? new URL(
+                      isTypeScript ? './db/TableBuilderWorker.ts' : './db/TableBuilderWorker.es.js',
+                      import.meta.url
+                  )
+                : this.singleExecutableTableWorkerUrl(JSP_SEA_TABLE_BUILDER_WORKER);
         const worker = new Worker(workerPath, {
             execArgv: isTypeScript ? this.tableWorkerExecArgv() : process.execArgv
         });
@@ -400,6 +408,15 @@ export class Database {
         });
 
         return worker;
+    }
+
+    private singleExecutableTableWorkerUrl(asset: string): URL {
+        // `createRequire` resolves dynamic built-ins without preserving their imported type.
+        const sea = createRequire(process.execPath)('node:sea') as typeof import('node:sea');
+        if (!sea.isSea()) throw new Error('The embedded LevelDB table worker requires a Node single executable');
+
+        const source = Buffer.from(sea.getAsset(asset)).toString('base64');
+        return new URL(`data:text/javascript;base64,${source}`);
     }
 
     private failTableWorker(worker: Worker, error: Error): void {

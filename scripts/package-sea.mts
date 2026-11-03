@@ -22,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
 import { buildPackagedData } from './data-bundle.mts';
+import { rewriteSeaWorkerRequireBase } from './sea-worker-bundle.ts';
 import { yargsCjsImportMetaPlugin } from './yargs-cjs-import-meta.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -33,6 +34,7 @@ if (major! < 25 || (major === 25 && minor! < 5)) {
 }
 const seaDir = path.join(repoRoot, 'dist', 'sea');
 const executable = path.join(repoRoot, 'dist', process.platform === 'win32' ? 'prismarine.exe' : 'prismarine');
+const SEA_TABLE_BUILDER_WORKER = 'leveldb-table-builder-worker';
 const args = process.argv.slice(2);
 const packageArgs = args[0] === '--' ? args.slice(1) : args;
 if (packageArgs.some((argument) => argument !== '--no-code-cache')) {
@@ -50,7 +52,8 @@ const bundle = await rolldown({
         define: {
             JSP_SEA_GENERATION_WORKER: "'generation-worker'",
             JSP_SEA_CHUNK_PIPELINE: "'chunk-pipeline'",
-            JSP_SEA_TERRAIN_PIPELINE: "'terrain-pipeline'"
+            JSP_SEA_TERRAIN_PIPELINE: "'terrain-pipeline'",
+            JSP_SEA_TABLE_BUILDER_WORKER: JSON.stringify(SEA_TABLE_BUILDER_WORKER)
         }
     },
     // The terminal UI loads a native library through `@opentui/core`, whose top-level await
@@ -74,16 +77,26 @@ await bundle.write({
 await bundle.close();
 
 console.log('Bundling generation workers...');
-const generationAssets = [
+const workerAssets = [
     ['generation-worker', 'packages/chunkgen/src/singleExecutableWorker.ts'],
     ['chunk-pipeline', 'packages/prismarine/src/world/generators/datadriven/chunkPipeline.ts'],
-    ['terrain-pipeline', 'packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts']
+    ['terrain-pipeline', 'packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts'],
+    [SEA_TABLE_BUILDER_WORKER, 'packages/leveldb/src/db/TableBuilderWorker.ts']
 ] as const;
-for (const [name, entry] of generationAssets) {
+for (const [name, entry] of workerAssets) {
     const workerBundle = await rolldown({
         input: path.join(repoRoot, entry),
         platform: 'node',
-        resolve: { alias: { 'jsonc-parser': 'jsonc-parser/lib/esm/main.js' } }
+        resolve: { alias: { 'jsonc-parser': 'jsonc-parser/lib/esm/main.js' } },
+        plugins: [
+            {
+                name: 'sea-worker-require-base',
+                // These self-contained worker bundles import from data URLs. Rolldown's
+                // CommonJS helper cannot pass that URL to createRequire, so use the executable
+                // path as the base; every non-built-in dependency is already bundled here.
+                renderChunk: rewriteSeaWorkerRequireBase
+            }
+        ]
     });
     await workerBundle.write({
         file: path.join(seaDir, `${name}.mjs`),
@@ -125,7 +138,7 @@ writeFileSync(
             assets: {
                 'data-bundle': bundlePath,
                 'data-manifest': manifestPath,
-                ...Object.fromEntries(generationAssets.map(([name]) => [name, path.join(seaDir, `${name}.mjs`)]))
+                ...Object.fromEntries(workerAssets.map(([name]) => [name, path.join(seaDir, `${name}.mjs`)]))
             }
         },
         null,
