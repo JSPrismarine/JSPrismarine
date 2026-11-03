@@ -109,6 +109,24 @@ describe('C2 - fragments are independent messages', () => {
         expect(resent.fragmentIndex).toBe(0);
         expect(resent.content.equals(fragments[0]!.content)).toBe(true);
     });
+
+    it('retransmits a lost fragment after the datagram history overflows', () => {
+        const { session, sent } = makeSession();
+        const frame = gameFrame(Buffer.alloc(1343 * 600, 7));
+        session.sendFrame(frame);
+
+        expect(sent).toHaveLength(600);
+
+        // The oldest datagram has left the bounded ACK/NACK history, but its reliable
+        // message must remain pending until an ACK or session teardown.
+        session.update(monotonicNow() + 3000);
+
+        const retransmissions = sent
+            .slice(600)
+            .map(decodeSent)
+            .flatMap((frameSet) => frameSet.frames);
+        expect(retransmissions.some((fragment) => fragment.fragmentIndex === 0)).toBe(true);
+    });
 });
 
 describe('C6 - malformed frame lengths are rejected, not looped on', () => {

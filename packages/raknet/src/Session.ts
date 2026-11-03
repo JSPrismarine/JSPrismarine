@@ -422,7 +422,7 @@ export default class Session {
 
             for (const reliableIndex of entry.messageNumbers) {
                 const pending = this.resendBuffer.get(reliableIndex);
-                // Already acknowledged through another datagram, or evicted: skip it.
+                // Already acknowledged through another datagram: skip it.
                 if (!pending) continue;
 
                 this.addFrameToQueue(pending.frame, RakNetPriority.NORMAL);
@@ -1161,17 +1161,15 @@ export default class Session {
     }
 
     /**
-     * Bounds the datagram history so a datagram that is never acknowledged nor reported
-     * lost cannot pin its messages forever.
+     * Bounds only the ACK/NACK lookup history. Reliable messages stay in the resend buffer
+     * until acknowledged or the session ends, even after their original sequence mapping is
+     * pruned; retransmitting one then gives a later ACK a fresh mapping.
      * Insertion order in a Map is the send order, so the head is always the oldest entry.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakNetDefines.h#L105 (RESEND_BUFFER_ARRAY_LENGTH)
      */
     private pruneDatagramHistory(): void {
         while (this.datagramHistory.size > MAX_DATAGRAM_HISTORY) {
             const oldest = this.datagramHistory.keys().next().value!;
-            for (const reliableIndex of this.datagramHistory.get(oldest)!.messageNumbers) {
-                this.resendBuffer.delete(reliableIndex);
-            }
             this.datagramHistory.delete(oldest);
         }
     }
