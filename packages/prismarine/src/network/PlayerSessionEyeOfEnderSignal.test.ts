@@ -30,10 +30,6 @@ const thrownEye = () => {
     // The fake player joins with no chunks requested, and a client that sees no chunks is
     // shown no entities.
     player.viewDistance = 8;
-    // A tick's moves go out as one batch, which the fake connection does not otherwise take.
-    Object.assign(player.getNetworkSession().getConnection(), {
-        sendPackets: (packets: readonly unknown[]) => void sent.push(...packets)
-    });
 
     const eye = new EyeOfEnderSignal({
         item: new Item({ runtimeId: 1, name: 'minecraft:ender_eye' }),

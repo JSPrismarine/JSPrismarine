@@ -3,15 +3,23 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
+import type { Logger } from '@jsprismarine/logger';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import type { ContentPosition } from '../content/world/adapter';
 import { definitionsOf } from '../content/ContentOptions';
 import { fixtureContentOptions, fixtureItemDefinitions } from '../content/testing';
 import { unwiredWorld } from '../content/world/unwired';
+import type { Config } from '../config/Config';
+import type Server from '../Server';
+import { stub } from '../testing/stub.test.helper';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import type { Block } from '../block/Block';
+import type { Item } from '../item/Item';
 import { Dimensions } from '../world/Dimension';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
+import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
 import type { Entity } from './Entity';
 import { explode } from './Explosion';
@@ -47,38 +55,45 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
     const cleared: string[] = [];
     const dropped: Array<{ at: ContentPosition; names: string[] }> = [];
 
-    const world: any = {
+    const runtimeId = BlockRuntimeIds.tryGetByState(blockName, {});
+    if (runtimeId === null) throw new Error(`no block state registered for ${blockName}`);
+
+    const server = stub<Server>({
+        post: () => 0,
+        getTick: () => 0,
+        getRandom: () => () => 0.5,
+        getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL }),
+        getLogger: () => stub<Logger>({ error: () => {}, debug: () => {} }),
+        // Most scenes have no pack stack, so there are no loot tables and nothing drops.
+        getContent: () => content
+    });
+
+    const world = stub<World>({
         getName: () => 'test',
         getTicks: () => 0,
         getDimension: () => Dimensions.Overworld,
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getRandom: () => () => 0.5,
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            getLogger: () => ({ error: () => {}, debug: () => {} }),
-            // No pack stack by default, so there are no loot tables and nothing drops.
-            getContent: () => content
-        }),
+        getServer: () => server,
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
         broadcastMove: async () => {},
         playNamedSound: () => {},
-        getGameRuleManager: () => ({
-            getGameRule: (name: string) => [name === GameRules.MobGriefing ? griefing : true, true]
-        }),
-        getEntityGrid: () => ({ near: () => nearby }),
+        getGameRuleManager: () =>
+            stub<ReturnType<World['getGameRuleManager']>>({
+                getGameRule: (name: string) => [name === GameRules.MobGriefing ? griefing : true, true]
+            }),
+        getEntityGrid: () => stub<ReturnType<World['getEntityGrid']>>({ near: () => nearby }),
         loadedBlockAt: () => ({ name: blockName, states: {} }),
+        loadedBlockRuntimeIdAt: () => runtimeId,
         setLoadedBlockState: (x: number, y: number, z: number) => {
             cleared.push(`${x},${y},${z}`);
             return true;
         },
-        dropFromBlock: async (at: ContentPosition, contents: Array<{ getName(): string }>) =>
-            void dropped.push({ at, names: contents.map((item) => item.getName()) }),
+        dropFromBlock: async (at: ContentPosition, contents: Array<Block | Item | null>) =>
+            void dropped.push({ at, names: contents.flatMap((item) => (item === null ? [] : [item.getName()])) }),
         getLoadedChunk: () => null
-    };
+    });
 
     /**
      * A body in the blast, with the health the caller wants to watch come off it.

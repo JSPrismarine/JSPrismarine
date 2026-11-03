@@ -3,6 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { vi } from 'vitest';
 
 import Player from '../Player';
@@ -142,9 +143,16 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
 
     const connection = stub<ClientConnection>({
         codec: Codec2193,
+        compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+        compressionThreshold: 256,
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
         sendDataPacket: async (packet) => void sent.push(packet),
         sendPacketsAsync: async (packets) => void sent.push(...packets),
+        sendSharedBatch: async (_content, packets) => void sent.push(...packets),
+        sendSharedBatchAsync: async (batch) => void sent.push(...(await batch).packets),
+        sendSharedCompressedBatchAsync: async (_content, packets) => void sent.push(...packets),
+        // World ticks drain queued packets after all tick-driven sends; this double has no transport queue.
+        flushOutboundPackets: async () => {},
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},
         disconnect: async (...args) => void disconnects.push(args)

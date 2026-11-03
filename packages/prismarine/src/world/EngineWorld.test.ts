@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { Vector3 } from '@jsprismarine/math';
 import { behaviorFor, vanillaBlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
@@ -15,6 +14,9 @@ import type { ServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { serverWorldSource } from '../content/world/serverSource';
 import type { Config } from '../config/Config';
+import type Player from '../Player';
+import type ClientConnection from '../network/ClientConnection';
+import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
@@ -24,6 +26,7 @@ import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
+import { Position } from './Position';
 import { DimensionTravel } from './portal/DimensionTravel';
 import type { SystemBlock } from './WorldSystems';
 import { contentBlockTickHandlers } from './blockTicks';
@@ -196,8 +199,18 @@ const runTicks = async (world: World, ticks: number): Promise<void> => {
  * reads a position and nothing else.
  */
 const standInPlayer = (world: World): void => {
-    const held = world as unknown as { players: Map<bigint, { isOnline(): boolean; getPosition(): Vector3 }> };
-    held.players.set(1n, { isOnline: () => true, getPosition: () => new Vector3(0, GROUND + 1, 0) });
+    const connection = stub<ClientConnection>({
+        // This fixture checks random ticks, so a world tick has no outbound session queue to drain.
+        flushOutboundPackets: async () => {}
+    });
+    const session = stub<PlayerSession>({ getConnection: () => connection });
+    const player = stub<Player>({
+        isOnline: () => true,
+        viewDistance: 8,
+        getPosition: () => new Position(0, GROUND + 1, 0, world),
+        getNetworkSession: () => session
+    });
+    world['players'].set(1, player);
 };
 
 describe('world', () => {
