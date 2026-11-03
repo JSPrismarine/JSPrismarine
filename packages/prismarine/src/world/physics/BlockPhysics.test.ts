@@ -321,7 +321,53 @@ describe('the update scheduler', () => {
         for (let i = 0; i < 5000; i++) scheduler.schedule(i, 0, 0, 0);
 
         const first = scheduler.due(1);
-        expect(first.length).toBeLessThanOrEqual(4096);
-        expect(scheduler.size()).toBe(5000 - first.length);
+        expect(first).toEqual(Array.from({ length: 4096 }, (_unused, x) => ({ x, y: 0, z: 0 })));
+        expect(scheduler.size()).toBe(904);
+        expect(scheduler.due(1)).toEqual(
+            Array.from({ length: 904 }, (_unused, index) => ({
+                x: index + 4096,
+                y: 0,
+                z: 0
+            }))
+        );
+    });
+
+    it('preserves due order and exact deduplication across packed and fallback coordinates', () => {
+        const scheduler = new BlockUpdateScheduler();
+        const operations = [
+            { x: -1, y: -64, z: -1, now: 0, delay: 8 },
+            { x: 0, y: -64, z: 0, now: 0, delay: 2 },
+            { x: -16, y: 319, z: 16, now: 0, delay: 1 },
+            { x: 536_870_912, y: 80, z: 536_870_912, now: 0, delay: 4 },
+            { x: 536_870_928, y: 80, z: 536_870_928, now: 0, delay: 3 },
+            { x: 16, y: 10_000, z: 16, now: 0, delay: 7 },
+            { x: -1, y: -64, z: -1, now: 5, delay: 1 },
+            { x: 0, y: -64, z: 0, now: 1, delay: 9 }
+        ];
+        const linear = new Map<string, { readonly at: number; readonly update: { x: number; y: number; z: number } }>();
+
+        for (const operation of operations) {
+            scheduler.schedule(operation.x, operation.y, operation.z, operation.now, operation.delay);
+            const key = `${operation.x},${operation.y},${operation.z}`;
+            const at = operation.now + Math.max(1, operation.delay);
+            const existing = linear.get(key);
+            if (existing === undefined || at < existing.at) {
+                linear.set(key, {
+                    at,
+                    update: { x: operation.x, y: operation.y, z: operation.z }
+                });
+            }
+        }
+
+        for (let now = 1; now <= 10; now++) {
+            const expected: { x: number; y: number; z: number }[] = [];
+            for (const [key, entry] of linear) {
+                if (entry.at > now) continue;
+                expected.push(entry.update);
+                linear.delete(key);
+            }
+            expect(scheduler.due(now)).toEqual(expected);
+            expect(scheduler.size()).toBe(linear.size);
+        }
     });
 });

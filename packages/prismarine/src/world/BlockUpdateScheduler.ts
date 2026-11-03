@@ -1,3 +1,6 @@
+import { blockPositionKey } from './positionKeys';
+import type { BlockPositionKey } from './positionKeys';
+
 /**
  * Positions whose block should be given a chance to react, and when.
  *
@@ -21,8 +24,10 @@
 /** How many updates one tick may process before leaving the rest for the next. */
 const UPDATES_PER_TICK = 4096;
 
-/** A position, packed into one number so it can key a map cheaply. */
-const pack = (x: number, y: number, z: number): string => `${x},${y},${z}`;
+interface PendingUpdate {
+    readonly at: number;
+    readonly update: BlockUpdate;
+}
 
 export interface BlockUpdate {
     x: number;
@@ -32,13 +37,16 @@ export interface BlockUpdate {
 
 export class BlockUpdateScheduler {
     /**
-     * Pending updates, keyed by position so a position waits once however often it is queued.
+     * Pending updates, keyed by position so duplicate schedules update their due time in place.
      *
      * The value is the tick it comes due. Re-queuing a position that is already waiting keeps the
      * *earlier* of the two times: a block asked to look at itself now and also in five ticks should
      * look now, and looking twice would be wasted work.
      */
-    private readonly pending = new Map<string, { at: number; update: BlockUpdate }>();
+    private readonly pending = new Map<BlockPositionKey, PendingUpdate>();
+
+    /** Earliest due tick, allowing an all-future queue to return without scanning. */
+    private earliestDue = Number.POSITIVE_INFINITY;
 
     /**
      * Queues a position to be looked at.
@@ -50,13 +58,16 @@ export class BlockUpdateScheduler {
      * that caused it would recurse through the whole cascade in one call.
      */
     public schedule(x: number, y: number, z: number, now: number, delay = 1): void {
-        const key = pack(x, y, z);
+        const key = blockPositionKey(x, y, z);
         const at = now + Math.max(1, delay);
 
         const existing = this.pending.get(key);
         if (existing && existing.at <= at) return;
 
         this.pending.set(key, { at, update: { x, y, z } });
+
+        if (Number.isNaN(at)) this.earliestDue = Number.NEGATIVE_INFINITY;
+        else if (at < this.earliestDue) this.earliestDue = at;
     }
 
     /**
@@ -83,6 +94,7 @@ export class BlockUpdateScheduler {
 
     public clear(): void {
         this.pending.clear();
+        this.earliestDue = Number.POSITIVE_INFINITY;
     }
 
     /**
@@ -91,9 +103,10 @@ export class BlockUpdateScheduler {
      * @returns {BlockUpdate[]} At most {@link UPDATES_PER_TICK} of them; the rest stay queued.
      */
     public due(now: number): BlockUpdate[] {
-        if (this.pending.size === 0) return [];
+        if (this.pending.size === 0 || this.earliestDue > now) return [];
 
         const ready: BlockUpdate[] = [];
+        let reachedBudget = false;
 
         for (const [key, entry] of this.pending) {
             if (entry.at > now) continue;
@@ -101,10 +114,31 @@ export class BlockUpdateScheduler {
             ready.push(entry.update);
             this.pending.delete(key);
 
-            if (ready.length >= UPDATES_PER_TICK) break;
+            if (ready.length >= UPDATES_PER_TICK) {
+                reachedBudget = true;
+                break;
+            }
+        }
+
+        if (reachedBudget) this.earliestDue = now;
+        else if (this.earliestDue <= now) this.recomputeEarliestDue();
+        if (this.pending.size === 0) {
+            this.earliestDue = Number.POSITIVE_INFINITY;
         }
 
         return ready;
+    }
+
+    /** Re-scans only after the current earliest due tick has left the queue. */
+    private recomputeEarliestDue(): void {
+        this.earliestDue = Number.POSITIVE_INFINITY;
+        for (const { at } of this.pending.values()) {
+            if (Number.isNaN(at)) {
+                this.earliestDue = Number.NEGATIVE_INFINITY;
+                return;
+            }
+            if (at < this.earliestDue) this.earliestDue = at;
+        }
     }
 }
 

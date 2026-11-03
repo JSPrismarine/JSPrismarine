@@ -177,6 +177,32 @@ describe('world', () => {
             });
         });
 
+        describe('redstone cache', () => {
+            it('invalidates a changed block and its unloaded chunk through the world lifecycle', () => {
+                const forgottenPositions: BlockPosition[] = [];
+                const forgottenChunks: { readonly x: number; readonly z: number }[] = [];
+                const { systemsOf } = worldOf();
+                const systems = systemsOf({
+                    redstoneUpdateHandlers: {
+                        dispatch: () => {},
+                        forgetPosition: (at) => forgottenPositions.push(at),
+                        forgetChunk: (x, z) => forgottenChunks.push({ x, z })
+                    }
+                });
+                const at = { x: -1, y: 64, z: -1 };
+
+                systems.onBlockChanged(
+                    at,
+                    { name: 'minecraft:stone', states: {} },
+                    { name: 'minecraft:dirt', states: {} }
+                );
+                systems.onChunkUnloaded(-1, -1);
+
+                expect(forgottenPositions).toEqual([at]);
+                expect(forgottenChunks).toEqual([{ x: -1, z: -1 }]);
+            });
+        });
+
         describe('content block ticks', () => {
             it('does not run a duplicate fluid tick after the block list advances the same liquid', () => {
                 const at = { x: 0, y: 1, z: 0 };

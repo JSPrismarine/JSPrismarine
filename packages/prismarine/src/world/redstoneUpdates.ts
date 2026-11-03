@@ -10,6 +10,7 @@ import type { BlockRef, BlockPosition } from '@jsprismarine/engine-systems';
 
 import type { ServerContent } from '../content/ServerContent';
 import type { World } from './World';
+import { blockPositionKeys, coordinatePairKey } from './positionKeys';
 
 /** The content, live world, and error reporter needed by the redstone bridge. */
 export interface ContentRedstoneUpdateOptions {
@@ -33,9 +34,6 @@ export interface ContentRedstoneUpdateHandlers {
     forgetChunk(chunkX: number, chunkZ: number): void;
 }
 
-const chunkKey = (at: BlockPosition): string => `${at.x >> 4},${at.z >> 4}`;
-const positionKey = (at: BlockPosition): string => `${at.x},${at.y},${at.z}`;
-
 /**
  * Builds the redstone hook dispatcher for one world's resolved content.
  *
@@ -49,8 +47,8 @@ const positionKey = (at: BlockPosition): string => `${at.x},${at.y},${at.z}`;
 export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOptions): ContentRedstoneUpdateHandlers => {
     const { content, world, report } = options;
     const reported = new Set<string>();
-    const powerByChunk = new Map<string, Map<string, number>>();
-    const dispatching = new Set<string>();
+    const powerByChunk = new Map<string | number, Map<string | number, number>>();
+    const dispatching = new Map<string | number, Set<string | number>>();
 
     return {
         shouldDispatch(at, block) {
@@ -74,16 +72,17 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
             const hooks = state.content.hooks;
             if (!hooks.has('onRedstoneUpdate')) return;
 
-            const chunk = chunkKey(at);
-            const positions = powerByChunk.get(chunk) ?? new Map<string, number>();
-            const key = positionKey(at);
+            const { chunk, position: key } = blockPositionKeys(at.x, at.y, at.z);
+            const positions = powerByChunk.get(chunk) ?? new Map<string | number, number>();
             const previous = positions.get(key);
             positions.set(key, power);
             powerByChunk.set(chunk, positions);
             const changed = previous !== power && !(previous === undefined && power === 0);
             if (!changed) return;
 
-            dispatching.add(key);
+            const positionsDispatching = dispatching.get(chunk) ?? new Set<string | number>();
+            positionsDispatching.add(key);
+            dispatching.set(chunk, positionsDispatching);
             try {
                 hooks.dispatch('onRedstoneUpdate', {
                     block: {
@@ -100,18 +99,19 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
                     report(block.name, error);
                 }
             } finally {
-                dispatching.delete(key);
+                positionsDispatching.delete(key);
+                if (positionsDispatching.size === 0) dispatching.delete(chunk);
                 // A hook may swap the block's identifier, which clears this cache entry. Keep
                 // the edge just handled so the paired state does not replay it recursively.
                 positions.set(key, power);
             }
         },
         forgetPosition(at) {
-            const key = positionKey(at);
-            if (!dispatching.has(key)) powerByChunk.get(chunkKey(at))?.delete(key);
+            const { chunk, position } = blockPositionKeys(at.x, at.y, at.z);
+            if (!dispatching.get(chunk)?.has(position)) powerByChunk.get(chunk)?.delete(position);
         },
         forgetChunk(chunkX, chunkZ) {
-            powerByChunk.delete(`${chunkX},${chunkZ}`);
+            powerByChunk.delete(coordinatePairKey(chunkX, chunkZ));
         }
     };
 };

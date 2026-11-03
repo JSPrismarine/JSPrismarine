@@ -15,6 +15,7 @@
                 "import": "./dist/*.es.js",
                 "module": "./dist/*.es.js"
             },
+            "./world/positionKeys": null,
             "./package.json": "./package.json"
         }
     },
@@ -33,6 +34,7 @@
     "exports": {
         ".": "./src/index.ts",
         "./*": "./src/*.ts",
+        "./world/positionKeys": null,
         "./package.json": "./package.json"
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
@@ -49,6 +51,7 @@
         "bench:network": "node --import tsx benchmarks/blockProximity.bench.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",
+        "bench:world-keys": "node benchmarks/run.mjs benchmarks/worldMapKeys.bench.ts",
         "bench:items": "node --import tsx benchmarks/entityPickup.bench.ts",
         "bench:inbound-packets": "node --import tsx benchmarks/inboundPacketRecording.bench.ts",
         "bench:recipes": "node benchmarks/run.mjs benchmarks/recipes.bench.ts",

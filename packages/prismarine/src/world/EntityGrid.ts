@@ -1,5 +1,6 @@
 import type { Entity } from '../entity/Entity';
 import CoordinateUtils from './CoordinateUtils';
+import { coordinatePairKey } from './positionKeys';
 
 /** Width of the finer cells used to look up dropped items. */
 const ITEM_CELL_SIZE = 2;
@@ -34,18 +35,18 @@ interface ItemIndexEntry {
  * one pass and cannot drift.
  */
 export class EntityGrid {
-    private readonly cells = new Map<string, Entity[]>();
-    private readonly itemCells = new Map<string, ItemIndexEntry[]>();
-    private readonly pickupItemCells = new Map<string, ItemIndexEntry[]>();
+    private readonly cells = new Map<number | string, Entity[]>();
+    private readonly itemCells = new Map<number | string, ItemIndexEntry[]>();
+    private readonly pickupItemCells = new Map<number | string, ItemIndexEntry[]>();
     private readonly pickupItems = new Map<bigint, ItemIndexEntry>();
     private nextPickupOrder = 0;
 
-    private static key(chunkX: number, chunkZ: number): string {
-        return `${chunkX},${chunkZ}`;
+    private static key(chunkX: number, chunkZ: number): number | string {
+        return coordinatePairKey(chunkX, chunkZ);
     }
 
-    private static itemKey(cellX: number, cellZ: number): string {
-        return `${cellX},${cellZ}`;
+    private static itemKey(cellX: number, cellZ: number): number | string {
+        return coordinatePairKey(cellX, cellZ);
     }
 
     /** Throws away the previous tick's arrangement and buckets these entities. */
