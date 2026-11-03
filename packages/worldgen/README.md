@@ -110,13 +110,20 @@ unsupported nodes stay closures, and hosts that reject dynamic code fall back to
 `cache` node gets a memo slot in the `SampleContext`, and an `interpolated` node records its cell
 corners there, which is what makes a full overworld chunk 0.63 seconds instead of 16.7.
 
-The prototype stays opt-in because the measured chunk fill was slower. On Node 26.12.1, Darwin
-arm64, `pnpm --filter @jsprismarine/worldgen run bench 3`
-reported best-of-three chunk fills of 24.19 ms for closures and 28.68 ms for generated functions,
-with identical block digests. The generated state took 26.14 ms to compile versus 20.41 ms for
-closures, and retained 653,800 heap bytes versus 621,616 (32,184 more). It emitted 35 functions
-totaling 10,743 source bytes; 89 nodes remained closures. The benchmark reports source size and
-post-GC heap deltas, not the engine's machine-code size.
+The prototype stays opt-in because it has no qualifying quiet-host result yet. Run
+`pnpm --filter @jsprismarine/worldgen run bench 5` to compare the closure and generated evaluators.
+The benchmark uses seed `1234`, four fixed overworld chunks, two warmups, seven timed repetitions
+per process, and five interleaved fresh-process rounds. It checks output stability between process
+rounds and verifies the block digest across the closure, generated, and cell-skip arms. It reports the
+runtime, CPU, memory, load averages, median and range for chunk time, compilation time, retained
+heap after garbage collection, generated source size, and closure fallbacks. It marks the run
+quiet only when the one-minute load average at both ends is at most one quarter of the logical CPU
+count, with a minimum limit of one.
+
+The benchmark fills four overworld chunks; it is not broad-corpus evidence. The density compiler
+test compares Float32 output bits for every checked-in density function and every router and
+aquifer root across seeded coordinates and interpolation boundaries. Java goldens and the terrain
+parity row remain separate checks.
 
 **Settings and the router.** `parseNoiseGeneratorSettings` reads a `worldgen/noise_settings`
 document into the eight router slots (`temperature`, `vegetation`, `continents`, `erosion`,

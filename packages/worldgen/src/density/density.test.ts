@@ -21,6 +21,14 @@ const linearNoise: Noise = {
     get2: (x, z) => f32(x + z * 3)
 };
 
+const densityFloat = new Float32Array(1);
+const densityFloatBits = new Uint32Array(densityFloat.buffer);
+
+const bitsOfFloat = (value: number): number => {
+    densityFloat[0] = value;
+    return densityFloatBits[0] ?? 0;
+};
+
 interface Harness {
     sample: (x: number, y: number, z: number) => number;
     context: SampleContext;
@@ -145,6 +153,37 @@ describe('parsing', () => {
 });
 
 describe('generated density compiler', () => {
+    it('preserves slice coordinates beyond Float32 integer precision', () => {
+        const node = parseDensityFunction(
+            {
+                type: 'minecraft:slice',
+                axis: 'x',
+                coordinate: 16_777_217,
+                input: {
+                    type: 'minecraft:gradient',
+                    axis: 'x',
+                    from_coordinate: 16_777_216,
+                    to_coordinate: 16_777_218,
+                    from_value: 0,
+                    to_value: 1
+                }
+            },
+            () => {
+                throw new Error('Unexpected density function reference');
+            }
+        );
+        const environment: CompileEnvironment = {
+            noise: () => linearNoise,
+            random: () => new LegacyRandomSource(1234n),
+            endIslandRandom: () => new LegacyRandomSource(1234n)
+        };
+        const closure = new DensityFunctionCompiler(environment).compile(node);
+        const generated = new DensityFunctionCompiler(environment, { generatedFunctions: true }).compile(node);
+
+        expect(closure(new SampleContext(), 0, 0, 0)).toBe(0.5);
+        expect(generated(new SampleContext(), 0, 0, 0)).toBe(0.5);
+    });
+
     it('falls back to a closure when the host rejects dynamic code generation', () => {
         const compiler = new DensityFunctionCompiler(
             {
@@ -171,6 +210,75 @@ describe('generated density compiler', () => {
         } finally {
             vi.unstubAllGlobals();
         }
+    });
+
+    it('matches closure bits across the checked-in vanilla density corpus', () => {
+        const positions: [number, number, number][] = [
+            [-17, -25, -17],
+            [-16, -24, -16],
+            [-15, -23, -15],
+            [-5, -9, -5],
+            [-4, -8, -4],
+            [-3, -7, -3],
+            [-1, -1, -1],
+            [0, 0, 0],
+            [3, 7, 3],
+            [4, 8, 4],
+            [5, 9, 5],
+            [15, 15, 15],
+            [16, 16, 16],
+            [17, 17, 17]
+        ];
+        let random = 0x6d2b79f5;
+        const nextCoordinate = (): number => {
+            random = (Math.imul(random, 1664525) + 1013904223) >>> 0;
+            return (random % 8193) - 4096;
+        };
+        for (let index = 0; index < 64; index++) {
+            positions.push([nextCoordinate(), nextCoordinate(), nextCoordinate()]);
+        }
+
+        const seed = BigInt(vectors.density.seed);
+        const functionSettings = vanillaData.settings('minecraft:overworld');
+        const functionClosure = new RandomState(vanillaData, seed, functionSettings);
+        const functionGenerated = new RandomState(vanillaData, seed, functionSettings, { generatedFunctions: true });
+        const functionIds = vanillaData.densityFunctionIds;
+
+        for (const id of functionIds) {
+            const node = vanillaData.densityFunction(id);
+            const closure = functionClosure.sampler(node);
+            const generated = functionGenerated.sampler(node);
+            for (const [x, y, z] of positions) {
+                const expected = closure(new SampleContext(), x, y, z);
+                const actual = generated(new SampleContext(), x, y, z);
+                expect(bitsOfFloat(actual), `${id} at ${x},${y},${z}`).toBe(bitsOfFloat(expected));
+            }
+        }
+
+        let settingsRoots = 0;
+        for (const id of vanillaData.noiseSettingsIds) {
+            const settings = vanillaData.settings(id);
+            const closureState = new RandomState(vanillaData, seed, settings);
+            const generatedState = new RandomState(vanillaData, seed, settings, { generatedFunctions: true });
+            const roots = [...Object.values(settings.noiseRouter), ...Object.values(settings.aquifers ?? {})];
+            settingsRoots += roots.length;
+
+            for (const node of roots) {
+                const closure = closureState.sampler(node);
+                const generated = generatedState.sampler(node);
+                for (const [x, y, z] of positions) {
+                    const expected = closure(new SampleContext(), x, y, z);
+                    const actual = generated(new SampleContext(), x, y, z);
+                    expect(bitsOfFloat(actual), `${id} at ${x},${y},${z}`).toBe(bitsOfFloat(expected));
+                }
+            }
+        }
+
+        expect(functionIds.length).toBeGreaterThan(0);
+        expect(settingsRoots).toBeGreaterThan(0);
+        reportProgress(
+            `Density compiler parity covered ${functionIds.length} registered functions and ${settingsRoots} settings roots across ${positions.length} positions.`
+        );
     });
 });
 

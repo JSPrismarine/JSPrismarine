@@ -2,8 +2,8 @@
  * One arm of the terrain fill benchmark, measured in its own process.
  *
  * `benchmarks/run.mts` bundles this file and spawns it once per arm per round, interleaved, so
- * a load spike lands on both arms rather than on one. Each process reports the best of its own
- * repetitions, which is the closest an occupied machine gets to an idle one.
+ * a load spike lands on both arms rather than on one. Each process reports every timed repetition
+ * after the same warmup count; the runner summarizes the pooled samples with a median and range.
  *
  * Arms:
  * - `fill`: the whole fill the generator does, density and aquifer, block by block.
@@ -34,6 +34,7 @@ const CHUNKS = [
 
 const REPETITIONS = 7;
 const WARMUPS = 2;
+const SEED = 1234n;
 
 const parseDocuments = (source: Record<string, string>): Map<string, unknown> =>
     new Map(Object.entries(source).map(([id, document]) => [id, JSON.parse(document) as unknown]));
@@ -48,7 +49,7 @@ const settings = data.settings('minecraft:overworld');
 const requested = ARMS.find((arm) => arm === process.argv[2]);
 if (!requested) throw new RangeError(`Pass one of ${ARMS.join(', ')}, not ${process.argv[2]}`);
 const compilerOptions = requested === 'generated' ? { generatedFunctions: true } : {};
-const compileState = new RandomState(data, 1234n, settings, compilerOptions);
+const compileState = new RandomState(data, SEED, settings, compilerOptions);
 global.gc?.();
 const compileHeapBefore = process.memoryUsage().heapUsed;
 const compileStarted = performance.now();
@@ -57,8 +58,8 @@ const compileMilliseconds = performance.now() - compileStarted;
 // Collect temporary compiler objects so this delta approximates retained per-state heap.
 global.gc?.();
 const compileHeapBytes = process.memoryUsage().heapUsed - compileHeapBefore;
-const state = new RandomState(data, 1234n, settings, compilerOptions);
-const countedState = new RandomState(data, 1234n, settings, compilerOptions);
+const state = new RandomState(data, SEED, settings, compilerOptions);
+const countedState = new RandomState(data, SEED, settings, compilerOptions);
 const finalDensity = settings.noiseRouter.finalDensity;
 const octaveSamples = { count: 0 };
 const instrumentedOctaves = new Set<Noise>();
@@ -157,7 +158,11 @@ const run = (
     arm: BenchmarkArm
 ): {
     arm: BenchmarkArm;
-    millisecondsPerChunk: number;
+    seed: string;
+    chunkCoordinates: typeof CHUNKS;
+    warmups: number;
+    repetitions: number;
+    measurementsPerChunk: number[];
     checksum: number;
     digest: string;
     octaveSamplesPerChunk: number;
@@ -187,7 +192,7 @@ const run = (
     let skippedBlocks = 0;
     let densityCallsSkipped = 0;
     let aquiferCallsSkipped = 0;
-    let best = Number.POSITIVE_INFINITY;
+    const measurementsPerChunk: number[] = [];
     for (let round = 0; round < WARMUPS + REPETITIONS; round++) {
         const started = performance.now();
         for (const [chunkX, chunkZ] of CHUNKS) {
@@ -197,7 +202,7 @@ const run = (
             checksum += result.count;
         }
         const elapsed = (performance.now() - started) / CHUNKS.length;
-        if (round >= WARMUPS) best = Math.min(best, elapsed);
+        if (round >= WARMUPS) measurementsPerChunk.push(elapsed);
     }
 
     // Keep the digest and octave counter out of the timed passes so instrumentation does not hide
@@ -213,7 +218,11 @@ const run = (
     }
     return {
         arm,
-        millisecondsPerChunk: best,
+        seed: SEED.toString(),
+        chunkCoordinates: CHUNKS,
+        warmups: WARMUPS,
+        repetitions: REPETITIONS,
+        measurementsPerChunk,
         checksum,
         digest: digest.toString(16).padStart(8, '0'),
         octaveSamplesPerChunk: octaveSamples.count / CHUNKS.length,

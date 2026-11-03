@@ -642,8 +642,8 @@ export class DensityFunctionCompiler {
     private buildGenerated(node: DensityFunctionNode): DensitySampler | undefined {
         const captures: DensitySampler[] = [];
         const constants: number[] = [];
-        const constant = (value: number): string => {
-            const index = constants.push(f32(value)) - 1;
+        const constant = (value: number, narrowToFloat = true): string => {
+            const index = constants.push(narrowToFloat ? f32(value) : value) - 1;
             return `constants[${index}]`;
         };
         const child = (entry: DensityFunctionNode, x = 'x', y = 'y', z = 'z'): string => {
@@ -687,7 +687,7 @@ export class DensityFunctionCompiler {
     private generatedExpression(
         node: DensityFunctionNode,
         child: (node: DensityFunctionNode, x?: string, y?: string, z?: string) => string,
-        constant: (value: number) => string,
+        constant: (value: number, narrowToFloat?: boolean) => string,
         x: string,
         y: string,
         z: string
@@ -769,7 +769,9 @@ export class DensityFunctionCompiler {
             case 'range_choice':
                 return `((value) => value >= ${constant(node.minInclusive)} && value < ${constant(node.maxExclusive)} ? ${child(node.whenInRange, x, y, z)} : ${child(node.whenOutOfRange, x, y, z)})(${child(node.input, x, y, z)})`;
             case 'slice': {
-                const fixed = constant(node.coordinate);
+                // Slice coordinates are block positions, not density values. Preserve adjacent
+                // integers above 2^24 instead of rounding them through the Float32 table.
+                const fixed = constant(node.coordinate, false);
                 switch (node.axis) {
                     case 'x':
                         return child(node.input, fixed, y, z);
