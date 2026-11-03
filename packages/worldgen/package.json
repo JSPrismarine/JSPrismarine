@@ -45,6 +45,7 @@
         "build:watch": "vite build --watch",
         "bench:climate": "node benchmarks/runBiomeClimate.mts",
         "bench:climate-search": "node benchmarks/runClimateSearch.mts",
+        "bench:interpolated-cell": "node benchmarks/runInterpolatedCell.mts",
         "bench:biome-manager": "node benchmarks/runBiomeManager.mts",
         "test": "pnpm --filter @jsprismarine/bedrock-data run ensure:java-server && vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",

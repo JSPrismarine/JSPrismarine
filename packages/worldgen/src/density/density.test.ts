@@ -27,7 +27,11 @@ interface Harness {
     noiseCalls: () => number;
 }
 
-const harness = (json: unknown, environment?: Partial<CompileEnvironment>): Harness => {
+const harness = (
+    json: unknown,
+    environment?: Partial<CompileEnvironment>,
+    precomputeInterpolationCells = true
+): Harness => {
     let noiseCalls = 0;
     const countingNoise: Noise = {
         get3: (x, y, z) => {
@@ -43,12 +47,15 @@ const harness = (json: unknown, environment?: Partial<CompileEnvironment>): Harn
     const node = parseDensityFunction(json, (id) => {
         throw new RangeError(`No density function is registered as ${id}`);
     });
-    const compiler = new DensityFunctionCompiler({
-        noise: () => countingNoise,
-        random: () => new LegacyRandomSource(1234n),
-        endIslandRandom: () => new LegacyRandomSource(1234n),
-        ...environment
-    });
+    const compiler = new DensityFunctionCompiler(
+        {
+            noise: () => countingNoise,
+            random: () => new LegacyRandomSource(1234n),
+            endIslandRandom: () => new LegacyRandomSource(1234n),
+            ...environment
+        },
+        { precomputeInterpolationCells }
+    );
     const sampler = compiler.compile(node);
     const context = new SampleContext();
     return { sample: (x, y, z) => sampler(context, x, y, z), context, noiseCalls: () => noiseCalls };
@@ -388,6 +395,51 @@ describe('cell operators', () => {
         }
     });
 
+    it('fills every buffered value bit-for-bit across negative and positive cell boundaries', () => {
+        const node = {
+            type: 'minecraft:interpolated',
+            input: {
+                type: 'minecraft:add',
+                left: { type: 'minecraft:noise', noise: 'minecraft:test' },
+                right: {
+                    type: 'minecraft:gradient',
+                    axis: 'y',
+                    from_coordinate: -32,
+                    to_coordinate: 32,
+                    from_value: -0.75,
+                    to_value: 0.625
+                }
+            },
+            cell_size_xz: 4,
+            cell_size_y: 8
+        };
+        const buffered = harness(node);
+        const scalar = harness(node, undefined, false);
+        buffered.context.interpolationBuffersEnabled = true;
+        const bits = new DataView(new ArrayBuffer(4));
+        const floatBits = (value: number): number => {
+            bits.setFloat32(0, value, true);
+            return bits.getUint32(0, true);
+        };
+
+        for (const cellX of [-7, -1, 0, 5]) {
+            for (const cellY of [-4, -1, 0, 3]) {
+                for (const cellZ of [-3, 0, 4]) {
+                    for (let localX = 0; localX < 4; localX++) {
+                        for (let localZ = 0; localZ < 4; localZ++) {
+                            for (let localY = 7; localY >= 0; localY--) {
+                                const x = cellX * 4 + localX;
+                                const y = cellY * 8 + localY;
+                                const z = cellZ * 4 + localZ;
+                                expect(floatBits(buffered.sample(x, y, z))).toBe(floatBits(scalar.sample(x, y, z)));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     it('keeps exact interpolation when a data-driven y size collides in the stage cache', () => {
         const cellSizeXz = 4;
         const cellSizeY = 20;
@@ -437,20 +489,26 @@ describe('cell operators', () => {
             }
         );
 
+        run.context.interpolationBuffersEnabled = true;
         const beforeReset = run.sample(1, 1, 1);
         offset = 64;
         run.context.reset();
+        run.context.interpolationBuffersEnabled = true;
 
         expect(run.sample(1, 1, 1)).toBe(beforeReset + offset);
     });
 
     it('evaluates each cell corner once and reuses it', () => {
-        const run = harness({
-            type: 'minecraft:interpolated',
-            input: { type: 'minecraft:noise', noise: 'minecraft:test' },
-            cell_size_xz: 4,
-            cell_size_y: 8
-        });
+        const run = harness(
+            {
+                type: 'minecraft:interpolated',
+                input: { type: 'minecraft:noise', noise: 'minecraft:test' },
+                cell_size_xz: 4,
+                cell_size_y: 8
+            },
+            undefined,
+            false
+        );
         // A position that is itself a corner costs one evaluation.
         run.sample(4, 8, 4);
         expect(run.noiseCalls()).toBe(1);

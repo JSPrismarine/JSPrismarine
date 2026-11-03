@@ -64,6 +64,7 @@ export class ChunkSampler {
     private readonly cellsZ: number;
     private readonly fluidPicker: FluidPicker;
     private noiseAquifer: Aquifer | undefined;
+    private walkingCell = false;
 
     public constructor(
         private readonly randomState: RandomState,
@@ -122,7 +123,16 @@ export class ChunkSampler {
 
     /** The final density at one block position. */
     public density(x: number, y: number, z: number): number {
-        return this.finalDensity(this.context, x, y, z);
+        if (!this.walkingCell) return this.finalDensity(this.context, x, y, z);
+
+        // Only the cell-major walk guarantees that a node's whole buffer belongs to this working set.
+        const bufferingBeforeSample = this.context.interpolationBuffersEnabled;
+        this.context.interpolationBuffersEnabled = true;
+        try {
+            return this.finalDensity(this.context, x, y, z);
+        } finally {
+            this.context.interpolationBuffersEnabled = bufferingBeforeSample;
+        }
     }
 
     /** Samples one density function of this dimension at one block position. */
@@ -217,19 +227,25 @@ export class ChunkSampler {
         const firstZ = Math.max(volume.minBlockZ, originZ * this.cellSizeXz);
         const lastZ = Math.min(volume.maxBlockZ, originZ * this.cellSizeXz + this.cellSizeXz - 1);
 
-        for (let x = firstX; x <= lastX; x++) {
-            for (let z = firstZ; z <= lastZ; z++) {
-                for (let y = lastY; y >= firstY; y--) {
-                    const substance = this.aquifer.computeSubstance(x, y, z, this.density(x, y, z));
-                    visit(
-                        x,
-                        y,
-                        z,
-                        substance ?? this.defaultBlock,
-                        substance !== undefined && substance !== AIR && this.aquifer.shouldScheduleFluidUpdate()
-                    );
+        const walkingCellBefore = this.walkingCell;
+        this.walkingCell = true;
+        try {
+            for (let x = firstX; x <= lastX; x++) {
+                for (let z = firstZ; z <= lastZ; z++) {
+                    for (let y = lastY; y >= firstY; y--) {
+                        const substance = this.aquifer.computeSubstance(x, y, z, this.density(x, y, z));
+                        visit(
+                            x,
+                            y,
+                            z,
+                            substance ?? this.defaultBlock,
+                            substance !== undefined && substance !== AIR && this.aquifer.shouldScheduleFluidUpdate()
+                        );
+                    }
                 }
             }
+        } finally {
+            this.walkingCell = walkingCellBefore;
         }
     }
 

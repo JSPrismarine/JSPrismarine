@@ -53,6 +53,15 @@ export interface CompileEnvironment {
     endIslandRandom(): RandomSource;
 }
 
+/** Options for comparing the scalar interpolation path with reusable cell buffers. */
+export interface DensityFunctionCompilerOptions {
+    /** Whether interpolated nodes fill a reusable typed array for cells up to 4096 blocks. */
+    readonly precomputeInterpolationCells?: boolean;
+}
+
+/** Large datapack interpolation cells stay on the scalar path to avoid large per-context buffers. */
+const MAX_INTERPOLATION_BUFFER_VALUES = 4096;
+
 const constantSampler = (value: number): DensitySampler => {
     const narrowed = f32(value);
     return () => narrowed;
@@ -146,8 +155,14 @@ export class DensityFunctionCompiler {
     private nextCacheId = 0;
     private cellSizeXz = 0;
     private cellSizeY = 0;
+    private readonly precomputeInterpolationCells: boolean;
 
-    public constructor(private readonly environment: CompileEnvironment) {}
+    public constructor(
+        private readonly environment: CompileEnvironment,
+        options: DensityFunctionCompilerOptions = {}
+    ) {
+        this.precomputeInterpolationCells = options.precomputeInterpolationCells ?? true;
+    }
 
     /** How many memo slots the trees compiled so far need. */
     public get cacheCount(): number {
@@ -412,7 +427,7 @@ export class DensityFunctionCompiler {
                 // the division produced.
                 const alphaXz = Float64Array.from({ length: cellSizeXz }, (_, step) => f32(step / cellSizeXz));
                 const alphaY = Float64Array.from({ length: cellSizeY }, (_, step) => f32(step / cellSizeY));
-                return (context, x, y, z) => {
+                const sampleAt: DensitySampler = (context, x, y, z) => {
                     const xInCell = powerOfTwoXz ? x & maskXz : floorMod(x, cellSizeXz);
                     const yInCell = powerOfTwoY ? y & maskY : floorMod(y, cellSizeY);
                     const zInCell = powerOfTwoXz ? z & maskXz : floorMod(z, cellSizeXz);
@@ -507,6 +522,110 @@ export class DensityFunctionCompiler {
                     }
                     const alphaZ = alphaXz[zInCell] ?? 0;
                     return f32(q0 + f32(alphaZ * f32(q1 - q0)));
+                };
+
+                const bufferValueCount = cellSizeXz * cellSizeY * cellSizeXz;
+                if (!this.precomputeInterpolationCells || bufferValueCount > MAX_INTERPOLATION_BUFFER_VALUES) {
+                    return sampleAt;
+                }
+
+                const fillCell = (
+                    context: SampleContext,
+                    cellX: number,
+                    cellY: number,
+                    cellZ: number,
+                    output: Float64Array
+                ): void => {
+                    const x0 = cellX * cellSizeXz;
+                    const y0 = cellY * cellSizeY;
+                    const z0 = cellZ * cellSizeXz;
+                    const x1 = x0 + cellSizeXz;
+                    const y1 = y0 + cellSizeY;
+                    const z1 = z0 + cellSizeXz;
+                    if (!context.interpolationCell(id, x0, y0, z0)) {
+                        const base = id << 3;
+                        const corners = context.interpolationCorners;
+                        const cache = context.cornerCache(id);
+                        const cellX1 = cellX + 1;
+                        const cellY1 = cellY + 1;
+                        const cellZ1 = cellZ + 1;
+                        corners[base] = cache.getOrCompute(context, input, cellX, cellY, cellZ, x0, y0, z0);
+                        corners[base + 1] = cache.getOrCompute(context, input, cellX1, cellY, cellZ, x1, y0, z0);
+                        corners[base + 2] = cache.getOrCompute(context, input, cellX, cellY1, cellZ, x0, y1, z0);
+                        corners[base + 3] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ, x1, y1, z0);
+                        corners[base + 4] = cache.getOrCompute(context, input, cellX, cellY, cellZ1, x0, y0, z1);
+                        corners[base + 5] = cache.getOrCompute(context, input, cellX1, cellY, cellZ1, x1, y0, z1);
+                        corners[base + 6] = cache.getOrCompute(context, input, cellX, cellY1, cellZ1, x0, y1, z1);
+                        corners[base + 7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
+                    }
+
+                    const base = id << 3;
+                    const corners = context.interpolationCorners;
+                    const scratch = context.interpolationBufferScratch(id, cellSizeXz * 4 + cellSizeXz * cellSizeY * 2);
+                    const verticalOffset = cellSizeXz * 4;
+                    // Reuse each x-stage across y/z, then each x/y-stage across z, preserving Java's f32 lerp order.
+                    for (let localX = 0; localX < cellSizeXz; localX++) {
+                        const alphaX = alphaXz[localX] ?? 0;
+                        const horizontalBase = localX * 4;
+                        const cornerBase = base;
+                        const c0 = corners[cornerBase] ?? 0;
+                        const c1 = corners[cornerBase + 1] ?? 0;
+                        const c2 = corners[cornerBase + 2] ?? 0;
+                        const c3 = corners[cornerBase + 3] ?? 0;
+                        const c4 = corners[cornerBase + 4] ?? 0;
+                        const c5 = corners[cornerBase + 5] ?? 0;
+                        const c6 = corners[cornerBase + 6] ?? 0;
+                        const c7 = corners[cornerBase + 7] ?? 0;
+                        const p0 = f32(c0 + f32(alphaX * f32(c1 - c0)));
+                        const p1 = f32(c2 + f32(alphaX * f32(c3 - c2)));
+                        const p2 = f32(c4 + f32(alphaX * f32(c5 - c4)));
+                        const p3 = f32(c6 + f32(alphaX * f32(c7 - c6)));
+                        scratch[horizontalBase] = p0;
+                        scratch[horizontalBase + 1] = p1;
+                        scratch[horizontalBase + 2] = p2;
+                        scratch[horizontalBase + 3] = p3;
+
+                        for (let localY = 0; localY < cellSizeY; localY++) {
+                            const alphaYWeight = alphaY[localY] ?? 0;
+                            const verticalBase = verticalOffset + (localX * cellSizeY + localY) * 2;
+                            scratch[verticalBase] = f32(p0 + f32(alphaYWeight * f32(p1 - p0)));
+                            scratch[verticalBase + 1] = f32(p2 + f32(alphaYWeight * f32(p3 - p2)));
+                        }
+
+                        for (let localZ = 0; localZ < cellSizeXz; localZ++) {
+                            const alphaZ = alphaXz[localZ] ?? 0;
+                            const outputBase = (localX * cellSizeXz + localZ) * cellSizeY;
+                            for (let localY = cellSizeY - 1; localY >= 0; localY--) {
+                                const verticalBase = verticalOffset + (localX * cellSizeY + localY) * 2;
+                                const q0 = scratch[verticalBase] ?? 0;
+                                const q1 = scratch[verticalBase + 1] ?? 0;
+                                output[outputBase + localY] =
+                                    localX === 0 && localY === 0 && localZ === 0
+                                        ? (corners[base] ?? 0)
+                                        : f32(q0 + f32(alphaZ * f32(q1 - q0)));
+                            }
+                        }
+                    }
+                };
+
+                return (context, x, y, z) => {
+                    if (!context.interpolationBuffersEnabled) return sampleAt(context, x, y, z);
+
+                    const xInCell = powerOfTwoXz ? x & maskXz : floorMod(x, cellSizeXz);
+                    const yInCell = powerOfTwoY ? y & maskY : floorMod(y, cellSizeY);
+                    const zInCell = powerOfTwoXz ? z & maskXz : floorMod(z, cellSizeXz);
+                    const x0 = x - xInCell;
+                    const y0 = y - yInCell;
+                    const z0 = z - zInCell;
+                    // Match fillCell's x-major, z-middle, y-minor typed-array layout.
+                    const outputIndex = (xInCell * cellSizeXz + zInCell) * cellSizeY + yInCell;
+                    const cached = context.interpolationBufferValue(id, x0, y0, z0, outputIndex);
+                    if (cached !== undefined) return cached;
+
+                    const output = context.interpolationBuffer(id, bufferValueCount);
+                    fillCell(context, x0 / cellSizeXz, y0 / cellSizeY, z0 / cellSizeXz, output);
+                    context.markInterpolationBufferFilled(id, x0, y0, z0);
+                    return output[outputIndex] ?? 0;
                 };
             }
 
