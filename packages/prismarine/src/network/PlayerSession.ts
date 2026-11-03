@@ -49,7 +49,6 @@ import CoordinateUtils from '../world/CoordinateUtils';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
-import { FullFlushFragmentCache } from './encodePacketBatch';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import { sendCachedJoinPacket } from './joinPacketCache';
@@ -103,31 +102,28 @@ import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
 import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
 import CommandParameter, { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
 import ChunkSender from './ChunkSender';
+import ChunkBatchCache from './ChunkBatchCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
 import { TextPacketType } from '@jsprismarine/protocol';
 
 /**
- * Chunks per batch, and the reason it is small.
+ * Chunks queued before a flush, and the reason this group is small.
  *
- * A batch goes out as one reliable ordered RakNet message, so the client cannot decompress
- * or render *any* of it until *all* of it has arrived. At fifty chunks a batch is well over
- * a hundred fragments at a 1400 byte MTU, and a single delayed fragment holds up all fifty
- * - which is what the holes lasting seconds were. Raising the CPU budget did nothing
- * because the wait was never CPU.
+ * Each chunk is compressed as its own batch so identical chunk revisions can share the same
+ * bytes across players. Keeping only a few queued together bounds per-player memory and lets
+ * a flush dispatch the chunks promptly instead of waiting for a large region.
  *
- * A handful per batch is a few fragments each, so chunks appear as they land. At twenty
- * ticks a second this still carries far more than generation can produce.
+ * Four queued chunks still fit comfortably inside the tick's generation throughput.
  */
-const CHUNKS_PER_BATCH = 4;
+const CHUNKS_PER_FLUSH = 4;
 const MAX_QUEUED_CHUNK_BYTES = 8 * 1024 * 1024;
+const chunkBatchCache = new ChunkBatchCache();
 
 interface QueuedChunk {
     readonly chunk: Chunk;
     readonly payload: Buffer;
+    readonly revision: number;
 }
-
-/** Weak payload keys let a chunk's full-flush fragment live exactly as long as its cached serialization. */
-const chunkFullFlushFragmentCache = new FullFlushFragmentCache();
 
 /**
  * How close a chunk has to be for a player to be counted as waiting on it.
@@ -404,7 +400,7 @@ export default class PlayerSession {
         try {
             await this.requestChunk(x, z);
             if (epoch !== this.chunkEpoch) return;
-            if (this.chunkSendQueue.length >= CHUNKS_PER_BATCH) await this.flushChunkBatch();
+            if (this.chunkSendQueue.length >= CHUNKS_PER_FLUSH) await this.flushChunkBatch();
         } catch (error: unknown) {
             this.loadingChunks.delete(Chunk.packXZ(x, z));
             throw error;
@@ -420,7 +416,7 @@ export default class PlayerSession {
         const queuedBytes = payload.byteLength;
         if (!this.hasChunkQueueCapacity(queuedBytes)) return { kind: 'backpressure' };
 
-        this.queueChunkNow(chunk, payload);
+        this.queueChunkNow(chunk, payload, chunk.getNetworkRevision());
         return { kind: 'queued', queuedBytes };
     }
 
@@ -589,8 +585,7 @@ export default class PlayerSession {
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
         const epoch = this.chunkEpoch;
-        const payloads = chunksToSend.map(({ payload }) => payload);
-        const payloadBytes = payloads.reduce((total, payload) => total + payload.byteLength, 0);
+        const payloadBytes = chunksToSend.reduce((total, { payload }) => total + payload.byteLength, 0);
 
         // The publisher update has to come first, and has to be current.
         //
@@ -606,48 +601,39 @@ export default class PlayerSession {
         // before it. What governs visibility is the radius around the position.
         // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/proto.yml
         const publisherSend = this.sendNetworkChunkPublisher(effectiveViewDistance(this.player.viewDistance), []);
-        const packets = chunksToSend.map(
-            ({ chunk }, index) =>
-                new LevelChunkPacket({
-                    chunkX: chunk.getX(),
-                    chunkZ: chunk.getZ(),
-                    dimension: chunk.getDimension().bedrockId,
-                    subChunkCount: chunk.getNetworkSubChunkCount(),
-                    clientSubChunkRequestsEnabled: false,
-                    cached: false,
-                    payload: payloads[index]!
-                })
-        );
 
         try {
-            try {
-                // The queued packet batch already owns the serialized payloads, so reuse them rather
-                // than serializing each resident chunk a second time during the send.
-                await Promise.all([
-                    // Queue the publisher update first; sendPacketsAsync flushes the queued
-                    // packet batch before reserving the chunk batch's ordered frame.
-                    publisherSend,
-                    this.connection.sendPacketsAsync(packets, {
-                        direct: false,
-                        compressionLevel: this.server.getConfig().getPacketCompressionLevel(),
-                        compressionAlgorithm: this.connection.compressionAlgorithm,
-                        compressionThreshold: this.connection.compressionThreshold,
-                        fullFlushFragments: this.server.getConfig().getPacketFullFlushFragments?.() ?? false,
-                        fragmentCache: chunkFullFlushFragmentCache,
-                        fragmentKeys: payloads,
-                        fragmentKeyDiscriminators: chunksToSend.map(
-                            ({ chunk }) =>
-                                `${chunk.getX()}:${chunk.getZ()}:${chunk.getDimension().bedrockId}:${chunk.getNetworkSubChunkCount()}:plain`
-                        )
+            await publisherSend;
+            const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
+            for (const { chunk, payload, revision } of chunksToSend) {
+                const packets = () => [
+                    new LevelChunkPacket({
+                        chunkX: chunk.getX(),
+                        chunkZ: chunk.getZ(),
+                        dimension: chunk.getDimension().bedrockId,
+                        subChunkCount: chunk.getNetworkSubChunkCount(),
+                        clientSubChunkRequestsEnabled: false,
+                        cached: false,
+                        payload
                     })
-                ]);
-            } catch (error: unknown) {
-                // Nothing reached the client, so nothing may be recorded as loaded. Marking
-                // before the send meant a batch that failed to compress left every chunk in it
-                // flagged as delivered, and the player kept a hole where they were.
-                for (const { chunk } of chunksToSend)
-                    this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
-                throw error;
+                ];
+                const batch = await chunkBatchCache.getOrCreate(
+                    chunk,
+                    revision,
+                    this.connection.codec,
+                    compressionLevel,
+                    packets,
+                    this.connection.compressionAlgorithm,
+                    this.connection.compressionThreshold
+                );
+
+                // Shared compression is safe; framing and encryption remain ordered per connection.
+                await this.connection.sendSharedCompressedBatchAsync(
+                    batch.content,
+                    batch.packets,
+                    false,
+                    batch.packetBuffers
+                );
             }
 
             // A world change happened while the batch was compressing. These were the old world's
@@ -663,6 +649,11 @@ export default class PlayerSession {
 
             // The spawn status waits for this, not the other way round.
             await this.announceSpawnIfReady();
+        } catch (error: unknown) {
+            // Nothing is marked loaded unless every batch reached the ordered send path. If a
+            // later chunk in this partial group fails, re-requesting earlier chunks is harmless.
+            for (const { chunk } of chunksToSend) this.loadingChunks.delete(Chunk.packXZ(chunk.getX(), chunk.getZ()));
+            throw error;
         } finally {
             this.releaseChunkQueueBytes(payloadBytes);
         }
@@ -853,7 +844,7 @@ export default class PlayerSession {
                 );
             }
             if (this.hasChunkQueueCapacity(payload.byteLength)) {
-                this.queueChunkNow(chunk, payload);
+                this.queueChunkNow(chunk, payload, chunk.getNetworkRevision());
                 return;
             }
 
@@ -868,8 +859,8 @@ export default class PlayerSession {
         }
     }
 
-    private queueChunkNow(chunk: Chunk, payload: Buffer): void {
-        this.chunkSendQueue.push({ chunk, payload });
+    private queueChunkNow(chunk: Chunk, payload: Buffer, revision: number): void {
+        this.chunkSendQueue.push({ chunk, payload, revision });
         this.queuedChunkBytes += payload.byteLength;
     }
 

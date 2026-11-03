@@ -85,6 +85,10 @@ const sameBatchOptions = (left: PacketBatchOptions, right: PacketBatchOptions): 
  * sends `ServerToClientHandshake`, and a client accepts a plaintext session when no handshake
  * arrives - and the transport's own `capabilities.encrypted` says whether the wire covers it.
  */
+const isPacketList = (
+    value: readonly NetworkPacket<unknown>[] | NetworkPacket<unknown>
+): value is readonly NetworkPacket<unknown>[] => Array.isArray(value);
+
 export default class MinecraftSession {
     /**
      * The protocol codec this session speaks. Every session starts on the layout-stable
@@ -312,6 +316,42 @@ export default class MinecraftSession {
             }
             this.frameSharedBatch(batch.content, batch.packets, false, batch.packetBuffers);
         }).finally(() => this.pendingAsyncSends--);
+    }
+
+    /**
+     * Queues an already encoded shared batch in order.
+     *
+     * This has a separate name from {@link MinecraftSession.sendSharedBatchAsync} because cached
+     * bytes need no compression promise, and keeping the input types distinct preserves contextual
+     * typing for callers that prepare a batch asynchronously.
+     * @param content - The shared compressed bytes.
+     * @param packets - The packets represented by those bytes.
+     * @param direct - Whether to force a separate datagram.
+     * @param packetBuffers - Encoded packet bytes for diagnostics.
+     * @returns Completion of this send's ordered framing slot.
+     */
+    public async sendSharedCompressedBatchAsync(
+        content: Buffer,
+        packets: readonly NetworkPacket<unknown>[],
+        direct = false,
+        packetBuffers?: readonly Buffer[]
+    ): Promise<void> {
+        void this.flushOutboundPackets().catch((error: unknown) => this.logger.error(error));
+        this.pendingAsyncSends++;
+        try {
+            await this.chain(async () => {
+                const representative = packets[0];
+                if (representative !== undefined) this.dump(representative, packetBuffers?.[0]);
+                if (this.dropsPackets(packets)) return;
+                this.frameAndRecord(content, packets, direct, packetBuffers);
+                for (const packet of packets) {
+                    const name = packet.getName();
+                    if (this.logFilter.shouldLogName(name)) this.logger.silly(`Sent §b${name}§r packet`);
+                }
+            });
+        } finally {
+            this.pendingAsyncSends--;
+        }
     }
 
     private frameSharedBatch(

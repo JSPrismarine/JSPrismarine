@@ -66,6 +66,7 @@ const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | 
 export class ChunkBiomes {
     private readonly dimension: DimensionType;
     private readonly sections: PackedSection[];
+    private revision = 0;
 
     /**
      * @param dimension - Decides how many sub chunks the column carries: 24, 8 or 16.
@@ -74,6 +75,11 @@ export class ChunkBiomes {
     public constructor(dimension: DimensionType, fill: number = PLAINS_BIOME) {
         this.dimension = dimension;
         this.sections = Array.from({ length: subChunkCount(dimension) }, () => fill);
+    }
+
+    /** Revision of the palette state written to disk and to LevelChunk packets. */
+    public getRevision(): number {
+        return this.revision;
     }
 
     /** The biome at a position, with x and z chunk-local and y in world coordinates. */
@@ -92,6 +98,7 @@ export class ChunkBiomes {
         const section = this.sections[index];
         if (section === undefined) return;
         if (section === biome) return;
+        if (typeof section !== 'number' && section[indexOf(x, y, z)] === biome) return;
 
         if (typeof section === 'number') {
             // The first write that disagrees with the section's single biome is what makes it
@@ -99,10 +106,12 @@ export class ChunkBiomes {
             const packed = new Uint16Array(BLOCKS_PER_SUBCHUNK).fill(section);
             packed[indexOf(x, y, z)] = biome;
             this.sections[index] = packed;
+            this.revision++;
             return;
         }
 
         section[indexOf(x, y, z)] = biome;
+        this.revision++;
     }
 
     /** Puts one biome through a whole sub chunk, which is how a uniform column is built. */
@@ -112,7 +121,9 @@ export class ChunkBiomes {
         const index = sectionIndex - minSubChunk(this.dimension);
         if (index < 0 || index >= this.sections.length) return;
 
+        if (this.sections[index] === biome) return;
         this.sections[index] = biome;
+        this.revision++;
     }
 
     /**
@@ -134,7 +145,9 @@ export class ChunkBiomes {
 
         if (typeof ids === 'number') {
             this.requireBiomeId(ids);
+            if (this.sections[index] === ids) return;
             this.sections[index] = ids;
+            this.revision++;
             return;
         }
 
@@ -146,6 +159,7 @@ export class ChunkBiomes {
         let at = 1;
         while (at < BLOCKS_PER_SUBCHUNK && ids[at] === first) at++;
         this.sections[index] = at === BLOCKS_PER_SUBCHUNK ? first : ids;
+        this.revision++;
     }
 
     /** Puts one biome through a whole column of the chunk, floor to ceiling. */

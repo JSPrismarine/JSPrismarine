@@ -177,6 +177,23 @@ describe('network', () => {
             expect(direct).toEqual([false, true]);
         });
 
+        it('keeps later packets behind a cached compressed chunk batch', async () => {
+            const { framed, session } = fakeSession();
+            const terrain = message('cached terrain');
+            terrain.encode();
+            const cachedFrame = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode([
+                terrain.getBuffer()
+            ]);
+
+            const chunkSend = session.sendSharedCompressedBatchAsync(cachedFrame, [terrain], false, [
+                terrain.getBuffer()
+            ]);
+            const updateSend = session.sendDataPacket(message('block update'));
+            await Promise.all([chunkSend, updateSend]);
+
+            expect(framed).toEqual([cachedFrame.toString('base64'), encodedBatchOf('block update').toString('base64')]);
+        });
+
         it('frames two batches in the order they were queued, not the order they compressed', async () => {
             const { framed, session } = fakeSession();
 

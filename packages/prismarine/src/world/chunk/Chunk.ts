@@ -56,6 +56,7 @@ export default class Chunk {
      * its contents travel together, and a chunk that was never loaded cannot lose them.
      */
     private readonly blockEntities: Map<number, BlockEntity> = new Map();
+    private blockEntityRevision = 0;
 
     /**
      * Which biome each block is in.
@@ -65,6 +66,7 @@ export default class Chunk {
      * the spawn rules read it through `has_biome_tag`.
      */
     private biomes: ChunkBiomes;
+    private biomesEpoch = 0;
 
     /** Entity NBT read from disk, waiting for the world to restore it. */
     private readonly storedEntities: NBTTagCompound[] = [];
@@ -79,7 +81,7 @@ export default class Chunk {
     private readonly entitySpawns: EntitySpawn[] = [];
 
     /**
-     * The serialised form, kept until a block changes.
+     * The serialized form, kept until blocks, block entities, or biomes change.
      *
      * Ten players standing in the same area used to cost ten identical serialisations of
      * the same chunk, at ~0.3 ms each. The saving grows with the number of players, which
@@ -87,8 +89,14 @@ export default class Chunk {
      */
     private serialized: Buffer | null = null;
 
-    /** What {@link mutationCount} read when {@link serialized} was built. */
+    /** What {@link getNetworkRevision} read when {@link serialized} was built. */
     private serializedAt = -1;
+    private networkRevision = 0;
+    private observedSubChunkRevisions: number[] = [];
+    private observedStoredSubChunkCount = -1;
+    private observedBiomesEpoch = -1;
+    private observedBiomeRevision = -1;
+    private observedBlockEntityRevision = -1;
     private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
     public constructor(
@@ -118,11 +126,12 @@ export default class Chunk {
     /**
      * Replaces the whole biome column, which is what reading one back from disk does.
      *
-     * The payload cache is dropped with it: biomes travel in the chunk payload, and the mutation
-     * count that guards the cache only counts block writes.
+     * The payload revision tracks the palette itself, while the epoch distinguishes replacing a
+     * palette with another instance at the same revision.
      */
     public setBiomes(biomes: ChunkBiomes): void {
         this.biomes = biomes;
+        this.biomesEpoch++;
         this.serialized = null;
     }
 
@@ -318,8 +327,7 @@ export default class Chunk {
         this.blockEntities.set(this.blockEntityIndex(position.getX(), position.getY(), position.getZ()), blockEntity);
 
         this.hasChanged = true;
-        // Block entities travel in the payload, and the mutation count that guards the cache only
-        // sees block writes.
+        this.blockEntityRevision++;
         this.serialized = null;
     }
 
@@ -327,6 +335,7 @@ export default class Chunk {
         const removed = this.blockEntities.delete(this.blockEntityIndex(x, y, z));
         if (removed) {
             this.hasChanged = true;
+            this.blockEntityRevision++;
             this.serialized = null;
         }
 
@@ -526,18 +535,35 @@ export default class Chunk {
     }
 
     /**
-     * How much has been written into this chunk, ever.
+     * Revision of everything included in a LevelChunk payload.
      *
-     * Sub chunk revisions only go up, one write at a time, and sub chunks are only ever
-     * added - so this number strictly increases with every change and a mutation can never
-     * leave it where it was. That is the whole requirement: it is not a hash, so there is
-     * nothing to collide.
+     * Sub chunks and biomes are mutable through live objects, so their revisions are sampled here
+     * instead of relying on the chunk's block-write methods to invalidate a network cache. The
+     * sampled values are retained in place so checking them does not allocate on each send.
+     * @returns A per-chunk revision that changes when the serialized contents change.
      */
-    private mutationCount(): number {
-        let total = this.storedSubChunkCount;
-        for (const index of this.subChunkOrder) total += this.subChunkAtIndex(index)!.getRevision();
+    public getNetworkRevision(): number {
+        let changed =
+            this.storedSubChunkCount !== this.observedStoredSubChunkCount ||
+            this.biomesEpoch !== this.observedBiomesEpoch ||
+            this.biomes.getRevision() !== this.observedBiomeRevision ||
+            this.blockEntityRevision !== this.observedBlockEntityRevision ||
+            this.subChunkOrder.length !== this.observedSubChunkRevisions.length;
+        for (let index = 0; index < this.subChunkOrder.length; index++) {
+            const revision = this.subChunkAtIndex(this.subChunkOrder[index]!)!.getRevision();
+            if (revision !== this.observedSubChunkRevisions[index]) changed = true;
+            this.observedSubChunkRevisions[index] = revision;
+        }
 
-        return total;
+        if (changed) {
+            this.observedStoredSubChunkCount = this.storedSubChunkCount;
+            this.observedBiomesEpoch = this.biomesEpoch;
+            this.observedBiomeRevision = this.biomes.getRevision();
+            this.observedBlockEntityRevision = this.blockEntityRevision;
+            this.networkRevision++;
+        }
+
+        return this.networkRevision;
     }
 
     /**
@@ -545,16 +571,18 @@ export default class Chunk {
      * Subchunk revisions also cover direct {@link SubChunk.setBlock} writes and column fills.
      */
     public getBlockRevision(): number {
-        return this.mutationCount();
+        let total = this.storedSubChunkCount;
+        for (const index of this.subChunkOrder) total += this.subChunkAtIndex(index)!.getRevision();
+        return total;
     }
 
     public networkSerialize(): Buffer {
         // Asking the sub chunks rather than trusting a flag set by the two methods here that
         // happen to remember to. `getSubChunk` hands out the real, mutable sub chunk - the
-        // cave carver writes through it - so a chunk could be serialised, changed, and
+        // cave carver writes through it - so a chunk could be serialized, changed, and
         // serialised again to the same stale bytes, while reads showed the new block. The
         // terrain the client got was simply wrong, with nothing to suggest it.
-        const mutations = this.mutationCount();
+        const mutations = this.getNetworkRevision();
         if (this.serialized && this.serializedAt === mutations) return this.serialized;
 
         const stream = new BinaryStream();

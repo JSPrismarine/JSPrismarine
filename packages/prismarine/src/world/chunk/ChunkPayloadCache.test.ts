@@ -43,6 +43,17 @@ describe('world', () => {
             expect(chunk.networkSerialize()).not.toBe(before);
         });
 
+        it('throws the cache away when a live biome palette changes', () => {
+            const chunk = filled();
+            const before = chunk.networkSerialize();
+
+            chunk.getBiomes().set(1, 20, 1, 2);
+            const after = chunk.networkSerialize();
+
+            expect(after).not.toBe(before);
+            expect(after.equals(before)).toBe(false);
+        });
+
         it('produces the same bytes cached as it did fresh', () => {
             // The cache must not change what goes on the wire, only how often it is built.
             const a = filled();
