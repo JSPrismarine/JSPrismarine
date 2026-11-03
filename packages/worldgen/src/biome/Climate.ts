@@ -434,7 +434,8 @@ export class ClimateParameterList<T> {
                 const leafDistance = child === returnedLeaf ? childDistance : this.distance(returnedLeaf, target);
                 const parentMinimum = stack.minimumDistances[depth] ?? Number.POSITIVE_INFINITY;
                 const parentClosest = stack.closestLeaves[depth] ?? -1;
-                const parentRank = parentClosest < 0 ? Number.POSITIVE_INFINITY : (this.valueIndices[parentClosest] ?? -1);
+                const parentRank =
+                    parentClosest < 0 ? Number.POSITIVE_INFINITY : (this.valueIndices[parentClosest] ?? -1);
                 const leafRank = this.valueIndices[returnedLeaf] ?? -1;
                 if (parentMinimum > leafDistance || (parentMinimum === leafDistance && parentRank > leafRank)) {
                     stack.minimumDistances[depth] = leafDistance;
@@ -466,13 +467,13 @@ export class ClimateParameterList<T> {
             const closest = stack.closestLeaves[depth] ?? -1;
             const closestRank = closest < 0 ? Number.POSITIVE_INFINITY : (this.valueIndices[closest] ?? -1);
             const firstLeafRank = this.firstLeafRanks[child] ?? 0;
-            if (
-                minimumDistance > childDistance ||
-                (minimumDistance === childDistance && closestRank > firstLeafRank)
-            ) {
+            if (minimumDistance > childDistance || (minimumDistance === childDistance && closestRank > firstLeafRank)) {
                 if ((this.childCounts[child] ?? 0) === 0) {
                     const leafRank = this.valueIndices[child] ?? -1;
-                    if (minimumDistance > childDistance || (minimumDistance === childDistance && closestRank > leafRank)) {
+                    if (
+                        minimumDistance > childDistance ||
+                        (minimumDistance === childDistance && closestRank > leafRank)
+                    ) {
                         stack.minimumDistances[depth] = childDistance;
                         stack.closestLeaves[depth] = child;
                     }
