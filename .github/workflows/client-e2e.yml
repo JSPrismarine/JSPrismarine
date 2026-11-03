@@ -297,3 +297,63 @@ jobs:
                   name: client-e2e-evidence-protocol-${{ matrix.protocol }}
                   path: ${{ runner.temp }}/client-e2e
                   if-no-files-found: warn
+
+    client-e2e-compression:
+        name: 🎮 Client E2E (${{ matrix.compression }} compression, protocol ${{ matrix.protocol }})
+        needs: [protocol-matrix, cinnabar-build]
+        strategy:
+            fail-fast: false
+            matrix:
+                protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
+                compression: [snappy, none]
+        runs-on: macos-latest
+        timeout-minutes: 120
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+              with:
+                  go-version: 'stable'
+                  cache: false
+
+            - name: Cache the fetched sources
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            - name: Resolve the Cinnabar cache key
+              id: pin
+              env:
+                  PROTOCOL: ${{ matrix.protocol }}
+              run: |
+                  commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
+                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+
+            # The primary e2e matrix builds this exact pinned client once for each protocol.
+            - name: Restore the pinned Cinnabar build
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  key: ${{ steps.pin.outputs.key }}
+                  fail-on-cache-miss: true
+
+            - name: 🎮 Run client e2e with selected compression
+              env:
+                  COMPRESSION: ${{ matrix.compression }}
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  PROTOCOL: ${{ matrix.protocol }}
+              run: pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --compression-algorithm "$COMPRESSION" --concurrency 1
+
+            - name: 📤 Upload evidence
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: client-e2e-evidence-${{ matrix.compression }}-protocol-${{ matrix.protocol }}
+                  path: ${{ runner.temp }}/client-e2e
+                  if-no-files-found: warn

@@ -47,11 +47,14 @@ command also collects V8 coverage from the server processes and writes an LCOV r
 `coverage/client-e2e/lcov.info`.
 
 In CI, `.github/workflows/client-e2e.yml` builds a matrix from every BDS protocol in
-`packages/bedrock-data/sources.json` and runs the full suite on macOS for each one. Each matrix job
-uploads protocol-specific evidence and an LCOV report to Codecov. A preceding macOS job builds the
-latest pinned client with sccache. A matrix job for another protocol with no build cache of its own
-restores that latest build too, and `ensure` copies its `build/` and `target/` directories into the
-new protocol cache, so only the dependencies that differ between the pins compile. Locally, source checkouts live
+`packages/bedrock-data/sources.json` and runs the full suite with the compatibility default (`zlib`)
+on macOS for each one. A second matrix runs the full suite with `snappy` and `none` across every
+supported protocol, covering retail-client negotiation without duplicating the `zlib` jobs. Each
+protocol job uploads evidence and an LCOV report to Codecov. A preceding macOS job builds the
+latest pinned client with sccache, so the matrix can reuse compiler outputs for dependencies shared
+between protocol pins. A protocol job without its own build cache restores that latest build too;
+`ensure` copies its `build/` and `target/` directories into the new protocol cache so only
+protocol-specific dependencies need compiling. Locally, source checkouts live
 outside the repository at `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>/<commit>/repo`, falling
 back to `~/.cache/jsprismarine/cinnabar/v<protocol>/<commit>/repo`. Cargo and Go build outputs live in
 one shared `$XDG_CACHE_HOME/jsprismarine/cinnabar/v<protocol>` directory per protocol, outside all
