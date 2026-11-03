@@ -78,6 +78,7 @@ const BLOCKS = [
 /** The items the fixture declares, which is one of each family the tests reach. */
 const ITEMS = [
     'minecraft:bone_meal',
+    'minecraft:wheat_seeds',
     'minecraft:bread',
     'minecraft:chest',
     'minecraft:stick',
@@ -404,6 +405,19 @@ describe('useItemOnBlock', () => {
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(1);
         expect(world.loadedBlockAt(2, 65, 2)?.states['open_bit']).toBe(1);
         expect(sounds).toContain('open.door');
+    });
+
+    // Java links the seed to its crop in code, in `Items`, so the click path's own table has
+    // to know it: a click that resolved `wheat_seeds` to no block planted nothing at all.
+    it('plants wheat on the farmland the seeds are used on', () => {
+        place(chunk, { x: 9, y: 63, z: 6 }, 'minecraft:farmland', { moisturized_amount: 7 });
+        world.getSystems().onChunkLoaded(0, 0);
+        world.getSystems().lighting.flush();
+
+        expect(click(playerHolding(world, 'minecraft:wheat_seeds'), { x: 9, y: 63, z: 6 })).toBe('handled');
+
+        expect(world.loadedBlockAt(9, 64, 6)?.name).toBe('minecraft:wheat');
+        expect(world.loadedBlockAt(9, 64, 6)?.states['growth']).toBe(0);
     });
 
     it('runs the item family, so bone meal grows the crop it is used on', () => {
