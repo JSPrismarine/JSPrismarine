@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { EntityPosition } from '@jsprismarine/entities';
 
@@ -186,6 +186,43 @@ describe('the goal world over the entity runtime', () => {
             const goalWorld = goalWorldOf(observer.body, fixture.runtime);
 
             expect(goalWorld.canSee(targetView)).toBe(true);
+        });
+
+        it('reuses visible and blocked rays until an endpoint, block, or tick changes', () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const observer = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const target = spawned(fixture, 'jsprismarine:breeder', groundAt(3, 0));
+            const targetView = fixture.runtime.mobById(target.id);
+            if (targetView === undefined) throw new Error('the goal world cannot resolve the target');
+
+            const hasLineOfSight = vi.spyOn(fixture.runtime, 'hasLineOfSight');
+            const goalWorld = goalWorldOf(observer.body, fixture.runtime);
+
+            expect(goalWorld.canSee(targetView)).toBe(true);
+            expect(goalWorld.canSee(targetView)).toBe(true);
+            expect(hasLineOfSight).toHaveBeenCalledTimes(1);
+
+            world.setBlock({ x: 1, y: FLOOR_Y + 2, z: 0 }, 'minecraft:stone');
+            expect(goalWorld.canSee(targetView)).toBe(false);
+            expect(goalWorld.canSee(targetView)).toBe(false);
+            expect(hasLineOfSight).toHaveBeenCalledTimes(2);
+
+            world.setBlock({ x: 1, y: FLOOR_Y + 2, z: 0 }, 'minecraft:air');
+            expect(goalWorld.canSee(targetView)).toBe(true);
+            expect(hasLineOfSight).toHaveBeenCalledTimes(3);
+
+            target.body.position = groundAt(4, 0);
+            expect(goalWorld.canSee(targetView)).toBe(true);
+            expect(hasLineOfSight).toHaveBeenCalledTimes(4);
+
+            observer.body.position = groundAt(1, 0);
+            expect(goalWorld.canSee(targetView)).toBe(true);
+            expect(hasLineOfSight).toHaveBeenCalledTimes(5);
+
+            world.advance();
+            expect(goalWorld.canSee(targetView)).toBe(true);
+            expect(hasLineOfSight).toHaveBeenCalledTimes(6);
         });
     });
 

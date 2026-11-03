@@ -27,6 +27,18 @@ import type { EntityScene } from './scene';
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
 const MELEE_REACH = 3;
 
+/** The result of one observer's ray to one target during the current AI step. */
+interface CachedLineOfSight {
+    readonly from: EntityPosition;
+    readonly to: EntityPosition;
+    readonly blockRevision: number;
+    readonly visible: boolean;
+}
+
+/** Whether two ray endpoints still describe the same geometry. */
+const samePosition = (left: EntityPosition, right: EntityPosition): boolean =>
+    left.x === right.x && left.y === right.y && left.z === right.z;
+
 /** Reuses read-through goal views without tying an entity to another runtime's scene. */
 const goalMobViews = new WeakMap<EntityScene, WeakMap<DataEntity, GoalMob>>();
 
@@ -154,6 +166,9 @@ const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: 
  * `EntityInstance` is still being constructed.
  */
 export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalWorld> => {
+    const sightByTarget = new Map<GoalMob['id'], CachedLineOfSight>();
+    let sightStep = scene.world.level.gameTime();
+
     return {
         navigation: () => scene.navigation(),
         // FleeSunGoal's bytecode checks this before drawing. The vanilla
@@ -284,12 +299,36 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         },
         canBreedWith: (mob) => scene.canBreedWith(entity, mob),
         breedWith: (mob) => scene.breedWith(entity, mob),
-        canSee: (mob) =>
-            distance(entity.position, mob.position()) <= entity.facts.followRange &&
-            scene.hasLineOfSight(
-                entityEyePosition(entity.position, entity.facts.box.height),
-                mob.lookPosition?.() ?? mob.position()
-            ),
+        canSee: (mob) => {
+            if (distance(entity.position, mob.position()) > entity.facts.followRange) return false;
+
+            const from = entityEyePosition(entity.position, entity.facts.box.height);
+            const to = mob.lookPosition?.() ?? mob.position();
+            const currentStep = scene.world.level.gameTime();
+            if (currentStep !== sightStep) {
+                sightByTarget.clear();
+                sightStep = currentStep;
+            }
+
+            const blockRevision = scene.world.blocks.blockRevision?.();
+            // Hosts without a world version cannot prove that a block on this ray stayed put.
+            if (blockRevision === undefined) return scene.hasLineOfSight(from, to);
+
+            const cached = sightByTarget.get(mob.id);
+            if (
+                cached !== undefined &&
+                cached.blockRevision === blockRevision &&
+                samePosition(cached.from, from) &&
+                samePosition(cached.to, to)
+            ) {
+                return cached.visible;
+            }
+
+            const visible = scene.hasLineOfSight(from, to);
+            // Copy endpoints: entity positions are live objects and can be replaced or moved.
+            sightByTarget.set(mob.id, { from: { ...from }, to: { ...to }, blockRevision, visible });
+            return visible;
+        },
         trigger: (event, target) => scene.trigger(entity, event, target),
         report: (message) => scene.report(`${entity.identifier}: ${message}`)
     };

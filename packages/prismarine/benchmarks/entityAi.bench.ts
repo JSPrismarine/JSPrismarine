@@ -12,6 +12,8 @@
  * tag-registry scans and membership checks.
  * Set `ENTITY_AI_AVOID_BLOCK=1` to run the piglin/hoglin 17×9×17 nearest-block
  * query every five ticks and report matching query results.
+ * Set `ENTITY_AI_SENSING=1` to make hostile mobs repeat `canSee` against one
+ * nearby player each tick and report calls that reached the block ray.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
@@ -23,8 +25,11 @@
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  * Avoid-block query run: ENTITY_AI_AVOID_BLOCK=1 ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
+ * Sensing run: ENTITY_AI_SENSING=1 ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
 import type { EntityPosition, FilterEntityView } from '@jsprismarine/entities';
+import type { GoalMob } from '@jsprismarine/entity-goals';
 import { BRAIN_MOBS } from '@jsprismarine/entity-brains';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
@@ -53,6 +58,7 @@ const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1';
 const PRODUCTION_PLAYERS = process.env.ENTITY_AI_LIVE_PLAYERS === '1';
 const BRAIN_MOB_PROFILE = process.env.ENTITY_AI_BRAIN_MOBS === '1';
 const AVOID_BLOCK_PROFILE = process.env.ENTITY_AI_AVOID_BLOCK === '1';
+const SENSING_PROFILE = process.env.ENTITY_AI_SENSING === '1';
 const CHUNK_RADIUS = PRODUCTION_CHUNKS ? 10 : 0;
 const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
 const SPREAD = PRODUCTION_CHUNKS ? 320 : 64;
@@ -75,7 +81,7 @@ const seededRandom = (seed: number): RandomSource => {
 const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
 
 /** The flat world the mobs stand in, built once rather than per read. */
-const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
+const benchWorld = (random: RandomSource, blockReads: { count: number }, gameTime: () => number = () => 0) => {
     const placed = new Map<string, ContentBlock>();
     const chunks = new Map<string, Chunk>();
     const chunkAt = (at: ContentPosition): Chunk | undefined => chunks.get(`${at.x >> 4},${at.z >> 4}`);
@@ -102,7 +108,7 @@ const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
             hasSkyLight: true,
             seaLevel: 62,
             seed: 0n,
-            gameTime: () => 0,
+            gameTime,
             dayTime: () => 0,
             difficulty: () => 'normal',
             weather: () => 'clear',
@@ -136,7 +142,9 @@ const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
                     return;
                 }
                 placed.set(keyOf(at), block);
+                if (SENSING_PROFILE) blockRevision += 1;
             },
+            ...(SENSING_PROFILE ? { blockRevision: () => blockRevision } : {}),
             ...(PRODUCTION_CHUNKS
                 ? {
                       blockRevision: () => blockRevision,
@@ -231,6 +239,9 @@ const BRAIN_MOB_MIX = BRAIN_MOBS.map(({ id }) => {
     return mapped.kind === 'mapped' ? mapped.bedrock : id;
 });
 const AVOID_BLOCK_MIX = ['minecraft:piglin', 'minecraft:hoglin'] as const;
+const SENSING_MIX = ['minecraft:zombie', 'minecraft:skeleton', 'minecraft:spider', 'minecraft:creeper'] as const;
+const SENSING_TYPES = new Set<string>(SENSING_MIX);
+const SENSING_REPEATS = 4;
 
 interface TagScanCounts {
     enumerations: number;
@@ -261,7 +272,8 @@ const PLAYERS = 2;
 const scenario = (count: number, seed: number) => {
     const random = seededRandom(seed);
     const blockReads = { count: 0 };
-    const world = benchWorld(random, blockReads);
+    let currentTick = 0;
+    const world = benchWorld(random, blockReads, () => (SENSING_PROFILE ? currentTick : 0));
     const players: ContentEntity[] = Array.from({ length: PLAYERS }, (_unused, index) => ({
         id: 100_000 + index,
         identifier: 'minecraft:player',
@@ -276,7 +288,12 @@ const scenario = (count: number, seed: number) => {
      * goals re-targeting and re-pathing the way they do in play.
      */
     const walkPlayers = (tick: number): void => {
+        currentTick = tick;
         for (const [index, player] of players.entries()) {
+            if (SENSING_PROFILE) {
+                player.position = { x: 0, y: FLOOR_Y + 1, z: 0 };
+                continue;
+            }
             const angle = tick / 40 + (index * 2 * Math.PI) / PLAYERS;
             player.position = {
                 x: Math.cos(angle) * (SPREAD / 4),
@@ -288,6 +305,7 @@ const scenario = (count: number, seed: number) => {
     const allocations = { playerLists: 0, playerViews: 0 };
     const tagScans: TagScanCounts = { enumerations: 0, membershipChecks: 0 };
     const avoidBlockResults = { count: 0 };
+    const sensingCounts = { calls: 0, visible: 0, rays: 0 };
     const host = benchHost(players, allocations);
 
     let content: ServerContent | undefined;
@@ -311,18 +329,23 @@ const scenario = (count: number, seed: number) => {
     const breedingIds: number[] = [];
     for (let index = 0; index < count; index += 1) {
         const pair = Math.trunc(index / 2);
-        const at: EntityPosition =
-            BREEDING_PAIRS > 0
-                ? {
-                      x: (pair % 32) * 24 + (index % 2 === 0 ? 0.5 : 8.5),
-                      y: FLOOR_Y + 1,
-                      z: Math.trunc(pair / 32) * 24 + 0.5
-                  }
-                : {
-                      x: (layout.nextFloat() - 0.5) * SPREAD,
-                      y: FLOOR_Y + 1,
-                      z: (layout.nextFloat() - 0.5) * SPREAD
-                  };
+        const at: EntityPosition = SENSING_PROFILE
+            ? {
+                  x: (index % 20) * 1.3 - 12.35,
+                  y: FLOOR_Y + 1,
+                  z: Math.floor(index / 20) * 1.3 - 9.1
+              }
+            : BREEDING_PAIRS > 0
+              ? {
+                    x: (pair % 32) * 24 + (index % 2 === 0 ? 0.5 : 8.5),
+                    y: FLOOR_Y + 1,
+                    z: Math.trunc(pair / 32) * 24 + 0.5
+                }
+              : {
+                    x: (layout.nextFloat() - 0.5) * SPREAD,
+                    y: FLOOR_Y + 1,
+                    z: (layout.nextFloat() - 0.5) * SPREAD
+                };
         const mobs = AVOID_BLOCK_PROFILE ? AVOID_BLOCK_MIX : BRAIN_MOB_PROFILE ? BRAIN_MOB_MIX : MIX;
         const entity = runtime.spawn(BREEDING_PAIRS > 0 ? 'minecraft:sheep' : mobs[index % mobs.length]!, at);
         if (entity !== undefined && BREEDING_PAIRS > 0) breedingIds.push(entity.id);
@@ -352,6 +375,24 @@ const scenario = (count: number, seed: number) => {
         }
     }
 
+    const sensingPairs: { readonly canSee: (mob: GoalMob) => boolean; readonly target: GoalMob }[] = [];
+    if (SENSING_PROFILE) {
+        const target = runtime.mobById(players[0]!.id);
+        if (target === undefined) throw new Error('the benchmark could not resolve its sensing target');
+        const raycast = runtime.hasLineOfSight.bind(runtime);
+        runtime.hasLineOfSight = (from, to) => {
+            sensingCounts.rays += 1;
+            return raycast(from, to);
+        };
+        for (const entity of runtime.all()) {
+            if (!SENSING_TYPES.has(entity.identifier)) continue;
+            // Keep the direct benchmark queries inside range so they reach the ray walker.
+            entity.instance.attributes.define('follow_range', { base: 32 });
+            const canSee = runtime.goalWorldFor(entity.instance)?.canSee;
+            if (canSee !== undefined) sensingPairs.push({ canSee, target });
+        }
+    }
+
     return {
         runtime,
         content,
@@ -360,6 +401,8 @@ const scenario = (count: number, seed: number) => {
         allocations,
         tagScans,
         avoidBlockResults,
+        sensingCounts,
+        sensingPairs,
         startBreeding: () => breedingIds.forEach((id) => runtime.setInLove(id, 400))
     };
 };
@@ -377,11 +420,20 @@ const run = (
     readonly measuredTagEnumerations: number;
     readonly measuredTagMembershipChecks: number;
     readonly measuredAvoidBlockResults: number;
+    readonly measuredSensingCalls: number;
+    readonly measuredSensingRays: number;
 } => {
-    const { runtime, walkPlayers, blockReads, allocations, tagScans, avoidBlockResults, startBreeding } = scenario(
-        count,
-        seed
-    );
+    const {
+        runtime,
+        walkPlayers,
+        blockReads,
+        allocations,
+        tagScans,
+        avoidBlockResults,
+        sensingCounts,
+        sensingPairs,
+        startBreeding
+    } = scenario(count, seed);
     const avoidBlockSubjects = AVOID_BLOCK_PROFILE
         ? runtime
               .all()
@@ -404,11 +456,21 @@ const run = (
             }
         }
     };
+    const runSensingQueries = (): void => {
+        if (!SENSING_PROFILE) return;
+        for (const pair of sensingPairs) {
+            for (let repeat = 0; repeat < SENSING_REPEATS; repeat += 1) {
+                if (pair.canSee(pair.target)) sensingCounts.visible += 1;
+                sensingCounts.calls += 1;
+            }
+        }
+    };
     const times: number[] = [];
     for (let tick = 0; tick < WARMUP; tick += 1) {
         walkPlayers(tick);
-        runtime.tick(tick);
+        if (!SENSING_PROFILE) runtime.tick(tick);
         runAvoidBlockQueries(tick);
+        runSensingQueries();
     }
 
     const readsBeforeMeasure = blockReads.count;
@@ -416,12 +478,15 @@ const run = (
     const tagEnumerationsBeforeMeasure = tagScans.enumerations;
     const tagMembershipChecksBeforeMeasure = tagScans.membershipChecks;
     const avoidBlockResultsBeforeMeasure = avoidBlockResults.count;
+    const sensingCallsBeforeMeasure = sensingCounts.calls;
+    const sensingRaysBeforeMeasure = sensingCounts.rays;
     startBreeding();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
         const started = performance.now();
-        runtime.tick(tick);
+        if (!SENSING_PROFILE) runtime.tick(tick);
         runAvoidBlockQueries(tick);
+        runSensingQueries();
         times.push(performance.now() - started);
     }
     return {
@@ -431,7 +496,9 @@ const run = (
         playerViewsCreated: allocations.playerViews,
         measuredTagEnumerations: tagScans.enumerations - tagEnumerationsBeforeMeasure,
         measuredTagMembershipChecks: tagScans.membershipChecks - tagMembershipChecksBeforeMeasure,
-        measuredAvoidBlockResults: avoidBlockResults.count - avoidBlockResultsBeforeMeasure
+        measuredAvoidBlockResults: avoidBlockResults.count - avoidBlockResultsBeforeMeasure,
+        measuredSensingCalls: sensingCounts.calls - sensingCallsBeforeMeasure,
+        measuredSensingRays: sensingCounts.rays - sensingRaysBeforeMeasure
     };
 };
 
@@ -465,19 +532,22 @@ const report = (count: number): void => {
             `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''}` +
             `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''}` +
             `${BRAIN_MOB_PROFILE ? `, ${result.measuredTagEnumerations} tag enumerations, ${result.measuredTagMembershipChecks} tag membership checks` : ''}` +
-            `${AVOID_BLOCK_PROFILE ? `, ${result.measuredAvoidBlockResults} avoid_block query results` : ''})`
+            `${AVOID_BLOCK_PROFILE ? `, ${result.measuredAvoidBlockResults} avoid_block query results` : ''}` +
+            `${SENSING_PROFILE ? `, ${result.measuredSensingCalls} canSee calls, ${result.measuredSensingRays} rays` : ''})`
     );
 };
 
 console.log(
     [
-        AVOID_BLOCK_PROFILE
-            ? 'avoid_block'
-            : BRAIN_MOB_PROFILE
-              ? 'brain mobs'
-              : BREEDING_PAIRS > 0
-                ? 'breeding mobs'
-                : 'mobs',
+        SENSING_PROFILE
+            ? 'sensing'
+            : AVOID_BLOCK_PROFILE
+              ? 'avoid_block'
+              : BRAIN_MOB_PROFILE
+                ? 'brain mobs'
+                : BREEDING_PAIRS > 0
+                  ? 'breeding mobs'
+                  : 'mobs',
         'mean ms/tick',
         ' ms/mob',
         '   p50 ms',

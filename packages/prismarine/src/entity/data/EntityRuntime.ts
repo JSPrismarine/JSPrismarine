@@ -437,6 +437,8 @@ export class EntityRuntime implements EntityScene {
     private spawnWorld: SpawnWorld | undefined;
     /** The path finder's view, built once; see {@link EntityRuntime.navigation}. */
     private navigationView: CachedNavigationView | undefined;
+    /** The last host-wide block revision seen by a tick-scoped navigation view. */
+    private navigationBlockRevision: number | undefined;
     /** The brain callbacks are stable for this runtime and read live state through their closures. */
     private brainWorldView: ReturnType<typeof brainWorldOf> | undefined;
     private nextId = 1;
@@ -1367,6 +1369,17 @@ export class EntityRuntime implements EntityScene {
      * reading the current day and sky state for sunlight-sensitive goals.
      */
     public navigation(): NavigationView {
+        const blockRevision = this.world.blocks.blockRevision?.();
+        if (
+            this.navigationView !== undefined &&
+            this.navigationView.persistsAcrossTicks !== true &&
+            blockRevision !== undefined &&
+            blockRevision !== this.navigationBlockRevision
+        ) {
+            // Without chunk revisions, a host-wide version is the only way to notice same-tick writes.
+            this.navigationView.invalidateBlockCache();
+        }
+        this.navigationBlockRevision = blockRevision;
         this.navigationView ??= navigationViewOf(this.world.blocks, () => this.content(), this.world.level);
         return this.navigationView.view;
     }
