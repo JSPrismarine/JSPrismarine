@@ -19,7 +19,6 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { definitionOf } from '../content/ContentOptions';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
-import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import Chunk from './chunk/Chunk';
 import type { WorldContentFacts } from './contentAdapter';
 import { worldContentGroups } from './contentAdapter';
