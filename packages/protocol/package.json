@@ -45,6 +45,7 @@
         "bench:compression-variants": "vitest bench benchmarks/compression-variants.bench.ts",
         "bench:batch-codec": "node --import tsx benchmarks/batchCodec.bench.mjs",
         "bench:layout": "node --import tsx benchmarks/layout.bench.ts",
+        "bench:layout-cache": "node --import tsx bench/layout.bench.ts",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
@@ -64,6 +65,7 @@
         "@mtcute/wasm": "0.32.6",
         "@types/node": "24.19.2",
         "glob": "13.0.6",
+        "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "8.3.5",
         "vitest": "5.1.0"

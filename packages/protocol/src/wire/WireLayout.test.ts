@@ -69,6 +69,23 @@ describe('a wire layout', () => {
         expect(Object.isFrozen(at2193.fields)).toBe(true);
     });
 
+    it('checks a definition for version gates only once', () => {
+        let fieldReads = 0;
+        const definition = definePacket('CountedPacket', {
+            get value() {
+                fieldReads++;
+                return t.varuint32;
+            }
+        });
+
+        layoutAt(definition, PROTOCOL_2193);
+        const readsAfterResolution = fieldReads;
+        layoutAt(definition, PROTOCOL_2193);
+
+        expect(readsAfterResolution).toBeGreaterThan(0);
+        expect(fieldReads).toBe(readsAfterResolution);
+    });
+
     it('resolves a gated definition once per version and caches it', () => {
         const first = layoutAt(animatePacket, PROTOCOL_2225);
         expect(layoutAt(animatePacket, PROTOCOL_2225)).toBe(first);

@@ -146,8 +146,15 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
 };
 
 /** Whether any field of the definition is version-gated. */
-const hasGates = (definition: PacketDefinition): boolean =>
-    Object.values(definition.fields).some((spec) => isGated(spec as FieldSpec<unknown>));
+const hasGates = (definition: PacketDefinition): boolean => {
+    const cached = gateChecks.get(definition);
+    if (cached !== undefined) return cached;
+
+    // Definitions are immutable, so their gate status is the same for every codec version.
+    const result = Object.values(definition.fields).some(isGated);
+    gateChecks.set(definition, result);
+    return result;
+};
 
 /**
  * The layout of a definition at a protocol version, resolved once and frozen.

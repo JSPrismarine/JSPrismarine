@@ -1530,6 +1530,9 @@ importers:
       glob:
         specifier: 13.0.6
         version: 13.0.6
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
