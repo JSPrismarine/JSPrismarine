@@ -1,12 +1,13 @@
 /**
  * Benchmarks queued block-change delivery to many nearby and distant players.
  *
- * Run `pnpm --filter @jsprismarine/prismarine run bench:network [players] [changes] [samples]`.
+ * Run `pnpm --filter @jsprismarine/prismarine run bench:network [players] [changes] [samples] [--layout scattered|clustered]`.
  * Every sample flushes the production replicator, decodes its batches, and checks an output
  * digest against a full scan using the same `isInView` predicate.
  */
 import { createHash } from 'node:crypto';
 import os from 'node:os';
+import { parseArgs } from 'node:util';
 
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
@@ -27,10 +28,19 @@ import type ClientConnection from '../src/network/ClientConnection';
 import type PlayerSession from '../src/network/PlayerSession';
 import Codec2193 from '../src/network/codec/Codec2193';
 
-const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
-const PLAYER_COUNT = Number.parseInt(argumentsAfterScript[0] ?? '256', 10);
-const CHANGE_COUNT = Number.parseInt(argumentsAfterScript[1] ?? '25000', 10);
-const SAMPLES = Number.parseInt(argumentsAfterScript[2] ?? '7', 10);
+const { positionals, values } = parseArgs({
+    args: process.argv.slice(2).filter((argument) => argument !== '--'),
+    options: { layout: { type: 'string', default: 'scattered' } },
+    allowPositionals: true
+});
+const layoutOption = values.layout ?? 'scattered';
+if (layoutOption !== 'scattered' && layoutOption !== 'clustered') {
+    throw new RangeError(`layout must be scattered or clustered, got ${layoutOption}`);
+}
+const LAYOUT = layoutOption;
+const PLAYER_COUNT = Number.parseInt(positionals[0] ?? '256', 10);
+const CHANGE_COUNT = Number.parseInt(positionals[1] ?? '25000', 10);
+const SAMPLES = Number.parseInt(positionals[2] ?? '7', 10);
 const WARMUPS = 2;
 const SEED = 1234;
 const Y = 64;
@@ -55,10 +65,11 @@ interface Change {
 }
 
 const world = stub<World>({ getName: () => 'block proximity benchmark' });
+const chunkSpacing = LAYOUT === 'clustered' ? 1 : 64;
 const viewers: Viewer[] = Array.from({ length: PLAYER_COUNT }, (_unused, index) => {
     const width = Math.ceil(Math.sqrt(PLAYER_COUNT));
-    const chunkX = (index % width) * 64 - width * 32;
-    const chunkZ = Math.trunc(index / width) * 64 - width * 32;
+    const chunkX = (index % width) * chunkSpacing - Math.trunc((width * chunkSpacing) / 2);
+    const chunkZ = Math.trunc(index / width) * chunkSpacing - Math.trunc((width * chunkSpacing) / 2);
     return { x: chunkX * 16 + 8.25, z: chunkZ * 16 + 8.75, viewDistance: 4 + (index % 3) };
 });
 
@@ -78,7 +89,11 @@ const players = viewers.map((viewer, index) => {
 });
 
 const visibleWorld = stub<World>({ getName: () => 'block proximity benchmark', getPlayers: () => players });
-const config = stub<Config>({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 1 });
+const config = stub<Config>({
+    getProximityBroadcast: () => true,
+    getPacketCompressionLevel: () => 1,
+    getPacketCompressionThreshold: () => 256
+});
 const logger = stub<Logger>({ error: () => undefined, verbose: () => undefined });
 const server = stub<Server>({ getConfig: () => config, getLogger: () => logger });
 const stone = BlockRuntimeIds.getByName('minecraft:stone');
@@ -190,6 +205,7 @@ const main = async (): Promise<void> => {
             cpu: os.cpus()[0]?.model ?? 'unknown',
             workerCount: 0,
             players: PLAYER_COUNT,
+            layout: LAYOUT,
             pendingChanges: CHANGE_COUNT,
             baselinePairChecks: PLAYER_COUNT * CHANGE_COUNT,
             deliveredUpdates: runs[0]?.deliveredUpdates ?? 0,

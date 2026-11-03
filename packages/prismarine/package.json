@@ -62,6 +62,7 @@
         "bench:block-entity-write": "node benchmarks/run.mjs benchmarks/blockEntityWrite.bench.ts",
         "bench:join-burst": "node --import tsx benchmarks/joinBurst.bench.ts",
         "bench:movement-fanout": "node --import tsx benchmarks/movementFanout.bench.ts",
+        "bench:entity-movement-fanout": "node --import tsx benchmarks/entityMovementFanout.bench.ts",
         "bench:runtime-id-fanout": "node --import tsx benchmarks/runtimeIdFanout.bench.ts",
         "bench:items": "node --import tsx benchmarks/entityPickup.bench.ts",
         "bench:inbound-packets": "node --import tsx benchmarks/inboundPacketRecording.bench.ts",

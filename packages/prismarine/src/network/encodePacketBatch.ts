@@ -28,6 +28,14 @@ export interface EncodedPacketBatch {
 
 /** Whether encoded packet views are for immediate framing or caller retention. */
 export type PacketEncodingLifetime = 'transient' | 'cached';
+/** A protocol-stamped packet and its bytes, ready to join into one or more batches. */
+export interface EncodedPacketBuffers {
+    /** Packets prepared for the selected protocol version. */
+    packets: NetworkPacket<unknown>[];
+    /** Bytes in the same order as `packets`. */
+    buffers: Buffer[];
+}
+
 /** Compressed packet bodies above this size use zlib's asynchronous API. */
 export const ASYNC_PACKET_BATCH_THRESHOLD = 64 * 1024;
 
@@ -57,6 +65,81 @@ export const encodePacketBatch = (
 };
 
 /**
+ * Encodes packets once for one protocol codec so their buffers can be shared across audiences.
+ * @param packets - Packets as the caller built them.
+ * @param codec - The negotiated packet ids, layouts, and Protocol context.
+ * @returns Protocol-stamped packets and their bytes in matching order.
+ */
+export const encodePacketsForCodec = (
+    packets: readonly NetworkPacket<unknown>[],
+    codec: ProtocolCodec,
+    lifetime: PacketEncodingLifetime = 'transient'
+): EncodedPacketBuffers => {
+    return preparePackets(packets, codec, lifetime);
+};
+
+/**
+ * Frames protocol-encoded packet buffers without encoding their packet objects again.
+ * @param packets - The version-specific packets that produced `packetBuffers`.
+ * @param packetBuffers - Encoded packet bodies in the same order as `packets`.
+ * @param options - Compression state, zlib level, and size threshold.
+ * @returns The batch ready for the transport.
+ */
+export const encodePacketBatchFromBuffers = (
+    packets: readonly NetworkPacket<unknown>[],
+    packetBuffers: readonly Buffer[],
+    options: PacketBatchOptions = {}
+): EncodedPacketBatch => {
+    if (packets.length !== packetBuffers.length) {
+        throw new RangeError(
+            `Packet and buffer counts differ: ${packets.length} packets, ${packetBuffers.length} buffers`
+        );
+    }
+
+    return {
+        content: batchCodecFor(options).encode(packetBuffers),
+        packets,
+        packetBuffers
+    };
+};
+
+/**
+ * Frames already encoded packets, compressing only when the configured body-size threshold is met.
+ * @param packets - The version-specific packets that produced `packetBuffers`.
+ * @param packetBuffers - Encoded packet bodies in the same order as `packets`.
+ * @param options - Compression state, zlib level, and size threshold.
+ * @returns The batch directly below the async deflate threshold, or a promise above it.
+ */
+export const encodePacketBatchFromBuffersBySize = (
+    packets: readonly NetworkPacket<unknown>[],
+    packetBuffers: readonly Buffer[],
+    options: PacketBatchOptions = {}
+): EncodedPacketBatch | Promise<EncodedPacketBatch> => {
+    if (packets.length !== packetBuffers.length) {
+        throw new RangeError(
+            `Packet and buffer counts differ: ${packets.length} packets, ${packetBuffers.length} buffers`
+        );
+    }
+
+    const batchCodec = batchCodecFor(options);
+    // Bedrock's batch body includes each packet's varuint length prefix in the threshold.
+    const bodyLength = packetBuffers.reduce(
+        (length, packet) => length + varUIntLength(packet.byteLength) + packet.byteLength,
+        0
+    );
+
+    if (
+        options.compressed === false ||
+        options.compressionThreshold === 0 ||
+        bodyLength <= ASYNC_PACKET_BATCH_THRESHOLD
+    ) {
+        return { content: batchCodec.encode(packetBuffers), packets, packetBuffers };
+    }
+
+    return batchCodec.encodeAsync(packetBuffers).then((content) => ({ content, packets, packetBuffers }));
+};
+
+/**
  * Encodes small batches synchronously and moves larger deflates to the libuv pool.
  * Packet encoding still runs once on the calling thread; only zlib moves off it.
  * @param packets - Packets as the caller built them.
@@ -70,25 +153,8 @@ export const encodePacketBatchBySize = (
     options: PacketBatchOptions = {},
     lifetime: PacketEncodingLifetime = 'transient'
 ): EncodedPacketBatch | Promise<EncodedPacketBatch> => {
-    const { packets: encodedPackets, buffers: packetBuffers } = preparePackets(packets, codec, lifetime);
-    const batchCodec = batchCodecFor(options);
-    // Bedrock's batch body includes each packet's varuint length prefix in the threshold.
-    const bodyLength = packetBuffers.reduce(
-        (length, packet) => length + varUIntLength(packet.byteLength) + packet.byteLength,
-        0
-    );
-
-    if (
-        options.compressed === false ||
-        options.compressionThreshold === 0 ||
-        bodyLength <= ASYNC_PACKET_BATCH_THRESHOLD
-    ) {
-        return { content: batchCodec.encode(packetBuffers), packets: encodedPackets, packetBuffers };
-    }
-
-    return batchCodec
-        .encodeAsync(packetBuffers)
-        .then((content) => ({ content, packets: encodedPackets, packetBuffers }));
+    const encoded = encodePacketsForCodec(packets, codec, lifetime);
+    return encodePacketBatchFromBuffersBySize(encoded.packets, encoded.buffers, options);
 };
 
 /** The async counterpart for large batches whose deflate should leave the main thread. */
@@ -97,13 +163,13 @@ export const encodePacketBatchAsync = async (
     codec: ProtocolCodec,
     options: PacketBatchOptions = {}
 ): Promise<EncodedPacketBatch> => {
-    const { packets: encodedPackets, buffers } = preparePackets(packets, codec);
+    const { packets: encodedPackets, buffers: packetBuffers } = preparePackets(packets, codec);
     const batchCodec = batchCodecFor(options);
 
     return {
-        content: await batchCodec.encodeAsync(buffers),
+        content: await batchCodec.encodeAsync(packetBuffers),
         packets: encodedPackets,
-        packetBuffers: buffers
+        packetBuffers
     };
 };
 

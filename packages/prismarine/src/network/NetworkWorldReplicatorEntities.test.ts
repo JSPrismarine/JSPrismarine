@@ -8,10 +8,21 @@ import type { Entity } from '../entity/Entity';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world/World';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
+import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import { Attribute } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Position } from '../world/Position';
+import Codec2193 from './codec/Codec2193';
+import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
 /**
@@ -22,32 +33,44 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
  * are easy to get subtly wrong - the arrival not being offered itself, a departure being told
  * about its own departure - are exactly the ones that were fixed once already.
  */
-const fakeSession = () => {
+const fakeSession = (
+    codec: ProtocolCodec = Codec2193,
+    compressionAlgorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB,
+    compressionThreshold = 256
+) => {
     const considered: bigint[] = [];
     const dropped: bigint[] = [];
     const reconciled: bigint[][] = [];
-    const queued: bigint[] = [];
     const sent: NetworkPacket[] = [];
-    let flushes = 0;
+    const frames: Buffer[] = [];
+    const selfStateCalls: string[] = [];
     const tracked = new Set<bigint>();
 
     return {
         considered,
         dropped,
         reconciled,
-        queued,
         sent,
+        frames,
+        selfStateCalls,
         tracked,
-        get flushes() {
-            return flushes;
-        },
         session: stub<PlayerSession>({
+            getConnection: () =>
+                stub<ClientConnection>({
+                    codec,
+                    compressionAlgorithm,
+                    compressionThreshold,
+                    sendSharedBatch: async (content) => void frames.push(content),
+                    sendSharedBatchAsync: async (batch) => void frames.push((await batch).content)
+                }),
+            sendAttributesFor: async () => void selfStateCalls.push('attributes'),
+            sendMetadataFor: async () => void selfStateCalls.push('metadata'),
+            sendStatusEffect: async () => void selfStateCalls.push('status effect'),
+            sendEquipmentFor: async () => void selfStateCalls.push('equipment'),
             considerEntity: async (entity: Entity) => void considered.push(entity.getRuntimeId()),
             dropEntity: async (entity: Entity) => void dropped.push(entity.getRuntimeId()),
             reconcileTrackedEntities: async (entities: Iterable<Entity> = []) =>
                 void reconciled.push([...entities].map((one) => one.getRuntimeId())),
-            queueMoveActor: (entity: Entity) => void queued.push(entity.getRuntimeId()),
-            flushQueuedMoves: async () => void flushes++,
             send: async (packet: NetworkPacket) => void sent.push(packet),
             tracks: (runtimeId: bigint) => tracked.has(runtimeId)
         })
@@ -55,11 +78,24 @@ const fakeSession = () => {
 };
 
 /** A player-controlled entity, real enough for `instanceof Player` to hold. */
-const fakePlayer = (runtimeId: bigint) => {
-    const spy = fakeSession();
+const fakePlayer = (
+    runtimeId: bigint,
+    codec?: ProtocolCodec,
+    compressionAlgorithm?: PacketCompressionAlgorithm,
+    compressionThreshold?: number
+) => {
+    const spy = fakeSession(codec, compressionAlgorithm, compressionThreshold);
     const player = stubOf(Player, {
         getRuntimeId: () => runtimeId,
         getNetworkSession: () => spy.session,
+        getPosition: () => new Position(1, 64, 1, stub<World>()),
+        pitch: 0,
+        yaw: 0,
+        headYaw: 0,
+        metadata: new Metadata(false),
+        getSyncedProperties: () => new SyncedProperties(),
+        getEquipment: () => ({}),
+        isOnGround: () => false,
         isOnline: () => true
     });
 
@@ -67,7 +103,17 @@ const fakePlayer = (runtimeId: bigint) => {
 };
 
 /** A mob: in the world, but nobody's client. */
-const fakeMob = (runtimeId: bigint) => stub<Entity>({ getRuntimeId: () => runtimeId });
+const fakeMob = (runtimeId: bigint) => {
+    const world = stub<World>();
+    return stub<Entity>({
+        getRuntimeId: () => runtimeId,
+        getPosition: () => new Position(1, 64, 1, world),
+        pitch: 0,
+        yaw: 0,
+        headYaw: 0,
+        isOnGround: () => false
+    });
+};
 
 const replicatorOver = ({
     players = [],
@@ -85,7 +131,12 @@ const replicatorOver = ({
     });
 
     const server = stub<Server>({
-        getConfig: () => stub<Config>({ getProximityBroadcast: () => proximity }),
+        getConfig: () =>
+            stub<Config>({
+                getProximityBroadcast: () => proximity,
+                getPacketCompressionLevel: () => 1,
+                getPacketCompressionThreshold: () => 256
+            }),
         getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} })
     });
 
@@ -158,7 +209,7 @@ describe('network', () => {
         });
 
         describe('entityMoved', () => {
-            it('queues only for the clients that have the entity', () => {
+            it('sends only to the clients that have the entity', async () => {
                 // A move for a runtime id a client was never sent a spawn for is discarded at
                 // the other end, so tracking is both the correct gate and the cheaper one.
                 const watching = fakePlayer(1n);
@@ -169,12 +220,13 @@ describe('network', () => {
 
                 const replicator = replicatorOver({ players: [watching.player, blind.player] });
                 replicator.entityMoved(mob);
+                await replicator.flushMovement();
 
-                expect(watching.spy.queued).toStrictEqual([3n]);
-                expect(blind.spy.queued).toStrictEqual([]);
+                expect(watching.spy.frames).toHaveLength(1);
+                expect(blind.spy.frames).toHaveLength(0);
             });
 
-            it("does not queue a player's movement for that player's own session", () => {
+            it("does not send a player's movement back to that player's own session", async () => {
                 const moving = fakePlayer(1n);
                 const observer = fakePlayer(2n);
                 moving.spy.tracked.add(1n);
@@ -182,22 +234,168 @@ describe('network', () => {
 
                 const replicator = replicatorOver({ players: [moving.player, observer.player] });
                 replicator.entityMoved(moving.player);
+                await replicator.flushMovement();
 
-                expect(moving.spy.queued).toStrictEqual([]);
-                expect(observer.spy.queued).toStrictEqual([1n]);
+                expect(moving.spy.frames).toHaveLength(0);
+                expect(observer.spy.frames).toHaveLength(1);
+            });
+
+            it('keeps a teleport flag when later moves replace the pose before flush', async () => {
+                const watcher = fakePlayer(1n);
+                const mob = fakeMob(3n);
+                watcher.spy.tracked.add(3n);
+                const replicator = replicatorOver({ players: [watcher.player] });
+
+                replicator.entityMoved(mob, true);
+                replicator.entityMoved(mob);
+                await replicator.flushMovement();
+
+                expect(watcher.spy.frames).toHaveLength(1);
+                const [payload] = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
+                    watcher.spy.frames[0]!
+                );
+                const packet = new MoveActorAbsolutePacket(payload);
+                packet.decode();
+                expect(packet.flags & MoveActorAbsolutePacket.FLAG_TELEPORT).not.toBe(0);
             });
         });
 
+        it('frames the same movement with each viewer’s negotiated compression algorithm', async () => {
+            const snappy = fakePlayer(1n, Codec2193, PacketCompressionAlgorithm.SNAPPY, 1);
+            const uncompressed = fakePlayer(2n, Codec2193, PacketCompressionAlgorithm.NONE, 0);
+            const mob = fakeMob(3n);
+            snappy.spy.tracked.add(3n);
+            uncompressed.spy.tracked.add(3n);
+            const replicator = replicatorOver({ players: [snappy.player, uncompressed.player] });
+
+            replicator.entityMoved(mob);
+            await replicator.flushMovement();
+
+            expect(snappy.spy.frames[0]![1]).toBe(PacketCompressionAlgorithm.SNAPPY);
+            expect(uncompressed.spy.frames[0]![1]).toBe(0xff);
+            expect(
+                BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(snappy.spy.frames[0]!)
+            ).toHaveLength(1);
+            expect(
+                BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).decode(
+                    uncompressed.spy.frames[0]!
+                )
+            ).toHaveLength(1);
+        });
+
+        it('encodes a moved entity once per codec and shares its batch among tracking viewers', async () => {
+            const encodesByCodec = { codec2193: 0, codec2225: 0 };
+            const codec2193: ProtocolCodec = {
+                ...Codec2193,
+                prepareOutbound: (packet) => {
+                    encodesByCodec.codec2193++;
+                    return Codec2193.prepareOutbound(packet);
+                }
+            };
+            const codec2225: ProtocolCodec = {
+                ...Codec2225,
+                prepareOutbound: (packet) => {
+                    encodesByCodec.codec2225++;
+                    return Codec2225.prepareOutbound(packet);
+                }
+            };
+            const first = fakePlayer(1n, codec2193);
+            const second = fakePlayer(2n, codec2193);
+            const newerClient = fakePlayer(4n, codec2225);
+            const mob = fakeMob(3n);
+            first.spy.tracked.add(3n);
+            second.spy.tracked.add(3n);
+            newerClient.spy.tracked.add(3n);
+            const replicator = replicatorOver({ players: [first.player, second.player, newerClient.player] });
+
+            replicator.entityMoved(mob);
+            await replicator.flushMovement();
+
+            expect(encodesByCodec).toStrictEqual({ codec2193: 1, codec2225: 1 });
+            expect(first.spy.frames).toHaveLength(1);
+            expect(second.spy.frames).toStrictEqual(first.spy.frames);
+            expect(newerClient.spy.frames).toHaveLength(1);
+            expect(
+                BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 256 }).decode(
+                    first.spy.frames[0]!
+                )
+            ).toHaveLength(1);
+        });
+
+        it('shares entity-state packets while retaining the per-session path for an entity player', async () => {
+            let encodes = 0;
+            const codec: ProtocolCodec = {
+                ...Codec2193,
+                prepareOutbound: (packet) => {
+                    encodes++;
+                    return Codec2193.prepareOutbound(packet);
+                }
+            };
+            const first = fakePlayer(1n, codec);
+            const second = fakePlayer(2n, codec);
+            const mob = stub<Entity>({
+                getRuntimeId: () => 3n,
+                metadata: new Metadata(false),
+                getSyncedProperties: () => new SyncedProperties(),
+                getEquipment: () => ({})
+            });
+            first.spy.tracked.add(3n);
+            second.spy.tracked.add(3n);
+            const replicator = replicatorOver({ players: [first.player, second.player] });
+            const attribute = new Attribute({ name: 'minecraft:health', min: 0, max: 20, def: 20, value: 15 });
+            const effect = {
+                id: 'minecraft:speed',
+                amplifier: 0,
+                durationTicks: 100,
+                ambient: false,
+                showParticles: true,
+                showIcon: true
+            };
+
+            await replicator.actorEffect(mob, ActorEvent.HURT_ANIMATION, 0);
+            await replicator.entityAttributesChanged(mob, [attribute]);
+            await replicator.statusEffectChanged(mob, effect, 'add');
+            await replicator.entityMetadataChanged(mob);
+            await replicator.entityEquipmentChanged(mob);
+
+            expect(encodes).toBe(6);
+            expect(first.spy.frames).toHaveLength(5);
+            expect(second.spy.frames).toStrictEqual(first.spy.frames);
+            expect(first.spy.sent).toHaveLength(0);
+        });
+
+        it('routes the entity player state changes through its own input-tick-aware session methods', async () => {
+            const { player, spy } = fakePlayer(1n);
+            const replicator = replicatorOver({ players: [player] });
+            const attribute = new Attribute({ name: 'minecraft:health', min: 0, max: 20, def: 20, value: 15 });
+            const effect = {
+                id: 'minecraft:speed',
+                amplifier: 0,
+                durationTicks: 100,
+                ambient: false,
+                showParticles: true,
+                showIcon: true
+            };
+
+            await replicator.entityAttributesChanged(player, [attribute]);
+            await replicator.statusEffectChanged(player, effect, 'add');
+            await replicator.entityMetadataChanged(player);
+            await replicator.entityEquipmentChanged(player);
+
+            expect(spy.selfStateCalls).toStrictEqual(['attributes', 'status effect', 'metadata', 'equipment']);
+            expect(spy.frames).toHaveLength(0);
+        });
+
         describe('flushMovement', () => {
-            it('flushes every client once', async () => {
+            it('does no work when no entity moved', async () => {
                 const first = fakePlayer(1n);
                 const second = fakePlayer(2n);
                 const replicator = replicatorOver({ players: [first.player, second.player] });
 
                 await replicator.flushMovement();
 
-                expect(first.spy.flushes).toBe(1);
-                expect(second.spy.flushes).toBe(1);
+                expect(first.spy.frames).toHaveLength(0);
+                expect(second.spy.frames).toHaveLength(0);
             });
         });
 

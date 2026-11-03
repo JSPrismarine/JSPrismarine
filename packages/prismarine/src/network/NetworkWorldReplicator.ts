@@ -1,5 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -10,6 +11,9 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Entity } from '../entity/Entity';
 import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
+import { bedrockMobEffectId } from '../entity/StatusEffect';
+import { Item } from '../item/Item';
+import { WindowIds } from '../inventory/WindowIds';
 import {
     effectiveViewDistance,
     isInView,
@@ -22,6 +26,9 @@ import type { AudienceOptions, World } from '../world/World';
 import type { WorldChange } from '../world/WorldChange';
 import type { NamedSoundOptions, WorldChangeSink } from '../world/WorldChangeSink';
 import { broadcastSharedBatches } from './MinecraftSession';
+import type ClientConnection from './ClientConnection';
+import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec } from './encodePacketBatch';
+import type { EncodedPacketBatch } from './encodePacketBatch';
 import type { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
 import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
 import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
@@ -34,6 +41,12 @@ import Vec3 from '@jsprismarine/protocol/structure/Vec3';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
+import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
+import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
+import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
+import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -60,6 +73,20 @@ interface BlockEntityChange {
 
 /** The pending-map key for a position, which is what makes the last write to it win. */
 const positionKey = (position: Vector3): string => `${position.getX()},${position.getY()},${position.getZ()}`;
+
+/** Builds the actor pose packet once, before the move is fanned out to tracking sessions. */
+const movePacketFor = (entity: Entity, teleport: boolean): MoveActorAbsolutePacket => {
+    const packet = new MoveActorAbsolutePacket();
+    packet.runtimeEntityId = entity.getRuntimeId();
+    packet.position = entity.getPosition();
+    packet.pitch = entity.pitch;
+    packet.yaw = entity.yaw;
+    packet.headYaw = entity.headYaw;
+    packet.flags =
+        (entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0) |
+        (teleport ? MoveActorAbsolutePacket.FLAG_TELEPORT : 0);
+    return packet;
+};
 
 /**
  * How the client applies a block change: as network-authored, with the neighboring visuals
@@ -121,6 +148,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * chest written twice in a tick is two copies of its 27 slots if nothing collapses them.
      */
     private readonly pendingBlockEntities = new Map<string, BlockEntityChange>();
+
+    /** Last pose for each actor that moved since the world's previous movement flush. */
+    private readonly pendingMoves = new Map<number, MoveActorAbsolutePacket>();
 
     public constructor(
         private readonly world: World,
@@ -232,8 +262,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 players.map((player) => player.getNetworkSession().getConnection()),
                 this.blockPackets(changes),
                 this.server.getConfig().getPacketCompressionLevel(),
-                (error) => this.server.getLogger().error(error),
-                this.server.getConfig().getPacketCompressionThreshold()
+                (error) => this.server.getLogger().error(error)
             );
             return;
         }
@@ -249,6 +278,18 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             else bucket.push(entry);
         }
 
+        const groupsByCodec = new Map<
+            ProtocolCodec,
+            Map<
+                string,
+                {
+                    readonly indices: number[];
+                    readonly players: Player[];
+                    readonly compressionAlgorithm: ClientConnection['compressionAlgorithm'];
+                    readonly compressionThreshold: number;
+                }
+            >
+        >();
         for (const player of players) {
             const viewer = player.getPosition();
             const centerX = toChunk(viewer.getX());
@@ -274,14 +315,103 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             if (visible.length === 0) continue;
             visible.sort((left, right) => left.order - right.order);
 
-            broadcastSharedBatches(
-                [player.getNetworkSession().getConnection()],
-                this.blockPackets(visible.map(({ change }) => change)),
-                this.server.getConfig().getPacketCompressionLevel(),
-                (error) => this.server.getLogger().error(error),
-                this.server.getConfig().getPacketCompressionThreshold()
-            );
+            const indices = visible.map(({ order }) => order);
+            const connection = player.getNetworkSession().getConnection();
+            const codec = connection.codec;
+            let groups = groupsByCodec.get(codec);
+            if (groups === undefined) {
+                groups = new Map();
+                groupsByCodec.set(codec, groups);
+            }
+
+            // Compression settings are negotiated per connection, so equal visibility sets
+            // only share a frame when their algorithm and threshold also match.
+            const signature = `${connection.compressionAlgorithm}:${connection.compressionThreshold}:${indices.join(',')}`;
+            const group = groups.get(signature);
+            if (group === undefined)
+                groups.set(signature, {
+                    indices,
+                    players: [player],
+                    compressionAlgorithm: connection.compressionAlgorithm,
+                    compressionThreshold: connection.compressionThreshold
+                });
+            else group.players.push(player);
         }
+
+        const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
+        const sends: Promise<void>[] = [];
+
+        for (const [codec, groups] of groupsByCodec) {
+            // Viewers can see different subsets. Encode the union once for this codec, then
+            // frame only the relevant pre-encoded updates for each distinct visibility set.
+            const neededIndices = [...new Set([...groups.values()].flatMap(({ indices }) => indices))].sort(
+                (left, right) => left - right
+            );
+            const neededChanges = neededIndices.map((index) => {
+                const change = changes[index];
+                if (change === undefined) throw new Error(`Missing block change at flush index ${index}`);
+                return change;
+            });
+            const encoded = encodePacketsForCodec(this.blockPackets(neededChanges), codec);
+            const encodedByIndex = new Map<
+                number,
+                { readonly packet: NetworkPacket<unknown>; readonly buffer: Buffer }
+            >();
+            for (const [encodedIndex, changeIndex] of neededIndices.entries()) {
+                const packet = encoded.packets[encodedIndex];
+                const buffer = encoded.buffers[encodedIndex];
+                if (packet === undefined || buffer === undefined) {
+                    throw new Error(`Missing encoded block change at flush index ${changeIndex}`);
+                }
+                encodedByIndex.set(changeIndex, { packet, buffer });
+            }
+
+            for (const group of groups.values()) {
+                const packets: NetworkPacket<unknown>[] = [];
+                const buffers: Buffer[] = [];
+                for (const index of group.indices) {
+                    const encodedChange = encodedByIndex.get(index);
+                    if (encodedChange === undefined)
+                        throw new Error(`Missing block update bytes at flush index ${index}`);
+                    packets.push(encodedChange.packet);
+                    buffers.push(encodedChange.buffer);
+                }
+
+                const batch = encodePacketBatchFromBuffersBySize(packets, buffers, {
+                    compressionLevel,
+                    compressionAlgorithm: group.compressionAlgorithm,
+                    compressionThreshold: group.compressionThreshold
+                });
+                if (batch instanceof Promise) {
+                    const failedPacket = packets[0];
+                    if (failedPacket === undefined) throw new Error('A block-change batch has no packet to report');
+                    for (const player of group.players) {
+                        sends.push(
+                            player.getNetworkSession().getConnection().sendSharedBatchAsync(batch, failedPacket)
+                        );
+                    }
+                } else {
+                    for (const player of group.players) {
+                        sends.push(
+                            player
+                                .getNetworkSession()
+                                .getConnection()
+                                .sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers)
+                        );
+                    }
+                }
+            }
+        }
+
+        await Promise.all(
+            sends.map(async (send) => {
+                try {
+                    await send;
+                } catch (error: unknown) {
+                    this.server.getLogger().error(error);
+                }
+            })
+        );
     }
 
     /**
@@ -455,70 +585,122 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** @inheritdoc */
     public async actorEffect(entity: Entity, effect: ActorEvent, data: number): Promise<void> {
-        const packet = new ActorEventPacket();
-        packet.runtimeEntityId = entity.getRuntimeId();
-        packet.event = effect;
-        packet.data = data;
-
-        // To whoever actually has the entity on screen. The packet names a runtime id, and a
-        // client that was never sent a spawn for it has nothing to play the animation on.
-        await Promise.all(
-            this.world
-                .getPlayers()
-                .filter((player) => player.getNetworkSession().tracks(entity.getRuntimeId()))
-                .map(async (player) => player.getNetworkSession().send(packet))
-        );
+        const packetForViewer = (): ActorEventPacket => {
+            const packet = new ActorEventPacket();
+            packet.runtimeEntityId = entity.getRuntimeId();
+            packet.event = effect;
+            packet.data = data;
+            return packet;
+        };
+        const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
+        if (entity instanceof Player) sends.push(entity.getNetworkSession().send(packetForViewer()));
+        await Promise.all(sends);
     }
 
     /** @inheritdoc */
     public async entityAttributesChanged(entity: Entity, attributes: Attribute[]): Promise<void> {
-        const runtimeId = entity.getRuntimeId();
+        if (attributes.length === 0) return;
 
-        // Gated on tracking for the same reason `actorEffect` is: the packet names a runtime id,
-        // and a client that was never sent a spawn for it has nothing to apply the numbers to.
-        await Promise.all(
-            this.world
-                .getPlayers()
-                .filter((player) => player.getNetworkSession().tracks(runtimeId))
-                .map(async (player) => player.getNetworkSession().sendAttributesFor(entity, attributes))
-        );
+        const packetsForCodec = (): UpdateAttributesPacket[] => {
+            const packet = new UpdateAttributesPacket();
+            packet.runtimeEntityId = entity.getRuntimeId();
+            packet.attributes = attributes;
+            packet.tick = 0n;
+            return [packet];
+        };
+        const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
+        if (entity instanceof Player) {
+            sends.push(entity.getNetworkSession().sendAttributesFor(entity, attributes));
+        }
+        await Promise.all(sends);
     }
 
     /** @inheritdoc */
     public async statusEffectChanged(entity: Entity, effect: StatusEffect, change: StatusEffectChange): Promise<void> {
-        const runtimeId = entity.getRuntimeId();
-        await Promise.all(
-            this.world
-                .getPlayers()
-                .filter((player) => player.getNetworkSession().tracks(runtimeId))
-                .map((player) => player.getNetworkSession().sendStatusEffect(entity, effect, change))
-        );
+        const effectId = bedrockMobEffectId(effect.id);
+        if (effectId === undefined) return;
+
+        const packetForViewer = (): MobEffectPacket => {
+            const packet = new MobEffectPacket();
+            packet.targetRuntimeId = entity.getRuntimeId();
+            packet.eventId =
+                change === 'add'
+                    ? MobEffectEvent.Add
+                    : change === 'update'
+                      ? MobEffectEvent.Update
+                      : MobEffectEvent.Remove;
+            packet.effectId = effectId;
+            packet.effectAmplifier = effect.amplifier;
+            packet.showParticles = effect.showParticles;
+            packet.effectDurationTicks = effect.durationTicks;
+            packet.tick = 0n;
+            packet.ambient = effect.ambient;
+            return packet;
+        };
+        const sends = [this.sendToTrackedEntity(entity, () => [packetForViewer()])];
+        if (entity instanceof Player) {
+            sends.push(entity.getNetworkSession().sendStatusEffect(entity, effect, change));
+        }
+        await Promise.all(sends);
     }
 
     /** @inheritdoc */
     public async entityMetadataChanged(entity: Entity): Promise<void> {
-        const runtimeId = entity.getRuntimeId();
-
-        await Promise.all(
-            this.world
-                .getPlayers()
-                .filter((player) => player.getNetworkSession().tracks(runtimeId))
-                .map(async (player) => player.getNetworkSession().sendMetadataFor(entity))
-        );
+        const runtimeEntityId = entity.getRuntimeId();
+        const metadata = entity.metadata;
+        const syncedProperties = entity.getSyncedProperties();
+        const packetsForCodec = (): SetActorDataPacket[] => {
+            const packet = new SetActorDataPacket();
+            packet.runtimeEntityId = runtimeEntityId;
+            packet.metadata = metadata;
+            packet.syncedProperties = syncedProperties;
+            packet.tick = 0n;
+            return [packet];
+        };
+        const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
+        if (entity instanceof Player) sends.push(entity.getNetworkSession().sendMetadataFor(entity));
+        await Promise.all(sends);
     }
 
     /** @inheritdoc */
     public async entityEquipmentChanged(entity: Entity): Promise<void> {
-        const runtimeId = entity.getRuntimeId();
-
-        // Gated on tracking for the reason `entityMetadataChanged` is: both packets name a
-        // runtime id, and a client that was never sent a spawn for it has nothing to dress.
-        await Promise.all(
-            this.world
-                .getPlayers()
-                .filter((player) => player.getNetworkSession().tracks(runtimeId))
-                .map(async (player) => player.getNetworkSession().sendEquipmentFor(entity))
-        );
+        const worn = entity.getEquipment();
+        const runtimeEntityId = entity.getRuntimeId();
+        const packetsForCodec = (codec: ProtocolCodec): NetworkPacket<unknown>[] => {
+            const context = codec.context;
+            const packets: NetworkPacket<unknown>[] = [
+                new MobArmorEquipmentPacket({
+                    runtimeEntityId,
+                    head: (worn.head ?? Item.air()).toStackDescriptor(context),
+                    chest: (worn.chest ?? Item.air()).toStackDescriptor(context),
+                    legs: (worn.legs ?? Item.air()).toStackDescriptor(context),
+                    feet: (worn.feet ?? Item.air()).toStackDescriptor(context),
+                    body: (worn.body ?? Item.air()).toStackDescriptor(context)
+                }),
+                new MobEquipmentPacket({
+                    runtimeEntityId,
+                    item: (worn.mainhand ?? Item.air()).toStackDescriptor(context),
+                    inventorySlot: 0,
+                    hotbarSlot: 0,
+                    windowId: 0
+                })
+            ];
+            if (worn.offhand !== undefined) {
+                packets.push(
+                    new MobEquipmentPacket({
+                        runtimeEntityId,
+                        item: worn.offhand.toStackDescriptor(context),
+                        inventorySlot: 0,
+                        hotbarSlot: 0,
+                        windowId: WindowIds.OFFHAND
+                    })
+                );
+            }
+            return packets;
+        };
+        const sends = [this.sendToTrackedEntity(entity, packetsForCodec)];
+        if (entity instanceof Player) sends.push(entity.getNetworkSession().sendEquipmentFor(entity));
+        await Promise.all(sends);
     }
 
     /** @inheritdoc */
@@ -551,17 +733,14 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** @inheritdoc */
     public entityMoved(entity: Entity, teleport = false): void {
-        // Only to the clients that have this entity. A move for a runtime id a client was
-        // never sent a spawn for is discarded at the other end, so tracking is both the
-        // correct gate and the cheaper one - a set lookup instead of any distance arithmetic
-        // on the hottest path in the server.
-        const runtimeId = entity.getRuntimeId();
-        for (const player of this.world.getPlayers()) {
-            const session = player.getNetworkSession();
-            // A player predicts its own movement. Sending that actor back to its controlling
-            // client can rewind the pose it just reported; only observers need this update.
-            if (player !== entity && session.tracks(runtimeId)) session.queueMoveActor(entity, teleport);
-        }
+        // Keep one final pose per actor for the tick. Its packet is encoded once for each
+        // protocol codec, then viewers join their own visible subset from those shared bytes.
+        const runtimeId = Number(entity.getRuntimeId());
+        const previous = this.pendingMoves.get(runtimeId);
+        // Preserve a teleport flag until flush so later ordinary movement in this same tick
+        // cannot turn a required snap into interpolation from the stale pre-teleport pose.
+        const wasTeleport = previous !== undefined && (previous.flags & MoveActorAbsolutePacket.FLAG_TELEPORT) !== 0;
+        this.pendingMoves.set(runtimeId, movePacketFor(entity, teleport || wasTeleport));
     }
 
     /** @inheritdoc */
@@ -585,9 +764,163 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         );
     }
 
+    /**
+     * Sends viewer-independent state to trackers, encoding one packet set per negotiated codec.
+     * A player entity's own connection is left to its PlayerSession method so prediction packets
+     * retain that client's input tick; observer packets use tick zero and share safely.
+     * @param entity - The actor whose state changed.
+     * @param packetsForCodec - Builds the packet values with the selected codec's context.
+     */
+    private async sendToTrackedEntity(
+        entity: Entity,
+        packetsForCodec: (codec: ProtocolCodec) => readonly NetworkPacket<unknown>[]
+    ): Promise<void> {
+        const runtimeId = entity.getRuntimeId();
+        const playersByCodec = new Map<ProtocolCodec, ClientConnection[]>();
+        for (const player of this.world.getPlayers()) {
+            if (player === entity) continue;
+            const session = player.getNetworkSession();
+            if (!session.tracks(runtimeId)) continue;
+
+            const connection = session.getConnection();
+            const group = playersByCodec.get(connection.codec);
+            if (group === undefined) playersByCodec.set(connection.codec, [connection]);
+            else group.push(connection);
+        }
+
+        const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
+        await Promise.all(
+            [...playersByCodec].map(async ([codec, connections]) => {
+                await broadcastSharedBatches(connections, packetsForCodec(codec), compressionLevel, (error) =>
+                    this.server.getLogger().error(error)
+                );
+            })
+        );
+    }
+
     /** @inheritdoc */
     public async flushMovement(): Promise<void> {
-        await Promise.all(this.world.getPlayers().map(async (player) => player.getNetworkSession().flushQueuedMoves()));
+        if (this.pendingMoves.size === 0) return;
+
+        const pendingMoves = [...this.pendingMoves.entries()];
+        this.pendingMoves.clear();
+        const playersByCodec = new Map<ProtocolCodec, Player[]>();
+        for (const player of this.world.getPlayers()) {
+            const codec = player.getNetworkSession().getConnection().codec;
+            const players = playersByCodec.get(codec);
+            if (players === undefined) playersByCodec.set(codec, [player]);
+            else players.push(player);
+        }
+
+        const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
+        const sends: Promise<void>[] = [];
+
+        for (const [codec, players] of playersByCodec) {
+            // Resolve visibility once per viewer, then encode only the union. This keeps the
+            // tracker checks linear in viewers × moved actors instead of rescanning viewers
+            // once for every moved actor.
+            const visibleMovesByPlayer = new Map<Player, (typeof pendingMoves)[number][]>();
+            const visibleRuntimeIds = new Set<number>();
+            for (const player of players) {
+                const session = player.getNetworkSession();
+                const viewerRuntimeId = player.getRuntimeId();
+                const visibleMoves = pendingMoves.filter(
+                    ([, packet]) => packet.runtimeEntityId !== viewerRuntimeId && session.tracks(packet.runtimeEntityId)
+                );
+                if (visibleMoves.length === 0) continue;
+                visibleMovesByPlayer.set(player, visibleMoves);
+                for (const [runtimeId] of visibleMoves) visibleRuntimeIds.add(runtimeId);
+            }
+
+            const sharedMoves = pendingMoves.filter(([runtimeId]) => visibleRuntimeIds.has(runtimeId));
+            if (sharedMoves.length === 0) continue;
+
+            const encoded = encodePacketsForCodec(
+                sharedMoves.map(([, packet]) => packet),
+                codec
+            );
+            const packetByRuntimeId = new Map<
+                number,
+                { readonly packet: NetworkPacket<unknown>; readonly buffer: Buffer }
+            >();
+            for (const [index, [runtimeId]] of sharedMoves.entries()) {
+                const packet = encoded.packets[index];
+                const buffer = encoded.buffers[index];
+                if (packet === undefined || buffer === undefined) {
+                    throw new Error(`Missing encoded movement for runtime id ${runtimeId}`);
+                }
+                packetByRuntimeId.set(runtimeId, { packet, buffer });
+            }
+
+            const visibleGroups = new Map<
+                string,
+                {
+                    readonly packets: NetworkPacket<unknown>[];
+                    readonly buffers: Buffer[];
+                    readonly connections: ClientConnection[];
+                    readonly compressionAlgorithm: ClientConnection['compressionAlgorithm'];
+                    readonly compressionThreshold: number;
+                }
+            >();
+            for (const [player, visibleMoves] of visibleMovesByPlayer) {
+                const session = player.getNetworkSession();
+                const connection = session.getConnection();
+
+                const signature = `${connection.compressionAlgorithm}:${connection.compressionThreshold}:${visibleMoves
+                    .map(([runtimeId]) => runtimeId)
+                    .join(',')}`;
+                let group = visibleGroups.get(signature);
+                if (group === undefined) {
+                    const packets: NetworkPacket<unknown>[] = [];
+                    const buffers: Buffer[] = [];
+                    for (const [runtimeId] of visibleMoves) {
+                        const encodedMove = packetByRuntimeId.get(runtimeId);
+                        if (encodedMove === undefined)
+                            throw new Error(`Missing movement bytes for runtime id ${runtimeId}`);
+                        packets.push(encodedMove.packet);
+                        buffers.push(encodedMove.buffer);
+                    }
+                    group = {
+                        packets,
+                        buffers,
+                        connections: [],
+                        compressionAlgorithm: connection.compressionAlgorithm,
+                        compressionThreshold: connection.compressionThreshold
+                    };
+                    visibleGroups.set(signature, group);
+                }
+                group.connections.push(session.getConnection());
+            }
+
+            const batchByVisibility = new Map<string, EncodedPacketBatch | Promise<EncodedPacketBatch>>();
+            for (const [signature, group] of visibleGroups) {
+                let batch = batchByVisibility.get(signature);
+                if (batch === undefined) {
+                    batch = encodePacketBatchFromBuffersBySize(group.packets, group.buffers, {
+                        compressionLevel,
+                        compressionAlgorithm: group.compressionAlgorithm,
+                        compressionThreshold: group.compressionThreshold
+                    });
+                    batchByVisibility.set(signature, batch);
+                }
+
+                if (batch instanceof Promise) {
+                    const failedPacket = group.packets[0];
+                    if (failedPacket === undefined) throw new Error('A movement batch has no packet to report');
+                    for (const connection of group.connections) {
+                        sends.push(connection.sendSharedBatchAsync(batch, failedPacket));
+                    }
+                } else {
+                    for (const connection of group.connections) {
+                        sends.push(
+                            connection.sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers)
+                        );
+                    }
+                }
+            }
+        }
+
+        await Promise.all(sends);
     }
 
     /**
@@ -615,8 +948,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             audience.map((player) => player.getNetworkSession().getConnection()),
             [packet],
             this.server.getConfig().getPacketCompressionLevel(),
-            (error) => this.server.getLogger().error(error),
-            this.server.getConfig().getPacketCompressionThreshold()
+            (error) => this.server.getLogger().error(error)
         );
     }
 }

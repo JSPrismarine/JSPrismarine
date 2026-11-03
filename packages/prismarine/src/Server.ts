@@ -551,8 +551,7 @@ export default class Server extends EventEmitter {
             audience.map((onlinePlayer) => onlinePlayer.getNetworkSession().getConnection()),
             dataPacket,
             this.config.getPacketCompressionLevel(),
-            (error) => this.logger.error(error),
-            this.config.getPacketCompressionThreshold()
+            (error) => this.logger.error(error)
         );
     }
 

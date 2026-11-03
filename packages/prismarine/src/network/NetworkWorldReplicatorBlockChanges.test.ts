@@ -1,6 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type Player from '../Player';
@@ -12,6 +13,7 @@ import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
 import Codec2193 from './codec/Codec2193';
+import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
@@ -24,17 +26,23 @@ import { isInView } from '../world/Proximity';
 
 /** A player and the block updates the replicator batches for it. */
 const replicatorFor = (
-    viewers: readonly { readonly x: number; readonly z: number; readonly viewDistance: number }[]
+    viewers: readonly { readonly x: number; readonly z: number; readonly viewDistance: number }[],
+    codec: ProtocolCodec | ((viewerIndex: number) => ProtocolCodec) = Codec2193,
+    compression: (viewerIndex: number) => { algorithm: PacketCompressionAlgorithm; threshold: number } = () => ({
+        algorithm: PacketCompressionAlgorithm.ZLIB,
+        threshold: 256
+    })
 ) => {
     const world = stub<World>({ getName: () => 'test' });
     const batches = viewers.map((): Buffer[] => []);
     const players = viewers.map((viewer, index) => {
+        const viewerCodec = typeof codec === 'function' ? codec(index) : codec;
+        const { algorithm, threshold } = compression(index);
         const connection = stub<ClientConnection>({
-            codec: Codec2193,
-            sendSharedBatch: (content) => {
-                batches[index]!.push(content);
-                return Promise.resolve();
-            }
+            codec: viewerCodec,
+            compressionAlgorithm: algorithm,
+            compressionThreshold: threshold,
+            sendSharedBatch: async (content) => void batches[index]!.push(content)
         });
         const session = stub<PlayerSession>({ getConnection: () => connection });
         return stub<Player>({
@@ -246,5 +254,62 @@ describe('NetworkWorldReplicator block changes', () => {
         // corner floors rather than truncating, which is what keeps -1 out of sub chunk 0.
         const origin = only.data.subChunkBlockPosition;
         expect([origin.x, origin.y, origin.z]).toEqual([-16, -16, -16]);
+    it('encodes each change once per codec and shares an identical visible batch', async () => {
+        const encodesByCodec = { codec2193: 0, codec2225: 0 };
+        const codec2193: ProtocolCodec = {
+            ...Codec2193,
+            prepareOutbound: (packet) => {
+                encodesByCodec.codec2193++;
+                return Codec2193.prepareOutbound(packet);
+            }
+        };
+        const codec2225: ProtocolCodec = {
+            ...Codec2225,
+            prepareOutbound: (packet) => {
+                encodesByCodec.codec2225++;
+                return Codec2225.prepareOutbound(packet);
+            }
+        };
+        const { batches, replicator } = replicatorFor(
+            [
+                { x: 8, z: 8, viewDistance: 4 },
+                { x: 9, z: 9, viewDistance: 4 },
+                { x: 10, z: 10, viewDistance: 4 }
+            ],
+            (index) => (index === 2 ? codec2225 : codec2193)
+        );
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: stone });
+
+        await replicator.flushBlockChanges();
+
+        expect(encodesByCodec).toStrictEqual({ codec2193: 1, codec2225: 1 });
+        expect(batches[0]).toHaveLength(1);
+        expect(batches[1]).toStrictEqual(batches[0]);
+        expect(batches[2]).toHaveLength(1);
+        expect(updatesIn(batches[2]!)).toHaveLength(1);
+    });
+
+    it('uses each viewer’s negotiated algorithm for a shared block update', async () => {
+        const { batches, replicator } = replicatorFor(
+            [
+                { x: 8, z: 8, viewDistance: 4 },
+                { x: 8, z: 8, viewDistance: 4 }
+            ],
+            Codec2193,
+            (index) =>
+                index === 0
+                    ? { algorithm: PacketCompressionAlgorithm.SNAPPY, threshold: 1 }
+                    : { algorithm: PacketCompressionAlgorithm.NONE, threshold: 0 }
+        );
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        replicator.worldChanged({ kind: 'block-set', position: new Vector3(8, 64, 8), blockRuntimeId: stone });
+
+        await replicator.flushBlockChanges();
+
+        expect(batches[0]![0]![1]).toBe(PacketCompressionAlgorithm.SNAPPY);
+        expect(batches[1]![0]![1]).toBe(0xff);
+        expect(updatesIn(batches[0]!)).toHaveLength(1);
+        expect(updatesIn(batches[1]!)).toHaveLength(1);
     });
 });
