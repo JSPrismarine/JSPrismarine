@@ -1008,16 +1008,19 @@ describeFamily(
         );
 
         it('applies a vanilla entity event and runs its data-driven physics', { timeout: 180_000 }, () => {
-            const { runtime } = realStack();
+            const { runtime, world } = realStack();
             reportParityProgress(FAMILIES.integrationEntityRuntime, {
                 dataDrivenEntityTypes: realStack().content.entities.registry.size
             });
-            const cube = runtime.spawn('minecraft:sulfur_cube', { x: 0.5, y: 64.5, z: 0.5 });
+            // Bounciness reverses velocity on a collision; place a floor under its fall path.
+            world.setBlock({ x: 0, y: 63, z: 0 }, 'minecraft:stone');
+            world.setBlock({ x: 1, y: 63, z: 0 }, 'minecraft:stone');
+            const cube = runtime.spawn('minecraft:sulfur_cube', { x: 0.5, y: 64.05, z: 0.5 });
             if (cube === undefined) throw new Error('the vanilla stack declares no minecraft:sulfur_cube');
 
             cube.body.push({ x: 1, y: -1, z: 0 });
             cube.instance.fire('minecraft:become_bouncy');
-            runtime.tick(1);
+            for (let tick = 1; tick <= 6 && cube.body.velocity.y <= 0; tick += 1) runtime.tick(tick);
 
             const bouncy = cube.instance.hasComponent('minecraft:bounciness');
             const moving = cube.body.velocity.x > 0 && cube.body.velocity.y > 0;
