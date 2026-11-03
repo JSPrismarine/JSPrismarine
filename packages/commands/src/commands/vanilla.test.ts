@@ -280,7 +280,7 @@ describe('the world commands', () => {
             }
         });
 
-        expect(placed).toEqual([{ states: { weirdo_direction: '2', upside_down_bit: 'true' }, mode: 'keep' }]);
+        expect(placed).toEqual([{ states: { weirdo_direction: 2, upside_down_bit: true }, mode: 'keep' }]);
     });
 
     it('/fill returns the block count the host reports', () => {

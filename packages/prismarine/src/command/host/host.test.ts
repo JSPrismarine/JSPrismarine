@@ -348,7 +348,7 @@ describe('the server command host', () => {
         it('reads block states off a Bedrock state list', async () => {
             await fixture.run('setblock 0 0 0 minecraft:oak_stairs ["weirdo_direction"=2]');
 
-            expect(fixture.blocks.get(key(0, 0, 0))?.states).toEqual({ weirdo_direction: '2' });
+            expect(fixture.blocks.get(key(0, 0, 0))?.states).toEqual({ weirdo_direction: 2 });
         });
 
         it('keeps what is already there in keep mode', async () => {

@@ -353,7 +353,11 @@ const testForBlock = (context: Context, statesKey: string | undefined): number =
     if (statesKey !== undefined) {
         const wanted = parseBlockStates(value<string>(context, statesKey));
         for (const [name, expected] of Object.entries(wanted)) {
-            if (String(found.states[name]) !== expected) return report(current, 0, `The ${name} state does not match`);
+            // Bytes are written `true` on a command line and stored as 1, so both spellings
+            // compare as the number.
+            const spell = (state: unknown): string => String(typeof state === 'boolean' ? Number(state) : state);
+            if (spell(found.states[name]) !== spell(expected))
+                return report(current, 0, `The ${name} state does not match`);
         }
     }
 

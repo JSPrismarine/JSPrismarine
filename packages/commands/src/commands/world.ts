@@ -98,9 +98,22 @@ const locateForm = (kind: LocateKind) =>
             .executes(command((context) => locate(context, kind)))
     );
 
-/** Reads Bedrock's `["facing"="north"]` block state list into a record. */
-export const parseBlockStates = (text: string): Record<string, string> => {
-    const states: Record<string, string> = {};
+/**
+ * One parsed state value. A bare literal keeps the type Bedrock's grammar
+ * gives it - `=7` is an integer and `=true` a boolean - because the block
+ * catalog hashes a state with its types, so a `"7"` where an `int` property
+ * stands never names a block and a `/setblock` with it placed nothing.
+ */
+const blockStateValueOf = (literal: string, quoted: boolean): string | number | boolean => {
+    if (quoted) return literal;
+    if (literal === 'true') return true;
+    if (literal === 'false') return false;
+    return /^-?\d+$/.test(literal) ? Number(literal) : literal;
+};
+
+/** Reads Bedrock's `["facing"="north","age"=7]` block state list into a typed record. */
+export const parseBlockStates = (text: string): Record<string, string | number | boolean> => {
+    const states: Record<string, string | number | boolean> = {};
     let offset = 0;
 
     while (offset < text.length) {
@@ -123,7 +136,8 @@ export const parseBlockStates = (text: string): Record<string, string> => {
 
         let stateStart = separator + 1;
         while (isWhitespace(text[stateStart])) stateStart++;
-        if (text[stateStart] === '"') stateStart++;
+        const quoted = text[stateStart] === '"';
+        if (quoted) stateStart++;
 
         let stateEnd = stateStart;
         while (isBlockStateValueCharacter(text[stateEnd])) stateEnd++;
@@ -133,7 +147,7 @@ export const parseBlockStates = (text: string): Record<string, string> => {
             continue;
         }
 
-        states[text.slice(keyStart, keyEnd)] = text.slice(stateStart, stateEnd);
+        states[text.slice(keyStart, keyEnd)] = blockStateValueOf(text.slice(stateStart, stateEnd), quoted);
         offset = stateEnd + Number(text[stateEnd] === '"');
     }
 
