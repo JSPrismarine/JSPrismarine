@@ -86,6 +86,8 @@ export type ContentItemDrop = ItemDrop;
 export interface ContentBlockAccess {
     /** The block at a position, or undefined when its chunk is not loaded. */
     get(at: ContentPosition): ContentBlock | undefined;
+    /** The dimension's monotonic block-write version, when the host can provide one. */
+    blockRevision?(): number;
     /**
      * Replaces the block at a position.
      *

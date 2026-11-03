@@ -393,6 +393,7 @@ export class TestEntityWorld {
 
     /** Blocks a test placed, over the flat floor. */
     private readonly placed = new Map<string, ContentBlock>();
+    private blockRevision = 0;
 
     /** The item stacks still lying on the ground, by runtime id. */
     private readonly lying = new Map<number, ContentItemEntity>();
@@ -437,8 +438,10 @@ export class TestEntityWorld {
             },
             blocks: {
                 get: (at) => this.blockAt(at),
+                blockRevision: () => this.blockRevision,
                 set: (at, block) => {
                     this.placed.set(keyOf(at), block);
+                    this.blockRevision += 1;
                 },
                 notifyNeighbors: () => undefined,
                 data: () => undefined,
@@ -525,6 +528,7 @@ export class TestEntityWorld {
     /** Replaces one block, so a test can wall a path finder in. */
     public setBlock(at: ContentPosition, identifier: string): void {
         this.placed.set(keyOf(at), { identifier, states: {} });
+        this.blockRevision += 1;
     }
 
     /**

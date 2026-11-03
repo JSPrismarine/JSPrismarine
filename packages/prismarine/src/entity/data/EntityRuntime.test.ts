@@ -266,6 +266,69 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('component-derived caches', () => {
+        it('refreshes frozen families, boxes, navigation profiles, and physics after a group change', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:changing_facts': {
+                        components: { 'minecraft:health': { value: 20, max: 20 } },
+                        component_groups: {
+                            initial: {
+                                'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                                'minecraft:type_family': { family: ['before'] },
+                                'minecraft:physics': {}
+                            },
+                            changed: {
+                                'minecraft:collision_box': { width: 2, height: 3 },
+                                'minecraft:type_family': { family: ['after'] },
+                                'minecraft:physics': { has_gravity: true, has_collision: false },
+                                'minecraft:navigation.fly': {},
+                                'minecraft:can_fly': {}
+                            }
+                        },
+                        events: {
+                            'minecraft:entity_spawned': { add: { component_groups: ['initial'] } },
+                            'jsprismarine:change_facts': {
+                                remove: { component_groups: ['initial'] },
+                                add: { component_groups: ['changed'] }
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:changing_facts', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no component-change entity');
+
+            const initialToken = entity.instance.componentSetToken;
+            const initialFamilies = entity.instance.families();
+            const initialBox = entity.facts.box;
+            const initialProfile = navigationProfile(entity.instance);
+            expect(Object.isFrozen(initialFamilies)).toBe(true);
+            expect(entity.instance.families()).toBe(initialFamilies);
+            expect(entity.facts.box).toBe(initialBox);
+            expect(navigationProfile(entity.instance)).toBe(initialProfile);
+            expect(initialProfile.kind).toBe('walk');
+
+            entity.instance.fire('jsprismarine:change_facts');
+            const initialY = entity.position.y;
+            runtime.tick(1);
+
+            const changedFamilies = entity.instance.families();
+            const changedProfile = navigationProfile(entity.instance);
+            expect(entity.instance.componentSetToken).not.toBe(initialToken);
+            expect(Object.isFrozen(changedFamilies)).toBe(true);
+            expect(changedFamilies).toEqual(['after']);
+            expect(changedFamilies).not.toBe(initialFamilies);
+            expect(entity.facts.box).toEqual({ width: 2, height: 3 });
+            expect(entity.facts.box).not.toBe(initialBox);
+            expect(changedProfile.kind).toBe('fly');
+            expect(changedProfile).not.toBe(initialProfile);
+            expect(entity.position.y).toBeLessThan(initialY);
+        });
+    });
+
     describe('position-dependent filter facts', () => {
         it('feeds world light into brightness filters used by environment sensors', () => {
             const { runtime } = entityFixture(
@@ -1209,6 +1272,67 @@ describe('EntityRuntime', () => {
     });
 
     describe('physics', () => {
+        it('rechecks media when a component group changes the box without moving the entity', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 1, y: GROUND.y, z: 0 }, 'minecraft:water');
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:changing_box': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:health': { value: 20, max: 20 }
+                        },
+                        component_groups: { wide: { 'minecraft:collision_box': { width: 2, height: 1.8 } } },
+                        events: { 'jsprismarine:make_wide': { add: { component_groups: ['wide'] } } }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:changing_box', { x: 0.5, y: GROUND.y, z: 0.5 });
+            if (entity === undefined) throw new Error('the fixture declares no changing-box entity');
+
+            runtime.tick(1);
+            expect(entity.body.conditions.has('in_water')).toBe(false);
+            const position = entity.body.position;
+
+            entity.instance.fire('jsprismarine:make_wide');
+            runtime.tick(2);
+
+            expect(entity.body.position).toBe(position);
+            expect(entity.facts.box.width).toBe(2);
+            expect(entity.body.conditions.has('in_water')).toBe(true);
+        });
+
+        it('rechecks media after moving and after a block edit under a stationary entity', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 0, y: GROUND.y, z: 0 }, 'minecraft:water');
+            world.setBlock({ x: 2, y: GROUND.y, z: 0 }, 'minecraft:lava');
+            const { runtime } = runtimeOf(world);
+            const entity = runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND.y, z: 0.5 });
+            if (entity === undefined) throw new Error('the fixture declares no cow');
+
+            runtime.tick(1);
+            expect(entity.body.conditions.has('in_water')).toBe(true);
+            expect(entity.body.conditions.has('in_lava')).toBe(false);
+
+            entity.body.position = { x: 2.5, y: GROUND.y, z: 0.5 };
+            runtime.tick(2);
+            expect(entity.body.conditions.has('in_water')).toBe(false);
+            expect(entity.body.conditions.has('in_lava')).toBe(true);
+
+            entity.body.position = { x: 0.5, y: GROUND.y, z: 0.5 };
+            runtime.tick(3);
+            expect(entity.body.conditions.has('in_water')).toBe(true);
+            const position = entity.body.position;
+            world.setBlock({ x: 0, y: GROUND.y, z: 0 }, 'minecraft:lava');
+            runtime.tick(4);
+
+            expect(entity.body.position).toBe(position);
+            expect(entity.body.conditions.has('in_water')).toBe(false);
+            expect(entity.body.conditions.has('in_lava')).toBe(true);
+        });
+
         it('floats a vanilla-shaped buoyant entity at the water surface', () => {
             const { runtime, world } = entityFixture(
                 new TestEntityWorld(),

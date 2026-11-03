@@ -203,6 +203,10 @@ const factsOf = (registry: Registry<EntityType>, identifier: string, type: Entit
  * active component declares.
  */
 class LiveFacts implements EntityFacts {
+    private componentToken: object | undefined;
+    private cachedBox: EntityBox | undefined;
+    private cachedFamilies: readonly string[] | undefined;
+
     public constructor(
         private readonly type: EntityFacts,
         private readonly instance: EntityInstance
@@ -213,7 +217,8 @@ class LiveFacts implements EntityFacts {
     }
 
     public get box(): EntityBox {
-        return activeBox(this.instance) ?? this.type.box;
+        this.refreshComponentFacts();
+        return this.cachedBox ?? this.type.box;
     }
 
     /**
@@ -247,8 +252,8 @@ class LiveFacts implements EntityFacts {
     }
 
     public get families(): readonly string[] {
-        const active = this.instance.families();
-        return active.length > 0 ? active : this.type.families;
+        this.refreshComponentFacts();
+        return this.cachedFamilies ?? this.type.families;
     }
 
     public get lootTable(): string | undefined {
@@ -261,6 +266,17 @@ class LiveFacts implements EntityFacts {
 
     public get summonable(): boolean {
         return this.type.summonable;
+    }
+
+    /** Rebuilds the derived values once when the active component map changes. */
+    private refreshComponentFacts(): void {
+        const token = this.instance.componentSetToken;
+        if (token === this.componentToken) return;
+
+        const families = this.instance.families();
+        this.cachedBox = activeBox(this.instance) ?? this.type.box;
+        this.cachedFamilies = Object.freeze([...(families.length > 0 ? families : this.type.families)]);
+        this.componentToken = token;
     }
 }
 

@@ -135,6 +135,13 @@ const withEntityAbilities = (entity: EntityInstance, profile: NavigationProfile)
     canStandOnPowderSnow: entity.hasComponent('minecraft:can_stand_on_powder_snow')
 });
 
+interface CachedNavigationProfile {
+    readonly componentToken: object;
+    readonly profile: NavigationProfile;
+}
+
+const navigationProfiles = new WeakMap<EntityInstance, CachedNavigationProfile>();
+
 /**
  * Builds the path finder's rules from the entity's active navigation
  * component.
@@ -143,6 +150,17 @@ const withEntityAbilities = (entity: EntityInstance, profile: NavigationProfile)
  *   active, or {@link defaultNavigationProfile} when it has none.
  */
 export const navigationProfile = (entity: EntityInstance): NavigationProfile => {
+    const componentToken = entity.componentSetToken;
+    const cached = navigationProfiles.get(entity);
+    if (cached?.componentToken === componentToken) return cached.profile;
+
+    const profile = buildNavigationProfile(entity);
+    navigationProfiles.set(entity, { componentToken, profile });
+    return profile;
+};
+
+/** Builds the profile once for one active component map. */
+const buildNavigationProfile = (entity: EntityInstance): NavigationProfile => {
     for (const kind of NAVIGATION_KINDS) {
         const body = entity.componentParams(`minecraft:navigation.${kind}`);
         if (!isRecord(body)) continue;

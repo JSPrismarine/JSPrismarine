@@ -209,6 +209,9 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** Whether this instance is being restored from saved state. */
     public readonly restoring: boolean;
     private active = new Map<string, ActiveComponent>();
+    private activeComponentNames: readonly string[] = Object.freeze([]);
+    private familySource: Map<string, ActiveComponent> | undefined;
+    private familyNames: readonly string[] = Object.freeze([]);
     private table = new HookTable<EntityHooks>([]);
     private pending: EventEffects[] = [];
     private home: EntityPosition | undefined;
@@ -276,7 +279,12 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     /** Every active component name, base components first and later groups last. */
     public activeComponents(): readonly string[] {
-        return [...this.active.keys()];
+        return this.activeComponentNames;
+    }
+
+    /** The active component map's identity, for caches derived from that set. */
+    public get componentSetToken(): object {
+        return this.active;
     }
 
     /** Whether a component is active on the entity now. */
@@ -745,10 +753,15 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     /** The type families of the active `minecraft:type_family` component. */
     public families(): readonly string[] {
+        if (this.familySource === this.active) return this.familyNames;
+
         const params = this.componentParams('minecraft:type_family');
-        if (params === null || typeof params !== 'object' || !('family' in params)) return [];
-        const family = params.family;
-        return Array.isArray(family) ? family.filter((name): name is string => typeof name === 'string') : [];
+        const family = params !== null && typeof params === 'object' && 'family' in params ? params.family : undefined;
+        this.familyNames = Object.freeze(
+            Array.isArray(family) ? family.filter((name): name is string => typeof name === 'string') : []
+        );
+        this.familySource = this.active;
+        return this.familyNames;
     }
 
     /** Whether the active type-family component contains any requested family. */
@@ -947,6 +960,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         }
 
         this.active = next;
+        this.activeComponentNames = Object.freeze([...next.keys()]);
+        this.familySource = undefined;
         this.table = new HookTable<EntityHooks>(
             [...next.values()].map((entry) => ({
                 source: entry.component.name,

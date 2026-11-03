@@ -393,6 +393,8 @@ export interface AudienceOptions {
 }
 
 export class World implements Service {
+    private static nextBlockWriteVersion = 0;
+
     private readonly uuid: string = UUID.randomString();
     private name: string;
 
@@ -411,6 +413,7 @@ export class World implements Service {
      */
     private readonly players: Map<bigint, Player> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
+    private blockWriteVersion = World.nextBlockWriteVersion++;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
 
     /**
@@ -1088,6 +1091,11 @@ export class World implements Service {
         this.lastChunkSource = this.chunks;
         this.lastChunk = chunk;
         return chunk;
+    }
+
+    /** The latest block-write version, unique across world instances and monotonic per world. */
+    public getBlockWriteVersion(): number {
+        return this.blockWriteVersion;
     }
 
     /** How many chunks are in memory, which is what the mob spawner budgets against. */
@@ -2082,6 +2090,7 @@ export class World implements Service {
         // Read before the write: the light engine's decrease wave needs what stood here.
         const previous = chunk.getBlock(x, y, z);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
+        this.blockWriteVersion = World.nextBlockWriteVersion++;
         this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         const state = chunk.getBlock(x, y, z);
         this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);

@@ -227,6 +227,27 @@ interface FuseState {
     readonly params: unknown;
 }
 
+/** Values that depend only on one entity's current active component map. */
+interface RuntimeComponentFacts {
+    readonly componentToken: object;
+    readonly hasGravity: boolean;
+    readonly hasCollision: boolean;
+    readonly canStandOnPowderSnow: boolean;
+    readonly usesUniformAirDrag: boolean;
+    readonly airDragModifier: number;
+    readonly frictionModifier: number;
+    readonly bounciness: number;
+    readonly families: readonly string[];
+}
+
+/** The last medium sample, which only stays valid while its inputs stay identical. */
+interface MediumCache {
+    readonly position: EntityPosition;
+    readonly width: number;
+    readonly height: number;
+    readonly blockRevision: number;
+}
+
 /** The fuse length in seconds, sampled when a component declares a range. */
 const fuseLengthSeconds = (params: Record<string, unknown>, random: () => number): number => {
     const length = params['fuse_length'];
@@ -349,6 +370,10 @@ export class EntityRuntime implements EntityScene {
     private readonly lastDamagedAt = new WeakMap<DataEntity, number>();
     /** Last area-attack hit time per attacker and target. */
     private readonly areaAttackLastHitTicks = new WeakMap<DataEntity, Map<number, number>>();
+    /** Component-derived physics values, valid until an entity rebuilds its active component map. */
+    private readonly componentFactsByEntity = new WeakMap<DataEntity, RuntimeComponentFacts>();
+    /** Medium samples can be reused until position, dimensions, or block writes change. */
+    private readonly mediumByEntity = new WeakMap<DataEntity, MediumCache>();
     /** Area attackers whose player hit route has already been reported as unavailable. */
     private readonly reportedAreaAttackRoutes = new WeakSet<DataEntity>();
     /** Entities whose malformed barter table has already been reported. */
@@ -1094,36 +1119,74 @@ export class EntityRuntime implements EntityScene {
         }
     }
 
+    /** Values read from an active component set only once until that set is rebuilt. */
+    private componentFactsOf(entity: DataEntity): RuntimeComponentFacts {
+        const componentToken = entity.instance.componentSetToken;
+        const cached = this.componentFactsByEntity.get(entity);
+        if (cached?.componentToken === componentToken) return cached;
+
+        const instance = entity.instance;
+        const physics = instance.componentParams('minecraft:physics');
+        const physicsRecord = isRecord(physics) ? physics : undefined;
+        const airDrag = instance.componentParams('minecraft:air_drag_modifier');
+        const friction = instance.componentParams('minecraft:friction_modifier');
+        const bounciness = instance.componentParams('minecraft:bounciness');
+        const componentFacts: RuntimeComponentFacts = {
+            componentToken,
+            hasGravity: physicsRecord?.hasGravity === true,
+            hasCollision: physicsRecord === undefined || physicsRecord.hasCollision !== false,
+            canStandOnPowderSnow: instance.hasComponent('minecraft:can_stand_on_powder_snow'),
+            usesUniformAirDrag: instance.hasComponent('minecraft:uses_uniform_air_drag'),
+            airDragModifier: typeof airDrag === 'number' ? airDrag : 1,
+            frictionModifier: typeof friction === 'number' ? friction : 1,
+            bounciness: typeof bounciness === 'number' ? bounciness : 0,
+            families: instance.families()
+        };
+        this.componentFactsByEntity.set(entity, componentFacts);
+        return componentFacts;
+    }
+
     /** Updates the liquid conditions every entity's components read this tick. */
     private updateMedium(entity: DataEntity): void {
         const { body, facts } = entity;
+        const position = body.position;
+        const box = facts.box;
+        const blockRevision = this.world.blocks.blockRevision?.();
+        const cached = this.mediumByEntity.get(entity);
+        if (
+            blockRevision !== undefined &&
+            cached?.position === position &&
+            cached.width === box.width &&
+            cached.height === box.height &&
+            cached.blockRevision === blockRevision
+        ) {
+            return;
+        }
+
         const navigation = this.navigation();
-        const [inWater, inLava] = bodyIntersectsMedia(body.position, facts.box, navigation.isWater, navigation.isLava);
+        const [inWater, inLava] = bodyIntersectsMedia(position, box, navigation.isWater, navigation.isLava);
         const head = blockPositionOf({
-            x: body.position.x,
-            y: body.position.y + facts.box.height - MOVEMENT_EPSILON,
-            z: body.position.z
+            x: position.x,
+            y: position.y + box.height - MOVEMENT_EPSILON,
+            z: position.z
         });
 
         setCondition(body.conditions, 'in_water', inWater);
         setCondition(body.conditions, 'in_contact_with_water', inWater);
         setCondition(body.conditions, 'in_lava', inLava);
         setCondition(body.conditions, 'is_underwater', navigation.isWater(head));
+        if (blockRevision !== undefined) {
+            this.mediumByEntity.set(entity, { position, width: box.width, height: box.height, blockRevision });
+        }
     }
 
     /** Rechecks support after AI movement, so packets describe the position clients receive. */
     private updateGrounded(entity: DataEntity): void {
-        const physics = entity.instance.componentParams('minecraft:physics');
-        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        const componentFacts = this.componentFactsOf(entity);
         const grounded =
-            hasCollision &&
+            componentFacts.hasCollision &&
             entity.body.velocity.y <= 0 &&
-            isSupported(
-                entity.position,
-                entity.facts.box,
-                this.navigation(),
-                entity.instance.hasComponent('minecraft:can_stand_on_powder_snow')
-            );
+            isSupported(entity.position, entity.facts.box, this.navigation(), componentFacts.canStandOnPowderSnow);
         setCondition(entity.body.conditions, 'on_ground', grounded);
     }
 
@@ -3198,25 +3261,18 @@ export class EntityRuntime implements EntityScene {
             return;
         }
 
-        const physics = instance.componentParams('minecraft:physics');
-        const hasGravity = isRecord(physics) && physics.hasGravity === true;
-        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        const componentFacts = this.componentFactsOf(entity);
         const position = body.position;
         const navigation = this.navigation();
-        const canStandOnPowderSnow = instance.hasComponent('minecraft:can_stand_on_powder_snow');
         const grounded =
-            hasCollision &&
+            componentFacts.hasCollision &&
             body.velocity.y <= 0 &&
-            isSupported(position, entity.facts.box, navigation, canStandOnPowderSnow);
+            isSupported(position, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow);
         const inWater = body.conditions.has('in_water');
         const inLava = body.conditions.has('in_lava');
         const inFluid = inWater || inLava;
-        const primedTnt = body.fuseTicks !== undefined && instance.families().includes('tnt');
-        const airDrag = instance.componentParams('minecraft:air_drag_modifier');
-        const airDragModifier = typeof airDrag === 'number' ? airDrag : 1;
-        const friction = instance.componentParams('minecraft:friction_modifier');
-        const frictionModifier = typeof friction === 'number' ? friction : 1;
-        const verticalAirDrag = instance.hasComponent('minecraft:uses_uniform_air_drag') ? DRAG : VERTICAL_AIR_DRAG;
+        const primedTnt = body.fuseTicks !== undefined && componentFacts.families.includes('tnt');
+        const verticalAirDrag = componentFacts.usesUniformAirDrag ? DRAG : VERTICAL_AIR_DRAG;
         const horizontalDrag = inWater
             ? WATER_DRAG
             : inLava
@@ -3224,27 +3280,27 @@ export class EntityRuntime implements EntityScene {
               : primedTnt
                 ? TNT_DRAG
                 : grounded
-                  ? groundDragWithModifier(this.groundFrictionAt(position) * DRAG, frictionModifier)
-                  : dragWithModifier(DRAG, airDragModifier);
+                  ? groundDragWithModifier(this.groundFrictionAt(position) * DRAG, componentFacts.frictionModifier)
+                  : dragWithModifier(DRAG, componentFacts.airDragModifier);
         const verticalDrag = inFluid
             ? FLUID_DRAG
             : primedTnt
               ? TNT_DRAG
-              : dragWithModifier(verticalAirDrag, airDragModifier);
-        const bounceValue = instance.componentParams('minecraft:bounciness');
-        const bounciness = typeof bounceValue === 'number' ? bounceValue : 0;
-        const gravity = hasGravity ? (inFluid ? FLUID_GRAVITY : primedTnt ? TNT_GRAVITY : GRAVITY) : 0;
+              : dragWithModifier(verticalAirDrag, componentFacts.airDragModifier);
+        const bounciness = componentFacts.bounciness;
+        const gravity = componentFacts.hasGravity ? (inFluid ? FLUID_GRAVITY : primedTnt ? TNT_GRAVITY : GRAVITY) : 0;
 
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
 
-        if (!body.airborne && (!hasGravity || grounded)) return;
+        if (!body.airborne && (!componentFacts.hasGravity || grounded)) return;
 
         const velocity = body.velocity;
         const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - gravity;
         const nextY = position.y + (grounded && velocity.y <= 0 ? 0 : fallingY);
         const canOccupy = (at: EntityPosition) =>
-            !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation, canStandOnPowderSnow);
+            !componentFacts.hasCollision ||
+            bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow);
         let next = moveOnAxis(position, position.x + velocity.x, 'x', canOccupy);
         const hitHorizontalX = Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + velocity.z, 'z', canOccupy);
@@ -3303,8 +3359,7 @@ export class EntityRuntime implements EntityScene {
         const distance = Math.hypot(velocity.x, velocity.y, velocity.z);
         const steps = Math.max(1, Math.ceil(distance / PROJECTILE_SWEEP_STEP));
         const navigation = this.navigation();
-        const physics = entity.instance.componentParams('minecraft:physics');
-        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        const componentFacts = this.componentFactsOf(entity);
         let lastSafe = from;
 
         for (let step = 1; step <= steps; step += 1) {
@@ -3326,13 +3381,8 @@ export class EntityRuntime implements EntityScene {
             }
 
             if (
-                hasCollision &&
-                !bodyCanOccupy(
-                    at,
-                    entity.facts.box,
-                    navigation,
-                    entity.instance.hasComponent('minecraft:can_stand_on_powder_snow')
-                )
+                componentFacts.hasCollision &&
+                !bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow)
             ) {
                 const onHit = isRecord(params.on_hit) ? params.on_hit : {};
                 this.applyProjectileHitEffects(onHit, at, false);
@@ -3619,12 +3669,12 @@ export class EntityRuntime implements EntityScene {
             }
         }
 
-        const physics = entity.instance.componentParams('minecraft:physics');
-        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
-        const canStandOnPowderSnow = entity.instance.hasComponent('minecraft:can_stand_on_powder_snow');
+        const componentFacts = this.componentFactsOf(entity);
         const navigation = this.navigation();
         const grounded =
-            hasCollision && body.velocity.y <= 0 && isSupported(position, box, navigation, canStandOnPowderSnow);
+            componentFacts.hasCollision &&
+            body.velocity.y <= 0 &&
+            isSupported(position, box, navigation, componentFacts.canStandOnPowderSnow);
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
 
@@ -3638,13 +3688,10 @@ export class EntityRuntime implements EntityScene {
                 : submerged === 'flowing'
                   ? -0.0007
                   : -BUOYANT_GRAVITY;
-        const airDrag = entity.instance.componentParams('minecraft:air_drag_modifier');
-        const airDragModifier = typeof airDrag === 'number' ? airDrag : 1;
-        const friction = entity.instance.componentParams('minecraft:friction_modifier');
-        const frictionModifier = typeof friction === 'number' ? friction : 1;
-        const bouncinessValue = entity.instance.componentParams('minecraft:bounciness');
-        const bounciness = typeof bouncinessValue === 'number' ? bouncinessValue : 0;
-        const uniformAirDrag = entity.instance.hasComponent('minecraft:uses_uniform_air_drag');
+        const airDragModifier = componentFacts.airDragModifier;
+        const frictionModifier = componentFacts.frictionModifier;
+        const bounciness = componentFacts.bounciness;
+        const uniformAirDrag = componentFacts.usesUniformAirDrag;
         const horizontalDrag =
             submerged === 'source'
                 ? 0.45
@@ -3673,7 +3720,9 @@ export class EntityRuntime implements EntityScene {
         };
         const nextY = position.y + nextVelocity.y;
         function canOccupy(at: EntityPosition): boolean {
-            return !hasCollision || bodyCanOccupy(at, box, navigation, canStandOnPowderSnow);
+            return (
+                !componentFacts.hasCollision || bodyCanOccupy(at, box, navigation, componentFacts.canStandOnPowderSnow)
+            );
         }
         let next = moveOnAxis(position, position.x + nextVelocity.x, 'x', canOccupy);
         const hitHorizontalX = Math.abs(next.x - (position.x + nextVelocity.x)) > MOVEMENT_EPSILON;
@@ -3708,26 +3757,24 @@ export class EntityRuntime implements EntityScene {
 
     /** Moves a body along its current waypoint using its active navigation rules. */
     private step(entity: DataEntity): void {
-        if (entity.instance.hasComponent('minecraft:projectile')) return;
+        if (entity.instance.hasComponent('minecraft:projectile') || !entity.body.walking) return;
 
         const navigation = this.navigation();
         const profile = navigationProfile(entity.instance);
+        const componentFacts = this.componentFactsOf(entity);
         const feet = blockPositionOf(entity.position);
         const inLiquid = navigation.isWater(feet) || navigation.isLava(feet);
         const swims = inLiquid && (profile.canSwim || profile.canFloat || profile.isAmphibious);
         const climbs =
             (profile.kind === 'climb' && navigation.isClimbable?.(feet) === true) ||
             (profile.canClimbLadders === true && navigation.isLadder?.(feet) === true);
-        const physics = entity.instance.componentParams('minecraft:physics');
-        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
-
         entity.step({
             allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
             canOccupy(position: EntityPosition): boolean {
                 return (
-                    !hasCollision ||
+                    !componentFacts.hasCollision ||
                     bodyCanOccupy(position, entity.facts.box, navigation, profile.canStandOnPowderSnow === true)
                 );
             }
@@ -3795,8 +3842,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Whether the entity's active definition lets it collide with entities. */
     private hasEntityCollision(entity: DataEntity): boolean {
-        const physics = entity.instance.componentParams('minecraft:physics');
-        return !isRecord(physics) || physics.hasCollision !== false;
+        return this.componentFactsOf(entity).hasCollision;
     }
 
     /** Whether Java's entity type or its active custom component allows pushing. */
