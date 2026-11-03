@@ -80,6 +80,7 @@ describe('JSON schemas', () => {
                 'use-raknet-worker': true,
                 'packet-compression-level': 7,
                 'packet-compression-algorithm': 'zlib',
+                'packet-compression-threshold': 256,
                 'enable-query': true,
                 'enable-process-title': true,
                 'enable-ticking': true,

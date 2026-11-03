@@ -39,6 +39,8 @@ export const difficultyName = (difficulty: Difficulty): string =>
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
 /** Keep ZLib as the default until retail Bedrock clients are verified with other algorithms. */
 const DEFAULT_PACKET_COMPRESSION_ALGORITHM = 'zlib';
+/** Skip compression for small batch bodies, where the prefix alone costs fewer bytes than zlib. */
+const DEFAULT_PACKET_COMPRESSION_THRESHOLD = 256;
 
 /**
  * What each key means, written above it the first time the server adds it to the file.
@@ -71,6 +73,7 @@ const COMMENTS = {
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
+    'packet-compression-threshold': 'The smallest batch body to compress, in bytes. 0 leaves every batch uncompressed.',
     'enable-query': 'Whether to answer the Minecraft and Source query protocols.',
     'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
@@ -116,6 +119,7 @@ const DEFAULTS = {
     'use-raknet-worker': false,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
+    'packet-compression-threshold': DEFAULT_PACKET_COMPRESSION_THRESHOLD,
     'enable-query': true,
     'enable-process-title': true,
     'enable-ticking': true,
@@ -159,6 +163,21 @@ export function toPacketCompressionLevel(raw: unknown): number {
     return Math.min(9, Math.max(-1, level));
 }
 
+/**
+ * Bounds the configured threshold to a protocol-safe unsigned 16-bit value.
+ *
+ * Zero disables compression, matching Bedrock's `NetworkSettings` semantics; positive values
+ * compress batch bodies at or above that size.
+ * @param raw - The value read from the config file, of whatever type the file held.
+ * @returns An integer from 0 to 65,535, or the default of 256 when `raw` is not an integer.
+ */
+export function toPacketCompressionThreshold(raw: unknown): number {
+    const threshold = Number(raw);
+    if (!Number.isInteger(threshold)) return DEFAULT_PACKET_COMPRESSION_THRESHOLD;
+
+    return Math.min(65_535, Math.max(0, threshold));
+}
+
 export class Config {
     private configBuilder!: ConfigBuilder;
 
@@ -187,6 +206,7 @@ export class Config {
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
+    private packetCompressionThreshold: number = DEFAULTS['packet-compression-threshold'];
 
     /**
      * Controls if the minecraft/source query response should be enabled.
@@ -279,6 +299,10 @@ export class Config {
         this.packetCompressionAlgorithm = read(
             'packet-compression-algorithm',
             DEFAULTS['packet-compression-algorithm']
+        );
+        this.packetCompressionThreshold = read(
+            'packet-compression-threshold',
+            DEFAULTS['packet-compression-threshold']
         );
         this.enableQuery = read('enable-query', this.enableQuery);
         this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
@@ -549,6 +573,11 @@ export class Config {
             default:
                 return PacketCompressionAlgorithm.ZLIB;
         }
+    }
+
+    /** The minimum uncompressed batch-body size that is compressed and advertised to clients. */
+    public getPacketCompressionThreshold(): number {
+        return toPacketCompressionThreshold(this.packetCompressionThreshold);
     }
 
     public getEnableQuery() {

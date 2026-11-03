@@ -95,8 +95,12 @@ export class ServerNetworking implements Networking {
             inboundPacketRecorder: this.inboundPacketRecorder,
             outboundPacketRecorder: this.outboundPacketRecorder,
             createConnection: (connection) =>
-                new ClientConnection(connection, server.getLogger(), server.getPacketLogFilter(), () =>
-                    server.getConfig().getPacketCompressionLevel()
+                new ClientConnection(
+                    connection,
+                    server.getLogger(),
+                    server.getPacketLogFilter(),
+                    () => server.getConfig().getPacketCompressionLevel(),
+                    () => server.getConfig().getPacketCompressionThreshold()
                 ),
             query: {
                 enabled: () => server.getConfig().getEnableQuery(),

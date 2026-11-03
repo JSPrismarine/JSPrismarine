@@ -43,6 +43,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "bench:compression": "vitest bench benchmarks/compression.bench.ts",
         "bench:compression-variants": "vitest bench benchmarks/compression-variants.bench.ts",
+        "bench:batch-codec": "node --import tsx benchmarks/batchCodec.bench.mjs",
         "bench:layout": "node --import tsx benchmarks/layout.bench.ts",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },

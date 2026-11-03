@@ -6,8 +6,7 @@ import {
     PlayStatusPacket,
     RequestNetworkSettingsPacket
 } from '@jsprismarine/protocol';
-import { DisconnectReason } from '@jsprismarine/minecraft';
-import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
@@ -53,10 +52,14 @@ const request = (protocolVersion: number): RequestNetworkSettingsPacket =>
 
 describe('RequestNetworkSettingsHandler', () => {
     const info = vi.fn();
-    const serverFor = (algorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB) =>
+    const serverFor = (algorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB, threshold = 256) =>
         stub<Server>({
             getLogger: () => stub<Logger>({ info }),
-            getConfig: () => stub<Config>({ getPacketCompressionAlgorithm: () => algorithm })
+            getConfig: () =>
+                stub<Config>({
+                    getPacketCompressionAlgorithm: () => algorithm,
+                    getPacketCompressionThreshold: () => threshold
+                })
         });
     const server = serverFor();
 
@@ -70,7 +73,7 @@ describe('RequestNetworkSettingsHandler', () => {
         // What every later batch is framed under: Protocol compresses every packet with
         // zlib. Throttling is off.
         expect(sent[0]!.packet.getPacketData()).toMatchObject({
-            compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
+            compressionThreshold: 256,
             compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
             clientThrottlingEnabled: false,
             clientThrottleThreshold: 0,
@@ -96,15 +99,15 @@ describe('RequestNetworkSettingsHandler', () => {
     });
 
     it.each([
-        [PacketCompressionAlgorithm.ZLIB, CompressionThreshold.COMPRESS_EVERYTHING],
-        [PacketCompressionAlgorithm.SNAPPY, CompressionThreshold.COMPRESS_EVERYTHING],
+        [PacketCompressionAlgorithm.ZLIB, 256],
+        [PacketCompressionAlgorithm.SNAPPY, 256],
         [PacketCompressionAlgorithm.NONE, CompressionThreshold.COMPRESS_NOTHING]
-    ] as const)('advertises and stores the selected algorithm %s', async (algorithm, threshold) => {
+    ] as const)('advertises and stores the selected algorithm %s and threshold %s', async (algorithm, threshold) => {
         const { sent, connection } = fakeConnection();
 
         await new RequestNetworkSettingsHandler().handle(
             request(Codec2193.protocolVersion),
-            serverFor(algorithm),
+            serverFor(algorithm, threshold),
             connection
         );
 

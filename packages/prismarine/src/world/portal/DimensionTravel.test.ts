@@ -165,6 +165,7 @@ const buildScene = async ({ entities }: SceneOptions = {}) => {
                 getEntityTrackingHysteresis: () => 2,
                 getEntityTrackingInterval: () => 4,
                 getPacketCompressionLevel: () => 0,
+                getPacketCompressionThreshold: () => 256,
                 getDifficulty: () => 2
             })
     });

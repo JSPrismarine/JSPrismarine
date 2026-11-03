@@ -232,7 +232,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 players.map((player) => player.getNetworkSession().getConnection()),
                 this.blockPackets(changes),
                 this.server.getConfig().getPacketCompressionLevel(),
-                (error) => this.server.getLogger().error(error)
+                (error) => this.server.getLogger().error(error),
+                this.server.getConfig().getPacketCompressionThreshold()
             );
             return;
         }
@@ -277,7 +278,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 [player.getNetworkSession().getConnection()],
                 this.blockPackets(visible.map(({ change }) => change)),
                 this.server.getConfig().getPacketCompressionLevel(),
-                (error) => this.server.getLogger().error(error)
+                (error) => this.server.getLogger().error(error),
+                this.server.getConfig().getPacketCompressionThreshold()
             );
         }
     }
@@ -613,7 +615,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             audience.map((player) => player.getNetworkSession().getConnection()),
             [packet],
             this.server.getConfig().getPacketCompressionLevel(),
-            (error) => this.server.getLogger().error(error)
+            (error) => this.server.getLogger().error(error),
+            this.server.getConfig().getPacketCompressionThreshold()
         );
     }
 }

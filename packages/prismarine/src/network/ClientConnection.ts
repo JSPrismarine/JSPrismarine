@@ -30,9 +30,19 @@ export default class ClientConnection extends MinecraftSession {
         private readonly transportConnection: RakNetTransportConnection,
         logger: Logger,
         logFilter?: PacketLogFilter,
-        getCompressionLevel?: () => number
+        getCompressionLevel?: () => number,
+        getCompressionThreshold?: () => number
     ) {
-        super(transportConnection, logger, logFilter, undefined, undefined, undefined, getCompressionLevel);
+        super(
+            transportConnection,
+            logger,
+            logFilter,
+            undefined,
+            undefined,
+            undefined,
+            getCompressionLevel,
+            getCompressionThreshold
+        );
     }
 
     /**

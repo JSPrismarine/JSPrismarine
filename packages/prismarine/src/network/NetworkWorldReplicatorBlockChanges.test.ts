@@ -49,7 +49,12 @@ const replicatorFor = (
         getPlayers: () => players
     });
     const server = stub<Server>({
-        getConfig: () => stub<Config>({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 1 }),
+        getConfig: () =>
+            stub<Config>({
+                getProximityBroadcast: () => true,
+                getPacketCompressionLevel: () => 1,
+                getPacketCompressionThreshold: () => 256
+            }),
         getLogger: () => stub<Logger>({ error: () => {}, verbose: () => {} })
     });
 

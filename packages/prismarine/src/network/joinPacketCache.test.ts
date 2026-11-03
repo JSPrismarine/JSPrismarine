@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { BatchCodec } from '@jsprismarine/protocol';
 import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ServerContent } from '../content/ServerContent';
 import type MinecraftSession from './MinecraftSession';
 import { stub } from '../testing/stub.test.helper';
@@ -23,28 +24,104 @@ describe('join packet cache', () => {
     it('shares final batch bytes per content, codec, and recipe-limit key', async () => {
         const content = stub<ServerContent>();
         const encode = vi.spyOn(BatchCodec.prototype, 'encode');
-        const first = cachedJoinPacketBatch(content, Codec2193, 'join:limit=1', 1, [animate()]);
-        const duplicate = cachedJoinPacketBatch(content, Codec2193, 'join:limit=1', 1, [animate()]);
+        const first = cachedJoinPacketBatch(
+            content,
+            Codec2193,
+            'join:limit=1',
+            PacketCompressionAlgorithm.ZLIB,
+            1,
+            256,
+            [animate()]
+        );
+        const duplicate = cachedJoinPacketBatch(
+            content,
+            Codec2193,
+            'join:limit=1',
+            PacketCompressionAlgorithm.ZLIB,
+            1,
+            256,
+            [animate()]
+        );
 
         expect(duplicate).toBe(first);
         const cached2193 = await first;
         expect(encode).toHaveBeenCalledOnce();
         expect(cached2193.content).toStrictEqual(
-            encodePacketBatch([animate()], Codec2193, { compressionLevel: 1 }).content
+            encodePacketBatch([animate()], Codec2193, {
+                compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+                compressionLevel: 1,
+                compressionThreshold: 256
+            }).content
         );
 
-        const cached2225 = await cachedJoinPacketBatch(content, Codec2225, 'join:limit=1', 1, [animate()]);
+        const cached2225 = await cachedJoinPacketBatch(
+            content,
+            Codec2225,
+            'join:limit=1',
+            PacketCompressionAlgorithm.ZLIB,
+            1,
+            256,
+            [animate()]
+        );
         expect(cached2225.content).toStrictEqual(
-            encodePacketBatch([animate()], Codec2225, { compressionLevel: 1 }).content
+            encodePacketBatch([animate()], Codec2225, {
+                compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+                compressionLevel: 1,
+                compressionThreshold: 256
+            }).content
         );
 
-        const changedLimit = cachedJoinPacketBatch(content, Codec2193, 'join:limit=2', 1, [animate()]);
-        const changedCompression = cachedJoinPacketBatch(content, Codec2193, 'join:limit=1', 7, [animate()]);
-        const changedContent = cachedJoinPacketBatch(stub<ServerContent>(), Codec2193, 'join:limit=1', 1, [animate()]);
+        const changedLimit = cachedJoinPacketBatch(
+            content,
+            Codec2193,
+            'join:limit=2',
+            PacketCompressionAlgorithm.ZLIB,
+            1,
+            256,
+            [animate()]
+        );
+        const changedCompression = cachedJoinPacketBatch(
+            content,
+            Codec2193,
+            'join:limit=1',
+            PacketCompressionAlgorithm.ZLIB,
+            7,
+            256,
+            [animate()]
+        );
+        const changedAlgorithm = cachedJoinPacketBatch(
+            content,
+            Codec2193,
+            'join:limit=1',
+            PacketCompressionAlgorithm.SNAPPY,
+            1,
+            256,
+            [animate()]
+        );
+        const changedThreshold = cachedJoinPacketBatch(
+            content,
+            Codec2193,
+            'join:limit=1',
+            PacketCompressionAlgorithm.ZLIB,
+            1,
+            512,
+            [animate()]
+        );
+        const changedContent = cachedJoinPacketBatch(
+            stub<ServerContent>(),
+            Codec2193,
+            'join:limit=1',
+            PacketCompressionAlgorithm.ZLIB,
+            1,
+            256,
+            [animate()]
+        );
         expect(changedLimit).not.toBe(first);
         expect(changedCompression).not.toBe(first);
+        expect(changedAlgorithm).not.toBe(first);
+        expect(changedThreshold).not.toBe(first);
         expect(changedContent).not.toBe(first);
-        await Promise.all([changedLimit, changedCompression, changedContent]);
+        await Promise.all([changedLimit, changedCompression, changedAlgorithm, changedThreshold, changedContent]);
         encode.mockRestore();
     });
 
@@ -71,8 +148,15 @@ describe('join packet cache', () => {
     it('keeps repeated packet classes separate when their static definitions differ', async () => {
         const content = stub<ServerContent>();
         const sent: Buffer[] = [];
-        const session = stub<Pick<MinecraftSession, 'codec' | 'sendDataPacket' | 'sendSharedBatchAsync'>>({
+        const session = stub<
+            Pick<
+                MinecraftSession,
+                'codec' | 'compressionAlgorithm' | 'compressionThreshold' | 'sendDataPacket' | 'sendSharedBatchAsync'
+            >
+        >({
             codec: Codec2193,
+            compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+            compressionThreshold: 256,
             sendDataPacket: async () => {},
             sendSharedBatchAsync: async (batch) => {
                 sent.push((await batch).content);

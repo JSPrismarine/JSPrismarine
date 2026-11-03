@@ -1,3 +1,4 @@
+import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ServerContent } from '../content/ServerContent';
@@ -10,12 +11,14 @@ const batches = new WeakMap<ServerContent, WeakMap<ProtocolCodec, Map<string, Pr
 
 /**
  * Encodes one viewer-independent join packet batch once for a content, codec, and variation.
- * Recipe limits and compression levels belong in the variation key so changing either cannot
- * reuse bytes built for a different join configuration.
+ * Compression algorithm, level, and threshold belong in the key so a connection never receives
+ * bytes framed for a different negotiated format.
  * @param content - The current server content build.
  * @param codec - The client's negotiated protocol codec.
  * @param variation - The packet kind and any value that changes its payload, such as recipe limit.
+ * @param compressionAlgorithm - The algorithm this connection negotiated.
  * @param compressionLevel - The server's current compression level.
+ * @param compressionThreshold - The minimum body size that receives compression.
  * @param packets - The packets that make up this cached batch.
  * @returns The encoded batch shared by all equivalent joins.
  */
@@ -23,7 +26,9 @@ export const cachedJoinPacketBatch = (
     content: ServerContent,
     codec: ProtocolCodec,
     variation: string,
+    compressionAlgorithm: PacketCompressionAlgorithm,
     compressionLevel: number,
+    compressionThreshold: number,
     packets: readonly NetworkPacket<unknown>[]
 ): Promise<EncodedPacketBatch> => {
     let byCodec = batches.get(content);
@@ -38,14 +43,18 @@ export const cachedJoinPacketBatch = (
         byCodec.set(codec, byVariation);
     }
 
-    const key = `${variation}:${compressionLevel}`;
+    const key = `${variation}:${compressionAlgorithm}:${compressionLevel}:${compressionThreshold}`;
     const cached = byVariation.get(key);
     if (cached !== undefined) return cached;
 
     // Store the in-flight promise before compression starts. Simultaneous joins with the same
     // cache key then share one encode instead of racing to duplicate the expensive deflate.
     const pending = Promise.resolve().then(async () => {
-        const encoded = encodePacketBatchBySize(packets, codec, { compressionLevel });
+        const encoded = encodePacketBatchBySize(packets, codec, {
+            compressionAlgorithm,
+            compressionLevel,
+            compressionThreshold
+        });
         return encoded instanceof Promise ? await encoded : encoded;
     });
     byVariation.set(key, pending);
@@ -69,7 +78,10 @@ export const cachedJoinPacketBatch = (
  * @returns Completion of the session's ordered send.
  */
 export const sendCachedJoinPacket = (
-    session: Pick<MinecraftSession, 'codec' | 'sendDataPacket' | 'sendSharedBatchAsync'>,
+    session: Pick<
+        MinecraftSession,
+        'codec' | 'compressionAlgorithm' | 'compressionThreshold' | 'sendDataPacket' | 'sendSharedBatchAsync'
+    >,
     content: ServerContent | undefined,
     recipeLimit: number,
     compressionLevel: number,
@@ -82,7 +94,9 @@ export const sendCachedJoinPacket = (
         content,
         session.codec,
         `${packet.getName()}:${cacheDiscriminator}:recipe-limit=${recipeLimit}`,
+        session.compressionAlgorithm,
         compressionLevel,
+        session.compressionThreshold,
         [packet]
     );
 

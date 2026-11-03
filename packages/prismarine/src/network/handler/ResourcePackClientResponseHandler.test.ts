@@ -150,6 +150,7 @@ const harness = ({
                 getDifficulty: () => 1,
                 getCraftingRecipeLimit: () => -1,
                 getPacketCompressionLevel: () => 1,
+                getPacketCompressionThreshold: () => 256,
                 getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking
             }),
         getTick: () => 100,

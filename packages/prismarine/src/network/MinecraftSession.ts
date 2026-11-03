@@ -5,7 +5,8 @@ import { CompressionThreshold } from '@jsprismarine/protocol';
 import HandshakeCodec from './codec/HandshakeCodec';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { TransportConnection } from './transport/Transport';
-import { encodePacketBatch, encodePacketBatchAsync, encodePacketBatchBySize } from './encodePacketBatch';
+import type { encodePacketBatch } from './encodePacketBatch';
+import { encodePacketBatchAsync, encodePacketBatchBySize } from './encodePacketBatch';
 import type { PacketBatchOptions } from './encodePacketBatch';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -61,7 +62,7 @@ export default class MinecraftSession {
     public compressionAlgorithm = PacketCompressionAlgorithm.ZLIB;
 
     /** The negotiated minimum batch size; zero disables compression. */
-    public compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
+    public compressionThreshold: number = CompressionThreshold.COMPRESS_EVERYTHING;
 
     protected readonly connection: TransportConnection;
 
@@ -97,7 +98,8 @@ export default class MinecraftSession {
         private readonly dropped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DROP_PACKETS),
         private readonly dumped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DUMP_PACKETS),
         private readonly dumpDir: string = defaultDumpDir(),
-        private readonly getCompressionLevel?: () => number
+        private readonly getCompressionLevel?: () => number,
+        private readonly getCompressionThreshold?: () => number
     ) {
         this.connection = connection;
     }
@@ -147,7 +149,7 @@ export default class MinecraftSession {
         const batch = encodePacketBatchBySize(
             packets,
             this.codec,
-            this.withCompressionLevel({
+            this.withCompressionOptions({
                 compressionAlgorithm: this.compressionAlgorithm,
                 compressionThreshold: this.compressionThreshold,
                 ...batchOptions
@@ -189,9 +191,9 @@ export default class MinecraftSession {
         try {
             await this.chain(async () => {
                 const batch = await encodePacketBatchAsync(packets, this.codec, {
+                    ...this.withCompressionOptions(batchOptions),
                     compressionAlgorithm: this.compressionAlgorithm,
-                    compressionThreshold: this.compressionThreshold,
-                    ...this.withCompressionLevel(batchOptions)
+                    compressionThreshold: this.compressionThreshold
                 });
                 this.frameAndRecord(batch.content, batch.packets, direct, batch.packetBuffers);
 
@@ -338,7 +340,7 @@ export default class MinecraftSession {
             const encoded = encodePacketBatchBySize(
                 [packet],
                 this.codec,
-                this.withCompressionLevel({
+                this.withCompressionOptions({
                     compressed: comp,
                     compressionAlgorithm: this.compressionAlgorithm,
                     compressionThreshold: this.compressionThreshold
@@ -467,14 +469,20 @@ export default class MinecraftSession {
     }
 
     /**
-     * Applies the server's current compression setting unless a caller chose a level for
-     * this batch. Most packet paths do not know about server configuration; resolving it here
-     * keeps ordinary sends, including queued movement, consistent with chunk and shared batches.
+     * Applies the server's current compression settings unless a caller chose them for this
+     * batch. Most packet paths do not know about server configuration; resolving them here
+     * keeps ordinary sends, including queued movement, consistent with shared batches.
      */
-    private withCompressionLevel(options: PacketBatchOptions): PacketBatchOptions {
-        if (options.compressionLevel !== undefined || this.getCompressionLevel === undefined) return options;
-
-        return { ...options, compressionLevel: this.getCompressionLevel() };
+    private withCompressionOptions(options: PacketBatchOptions): PacketBatchOptions {
+        return {
+            ...options,
+            ...(options.compressionLevel === undefined && this.getCompressionLevel !== undefined
+                ? { compressionLevel: this.getCompressionLevel() }
+                : {}),
+            ...(options.compressionThreshold === undefined && this.getCompressionThreshold !== undefined
+                ? { compressionThreshold: this.getCompressionThreshold() }
+                : {})
+        };
     }
 }
 
@@ -490,14 +498,17 @@ export default class MinecraftSession {
  * @param packets - The packets, as the caller built them.
  * @param {number} compressionLevel - The batch compression level.
  * @param {(error: unknown) => void} onError - Where an encode failure goes.
+ * @param compressionThreshold - Optional override for the minimum batch-body size to compress.
  */
 export const broadcastSharedBatches = (
     sessions: readonly MinecraftSession[],
     packets: NetworkPacket<unknown> | readonly NetworkPacket<unknown>[],
     compressionLevel: number,
-    onError: (error: unknown) => void
+    onError: (error: unknown) => void,
+    compressionThreshold?: number
 ): void => {
     const packetList = packets instanceof Array ? packets : [packets];
+    const sends: Promise<void>[] = [];
     const groups: {
         codec: ProtocolCodec;
         algorithm: PacketCompressionAlgorithm;
@@ -509,13 +520,13 @@ export const broadcastSharedBatches = (
             (candidate) =>
                 candidate.codec === session.codec &&
                 candidate.algorithm === session.compressionAlgorithm &&
-                candidate.threshold === session.compressionThreshold
+                candidate.threshold === (compressionThreshold ?? session.compressionThreshold)
         );
         if (group === undefined) {
             groups.push({
                 codec: session.codec,
                 algorithm: session.compressionAlgorithm,
-                threshold: session.compressionThreshold,
+                threshold: compressionThreshold ?? session.compressionThreshold,
                 sessions: [session]
             });
         } else group.sessions.push(session);
@@ -523,18 +534,26 @@ export const broadcastSharedBatches = (
 
     for (const { codec, algorithm, threshold, sessions: group } of groups) {
         try {
-            const batch = encodePacketBatch(packetList, codec, {
+            const batch = encodePacketBatchBySize(packetList, codec, {
                 compressionLevel,
                 compressionAlgorithm: algorithm,
                 compressionThreshold: threshold
             });
-            for (const session of group) {
-                session.sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers);
+            if (batch instanceof Promise) {
+                const failedPacket = packetList[0];
+                if (failedPacket === undefined) throw new Error('A large shared batch has no packet to report');
+                for (const session of group) sends.push(session.sendSharedBatchAsync(batch, failedPacket));
+            } else {
+                for (const session of group) {
+                    sends.push(session.sendSharedBatch(batch.content, batch.packets, false, batch.packetBuffers));
+                }
             }
         } catch (error: unknown) {
             onError(error);
         }
     }
+
+    void Promise.all(sends).catch(onError);
 };
 
 /** Options for a session to frame packets as one batch. */

@@ -78,7 +78,11 @@ export const encodePacketBatchBySize = (
         0
     );
 
-    if (options.compressed === false || bodyLength <= ASYNC_PACKET_BATCH_THRESHOLD) {
+    if (
+        options.compressed === false ||
+        options.compressionThreshold === 0 ||
+        bodyLength <= ASYNC_PACKET_BATCH_THRESHOLD
+    ) {
         return { content: batchCodec.encode(packetBuffers), packets: encodedPackets, packetBuffers };
     }
 

@@ -138,6 +138,8 @@ export interface ConfigFile {
     'packet-compression-level'?: number;
     /** The batch compression algorithm advertised in `NetworkSettings`. */
     'packet-compression-algorithm'?: 'zlib' | 'snappy' | 'none';
+    /** The minimum batch-body size to compress, in bytes. Zero disables compression. @asType integer @minimum 0 @maximum 65535 */
+    'packet-compression-threshold'?: number;
     /** Whether to answer the Minecraft and Source query protocols. */
     'enable-query'?: boolean;
     /** Whether to show the tick rate in the process title. */
@@ -191,6 +193,7 @@ export const CONFIG_KEY_ORDER = [
     'use-raknet-worker',
     'packet-compression-level',
     'packet-compression-algorithm',
+    'packet-compression-threshold',
     'enable-query',
     'enable-process-title',
     'enable-ticking',

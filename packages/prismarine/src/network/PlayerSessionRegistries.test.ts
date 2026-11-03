@@ -55,7 +55,12 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
 const logger = () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {} });
 
 /** The config both paths read, with everything the server has set to go out. */
-const everyRecipe = () => stub<Config>({ getCraftingRecipeLimit: () => -1, getPacketCompressionLevel: () => 1 });
+const everyRecipe = () =>
+    stub<Config>({
+        getCraftingRecipeLimit: () => -1,
+        getPacketCompressionLevel: () => 1,
+        getPacketCompressionThreshold: () => 256
+    });
 
 /** A server with nothing registered and no content build. */
 const captureServer = (overrides: StubMembers<Server> = {}) =>

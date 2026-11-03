@@ -31,6 +31,7 @@ import { craftingRecipeCount } from '../src/network/contentPayloads';
 const argumentsAfterScript = process.argv.slice(2).filter((argument) => argument !== '--');
 const COMPRESSION_LEVEL = Number.parseInt(argumentsAfterScript[0] ?? '7', 10);
 const RECIPE_LIMIT = Number.parseInt(argumentsAfterScript[1] ?? '-1', 10);
+const COMPRESSION_THRESHOLD = 256;
 const SAMPLES = 5;
 
 if (!Number.isInteger(COMPRESSION_LEVEL) || COMPRESSION_LEVEL < -1 || COMPRESSION_LEVEL > 9) {
@@ -150,14 +151,26 @@ const measureCandidate = async (
     const variation = `${candidate.name}:recipe-limit=${RECIPE_LIMIT}`;
     const packet = candidate.create();
     const cachedStarted = performance.now();
-    const cached = await cachedJoinPacketBatch(contentBuild, codec, variation, COMPRESSION_LEVEL, [packet]);
+    const cached = await cachedJoinPacketBatch(
+        contentBuild,
+        codec,
+        variation,
+        COMPRESSION_LEVEL,
+        COMPRESSION_THRESHOLD,
+        [packet]
+    );
     const cachedBuildMs = performance.now() - cachedStarted;
 
     const hitStarted = performance.now();
-    const hit = await cachedJoinPacketBatch(contentBuild, codec, variation, COMPRESSION_LEVEL, [candidate.create()]);
+    const hit = await cachedJoinPacketBatch(contentBuild, codec, variation, COMPRESSION_LEVEL, COMPRESSION_THRESHOLD, [
+        candidate.create()
+    ]);
     const cacheHitUs = (performance.now() - hitStarted) * 1000;
 
-    const fresh = encodePacketBatch([candidate.create()], codec, { compressionLevel: COMPRESSION_LEVEL });
+    const fresh = encodePacketBatch([candidate.create()], codec, {
+        compressionLevel: COMPRESSION_LEVEL,
+        compressionThreshold: COMPRESSION_THRESHOLD
+    });
     if (!cached.content.equals(fresh.content) || !hit.content.equals(fresh.content)) {
         throw new Error(`${codec.protocolVersion} ${candidate.name} cached bytes differ from a fresh encode`);
     }
@@ -178,7 +191,7 @@ const measureCandidate = async (
 };
 
 console.log(
-    `content=${content.items.types.size} resolved items, recipes=${craftingRecipeCount(defaultPayloads.crafting)}, compression-level=${COMPRESSION_LEVEL}, recipe-limit=${RECIPE_LIMIT}`
+    `content=${content.items.types.size} resolved items, recipes=${craftingRecipeCount(defaultPayloads.crafting)}, compression-level=${COMPRESSION_LEVEL}, compression-threshold=${COMPRESSION_THRESHOLD}, recipe-limit=${RECIPE_LIMIT}`
 );
 console.log(
     'codec\tpacket\traw bytes\twire bytes before/after\tencode ms before/after\tdeflate ms before/after\tfirst cached build ms\tsteady cache hit µs\tsha256'

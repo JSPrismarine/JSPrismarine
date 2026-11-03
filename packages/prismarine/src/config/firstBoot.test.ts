@@ -57,6 +57,7 @@ describe('the config file a boot generates', () => {
         'use-raknet-worker',
         'packet-compression-level',
         'packet-compression-algorithm',
+        'packet-compression-threshold',
         'enable-query',
         'enable-process-title',
         'enable-ticking',

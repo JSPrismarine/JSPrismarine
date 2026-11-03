@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -30,7 +31,11 @@ const START_GAME_DATA = new StartGamePacket().deserialize(new NetworkBinaryStrea
  * packet with its negotiated version before encoding. A 2225 session must put the 2225 layout
  * on the wire while a 2193 session keeps the old one, using the same packet class.
  */
-const fakeSession = (codec: ProtocolCodec, getCompressionLevel?: () => number) => {
+const fakeSession = (
+    codec: ProtocolCodec,
+    getCompressionLevel?: () => number,
+    getCompressionThreshold?: () => number
+) => {
     const framed: Buffer[] = [];
     const connection = stub<TransportConnection>({
         token: '127.0.0.1:19132',
@@ -46,9 +51,11 @@ const fakeSession = (codec: ProtocolCodec, getCompressionLevel?: () => number) =
         undefined,
         undefined,
         undefined,
-        getCompressionLevel
+        getCompressionLevel,
+        getCompressionThreshold
     );
     session.codec = codec;
+    session.setCompressionSettings(PacketCompressionAlgorithm.ZLIB, getCompressionThreshold?.() ?? 1);
     return { framed, session };
 };
 
@@ -68,6 +75,13 @@ const animate = () => {
 };
 
 const startGame = () => new StartGamePacket(START_GAME_DATA);
+
+/** Hashes each decoded packet buffer across every frame, independent of batch compression. */
+const decodedPacketStreamDigest = (frames: readonly Buffer[]): string => {
+    const decoder = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB });
+    const packets = frames.flatMap((frame) => decoder.decode(frame));
+    return createHash('sha256').update(Buffer.concat(packets)).digest('hex');
+};
 
 describe('network', () => {
     describe('MinecraftSession outbound codec', () => {
@@ -311,6 +325,36 @@ describe('network', () => {
             expect(overridden.framed).toStrictEqual([
                 encodePacketBatch([animate()], Codec2193, { compressionLevel: 9 }).content
             ]);
+        });
+
+        it('uses the configured threshold and preserves the decoded packet stream', async () => {
+            const thresholded = fakeSession(
+                Codec2193,
+                () => 7,
+                () => 256
+            );
+            const alwaysCompressed = fakeSession(
+                Codec2193,
+                () => 7,
+                () => 1
+            );
+            const small = () => animate();
+            const large = () => {
+                const packet = animate();
+                packet.swingSource = 'x'.repeat(512);
+                return packet;
+            };
+
+            await thresholded.session.sendDataPacket(small());
+            await thresholded.session.sendDataPacket(large());
+            await alwaysCompressed.session.sendDataPacket(small());
+            await alwaysCompressed.session.sendDataPacket(large());
+
+            expect(thresholded.framed[0]![1]).toBe(0xff);
+            expect(thresholded.framed[1]![1]).toBe(PacketCompressionAlgorithm.ZLIB);
+            expect(decodedPacketStreamDigest(thresholded.framed)).toBe(
+                decodedPacketStreamDigest(alwaysCompressed.framed)
+            );
         });
     });
 

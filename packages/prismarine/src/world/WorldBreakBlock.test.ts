@@ -105,7 +105,11 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         },
         addEntity: async (entity: any) => void spawned.push(entity),
         server: {
-            getConfig: () => ({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 7 }),
+            getConfig: () => ({
+                getProximityBroadcast: () => true,
+                getPacketCompressionLevel: () => 7,
+                getPacketCompressionThreshold: () => 256
+            }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
             // Rolls taken in turn, so where a drop lands can be said exactly.
             getRandom: () => {

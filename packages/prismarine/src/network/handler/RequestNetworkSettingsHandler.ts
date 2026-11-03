@@ -33,7 +33,7 @@ export default class RequestNetworkSettingsHandler implements ConnectionPacketHa
         const compressionThreshold =
             compressionAlgorithm === PacketCompressionAlgorithm.NONE
                 ? CompressionThreshold.COMPRESS_NOTHING
-                : CompressionThreshold.COMPRESS_EVERYTHING;
+                : server.getConfig().getPacketCompressionThreshold();
         const networkSettings = new NetworkSettingsPacket({
             compressionThreshold,
             compressionAlgorithm,

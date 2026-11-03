@@ -42,7 +42,12 @@ const playerAt = (x: number, z: number) => {
 const replicatorOver = (players: Player[]) => {
     const world = stub<World>({ getName: () => 'test', getPlayers: () => players });
     const server = stub<Server>({
-        getConfig: () => stub<Config>({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 1 }),
+        getConfig: () =>
+            stub<Config>({
+                getProximityBroadcast: () => true,
+                getPacketCompressionLevel: () => 1,
+                getPacketCompressionThreshold: () => 256
+            }),
         getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} })
     });
 

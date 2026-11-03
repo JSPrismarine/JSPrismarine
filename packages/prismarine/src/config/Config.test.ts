@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import pkg from '../../package.json' with { type: 'json' };
-import { Config, toPacketCompressionLevel } from './Config';
+import { Config, toPacketCompressionLevel, toPacketCompressionThreshold } from './Config';
 import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
 
@@ -117,6 +117,18 @@ describe('config', () => {
             await fromFile.enable();
 
             expect(fromFile.getPacketCompressionAlgorithm()).toBe(expected);
+        });
+
+        it('uses the default packet compression threshold', () => {
+            expect(config.getPacketCompressionThreshold()).toBe(256);
+        });
+
+        it('reads the packet compression threshold from config.json', async () => {
+            writeFileSync(path.join(configDirectory, 'config.json'), '{ "packet-compression-threshold": 512 }\n');
+            const configured = new Config();
+            await configured.enable();
+
+            expect(configured.getPacketCompressionThreshold()).toBe(512);
         });
 
         it('should write every key with a comment explaining it', () => {
@@ -317,6 +329,22 @@ describe('config', () => {
         it('should fall back to the default for a compression level that is not a number', () => {
             for (const configured of ['fast', undefined, Number.NaN, 4.5]) {
                 expect(toPacketCompressionLevel(configured)).toBe(7);
+            }
+        });
+    });
+
+    describe('toPacketCompressionThreshold', () => {
+        it("clamps values to Bedrock's unsigned threshold range", () => {
+            expect(toPacketCompressionThreshold(-1)).toBe(0);
+            expect(toPacketCompressionThreshold(0)).toBe(0);
+            expect(toPacketCompressionThreshold(256)).toBe(256);
+            expect(toPacketCompressionThreshold(65_535)).toBe(65_535);
+            expect(toPacketCompressionThreshold(65_536)).toBe(65_535);
+        });
+
+        it('uses the default when the configured threshold is not an integer', () => {
+            for (const configured of ['fast', undefined, Number.NaN, 4.5]) {
+                expect(toPacketCompressionThreshold(configured)).toBe(256);
             }
         });
     });

@@ -91,7 +91,8 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
                 getProximityBroadcast: () => true,
                 getEntityTrackingHysteresis: () => 2,
                 getEntityTrackingInterval: () => 4,
-                getPacketCompressionLevel: () => 0
+                getPacketCompressionLevel: () => 0,
+                getPacketCompressionThreshold: () => 256
             })
     });
 
