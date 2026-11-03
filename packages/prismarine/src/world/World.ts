@@ -80,6 +80,8 @@ import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
+import type { ChunkSaveContext } from './providers/ChunkSaveContext';
+import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
 
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
@@ -400,6 +402,8 @@ export class World implements Service {
 
     private readonly entities: Map<number, Entity> = new Map();
     private readonly entityChunkIndices = new Map<number, number>();
+    /** Reverse membership lets unloads visit one chunk's actors without rescanning the world. */
+    private entityRuntimeIdsByChunk = new Map<number, Set<number>>();
     private gameEventListenerRegistry: GameEventListenerRegistry | undefined;
 
     /** Where everything is, bucketed once a tick so mobs can ask who they are touching. */
@@ -2644,7 +2648,12 @@ export class World implements Service {
         const runtimeId = entity.getRuntimeId();
         const runtimeIdKey = Number(runtimeId);
         const chunkIndex = this.entityChunkIndices.get(runtimeIdKey);
-        if (chunkIndex !== undefined) this.chunks.get(chunkIndex)?.markChanged();
+        if (chunkIndex !== undefined) {
+            this.chunks.get(chunkIndex)?.markChanged();
+            const runtimeIds = this.entityRuntimeIdsByChunk.get(chunkIndex);
+            runtimeIds?.delete(runtimeIdKey);
+            if (runtimeIds?.size === 0) this.entityRuntimeIdsByChunk.delete(chunkIndex);
+        }
         this.entityChunkIndices.delete(runtimeIdKey);
 
         if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeIdKey))
@@ -2708,11 +2717,15 @@ export class World implements Service {
     }
 
     private async unloadChunks(candidates: readonly Chunk[]): Promise<void> {
-        for (const chunk of candidates) await this.unloadChunk(chunk);
+        if (candidates.length === 0) return;
+
+        this.dataEntities().persist();
+        const saveContext = this.chunkSaveContext();
+        for (const chunk of candidates) await this.unloadChunk(chunk, saveContext);
     }
 
     /** Saves and removes one chunk and the non-player entities it holds. */
-    private async unloadChunk(chunk: Chunk): Promise<boolean> {
+    private async unloadChunk(chunk: Chunk, saveContext: ChunkSaveContext): Promise<boolean> {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         if (this.chunks.get(index) !== chunk || this.loading.has(index)) return false;
 
@@ -2722,10 +2735,9 @@ export class World implements Service {
                 if (this.chunks.get(index) !== chunk || this.loading.has(index) || this.chunkNeededByPlayers(chunk))
                     return;
 
-                const entities = this.entitiesInChunk(chunk);
+                const entities = saveContext.entitiesByChunk.get(index) ?? [];
                 if (chunk.getHasChanged() || entities.length > 0) {
-                    this.dataEntities().persist();
-                    await this.getProvider().writeChunk(chunk);
+                    await this.getProvider().writeChunk(chunk, saveContext);
                 }
             });
         } catch (error: unknown) {
@@ -2832,13 +2844,28 @@ export class World implements Service {
     }
 
     private entitiesInChunk(chunk: Chunk): Entity[] {
-        return this.getEntities().filter((entity) => {
-            if (entity instanceof Player) return false;
+        // Lightweight World test doubles can bypass field initializers; normal instances keep this map from construction.
+        this.entityRuntimeIdsByChunk ??= new Map();
+        const runtimeIds = this.entityRuntimeIdsByChunk.get(Chunk.packXZ(chunk.getX(), chunk.getZ()));
+        if (runtimeIds === undefined) return [];
+
+        const entities: Entity[] = [];
+        for (const runtimeId of runtimeIds) {
+            const entity = this.entities.get(runtimeId);
+            if (entity !== undefined) entities.push(entity);
+        }
+        return entities;
+    }
+
+    /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
+    private chunkSaveContext(): ChunkSaveContext {
+        const entities = this.entities?.values() ?? this.getEntities();
+        return createChunkSaveContext(this.dimension.bedrockId, entities, (entity) => {
+            const chunkIndex = this.entityChunkIndices.get(Number(entity.getRuntimeId()));
+            if (chunkIndex !== undefined) return chunkIndex;
+
             const position = entity.getPosition();
-            return (
-                CoordinateUtils.fromBlockToChunk(position.getX()) === chunk.getX() &&
-                CoordinateUtils.fromBlockToChunk(position.getZ()) === chunk.getZ()
-            );
+            return Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
         });
     }
 
@@ -2915,9 +2942,18 @@ export class World implements Service {
 
         if (previousChunkIndex !== undefined && previousChunkIndex !== nextChunkIndex) {
             this.chunks.get(previousChunkIndex)?.markChanged();
+            const previousRuntimeIds = this.entityRuntimeIdsByChunk.get(previousChunkIndex);
+            previousRuntimeIds?.delete(runtimeIdKey);
+            if (previousRuntimeIds?.size === 0) this.entityRuntimeIdsByChunk.delete(previousChunkIndex);
         }
         this.chunks.get(nextChunkIndex)?.markChanged();
         this.entityChunkIndices.set(runtimeIdKey, nextChunkIndex);
+        let nextRuntimeIds = this.entityRuntimeIdsByChunk.get(nextChunkIndex);
+        if (nextRuntimeIds === undefined) {
+            nextRuntimeIds = new Set();
+            this.entityRuntimeIdsByChunk.set(nextChunkIndex, nextRuntimeIds);
+        }
+        nextRuntimeIds.add(runtimeIdKey);
     }
 
     private markEntitiesInChunkChanged(chunk: Chunk): void {
@@ -3138,6 +3174,7 @@ export class World implements Service {
         // A data-driven mob's state lives in the runtime, and the chunk serializer only ever
         // sees the body. This is where the two meet, once per save rather than once per tick.
         this.dataEntities().persist();
+        const saveContext = this.chunkSaveContext();
 
         const entityChunks = new Set(this.entityChunkIndices.values());
         const changed = Array.from(this.chunks.values()).filter(
@@ -3146,7 +3183,7 @@ export class World implements Service {
         for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
             for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) {
                 try {
-                    await this.getProvider().writeChunk(chunk);
+                    await this.getProvider().writeChunk(chunk, saveContext);
                 } catch (error: unknown) {
                     chunk.markChanged();
                     this.server

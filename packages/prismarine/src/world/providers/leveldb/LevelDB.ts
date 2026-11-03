@@ -10,7 +10,6 @@ import { blockSchemas } from '@jsprismarine/minecraft';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import EntitySerializer from '../../../entity/EntitySerializer';
-import Player from '../../../Player';
 import {
     ChunkTag,
     decodeChunkKey,
@@ -43,12 +42,13 @@ import type { Level } from '../../Level';
 import Chunk from '../../chunk/Chunk';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
-import type { Entity } from '../../../entity/Entity';
 import type { DimensionType } from '../../Dimension';
 import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
 import type { LevelDatInputs } from '../Provider';
+import type { ChunkSaveContext } from '../ChunkSaveContext';
+import { createChunkSaveContext } from '../ChunkSaveContext';
 import {
     isFlatGenerator,
     parseWorldPersistenceData,
@@ -294,9 +294,11 @@ export default class LevelDB extends BaseProvider {
         return chunk;
     }
 
-    public async writeChunk(chunk: Chunk): Promise<void> {
+    public async writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void> {
         const database = this.requireDatabase();
         const dimension = chunk.getDimension();
+        const context =
+            saveContext?.dimensionId === dimension.bedrockId ? saveContext : this.createSaveContext(dimension);
         const batch = new WriteBatch();
         const key = (tag: ChunkTag, subChunk?: number) =>
             encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.bedrockId, tag, subChunk });
@@ -332,7 +334,7 @@ export default class LevelDB extends BaseProvider {
             batch.put(key(ChunkTag.BlockEntity), blockEntities);
         }
 
-        this.writeEntities(database, batch, chunk, key);
+        this.writeEntities(database, batch, chunk, key, context);
 
         database.write(batch);
         chunk.markSaved();
@@ -444,7 +446,7 @@ export default class LevelDB extends BaseProvider {
             string,
             { x: number; z: number; pending: PendingLegacyEntity[]; identities: Set<string> }
         >();
-        const usedActorIds = new Set<string>();
+        const usedActorIds = new Set<bigint>();
         const seen = new Set<string>();
 
         for (const entity of entities) {
@@ -464,7 +466,7 @@ export default class LevelDB extends BaseProvider {
                 );
                 for (const entity of pending) {
                     identities.add(legacyEntityIdentity(entity));
-                    usedActorIds.add(actorIdBytes(BigInt(entity.uniqueId)).toString('hex'));
+                    usedActorIds.add(BigInt(entity.uniqueId));
                 }
                 chunk = { x: cx, z: cz, pending, identities };
                 chunks.set(chunkId, chunk);
@@ -611,7 +613,8 @@ export default class LevelDB extends BaseProvider {
         database: Database,
         batch: WriteBatch,
         chunk: Chunk,
-        key: (tag: ChunkTag, subChunk?: number) => Buffer
+        key: (tag: ChunkTag, subChunk?: number) => Buffer,
+        saveContext: ChunkSaveContext
     ): void {
         const dimension = chunk.getDimension();
         const digestKey = encodeDigestKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
@@ -628,22 +631,12 @@ export default class LevelDB extends BaseProvider {
             }
         }
 
-        const worldEntities = this.entitiesIn(dimension).filter(
-            (entity) => !(entity instanceof Player) && entity.shouldPersist()
-        );
-        const entities = worldEntities.filter((entity) => this.belongsToChunk(entity, chunk));
-        const firstEntityByActorId = new Map<string, Entity>();
-        for (const entity of worldEntities) {
-            const persistentNbt = entity.persistentNbt;
-            if (!persistentNbt?.has('UniqueID')) continue;
-
-            const actorIdHex = actorIdBytes(persistentNbt.getLong('UniqueID', 0n)).toString('hex');
-            if (!firstEntityByActorId.has(actorIdHex)) firstEntityByActorId.set(actorIdHex, entity);
-        }
-
-        const usedActorIds = this.actorIdsInWorld(dimension);
+        const chunkIndex = Chunk.packXZ(chunk.getX(), chunk.getZ());
+        const entities = saveContext.persistentEntitiesByChunk.get(chunkIndex) ?? [];
+        const firstEntityByActorId = saveContext.firstEntityByActorId;
+        const usedActorIds = saveContext.actorIdsInWorld;
         const actorIds: Buffer[] = [];
-        const actorIdsInChunk = new Set<string>();
+        const actorIdsInChunk = new Set<bigint>();
 
         for (const entity of entities) {
             const nbt = EntitySerializer.toNBT(entity);
@@ -653,34 +646,32 @@ export default class LevelDB extends BaseProvider {
                 entity.persistentNbt = nbt;
             }
 
-            let actorId = actorIdBytes(nbt.getLong('UniqueID', 0n));
-            let actorIdHex = actorId.toString('hex');
+            let uniqueId = nbt.getLong('UniqueID', 0n);
             if (
-                (firstEntityByActorId.has(actorIdHex) && firstEntityByActorId.get(actorIdHex) !== entity) ||
-                actorIdsInChunk.has(actorIdHex)
+                (firstEntityByActorId.has(uniqueId) && firstEntityByActorId.get(uniqueId) !== entity) ||
+                actorIdsInChunk.has(uniqueId)
             ) {
-                const duplicateActorIdHex = actorIdHex;
-                const uniqueId = this.generateActorId(database, usedActorIds);
+                const duplicateActorIdHex = actorIdBytes(uniqueId).toString('hex');
+                uniqueId = this.generateActorId(database, usedActorIds);
                 nbt.addValue('UniqueID', new Types.LongVal(uniqueId));
                 entity.persistentNbt = nbt;
-                actorId = actorIdBytes(uniqueId);
-                actorIdHex = actorId.toString('hex');
+                const newActorIdHex = actorIdBytes(uniqueId).toString('hex');
                 this.getServer()
                     .getLogger()
                     .warn(
-                        `Reassigned duplicate actor id ${duplicateActorIdHex} to ${actorIdHex} in chunk ${chunk.getX()},${chunk.getZ()}`
+                        `Reassigned duplicate actor id ${duplicateActorIdHex} to ${newActorIdHex} in chunk ${chunk.getX()},${chunk.getZ()}`
                     );
             }
 
-            actorIdsInChunk.add(actorIdHex);
+            actorIdsInChunk.add(uniqueId);
+            const actorId = actorIdBytes(uniqueId);
             actorIds.push(actorId);
             batch.put(encodeActorKey(actorId), this.writeActorNbt(nbt));
         }
 
-        const actorIdsStillInWorld = this.actorIdsInWorld(dimension);
         for (const actorId of previousActorIds) {
-            const actorIdHex = actorId.toString('hex');
-            if (actorIdsInChunk.has(actorIdHex) || actorIdsStillInWorld.has(actorIdHex)) continue;
+            const uniqueId = actorId.readBigInt64LE();
+            if (actorIdsInChunk.has(uniqueId) || usedActorIds.has(uniqueId)) continue;
 
             batch.del(encodeActorKey(actorId));
         }
@@ -695,38 +686,20 @@ export default class LevelDB extends BaseProvider {
         }
     }
 
-    private belongsToChunk(entity: Entity, chunk: Chunk): boolean {
-        if (entity instanceof Player) return false;
-
-        const position = entity.getPosition();
-        return Math.floor(position.getX() / 16) === chunk.getX() && Math.floor(position.getZ() / 16) === chunk.getZ();
+    private createSaveContext(dimension: DimensionType): ChunkSaveContext {
+        return createChunkSaveContext(dimension.bedrockId, this.entitiesIn(dimension), (entity) => {
+            const position = entity.getPosition();
+            return Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
+        });
     }
 
-    /**
-     * The ids of every persistent actor alive in one dimension.
-     *
-     * An actor that left for another dimension is not in this set, so its old chunk's save drops
-     * its record; the chunk it arrived in writes a fresh one on its own save.
-     */
-    private actorIdsInWorld(dimension: DimensionType): Set<string> {
-        const actorIds = new Set<string>();
-        for (const entity of this.entitiesIn(dimension)) {
-            if (entity instanceof Player || !entity.shouldPersist() || !entity.persistentNbt?.has('UniqueID')) continue;
-
-            actorIds.add(actorIdBytes(entity.persistentNbt.getLong('UniqueID', 0n)).toString('hex'));
-        }
-
-        return actorIds;
-    }
-
-    private generateActorId(database: Database, usedActorIds: Set<string>): bigint {
+    private generateActorId(database: Database, usedActorIds: Set<bigint>): bigint {
         for (let attempt = 0; attempt < 32; attempt++) {
             const uniqueId = randomBytes(8).readBigInt64LE(0);
             const actorId = actorIdBytes(uniqueId);
-            const actorIdHex = actorId.toString('hex');
-            if (usedActorIds.has(actorIdHex) || database.get(encodeActorKey(actorId)) !== null) continue;
+            if (usedActorIds.has(uniqueId) || database.get(encodeActorKey(actorId)) !== null) continue;
 
-            usedActorIds.add(actorIdHex);
+            usedActorIds.add(uniqueId);
             return uniqueId;
         }
 

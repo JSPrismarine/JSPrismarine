@@ -8,6 +8,7 @@ import type { Entity } from '../../entity/Entity';
 import type { Level } from '../Level';
 import type Provider from './Provider';
 import type { LevelDatInputs } from './Provider';
+import type { ChunkSaveContext } from './ChunkSaveContext';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
@@ -149,7 +150,7 @@ export default abstract class BaseProvider implements Provider {
      *
      * @param chunk - the chunk data.
      */
-    public abstract writeChunk(chunk: Chunk): Promise<void>;
+    public abstract writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void>;
 
     /** Reads world state from the provider's fallback NBT file. */
     public async readWorldData(): Promise<WorldPersistenceData | null> {

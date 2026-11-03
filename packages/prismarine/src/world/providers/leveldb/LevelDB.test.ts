@@ -55,6 +55,12 @@ const DESERT = 2;
 const JUNGLE = 21;
 const DEEP_DARK = 190;
 
+const actorIdBytesForTest = (uniqueId: bigint): Buffer => {
+    const actorId = Buffer.allocUnsafe(8);
+    actorId.writeBigInt64LE(uniqueId);
+    return actorId;
+};
+
 /**
  * The pieces of `Server` and `World` a provider touches. Hand-rolled rather than mocked, so what
  * the provider actually depends on stays visible.
@@ -550,6 +556,69 @@ describe('world', () => {
 
                 expect(restored.takeStoredEntities()).toEqual([]);
                 await reopened.provider.disable();
+            });
+
+            it('keeps the first duplicate actor id and filters digests by dimension', async () => {
+                const worldPath = scratch();
+                const persistentActor = (uniqueId: bigint, identifier: string, dimension: DimensionType, x: number) => {
+                    const persistentNbt = new NBTTagCompound('');
+                    persistentNbt.addValue('UniqueID', new Types.LongVal(uniqueId));
+
+                    return stub<Entity>({
+                        getType: () => identifier,
+                        getPosition: () => stub<Position>({ getX: () => x, getY: () => 64, getZ: () => 1 }),
+                        getTags: () => [],
+                        getStatusEffects: () => [],
+                        getPortalCooldown: () => 0,
+                        getWorld: () => stub<World>({ getDimension: () => dimension }),
+                        shouldPersist: () => true,
+                        persistentNbt,
+                        yaw: 0,
+                        pitch: 0
+                    });
+                };
+                const first = persistentActor(111n, 'minecraft:cow', Dimensions.Overworld, 1);
+                const duplicate = persistentActor(111n, 'minecraft:sheep', Dimensions.Overworld, 17);
+                const nether = persistentActor(222n, 'minecraft:zombified_piglin', Dimensions.Nether, 1);
+                const { provider } = harness(worldPath);
+                provider.setEntitySource((dimension) => {
+                    if (dimension.bedrockId === Dimensions.Nether.bedrockId) return [nether];
+                    return dimension.bedrockId === Dimensions.Overworld.bedrockId ? [first, duplicate] : [];
+                });
+                await provider.enable();
+                await provider.writeChunk(new Chunk(0, 0, new Map(), Dimensions.Overworld));
+                await provider.writeChunk(new Chunk(1, 0, new Map(), Dimensions.Overworld));
+                await provider.writeChunk(new Chunk(0, 0, new Map(), Dimensions.Nether));
+                await provider.disable();
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const firstDigest = database.get(encodeDigestKey(0, 0, Dimensions.Overworld.bedrockId));
+                const duplicateDigest = database.get(encodeDigestKey(1, 0, Dimensions.Overworld.bedrockId));
+                const netherDigest = database.get(encodeDigestKey(0, 0, Dimensions.Nether.bedrockId));
+                if (firstDigest === null || duplicateDigest === null || netherDigest === null)
+                    throw new Error('Expected actor digests in both dimensions');
+
+                const [firstActorId] = decodeDigest(firstDigest);
+                const [duplicateActorId] = decodeDigest(duplicateDigest);
+                const [netherActorId] = decodeDigest(netherDigest);
+                if (firstActorId === undefined || duplicateActorId === undefined || netherActorId === undefined)
+                    throw new Error('Expected one actor in each digest');
+
+                expect(firstActorId).toEqual(actorIdBytesForTest(111n));
+                expect(duplicateActorId).not.toEqual(firstActorId);
+                expect(netherActorId).toEqual(actorIdBytesForTest(222n));
+
+                const actorNbt = (actorId: Buffer) => {
+                    const value = database.get(encodeActorKey(actorId));
+                    if (value === null) throw new Error('Expected a stored actor record');
+                    const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+                    reader.setUseVarint(false);
+                    return reader.parse();
+                };
+                expect(actorNbt(firstActorId).getString('identifier', '')).toBe('minecraft:cow');
+                expect(actorNbt(duplicateActorId).getString('identifier', '')).toBe('minecraft:sheep');
+                expect(actorNbt(netherActorId).getNumber('DimensionId', -1)).toBe(Dimensions.Nether.bedrockId);
+                await database.close();
             });
 
             it('reads back every block it wrote, across the full height', async () => {

@@ -5,6 +5,7 @@ import type Chunk from '../chunk/Chunk';
 import type { DimensionType } from '../Dimension';
 import type { WorldPersistenceData } from '../WorldPersistence';
 import type { LevelStem } from '@jsprismarine/worldgen';
+import type { ChunkSaveContext } from './ChunkSaveContext';
 
 /**
  * What a provider writes into the save's level metadata, `level.dat` for the LevelDB format.
@@ -65,7 +66,7 @@ export default interface Provider extends Service {
      * Writes a chunk into the dimension `chunk.getDimension()` names.
      * @param chunk - the chunk to write.
      */
-    writeChunk(chunk: Chunk): Promise<void>;
+    writeChunk(chunk: Chunk, saveContext?: ChunkSaveContext): Promise<void>;
 
     /** Every chunk coordinate the save holds for one dimension, when the format can list them. */
     listChunks?(dimension: DimensionType): IterableIterator<{ x: number; z: number }>;
