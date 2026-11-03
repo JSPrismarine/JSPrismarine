@@ -18,6 +18,7 @@ import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type PlayerSession from './PlayerSession';
 import type { InboundPacketRecorder } from './InboundPacketTrace';
 import { InboundPacketTrace } from './InboundPacketTrace';
+import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import type { SessionPhase } from './SessionPhase';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
 import { TextPacketType } from '@jsprismarine/protocol';
@@ -25,13 +26,16 @@ import { TextPacketType } from '@jsprismarine/protocol';
 /** A transport the test drives by hand: subscriptions in, emit helpers out. */
 class FakeTransport implements Transport<TransportConnection> {
     private connect: ((connection: TransportConnection) => Promise<void> | void) | undefined;
+    private disconnect: ((address: InetAddress, reason: string) => Promise<void> | void) | undefined;
     private frame: ((payload: Buffer, address: InetAddress) => Promise<void> | void) | undefined;
 
     public onConnect(listener: (connection: TransportConnection) => Promise<void> | void): void {
         this.connect = listener;
     }
 
-    public onDisconnect(): void {}
+    public onDisconnect(listener: (address: InetAddress, reason: string) => Promise<void> | void): void {
+        this.disconnect = listener;
+    }
 
     public onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
         this.frame = listener;
@@ -43,6 +47,10 @@ class FakeTransport implements Transport<TransportConnection> {
 
     public async emitConnect(connection: TransportConnection): Promise<void> {
         await this.connect?.(connection);
+    }
+
+    public async emitDisconnect(address: InetAddress, reason: string): Promise<void> {
+        await this.disconnect?.(address, reason);
     }
 
     public async emitFrame(payload: Buffer, address: InetAddress): Promise<void> {
@@ -107,10 +115,24 @@ const frameOf = (packet: TextPacket, compressed = false) => {
         : BatchCodec.uncompressed().encode(payloads);
 };
 
+/** Captures one valid text input for replay validation tests. */
+const captureTextRecord = async () => {
+    const trace = new InboundPacketTrace();
+    const source = makeDispatcher({
+        recorder: trace,
+        handler: { phases: ['handshake'], handle: async () => {} }
+    });
+    await source.transport.emitConnect(fakeConnection('source:1').connection);
+    await source.transport.emitFrame(frameOf(message('replay input')), address('source:1'));
+
+    return trace.records()[0]!;
+};
+
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
 const makeDispatcher = (options?: {
     codec?: ProtocolCodec;
     recorder?: InboundPacketRecorder;
+    outboundRecorder?: OutboundPacketRecorder;
     compressed?: boolean;
     tick?: () => number;
     handler?: {
@@ -129,6 +151,11 @@ const makeDispatcher = (options?: {
         }
     });
     const built: ClientConnection[] = [];
+    const outboundRecorderSetup: {
+        recorder: OutboundPacketRecorder;
+        connectionId: number;
+        getTick: () => number;
+    }[] = [];
 
     const dispatcher = new NetworkDispatcher({
         transport,
@@ -139,12 +166,16 @@ const makeDispatcher = (options?: {
         logger,
         logFilter: new PacketLogFilter(),
         inboundPacketRecorder: options?.recorder,
+        outboundPacketRecorder: options?.outboundRecorder,
         createConnection: () => {
             const connection = stub<ClientConnection>({
                 hasCompression: options?.compressed ?? false,
                 codec: options?.codec ?? Codec2193,
                 phase: 'handshake',
-                getPlayerSession: () => null
+                getPlayerSession: () => null,
+                closePlayerSession: async () => {},
+                setOutboundPacketRecorder: (recorder, connectionId, getTick) =>
+                    void outboundRecorderSetup.push({ recorder, connectionId, getTick })
             });
             built.push(connection);
             return connection;
@@ -152,7 +183,7 @@ const makeDispatcher = (options?: {
         query: { enabled: () => false, onRaw: async () => Buffer.alloc(0) }
     });
 
-    return { transport, sessionManager, lines, server, built, dispatcher };
+    return { transport, sessionManager, lines, server, built, dispatcher, outboundRecorderSetup };
 };
 
 describe('network', () => {
@@ -163,6 +194,25 @@ describe('network', () => {
             await transport.emitConnect(fakeConnection('a:1').connection);
 
             expect(sessionManager.get('a:1')).toBe(built[0]);
+        });
+
+        it('installs the outbound recorder with the connection id and a live tick lookup', async () => {
+            let tick = 7;
+            const recorder: OutboundPacketRecorder = { record: () => {} };
+            const { transport, outboundRecorderSetup } = makeDispatcher({
+                outboundRecorder: recorder,
+                tick: () => tick
+            });
+
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            expect(outboundRecorderSetup).toHaveLength(1);
+            expect(outboundRecorderSetup[0]?.recorder).toBe(recorder);
+            expect(outboundRecorderSetup[0]?.connectionId).toBe(1);
+            expect(outboundRecorderSetup[0]?.getTick()).toBe(7);
+
+            tick = 8;
+            expect(outboundRecorderSetup[0]?.getTick()).toBe(8);
         });
 
         it('refuses a second connection with the token of a live one', async () => {
@@ -278,6 +328,35 @@ describe('network', () => {
             ]);
         });
 
+        it('continues packet dispatch when the inbound trace sink throws', async () => {
+            const recorder: InboundPacketRecorder = {
+                record: () => {
+                    throw new Error('trace sink failed');
+                }
+            };
+            const handled: string[] = [];
+            const { transport, lines } = makeDispatcher({
+                recorder,
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        if (packet instanceof TextPacket) handled.push(packet.getPacketData()!.message);
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            await transport.emitFrame(frameOf(message('still handled')), address('a:1'));
+
+            expect(handled).toEqual(['still handled']);
+            expect(lines.map(({ message: line }) => line)).toEqual(
+                expect.arrayContaining([
+                    expect.stringContaining('Inbound packet recorder failed for TextPacket'),
+                    'Error: trace sink failed'
+                ])
+            );
+        });
+
         it('replays accepted packet bytes through the handler on the matching connection and tick', async () => {
             const trace = new InboundPacketTrace();
             const handled: string[] = [];
@@ -297,6 +376,103 @@ describe('network', () => {
 
             expect(handled).toEqual(['bot input', 'bot input']);
             expect(trace.records()).toHaveLength(1);
+        });
+
+        it('rejects a replay record for a connection that was not admitted', async () => {
+            const record = await captureTextRecord();
+            const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+
+            await expect(
+                replay.dispatcher.replayInboundRecord({ ...record, connectionId: record.connectionId + 1 })
+            ).rejects.toThrow('Replay connection 2 is not connected');
+        });
+
+        it('rejects a replay record from a different tick', async () => {
+            const record = await captureTextRecord();
+            const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+
+            await expect(replay.dispatcher.replayInboundRecord(record, 1)).rejects.toThrow(
+                'Replay packet tick 1 does not match server tick 0'
+            );
+        });
+
+        it('rejects a replay record from a different protocol version', async () => {
+            const record = await captureTextRecord();
+            const replay = makeDispatcher({
+                codec: stub<ProtocolCodec>({ protocolVersion: 1 }),
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+
+            await expect(replay.dispatcher.replayInboundRecord(record)).rejects.toThrow(
+                'Replay protocol 2193 does not match connection protocol 1'
+            );
+        });
+
+        it('rejects a replay record that skips the next connection-local sequence', async () => {
+            const record = await captureTextRecord();
+            const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+
+            await expect(replay.dispatcher.replayInboundRecord({ ...record, sequence: 1 })).rejects.toThrow(
+                'Replay connection 1 expected packet 0, got 1'
+            );
+        });
+
+        it('rejects replay bytes that decode to a different packet name', async () => {
+            const record = await captureTextRecord();
+            const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+
+            await expect(
+                replay.dispatcher.replayInboundRecord({ ...record, packetName: 'LoginPacket' })
+            ).rejects.toThrow('Replay bytes did not decode as LoginPacket');
+        });
+
+        it('rejects a replay packet that is not accepted in the connection phase', async () => {
+            const record = await captureTextRecord();
+            const replay = makeDispatcher({ handler: { phases: ['handshake'], handle: async () => {} } });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            replay.built[0]!.phase = 'play';
+
+            await expect(replay.dispatcher.replayInboundRecord(record)).rejects.toThrow(
+                'Replay packet TextPacket was rejected in the play phase'
+            );
+        });
+
+        it('rejects a replay queued before its connection disconnects', async () => {
+            const trace = new InboundPacketTrace();
+            // Hold a live handler open so replay queues behind it, then disconnect before replay can run.
+            let releaseLive!: () => void;
+            let signalLive!: () => void;
+            const liveStarted = new Promise<void>((resolve) => {
+                signalLive = resolve;
+            });
+            const liveGate = new Promise<void>((resolve) => {
+                releaseLive = resolve;
+            });
+            const { transport, dispatcher } = makeDispatcher({
+                recorder: trace,
+                handler: {
+                    phases: ['handshake'],
+                    handle: async () => {
+                        signalLive();
+                        await liveGate;
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            const liveFrame = transport.emitFrame(frameOf(message('live input')), address('a:1'));
+            await liveStarted;
+            const replay = dispatcher.replayInboundRecord(trace.records()[0]!);
+            await transport.emitDisconnect(address('a:1'), 'client disconnected');
+
+            releaseLive();
+            await liveFrame;
+            await expect(replay).rejects.toThrow('Replay connection 1 is no longer connected');
         });
 
         it('queues replay after unfinished frames from the same connection', async () => {
@@ -403,8 +579,10 @@ describe('network', () => {
 
         it('hands a play-phase handler the player session once login has created one', async () => {
             const session = stub<PlayerSession>();
+            const trace = new InboundPacketTrace();
             const targets: unknown[] = [];
             const { transport, built } = makeDispatcher({
+                recorder: trace,
                 handler: { phases: ['play'], handle: async (_packet, _server, target) => void targets.push(target) }
             });
             await transport.emitConnect(fakeConnection('a:1').connection);
@@ -414,6 +592,7 @@ describe('network', () => {
             await transport.emitFrame(frameOf(message('chat')), address('a:1'));
 
             expect(targets).toStrictEqual([session]);
+            expect(trace.records().map((record) => record.packetName)).toEqual(['TextPacket']);
         });
 
         it('processes frames from one client in arrival order while a handler awaits', async () => {

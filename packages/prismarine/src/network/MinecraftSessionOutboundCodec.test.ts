@@ -126,6 +126,39 @@ describe('network', () => {
             expect(trace.records().map((record) => record.tick)).toEqual([13]);
         });
 
+        it('sends a framed packet even when the outbound recorder fails', async () => {
+            const framed: Buffer[] = [];
+            const errors: unknown[] = [];
+            const connection = stub<TransportConnection>({
+                token: '127.0.0.1:19132',
+                sendFrame: (payload: Buffer) => void framed.push(payload),
+                close: () => {}
+            });
+            const logger = stub<Logger>({
+                silly: () => {},
+                error: (error: unknown) => void errors.push(error),
+                warn: () => {}
+            });
+            const session = new MinecraftSession(connection, logger);
+            session.codec = Codec2193;
+            session.setOutboundPacketRecorder(
+                {
+                    record: () => {
+                        throw new Error('trace sink unavailable');
+                    }
+                },
+                4,
+                () => 12
+            );
+
+            await session.sendDataPacket(animate(), false);
+
+            expect(framed).toHaveLength(1);
+            expect(errors).toHaveLength(2);
+            expect(String(errors[0])).toContain('Outbound packet recorder failed for AnimatePacket');
+            expect(String(errors[1])).toContain('trace sink unavailable');
+        });
+
         it('keeps per-tick output digests stable across unrelated connection scheduling', () => {
             const first = new OutboundPacketTrace();
             const second = new OutboundPacketTrace();
@@ -149,6 +182,27 @@ describe('network', () => {
             ];
             for (const record of records) first.record(record);
             for (const record of [...records].reverse()) second.record(record);
+
+            expect(first.packetDigestsByTick()).toEqual(second.packetDigestsByTick());
+        });
+
+        it('orders one connection by packet sequence when hashing a tick', () => {
+            const first = new OutboundPacketTrace();
+            const second = new OutboundPacketTrace();
+            const earlier = {
+                connectionId: 1,
+                sequence: 0,
+                tick: 12,
+                protocolVersion: Codec2193.protocolVersion,
+                packetName: 'AnimatePacket',
+                payload: Buffer.from([1])
+            };
+            const later = { ...earlier, sequence: 1, payload: Buffer.from([2]) };
+
+            first.record(later);
+            first.record(earlier);
+            second.record(earlier);
+            second.record(later);
 
             expect(first.packetDigestsByTick()).toEqual(second.packetDigestsByTick());
         });

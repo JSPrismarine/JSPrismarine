@@ -56,4 +56,27 @@ describe('InboundPacketTrace', () => {
 
         expect(() => InboundPacketTrace.deserialize(malformed)).toThrow('Invalid inbound packet trace record');
     });
+
+    it('rejects invalid JSON', () => {
+        expect(() => InboundPacketTrace.deserialize(Buffer.from('{'))).toThrow('Invalid inbound packet trace JSON');
+    });
+
+    it.each([
+        { description: 'an unsupported format', format: 'other-format', version: 1 },
+        { description: 'an unsupported version', format: 'jsprismarine-inbound-packets', version: 2 }
+    ])('rejects $description', ({ format, version }) => {
+        const unsupported = Buffer.from(JSON.stringify({ format, version, records: [] }));
+
+        expect(() => InboundPacketTrace.deserialize(unsupported)).toThrow(
+            'Unsupported inbound packet trace format or version'
+        );
+    });
+
+    it('rejects a trace whose records field is not an array', () => {
+        const malformed = Buffer.from(
+            JSON.stringify({ format: 'jsprismarine-inbound-packets', version: 1, records: {} })
+        );
+
+        expect(() => InboundPacketTrace.deserialize(malformed)).toThrow('Invalid inbound packet trace records');
+    });
 });

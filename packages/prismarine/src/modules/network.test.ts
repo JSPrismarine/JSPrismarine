@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Logger } from '@jsprismarine/logger';
 import { startTestModule } from '@jsprismarine/kernel/testing';
+import type { Config } from '../config/Config';
+import SessionManager from '../SessionManager';
+import PacketLogFilter from '../network/PacketLogFilter';
 import { stub } from '../testing/stub.test.helper';
 import type Server from '../Server';
 import type { Networking } from './network';
@@ -39,5 +43,65 @@ describe('modules/network', () => {
 
         expect(networking.getListener()).toBeUndefined();
         expect(() => networking.kill()).not.toThrow();
+    });
+
+    it('rejects replay before the network dispatcher starts', async () => {
+        const networking = new ServerNetworking(stub<Server>({}));
+
+        await expect(
+            networking.replayInboundRecord({
+                connectionId: 1,
+                sequence: 0,
+                tick: 0,
+                protocolVersion: 2193,
+                packetName: 'TextPacket',
+                payload: Buffer.alloc(0)
+            })
+        ).rejects.toThrow('Cannot replay a packet before networking starts');
+    });
+
+    it('delegates replay to the started network dispatcher', async () => {
+        const server = stub<Server>({
+            getConfig: () =>
+                stub<Config>({
+                    getEnableQuery: () => false,
+                    getGamemode: () => 'survival',
+                    getMaxPlayers: () => 1,
+                    getMotd: () => 'test server',
+                    getOnlineMode: () => false
+                }),
+            getLogger: () =>
+                stub<Logger>({
+                    debug: () => {},
+                    error: () => {},
+                    info: () => {},
+                    silly: () => {},
+                    verbose: () => {},
+                    warn: () => {}
+                }),
+            getPacketHandlerRegistry: () => stub<ReturnType<Server['getPacketHandlerRegistry']>>({}),
+            getPacketLogFilter: () => new PacketLogFilter(),
+            getQueryManager: () => stub<ReturnType<Server['getQueryManager']>>({}),
+            getSessionManager: () => new SessionManager()
+        });
+        const networking = new ServerNetworking(server);
+
+        try {
+            // Port 0 asks the OS for an ephemeral local port; cleanup below leaves no listener behind.
+            networking.start('127.0.0.1', 0);
+
+            await expect(
+                networking.replayInboundRecord({
+                    connectionId: 1,
+                    sequence: 0,
+                    tick: 0,
+                    protocolVersion: 2193,
+                    packetName: 'TextPacket',
+                    payload: Buffer.alloc(0)
+                })
+            ).rejects.toThrow('Replay connection 1 is not connected');
+        } finally {
+            networking.kill();
+        }
     });
 });
