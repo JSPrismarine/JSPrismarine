@@ -35,7 +35,7 @@ import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
-import { blockPositionOf, entityEyePosition } from './position';
+import { blockPositionOf, ENTITY_EYE_HEIGHT_FRACTION } from './position';
 import type { EntityScene } from './scene';
 import { DEFAULT_BOX, PLAYER_BOX } from './facts';
 
@@ -48,60 +48,173 @@ const playerById = (scene: EntityScene, id: number) => {
     return indexed === undefined ? scene.host.players().find((player) => player.id === id) : indexed(id);
 };
 
+const NO_TAGS: ReadonlySet<string> = new Set();
+// Weak keys let removed entities, old player snapshots, and content reloads be collected.
+const brainEntityViews = new WeakMap<DataEntity, WeakMap<EntityScene, BrainEntity>>();
+const brainMobViews = new WeakMap<DataEntity, Map<Brain, WeakMap<EntityScene, BrainMob>>>();
+const brainPlayerViews = new WeakMap<ContentEntity, WeakMap<EntityScene, BrainEntity>>();
+const tagsByContent = new WeakMap<ContentTags, Map<string, Map<string, ReadonlySet<string>>>>();
+const itemsByContent = new WeakMap<ContentTags, Map<string, BrainItemEntity['item']>>();
+
 /** One live entity as a brain sees it. */
-export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEntity => ({
-    id: String(entity.id),
-    type: entity.identifier,
-    typeTags: new Set(entity.facts.families),
-    position: entity.position,
-    dimensions: entity.facts.box,
-    eyePosition: entityEyePosition(entity.position, entity.facts.box.height),
-    alive: entity.removed === undefined,
-    baby: entity.instance.hasComponent('minecraft:is_baby'),
-    spectator: false,
-    canBeTargeted: () => entity.removed === undefined,
-    conditions: entity.conditions,
-    mainHandItem:
-        entity.carried === undefined ? undefined : { id: entity.carried, tags: itemTags(entity.carried, scene) },
-    offHandItem:
-        entity.body.equipment.offhand === undefined
-            ? undefined
-            : {
-                  id: entity.body.equipment.offhand.identifier,
-                  tags: itemTags(entity.body.equipment.offhand.identifier, scene)
-              }
-});
+export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEntity => {
+    let viewsByScene = brainEntityViews.get(entity);
+    const known = viewsByScene?.get(scene);
+    if (known !== undefined) return known;
+
+    let familyToken: object | undefined;
+    let familyTags: ReadonlySet<string> = NO_TAGS;
+    const eyePosition = {
+        get x() {
+            return entity.position.x;
+        },
+        get y() {
+            return entity.position.y + entity.facts.box.height * ENTITY_EYE_HEIGHT_FRACTION;
+        },
+        get z() {
+            return entity.position.z;
+        }
+    };
+    // Memories keep BrainEntity references across ticks, like Java keeps Entity references.
+    const view: BrainEntity = {
+        id: String(entity.id),
+        type: entity.identifier,
+        get typeTags() {
+            const token = entity.instance.componentSetToken;
+            if (familyToken !== token) {
+                // Component groups can replace families without replacing the entity view.
+                familyToken = token;
+                familyTags = new Set(entity.facts.families);
+            }
+            return familyTags;
+        },
+        get position() {
+            return entity.position;
+        },
+        get dimensions() {
+            return entity.facts.box;
+        },
+        eyePosition,
+        get alive() {
+            return entity.removed === undefined;
+        },
+        get baby() {
+            return entity.instance.hasComponent('minecraft:is_baby');
+        },
+        spectator: false,
+        canBeTargeted: () => entity.removed === undefined,
+        get conditions() {
+            return entity.conditions;
+        },
+        get mainHandItem() {
+            const identifier = entity.carried;
+            return identifier === undefined ? undefined : itemOf(identifier, scene);
+        },
+        get offHandItem() {
+            const identifier = entity.body.equipment.offhand?.identifier;
+            return identifier === undefined ? undefined : itemOf(identifier, scene);
+        }
+    };
+
+    if (viewsByScene === undefined) {
+        viewsByScene = new WeakMap();
+        brainEntityViews.set(entity, viewsByScene);
+    }
+    viewsByScene.set(scene, view);
+    return view;
+};
 
 /** A live player as a brain sees one, including its current combat eligibility. */
-const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity => ({
-    id: String(player.id),
-    type: player.identifier,
-    typeTags: new Set(),
-    position: player.position,
-    dimensions: PLAYER_BOX,
-    eyePosition: { x: player.position.x, y: player.position.y + EYE_HEIGHT, z: player.position.z },
-    alive: true,
-    baby: false,
-    spectator: player.spectator === true,
-    canBeTargeted: () => {
-        const current = playerById(scene, player.id);
-        return current !== undefined && current.creative !== true && current.spectator !== true;
-    },
-    conditions: new Set()
-});
+const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity => {
+    let viewsByScene = brainPlayerViews.get(player);
+    const known = viewsByScene?.get(scene);
+    if (known !== undefined) return known;
+
+    const current = () => playerById(scene, player.id);
+    const position = () => current()?.position ?? player.position;
+    const eyePosition = {
+        get x() {
+            return position().x;
+        },
+        get y() {
+            return position().y + EYE_HEIGHT;
+        },
+        get z() {
+            return position().z;
+        }
+    };
+    const view: BrainEntity = {
+        id: String(player.id),
+        type: player.identifier,
+        typeTags: NO_TAGS,
+        get position() {
+            return position();
+        },
+        dimensions: PLAYER_BOX,
+        eyePosition,
+        get alive() {
+            return current() !== undefined;
+        },
+        baby: false,
+        get spectator() {
+            return current()?.spectator === true;
+        },
+        canBeTargeted: () => {
+            const live = current();
+            return live !== undefined && live.creative !== true && live.spectator !== true;
+        },
+        conditions: NO_TAGS
+    };
+
+    if (viewsByScene === undefined) {
+        viewsByScene = new WeakMap();
+        brainPlayerViews.set(player, viewsByScene);
+    }
+    viewsByScene.set(scene, view);
+    return view;
+};
 
 /** The item tags of one item identifier, which is what a piglin's `piglin_loved` test reads. */
-const itemTags = (identifier: string, scene: EntityScene): ReadonlySet<string> => {
-    const tags = scene.content().tags;
+const itemTags = (identifier: string, tags: ContentTags): ReadonlySet<string> => {
     return contentTagsFor('item', identifier, tags);
+};
+
+/** A cached brain item view; both its id and tags depend only on content identity. */
+const itemOf = (identifier: string, scene: EntityScene): BrainItemEntity['item'] => {
+    const tags = scene.content().tags;
+    let byIdentifier = itemsByContent.get(tags);
+    const known = byIdentifier?.get(identifier);
+    if (known !== undefined) return known;
+
+    const item = { id: identifier, tags: itemTags(identifier, tags) };
+    if (byIdentifier === undefined) {
+        byIdentifier = new Map();
+        itemsByContent.set(tags, byIdentifier);
+    }
+    byIdentifier.set(identifier, item);
+    return item;
 };
 
 /** Resolves the tags containing one identifier through the built membership index. */
 const contentTagsFor = (registry: string, identifier: string, tags: ContentTags): ReadonlySet<string> => {
+    let byRegistry = tagsByContent.get(tags);
+    const known = byRegistry?.get(registry)?.get(identifier);
+    if (known !== undefined) return known;
+
     const found = new Set<string>();
     for (const tag of tags.tags(registry)) {
         if (tags.includes(registry, tag, identifier)) found.add(tag);
     }
+    if (byRegistry === undefined) {
+        byRegistry = new Map();
+        tagsByContent.set(tags, byRegistry);
+    }
+    let byIdentifier = byRegistry.get(registry);
+    if (byIdentifier === undefined) {
+        byIdentifier = new Map();
+        byRegistry.set(registry, byIdentifier);
+    }
+    byIdentifier.set(identifier, found);
     return found;
 };
 
@@ -178,28 +291,84 @@ export const tickBrainNavigation = (entity: DataEntity): void => {
 };
 
 /** The body one brain drives. */
-export const brainMobOf = (entity: DataEntity, brain: Brain, scene: EntityScene): BrainMob => ({
-    ...brainEntityOf(entity, scene),
-    brain,
-    navigation: brainNavigationOf(entity, scene),
-    setCondition: (condition, value) => {
-        if (value) entity.conditions.add(condition);
-        else entity.conditions.delete(condition);
-    },
-    lookAt: (position) => entity.body.lookAt(position),
-    jump: () => entity.body.jump(),
-    attack: (target) => {
-        const other = scene.byId(Number(target.id));
-        if (other === undefined) return;
-        scene.attack(entity.body, {
-            id: other.id,
-            position: () => other.position,
-            view: () => other.instance.filterContext().self
-        });
-    },
-    playSound: (sound) => scene.world.effects.playSound(blockPositionOf(entity.position), sound),
-    attribute: (attribute) => attributeOf(entity, attribute)
-});
+export const brainMobOf = (entity: DataEntity, brain: Brain, scene: EntityScene): BrainMob => {
+    let byBrain = brainMobViews.get(entity);
+    let viewsByScene = byBrain?.get(brain);
+    const known = viewsByScene?.get(scene);
+    if (known !== undefined) return known;
+
+    const view = brainEntityOf(entity, scene);
+    // Spreading the entity view would eagerly read its getters and freeze tick-local values.
+    const mob: BrainMob = {
+        get id() {
+            return view.id;
+        },
+        get type() {
+            return view.type;
+        },
+        get typeTags() {
+            return view.typeTags;
+        },
+        get position() {
+            return view.position;
+        },
+        get dimensions() {
+            return view.dimensions;
+        },
+        get eyePosition() {
+            return view.eyePosition;
+        },
+        get alive() {
+            return view.alive;
+        },
+        get baby() {
+            return view.baby;
+        },
+        get spectator() {
+            return view.spectator;
+        },
+        canBeTargeted: () => view.canBeTargeted?.() ?? true,
+        get conditions() {
+            return view.conditions;
+        },
+        get mainHandItem() {
+            return view.mainHandItem;
+        },
+        get offHandItem() {
+            return view.offHandItem;
+        },
+        brain,
+        navigation: brainNavigationOf(entity, scene),
+        setCondition: (condition, value) => {
+            if (value) entity.conditions.add(condition);
+            else entity.conditions.delete(condition);
+        },
+        lookAt: (position) => entity.body.lookAt(position),
+        jump: () => entity.body.jump(),
+        attack: (target) => {
+            const other = scene.byId(Number(target.id));
+            if (other === undefined) return;
+            scene.attack(entity.body, {
+                id: other.id,
+                position: () => other.position,
+                view: () => other.instance.filterContext().self
+            });
+        },
+        playSound: (sound) => scene.world.effects.playSound(blockPositionOf(entity.position), sound),
+        attribute: (attribute) => attributeOf(entity, attribute)
+    };
+
+    if (byBrain === undefined) {
+        byBrain = new Map();
+        brainMobViews.set(entity, byBrain);
+    }
+    if (viewsByScene === undefined) {
+        viewsByScene = new WeakMap();
+        byBrain.set(brain, viewsByScene);
+    }
+    viewsByScene.set(scene, mob);
+    return mob;
+};
 
 /**
  * One of Java's attribute names as this runtime answers it.
@@ -226,20 +395,30 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         excludeDimensions: EntityDimensions = exclude.dimensions ?? DEFAULT_BOX
     ): readonly BrainEntity[] => {
         const bounds = inflatedEntityBounds(center, excludeDimensions, radius);
-        const found = new Map<string, BrainEntity>();
+        const found = new Map<
+            string,
+            { readonly entity: BrainEntity; readonly distance: number; readonly order: number }
+        >();
+        let order = 0;
         for (const candidate of scene.inBox(bounds.min, bounds.max)) {
             if (String(candidate.id) === exclude.id || candidate.removed !== undefined) continue;
             const entity = brainEntityOf(candidate, scene);
-            found.set(entity.id, entity);
+            // Java's nearest-first order is distance-based; caching the key also keeps ties stable.
+            found.set(entity.id, { entity, distance: distance(center, entity.position), order });
+            order += 1;
         }
         for (const player of scene.host.players()) {
             const id = String(player.id);
             if (id === exclude.id || found.has(id) || !entityIntersectsBounds(player.position, PLAYER_BOX, bounds)) {
                 continue;
             }
-            found.set(id, brainPlayerOf(player, scene));
+            const entity = brainPlayerOf(player, scene);
+            found.set(id, { entity, distance: distance(center, entity.position), order });
+            order += 1;
         }
-        return [...found.values()].sort((a, b) => distance(center, a.position) - distance(center, b.position));
+        return [...found.values()]
+            .sort((a, b) => a.distance - b.distance || a.order - b.order)
+            .map(({ entity }) => entity);
     };
 
     return {
@@ -271,25 +450,17 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         },
         blockTagsAt: (pos) => {
             const identifier = scene.world.blocks.get(pos)?.identifier;
-            if (identifier === undefined) return new Set();
+            if (identifier === undefined) return NO_TAGS;
             const tags = scene.content().tags;
             return contentTagsFor('block', identifier, tags);
         },
         findBlock: (center, xzRange, yRange, test) => {
-            const tags = scene.content().tags;
-            const tagsByBlock = new Map<string, ReadonlySet<string>>();
-            const blockTagsFor = (identifier: string): ReadonlySet<string> => {
-                const known = tagsByBlock.get(identifier);
-                if (known !== undefined) return known;
-
-                const resolved = contentTagsFor('block', identifier, tags);
-                tagsByBlock.set(identifier, resolved);
-                return resolved;
-            };
-
             const matches = (position: typeof center): boolean => {
                 const block = scene.world.blocks.get(position);
-                return block !== undefined && test(block.identifier, blockTagsFor(block.identifier), position);
+                return (
+                    block !== undefined &&
+                    test(block.identifier, contentTagsFor('block', block.identifier, scene.content().tags), position)
+                );
             };
 
             for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {

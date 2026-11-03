@@ -2,11 +2,12 @@
  * A behavior digest of the data-driven entity runtime.
  *
  * The benchmark beside this one says how fast the runtime is. This says
- * whether it still does the same thing: five seeded scenarios are driven for a
+ * whether it still does the same thing: seeded scenarios are driven for a
  * thousand ticks each and every mob's position, heading, target and running
  * goals are folded into a SHA-256. Two builds that agree on the digest agree
  * on every mob's behavior, bit for bit, so an optimization that changed which
- * mob a goal picked would show up here as a different hash.
+ * mob a goal picked would show up here as a different hash. The brain-mix
+ * scene runs every brain mob twice while its behaviors and memories change.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAiDigest.bench.ts [scenario names...] [--verify-replay]
@@ -18,6 +19,8 @@
 import { createHash } from 'node:crypto';
 
 import type { EntityPosition } from '@jsprismarine/entities';
+import { BRAIN_MOBS } from '@jsprismarine/entity-brains';
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { singleDimension } from '../src/content/world/adapter';
 import type {
@@ -154,8 +157,14 @@ interface Scenario {
     readonly ticks: number;
 }
 
+/** Bedrock identifiers for the twenty Java brain definitions, including renamed mobs. */
+const brainMobIdentifiers = BRAIN_MOBS.map(({ id }) => {
+    const mapped = javaEntityTypeToBedrock(id);
+    return mapped.kind === 'mapped' ? mapped.bedrock : id;
+});
+
 /**
- * The five scenarios, chosen to cover the goals that read the neighbor scan.
+ * The five goal scenarios cover behaviors that read the neighbor scan.
  *
  * Two hostile scenes where `nearest_attackable_target` picks a victim out of
  * `mobs()`, one farm where `breed` and `follow_parent` do, one crowd dense
@@ -218,16 +227,28 @@ const SCENARIOS: readonly Scenario[] = [
         players: 3,
         seed: 44,
         ticks: 120
+    },
+    {
+        // Every registered brain mob appears twice, so the context caches cover every brain
+        // implementation while the dense neighborhood exercises the live entity views.
+        name: 'brain-mix',
+        mobs: brainMobIdentifiers,
+        count: 40,
+        spread: 48,
+        players: 4,
+        seed: 55,
+        ticks: 300
     }
 ];
 
-/** Java goal-selector cadence from #2782; update these only with reviewed behavior changes. */
+/** Reviewed behavior baselines; the brain-mix digest also locks live entity references in memories. */
 const EXPECTED_DIGESTS: Readonly<Record<string, string>> = {
     hostile: 'ac6e4551cd5974484d44d06c22a5189c66a77297391710cff2549b038c3a7d95',
     farm: '06ce634e1500f6f52a238a0bcb352eaf8edb4d904090570ddc541d836dde699e',
     mixed: '86d28a23d6324db532c95e9271b7524a940cff78b0026f4d06ddb8d0fc2ac614',
     stacked: '61ecca73ee3d869c94612b3cd2a411e14ab702cda7bc578d04624122ccbf0a7b',
-    sparse: '29aa8215bd262c183f42147a7cdc299fede76de05bbe2859721f7e9e8bdb3300'
+    sparse: '29aa8215bd262c183f42147a7cdc299fede76de05bbe2859721f7e9e8bdb3300',
+    'brain-mix': '49887ee656cee995cbc8735eb2b1f5479a1dfffb2d78c0207b8947a4ba8c9e5d'
 };
 
 /** One number's exact bits, so a digest catches a change below printed precision. */

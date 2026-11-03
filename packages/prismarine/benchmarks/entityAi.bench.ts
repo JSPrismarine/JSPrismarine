@@ -8,6 +8,8 @@
  * to back a 441-chunk scene with production `Chunk` storage and report its
  * underlying runtime-id reads. Set `ENTITY_AI_LIVE_PLAYERS=1` to model the live
  * adapter's per-read player-list mapping and report snapshot/view allocations.
+ * Set `ENTITY_AI_BRAIN_MOBS=1` to spawn the twenty brain mobs and count measured
+ * tag-registry scans and membership checks.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
@@ -15,8 +17,12 @@
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  * Player allocation run: ENTITY_AI_LIVE_PLAYERS=1 ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
+ * Brain-mob run: ENTITY_AI_BRAIN_MOBS=1 ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
 import type { EntityPosition, FilterEntityView } from '@jsprismarine/entities';
+import { BRAIN_MOBS } from '@jsprismarine/entity-brains';
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { singleDimension } from '../src/content/world/adapter';
@@ -31,6 +37,7 @@ import type {
 } from '../src/content/world/adapter';
 import { buildServerContent } from '../src/content/ServerContent';
 import type { ServerContent } from '../src/content/ServerContent';
+import type { ContentTags } from '../src/content/tags';
 import { entityContentGroups } from '../src/entity/contentAdapter';
 import { EntityRuntime } from '../src/entity/data/EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '../src/entity/data/host';
@@ -40,6 +47,7 @@ import Chunk from '../src/world/chunk/Chunk';
 const FLOOR_Y = 63;
 const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1';
 const PRODUCTION_PLAYERS = process.env.ENTITY_AI_LIVE_PLAYERS === '1';
+const BRAIN_MOB_PROFILE = process.env.ENTITY_AI_BRAIN_MOBS === '1';
 const CHUNK_RADIUS = PRODUCTION_CHUNKS ? 10 : 0;
 const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
 const SPREAD = PRODUCTION_CHUNKS ? 320 : 64;
@@ -212,6 +220,34 @@ const MIX = [
     'minecraft:chicken'
 ] as const;
 
+/** Every supported brain mob, mapped from Java to the Bedrock id the runtime spawns. */
+const BRAIN_MOB_MIX = BRAIN_MOBS.map(({ id }) => {
+    const mapped = javaEntityTypeToBedrock(id);
+    return mapped.kind === 'mapped' ? mapped.bedrock : id;
+});
+
+interface TagScanCounts {
+    enumerations: number;
+    membershipChecks: number;
+}
+
+/** Counts registry enumeration and membership work performed by tag-backed brain sensors. */
+const instrumentTags = (tags: ContentTags, counts: TagScanCounts): ContentTags => ({
+    registries: tags.registries,
+    diagnostics: tags.diagnostics,
+    size: tags.size,
+    tags: (registry) => {
+        counts.enumerations += 1;
+        return tags.tags(registry);
+    },
+    has: (registry, tag) => tags.has(registry, tag),
+    members: (registry, tag) => tags.members(registry, tag),
+    includes: (registry, tag, identifier) => {
+        counts.membershipChecks += 1;
+        return tags.includes(registry, tag, identifier);
+    }
+});
+
 /** How many players walk among the mobs, which is what keeps the targeting goals live. */
 const PLAYERS = 2;
 
@@ -244,6 +280,7 @@ const scenario = (count: number, seed: number) => {
         }
     };
     const allocations = { playerLists: 0, playerViews: 0 };
+    const tagScans: TagScanCounts = { enumerations: 0, membershipChecks: 0 };
     const host = benchHost(players, allocations);
 
     let content: ServerContent | undefined;
@@ -258,7 +295,8 @@ const scenario = (count: number, seed: number) => {
     });
 
     const adapter: ServerWorldAdapter = { ...world, ticks, ...entityContentGroups(runtime) };
-    content = buildServerContent({ world: singleDimension(adapter) });
+    const builtContent = buildServerContent({ world: singleDimension(adapter) });
+    content = BRAIN_MOB_PROFILE ? { ...builtContent, tags: instrumentTags(builtContent.tags, tagScans) } : builtContent;
 
     // A separate stream for the layout, so changing the mob count does not shift the
     // numbers the goals draw.
@@ -278,7 +316,8 @@ const scenario = (count: number, seed: number) => {
                       y: FLOOR_Y + 1,
                       z: (layout.nextFloat() - 0.5) * SPREAD
                   };
-        const entity = runtime.spawn(BREEDING_PAIRS > 0 ? 'minecraft:sheep' : MIX[index % MIX.length]!, at);
+        const mobs = BRAIN_MOB_PROFILE ? BRAIN_MOB_MIX : MIX;
+        const entity = runtime.spawn(BREEDING_PAIRS > 0 ? 'minecraft:sheep' : mobs[index % mobs.length]!, at);
         if (entity !== undefined && BREEDING_PAIRS > 0) breedingIds.push(entity.id);
     }
 
@@ -297,6 +336,7 @@ const scenario = (count: number, seed: number) => {
         walkPlayers,
         blockReads,
         allocations,
+        tagScans,
         startBreeding: () => breedingIds.forEach((id) => runtime.setInLove(id, 400))
     };
 };
@@ -311,8 +351,10 @@ const run = (
     readonly measuredBlockReads: number;
     readonly measuredPlayerLists: number;
     readonly playerViewsCreated: number;
+    readonly measuredTagEnumerations: number;
+    readonly measuredTagMembershipChecks: number;
 } => {
-    const { runtime, walkPlayers, blockReads, allocations, startBreeding } = scenario(count, seed);
+    const { runtime, walkPlayers, blockReads, allocations, tagScans, startBreeding } = scenario(count, seed);
     const times: number[] = [];
     for (let tick = 0; tick < WARMUP; tick += 1) {
         walkPlayers(tick);
@@ -321,6 +363,8 @@ const run = (
 
     const readsBeforeMeasure = blockReads.count;
     const playerListsBeforeMeasure = allocations.playerLists;
+    const tagEnumerationsBeforeMeasure = tagScans.enumerations;
+    const tagMembershipChecksBeforeMeasure = tagScans.membershipChecks;
     startBreeding();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
@@ -332,7 +376,9 @@ const run = (
         times,
         measuredBlockReads: blockReads.count - readsBeforeMeasure,
         measuredPlayerLists: allocations.playerLists - playerListsBeforeMeasure,
-        playerViewsCreated: allocations.playerViews
+        playerViewsCreated: allocations.playerViews,
+        measuredTagEnumerations: tagScans.enumerations - tagEnumerationsBeforeMeasure,
+        measuredTagMembershipChecks: tagScans.membershipChecks - tagMembershipChecksBeforeMeasure
     };
 };
 
@@ -364,14 +410,15 @@ const report = (count: number): void => {
             `  (${BREEDING_PAIRS > 0 ? `${BREEDING_PAIRS} breeding pairs, ` : ''}` +
             `${result.measuredBlockReads} measured block reads` +
             `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''}` +
-            `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''})`
+            `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''}` +
+            `${BRAIN_MOB_PROFILE ? `, ${result.measuredTagEnumerations} tag enumerations, ${result.measuredTagMembershipChecks} tag membership checks` : ''})`
     );
 };
 
 console.log(
     [
-        BREEDING_PAIRS > 0 ? 'breeding mobs' : 'mobs',
-        '  mean ms',
+        BRAIN_MOB_PROFILE ? 'brain mobs' : BREEDING_PAIRS > 0 ? 'breeding mobs' : 'mobs',
+        'mean ms/tick',
         ' ms/mob',
         '   p50 ms',
         '   p99 ms',

@@ -122,6 +122,7 @@ export class Brain {
     private readonly sensors: readonly Sensor[];
     /** Priority to activity to behavior set, iterated in ascending priority order. */
     private readonly behaviorsByPriority = new Map<number, Map<Activity, Set<BehaviorControl>>>();
+    private ascendingPriorityCache: readonly number[] | undefined;
     private readonly activityRequirements = new Map<Activity, readonly ActivityCondition[]>();
     private readonly activityMemoriesToEraseWhenStopped = new Map<Activity, readonly MemoryModuleType<unknown>[]>();
 
@@ -185,6 +186,8 @@ export class Brain {
             }
             behaviors.add(behavior);
         }
+        // This is the sole behavior-set writer today; any future removal path must invalidate too.
+        this.ascendingPriorityCache = undefined;
     }
 
     /**
@@ -441,7 +444,8 @@ export class Brain {
     }
 
     private ascendingPriorities(): readonly number[] {
-        return [...this.behaviorsByPriority.keys()].sort((a, b) => a - b);
+        this.ascendingPriorityCache ??= [...this.behaviorsByPriority.keys()].sort((a, b) => a - b);
+        return this.ascendingPriorityCache;
     }
 
     private startEachNonRunningBehavior(context: BrainContext): void {

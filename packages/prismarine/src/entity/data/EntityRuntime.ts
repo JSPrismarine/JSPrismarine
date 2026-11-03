@@ -437,6 +437,8 @@ export class EntityRuntime implements EntityScene {
     private spawnWorld: SpawnWorld | undefined;
     /** The path finder's view, built once; see {@link EntityRuntime.navigation}. */
     private navigationView: CachedNavigationView | undefined;
+    /** The brain callbacks are stable for this runtime and read live state through their closures. */
+    private brainWorldView: ReturnType<typeof brainWorldOf> | undefined;
     private nextId = 1;
 
     public constructor(options: EntityRuntimeOptions) {
@@ -1315,8 +1317,7 @@ export class EntityRuntime implements EntityScene {
         if (brain === undefined || definition === undefined) return;
 
         this.updateBrainConditions(entity);
-        // The context is rebuilt each tick because `BrainMob` is a view over live state rather
-        // than a stored object, which is what keeps it from going stale after a position change.
+        // The context itself is tick-local; its world and mob views are cached and read live state.
         const context = { world: this.brainWorld(), body: brainMobOf(entity, brain, this) };
         definition.updateActivity(context);
         brain.tick(context);
@@ -1405,7 +1406,8 @@ export class EntityRuntime implements EntityScene {
 
     /** The one level the twenty brain mobs read. */
     public brainWorld() {
-        return brainWorldOf(this);
+        this.brainWorldView ??= brainWorldOf(this);
+        return this.brainWorldView;
     }
 
     /**
