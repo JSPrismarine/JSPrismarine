@@ -34,12 +34,6 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
 
-            - name: 🔨 Build
-              run: pnpm run build
-
-            - name: 📃 Typecheck
-              run: pnpm run typecheck
-
             - name: 🧪 Test
               run: pnpm run test --tagsFilter='!real-data && !performance'
 
@@ -60,6 +54,18 @@ jobs:
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
+
+    typecheck:
+        name: 📃 Typecheck (ubuntu-latest)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 📃 Typecheck
+              run: pnpm run typecheck
 
     # Suites that read Mojang's published data carry the `real-data` tag. The unit test job
     # filters them out because it does not fetch sources; this job prepares and runs them.

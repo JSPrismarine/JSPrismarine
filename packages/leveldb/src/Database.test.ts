@@ -340,23 +340,23 @@ describe('leveldb', () => {
                 // Killed for real, in a child process: simulating it from here would only exercise
                 // the same-process guard, which is a different mechanism.
                 const directory = scratch();
-                const built = path.resolve(import.meta.dirname, '..', 'dist', 'index.es.js');
-                if (!fs.existsSync(built)) {
-                    throw new Error(`This test needs the built package at ${built} - run its build first`);
-                }
+                const source = path.resolve(import.meta.dirname, 'index.ts');
+                const packageRoot = path.resolve(import.meta.dirname, '..');
 
                 const child = spawn(
                     process.execPath,
                     [
+                        '--import',
+                        'tsx',
                         '--input-type=module',
                         '-e',
-                        `import { Database } from ${JSON.stringify(pathToFileURL(built).href)};
+                        `import { Database } from ${JSON.stringify(pathToFileURL(source).href)};
                          const db = await Database.open(${JSON.stringify(directory)});
                          db.put(Buffer.from('written'), Buffer.from('before the kill'));
                          console.log('ready');
                          setInterval(() => {}, 1000);`
                     ],
-                    { stdio: ['ignore', 'pipe', 'inherit'] }
+                    { cwd: packageRoot, stdio: ['ignore', 'pipe', 'inherit'] }
                 );
 
                 await new Promise<void>((resolve, reject) => {
