@@ -29,7 +29,7 @@ export interface RakNetTransportSource {
 }
 
 /** Where the legacy `raknetConnect`/`raknetEncapsulatedPacket` events still go: the server's bus. */
-export type RaknetEventBus = Pick<EventEmitter, 'emit'>;
+export type RaknetEventBus = Pick<EventEmitter, 'emit' | 'hasListeners'>;
 
 /**
  * One RakNet session as a {@link TransportConnection}: frames leave reliable ordered on
@@ -142,8 +142,12 @@ export default class RakNetTransport implements Transport<RakNetTransportConnect
     }
 
     private async handleEncapsulated(frame: Protocol.Frame, address: InetAddress): Promise<void> {
-        const event = new RaknetEncapsulatedPacketEvent(address, frame);
-        await this.events.emit('raknetEncapsulatedPacket', event);
+        // Most servers have no plugin subscribed to raw frames, so avoid an event allocation
+        // and an async emit on the busiest inbound path in that common case.
+        if (this.events.hasListeners('raknetEncapsulatedPacket')) {
+            const event = new RaknetEncapsulatedPacketEvent(address, frame);
+            await this.events.emit('raknetEncapsulatedPacket', event);
+        }
 
         await this.deliver(this.frameListeners, (listener) => listener(frame.content, address));
     }

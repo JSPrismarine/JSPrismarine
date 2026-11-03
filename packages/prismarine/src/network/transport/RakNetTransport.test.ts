@@ -5,6 +5,7 @@ import type { Frame, InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import type { Event } from '../../events/Event';
 import type { EventEmitter } from '../../events/EventEmitter';
+import { EventEmitter as ServerEventEmitter } from '../../events/EventEmitter';
 import RaknetConnectEvent from '../../events/raknet/RaknetConnectEvent';
 import RaknetEncapsulatedPacketEvent from '../../events/raknet/RaknetEncapsulatedPacketEvent';
 import { stub } from '../../testing/stub.test.helper';
@@ -37,6 +38,7 @@ const fakeSession = (token = 'host:port') => {
 const fakeBus = (onEvent?: (event: Event) => void) => {
     const emitted: [string, Event][] = [];
     const bus = stub<EventEmitter>({
+        hasListeners: (id: string) => id === 'raknetEncapsulatedPacket' && onEvent !== undefined,
         emit: async (id: string, event: Event) => {
             emitted.push([id, event]);
             onEvent?.(event);
@@ -126,10 +128,14 @@ describe('network/transport', () => {
 
         it('maps encapsulated to frame, handing on the content bytes', async () => {
             const listener = new FakeListener();
-            const { bus, emitted } = fakeBus();
+            const order: string[] = [];
+            const { bus, emitted } = fakeBus(() => order.push('event'));
             const transport = new RakNetTransport(listener, bus);
             const frames: [Buffer, string][] = [];
-            transport.onFrame((payload, address) => void frames.push([payload, address.toToken()]));
+            transport.onFrame((payload, address) => {
+                order.push('frame');
+                frames.push([payload, address.toToken()]);
+            });
 
             const frame = new Protocol.Frame();
             frame.content = Buffer.from('batch');
@@ -140,8 +146,52 @@ describe('network/transport', () => {
             expect(emitted.map(([id]) => id)).toStrictEqual(['raknetEncapsulatedPacket']);
             const event = emitted[0]![1];
             if (!(event instanceof RaknetEncapsulatedPacketEvent)) throw new Error('wrong event emitted');
+            expect(event.getInetAddr()).toBe(address);
             expect(event.getPacket()).toBe(frame);
             expect(frames).toStrictEqual([[Buffer.from('batch'), 'a:1']]);
+            expect(order).toStrictEqual(['event', 'frame']);
+        });
+
+        it('checks the real server bus and awaits the legacy event before the frame listener', async () => {
+            const listener = new FakeListener();
+            const events = new ServerEventEmitter();
+            const order: string[] = [];
+            const emitted: RaknetEncapsulatedPacketEvent[] = [];
+            events.on('raknetEncapsulatedPacket', (event) => {
+                order.push('event');
+                emitted.push(event);
+            });
+            const transport = new RakNetTransport(listener, events);
+            transport.onFrame(() => {
+                order.push('frame');
+            });
+
+            const frame = new Protocol.Frame();
+            frame.content = Buffer.from('batch');
+            const address = stub<InetAddress>({ toToken: () => 'a:1' });
+            listener.emit('encapsulated', frame, address);
+            await settled();
+
+            expect(emitted).toHaveLength(1);
+            expect(emitted[0]!.getInetAddr()).toBe(address);
+            expect(emitted[0]!.getPacket()).toBe(frame);
+            expect(order).toStrictEqual(['event', 'frame']);
+        });
+
+        it('skips event construction when no plugin listens and still delivers the frame', async () => {
+            const listener = new FakeListener();
+            const { bus, emitted } = fakeBus();
+            const transport = new RakNetTransport(listener, bus);
+            const frames: Buffer[] = [];
+            transport.onFrame((payload) => void frames.push(payload));
+
+            const frame = new Protocol.Frame();
+            frame.content = Buffer.from('batch');
+            listener.emit('encapsulated', frame, stub<InetAddress>({ toToken: () => 'a:1' }));
+            await settled();
+
+            expect(emitted).toStrictEqual([]);
+            expect(frames).toStrictEqual([Buffer.from('batch')]);
         });
 
         it('forwards closeConnection as disconnect with the reason', async () => {

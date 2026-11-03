@@ -90,6 +90,11 @@ class ListenerRegistry {
         }
     }
 
+    /** Whether an event has listeners, including `once` listeners. */
+    public has(id: string): boolean {
+        return (this.listeners.get(id)?.size ?? 0) > 0;
+    }
+
     /** Calls every listener of the event; the results are what the listeners returned. */
     public call(id: string, event: unknown): unknown[] {
         const set = this.listeners.get(id);
@@ -173,6 +178,11 @@ export class EventEmitter {
     public removeAllListeners(id?: EventTypes[0]): this {
         this.registry.removeAll(id);
         return this;
+    }
+
+    /** Whether at least one handler is registered for a server event. */
+    public hasListeners(id: EventTypes[0]): boolean {
+        return this.registry.has(id);
     }
 
     /**

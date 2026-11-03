@@ -85,6 +85,9 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly traceTokens = new WeakMap<ClientConnection, string>();
     private readonly replaySequences = new Map<number, number>();
     private nextConnectionId = 1;
+    /** These codecs hold only immutable settings, so every connection can reuse them. */
+    private readonly compressedBatchCodec = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB });
+    private readonly uncompressedBatchCodec = BatchCodec.uncompressed();
     /** Keeps each reliable-ordered client stream sequential through async packet handlers. */
     private readonly frameQueues = new WeakMap<ClientConnection, Promise<void>>();
 
@@ -201,27 +204,27 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         .pipe((gated, connection) => this.dispatch(gated, connection));
 
     private enqueueFrame(payload: Buffer, inetAddr: InetAddress): Promise<void> {
+        // Carry this lookup result through the queue instead of rebuilding it in handleFrame.
         const token = inetAddr.toToken();
         // Stamp arrival before the per-connection queue. A previous async handler may hold this
         // frame until a later tick, but replay must keep the tick the client input arrived on.
         const tick = this.inboundPacketRecorder === undefined ? undefined : this.server.getTick();
         const connection = this.sessionManager.get(token);
-        if (connection === null) return this.handleFrame(payload, inetAddr, undefined, tick);
+        if (connection === null) return this.handleFrame(payload, token, undefined, tick);
 
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
-        const current = previous.then(() => this.handleFrame(payload, inetAddr, connection, tick));
+        const current = previous.then(() => this.handleFrame(payload, token, connection, tick));
         this.frameQueues.set(connection, current);
         return current;
     }
 
     private async handleFrame(
         payload: Buffer,
-        inetAddr: InetAddress,
+        token: string,
         expectedConnection?: ClientConnection,
         tick?: number
     ): Promise<void> {
         try {
-            const token = inetAddr.toToken();
             const connection = this.sessionManager.get(token);
             if (connection === null || (expectedConnection !== undefined && connection !== expectedConnection)) {
                 this.logger.error(`Got a packet from a closed connection (${token})`);
@@ -237,9 +240,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     /** Inflates one frame into the encoded packets batched inside it. */
     private async splitBatch(payload: Buffer, connection: ClientConnection): Promise<readonly Buffer[]> {
-        const batchCodec = connection.hasCompression
-            ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB })
-            : BatchCodec.uncompressed();
+        const batchCodec = connection.hasCompression ? this.compressedBatchCodec : this.uncompressedBatchCodec;
         return batchCodec.decodeAsync(payload);
     }
 

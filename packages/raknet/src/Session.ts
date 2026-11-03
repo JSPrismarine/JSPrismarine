@@ -191,6 +191,8 @@ export default class Session {
 
     // Packet pool is the best option to reduce allocations
     private readonly packetPool = new PacketPool();
+    /** A session's address does not change, so inbound frames share this instance. */
+    private readonly address: InetAddress;
 
     public constructor(
         private readonly listener: RakNetPeer,
@@ -200,6 +202,7 @@ export default class Session {
         public readonly role: RakNetRole = RakNetRole.SERVER
     ) {
         this.lastUpdate = monotonicNow();
+        this.address = new InetAddress(rinfo.address, rinfo.port);
 
         this.outputOrderIndex = new Array(MAX_CHANNELS).fill(0);
         this.outputSequenceIndex = new Array(MAX_CHANNELS).fill(0);
@@ -1305,7 +1308,8 @@ export default class Session {
         return this.mtuSize - UDP_HEADER_SIZE;
     }
 
+    /** Returns the address object created for this session. */
     public getAddress(): InetAddress {
-        return new InetAddress(this.rinfo.address, this.rinfo.port);
+        return this.address;
     }
 }
