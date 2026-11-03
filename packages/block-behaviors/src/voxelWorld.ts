@@ -208,7 +208,10 @@ export class VoxelDimension implements WorldActions {
         const members = tags.get(tag) ?? new Set<string>();
         for (const identifier of identifiers) members.add(identifier);
         tags.set(tag, members);
-        this.hasBlockTag ??= (block, named) => tags.get(named)?.has(block.identifier) ?? false;
+        this.hasBlockTag ??= (block, named) => {
+            const known = tags.get(named);
+            return known === undefined ? undefined : known.has(block.identifier);
+        };
     }
 
     /** Queues the next values {@link WorldActions.random} returns, in order. */
@@ -240,7 +243,7 @@ export class VoxelDimension implements WorldActions {
      * "this host cannot answer tags" and takes its fallback, so a method that always existed
      * and always answered no would take every family down the tag path with an empty stack.
      */
-    public hasBlockTag?: (block: HookBlock, tag: string) => boolean;
+    public hasBlockTag?: (block: HookBlock, tag: string) => boolean | undefined;
 
     /** The light dampening a test gave a block type, or the vanilla default. */
     public lightDampeningOf(block: HookBlock): number {

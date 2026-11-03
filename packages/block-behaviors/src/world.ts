@@ -180,8 +180,14 @@ export interface WorldActions {
     lightDampeningOf?(block: HookBlock): number;
     /** The resolved block state's `minecraft:flammable` odds, when content exposes them. */
     flammabilityOf?(block: HookBlock): BlockFlammability | undefined;
-    /** Whether the block belongs to a Java block tag such as `minecraft:infiniburn_overworld`. */
-    hasBlockTag?(block: HookBlock, tag: string): boolean;
+    /**
+     * Whether the block belongs to a Java block tag such as `minecraft:infiniburn_overworld`.
+     *
+     * @returns Undefined when the loaded stack declares no such tag, which is not the same
+     *   answer as `false`: a rule whose tag nobody loaded has to fall back to its own names
+     *   rather than read every block as being outside it.
+     */
+    hasBlockTag?(block: HookBlock, tag: string): boolean | undefined;
     /** Whether this block has a sturdy top face, when the host can report its collision shape. */
     hasSturdyTopFace?(block: HookBlock): boolean;
     /** Whether this block fills its cell with a full cube collision shape. */
