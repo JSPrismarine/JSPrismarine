@@ -16,6 +16,33 @@ interface BlockStorageData {
 /** How many blocks one sub chunk holds. */
 const BLOCKS_PER_SUBCHUNK = 4096;
 const MAX_BYTE_INDEX_PALETTE_SIZE = 256;
+const VALID_BITS_PER_BLOCK = [0, 1, 2, 3, 4, 5, 6, 8, 16];
+
+interface PackedNetworkStorage {
+    readonly bitsPerBlock: number;
+    readonly palette: readonly number[];
+    readonly words: Uint32Array;
+}
+
+/** The widths shared by Bedrock's persistent and network storage encodings. */
+const bitsForPaletteSize = (paletteSize: number): number => {
+    if (paletteSize <= 1) return 0;
+    const needed = Math.ceil(Math.log2(paletteSize));
+    return VALID_BITS_PER_BLOCK.find((bits) => bits >= needed) ?? 16;
+};
+
+/** Packs XZY-ordered palette indices into Bedrock's non-crossing 32 bit word slots. */
+const packIndices = (indices: ArrayLike<number>, bitsPerBlock: number): Uint32Array => {
+    if (bitsPerBlock === 0) return new Uint32Array();
+    const blocksPerWord = Math.floor(32 / bitsPerBlock);
+    const words = new Uint32Array(Math.ceil(BLOCKS_PER_SUBCHUNK / blocksPerWord));
+    for (let index = 0; index < BLOCKS_PER_SUBCHUNK; index++) {
+        const word = Math.floor(index / blocksPerWord);
+        const slot = index % blocksPerWord;
+        words[word] = words[word]! | (indices[index]! << (slot * bitsPerBlock));
+    }
+    return words;
+};
 
 /**
  * The widest palette a `Uint16Array` of indices can address.
@@ -37,6 +64,11 @@ export default class BlockStorage {
     private nonAirBlocks: number;
     private readonly airRuntimeId: number;
     private revision = 0;
+    /** Present after a generated or loaded section is finalized into Bedrock's packed layout. */
+    private packedWords: Uint32Array | undefined;
+    private packedBitsPerBlock = 0;
+    /** Reused by each client after finalization, until a block mutation changes the palette or indices. */
+    private packedNetworkStorage: PackedNetworkStorage | undefined;
 
     /**
      * Where each runtime id sits in {@link palette}.
@@ -93,7 +125,7 @@ export default class BlockStorage {
     }
 
     public getBlock(bx: number, by: number, bz: number): BlockState {
-        const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)]!;
+        const paletteIndex = this.getPaletteIndexAtIndex(BlockStorage.getIndex(bx, by, bz));
         const runtimeId = this.palette[paletteIndex]!;
         const state = BlockRuntimeIds.getState(runtimeId);
         if (!state) {
@@ -115,19 +147,56 @@ export default class BlockStorage {
      * through {@link getBlock} would cost a reverse index lookup and a BlockState for each.
      */
     public getRuntimeId(bx: number, by: number, bz: number): number {
-        return this.palette[this.blocks[BlockStorage.getIndex(bx, by, bz)]!]!;
+        return this.palette[this.getPaletteIndexAtIndex(BlockStorage.getIndex(bx, by, bz))]!;
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
         const slot = BlockStorage.getIndex(bx, by, bz);
-        const previous = this.palette[this.blocks[slot]!]!;
+        const previous = this.palette[this.getPaletteIndexAtIndex(slot)]!;
         // Adding the 257th state may replace the byte array, so resolve the slot before indexing it.
         const paletteIndex = this.getOrAddPaletteIndex(runtimeId);
-        this.blocks[slot] = paletteIndex;
+        if (this.packedWords === undefined) this.blocks[slot] = paletteIndex;
+        else this.setPackedIndex(slot, paletteIndex);
 
         if (previous === this.airRuntimeId && runtimeId !== this.airRuntimeId) this.nonAirBlocks++;
         else if (previous !== this.airRuntimeId && runtimeId === this.airRuntimeId) this.nonAirBlocks--;
         this.revision++;
+        this.packedNetworkStorage = undefined;
+    }
+
+    /**
+     * Finalizes generation-time byte or word indices into Bedrock's packed section layout.
+     *
+     * @internal Called when a provider returns a completed chunk; repeated calls are free.
+     */
+    public pack(): void {
+        if (this.packedWords !== undefined) return;
+
+        this.packedBitsPerBlock = bitsForPaletteSize(this.palette.length);
+        this.packedWords = packIndices(this.blocks, this.packedBitsPerBlock);
+        this.blocks = new Uint8Array();
+        this.packedNetworkStorage = undefined;
+    }
+
+    /**
+     * The byte length of the section's active index representation, for profiling.
+     *
+     * @internal
+     */
+    public getIndexStorageByteLength(): number {
+        return this.packedWords?.byteLength ?? this.blocks.byteLength;
+    }
+
+    /**
+     * Retained index and cached network-word bytes, for storage profiling.
+     *
+     * @internal
+     */
+    public getRetainedIndexStorageByteLength(): number {
+        const networkWords = this.packedNetworkStorage?.words;
+        const extraNetworkBytes =
+            networkWords !== undefined && networkWords !== this.packedWords ? networkWords.byteLength : 0;
+        return this.getIndexStorageByteLength() + extraNetworkBytes;
     }
 
     /**
@@ -146,7 +215,7 @@ export default class BlockStorage {
      * blocks, and would silently collapse duplicate entries a foreign world happens to contain.
      */
     public getPaletteIndexAt(bx: number, by: number, bz: number): number {
-        return this.blocks[BlockStorage.getIndex(bx, by, bz)]!;
+        return this.getPaletteIndexAtIndex(BlockStorage.getIndex(bx, by, bz));
     }
 
     /**
@@ -157,7 +226,13 @@ export default class BlockStorage {
      * @returns The palette index at that slot.
      */
     public getPaletteIndexAtIndex(index: number): number {
-        return this.blocks[index]!;
+        if (this.packedWords === undefined) return this.blocks[index]!;
+        if (this.packedBitsPerBlock === 0) return 0;
+
+        const blocksPerWord = Math.floor(32 / this.packedBitsPerBlock);
+        const word = this.packedWords[Math.floor(index / blocksPerWord)]!;
+        const slot = index % blocksPerWord;
+        return (word >>> (slot * this.packedBitsPerBlock)) & ((1 << this.packedBitsPerBlock) - 1);
     }
 
     /** The palette slot for a runtime id, appending it if this storage has not seen it. */
@@ -169,20 +244,54 @@ export default class BlockStorage {
             throw new RangeError(`A sub chunk palette holds at most ${MAX_PALETTE_SIZE} entries`);
         }
 
-        if (this.palette.length === MAX_BYTE_INDEX_PALETTE_SIZE && this.blocks instanceof Uint8Array) {
+        const index = this.palette.push(runtimeId) - 1;
+        this.paletteIndex.set(runtimeId, index);
+
+        if (this.packedWords !== undefined) {
+            const nextWidth = bitsForPaletteSize(this.palette.length);
+            if (nextWidth > this.packedBitsPerBlock) this.repackPackedIndices(nextWidth);
+            return index;
+        }
+
+        if (this.palette.length === MAX_BYTE_INDEX_PALETTE_SIZE + 1 && this.blocks instanceof Uint8Array) {
             // Index 256 does not fit in a byte, so widen before publishing the new palette slot.
             const widened = new Uint16Array(BLOCKS_PER_SUBCHUNK);
             widened.set(this.blocks);
             this.blocks = widened;
         }
 
-        const index = this.palette.push(runtimeId) - 1;
-        this.paletteIndex.set(runtimeId, index);
         return index;
+    }
+
+    private setPackedIndex(index: number, paletteIndex: number): void {
+        if (this.packedBitsPerBlock === 0) return;
+        const blocksPerWord = Math.floor(32 / this.packedBitsPerBlock);
+        const wordIndex = Math.floor(index / blocksPerWord);
+        const slot = index % blocksPerWord;
+        const shift = slot * this.packedBitsPerBlock;
+        const mask = ((1 << this.packedBitsPerBlock) - 1) << shift;
+        this.packedWords![wordIndex] = (this.packedWords![wordIndex]! & ~mask) | (paletteIndex << shift);
+    }
+
+    /** Re-packs only when a newly appended palette slot needs a wider index. */
+    private repackPackedIndices(nextWidth: number): void {
+        const indices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+        for (let index = 0; index < BLOCKS_PER_SUBCHUNK; index++) indices[index] = this.getPaletteIndexAtIndex(index);
+        this.packedBitsPerBlock = nextWidth;
+        this.packedWords = packIndices(indices, nextWidth);
     }
 
     /** Writes only palette states used by this section, with zero bits for a uniform section. */
     public networkSerialize(stream: BinaryStream): void {
+        if (this.packedWords !== undefined) {
+            const networkStorage = (this.packedNetworkStorage ??= this.packNetworkStorage());
+            stream.writeByte((networkStorage.bitsPerBlock << 1) | 1);
+            for (const word of networkStorage.words) stream.writeIntLE(word | 0);
+            stream.writeVarInt(networkStorage.palette.length);
+            for (const runtimeId of networkStorage.palette) stream.writeVarInt(runtimeId);
+            return;
+        }
+
         const compactIndices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
         const compactPalette: number[] = [];
         const indexByOriginal = new Map<number, number>();
@@ -252,6 +361,41 @@ export default class BlockStorage {
         for (const val of compactPalette) {
             stream.writeVarInt(val);
         }
+    }
+
+    /** Caches compact network palette ordering and words for finalized storage. */
+    private packNetworkStorage(): PackedNetworkStorage {
+        const compactIndices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+        const compactPalette: number[] = [];
+        const compactSlotByOriginal = new Map<number, number>();
+        let keepsPaletteOrder = true;
+
+        for (let position = 0; position < BLOCKS_PER_SUBCHUNK; position++) {
+            const originalIndex = this.getPaletteIndexAtIndex(position);
+            let compactIndex = compactSlotByOriginal.get(originalIndex);
+            if (compactIndex === undefined) {
+                const runtimeId = this.palette[originalIndex];
+                if (runtimeId === undefined) {
+                    throw new RangeError(`Sub chunk block refers to missing palette index ${originalIndex}`);
+                }
+
+                compactIndex = compactPalette.length;
+                compactSlotByOriginal.set(originalIndex, compactIndex);
+                compactPalette.push(runtimeId);
+                if (compactIndex !== originalIndex) keepsPaletteOrder = false;
+            }
+            compactIndices[position] = compactIndex;
+        }
+
+        const bitsPerBlock = bitsForPaletteSize(compactPalette.length);
+        const words =
+            keepsPaletteOrder &&
+            compactPalette.length === this.palette.length &&
+            bitsPerBlock === this.packedBitsPerBlock
+                ? this.packedWords!
+                : packIndices(compactIndices, bitsPerBlock);
+
+        return { bitsPerBlock, palette: compactPalette, words };
     }
 
     public static networkDeserialize(stream: BinaryStream): BlockStorage {

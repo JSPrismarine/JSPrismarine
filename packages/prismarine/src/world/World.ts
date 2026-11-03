@@ -1375,6 +1375,9 @@ export class World implements Service {
             this.config,
             options
         );
+        // The provider has completed generation or disk decoding; keep its mutable write fast path
+        // out of the final retained form and pack each section before it enters the loaded world.
+        chunk.packBlockStorage();
         this.chunks.set(index, chunk);
         this.loadedChunksRevision++;
         this.getPlayerChunkRefCounts().chunkLoaded(chunk);

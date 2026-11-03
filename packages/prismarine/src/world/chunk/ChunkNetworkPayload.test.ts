@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
+import { encodeSubChunk } from '../providers/leveldb/SubChunkCodec';
 import Chunk from './Chunk';
 import SubChunk from './SubChunk';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf, minSubChunk, subChunkCount } from '../Dimension';
@@ -237,6 +238,26 @@ describe('world', () => {
 
             chunk.setBlockRuntimeId(1, SHALLOW_OVERWORLD.minY + 1, 1, dirt());
             expect(chunk.networkSerialize()).not.toBe(first);
+        });
+
+        it('keeps LevelChunk and persistent bytes identical when section indices are packed', () => {
+            const chunk = build();
+            const levelChunk = chunk.networkSerialize();
+            const persistent = Array.from(chunk.getSubChunkEntries(), ([index, subChunk]) =>
+                encodeSubChunk(subChunk, index)
+            );
+
+            chunk.packBlockStorage();
+
+            expect(chunk.networkSerialize()).toEqual(levelChunk);
+            expect(chunk.networkSerializeBlobs().payload).toEqual(levelChunk);
+            expect(
+                Array.from(chunk.getSubChunkEntries(), ([index, subChunk]) => encodeSubChunk(subChunk, index))
+            ).toEqual(persistent);
+
+            chunk.setBlockRuntimeId(4, SHALLOW_OVERWORLD.minY + 4, 9, stone());
+            expect(chunk.getBlockRuntimeId(4, SHALLOW_OVERWORLD.minY + 4, 9)).toBe(stone());
+            expect(chunk.networkSerialize()).not.toEqual(levelChunk);
         });
 
         it('serialises an empty chunk to nothing but the trailer', () => {

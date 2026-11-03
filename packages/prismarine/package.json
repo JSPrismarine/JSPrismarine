@@ -101,6 +101,7 @@
         "bench:player-chunk-bookkeeping": "node --import tsx benchmarks/playerChunkBookkeeping.bench.ts",
         "bench:trends": "node benchmarks/trends.mjs",
         "bench:storage": "node benchmarks/run.mjs benchmarks/blockStorage.bench.ts",
+        "bench:storage-packing": "node --import tsx benchmarks/blockStoragePacking.bench.ts",
         "bench:feature-worker": "node --expose-gc benchmarks/run.mjs benchmarks/featureWorker.bench.ts",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "prepack": "pnpm run generate"

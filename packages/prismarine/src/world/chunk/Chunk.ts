@@ -419,6 +419,18 @@ export default class Chunk {
         return this.subChunkAtIndex(y);
     }
 
+    /**
+     * Packs section indices after generation or loading completes.
+     *
+     * @internal The world calls this once the provider has finished every write to the chunk.
+     */
+    public packBlockStorage(): void {
+        for (const [, subChunk] of this.getSubChunkEntries()) {
+            for (const storage of subChunk.getStorages()) storage.pack();
+        }
+        this.invalidateNetworkSerialization();
+    }
+
     public getOrCreateSubChunk(y: number): SubChunk {
         const subChunk = new SubChunk();
         this.setSubChunk(y, subChunk);

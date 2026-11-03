@@ -10,6 +10,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
@@ -23,6 +24,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
+import { encodeSubChunk } from './providers/leveldb/SubChunkCodec';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 
 /** A world whose provider counts its reads and answers only when the test lets it. */
@@ -116,6 +118,36 @@ describe('world chunk requests', () => {
 
         expect(readChunk).toHaveBeenCalledTimes(1);
         expect(second).toBe(first);
+    });
+
+    it('packs provider chunks before publishing them to the loaded world', async () => {
+        const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        const dirt = BlockRuntimeIds.getByName('minecraft:dirt');
+        chunk.setBlockRuntimeId(4, -60, 9, stone);
+        chunk.setBlockRuntimeId(5, -59, 10, dirt);
+
+        const levelChunk = chunk.networkSerialize();
+        const persistent = Array.from(chunk.getSubChunkEntries(), ([index, subChunk]) =>
+            encodeSubChunk(subChunk, index)
+        );
+        const storage = chunk.getSubChunk(-4)!.getStorages()[0]!;
+        expect(storage.getIndexStorageByteLength()).toBe(4096);
+
+        const world = testWorld(async () => chunk);
+        const loaded = await world.getChunk(0, 0);
+
+        expect(loaded).toBe(chunk);
+        expect(storage.getIndexStorageByteLength()).toBeLessThan(4096);
+        expect(loaded.networkSerialize()).toEqual(levelChunk);
+        expect(Array.from(loaded.getSubChunkEntries(), ([index, subChunk]) => encodeSubChunk(subChunk, index))).toEqual(
+            persistent
+        );
+        expect(loaded.getBlockRuntimeId(4, -60, 9)).toBe(stone);
+        expect(loaded.getBlockRuntimeId(5, -59, 10)).toBe(dirt);
+
+        loaded.setBlockRuntimeId(6, -58, 11, stone);
+        expect(loaded.getBlockRuntimeId(6, -58, 11)).toBe(stone);
     });
 
     it('passes the urgency a caller asked with down to the provider', async () => {
