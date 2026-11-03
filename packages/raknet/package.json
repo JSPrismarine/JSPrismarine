@@ -37,7 +37,8 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
-        "bench:socket-buffers": "node benchmarks/socketBuffers.bench.mjs"
+        "bench:socket-buffers": "node benchmarks/socketBuffers.bench.mjs",
+        "bench:offline-ping": "node benchmarks/offlinePing.bench.mjs"
     },
     "repository": {
         "type": "git",

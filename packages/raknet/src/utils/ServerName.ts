@@ -35,6 +35,7 @@ export class ServerName {
     private gamemode: string;
     private serverId = 0n;
     private port = DEFAULT_PORT;
+    private cachedPongName: string | null = null;
 
     /**
      * Create a new server name for a RakNet server.
@@ -68,6 +69,7 @@ export class ServerName {
      */
     public setMotd(motd: string): void {
         this.motd = motd;
+        this.invalidatePongName();
     }
 
     /**
@@ -83,6 +85,7 @@ export class ServerName {
      */
     public setName(name: string): void {
         this.name = name;
+        this.invalidatePongName();
     }
 
     /**
@@ -98,6 +101,7 @@ export class ServerName {
      */
     public setProtocol(protocol: number): void {
         this.protocol = protocol;
+        this.invalidatePongName();
     }
 
     /**
@@ -113,6 +117,7 @@ export class ServerName {
      */
     public setVersion(version: string): void {
         this.version = version;
+        this.invalidatePongName();
     }
 
     /**
@@ -128,6 +133,7 @@ export class ServerName {
      */
     public setOnlinePlayerCount(count: number): void {
         this.onlinePlayers = count;
+        this.invalidatePongName();
     }
 
     /**
@@ -144,6 +150,7 @@ export class ServerName {
      */
     public setMaxPlayerCount(count: number): void {
         this.maxPlayers = count;
+        this.invalidatePongName();
     }
 
     public getGamemode(): string {
@@ -151,6 +158,7 @@ export class ServerName {
     }
     public setGamemode(gamemode: string): void {
         this.gamemode = gamemode;
+        this.invalidatePongName();
     }
 
     public getServerId(): bigint {
@@ -158,6 +166,7 @@ export class ServerName {
     }
     public setServerId(id: bigint): void {
         this.serverId = id;
+        this.invalidatePongName();
     }
 
     /**
@@ -174,6 +183,7 @@ export class ServerName {
      */
     public setPort(port: number): void {
         this.port = port;
+        this.invalidatePongName();
     }
 
     /**
@@ -188,23 +198,29 @@ export class ServerName {
      * @returns {string} The MOTD line.
      */
     public toString(): string {
-        return (
-            [
-                'MCPE',
-                this.getMotd() || 'Example motd',
-                this.getProtocol(),
-                this.getVersion(),
-                this.getOnlinePlayerCount(),
-                this.getMaxPlayerCount(),
-                this.getServerId(),
-                this.getName(),
-                this.getGamemode(),
-                NINTH_FIELD_FLAG,
-                this.getPort(),
-                this.getPort(),
-                0,
-                0
-            ].join(';') + ';'
-        );
+        if (this.cachedPongName === null) {
+            this.cachedPongName =
+                [
+                    'MCPE',
+                    this.getMotd() || 'Example motd',
+                    this.getProtocol(),
+                    this.getVersion(),
+                    this.getOnlinePlayerCount(),
+                    this.getMaxPlayerCount(),
+                    this.getServerId(),
+                    this.getName(),
+                    this.getGamemode(),
+                    NINTH_FIELD_FLAG,
+                    this.getPort(),
+                    this.getPort(),
+                    0,
+                    0
+                ].join(';') + ';';
+        }
+        return this.cachedPongName;
+    }
+
+    private invalidatePongName(): void {
+        this.cachedPongName = null;
     }
 }

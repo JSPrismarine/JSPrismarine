@@ -31,6 +31,21 @@ const MAGIC_OFFSET_AFTER_ID_AND_TIMESTAMP = 1 + 8;
 const MIN_UNCONNECTED_PING_LENGTH = 1 + 8 + 16;
 const MIN_OPEN_CONNECTION_REQUEST_1_LENGTH = 1 + 16 + 1;
 const MIN_OPEN_CONNECTION_REQUEST_2_LENGTH = 1 + 16 + 7 + 2 + 8;
+const UNCONNECTED_PONG_PREFIX_LENGTH = 1 + 8;
+
+type OfflineHandlerListener = Pick<
+    ServerSocket,
+    | 'addSession'
+    | 'allowIncomingConnections'
+    | 'emit'
+    | 'getLogger'
+    | 'getServerGuid'
+    | 'getSessionByAddress'
+    | 'getSessionByGUID'
+    | 'sendBuffer'
+    | 'sendPacket'
+    | 'serverName'
+>;
 
 /**
  * Confirms a packet really is the offline message it claims to be, before anything is
@@ -49,7 +64,9 @@ const isOfflineMessage = (msg: Buffer, magicOffset: number, minimumLength: numbe
     ) === 0;
 
 export class OfflineHandler {
-    public constructor(private readonly listener: ServerSocket) {}
+    private cachedPongTail: { serverGuid: bigint; serverName: string; bytes: Buffer } | undefined;
+
+    public constructor(private readonly listener: OfflineHandlerListener) {}
 
     public process(msg: Buffer, rinfo: RemoteInfo): void {
         if (msg.byteLength < 1) return;
@@ -69,11 +86,7 @@ export class OfflineHandler {
                 const ping = new UnconnectedPing(msg);
                 ping.decode();
 
-                const pong = new UnconnectedPong();
-                pong.timestamp = ping.timestamp;
-                pong.serverGuid = this.listener.getServerGuid();
-                pong.serverName = this.listener.serverName.toString();
-                this.listener.sendPacket(pong, rinfo);
+                this.listener.sendBuffer(this.createUnconnectedPong(ping.timestamp), rinfo);
                 break;
             // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5127
             case MessageIdentifiers.OPEN_CONNECTION_REQUEST_1:
@@ -185,6 +198,34 @@ export class OfflineHandler {
                 `Discarded offline packet ID=0x${msg[0]!.toString(16)} from client=${rinfo.address}:${rinfo.port}, reason=${reason}`,
                 'RakNet/OfflineHandler/process'
             );
+    }
+
+    private createUnconnectedPong(timestamp: bigint): Buffer {
+        const serverGuid = this.listener.getServerGuid();
+        const serverName = this.listener.serverName.toString();
+        let tail = this.cachedPongTail;
+        if (tail === undefined || tail.serverGuid !== serverGuid || tail.serverName !== serverName) {
+            const template = new UnconnectedPong();
+            template.timestamp = 0n;
+            template.serverGuid = serverGuid;
+            template.serverName = serverName;
+            template.encode();
+            // Cache everything after the per-ping timestamp, using the packet's own encoder
+            // so the offline magic and RakNet string length stay tied to the wire contract.
+            tail = {
+                serverGuid,
+                serverName,
+                bytes: Buffer.from(template.getWriteBuffer().subarray(UNCONNECTED_PONG_PREFIX_LENGTH))
+            };
+            this.cachedPongTail = tail;
+        }
+
+        // dgram may retain the buffer until its send callback; never rewrite a shared header.
+        const response = Buffer.allocUnsafe(UNCONNECTED_PONG_PREFIX_LENGTH + tail.bytes.byteLength);
+        response[0] = MessageIdentifiers.UNCONNECTED_PONG;
+        response.writeBigUInt64BE(timestamp, 1);
+        tail.bytes.copy(response, UNCONNECTED_PONG_PREFIX_LENGTH);
+        return response;
     }
 
     private sendAlreadyConnected(remote: RemoteInfo): void {
