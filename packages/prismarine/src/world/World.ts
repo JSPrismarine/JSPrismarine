@@ -210,10 +210,13 @@ interface PlayerChunkCoverage {
     readonly viewDistance: number;
 }
 
-interface ChunkPlayerCounts {
-    simulation: number;
-    retention: number;
-    light: number;
+type ChunkPlayerCounts = [simulation: number, retention: number, light: number];
+
+interface ChunkRectangle {
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minZ: number;
+    readonly maxZ: number;
 }
 
 /**
@@ -248,8 +251,7 @@ class PlayerChunkRefCounts {
             )
                 continue;
 
-            if (previous !== undefined) this.changeCoverage(previous, -1);
-            this.changeCoverage(coverage, 1);
+            this.changeCoverage(previous, coverage);
             this.players.set(runtimeId, coverage);
             changed = true;
         }
@@ -257,7 +259,7 @@ class PlayerChunkRefCounts {
         for (const [runtimeId, coverage] of this.players) {
             if (players.has(runtimeId)) continue;
 
-            this.changeCoverage(coverage, -1);
+            this.changeCoverage(coverage, undefined);
             this.players.delete(runtimeId);
             changed = true;
         }
@@ -291,42 +293,92 @@ class PlayerChunkRefCounts {
     }
 
     public simulates(chunkX: number, chunkZ: number): boolean {
-        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.simulation ?? 0) > 0;
+        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.[0] ?? 0) > 0;
     }
 
     public retains(chunkX: number, chunkZ: number): boolean {
-        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.retention ?? 0) > 0;
+        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.[1] ?? 0) > 0;
     }
 
     public lights(chunkX: number, chunkZ: number): boolean {
-        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.light ?? 0) > 0;
+        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.[2] ?? 0) > 0;
     }
 
-    private changeCoverage(coverage: PlayerChunkCoverage, change: -1 | 1): void {
-        this.changeArea(coverage.x, coverage.z, SIMULATION_DISTANCE, 'simulation', change);
-        this.changeArea(coverage.x, coverage.z, SIMULATION_DISTANCE + LIGHT_GUARD_CHUNKS, 'light', change);
-        this.changeArea(coverage.x, coverage.z, coverage.viewDistance, 'retention', change);
+    private changeCoverage(previous: PlayerChunkCoverage | undefined, next: PlayerChunkCoverage | undefined): void {
+        this.changeCoverageArea(previous, next, SIMULATION_DISTANCE, 'simulation');
+        this.changeCoverageArea(previous, next, SIMULATION_DISTANCE + LIGHT_GUARD_CHUNKS, 'light');
+        this.changeCoverageArea(previous, next, previous?.viewDistance ?? next?.viewDistance ?? 0, 'retention');
     }
 
-    private changeArea(
-        centerX: number,
-        centerZ: number,
+    private changeCoverageArea(
+        previous: PlayerChunkCoverage | undefined,
+        next: PlayerChunkCoverage | undefined,
         radius: number,
-        area: keyof ChunkPlayerCounts,
+        area: 'simulation' | 'retention' | 'light'
+    ): void {
+        const previousArea =
+            previous === undefined
+                ? undefined
+                : this.rectangleAt(previous, area === 'retention' ? previous.viewDistance : radius);
+        const nextArea =
+            next === undefined ? undefined : this.rectangleAt(next, area === 'retention' ? next.viewDistance : radius);
+        this.changeRectangleDifference(previousArea, nextArea, area, -1);
+        this.changeRectangleDifference(nextArea, previousArea, area, 1);
+    }
+
+    private rectangleAt(coverage: PlayerChunkCoverage, radius: number): ChunkRectangle {
+        return {
+            minX: coverage.x - radius,
+            maxX: coverage.x + radius,
+            minZ: coverage.z - radius,
+            maxZ: coverage.z + radius
+        };
+    }
+
+    /** Applies only the source rectangle's strips that do not overlap the destination. */
+    private changeRectangleDifference(
+        source: ChunkRectangle | undefined,
+        destination: ChunkRectangle | undefined,
+        area: 'simulation' | 'retention' | 'light',
         change: -1 | 1
     ): void {
-        for (let chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
-            for (let chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
+        if (source === undefined) return;
+        if (destination === undefined) {
+            this.changeArea(source, area, change);
+            return;
+        }
+
+        const minX = Math.max(source.minX, destination.minX);
+        const maxX = Math.min(source.maxX, destination.maxX);
+        const minZ = Math.max(source.minZ, destination.minZ);
+        const maxZ = Math.min(source.maxZ, destination.maxZ);
+        if (minX > maxX || minZ > maxZ) {
+            this.changeArea(source, area, change);
+            return;
+        }
+
+        if (source.minZ < minZ)
+            this.changeArea({ minX: source.minX, maxX: source.maxX, minZ: source.minZ, maxZ: minZ - 1 }, area, change);
+        if (maxZ < source.maxZ)
+            this.changeArea({ minX: source.minX, maxX: source.maxX, minZ: maxZ + 1, maxZ: source.maxZ }, area, change);
+        if (source.minX < minX) this.changeArea({ minX: source.minX, maxX: minX - 1, minZ, maxZ }, area, change);
+        if (maxX < source.maxX) this.changeArea({ minX: maxX + 1, maxX: source.maxX, minZ, maxZ }, area, change);
+    }
+
+    private changeArea(rectangle: ChunkRectangle, area: 'simulation' | 'retention' | 'light', change: -1 | 1): void {
+        const countIndex = area === 'simulation' ? 0 : area === 'retention' ? 1 : 2;
+        for (let chunkX = rectangle.minX; chunkX <= rectangle.maxX; chunkX++) {
+            for (let chunkZ = rectangle.minZ; chunkZ <= rectangle.maxZ; chunkZ++) {
                 const key = Chunk.packXZ(chunkX, chunkZ);
-                const counts = this.chunks.get(key) ?? { simulation: 0, retention: 0, light: 0 };
-                counts[area] += change;
+                const counts: ChunkPlayerCounts = this.chunks.get(key) ?? [0, 0, 0];
+                counts[countIndex] += change;
 
                 if (area === 'retention') {
-                    if (counts.retention > 0) this.unloadCandidates.delete(key);
+                    if (counts[1] > 0) this.unloadCandidates.delete(key);
                     else if (this.loadedChunks.has(key)) this.unloadCandidates.add(key);
                 }
 
-                if (counts.simulation === 0 && counts.retention === 0 && counts.light === 0) this.chunks.delete(key);
+                if (counts[0] === 0 && counts[1] === 0 && counts[2] === 0) this.chunks.delete(key);
                 else this.chunks.set(key, counts);
             }
         }

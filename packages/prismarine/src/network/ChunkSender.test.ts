@@ -78,6 +78,18 @@ describe('network', () => {
             expect(drain(sender)).toEqual([[2, 2]]);
         });
 
+        it('skips forgotten queue entries when their coordinates are queued again', () => {
+            const sender = new ChunkSender();
+            sender.enqueue(1, 1);
+            sender.forget(1, 1);
+            sender.enqueue(1, 1);
+            sender.enqueue(2, 2);
+
+            expect(sender.size).toBe(2);
+            expect(new Set(drain(sender).map(([x, z]) => `${x},${z}`))).toEqual(new Set(['1,1', '2,2']));
+            expect(sender.isEmpty()).toBe(true);
+        });
+
         it('accepts a chunk again once it has been handed out', () => {
             const sender = new ChunkSender();
             sender.enqueue(4, 4);

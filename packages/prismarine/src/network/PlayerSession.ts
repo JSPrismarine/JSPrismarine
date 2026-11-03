@@ -19,7 +19,6 @@ import {
     PlayerPermissionLevel
 } from '@jsprismarine/minecraft';
 import { advancementChangedDimension } from '../advancement/triggers';
-import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
 import type { Command } from '../command/Command';
@@ -256,8 +255,8 @@ export default class PlayerSession {
 
     /** What this player still has to receive, nearest first. Drained by the server's scheduler. */
     private readonly chunkSender = new ChunkSender();
-    private readonly loadedChunks: Set<number> = new Set();
-    private readonly loadingChunks: Set<number> = new Set();
+    private readonly loadedChunks = new Map<number, { readonly x: number; readonly z: number }>();
+    private readonly loadingChunks = new Map<number, { readonly x: number; readonly z: number }>();
 
     /**
      * Which entities this client currently has on screen.
@@ -487,8 +486,7 @@ export default class PlayerSession {
             const hash = Chunk.packXZ(x, z);
             if (this.loadedChunks.has(hash) || this.loadingChunks.has(hash)) continue;
 
-            this.loadingChunks.add(hash);
-            this.chunkSender.enqueue(x, z);
+            this.enqueueChunkCoordinate(hash, x, z);
         }
     }
 
@@ -702,7 +700,7 @@ export default class PlayerSession {
             // Loaded only once it is actually on the wire.
             for (const { chunk } of chunksToSend) {
                 const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
-                this.loadedChunks.add(hash);
+                this.loadedChunks.set(hash, { x: chunk.getX(), z: chunk.getZ() });
                 this.loadingChunks.delete(hash);
             }
 
@@ -812,61 +810,34 @@ export default class PlayerSession {
 
         const viewDistance = this.player.viewDistance || dist || 0;
 
-        const chunksToSendHeap = new BinaryHeap<number[]>((a, b) => {
-            const distXFirst = Math.abs(a[0]! - currentXChunk);
-            const distXSecond = Math.abs(b[0]! - currentXChunk);
-
-            const distZFirst = Math.abs(a[1]! - currentZChunk);
-            const distZSecond = Math.abs(b[1]! - currentZChunk);
-
-            return distXFirst + distZFirst > distXSecond + distZSecond ? 1 : -1;
-        });
+        this.chunkSender.setCenter(currentXChunk, currentZChunk);
 
         for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
                 if (sendXChunk * sendXChunk + sendZChunk * sendZChunk > viewDistance * viewDistance) continue; // early exit if chunk is outside of view distance
-                const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
-                const hash = Chunk.packXZ(newChunk[0]!, newChunk[1]!);
+                const x = currentXChunk + sendXChunk;
+                const z = currentZChunk + sendZChunk;
+                const hash = Chunk.packXZ(x, z);
 
                 if (forceResend) {
-                    chunksToSendHeap.push(newChunk);
+                    this.loadedChunks.delete(hash);
+                    if (!this.loadingChunks.has(hash)) this.enqueueChunkCoordinate(hash, x, z);
                 } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
-                    chunksToSendHeap.push(newChunk);
+                    this.enqueueChunkCoordinate(hash, x, z);
                 }
             }
         }
 
-        // Queue rather than send. This loop used to run to completion, generating and
-        // serialising every chunk in one go - hundreds of milliseconds during which the
-        // socket answered nothing and every other player froze. The server's scheduler now
-        // drains this a slice at a time, sharing the tick between players.
-        const queued: Array<[number, number]> = [];
-        while (chunksToSendHeap.size() > 0) {
-            const closestChunk = chunksToSendHeap.pop()!;
-            const hash = Chunk.packXZ(closestChunk[0]!, closestChunk[1]!);
-
-            // A forced resend has to go out again even though it is already loaded.
-            if (forceResend) this.loadedChunks.delete(hash);
-
-            queued.push([closestChunk[0]!, closestChunk[1]!]);
-        }
-
-        this.queueChunks(currentXChunk, currentZChunk, queued);
-
         let unloaded = false;
 
-        for (const hash of this.loadedChunks) {
-            const [x, z] = Chunk.unpackXZ(hash);
-
+        for (const [hash, { x, z }] of this.loadedChunks) {
             if (Math.abs(x! - currentXChunk) > viewDistance || Math.abs(z! - currentZChunk) > viewDistance) {
                 unloaded = true;
                 this.loadedChunks.delete(hash);
             }
         }
 
-        for (const hash of this.loadingChunks) {
-            const [x, z] = Chunk.unpackXZ(hash);
-
+        for (const [hash, { x, z }] of this.loadingChunks) {
             if (Math.abs(x! - currentXChunk) > viewDistance || Math.abs(z! - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
 
@@ -885,6 +856,12 @@ export default class PlayerSession {
         if (!unloaded && this.chunkSendQueue.length !== 0) {
             await this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         }
+    }
+
+    /** Records queued coordinates once; the sender owns the only nearest-first ordering pass. */
+    private enqueueChunkCoordinate(hash: number, x: number, z: number): void {
+        this.loadingChunks.set(hash, { x, z });
+        this.chunkSender.enqueue(x, z);
     }
 
     public async requestChunk(x: number, z: number): Promise<void> {

@@ -115,6 +115,85 @@ describe('world player chunk counts', () => {
         expect(checks.map(({ mock }) => mock.calls.length)).toEqual([2, 3, 2, 2]);
     });
 
+    it('matches a full coverage recount across randomized moves, radius changes, joins, and leaves', () => {
+        const world = worldWith([]);
+        const players = world['players'];
+        const states = new Map<number, { x: number; z: number; viewDistance: number }>();
+        let randomState = 0x4d595df4;
+        const random = (): number => {
+            randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+            return randomState / 0x1_0000_0000;
+        };
+        const randomCoordinate = (): number => Math.floor(random() * 37) - 18;
+        const randomViewDistance = (): number => Math.floor(random() * 17);
+        const makePlayer = (state: { x: number; z: number; viewDistance: number }): Player =>
+            stub<Player>({
+                viewDistance: state.viewDistance,
+                getPosition: () => new Position(state.x * 16, 64, state.z * 16, world)
+            });
+        const references = world['getPlayerChunkRefCounts']();
+        const addExpectedArea = (
+            counts: Map<number, [number, number, number]>,
+            x: number,
+            z: number,
+            radius: number,
+            index: 0 | 1 | 2
+        ) => {
+            for (let chunkX = x - radius; chunkX <= x + radius; chunkX++) {
+                for (let chunkZ = z - radius; chunkZ <= z + radius; chunkZ++) {
+                    const key = Chunk.packXZ(chunkX, chunkZ);
+                    const coverage: [number, number, number] = counts.get(key) ?? [0, 0, 0];
+                    coverage[index]++;
+                    counts.set(key, coverage);
+                }
+            }
+        };
+
+        for (let step = 0; step < 100; step++) {
+            const runtimeId = Math.floor(random() * 12);
+            const state = states.get(runtimeId);
+            const action = random();
+
+            if (state !== undefined && action < 0.15) {
+                players.delete(runtimeId);
+                states.delete(runtimeId);
+            } else if (state === undefined && action < 0.55) {
+                const joined = { x: randomCoordinate(), z: randomCoordinate(), viewDistance: randomViewDistance() };
+                states.set(runtimeId, joined);
+                players.set(runtimeId, makePlayer(joined));
+            } else if (state !== undefined) {
+                state.x = randomCoordinate();
+                state.z = randomCoordinate();
+                state.viewDistance = randomViewDistance();
+                const player = players.get(runtimeId);
+                if (player === undefined) throw new Error('Active coverage fixture lost its player');
+                player.viewDistance = state.viewDistance;
+            }
+
+            references.synchronize(players);
+            const expectedCounts = new Map<number, [number, number, number]>();
+            for (const current of states.values()) {
+                addExpectedArea(expectedCounts, current.x, current.z, 10, 0);
+                addExpectedArea(expectedCounts, current.x, current.z, Math.max(10, current.viewDistance), 1);
+                addExpectedArea(expectedCounts, current.x, current.z, 11, 2);
+            }
+
+            const mismatches: string[] = [];
+            for (let x = -36; x <= 36; x++) {
+                for (let z = -36; z <= 36; z++) {
+                    const expected = expectedCounts.get(Chunk.packXZ(x, z)) ?? [0, 0, 0];
+                    if (
+                        references.simulates(x, z) !== expected[0] > 0 ||
+                        references.retains(x, z) !== expected[1] > 0 ||
+                        references.lights(x, z) !== expected[2] > 0
+                    )
+                        mismatches.push(`${x},${z}`);
+                }
+            }
+            expect(mismatches).toEqual([]);
+        }
+    });
+
     it('does not revisit loaded chunks for tick work while player coverage is stable', () => {
         const positions = Array.from(
             { length: 4_225 },

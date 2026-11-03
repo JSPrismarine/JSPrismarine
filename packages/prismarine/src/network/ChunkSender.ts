@@ -11,8 +11,8 @@ interface QueuedChunk {
  * One player's outstanding chunks, nearest first.
  *
  * Chunks are ordered by **squared** distance from the player: comparing squares orders
- * identically to comparing distances, and skips a square root per chunk on a list that is
- * re-sorted every time the player moves.
+ * identically to comparing distances, and skips a square root per chunk when a moved player
+ * next asks the scheduler for work.
  *
  * The queue does not send anything itself. It is drained by `ChunkScheduler`, which decides
  * how much work a tick may do - that separation is what keeps one player's backlog from
@@ -20,7 +20,8 @@ interface QueuedChunk {
  */
 export class ChunkSender {
     private queue: QueuedChunk[] = [];
-    private readonly queued = new Set<number>();
+    private readonly queued = new Map<number, QueuedChunk>();
+    private staleEntries = 0;
 
     private centerX = 0;
     private centerZ = 0;
@@ -34,11 +35,11 @@ export class ChunkSender {
     }
 
     public get size(): number {
-        return this.queue.length;
+        return this.queued.size;
     }
 
     public isEmpty(): boolean {
-        return this.queue.length === 0;
+        return this.queued.size === 0;
     }
 
     public has(x: number, z: number): boolean {
@@ -65,26 +66,39 @@ export class ChunkSender {
         const key = ChunkSender.key(x, z);
         if (this.queued.has(key)) return;
 
-        this.queued.add(key);
-        this.queue.push({ x, z, priority: this.priorityOf(x, z) });
+        const entry = { x, z, priority: this.priorityOf(x, z) };
+        this.queued.set(key, entry);
+        this.queue.push(entry);
         this.dirty = true;
     }
 
     /** The next chunk to send, nearest to the player, or null when there is nothing left. */
     public next(): { x: number; z: number } | null {
-        if (this.queue.length === 0) return null;
+        if (this.queued.size === 0) return null;
 
         if (this.dirty) {
-            for (const entry of this.queue) entry.priority = this.priorityOf(entry.x, entry.z);
+            for (const entry of this.queue) {
+                if (this.queued.get(ChunkSender.key(entry.x, entry.z)) === entry)
+                    entry.priority = this.priorityOf(entry.x, entry.z);
+            }
             // Descending, so the nearest chunk is at the end and pop() is O(1).
             this.queue.sort((a, b) => b.priority - a.priority);
             this.dirty = false;
         }
 
-        const entry = this.queue.pop()!;
-        this.queued.delete(ChunkSender.key(entry.x, entry.z));
+        while (this.queue.length > 0) {
+            const entry = this.queue.pop()!;
+            const key = ChunkSender.key(entry.x, entry.z);
+            if (this.queued.get(key) !== entry) {
+                this.staleEntries--;
+                continue;
+            }
 
-        return { x: entry.x, z: entry.z };
+            this.queued.delete(key);
+            return { x: entry.x, z: entry.z };
+        }
+
+        return null;
     }
 
     /** Drops a chunk that no longer needs sending, because the player walked away from it. */
@@ -92,12 +106,19 @@ export class ChunkSender {
         const key = ChunkSender.key(x, z);
         if (!this.queued.delete(key)) return;
 
-        this.queue = this.queue.filter((entry) => !(entry.x === x && entry.z === z));
+        // Forget is on the player-movement path. Defer array compaction until enough tombstones
+        // accumulate so one abandoned chunk does not force a scan of the entire waiting queue.
+        this.staleEntries++;
+        if (this.staleEntries > Math.max(256, this.queued.size)) {
+            this.queue = this.queue.filter((entry) => this.queued.get(ChunkSender.key(entry.x, entry.z)) === entry);
+            this.staleEntries = 0;
+        }
     }
 
     public clear(): void {
         this.queue = [];
         this.queued.clear();
+        this.staleEntries = 0;
     }
 
     private priorityOf(x: number, z: number): number {
