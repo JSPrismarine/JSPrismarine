@@ -1,4 +1,3 @@
-import BinaryStream from '@jsprismarine/binaryutils';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { CompressionSettings } from './CompressionCodec';
 import { CompressionCodec } from './CompressionCodec';
@@ -47,24 +46,22 @@ export class BatchCodec {
     }
 
     public encode(packets: readonly Buffer[]): Buffer {
-        const payload = BatchCodec.joinPackets(packets);
-
         if (this.compression === null) {
-            return Buffer.concat([Buffer.from([BATCH_PACKET_ID]), payload]);
+            return BatchCodec.joinPackets(packets, BATCH_PACKET_ID);
         }
 
+        const payload = BatchCodec.joinPackets(packets);
         const algorithm = this.compression.algorithmFor(payload.byteLength);
         return BatchCodec.frame(algorithm, this.compression.compress(payload));
     }
 
     /** The same, with the deflate handed to zlib's asynchronous API. */
     public async encodeAsync(packets: readonly Buffer[]): Promise<Buffer> {
-        const payload = BatchCodec.joinPackets(packets);
-
         if (this.compression === null) {
-            return Buffer.concat([Buffer.from([BATCH_PACKET_ID]), payload]);
+            return BatchCodec.joinPackets(packets, BATCH_PACKET_ID);
         }
 
+        const payload = BatchCodec.joinPackets(packets);
         const algorithm = this.compression.algorithmFor(payload.byteLength);
         return BatchCodec.frame(algorithm, await this.compression.compressAsync(payload));
     }
@@ -107,14 +104,42 @@ export class BatchCodec {
         return { algorithm: CompressionCodec.fromPrefix(batch[1]!), body: batch.subarray(2) };
     }
 
-    private static joinPackets(packets: readonly Buffer[]): Buffer {
-        const stream = new BinaryStream();
+    private static joinPackets(packets: readonly Buffer[], headerByte?: number): Buffer {
+        // Count first so the final frame is allocated once; uncompressed batches reserve their ID byte here.
+        let byteLength = headerByte === undefined ? 0 : 1;
         for (const packet of packets) {
-            stream.writeUnsignedVarInt(packet.byteLength);
-            stream.write(packet);
+            byteLength += BatchCodec.unsignedVarIntByteLength(packet.byteLength) + packet.byteLength;
         }
 
-        return stream.getBuffer();
+        const output = Buffer.allocUnsafe(byteLength);
+        let cursor = 0;
+        if (headerByte !== undefined) output[cursor++] = headerByte;
+        for (const packet of packets) {
+            cursor = BatchCodec.writeUnsignedVarInt(output, cursor, packet.byteLength);
+            packet.copy(output, cursor);
+            cursor += packet.byteLength;
+        }
+        return output;
+    }
+
+    /** Number of bytes in the unsigned LEB128 packet-length prefix. */
+    private static unsignedVarIntByteLength(value: number): number {
+        let length = 1;
+        while (value >= 0x80) {
+            value >>>= 7;
+            length++;
+        }
+        return length;
+    }
+
+    /** Writes a packet-length prefix without allocating a temporary stream or buffer. */
+    private static writeUnsignedVarInt(output: Buffer, offset: number, value: number): number {
+        while (value > 0x7f) {
+            output[offset++] = (value & 0x7f) | 0x80;
+            value >>>= 7;
+        }
+        output[offset++] = value;
+        return offset;
     }
 
     /**

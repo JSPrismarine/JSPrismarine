@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
@@ -111,6 +111,20 @@ describe('network', () => {
             ]);
             expect(trace.packetDigestsByTick().get(12)).toMatch(/^[a-f0-9]{64}$/);
             expect(trace.getPayloadBytes()).toBe(payload!.byteLength);
+        });
+
+        it('records the exact bytes from transient packet encoding', () => {
+            const { framed, session } = fakeSession(Codec2193);
+            const trace = new OutboundPacketTrace();
+            const packet = animate();
+            const getBuffer = vi.spyOn(packet, 'getBuffer');
+            session.setOutboundPacketRecorder(trace, 4, () => 12);
+
+            session.sendPackets([packet], { compressed: false });
+
+            const [payload] = unbatch(framed[0]!, false);
+            expect(trace.records()[0]?.payload).toEqual(payload);
+            expect(getBuffer).not.toHaveBeenCalled();
         });
 
         it('records the tick when async packet framing reaches the transport', async () => {

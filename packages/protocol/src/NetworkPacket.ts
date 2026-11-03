@@ -106,6 +106,19 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     }
 
     /**
+     * Encodes this packet into a fresh stream and returns its backing view for immediate batch assembly.
+     * Use {@link encode} when the packet bytes need to be retained independently of the batch.
+     * @param context - Versioned registries and captured data for this connection.
+     * @returns A view over the encoded bytes.
+     */
+    public encodeTransient(context?: ProtocolContext): Buffer {
+        const stream = new NetworkBinaryStream();
+        const encoded = this.serialize(stream, context);
+        this.encoded = true;
+        return encoded;
+    }
+
+    /**
      * Decodes a packet from this instance's read buffer.
      * @param context - Versioned registries and captured data for this connection.
      */

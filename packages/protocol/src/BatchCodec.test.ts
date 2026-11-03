@@ -35,6 +35,19 @@ describe('BatchCodec, before compression is negotiated', () => {
         const packets = [Buffer.from([0xc1, 0x00]), Buffer.from([0x8f])];
         expect(codec.decode(codec.encode(packets))).toEqual(packets);
     });
+
+    it('matches the previous layout across packet-length varint boundaries', () => {
+        const packets = [
+            Buffer.from([0x01]),
+            Buffer.alloc(127, 0x02),
+            Buffer.alloc(128, 0x03),
+            Buffer.alloc(16_383, 0x04)
+        ];
+        const encoded = codec.encode(packets);
+
+        expect(encoded).toStrictEqual(Buffer.concat([Buffer.from([BATCH_PACKET_ID]), handBuilt(packets)]));
+        expect(codec.decode(encoded)).toEqual(packets);
+    });
 });
 
 describe('BatchCodec, once compression is negotiated', () => {

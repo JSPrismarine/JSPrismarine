@@ -87,6 +87,19 @@ describe('FieldNetworkPacket header', () => {
         expect(packet.getBuffer()).toEqual(Buffer.from([0x0b]));
     });
 
+    it('returns a transient view with the same field-packet header bytes', () => {
+        const packet = new ThreeDigitPacket();
+        const encoded = packet.encodeTransient();
+
+        expect(encoded).toEqual(Buffer.from([0xb3, 0x02]));
+        expect(packet.getBuffer()).toStrictEqual(encoded);
+
+        const decoded = new ThreeDigitPacket(encoded);
+        decoded.decode();
+        expect(decoded.getId()).toBe(0x133);
+        expect(decoded.feof()).toBe(true);
+    });
+
     it('decodes a three digit id, leaving the payload for the packet to read', () => {
         const packet = new ThreeDigitPacket(Buffer.from([0xb3, 0x02, 0x2a]));
         packet.decode();

@@ -42,6 +42,12 @@ export default class FieldNetworkPacket extends NetworkPacket<unknown> {
         this.encoded = true;
     }
 
+    /** @inheritdoc */
+    public override encodeTransient(context?: ProtocolContext): Buffer {
+        this.encode(context);
+        return this.getWriteBuffer();
+    }
+
     /**
      * Decodes a legacy field body and leaves the original packet bytes available via `getBuffer`.
      * @param context - Versioned registries and captured data for this connection.
