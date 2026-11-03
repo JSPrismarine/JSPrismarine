@@ -20,14 +20,16 @@ built-in type stripping and a synchronous resolver for extensionless relative im
 prototype currently stops at runtime TypeScript syntax that needs code generation, including
 `enum` declarations and parameter properties. The November 2026 source audit counted about 230
 enums and 80 parameter properties; [Node's TypeScript support](https://nodejs.org/api/typescript.html#typescript-features)
-does not transform them. The server-entry probe stops first at `ErrorKind` in
-[`packages/errors/src/index.ts`](../errors/src/index.ts:3); a separate workspace import reaches a
-parameter property in [`packages/packs/src/load.ts`](../packs/src/load.ts:55). Keep using
+does not transform them. On Node 26.12.1, the native benchmark currently reaches
+[`NoiseStack.ts:24`](../worldgen/src/noise/NoiseStack.ts:24) and fails on its `layers` parameter
+property before the import completes. Keep using
 `pnpm --filter @jsprismarine/server run dev` with `tsx` until the source graph is erasable or those
 files have a separate transform step.
 
 `pnpm --filter @jsprismarine/server run bench:native-typescript` compares elapsed time and process
 CPU while each loader imports the same server entry and handles `--help`. This checks module
-startup without starting a world or opening the server socket. It does not measure a successful
-native server startup while the syntax blockers remain. `pnpm run typecheck` remains a separate
-required step because Node's type stripping does not type-check.
+startup without starting a world or opening the server socket. The latest three-sample run measured
+TSX at 284 ms median elapsed and 387 ms median CPU; all native samples failed on the parameter
+property above (79 ms elapsed and 153 ms CPU median to failure). Those failure timings are not a
+successful startup comparison. `pnpm run typecheck` remains a separate required step because
+Node's type stripping does not type-check.
