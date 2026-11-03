@@ -199,14 +199,26 @@ export default class CommandSyntaxException extends Error {
     public static CONTEXT_AMOUNT = 10;
     public static BUILT_IN_EXCEPTIONS: BuiltInExceptionProvider = new BuiltInExceptions();
 
+    /** Whether syntax errors include a stack for developer diagnostics. Java disables these by default. */
+    public static ENABLE_COMMAND_STACK_TRACES = false;
+
     private type: CommandExceptionType;
     private __message: Message;
     private input: string | null;
     private cursor: number;
 
     public constructor(type: CommandExceptionType, message: Message, input: string | null = null, cursor = -1) {
-        super(message.getString());
-        Error.captureStackTrace?.(this, CommandSyntaxException);
+        const rawMessage = message.getString();
+        const captureStack = CommandSyntaxException.ENABLE_COMMAND_STACK_TRACES;
+        const previousStackTraceLimit = Error.stackTraceLimit;
+        // Node exposes stack capture process-wide, so suppress it only while Error builds this instance.
+        if (!captureStack) Error.stackTraceLimit = 0;
+        try {
+            super(rawMessage);
+        } finally {
+            Error.stackTraceLimit = previousStackTraceLimit;
+        }
+        if (!captureStack) this.stack = undefined;
         this.type = type;
         this.__message = message;
         this.input = input;
