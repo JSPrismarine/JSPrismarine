@@ -886,6 +886,9 @@ describe('the data-driven entity runtime over a live world', () => {
         for (let tick = 1; tick <= ticks; tick += 1) await live.tick(tick);
     };
 
+    /** Keeps long-running undead fixtures alive; these direct runtime ticks do not advance Level time. */
+    const startAtNight = (): void => world.setTicks(13_000);
+
     /** Puts a player in the world, which is what the spawner spawns around. */
     const addPlayer = (x: number, z: number): Player => {
         const player = playerAt(world, x, z);
@@ -3146,6 +3149,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 { timeout: 180_000 },
                 async () => {
                     useVanillaContent();
+                    startAtNight();
 
                     const player = addPlayer(18, 0);
                     player.gamemode = Gametype.SURVIVAL;
@@ -3406,6 +3410,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 { timeout: 180_000 },
                 async () => {
                     useVanillaContent();
+                    startAtNight();
 
                     // Span every loaded z coordinate so a ground walker has no dry detour.
                     for (let chunkZ = -LOADED_RADIUS; chunkZ <= LOADED_RADIUS; chunkZ += 1) {
