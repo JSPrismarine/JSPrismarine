@@ -995,15 +995,16 @@ describeFamily(
             { timeout: 180_000 },
             () => {
                 const { runtime, world } = realStack();
-                world.setBlock({ x: 0, y: 64, z: 0 }, 'minecraft:stone');
-                world.setBlock({ x: 1, y: 64, z: 0 }, 'minecraft:stone');
-                const center = { x: 0.1, y: 64, z: 0.1 };
+                // realStack caches one world for this file, so keep query blocks away from later physics fixtures.
+                world.setBlock({ x: 10, y: 64, z: 0 }, 'minecraft:stone');
+                world.setBlock({ x: 11, y: 64, z: 0 }, 'minecraft:stone');
+                const center = { x: 10.1, y: 64, z: 0.1 };
 
                 const withoutIdentifiers = runtime.blocks(center, { range: 1, height: 0 });
                 const withEmptyIdentifiers = runtime.blocks(center, { identifiers: [], range: 1, height: 0 });
 
                 expect(withEmptyIdentifiers).toEqual(withoutIdentifiers);
-                expect(withEmptyIdentifiers[0]?.position).toEqual({ x: 0, y: 64, z: 0 });
+                expect(withEmptyIdentifiers[0]?.position).toEqual({ x: 10, y: 64, z: 0 });
             }
         );
 
