@@ -189,7 +189,10 @@ export const ensureBuilt = (checkout: string, protocolVersion: number): void => 
     const sharedCompilerCacheEnv = commandExists('sccache')
         ? {
               RUSTC_WRAPPER: process.env.RUSTC_WRAPPER ?? 'sccache',
-              SCCACHE_BASEDIRS: [process.env.SCCACHE_BASEDIRS, checkout].filter(Boolean).join(path.delimiter),
+              // Strip both source and protocol-specific artifact roots so shared crate keys match.
+              SCCACHE_BASEDIRS: [process.env.SCCACHE_BASEDIRS, checkout, protocolCache]
+                  .filter(Boolean)
+                  .join(path.delimiter),
               ...(process.env.SCCACHE_GHA_ENABLED === 'true'
                   ? {}
                   : { SCCACHE_DIR: process.env.SCCACHE_DIR ?? path.join(cacheRoot(), 'sccache') })
