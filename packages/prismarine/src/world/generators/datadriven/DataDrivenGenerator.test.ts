@@ -63,7 +63,21 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
             const second = await terrainOnly.generateChunk(1, -2, SEED);
 
             expect(columnOf(second, 7, 9)).toEqual(columnOf(first, 7, 9));
+            expect(second).toBe(first);
             expect(second.networkSerialize().equals(first.networkSerialize())).toBe(true);
+
+            const position = { x: 0, y: first.getMinY(), z: 0 };
+            const original = first.getBlockRuntimeId(position.x, position.y, position.z);
+            const air = BlockRuntimeIds.getByName('minecraft:air');
+            first.setBlockRuntimeId(position.x, position.y, position.z, air);
+            try {
+                const repeated = await terrainOnly.generateChunk(1, -2, SEED);
+
+                expect(repeated).toBe(first);
+                expect(repeated.getBlockRuntimeId(position.x, position.y, position.z)).toBe(air);
+            } finally {
+                first.setBlockRuntimeId(position.x, position.y, position.z, original);
+            }
         },
         CHUNK_TIMEOUT
     );

@@ -27,19 +27,21 @@ import {
     loadJavaWorldgenRegistries
 } from '../src/world/generators/datadriven/javaWorldgenData';
 
-const workers = Number.parseInt(process.argv[2] ?? '0', 10);
-const chunks = Number.parseInt(process.argv[3] ?? '16', 10);
+// pnpm may keep the `--` script-argument separator in argv; remove it before parsing options.
+const args = process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2);
+const workers = Number.parseInt(args[0] ?? '0', 10);
+const chunks = Number.parseInt(args[1] ?? '16', 10);
 /**
  * Which half of the ladder to run, so a change can be charged to one of them.
  *
  * `terrain` is the noise fill alone, `structures` adds the layout pass that pushes terrain
  * around, and the default runs the decoration pass and the Bedrock translation as well.
  */
-const arm = process.argv[4] ?? 'full';
+const arm = args[2] ?? 'full';
 /** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
-const regionChunks = Number.parseInt(process.argv[5] ?? '8', 10);
-const stealAfter = Number.parseInt(process.argv[6] ?? '2', 10);
-const sampleCount = Number.parseInt(process.argv[7] ?? '7', 10);
+const regionChunks = Number.parseInt(args[3] ?? '8', 10);
+const stealAfter = Number.parseInt(args[4] ?? '2', 10);
+const sampleCount = Number.parseInt(args[5] ?? '7', 10);
 const warmups = 2;
 const seed = 1234n;
 
@@ -70,42 +72,43 @@ const poolUnavailable = (reason: string): void => {
     process.stderr.write(`no worker pool: ${reason}\n`);
 };
 
-const generator = new DataDrivenGenerator({
-    registries,
-    templates,
-    ...(arm === 'terrain' ? { decorate: false, structures: false } : {}),
-    ...(arm === 'structures' ? { decorate: false } : {}),
-    ...(workers > 0 && arm === 'chunks'
-        ? {
-              chunks: {
-                  pipeline: defaultChunkPipeline(),
-                  workers,
-                  regionChunks,
-                  stealAfter,
-                  onUnavailable: poolUnavailable
+const createGenerator = (): DataDrivenGenerator =>
+    new DataDrivenGenerator({
+        registries,
+        templates,
+        ...(arm === 'terrain' ? { decorate: false, structures: false } : {}),
+        ...(arm === 'structures' ? { decorate: false } : {}),
+        ...(workers > 0 && arm === 'chunks'
+            ? {
+                  chunks: {
+                      pipeline: defaultChunkPipeline(),
+                      workers,
+                      regionChunks,
+                      stealAfter,
+                      onUnavailable: poolUnavailable
+                  }
               }
-          }
-        : {}),
-    ...(workers > 0 && arm === 'stages'
-        ? {
-              stages: {
-                  pipeline: defaultChunkPipeline(),
-                  workers,
-                  javaTemplates: true,
-                  onUnavailable: poolUnavailable
+            : {}),
+        ...(workers > 0 && arm === 'stages'
+            ? {
+                  stages: {
+                      pipeline: defaultChunkPipeline(),
+                      workers,
+                      javaTemplates: true,
+                      onUnavailable: poolUnavailable
+                  }
               }
-          }
-        : {}),
-    ...(workers > 0 && arm !== 'chunks' && arm !== 'stages'
-        ? {
-              terrain: {
-                  pipeline: defaultTerrainPipeline(),
-                  workers,
-                  onUnavailable: poolUnavailable
+            : {}),
+        ...(workers > 0 && arm !== 'chunks' && arm !== 'stages'
+            ? {
+                  terrain: {
+                      pipeline: defaultTerrainPipeline(),
+                      workers,
+                      onUnavailable: poolUnavailable
+                  }
               }
-          }
-        : {})
-});
+            : {})
+    });
 
 /** A square of chunks, side by side, the way a start region fills. */
 const side = Math.ceil(Math.sqrt(chunks));
@@ -117,60 +120,65 @@ interface Run {
 }
 
 const run = async (): Promise<Run> => {
+    // Each generator retains finished chunks by coordinate, so a fresh instance keeps every
+    // warmup and sample on the generation path instead of measuring a cache hit.
+    const generator = createGenerator();
     const started = performance.now();
-    // All at once, because that is how the preload and the chunk scheduler ask: the depth is
-    // what lets a pool have more than one worker busy.
-    const generated = await Promise.all(
-        positions.map(async ([x, z]) => ({ x, z, chunk: await generator.generateChunk(x, z, seed) }))
-    );
-    const elapsed = performance.now() - started;
-    const output = createHash('sha256');
-    for (const { x, z, chunk } of generated) {
-        output.update(`${x},${z}\0`);
-        output.update(chunk.networkSerialize());
-    }
+    try {
+        // All at once, because that is how the preload and the chunk scheduler ask: the depth is
+        // what lets a pool have more than one worker busy.
+        const generated = await Promise.all(
+            positions.map(async ([x, z]) => ({ x, z, chunk: await generator.generateChunk(x, z, seed) }))
+        );
+        const elapsed = performance.now() - started;
+        const output = createHash('sha256');
+        for (const { x, z, chunk } of generated) {
+            output.update(`${x},${z}\0`);
+            output.update(chunk.networkSerialize());
+        }
 
-    return { ms: elapsed, outputDigest: output.digest('hex') };
+        return { ms: elapsed, outputDigest: output.digest('hex') };
+    } finally {
+        generator.stopGenerating();
+    }
 };
 
 const percentile = (sorted: readonly number[], fraction: number): number =>
     sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
-try {
-    for (let warmup = 0; warmup < warmups; warmup++) await run();
-    const runs = await Promise.all(Array.from({ length: sampleCount }, run));
-    const times = runs.map(({ ms }) => ms).sort((left, right) => left - right);
-    const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
-    if (digests.size !== 1) throw new Error('Chunk-generation output digest changed between samples');
+for (let warmup = 0; warmup < warmups; warmup++) await run();
+const runs: Run[] = [];
+// Do not overlap samples: independent generators still compete for CPU and distort each sample.
+for (let sample = 0; sample < sampleCount; sample++) runs.push(await run());
+const times = runs.map(({ ms }) => ms).sort((left, right) => left - right);
+const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
+if (digests.size !== 1) throw new Error('Chunk-generation output digest changed between samples');
 
-    const p50 = percentile(times, 0.5);
-    process.stdout.write(
-        `${JSON.stringify({
-            benchmark: 'chunk-generation',
-            seed: seed.toString(),
-            node: process.version,
-            platform: `${os.platform()}-${os.arch()}`,
-            cpu: os.cpus()[0]?.model ?? 'unknown',
-            availableParallelism: availableParallelism(),
-            workerCount: workers > 0 && !workerPoolUnavailable ? workers : 0,
-            requestedWorkerCount: workers,
-            chunks,
-            arm,
-            regionChunks,
-            stealAfter,
-            warmups,
-            samples: sampleCount,
-            registriesLoadedMs: loaded,
-            distributionMs: {
-                min: times[0] ?? 0,
-                p50,
-                p95: percentile(times, 0.95),
-                max: times.at(-1) ?? 0
-            },
-            throughputChunksPerSecond: (chunks / p50) * 1000,
-            outputDigest: runs[0]?.outputDigest
-        })}\n`
-    );
-} finally {
-    generator.stopGenerating();
-}
+const p50 = percentile(times, 0.5);
+process.stdout.write(
+    `${JSON.stringify({
+        benchmark: 'chunk-generation',
+        seed: seed.toString(),
+        node: process.version,
+        platform: `${os.platform()}-${os.arch()}`,
+        cpu: os.cpus()[0]?.model ?? 'unknown',
+        availableParallelism: availableParallelism(),
+        workerCount: workers > 0 && !workerPoolUnavailable ? workers : 0,
+        requestedWorkerCount: workers,
+        chunks,
+        arm,
+        regionChunks,
+        stealAfter,
+        warmups,
+        samples: sampleCount,
+        registriesLoadedMs: loaded,
+        distributionMs: {
+            min: times[0] ?? 0,
+            p50,
+            p95: percentile(times, 0.95),
+            max: times.at(-1) ?? 0
+        },
+        throughputChunksPerSecond: (chunks / p50) * 1000,
+        outputDigest: runs[0]?.outputDigest
+    })}\n`
+);

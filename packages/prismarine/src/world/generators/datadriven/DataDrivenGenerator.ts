@@ -1009,7 +1009,12 @@ export class DataDrivenGenerator implements Generator {
         return true;
     }
 
-    /** @inheritDoc */
+    /**
+     * @inheritDoc
+     *
+     * This implementation returns its retained mutable chunk. Repeated requests for the same
+     * seed and position share one object until the generation holder is evicted.
+     */
     public async generateChunk(
         cx: number,
         cz: number,
