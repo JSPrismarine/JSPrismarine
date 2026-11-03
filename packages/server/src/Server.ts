@@ -106,11 +106,26 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
     }
 
     const logger = new Logger(config.getLogLevel(), transports);
+    let keepAlive: NodeJS.Timeout | undefined;
+    let stopCommandCompleted = false;
+    const onStopCommandComplete = (): void => {
+        stopCommandCompleted = true;
+        if (keepAlive !== undefined) {
+            clearInterval(keepAlive);
+            keepAlive = undefined;
+        }
+
+        // Closing readline removes its listener but does not close a terminal or pipe on stdin.
+        // Wait for queued stdout (including the stop response) before exiting the process entry.
+        process.stdout.write('', () => process.exit(0));
+    };
+
     const server = new Server({
         config,
         logger,
         headless: remote || args.headless,
-        profile: devtools !== undefined
+        profile: devtools !== undefined,
+        onStopCommandComplete
     });
     if (devtools) server.releaseOnShutdown(() => devtools.close());
     attach?.(server);
@@ -178,12 +193,10 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
             throw error; // Re-throw it so `process.on` can handle it.
         }
 
-        // Something referenced, held for as long as the server runs. The socket and the tick
-        // timer are `unref`ed on purpose - a library must not keep its host process alive -
-        // and without a TTY the console never holds stdin open, so a headless server, as in
-        // a container, exited right after it began listening. Nothing clears this: `shutdown`
-        // ends the process with `process.exit`.
-        setInterval(() => {}, 1 << 30);
+        // Something referenced keeps the process alive: the socket and the tick timer are
+        // `unref`ed, and without a TTY the console never holds stdin open. `/stop` exits after
+        // command feedback is flushed; signal shutdown uses the server's normal exit path.
+        if (!stopCommandCompleted) keepAlive = setInterval(() => {}, 1 << 30);
     };
 
     void bootstrap();

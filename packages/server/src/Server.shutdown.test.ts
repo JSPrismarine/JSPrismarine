@@ -83,6 +83,83 @@ const waitForExit = (child: ChildProcess, timeoutMs: number): Promise<ChildExit>
     });
 
 describe('server shutdown', () => {
+    it('exits after the console stop command and delivers its response', async () => {
+        const dataDirectory = await mkdtemp(path.join(tmpdir(), 'jsprismarine-console-stop-'));
+        await writeFile(
+            path.join(dataDirectory, 'config.json'),
+            JSON.stringify({
+                'level-name': 'world',
+                'enable-query': false,
+                'enable-ticking': false,
+                'enable-process-title': false,
+                'preload-radius': 0,
+                port: 0,
+                worlds: { world: { generator: 'Flat', provider: 'LevelDB', seed: '20261028' } }
+            })
+        );
+
+        const child = spawn(
+            process.execPath,
+            [
+                '--import',
+                import.meta.resolve('tsx'),
+                fileURLToPath(new URL('./Server.ts', import.meta.url)),
+                '--no-tui'
+            ],
+            {
+                cwd: process.cwd(),
+                env: { ...process.env, NODE_ENV: 'development', NODE_OPTIONS: '', JSP_DIR: dataDirectory },
+                stdio: ['pipe', 'pipe', 'pipe']
+            }
+        );
+        let output = '';
+        const collect = (chunk: Buffer): void => {
+            output += chunk.toString();
+        };
+        child.stdout?.on('data', collect);
+        child.stderr?.on('data', collect);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                const timer = setTimeout(() => reject(new Error(`server did not listen: ${output}`)), 25_000);
+                const onExit = (code: number | null, signal: NodeJS.Signals | null): void => {
+                    clearTimeout(timer);
+                    reject(new Error(`server exited before listening (${code ?? signal}): ${output}`));
+                };
+                const check = (): void => {
+                    if (!output.includes('is now listening')) return;
+                    clearTimeout(timer);
+                    child.stdout?.off('data', check);
+                    child.stderr?.off('data', check);
+                    child.off('exit', onExit);
+                    resolve();
+                };
+                child.stdout?.on('data', check);
+                child.stderr?.on('data', check);
+                child.once('exit', onExit);
+                check();
+            });
+
+            const exit = waitForExit(child, 5000).catch((error: unknown) => {
+                throw new Error(`${error instanceof Error ? error.message : String(error)}\n${output}`);
+            });
+            const closed = once(child, 'close');
+            child.stdin?.write('stop\n');
+
+            await expect(exit).resolves.toEqual({ code: 0, signal: null });
+            await closed;
+            expect(output).toContain('Stopping the server');
+            expect(output).toContain('Server stopped, Goodbye!');
+        } finally {
+            if (child.exitCode === null && child.signalCode === null) {
+                const exited = once(child, 'exit');
+                child.kill('SIGKILL');
+                await exited;
+            }
+            await rm(dataDirectory, { recursive: true, force: true });
+        }
+    }, 40_000);
+
     it('disconnects DevTools before completing graceful shutdown', async () => {
         const dataDirectory = await mkdtemp(path.join(tmpdir(), 'jsprismarine-server-shutdown-'));
         await writeFile(

@@ -87,6 +87,8 @@ export const vanillaPermissionOf = (name: string): string => `minecraft.command.
 export class CommandManager implements Service {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
+    private readonly onStopCommandComplete: (() => void) | undefined;
+    private stopCommandRequests = 0;
     private dispatcher!: CommandDispatcher<CommandExecutor>;
 
     /** What `@jsprismarine/commands` calls into - see {@link import('./host').serverCommandHost}. */
@@ -122,10 +124,13 @@ export class CommandManager implements Service {
     /** A function source other than the server's content; see {@link CommandManager.setFunctionContent}. */
     private functionContent: FunctionContent | undefined;
 
-    public constructor(server: Server) {
+    public constructor(server: Server, onStopCommandComplete?: () => void) {
         this.server = server;
+        this.onStopCommandComplete = onStopCommandComplete;
         this.dispatcher = new CommandDispatcher<CommandExecutor>();
-        this.host = serverCommandHost(server);
+        this.host = serverCommandHost(server, () => {
+            this.stopCommandRequests += 1;
+        });
     }
 
     /** Keeps the pre-enable API available without building a throwaway tree at startup. */
@@ -786,7 +791,12 @@ export class CommandManager implements Service {
                         );
                 }
 
-                return await this.dispatchVanilla(sender, target, vanilla, input);
+                const stopRequestsBefore = this.stopCommandRequests;
+                const succeeded = await this.dispatchVanilla(sender, target, vanilla, input);
+                // `/stop` parks teardown and its confirmation on the vanilla command path.
+                // Notify the process entry only after both have settled.
+                if (vanilla === 'stop' && this.stopCommandRequests > stopRequestsBefore) this.onStopCommandComplete?.();
+                return succeeded;
             }
 
             const parsed = this.dispatcher.parse(input.trim(), target);
@@ -823,6 +833,7 @@ export class CommandManager implements Service {
             // The dispatcher is synchronous and a command body returns a result code, so the
             // work a body awaits is collected here and awaited before the feedback goes out.
             // See `asyncCommand` for why the bodies cannot return their promises directly.
+            const stopRequestsBefore = this.stopCommandRequests;
             const res = await Promise.all(collectAsyncCommands(() => this.dispatcher.execute(parsed)));
 
             // `sendCommandFeedback` is a per-world gamerule, so it is read from the world the
@@ -836,20 +847,24 @@ export class CommandManager implements Service {
             const feedback = world.getGameRuleManager()?.getGameRule('sendCommandFeedback')?.[0];
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
-            if (!feedback) return true;
+            if (feedback) {
+                await Promise.all(
+                    res.map(async (feedback) => {
+                        const chat = new Chat({
+                            sender: this.server.getConsoleSender(),
+                            message: `§o§7[${target.getName()}: ${feedback ?? `issued server command: /${input}`}]§r`,
+                            channel: '*.ops'
+                        });
 
-            await Promise.all(
-                res.map(async (feedback) => {
-                    const chat = new Chat({
-                        sender: this.server.getConsoleSender(),
-                        message: `§o§7[${target.getName()}: ${feedback ?? `issued server command: /${input}`}]§r`,
-                        channel: '*.ops'
-                    });
+                        // TODO: should this be broadcasted to the executer?
+                        await this.server.getChatManager().send(chat);
+                    })
+                );
+            }
 
-                    // TODO: should this be broadcasted to the executer?
-                    await this.server.getChatManager().send(chat);
-                })
-            );
+            // The process entry releases its keepalive only after `/stop` has sent its feedback.
+            if (command.name === 'stop' && this.stopCommandRequests > stopRequestsBefore)
+                this.onStopCommandComplete?.();
 
             return true;
         } catch (error: unknown) {

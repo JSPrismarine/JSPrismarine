@@ -61,8 +61,9 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
  *
  * @param server - The live server. Held rather than snapshotted: a command
  *   runs long after the host was built and has to see the world as it is then.
+ * @param onStopRequested - Called when the `stop` command reaches its server host.
  */
-export const serverCommandHost = (server: Server): CommandHost => {
+export const serverCommandHost = (server: Server, onStopRequested: () => void = () => {}): CommandHost => {
     const scoreboard = new Scoreboard();
     const sequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
 
@@ -71,6 +72,6 @@ export const serverCommandHost = (server: Server): CommandHost => {
         world: worldCommandHost(server),
         scoreboard: scoreboardCommandHost(server, scoreboard),
         data: dataCommandHost(server, sequences),
-        server: serverSideCommandHost(server)
+        server: serverSideCommandHost(server, onStopRequested)
     };
 };

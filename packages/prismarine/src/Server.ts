@@ -188,6 +188,8 @@ export default class Server extends EventEmitter {
      * @param {InboundPacketRecorder} [options.inboundPacketRecorder] - Opt-in sink for accepted inbound packet bytes,
      *   which may include login identity data.
      * @param {OutboundPacketRecorder} [options.outboundPacketRecorder] - Opt-in sink for encoded clientbound packets.
+     * @param options.onStopCommandComplete - Called after a successful `/stop` dispatch sends
+     *   its feedback.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -196,7 +198,8 @@ export default class Server extends EventEmitter {
         headless = false,
         profile = false,
         inboundPacketRecorder,
-        outboundPacketRecorder
+        outboundPacketRecorder,
+        onStopCommandComplete
     }: {
         logger: Logger;
         config: Config;
@@ -204,6 +207,7 @@ export default class Server extends EventEmitter {
         profile?: boolean;
         inboundPacketRecorder?: InboundPacketRecorder;
         outboundPacketRecorder?: OutboundPacketRecorder;
+        onStopCommandComplete?: () => void;
     }) {
         super();
 
@@ -228,7 +232,7 @@ export default class Server extends EventEmitter {
         this.worldManager = new WorldManager(this);
         this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
-        this.commandManager = new CommandManager(this);
+        this.commandManager = new CommandManager(this, onStopCommandComplete);
         this.ticker = new ServerTicker({
             emitTick: (event) => this.emit('tick', event),
             pollNetwork: () => this.networking.pollInbound(),
