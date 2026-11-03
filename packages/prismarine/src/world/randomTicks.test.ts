@@ -6,6 +6,7 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
+import { BlockRandomPositions, runRandomTicks } from '@jsprismarine/engine-systems';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -38,10 +39,13 @@ import { fakeLevel } from '../testing/level';
 const BLOCKS = [
     'minecraft:air',
     'minecraft:big_dripleaf',
+    'minecraft:cocoa',
     'minecraft:dirt',
     'minecraft:farmland',
     'minecraft:lit_redstone_lamp',
+    'minecraft:melon_stem',
     'minecraft:observer',
+    'minecraft:pitcher_crop',
     'minecraft:redstone_block',
     'minecraft:redstone_lamp',
     'minecraft:redstone_torch',
@@ -186,7 +190,38 @@ describe('contentRandomTickHandlers', () => {
         const handlers = contentRandomTickHandlers({ content, world: () => world, report: () => {} });
 
         // The crop grows, the farmland dries out and the dirt spreads grass; air does nothing.
-        expect(Object.keys(handlers).sort()).toEqual(['minecraft:dirt', 'minecraft:farmland', 'minecraft:wheat']);
+        expect(Object.keys(handlers).sort()).toEqual([
+            'minecraft:cocoa',
+            'minecraft:dirt',
+            'minecraft:farmland',
+            'minecraft:melon_stem',
+            'minecraft:pitcher_crop',
+            'minecraft:wheat'
+        ]);
+    });
+
+    it('filters random ticks with Bedrock runtime-id facts before reading Java-spelled states', () => {
+        const positions = new BlockRandomPositions();
+        const pitcher = positions.next(0, 0, 0);
+        const cocoa = positions.next(0, 0, 0);
+        const stem = positions.next(0, 0, 0);
+        // Bedrock's growth values 0, 1, 3, and 5 are Java pitcher ages 0 through 3.
+        place(chunk, pitcher.x, pitcher.y, pitcher.z, 'minecraft:pitcher_crop', { growth: 0, upper_block_bit: 0 });
+        place(chunk, cocoa.x, cocoa.y, cocoa.z, 'minecraft:cocoa', { age: 2, direction: 2 });
+        place(chunk, stem.x, stem.y, stem.z, 'minecraft:melon_stem', { facing_direction: 2, growth: 7 });
+
+        const ticked: string[] = [];
+        const engineWorld = createEngineWorld(world);
+        expect(
+            runRandomTicks(
+                engineWorld,
+                new BlockRandomPositions(),
+                [{ x: 0, y: 0, z: 0 }],
+                (at) => ticked.push(`${at.x},${at.y},${at.z}`),
+                3
+            )
+        ).toBe(1);
+        expect(ticked).toEqual([`${pitcher.x},${pitcher.y},${pitcher.z}`]);
     });
 
     it('runs a scheduled content hook through the world tick', () => {

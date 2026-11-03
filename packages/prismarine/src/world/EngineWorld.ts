@@ -18,6 +18,7 @@ import { AIR } from '@jsprismarine/engine-systems';
 
 import { worldBlockEntities } from './contentAdapter';
 import { maxY } from './Dimension';
+import { takesRandomTicks } from './randomTickSections';
 import type { World } from './World';
 import type { WorldSystemsAccess } from './WorldSystems';
 
@@ -75,6 +76,10 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
 
     return {
         getBlock: readBlock,
+        isRandomlyTicking: (at) => {
+            const runtimeId = world.loadedBlockRuntimeIdAt(at.x, at.y, at.z);
+            return runtimeId !== undefined && takesRandomTicks(runtimeId);
+        },
         setBlock: writeBlock,
 
         /**

@@ -14,6 +14,7 @@ import { DATA_COMPONENTS, TRIGGER_COMPONENTS } from '@jsprismarine/entities';
 import {
     bedrockBiomeToJava,
     bedrockBlockToJava,
+    bedrockBlockPropertiesOf,
     bedrockBlockStateToJava,
     javaBlockStateToBedrock,
     javaEntityTypeToBedrock,
@@ -37,6 +38,7 @@ import { World } from '@jsprismarine/prismarine/world/World';
 import { SPAWN_CONSTANTS, Spawner } from '@jsprismarine/spawning';
 import type { SpawnPosition, SpawnWorld } from '@jsprismarine/spawning';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
+import { takesRandomTicks } from '@jsprismarine/prismarine/world/randomTickSections';
 import { expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
@@ -647,6 +649,49 @@ const clientPayloadComparison = (
 const REAL_STACK_REFERENCES = [REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData] as const;
 
 describeFamily(FAMILIES.integrationBlockBehaviors, [REFERENCES.bedrockBlockPalette], () => {
+    it('filters random ticks by Bedrock state facts for mapped Java blocks', () => {
+        const capture = loadBlockPaletteCapture();
+        const cases: {
+            readonly name: string;
+            readonly states: Readonly<Record<string, number>>;
+            readonly expected: boolean;
+        }[] = [
+            ...[0, 1, 3, 5].map((growth) => ({
+                name: 'minecraft:pitcher_crop',
+                states: { growth, upper_block_bit: 0 },
+                expected: true
+            })),
+            { name: 'minecraft:cocoa', states: { age: 0, direction: 2 }, expected: true },
+            ...[0, 1, 2, 3].map((direction) => ({
+                name: 'minecraft:cocoa',
+                states: { age: 2, direction },
+                expected: false
+            })),
+            { name: 'minecraft:melon_stem', states: { facing_direction: 2, growth: 6 }, expected: true },
+            // Java's attached melon stem maps to a mature Bedrock melon_stem state.
+            ...[2, 3, 4, 5].map((facing_direction) => ({
+                name: 'minecraft:melon_stem',
+                states: { facing_direction, growth: 7 },
+                expected: false
+            }))
+        ];
+        for (const { name, states, expected } of cases) {
+            const domain = capture.domains[name];
+            expect(domain).toBeDefined();
+            for (const [property, value] of Object.entries(states)) {
+                const values = domain?.[property]?.values.map((accepted) =>
+                    typeof accepted === 'boolean' ? String(Number(accepted)) : String(accepted)
+                );
+                expect(values).toContain(String(value));
+            }
+
+            expect(bedrockBlockPropertiesOf(name, states)?.randomTick).toBe(expected);
+            const runtimeId = BlockRuntimeIds.tryGetByState(name, states);
+            if (runtimeId === null) throw new Error(`No runtime id for ${name} ${JSON.stringify(states)}`);
+            expect(takesRandomTicks(runtimeId)).toBe(expected);
+        }
+    });
+
     it('writes grown bamboo states that the captured Bedrock catalog accepts', () => {
         const capture = loadBlockPaletteCapture();
         const states = {

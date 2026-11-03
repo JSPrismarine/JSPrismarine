@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRandomPositions, DEFAULT_RANDOM_TICK_SPEED, drawSectionPositions, runRandomTicks } from './randomTick';
 import { createTestWorld } from './testWorld';
-import type { BlockPosition } from './world';
+import type { BlockPosition, WorldAccess } from './world';
 import { block, positionKey } from './world';
 
 describe('BlockRandomPositions', () => {
@@ -82,6 +82,26 @@ describe('runRandomTicks', () => {
         world.place({ x: 7, y: 11, z: 12 }, block('minecraft:lava'));
 
         expect(runRandomTicks(world, new BlockRandomPositions(), [{ x: 0, y: 0, z: 0 }], () => {}, 0)).toBe(0);
+    });
+
+    it('uses native-state eligibility when the host exposes a block-fact lookup', () => {
+        const base = createTestWorld();
+        let reads = 0;
+        const world: WorldAccess = {
+            ...base,
+            getBlock(at) {
+                reads++;
+                return base.getBlock(at);
+            },
+            isRandomlyTicking: (at) => positionKey(at) === '7,11,12'
+        };
+        const ticked: BlockPosition[] = [];
+
+        expect(
+            runRandomTicks(world, new BlockRandomPositions(), [{ x: 0, y: 0, z: 0 }], (at) => ticked.push(at), 1)
+        ).toBe(1);
+        expect(ticked).toEqual([{ x: 7, y: 11, z: 12 }]);
+        expect(reads).toBe(0);
     });
 
     it('can draw the same position twice in one chunk tick', () => {

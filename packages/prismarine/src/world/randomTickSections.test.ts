@@ -44,6 +44,14 @@ describe('takesRandomTicks', () => {
         expect(takesRandomTicks(idOf('minecraft:wheat', { growth: 7 }))).toBe(false);
     });
 
+    it('keeps Bedrock eligibility for states whose Java spellings differ', () => {
+        for (const growth of [0, 1, 3, 5]) {
+            expect(takesRandomTicks(idOf('minecraft:pitcher_crop', { growth, upper_block_bit: 0 }))).toBe(true);
+        }
+        expect(takesRandomTicks(idOf('minecraft:cocoa', { age: 2, direction: 2 }))).toBe(false);
+        expect(takesRandomTicks(idOf('minecraft:melon_stem', { facing_direction: 2, growth: 7 }))).toBe(false);
+    });
+
     it('answers false for an id no registered block produces, rather than throwing', () => {
         expect(takesRandomTicks(0x7f_ff_ff_ff)).toBe(false);
     });

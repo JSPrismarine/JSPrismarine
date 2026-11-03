@@ -158,6 +158,11 @@ export interface WorldAccess {
     /** The block at one position. Outside the loaded world, return air. */
     getBlock(at: BlockPosition): BlockRef;
     /**
+     * Whether the stored block state at one position receives random ticks.
+     * Hosts that translate state names for engine behavior can answer from their native state.
+     */
+    isRandomlyTicking?(at: BlockPosition): boolean;
+    /**
      * Replace the block at one position.
      *
      * @param at - Where to write.

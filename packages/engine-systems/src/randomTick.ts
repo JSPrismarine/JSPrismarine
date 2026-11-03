@@ -113,7 +113,8 @@ export const runRandomTicks = (
     let ticked = 0;
     for (const section of sections) {
         for (const at of drawSectionPositions(positions, section, tickSpeed)) {
-            if (!isRandomlyTicking(world.getBlock(at))) continue;
+            const takesTick = world.isRandomlyTicking?.(at) ?? isRandomlyTicking(world.getBlock(at));
+            if (!takesTick) continue;
             ticked++;
             run(at);
         }
