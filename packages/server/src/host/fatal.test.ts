@@ -1,6 +1,15 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleFatalErrors } from './fatal';
+
+beforeEach(() => {
+    // Root Vitest reuses workers without module isolation, and flush() needs a real timer.
+    vi.useRealTimers();
+});
+
+afterEach(() => {
+    vi.useRealTimers();
+});
 
 type FatalEvents = { uncaughtException: [Error]; unhandledRejection: [unknown] };
 
