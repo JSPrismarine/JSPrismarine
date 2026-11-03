@@ -299,6 +299,8 @@ export class GenerationRegion {
 
     /** The `WORLD_SURFACE_WG` heights frozen after the terrain fill, as Java freezes them. */
     private frozenSurface: Int32Array<ArrayBuffer> | null = null;
+    /** Whether the fresh-terrain writer may still skip generic per-write bookkeeping. */
+    private directTerrainWriting = false;
 
     public constructor(private readonly options: GenerationRegionOptions) {
         this.chunkX = options.chunkX;
@@ -389,6 +391,7 @@ export class GenerationRegion {
      * @returns The payload and the buffers to pass as the transfer list.
      */
     public transfer(): GenerationRegionTransfer {
+        this.directTerrainWriting = false;
         const payload: GenerationRegionPayload = {
             chunkX: this.chunkX,
             chunkZ: this.chunkZ,
@@ -419,6 +422,7 @@ export class GenerationRegion {
      * @returns A payload view whose buffers remain owned by this region.
      */
     public workerInput(): GenerationRegionPayload {
+        this.directTerrainWriting = false;
         return {
             chunkX: this.chunkX,
             chunkZ: this.chunkZ,
@@ -501,9 +505,7 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return false;
 
-        this.writeSlot(index, this.paletteSlot(state));
-        this.afterWrite(index, x, y, z);
-        this.trackWrite(index, x, y, z);
+        this.writeResolvedSlot(index, x, y, z, this.paletteSlot(state));
         return true;
     }
 
@@ -512,10 +514,67 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return false;
 
-        this.writeSlot(index, this.paletteSlotForName(name));
-        this.afterWrite(index, x, y, z);
-        this.trackWrite(index, x, y, z);
+        this.writeResolvedSlot(index, x, y, z, this.paletteSlotForName(name));
         return true;
+    }
+
+    /**
+     * Creates the direct writer for a fresh terrain tile.
+     *
+     * Terrain writes happen before heightmap reads, block entities, or write tracking. That lets
+     * this writer update the palette slot and column ceiling directly; later stages use
+     * {@link writeName}, which keeps the full per-write bookkeeping.
+     *
+     * @internal Used only by the datadriven terrain sampler before the tile is exposed.
+     * @returns A terrain writer scoped to this fresh region.
+     */
+    public createTerrainNameWriter(): (x: number, y: number, z: number, name: string) => boolean {
+        if (
+            this.sparseWrites !== undefined ||
+            this.trackingWrites ||
+            this.blockEntities.size !== 0 ||
+            this.heightmapCaches.size !== 0 ||
+            this.frozenSurface !== null ||
+            this.palette.length !== 1
+        ) {
+            throw new Error('A terrain name writer requires a fresh, untracked region');
+        }
+        this.directTerrainWriting = true;
+
+        const slots = new Map<string, number>();
+        let previousName: string | undefined;
+        let previousSlot = 0;
+
+        return (x, y, z, name) => {
+            if (!this.directTerrainWriting) return this.writeName(x, y, z, name);
+            if (y < this.minY || y > this.maxY) return false;
+            const column = this.columnIndex(x, z);
+            if (column === -1) return false;
+            const index = column * this.height + (y - this.minY);
+
+            let slot: number | undefined;
+            if (name === previousName) {
+                slot = previousSlot;
+            } else {
+                slot = slots.get(name);
+                if (slot === undefined) {
+                    slot = this.paletteSlotForName(name);
+                    slots.set(name, slot);
+                }
+                previousName = name;
+                previousSlot = slot;
+            }
+
+            // Air writes need the ordinary clearing path; terrain fill skips them, but this
+            // keeps the writer correct if a sampler result or caller includes air explicitly.
+            if (this.isAirByPaletteSlot[slot]) this.writeResolvedSlot(index, x, y, z, slot);
+            else {
+                // Fresh terrain has no heightmap cache, block entities, or tracking to invalidate.
+                this.states[index] = slot;
+                if (y > this.highest[column]!) this.highest[column] = y;
+            }
+            return true;
+        };
     }
 
     /**
@@ -530,14 +589,13 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return false;
 
-        this.writeSlot(index, this.bedrockSlot(state));
-        this.afterWrite(index, x, y, z);
-        this.trackWrite(index, x, y, z);
+        this.writeResolvedSlot(index, x, y, z, this.bedrockSlot(state));
         return true;
     }
 
     /** Starts collecting decoration writes so neighboring chunks can receive their share. */
     public beginWriteTracking(): void {
+        this.directTerrainWriting = false;
         this.trackingWrites = true;
         this.trackedWrites.clear();
         this.trackedStructureWrites.clear();
@@ -611,6 +669,7 @@ export class GenerationRegion {
 
     /** Copies another tile's center terrain and frozen surface heights into this region. */
     public copyCenterFrom(source: GenerationRegion): void {
+        this.directTerrainWriting = false;
         if (source.minY !== this.minY || source.maxY !== this.maxY) {
             throw new RangeError('Cannot combine generation regions with different vertical extents');
         }
@@ -685,6 +744,7 @@ export class GenerationRegion {
      *   than in a block.
      */
     public applyPatch(patch: RegionChunkPatch, options: ApplyPatchOptions = {}): void {
+        this.directTerrainWriting = false;
         const kept = new Set<number>();
         for (const position of options.keep ?? []) {
             const index = this.indexOf(position.x, position.y, position.z);
@@ -749,6 +809,7 @@ export class GenerationRegion {
      * let a column's new grass move the surface the next rule reads.
      */
     public freezeSurfaceHeights(): void {
+        this.directTerrainWriting = false;
         this.frozenSurface = Int32Array.from(this.highest);
     }
 
@@ -761,7 +822,7 @@ export class GenerationRegion {
             maxY: this.maxY,
             getBlock: (x, y, z) => this.stateAt(x, y, z).name,
             setBlock: (x, y, z, state) => {
-                this.write(x, y, z, this.stateOf(state));
+                this.writeName(x, y, z, state);
             },
             surfaceHeight: (localX, localZ) => {
                 const column = this.columnIndex(this.chunkX * 16 + localX, this.chunkZ * 16 + localZ);
@@ -874,6 +935,7 @@ export class GenerationRegion {
      * was dropped, so the two never disagree about whether the block is there.
      */
     private attachBlockEntity(position: BlockPos, request: BlockEntityRequest): void {
+        this.directTerrainWriting = false;
         const index = this.indexOf(position.x, position.y, position.z);
         if (index === -1) return;
 
@@ -934,16 +996,6 @@ export class GenerationRegion {
         return x >> 4 === this.chunkX && z >> 4 === this.chunkZ;
     }
 
-    /** A bare identifier as a state, memoized through the palette's own index. */
-    private stateOf(name: string): BlockState {
-        const slot = this.paletteIndex.get(name);
-        if (slot !== undefined) return this.palette[slot]!.java;
-
-        const state: BlockState = { name, properties: {} };
-        this.paletteIndex.set(name, this.addPaletteBlock({ java: state }));
-        return state;
-    }
-
     private paletteSlotForName(name: string): number {
         const existing = this.paletteIndex.get(name);
         if (existing !== undefined) return existing;
@@ -951,6 +1003,13 @@ export class GenerationRegion {
         const slot = this.addPaletteBlock({ java: { name, properties: {} } });
         this.paletteIndex.set(name, slot);
         return slot;
+    }
+
+    /** Writes one already resolved slot and keeps every per-write region invariant current. */
+    private writeResolvedSlot(index: number, x: number, y: number, z: number, slot: number): void {
+        this.writeSlot(index, slot);
+        this.afterWrite(index, x, y, z);
+        this.trackWrite(index, x, y, z);
     }
 
     private trackWrite(index: number, x: number, y: number, z: number): void {
@@ -963,6 +1022,7 @@ export class GenerationRegion {
 
     /** Writes a palette slot into this region or its task-local sparse overlay. */
     private writeSlot(index: number, slot: number): void {
+        this.directTerrainWriting = false;
         if (this.sparseWrites === undefined) this.states[index] = slot;
         else {
             this.sparseWrites.set(index, slot);
@@ -976,6 +1036,7 @@ export class GenerationRegion {
 
         let cache = this.heightmapCaches.get(heightmap);
         if (cache === undefined) {
+            this.directTerrainWriting = false;
             // A valid heightmap answer is at least minY, so minY - 1 marks an uncached column.
             cache = new Int32Array(this.highest.length).fill(this.minY - 1);
             this.heightmapCaches.set(heightmap, cache);

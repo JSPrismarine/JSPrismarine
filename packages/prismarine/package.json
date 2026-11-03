@@ -79,6 +79,7 @@
         "bench:world-save": "node --import tsx benchmarks/worldSave.ts",
         "bench:entity-only-save": "node --import tsx benchmarks/entityOnlyChunkSave.ts",
         "bench:chunk-reads": "node --import tsx benchmarks/chunkReads.bench.ts",
+        "bench:terrain-writes": "node --import tsx benchmarks/terrainWrites.bench.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",
         "bench:world-keys": "node benchmarks/run.mjs benchmarks/worldMapKeys.bench.ts",

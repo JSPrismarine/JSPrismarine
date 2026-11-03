@@ -703,6 +703,71 @@ describe('centerBlockSlots', () => {
     });
 });
 
+describe('terrain name writer', () => {
+    it('keeps terrain blocks and column heights visible to the later feature pass', () => {
+        const baseline = terrainTile(0, 0);
+        const fast = terrainTile(0, 0);
+        const writeFast = fast.createTerrainNameWriter();
+        const writes = [
+            [0, -62, 0, 'minecraft:stone'],
+            [0, -60, 0, 'minecraft:dirt'],
+            [0, -60, 0, 'minecraft:air'],
+            [0, -61, 0, 'minecraft:grass_block'],
+            [1, -50, 0, 'minecraft:cobblestone']
+        ] as const;
+        for (const [x, y, z, name] of writes) {
+            expect(baseline.writeName(x, y, z, name)).toBe(true);
+            expect(writeFast(x, y, z, name)).toBe(true);
+        }
+        expect(baseline.writeName(-1, -60, 0, 'minecraft:diamond_block')).toBe(false);
+        expect(writeFast(-1, -60, 0, 'minecraft:diamond_block')).toBe(false);
+
+        expect(fast.stateAt(0, -61, 0).name).toBe('minecraft:grass_block');
+        expect(fast.featureWorld().getBlock({ x: 0, y: -61, z: 0 }).name).toBe('minecraft:grass_block');
+        expect(fast.centerBlockSlots()).toEqual(baseline.centerBlockSlots());
+
+        const position = { x: 0, y: -61, z: 0 };
+        for (const built of [baseline, fast]) {
+            const world = built.featureWorld();
+            world.setBlock(position, { name: 'minecraft:chest', properties: {} });
+            world.setBlockEntity?.(position, { id: 'minecraft:chest' });
+            built.beginWriteTracking();
+            built.writeName(position.x, position.y, position.z, 'minecraft:stone');
+        }
+        expect(fast.centerBlockEntities()).toEqual(baseline.centerBlockEntities());
+        expect(fast.takeTrackedPatches()).toEqual(baseline.takeTrackedPatches());
+    });
+
+    it('routes name-only surface writes through the direct palette path', () => {
+        const built = terrainTile(0, 0);
+        const surface = built.surfaceChunk();
+
+        surface.setBlock(0, -62, 0, 'minecraft:stone');
+        surface.setBlock(0, -61, 0, 'minecraft:dirt');
+
+        expect(built.stateAt(0, -61, 0).name).toBe('minecraft:dirt');
+        expect(built.centerBlockSlots().columnTops[0]).toBe(-61);
+    });
+
+    it('refuses direct terrain writes after the region becomes observable', () => {
+        const built = terrainTile(0, 0);
+        built.writeName(0, 10, 0, 'minecraft:stone');
+
+        expect(() => built.createTerrainNameWriter()).toThrow('fresh, untracked region');
+    });
+
+    it('returns to tracked writes if the region starts tracking during a terrain write sequence', () => {
+        const built = terrainTile(0, 0);
+        const writeTerrain = built.createTerrainNameWriter();
+        built.beginWriteTracking();
+
+        expect(writeTerrain(0, 10, 0, 'minecraft:stone')).toBe(true);
+        expect(built.takeTrackedPatches()[0]?.blocks).toEqual([
+            { x: 0, y: 10, z: 0, block: { java: { name: 'minecraft:stone', properties: {} } } }
+        ]);
+    });
+});
+
 describe('transfer', () => {
     it('rebuilds air classification before updating an adopted column ceiling', () => {
         const built = terrainTile(0, 0);

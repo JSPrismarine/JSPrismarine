@@ -1643,6 +1643,7 @@ export class DataDrivenGenerator implements Generator {
         // the hillside it is about to stand on. The starts are laid out against the bare noise,
         // which has no beard of its own, so there is no circle here.
         sampler.context.beardifier = createBeardifier(beard, junctions);
+        const writeTerrainName = region.createTerrainNameWriter();
         const floor = Math.max(pipeline.dimension.minY, pipeline.settings.noiseSettings.minY);
         const ceiling = Math.min(
             pipeline.dimension.minY + pipeline.dimension.height - 1,
@@ -1656,7 +1657,7 @@ export class DataDrivenGenerator implements Generator {
         // fluid update flags are the same either way; only the order they are asked in moves.
         for (let cell = 0; cell < sampler.cellCount; cell++) {
             sampler.forEachCellBlock(cell, (x, y, z, state) => {
-                if (y >= floor && y <= ceiling && state !== 'minecraft:air') region.writeName(x, y, z, state);
+                if (y >= floor && y <= ceiling && state !== 'minecraft:air') writeTerrainName(x, y, z, state);
             });
 
             // A yield is a trip around the event loop, which on a loaded host costs more than
