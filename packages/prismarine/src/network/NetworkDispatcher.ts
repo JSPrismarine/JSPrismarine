@@ -82,6 +82,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly connectionSequences: WeakMap<ClientConnection, { id: number; next: number }> | undefined;
     private readonly connectionsByTraceId = new Map<number, ClientConnection>();
     private readonly traceConnectionIds = new WeakMap<ClientConnection, number>();
+    private readonly traceTokens = new WeakMap<ClientConnection, string>();
     private readonly replaySequences = new Map<number, number>();
     private nextConnectionId = 1;
     /** Keeps each reliable-ordered client stream sequential through async packet handlers. */
@@ -124,6 +125,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         // Playback assigns captured ids on a fresh server even when that server is not recording.
         this.connectionsByTraceId.set(connectionId, clientConnection);
         this.traceConnectionIds.set(clientConnection, connectionId);
+        this.traceTokens.set(clientConnection, token);
         if (this.outboundPacketRecorder !== undefined) {
             clientConnection.setOutboundPacketRecorder(this.outboundPacketRecorder, connectionId, () =>
                 this.server.getTick()
@@ -374,40 +376,69 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const connection = this.connectionsByTraceId.get(record.connectionId);
         if (connection === undefined) throw new Error(`Replay connection ${record.connectionId} is not connected`);
 
-        const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
-        if (record.sequence !== expectedSequence) {
-            throw new Error(
-                `Replay connection ${record.connectionId} expected packet ${expectedSequence}, got ${record.sequence}`
-            );
-        }
+        const token = this.traceTokens.get(connection);
+        if (token === undefined) throw new Error(`Replay connection ${record.connectionId} has no live session token`);
 
-        const expectedTick = record.tick + tickOffset;
-        const currentTick = this.server.getTick();
-        if (currentTick !== expectedTick) {
-            throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
-        }
-        if (connection.codec.protocolVersion !== record.protocolVersion) {
-            throw new Error(
-                `Replay protocol ${record.protocolVersion} does not match connection protocol ${connection.codec.protocolVersion}`
-            );
-        }
+        // Use the same per-connection queue as transport frames so replay cannot overtake an
+        // unfinished handler from that client.
+        const previous = this.frameQueues.get(connection) ?? Promise.resolve();
+        const current = previous.then(async () => {
+            if (this.sessionManager.get(token) !== connection) {
+                throw new Error(`Replay connection ${record.connectionId} is no longer connected`);
+            }
 
-        this.frameTicks?.set(connection, currentTick);
-        const packets = this.decodePacket(Buffer.from(record.payload), connection);
-        const packet = packets[0];
-        if (packets.length !== 1 || packet === undefined || packet.getName() !== record.packetName) {
-            throw new Error(`Replay bytes did not decode as ${record.packetName}`);
-        }
+            const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
+            if (record.sequence !== expectedSequence) {
+                throw new Error(
+                    `Replay connection ${record.connectionId} expected packet ${expectedSequence}, got ${record.sequence}`
+                );
+            }
 
-        const gated = this.gatePhase(packet, connection);
-        if (gated.length !== 1) {
-            throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
-        }
+            const expectedTick = record.tick + tickOffset;
+            const currentTick = this.server.getTick();
+            if (currentTick !== expectedTick) {
+                throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
+            }
+            if (connection.codec.protocolVersion !== record.protocolVersion) {
+                throw new Error(
+                    `Replay protocol ${record.protocolVersion} does not match connection protocol ${connection.codec.protocolVersion}`
+                );
+            }
 
-        this.logInbound(packet);
-        // This input is already in the source trace; playback must not append it a second time.
-        await this.dispatch(gated[0]!, connection, false);
-        this.replaySequences.set(record.connectionId, expectedSequence + 1);
+            this.frameTicks?.set(connection, currentTick);
+            // Traces store packet bytes, not transport batches; rebuild one frame so playback exercises
+            // the same compression and batch-decoding path as live traffic.
+            const payload = Buffer.from(record.payload);
+            const frame = connection.hasCompression
+                ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode([payload])
+                : BatchCodec.uncompressed().encode([payload]);
+            const packetPayloads = await this.splitBatch(frame, connection);
+            if (packetPayloads.length !== 1) {
+                throw new Error(`Replay frame for ${record.packetName} contained ${packetPayloads.length} packets`);
+            }
+
+            const packets = this.decodePacket(packetPayloads[0]!, connection);
+            const packet = packets[0];
+            if (packets.length !== 1 || packet === undefined || packet.getName() !== record.packetName) {
+                throw new Error(`Replay bytes did not decode as ${record.packetName}`);
+            }
+
+            const gated = this.gatePhase(packet, connection);
+            if (gated.length !== 1) {
+                throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
+            }
+
+            this.logInbound(packet);
+            // This input is already in the source trace; playback must not append it a second time.
+            await this.dispatch(gated[0]!, connection, false);
+            this.replaySequences.set(record.connectionId, expectedSequence + 1);
+        });
+        // A rejected replay record must not prevent the caller from correcting it and retrying.
+        this.frameQueues.set(
+            connection,
+            current.catch(() => {})
+        );
+        await current;
     }
 
     /** One failure shape for the lookup and the handler itself, as the old dispatch had it. */

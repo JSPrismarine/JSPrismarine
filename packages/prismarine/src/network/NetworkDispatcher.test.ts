@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
 import { BatchCodec } from '@jsprismarine/protocol';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { EventEmitter } from '../events/EventEmitter';
 import type Server from '../Server';
 import SessionManager from '../SessionManager';
@@ -97,16 +98,20 @@ const message = (text: string) => {
     });
 };
 
-/** One uncompressed batch holding the packet, as bytes off the wire. */
-const frameOf = (packet: TextPacket) => {
+/** One batch holding the packet, as bytes off the wire. */
+const frameOf = (packet: TextPacket, compressed = false) => {
     packet.encode();
-    return BatchCodec.uncompressed().encode([packet.getBuffer()]);
+    const payloads = [packet.getBuffer()];
+    return compressed
+        ? BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode(payloads)
+        : BatchCodec.uncompressed().encode(payloads);
 };
 
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
 const makeDispatcher = (options?: {
     codec?: ProtocolCodec;
     recorder?: InboundPacketRecorder;
+    compressed?: boolean;
     tick?: () => number;
     handler?: {
         phases: readonly SessionPhase[];
@@ -136,7 +141,7 @@ const makeDispatcher = (options?: {
         inboundPacketRecorder: options?.recorder,
         createConnection: () => {
             const connection = stub<ClientConnection>({
-                hasCompression: false,
+                hasCompression: options?.compressed ?? false,
                 codec: options?.codec ?? Codec2193,
                 phase: 'handshake',
                 getPlayerSession: () => null
@@ -282,15 +287,58 @@ describe('network', () => {
                     if (packet instanceof TextPacket) handled.push(packet.getPacketData()!.message);
                 }
             };
-            const first = makeDispatcher({ recorder: trace, tick: () => 6, handler });
+            const first = makeDispatcher({ compressed: true, recorder: trace, tick: () => 6, handler });
             await first.transport.emitConnect(fakeConnection('first:1').connection);
-            await first.transport.emitFrame(frameOf(message('bot input')), address('first:1'));
+            await first.transport.emitFrame(frameOf(message('bot input'), true), address('first:1'));
 
-            const replay = makeDispatcher({ recorder: trace, tick: () => 6, handler });
+            const replay = makeDispatcher({ compressed: true, recorder: trace, tick: () => 6, handler });
             await replay.transport.emitConnect(fakeConnection('restored:1').connection);
             await replay.dispatcher.replayInboundRecord(trace.records()[0]!);
 
             expect(handled).toEqual(['bot input', 'bot input']);
+            expect(trace.records()).toHaveLength(1);
+        });
+
+        it('queues replay after unfinished frames from the same connection', async () => {
+            const trace = new InboundPacketTrace();
+            const handled: string[] = [];
+            let releaseLive!: () => void;
+            let signalLive!: () => void;
+            const liveStarted = new Promise<void>((resolve) => {
+                signalLive = resolve;
+            });
+            const liveGate = new Promise<void>((resolve) => {
+                releaseLive = resolve;
+            });
+            const { transport, dispatcher } = makeDispatcher({
+                recorder: trace,
+                tick: () => 3,
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        if (!(packet instanceof TextPacket)) return;
+                        const text = packet.getPacketData()!.message;
+                        handled.push(text);
+                        if (text === 'live input') {
+                            signalLive();
+                            await liveGate;
+                        }
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            const liveFrame = transport.emitFrame(frameOf(message('live input')), address('a:1'));
+            await liveStarted;
+            const replay = dispatcher.replayInboundRecord(trace.records()[0]!);
+            await Promise.resolve();
+
+            expect(handled).toEqual(['live input']);
+
+            releaseLive();
+            await Promise.all([liveFrame, replay]);
+
+            expect(handled).toEqual(['live input', 'live input']);
             expect(trace.records()).toHaveLength(1);
         });
 
