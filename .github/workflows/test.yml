@@ -41,6 +41,9 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
+            - name: 🔨 Build LevelDB for the hard-kill regression
+              run: pnpm --filter @jsprismarine/leveldb run build
+
             - name: Cache Vitest module transforms
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
