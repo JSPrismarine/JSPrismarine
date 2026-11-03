@@ -92,7 +92,11 @@ const listSkin = () =>
     });
 
 const server = stub<Server>({
-    getConfig: () => stub<Config>({ getPacketCompressionAlgorithm: () => PacketCompressionAlgorithm.ZLIB }),
+    getConfig: () =>
+        stub<Config>({
+            getPacketCompressionAlgorithm: () => PacketCompressionAlgorithm.ZLIB,
+            getPacketCompressionThreshold: () => 256
+        }),
     getLogger: () => stub<ReturnType<Server['getLogger']>>({ info: () => {} })
 });
 
