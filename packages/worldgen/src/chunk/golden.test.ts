@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
+import chunkVectors from '../../vectors/chunk.json' with { type: 'json' };
 import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
@@ -51,6 +52,21 @@ const hashChunk = (sampler: ChunkSampler): string => {
     return hash.digest('hex');
 };
 
+const hashCellWalk = (
+    sampler: ChunkSampler,
+    visit?: (x: number, y: number, z: number, state: string) => void
+): string => {
+    const hash = createHash('sha256');
+    // Keep the existing cell traversal intact; reordering aquifer calls could change cache observations.
+    for (let cell = 0; cell < sampler.cellCount; cell++) {
+        sampler.forEachCellBlock(cell, (x, y, z, state, scheduleFluidUpdate) => {
+            hash.update(`${x},${y},${z}|${state}|${scheduleFluidUpdate ? 1 : 0}\n`);
+            visit?.(x, y, z, state);
+        });
+    }
+    return hash.digest('hex');
+};
+
 describe('the overworld golden chunks', () => {
     const state = new RandomState(data, SEED, data.settings('minecraft:overworld'));
 
@@ -78,6 +94,66 @@ describe('the overworld golden chunks', () => {
             ).toBe(sha256);
         }
     );
+
+    it.each(GOLDEN_CHUNKS)(
+        'keeps chunk $chunkX,$chunkZ identical between scalar and volume cell walks',
+        { timeout: 120_000 },
+        ({ chunkX, chunkZ }) => {
+            const scalar = new ChunkSampler(
+                new RandomState(data, SEED, data.settings('minecraft:overworld')),
+                // Visit every density and aquifer sample so both evaluators do the same work.
+                { chunkX, chunkZ, skipProvenCells: false }
+            );
+            const volume = new ChunkSampler(new RandomState(data, SEED, data.settings('minecraft:overworld')), {
+                chunkX,
+                chunkZ,
+                skipProvenCells: false,
+                useVolumeDensity: true
+            });
+
+            expect(hashCellWalk(volume)).toBe(hashCellWalk(scalar));
+        }
+    );
+
+    it('matches every pinned Java chunk-corpus column through scalar and volume cell walks', () => {
+        const chunkData = (useVolumeDensity: boolean): string => {
+            const sampler = new ChunkSampler(
+                new RandomState(data, BigInt(chunkVectors.seed), data.settings(chunkVectors.settings)),
+                {
+                    chunkX: chunkVectors.chunkX,
+                    chunkZ: chunkVectors.chunkZ,
+                    // Cell skipping bypasses the evaluator for known-open cells, so disable it for this parity pass.
+                    skipProvenCells: false,
+                    useVolumeDensity
+                }
+            );
+            const columns = new Map(
+                chunkVectors.columns.map(({ x, z }) => [
+                    `${x},${z}`,
+                    new Array<string | undefined>(chunkVectors.height)
+                ])
+            );
+            const digest = hashCellWalk(sampler, (x, y, z, state) => {
+                const column = columns.get(`${x},${z}`);
+                if (column !== undefined) column[y - chunkVectors.minY] = state;
+            });
+
+            for (const expected of chunkVectors.columns) {
+                const actual = columns.get(`${expected.x},${expected.z}`);
+                if (actual === undefined) throw new Error(`Missing Java chunk column ${expected.x},${expected.z}`);
+                const expectedStates = expected.runs.flatMap(({ block, count }) =>
+                    Array.from({ length: count }, () => block)
+                );
+                expect(actual, `Java chunk column ${expected.x},${expected.z}`).toEqual(expectedStates);
+            }
+
+            return digest;
+        };
+
+        const scalar = chunkData(false);
+        const volume = chunkData(true);
+        expect(volume).toBe(scalar);
+    });
 
     it.each(GOLDEN_CHUNKS.slice(0, 2))(
         'walks chunk $chunkX,$chunkZ cell by cell to the same blocks',

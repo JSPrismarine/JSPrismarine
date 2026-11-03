@@ -232,27 +232,43 @@ largest capacity until that sampler is discarded. Cells larger than 4,096 blocks
 path to cap per-evaluator memory.
 
 Run `pnpm --filter @jsprismarine/worldgen run bench:density-volume` to compare the overworld
-`final_density` graph and a whole chunk fill. It runs comparisons and memory measurements in
-isolated Node worker threads, checks matching digests, and reports graph throughput, buffer growth,
-and memory observed in the worker.
-Both chunk-fill arms disable proven-cell skipping so they make the same density and aquifer calls.
-Node 26 does not allow `--expose-gc` in worker threads, so the reported heap and array-buffer sizes
-are snapshots that may include garbage not yet collected. Heap deltas can be negative when
-automatic collection runs during a fill.
+`final_density` graph and a whole chunk fill. It checks scalar and volume digests, then runs the
+complete checked-in Java chunk corpus through `forEachCellBlock`: one overworld chunk with nine
+captured columns, each 384 blocks tall. Every captured state is compared with the Java vector, and
+the full 98,304-block digest is compared between scalar and volume evaluation. It repeats that
+chunk independently with 0, 1, 2, and 4 worker threads and fails if any digest changes. The worker
+runs check evaluator isolation and deterministic output; they do not measure chunk-pool throughput.
+The report includes the 1-, 5-, and 15-minute load averages at the start and end, and marks the run
+quiet only when the 1-minute load at both points is at most one quarter of the logical CPU count,
+with a minimum limit of one. On Windows, where Node does not report load averages, both the
+availability and quiet flags are false.
 
-On Node 26.12.1, Darwin arm64, best-of-three measurements were 17.30 ms scalar and 23.51 ms volume
-for 98,304 density samples, or 5.68 million versus 4.18 million samples per second. Full chunk
-fills took 35.22 ms scalar and 41.92 ms volume, with matching density and block digests. The volume
-plan used six instructions, three scalar fallbacks, one workspace growth, 6,144 bytes of retained
-intermediate arrays, and a 1,024-byte cell output buffer. Separate worker runs observed array-buffer
-growth of 690,407 bytes scalar and 697,575 bytes volume during a fill. The evaluator adds memory
-without improving throughput on this graph, so it remains opt-in.
+Both chunk-fill arms disable proven-cell skipping so every density and aquifer call is exercised.
+The allocation pass runs five fresh child processes per arm with `--expose-gc`. It warms the
+sampler, forces collection before the baseline, samples V8 heap allocations at 1,024-byte
+intervals for one fill, then records `process.memoryUsage()` before and after a forced collection
+while the sampler remains live. The V8 heap figure is a sampled allocation estimate, not an exact
+allocation count. The post-GC ArrayBuffer delta measures backing storage retained by one live
+sampler; the post-fill snapshot may also include temporary buffers not yet collected.
 
-This prototype does not meet the RFC's full measurement criteria. It does not measure allocation
-counts inside the JavaScript engine, compare multiple worker counts, or run the full worldgen
-corpus through `ChunkSampler`'s volume option. Density outputs were compared over the Java column
-corpus, and one full chunk matched the existing golden. Broader corpus parity and worker-count
-measurements remain before enabling the volume path by default.
+On Node 26.12.1, Darwin arm64, the latest run reported `host.quiet: false`: the 1-minute load
+average was 10.43 at the start and 9.84 at the end, above the limit of 2 for this 8-CPU host.
+Treat these timings and allocation samples as exploratory, and rerun the command when it reports
+`host.quiet: true`. The best-of-three density timings were 18.43 ms scalar and 23.45 ms volume for
+98,304 samples, or 5.33 million versus 4.19 million samples per second. Full chunk fills took
+24.88 ms scalar and 31.18 ms volume. The volume plan used six instructions, three scalar fallbacks,
+one workspace growth, 6,144 bytes of retained intermediate arrays, and a 1,024-byte cell output
+buffer. Both arms produced full-chunk digest `7c1ff94d`; all nine Java columns matched, with corpus
+digest `2be57e2e`, at worker counts 0, 1, 2, and 4.
+
+Across five memory runs, sampled JavaScript heap allocation had a median of 200,912 bytes for
+scalar (range 189,840–208,816) and 199,040 bytes for volume (range 174,656–207,744). Live
+ArrayBuffer growth after collection was 690,407 bytes scalar and 697,575 bytes volume, including
+the volume evaluator's additional 7,168 retained bytes. Heap used after collection grew by
+113,400 bytes scalar and 103,136 bytes volume. The noisy run does not establish a performance or
+allocation advantage; the volume path remains opt-in, and the scalar sampler remains the default.
+The checked-in Java chunk corpus is limited to one chunk; the six additional full-chunk goldens
+extend scalar-volume digest coverage but are not additional Java captures.
 
 ## The surface pass, the biomes and the carvers
 
