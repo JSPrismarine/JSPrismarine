@@ -80,13 +80,14 @@ let scratch: string;
  * @param preloadRadius - How far around spawn an enabling world generates. Zero, the default,
  *   keeps the start region out of every test but the one about it.
  */
-const testServer = (preloadRadius = 0): Server => {
+const testServer = (preloadRadius = 0, random: () => number = Math.random): Server => {
     const server: Server = stub<Server>({
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => preloadRadius, getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime(),
+        getRandom: () => random,
         // The tick asks every world for its portal contacts; nothing here stands in one.
         getDimensionTravel: () => new DimensionTravel(server)
     });
@@ -380,6 +381,29 @@ describe('Level', () => {
     });
 
     describe('the game rules and the weather', () => {
+        it('uses the configured random source at Java weather booking points', async () => {
+            const draws = [0, 0.5];
+            const used: number[] = [];
+            const server = testServer(0, () => {
+                const next = draws[used.length];
+                if (next === undefined) throw new Error('weather drew beyond the scripted values');
+                used.push(next);
+                return next;
+            });
+            const { level } = buildLevel('weather-random', {}, emptyGenerator, server);
+            level.getWeather().set('clear', 0);
+            level.getGameRuleManager().setGameRule(GameRules.DoWeatherCycle, true, true);
+
+            level.getWeather().tick(1);
+
+            expect(used).toEqual([0, 0.5]);
+            expect(level.getWeather().saved()).toMatchObject({ thunderTime: 12_000, rainTime: 96_000 });
+
+            // The next tick counts down the booked stretches. It does not draw again.
+            level.getWeather().tick(2);
+            expect(used).toHaveLength(2);
+        });
+
         it('are one set for every world of the level', async () => {
             const { level } = buildLevel('shared');
             await level.enable();

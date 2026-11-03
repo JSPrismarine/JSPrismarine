@@ -359,8 +359,8 @@ Both affect what you will see.
   one step. Pushing a block entity at all is a Bedrock allowance Java does not have.
 - **Simulation distance is a square.** The 10-chunk radius is applied per axis, so the simulated
   region is 21 by 21 chunks rather than a disc.
-- **The world random is `Math.random`,** not Java's `LegacyRandomSource`, so nothing that depends on
-  a draw matches vanilla bit for bit even when every rule around it does.
+- **Weather uses the server's configured random function** at Java's existing draw points. Its
+  default is still `Math.random`, so a replay must restore the same source and state before ticking.
 - **Bubble columns are not implemented.**
 
 The [`@jsprismarine/engine-systems`](../../packages/engine-systems/README.md) README describes the

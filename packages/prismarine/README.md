@@ -37,6 +37,18 @@ stem's generator is built by the `GeneratorFactories` registry, whose built-in k
 `entityPortalEnter` and `playerChangeDimension` events. The guide is
 [docs/data-driven/dimensions.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/data-driven/dimensions.md).
 
+## Inbound packet traces
+
+Import `InboundPacketTrace` from `@jsprismarine/prismarine/network/InboundPacketTrace` and pass an
+instance as `inboundPacketRecorder` to the `Server` constructor. It captures accepted client
+packets with their process-local connection id, per-connection sequence, arrival tick, protocol
+version, and encoded bytes. `serialize()` writes a versioned JSON trace, and
+`InboundPacketTrace.deserialize()` reads it back. The trace does not include a world snapshot or
+content fingerprints, so it cannot replay a live world by itself. Packet bytes may contain login
+identity data; keep capture opt-in and protect any trace you store. Run
+`pnpm --filter @jsprismarine/prismarine run bench:inbound-packets` to measure packet decode,
+trace recording, replay decode, and serialized storage costs.
+
 ## JSON Schemas
 
 The server uses `config.json` for its settings.

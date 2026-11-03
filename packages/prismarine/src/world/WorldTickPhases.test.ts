@@ -159,6 +159,54 @@ describe('world', () => {
             ]);
         });
 
+        it('starts concurrent entity updates in the world roster order', async () => {
+            const started: string[] = [];
+            let active = 0;
+            let maximumActive = 0;
+            const { world } = worldTicking({
+                entities: [
+                    stubOf(Player, {
+                        getPosition: () => new Position(0, 64, 0, world),
+                        getType: () => 'minecraft:player',
+                        getRuntimeId: () => 1n,
+                        claimUpdate: () => true,
+                        update: async () => {
+                            started.push('first');
+                            active += 1;
+                            maximumActive = Math.max(maximumActive, active);
+                            await Promise.resolve();
+                            active -= 1;
+                        }
+                    }),
+                    stubOf(Player, {
+                        getPosition: () => new Position(0, 64, 0, world),
+                        getType: () => 'minecraft:player',
+                        getRuntimeId: () => 2n,
+                        claimUpdate: () => true,
+                        update: async () => {
+                            started.push('second');
+                            active += 1;
+                            maximumActive = Math.max(maximumActive, active);
+                            await Promise.resolve();
+                            active -= 1;
+                        }
+                    })
+                ]
+            });
+            Object.assign(world, {
+                touchPortals: async () => {},
+                flushEntityAttributes: async () => {},
+                updateTracking: async () => {}
+            });
+
+            await world.update(1);
+
+            // Promise.all invokes updates in roster order while letting both promises overlap.
+            // This pins start order only; completion remains concurrent as before.
+            expect(started).toEqual(['first', 'second']);
+            expect(maximumActive).toBe(2);
+        });
+
         it("sends the tick's block changes before the block entities standing in them", async () => {
             // A client drops a block entity update for a position it has no block entity at,
             // and an `UpdateBlockPacket` arriving afterwards makes it rebuild the block entity

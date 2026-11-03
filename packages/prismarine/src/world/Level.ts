@@ -221,7 +221,9 @@ export class Level {
         // under a ceiling, so the level events go to the worlds with a sky.
         this.weather = new WorldWeather({
             cycleAllowed: () => this.gameRuleManager.getGameRule(GameRules.DoWeatherCycle)?.[0] !== false,
-            randomInt: (bound) => Math.floor(Math.random() * bound),
+            // Read the configured source for every Java weather draw. The default is still
+            // Math.random, while a seeded host can replace it without changing draw points.
+            randomInt: (bound) => Math.floor(this.server.getRandom()() * bound),
             broadcast: (event, data) => {
                 for (const world of this.worlds()) {
                     if (!world.getDimension().java.hasSkylight) continue;

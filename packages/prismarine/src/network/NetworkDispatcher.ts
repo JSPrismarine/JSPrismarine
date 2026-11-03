@@ -14,6 +14,7 @@ import { takesConnection } from './handler/ConnectionPacketHandler';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
+import type { InboundPacketRecorder } from './InboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { Transport, TransportConnection } from './transport/Transport';
 
@@ -38,6 +39,8 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     logger: Logger;
     /** Which packets the traffic log leaves out. */
     logFilter: PacketLogFilter;
+    /** Optional sink for accepted inbound packet bytes. Disabled unless the server opts in. */
+    inboundPacketRecorder?: InboundPacketRecorder;
     /** Builds the connection object the session registry holds for a transport connection. */
     createConnection: (connection: C) => ClientConnection;
     /** The query protocol's view of the transport's raw datagrams. */
@@ -69,6 +72,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly logFilter: PacketLogFilter;
     private readonly createConnection: NetworkDispatcherOptions<C>['createConnection'];
     private readonly query: NetworkDispatcherOptions<C>['query'];
+    private readonly inboundPacketRecorder: NetworkDispatcherOptions<C>['inboundPacketRecorder'];
+    private readonly packetPayloads: WeakMap<NetworkPacket<unknown>, { payload: Buffer; tick: number }> | undefined;
+    private readonly frameTicks: WeakMap<ClientConnection, number> | undefined;
+    private readonly connectionSequences: WeakMap<ClientConnection, { id: number; next: number }> | undefined;
+    private nextConnectionId = 1;
     /** Keeps each reliable-ordered client stream sequential through async packet handlers. */
     private readonly frameQueues = new WeakMap<ClientConnection, Promise<void>>();
 
@@ -81,6 +89,10 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.logFilter = options.logFilter;
         this.createConnection = options.createConnection;
         this.query = options.query;
+        this.inboundPacketRecorder = options.inboundPacketRecorder;
+        this.packetPayloads = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
+        this.frameTicks = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
+        this.connectionSequences = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
 
         options.transport.onConnect((connection) => this.handleConnect(connection));
         options.transport.onDisconnect((address, reason) => this.handleDisconnect(address, reason));
@@ -98,7 +110,14 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
         const timer = new Timer();
         this.logger.debug(`${token} is attempting to connect`);
-        this.sessionManager.add(token, this.createConnection(connection));
+        const clientConnection = this.createConnection(connection);
+        if (this.inboundPacketRecorder !== undefined) {
+            // A process-local ordinal avoids writing the client's address into a trace. It is
+            // stable for this capture and does not identify the same client across captures.
+            this.connectionSequences?.set(clientConnection, { id: this.nextConnectionId, next: 0 });
+            this.nextConnectionId += 1;
+        }
+        this.sessionManager.add(token, clientConnection);
         this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`);
     }
 
@@ -157,11 +176,14 @@ export default class NetworkDispatcher<C extends TransportConnection> {
 
     private enqueueFrame(payload: Buffer, inetAddr: InetAddress): Promise<void> {
         const token = inetAddr.toToken();
+        // Stamp arrival before the per-connection queue. A previous async handler may hold this
+        // frame until a later tick, but replay must keep the tick the client input arrived on.
+        const tick = this.inboundPacketRecorder === undefined ? undefined : this.server.getTick();
         const connection = this.sessionManager.get(token);
-        if (connection === null) return this.handleFrame(payload, inetAddr);
+        if (connection === null) return this.handleFrame(payload, inetAddr, undefined, tick);
 
         const previous = this.frameQueues.get(connection) ?? Promise.resolve();
-        const current = previous.then(() => this.handleFrame(payload, inetAddr, connection));
+        const current = previous.then(() => this.handleFrame(payload, inetAddr, connection, tick));
         this.frameQueues.set(connection, current);
         return current;
     }
@@ -169,7 +191,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private async handleFrame(
         payload: Buffer,
         inetAddr: InetAddress,
-        expectedConnection?: ClientConnection
+        expectedConnection?: ClientConnection,
+        tick?: number
     ): Promise<void> {
         try {
             const token = inetAddr.toToken();
@@ -179,6 +202,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
                 return;
             }
 
+            if (tick !== undefined) this.frameTicks?.set(connection, tick);
             await this.inbound.run(payload, connection);
         } catch (error: unknown) {
             this.logger.error(error);
@@ -214,6 +238,13 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             this.logger.error(error);
             this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
             return [];
+        }
+
+        // Keep the packet-local wire bytes only while the decoded object is in this pipeline.
+        // The recorder copies them after the phase gate and immediately before handler dispatch.
+        if (this.packetPayloads !== undefined) {
+            const tick = this.frameTicks?.get(connection);
+            if (tick !== undefined) this.packetPayloads.set(packet, { payload: buffer, tick });
         }
 
         return [packet];
@@ -257,14 +288,46 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // the wrong side of that line is dropped rather than handed an object of the
             // wrong shape.
             const session = connection.getPlayerSession();
-            if (takesConnection(handler)) await handler.handle(packet, this.server, connection);
-            else if (session !== null) await handler.handle(packet, this.server, session);
-            else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
+            if (takesConnection(handler)) {
+                if (this.inboundPacketRecorder !== undefined) this.recordInboundPacket(packet, connection);
+                await handler.handle(packet, this.server, connection);
+            } else if (session !== null) {
+                if (this.inboundPacketRecorder !== undefined) this.recordInboundPacket(packet, connection);
+                await handler.handle(packet, this.server, session);
+            } else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
         } catch (error: unknown) {
             this.handlerError(packet, error);
         }
 
         return [];
+    }
+
+    /** Records only packets that have a live handler target, without changing handler flow. */
+    private recordInboundPacket(packet: NetworkPacket<unknown>, connection: ClientConnection): void {
+        const input = this.packetPayloads?.get(packet);
+        this.packetPayloads?.delete(packet);
+        if (input === undefined || this.inboundPacketRecorder === undefined) return;
+
+        const order = this.connectionSequences?.get(connection);
+        if (order === undefined) return;
+
+        const record = {
+            connectionId: order.id,
+            sequence: order.next,
+            tick: input.tick,
+            protocolVersion: connection.codec.protocolVersion,
+            packetName: packet.getName(),
+            payload: Buffer.from(input.payload)
+        };
+        order.next += 1;
+
+        try {
+            this.inboundPacketRecorder.record(record);
+        } catch (error: unknown) {
+            // Recording is diagnostic. A sink failure must not drop a packet or stop its handler.
+            this.logger.error(`Inbound packet recorder failed for ${packet.getName()}: ${error}`);
+            this.logger.error(error);
+        }
     }
 
     /** One failure shape for the lookup and the handler itself, as the old dispatch had it. */

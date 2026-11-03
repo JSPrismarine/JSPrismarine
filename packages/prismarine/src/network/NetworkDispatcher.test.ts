@@ -15,6 +15,8 @@ import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
 import { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type PlayerSession from './PlayerSession';
+import type { InboundPacketRecorder } from './InboundPacketTrace';
+import { InboundPacketTrace } from './InboundPacketTrace';
 import type { SessionPhase } from './SessionPhase';
 import type { Transport, TransportCapabilities, TransportConnection } from './transport/Transport';
 import { TextPacketType } from '@jsprismarine/protocol';
@@ -104,6 +106,8 @@ const frameOf = (packet: TextPacket) => {
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
 const makeDispatcher = (options?: {
     codec?: ProtocolCodec;
+    recorder?: InboundPacketRecorder;
+    tick?: () => number;
     handler?: {
         phases: readonly SessionPhase[];
         handle: (packet: unknown, server: Server, target: unknown) => Promise<void>;
@@ -112,7 +116,7 @@ const makeDispatcher = (options?: {
     const transport = new FakeTransport();
     const sessionManager = new SessionManager();
     const { logger, lines } = fakeLogger();
-    const server = stub<Server>();
+    const server = stub<Server>({ getTick: options?.tick ?? (() => 0) });
     const packetHandlerRegistry = stub<PacketHandlerRegistry>({
         getHandler: () => {
             if (!options?.handler) throw new Error('no handler registered');
@@ -129,6 +133,7 @@ const makeDispatcher = (options?: {
         server,
         logger,
         logFilter: new PacketLogFilter(),
+        inboundPacketRecorder: options?.recorder,
         createConnection: () => {
             const connection = stub<ClientConnection>({
                 hasCompression: false,
@@ -207,6 +212,104 @@ describe('network', () => {
             await transport.emitFrame(frameOf(message('login')), address('a:1'));
 
             expect(targets).toStrictEqual([built[0]]);
+        });
+
+        it('records accepted packet bytes with connection-local order and the arrival tick', async () => {
+            const trace = new InboundPacketTrace();
+            let tick = 18;
+            const { transport, built } = makeDispatcher({
+                recorder: trace,
+                tick: () => tick,
+                handler: { phases: ['handshake'], handle: async () => {} }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+            await transport.emitConnect(fakeConnection('b:2').connection);
+
+            const first = message('first');
+            const firstFrame = frameOf(first);
+            const firstPayload = Buffer.from(first.getBuffer());
+            await transport.emitFrame(firstFrame, address('a:1'));
+
+            tick = 19;
+            const second = message('second');
+            const secondFrame = frameOf(second);
+            const secondPayload = Buffer.from(second.getBuffer());
+            await transport.emitFrame(secondFrame, address('a:1'));
+
+            const otherConnection = message('other');
+            const otherFrame = frameOf(otherConnection);
+            const otherPayload = Buffer.from(otherConnection.getBuffer());
+            await transport.emitFrame(otherFrame, address('b:2'));
+
+            // A packet outside the connection's phase is rejected before it becomes a replay input.
+            built[0]!.phase = 'play';
+            await transport.emitFrame(frameOf(message('rejected')), address('a:1'));
+
+            expect(trace.records()).toEqual([
+                {
+                    connectionId: 1,
+                    sequence: 0,
+                    tick: 18,
+                    protocolVersion: 2193,
+                    packetName: 'TextPacket',
+                    payload: firstPayload
+                },
+                {
+                    connectionId: 1,
+                    sequence: 1,
+                    tick: 19,
+                    protocolVersion: 2193,
+                    packetName: 'TextPacket',
+                    payload: secondPayload
+                },
+                {
+                    connectionId: 2,
+                    sequence: 0,
+                    tick: 19,
+                    protocolVersion: 2193,
+                    packetName: 'TextPacket',
+                    payload: otherPayload
+                }
+            ]);
+        });
+
+        it('keeps the arrival tick when a prior handler holds the connection queue', async () => {
+            const trace = new InboundPacketTrace();
+            let tick = 7;
+            let handled = 0;
+            let releaseFirst!: () => void;
+            let signalFirst!: () => void;
+            const firstHandler = new Promise<void>((resolve) => {
+                signalFirst = resolve;
+            });
+            const firstGate = new Promise<void>((resolve) => {
+                releaseFirst = resolve;
+            });
+            const { transport } = makeDispatcher({
+                recorder: trace,
+                tick: () => tick,
+                handler: {
+                    phases: ['handshake'],
+                    handle: async () => {
+                        handled += 1;
+                        if (handled === 1) {
+                            signalFirst();
+                            await firstGate;
+                        }
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            const first = transport.emitFrame(frameOf(message('first')), address('a:1'));
+            await firstHandler;
+            tick = 8;
+            const second = transport.emitFrame(frameOf(message('second')), address('a:1'));
+            tick = 9;
+            releaseFirst();
+            await Promise.all([first, second]);
+
+            expect(trace.records().map((record) => record.tick)).toEqual([7, 8]);
         });
 
         it('drops a handshake packet once the connection has left the handshake phase', async () => {

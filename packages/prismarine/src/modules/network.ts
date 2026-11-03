@@ -2,6 +2,7 @@ import type { Module } from '@jsprismarine/kernel';
 import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 
 import ClientConnection from '../network/ClientConnection';
+import type { InboundPacketRecorder } from '../network/InboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import RakNetTransport from '../network/transport/RakNetTransport';
 import { latestCodec } from '../network/codec/CodecRegistry';
@@ -46,7 +47,10 @@ export interface Networking {
 export class ServerNetworking implements Networking {
     private raknet: RakNetListener | undefined;
 
-    public constructor(private readonly server: Server) {}
+    public constructor(
+        private readonly server: Server,
+        private readonly inboundPacketRecorder?: InboundPacketRecorder
+    ) {}
 
     /** Binds the RakNet listener and subscribes the packet dispatcher to it. */
     public start(address: string, port: number): void {
@@ -69,6 +73,7 @@ export class ServerNetworking implements Networking {
             server,
             logger: server.getLogger(),
             logFilter: server.getPacketLogFilter(),
+            inboundPacketRecorder: this.inboundPacketRecorder,
             createConnection: (connection) =>
                 new ClientConnection(connection, server.getLogger(), server.getPacketLogFilter()),
             query: {

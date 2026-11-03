@@ -48,6 +48,7 @@
         "bench:chunks": "node --import tsx benchmarks/chunkGeneration.ts",
         "bench:network": "node --import tsx benchmarks/blockProximity.bench.ts",
         "bench:items": "node --import tsx benchmarks/entityPickup.bench.ts",
+        "bench:inbound-packets": "node --import tsx benchmarks/inboundPacketRecording.bench.ts",
         "bench:breeding-navigation": "node --import tsx benchmarks/run.mjs benchmarks/breedingNavigation.bench.ts",
         "bench:trends": "node benchmarks/trends.mjs",
         "bench:storage": "node --import tsx benchmarks/blockStorage.bench.ts",

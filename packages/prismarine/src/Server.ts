@@ -31,6 +31,7 @@ import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
 import { networkModule, ServerNetworking } from './modules/network';
+import type { InboundPacketRecorder } from './network/InboundPacketTrace';
 import { permissionsModule } from './modules/permissions';
 import { recipesModule, stationsModule } from './modules/recipes';
 import { socialModule } from './modules/social';
@@ -63,7 +64,7 @@ export default class Server extends EventEmitter {
      * {@link Server.shutdown} kills it, since the bind address and port only
      * arrive with `bootstrap(ip, port)`.
      */
-    private readonly networking = new ServerNetworking(this);
+    private readonly networking: ServerNetworking;
     private readonly logger: Logger;
     private readonly config: Config;
     private readonly profiler: ServerProfiler | undefined;
@@ -179,22 +180,27 @@ export default class Server extends EventEmitter {
      * @param {LoggerBuilder} options.logger - The logger.
      * @param {Config} options.config - The config.
      * @param {boolean} [options.profile] - Record server phase and event-loop timings.
+     * @param {InboundPacketRecorder} [options.inboundPacketRecorder] - Opt-in sink for accepted inbound packet bytes,
+     *   which may include login identity data.
      * @returns {Server} The server instance.
      */
     public constructor({
         logger,
         config,
         headless = false,
-        profile = false
+        profile = false,
+        inboundPacketRecorder
     }: {
         logger: Logger;
         config: Config;
         headless?: boolean;
         profile?: boolean;
+        inboundPacketRecorder?: InboundPacketRecorder;
     }) {
         super();
 
         this.headless = headless;
+        this.networking = new ServerNetworking(this, inboundPacketRecorder);
 
         const protocols = describeSupportedProtocols();
         logger.info(
