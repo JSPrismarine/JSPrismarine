@@ -65,6 +65,27 @@ describe('soilFamily: farmland', () => {
         expect(harness.dimension.stateAt(origin, 'moisturized_amount')).toBe(6);
     });
 
+    // Java's `shouldMaintainFarmland`: only bare farmland turns back to dirt, so a dry field
+    // keeps the wheat standing in it rather than popping the crop on a random tick.
+    it('keeps the crop it carries when it dries all the way out', () => {
+        const harness = bindFamily(soilFamily, 'minecraft:farmland');
+        harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 0 });
+        harness.dimension.set({ x: 0, y: 5, z: 0 }, 'minecraft:wheat', { growth: 3 });
+
+        harness.randomTick(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:farmland');
+    });
+
+    it('turns bare dry farmland back to dirt', () => {
+        const harness = bindFamily(soilFamily, 'minecraft:farmland');
+        harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 0 });
+
+        harness.randomTick(origin);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:dirt');
+    });
+
     it('turns back to dirt when something lands on it', () => {
         const harness = bindFamily(soilFamily, 'minecraft:farmland');
         harness.dimension.set(origin, 'minecraft:farmland', { moisturized_amount: 7 });
