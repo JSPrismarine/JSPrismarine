@@ -11,8 +11,12 @@ const SHIFT_TAB = '\u001B[Z';
 
 const noCompletions = async (): Promise<CompletionResult> => ({ completions: [], replace: '' });
 
+let dispose: (() => Promise<void>) | undefined;
+
 async function setup(overrides: Partial<InputBarProps> = {}, size = { width: 40, height: 4 }) {
     const test = await createTestRenderer({ ...size, exitOnCtrlC: false });
+    // Register cleanup before the first render; a timed-out setup must not leave a native renderer alive.
+    dispose = test.dispose;
     const submitted: string[] = [];
     const interrupts: InterruptKind[] = [];
     const hints: (string | undefined)[] = [];
@@ -49,8 +53,6 @@ async function setup(overrides: Partial<InputBarProps> = {}, size = { width: 40,
 }
 
 describe('createInputBar', () => {
-    let dispose: (() => Promise<void>) | undefined;
-
     afterEach(async () => {
         await dispose?.();
         dispose = undefined;
