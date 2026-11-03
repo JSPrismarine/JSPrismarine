@@ -169,6 +169,8 @@ const TICKS_PER_SECOND = 20;
 
 /** Bedrock's player collision box, which the server uses for entity interactions. */
 const PLAYER_ENTITY_BOX = PLAYER_BOX;
+/** Includes exact edge contacts in broad-phase boxes; damage still uses Java's exact distance test. */
+const BOX_QUERY_EPSILON = 1e-7;
 
 /** Distance between the closest points of two entity collision boxes. */
 const distanceOutsideEntityBoxes = (
@@ -837,6 +839,10 @@ export class EntityRuntime implements EntityScene {
                               visible: goalWorld.canSee(target)
                           };
                 },
+                componentSetChanged: (changed) => {
+                    const current = this.byInstance.get(changed);
+                    if (current !== undefined) this.grid.refreshBox(current);
+                },
                 entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
                 random: {
                     next: () => this.world.random.nextFloat(),
@@ -1052,15 +1058,6 @@ export class EntityRuntime implements EntityScene {
         const allEntities = this.all();
         const entities =
             shouldTick === undefined ? allEntities : allEntities.filter((entity) => shouldTick(entity.position));
-        let widest = 0;
-        let tallest = 0;
-        if (entities.length > 0) {
-            for (const entity of allEntities) {
-                widest = Math.max(widest, entity.facts.box.width);
-                tallest = Math.max(tallest, entity.facts.box.height);
-            }
-        }
-
         for (const entity of entities) {
             if (entity.removed !== undefined) continue;
             if (this.pendingDeaths.delete(entity.id)) {
@@ -1091,12 +1088,12 @@ export class EntityRuntime implements EntityScene {
             this.step(entity);
             this.updateMedium(entity);
             this.updateGrounded(entity);
-            this.tickAreaAttack(entity, tick, widest, tallest);
+            this.tickAreaAttack(entity, tick);
             if (entity.removed !== undefined) continue;
             if (this.tickFuse(entity)) continue;
             this.carryRiders(entity);
             if (entity.removed !== undefined) continue;
-            this.pushIntersectingEntity(entity, widest, tallest);
+            this.pushIntersectingEntity(entity);
         }
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
@@ -1616,7 +1613,7 @@ export class EntityRuntime implements EntityScene {
     }
 
     /** Applies active `minecraft:area_attack` damage to nearby entities and players. */
-    private tickAreaAttack(entity: DataEntity, tick: number, widest: number, tallest: number): void {
+    private tickAreaAttack(entity: DataEntity, tick: number): void {
         const params = entity.instance.componentParams('minecraft:area_attack');
         if (!isAreaAttackParams(params) || params.damagePerTick <= 0) return;
 
@@ -1632,9 +1629,19 @@ export class EntityRuntime implements EntityScene {
             this.areaAttackLastHitTicks.set(entity, lastHits);
         }
 
-        const halfWidth = (entity.facts.box.width + widest) / 2;
-        const halfHeight = (entity.facts.box.height + tallest) / 2;
-        const searchRadius = range + Math.hypot(halfWidth * Math.SQRT2, halfHeight);
+        const halfWidth = entity.facts.box.width / 2;
+        const box = entity.facts.box;
+        const queryRange = range + BOX_QUERY_EPSILON;
+        const queryMin = {
+            x: entity.position.x - halfWidth - queryRange,
+            y: entity.position.y - queryRange,
+            z: entity.position.z - halfWidth - queryRange
+        };
+        const queryMax = {
+            x: entity.position.x + halfWidth + queryRange,
+            y: entity.position.y + box.height + queryRange,
+            z: entity.position.z + halfWidth + queryRange
+        };
         const sourceContext = entity.instance.filterContext();
         const damageTarget = (
             id: number,
@@ -1673,7 +1680,7 @@ export class EntityRuntime implements EntityScene {
             lastHits.set(id, tick);
         };
 
-        for (const target of this.near(entity.position, searchRadius)) {
+        for (const target of this.inBox(queryMin, queryMax)) {
             damageTarget(target.id, target.position, target.facts.box, target.instance.filterContext().self, target);
         }
 
@@ -3945,7 +3952,7 @@ export class EntityRuntime implements EntityScene {
     }
 
     /** Applies Java's horizontal push impulse after this entity has moved for the tick. */
-    private pushIntersectingEntity(first: DataEntity, widest: number, tallest: number): void {
+    private pushIntersectingEntity(first: DataEntity): void {
         if (!this.hasEntityCollision(first)) return;
 
         const firstPosition = first.position;
@@ -3953,13 +3960,23 @@ export class EntityRuntime implements EntityScene {
         const firstBox = first.facts.box;
         const firstWidth = firstBox.width;
         const firstHeight = firstBox.height;
-        const horizontalReach = (firstWidth + widest) / 2;
-        const verticalReach = (firstHeight + tallest) / 2;
-        const searchRadius = Math.hypot(horizontalReach * Math.SQRT2, verticalReach);
         let firstVehicle: number | undefined;
         let firstVehicleResolved = false;
         let pushableFirst: boolean | undefined;
-        for (const second of this.grid.within(firstPosition, searchRadius)) {
+        const halfWidth = firstWidth / 2;
+        const collisionCandidates = this.inBox(
+            {
+                x: firstPosition.x - halfWidth,
+                y: firstPosition.y,
+                z: firstPosition.z - halfWidth
+            },
+            {
+                x: firstPosition.x + halfWidth,
+                y: firstPosition.y + firstHeight,
+                z: firstPosition.z + halfWidth
+            }
+        );
+        for (const second of collisionCandidates) {
             const secondId = second.id;
             if (firstId === secondId || !this.hasEntityCollision(second)) continue;
             if (!firstVehicleResolved) {

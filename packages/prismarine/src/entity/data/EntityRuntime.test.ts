@@ -1368,6 +1368,53 @@ describe('EntityRuntime', () => {
     });
 
     describe('physics', () => {
+        it('indexes large boxes across overlapped cells and refreshes their order, movement, size, and removal', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:changing_box': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:pushable': { is_pushable: false }
+                        },
+                        component_groups: { large: { 'minecraft:collision_box': { width: 10, height: 4 } } },
+                        events: { make_large: { add: { component_groups: ['large'] } } }
+                    }
+                }
+            );
+            const large = runtime.spawn(
+                'jsprismarine:changing_box',
+                { x: 4.5, y: GROUND.y, z: 0 },
+                { event: 'make_large' }
+            );
+            const small = runtime.spawn('jsprismarine:changing_box', { x: 0.25, y: GROUND.y, z: 0 });
+            if (large === undefined || small === undefined) throw new Error('the fixture declares no changing boxes');
+
+            const around = (x: number) =>
+                runtime.inBox({ x: x - 0.25, y: GROUND.y, z: -0.25 }, { x: x + 0.25, y: GROUND.y + 1, z: 0.25 });
+
+            expect(around(0).map((entity) => entity.id)).toEqual([large.id, small.id]);
+
+            large.body.position = { ...large.position, x: 24.5 };
+            expect(around(0).map((entity) => entity.id)).toEqual([small.id]);
+            expect(around(24.5).map((entity) => entity.id)).toEqual([large.id]);
+
+            runtime.remove(large.id, 'test removal');
+            expect(around(24.5)).toEqual([]);
+
+            const growing = runtime.spawn('jsprismarine:changing_box', { x: 4.5, y: GROUND.y, z: 0 });
+            if (growing === undefined) throw new Error('the fixture declares no growing box');
+            expect(around(0).map((entity) => entity.id)).toEqual([small.id]);
+
+            growing.instance.fire('make_large');
+            runtime.tick(1);
+
+            expect(around(0).map((entity) => entity.id)).toEqual([small.id, growing.id]);
+        });
+
         it('rechecks media when a component group changes the box without moving the entity', () => {
             const world = new TestEntityWorld();
             world.setBlock({ x: 1, y: GROUND.y, z: 0 }, 'minecraft:water');
@@ -2190,6 +2237,43 @@ describe('EntityRuntime', () => {
     });
 
     describe('combat', () => {
+        it('area-attacks a large target whose center is outside the attacker box', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:area_attacker': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:pushable': { is_pushable: false },
+                            'minecraft:area_attack': {
+                                cause: 'entity_attack',
+                                damage_per_tick: 2,
+                                damage_range: 0
+                            }
+                        }
+                    },
+                    'jsprismarine:large_target': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 10, height: 4 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:pushable': { is_pushable: false }
+                        }
+                    }
+                }
+            );
+            const attacker = runtime.spawn('jsprismarine:area_attacker', GROUND);
+            const target = runtime.spawn('jsprismarine:large_target', { ...GROUND, x: 4.5 });
+            if (attacker === undefined || target === undefined) throw new Error('the fixture declares no large target');
+
+            runtime.tick(1);
+
+            expect(target.instance.attributes.get('health')?.current).toBe(18);
+        });
+
         it('applies area damage to filtered entities and respects each target cooldown', () => {
             const world = new TestEntityWorld();
             const { runtime } = entityFixture(

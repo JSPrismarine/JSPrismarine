@@ -8,10 +8,12 @@
  * six or eight blocks while the mobs are spread across the simulation
  * distance.
  *
- * So the entities are bucketed by their horizontal cell and a search reads
- * only the cells its radius reaches. Y is not bucketed: an entity above or
- * below is still in the cell's list and the exact distance check throws it
- * out, which costs a column of mobs nothing worth a third axis of cells.
+ * Ordinary entities are bucketed by their horizontal center cell, and large
+ * collision boxes are also filed into every horizontal cell their footprint
+ * overlaps. A search reads only the cells its radius or box reaches. Y is not
+ * bucketed: an entity above or below is still in the cell's list and the exact
+ * distance or box check throws it out, which costs a column of mobs nothing
+ * worth a third axis of cells.
  *
  * The index is exact rather than a snapshot. {@link EntityGrid.refile} runs on
  * every position write, through `MobBody.onMove`, so a search inside a tick
@@ -47,16 +49,33 @@ const KEY_SPAN = 2 ** KEY_BITS;
 /** Small results sort faster by shifting their arrival keys than by decorating every entity. */
 const SMALL_RESULT_SORT_LIMIT = 8;
 
+/** Boxes beyond common mob dimensions are filed in every horizontal cell they overlap. */
+const LARGE_BOX_WIDTH = 2;
+const LARGE_BOX_HEIGHT = 3;
+
 /** The cell one horizontal coordinate falls in. */
 const cellOf = (coordinate: number): number => Math.floor(coordinate) >> CELL_BITS;
 
 /** One cell's key, which is its two coordinates packed into one number. */
 const keyOf = (cellX: number, cellZ: number): number => (cellX & KEY_MASK) * KEY_SPAN + (cellZ & KEY_MASK);
 
+/** One entity's dimensions as the spatial index last filed them. */
+interface IndexedBox {
+    readonly width: number;
+    readonly height: number;
+    readonly large: boolean;
+}
+
+/** Whether one box should use the overlap-cell index rather than the center-cell index. */
+const isLargeBox = (width: number, height: number): boolean => width > LARGE_BOX_WIDTH || height > LARGE_BOX_HEIGHT;
+
 /** The live entities of one dimension, indexed by where they stand. */
 export class EntityGrid {
     /** The entities in each cell, keyed by {@link keyOf}. */
     private readonly cells = new Map<number, DataEntity[]>();
+
+    /** Large boxes filed by the horizontal cells their footprints overlap. */
+    private readonly largeCells = new Map<number, DataEntity[]>();
 
     /** The entities in each family and cell, for data-driven target searches. */
     private readonly familyCells = new Map<string, Map<number, DataEntity[]>>();
@@ -67,10 +86,20 @@ export class EntityGrid {
     /** The families each entity is filed under now. */
     private readonly filedFamilies = new Map<number, readonly string[]>();
 
-    /** The widest live collision box, used to keep box queries' cell broadphase conservative. */
-    private readonly boxWidths = new Map<number, number>();
+    /** Large boxes, keyed by their runtime ids. */
+    private readonly largeBoxes = new Map<number, DataEntity>();
 
-    private widestBox = 0;
+    /** The overlap cells used by each large entity, so movement and removal can undo its filing. */
+    private readonly filedLargeBoxCells = new Map<number, readonly number[]>();
+
+    /** The last dimensions filed for each entity, including its broadphase class. */
+    private readonly indexedBoxes = new Map<number, IndexedBox>();
+
+    /** Width counts for ordinary boxes, which keep their center-cell index. */
+    private readonly regularBoxWidths = new Map<number, number>();
+
+    /** The widest ordinary box, maintained as entities enter, leave, or change components. */
+    private widestRegularBox = 0;
 
     /**
      * When each entity entered the index.
@@ -90,10 +119,8 @@ export class EntityGrid {
     public add(entity: DataEntity): void {
         this.arrived.set(entity.id, this.arrivals);
         this.arrivals += 1;
-        const width = entity.facts.box.width;
-        this.boxWidths.set(width, (this.boxWidths.get(width) ?? 0) + 1);
-        this.widestBox = Math.max(this.widestBox, width);
         this.file(entity, cellKeyOf(entity.position));
+        this.refreshBox(entity);
         this.refreshFamilies(entity);
     }
 
@@ -103,14 +130,8 @@ export class EntityGrid {
         if (key === undefined) return;
         this.filed.delete(entity.id);
         this.arrived.delete(entity.id);
-        const width = entity.facts.box.width;
-        const widthCount = this.boxWidths.get(width) ?? 0;
-        if (widthCount <= 1) {
-            this.boxWidths.delete(width);
-            if (width === this.widestBox) this.widestBox = Math.max(0, ...this.boxWidths.keys());
-        } else {
-            this.boxWidths.set(width, widthCount - 1);
-        }
+        this.unfileLargeBox(entity.id);
+        this.removeIndexedBox(entity.id);
         this.unfile(entity, key);
         for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, key);
         this.filedFamilies.delete(entity.id);
@@ -120,6 +141,12 @@ export class EntityGrid {
     public refile(entity: DataEntity): void {
         const was = this.filed.get(entity.id);
         if (was === undefined) return;
+
+        this.refreshBox(entity);
+        if (this.largeBoxes.has(entity.id)) {
+            this.unfileLargeBox(entity.id);
+            this.fileLargeBox(entity);
+        }
 
         const now = cellKeyOf(entity.position);
         if (now === was) {
@@ -284,9 +311,8 @@ export class EntityGrid {
     /** Entities whose Java collision boxes strictly intersect an axis-aligned box. */
     public withinBox(min: EntityPosition, max: EntityPosition): DataEntity[] {
         const found: DataEntity[] = [];
-        // A target center can stand outside the query box while its collision box overlaps it.
-        // Expand the cell broadphase by the widest live box, then retain the exact AABB check below.
-        const halfWidth = this.widestBox / 2;
+        // Normal boxes stay in one center cell, so only their maintained maximum expands this scan.
+        const halfWidth = this.widestRegularBox / 2;
         const lowX = cellOf(min.x - halfWidth);
         const highX = cellOf(max.x + halfWidth);
         const lowZ = cellOf(min.z - halfWidth);
@@ -296,23 +322,50 @@ export class EntityGrid {
             for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
                 const cell = this.cells.get(keyOf(cellX, cellZ));
                 if (cell === undefined) continue;
-                for (const entity of cell) {
-                    const halfWidth = entity.facts.box.width / 2;
-                    if (
-                        entity.position.x - halfWidth < max.x &&
-                        entity.position.x + halfWidth > min.x &&
-                        entity.position.y < max.y &&
-                        entity.position.y + entity.facts.box.height > min.y &&
-                        entity.position.z - halfWidth < max.z &&
-                        entity.position.z + halfWidth > min.z
-                    ) {
-                        found.push(entity);
-                    }
-                }
+                for (const entity of cell)
+                    if (!this.largeBoxes.has(entity.id) && this.intersectsBox(entity, min, max)) found.push(entity);
             }
+
+        // A large box may overlap the query while its center sits many cells away.
+        // Its footprint index finds those candidates without widening every query.
+        if (this.largeBoxes.size > 0) {
+            const seen = new Set<number>();
+            for (let cellX = cellOf(min.x); cellX <= cellOf(max.x); cellX += 1)
+                for (let cellZ = cellOf(min.z); cellZ <= cellOf(max.z); cellZ += 1)
+                    for (const entity of this.largeCells.get(keyOf(cellX, cellZ)) ?? []) {
+                        if (seen.has(entity.id)) continue;
+                        seen.add(entity.id);
+                        if (this.intersectsBox(entity, min, max)) found.push(entity);
+                    }
+        }
 
         found.sort((a, b) => (this.arrived.get(a.id) ?? 0) - (this.arrived.get(b.id) ?? 0));
         return found;
+    }
+
+    /** Refreshes the size index after a live component set changes. */
+    public refreshBox(entity: DataEntity): void {
+        if (!this.filed.has(entity.id)) return;
+
+        const { width, height } = entity.facts.box;
+        const previous = this.indexedBoxes.get(entity.id);
+        if (previous?.width === width && previous.height === height) return;
+
+        if (previous?.large === true) {
+            this.unfileLargeBox(entity.id);
+            this.largeBoxes.delete(entity.id);
+        } else if (previous !== undefined) this.removeRegularWidth(previous.width);
+
+        const large = isLargeBox(width, height);
+        this.indexedBoxes.set(entity.id, { width, height, large });
+        if (large) {
+            this.largeBoxes.set(entity.id, entity);
+            this.fileLargeBox(entity);
+        } else {
+            const count = this.regularBoxWidths.get(width) ?? 0;
+            this.regularBoxWidths.set(width, count + 1);
+            this.widestRegularBox = Math.max(this.widestRegularBox, width);
+        }
     }
 
     /** Puts one entity in a cell and records that it is there. */
@@ -321,6 +374,75 @@ export class EntityGrid {
         const cell = this.cells.get(key);
         if (cell === undefined) this.cells.set(key, [entity]);
         else cell.push(entity);
+    }
+
+    /** Removes one entity's ordinary width from the incremental maximum. */
+    private removeRegularWidth(width: number): void {
+        const count = this.regularBoxWidths.get(width) ?? 0;
+        if (count <= 1) {
+            this.regularBoxWidths.delete(width);
+            if (width === this.widestRegularBox) this.widestRegularBox = Math.max(0, ...this.regularBoxWidths.keys());
+        } else this.regularBoxWidths.set(width, count - 1);
+    }
+
+    /** Files a large entity into each horizontal cell overlapped by its current box. */
+    private fileLargeBox(entity: DataEntity): void {
+        const halfWidth = entity.facts.box.width / 2;
+        const lowX = cellOf(entity.position.x - halfWidth);
+        const highX = cellOf(entity.position.x + halfWidth);
+        const lowZ = cellOf(entity.position.z - halfWidth);
+        const highZ = cellOf(entity.position.z + halfWidth);
+        const keys: number[] = [];
+
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const key = keyOf(cellX, cellZ);
+                const cell = this.largeCells.get(key);
+                if (cell === undefined) this.largeCells.set(key, [entity]);
+                else cell.push(entity);
+                keys.push(key);
+            }
+
+        this.filedLargeBoxCells.set(entity.id, keys);
+    }
+
+    /** Removes one large entity from every overlap cell it was filed into. */
+    private unfileLargeBox(id: number): void {
+        const entity = this.largeBoxes.get(id);
+        const keys = this.filedLargeBoxCells.get(id);
+        if (entity === undefined || keys === undefined) return;
+
+        for (const key of keys) {
+            const cell = this.largeCells.get(key);
+            if (cell === undefined) continue;
+            const at = cell.indexOf(entity);
+            if (at !== -1) cell.splice(at, 1);
+            if (cell.length === 0) this.largeCells.delete(key);
+        }
+
+        this.filedLargeBoxCells.delete(id);
+    }
+
+    /** Drops an entity's current size category from the incremental index. */
+    private removeIndexedBox(id: number): void {
+        const previous = this.indexedBoxes.get(id);
+        if (previous === undefined) return;
+        this.indexedBoxes.delete(id);
+        if (previous.large) this.largeBoxes.delete(id);
+        else this.removeRegularWidth(previous.width);
+    }
+
+    /** Whether one live entity's collision box strictly intersects the given AABB. */
+    private intersectsBox(entity: DataEntity, min: EntityPosition, max: EntityPosition): boolean {
+        const halfWidth = entity.facts.box.width / 2;
+        return (
+            entity.position.x - halfWidth < max.x &&
+            entity.position.x + halfWidth > min.x &&
+            entity.position.y < max.y &&
+            entity.position.y + entity.facts.box.height > min.y &&
+            entity.position.z - halfWidth < max.z &&
+            entity.position.z + halfWidth > min.z
+        );
     }
 
     /** Puts one entity in a family cell. */

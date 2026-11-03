@@ -14,6 +14,8 @@
  * query every five ticks and report matching query results.
  * Set `ENTITY_AI_SENSING=1` to make hostile mobs repeat `canSee` against one
  * nearby player each tick and report calls that reached the block ray.
+ * Set `ENTITY_AI_COLLISION_SCENE=end` or `nether` to benchmark a crowded End
+ * with a dragon, or a ghast-heavy Nether.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
@@ -26,6 +28,10 @@
  * Avoid-block query run: ENTITY_AI_AVOID_BLOCK=1 ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  * Sensing run: ENTITY_AI_SENSING=1 ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
+ * Crowded End run: ENTITY_AI_COLLISION_SCENE=end ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
+ * Ghast-heavy Nether run: ENTITY_AI_COLLISION_SCENE=nether ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
 import type { EntityPosition, FilterEntityView } from '@jsprismarine/entities';
@@ -59,6 +65,8 @@ const PRODUCTION_PLAYERS = process.env.ENTITY_AI_LIVE_PLAYERS === '1';
 const BRAIN_MOB_PROFILE = process.env.ENTITY_AI_BRAIN_MOBS === '1';
 const AVOID_BLOCK_PROFILE = process.env.ENTITY_AI_AVOID_BLOCK === '1';
 const SENSING_PROFILE = process.env.ENTITY_AI_SENSING === '1';
+const COLLISION_SCENE = process.env.ENTITY_AI_COLLISION_SCENE;
+const COLLISION_PROFILE = COLLISION_SCENE === 'end' || COLLISION_SCENE === 'nether';
 const CHUNK_RADIUS = PRODUCTION_CHUNKS ? 10 : 0;
 const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
 const SPREAD = PRODUCTION_CHUNKS ? 320 : 64;
@@ -81,7 +89,12 @@ const seededRandom = (seed: number): RandomSource => {
 const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
 
 /** The flat world the mobs stand in, built once rather than per read. */
-const benchWorld = (random: RandomSource, blockReads: { count: number }, gameTime: () => number = () => 0) => {
+const benchWorld = (
+    random: RandomSource,
+    blockReads: { count: number },
+    gameTime: () => number = () => 0,
+    dimension = 'minecraft:overworld'
+) => {
     const placed = new Map<string, ContentBlock>();
     const chunks = new Map<string, Chunk>();
     const chunkAt = (at: ContentPosition): Chunk | undefined => chunks.get(`${at.x >> 4},${at.z >> 4}`);
@@ -102,7 +115,7 @@ const benchWorld = (random: RandomSource, blockReads: { count: number }, gameTim
     }
     const world: EntityWorldFacts = {
         level: {
-            dimension: 'minecraft:overworld',
+            dimension,
             minY: -64,
             maxY: 320,
             hasSkyLight: true,
@@ -248,6 +261,11 @@ interface TagScanCounts {
     membershipChecks: number;
 }
 
+interface CollisionQueryCounts {
+    calls: number;
+    candidates: number;
+}
+
 /** Counts registry enumeration and membership work performed by tag-backed brain sensors. */
 const instrumentTags = (tags: ContentTags, counts: TagScanCounts): ContentTags => ({
     registries: tags.registries,
@@ -273,7 +291,13 @@ const scenario = (count: number, seed: number) => {
     const random = seededRandom(seed);
     const blockReads = { count: 0 };
     let currentTick = 0;
-    const world = benchWorld(random, blockReads, () => (SENSING_PROFILE ? currentTick : 0));
+    const dimension =
+        COLLISION_SCENE === 'end'
+            ? 'minecraft:the_end'
+            : COLLISION_SCENE === 'nether'
+              ? 'minecraft:the_nether'
+              : 'minecraft:overworld';
+    const world = benchWorld(random, blockReads, () => (SENSING_PROFILE ? currentTick : 0), dimension);
     const players: ContentEntity[] = Array.from({ length: PLAYERS }, (_unused, index) => ({
         id: 100_000 + index,
         identifier: 'minecraft:player',
@@ -306,6 +330,7 @@ const scenario = (count: number, seed: number) => {
     const tagScans: TagScanCounts = { enumerations: 0, membershipChecks: 0 };
     const avoidBlockResults = { count: 0 };
     const sensingCounts = { calls: 0, visible: 0, rays: 0 };
+    const collisionCounts: CollisionQueryCounts = { calls: 0, candidates: 0 };
     const host = benchHost(players, allocations);
 
     let content: ServerContent | undefined;
@@ -322,6 +347,15 @@ const scenario = (count: number, seed: number) => {
     const adapter: ServerWorldAdapter = { ...world, ticks, ...entityContentGroups(runtime) };
     const builtContent = buildServerContent({ world: singleDimension(adapter) });
     content = BRAIN_MOB_PROFILE ? { ...builtContent, tags: instrumentTags(builtContent.tags, tagScans) } : builtContent;
+    if (COLLISION_PROFILE) {
+        const inBox = runtime.inBox.bind(runtime);
+        runtime.inBox = (min, max) => {
+            const candidates = inBox(min, max);
+            collisionCounts.calls += 1;
+            collisionCounts.candidates += candidates.length;
+            return candidates;
+        };
+    }
 
     // A separate stream for the layout, so changing the mob count does not shift the
     // numbers the goals draw.
@@ -335,26 +369,43 @@ const scenario = (count: number, seed: number) => {
                   y: FLOOR_Y + 1,
                   z: Math.floor(index / 20) * 1.3 - 9.1
               }
-            : BREEDING_PAIRS > 0
+            : COLLISION_PROFILE
               ? {
-                    x: (pair % 32) * 24 + (index % 2 === 0 ? 0.5 : 8.5),
+                    x: (layout.nextFloat() - 0.5) * 20,
                     y: FLOOR_Y + 1,
-                    z: Math.trunc(pair / 32) * 24 + 0.5
+                    z: (layout.nextFloat() - 0.5) * 20
                 }
-              : {
-                    x: (layout.nextFloat() - 0.5) * SPREAD,
-                    y: FLOOR_Y + 1,
-                    z: (layout.nextFloat() - 0.5) * SPREAD
-                };
-        const mobs = AVOID_BLOCK_PROFILE ? AVOID_BLOCK_MIX : BRAIN_MOB_PROFILE ? BRAIN_MOB_MIX : MIX;
+              : BREEDING_PAIRS > 0
+                ? {
+                      x: (pair % 32) * 24 + (index % 2 === 0 ? 0.5 : 8.5),
+                      y: FLOOR_Y + 1,
+                      z: Math.trunc(pair / 32) * 24 + 0.5
+                  }
+                : {
+                      x: (layout.nextFloat() - 0.5) * SPREAD,
+                      y: FLOOR_Y + 1,
+                      z: (layout.nextFloat() - 0.5) * SPREAD
+                  };
+        const mobs = AVOID_BLOCK_PROFILE
+            ? AVOID_BLOCK_MIX
+            : BRAIN_MOB_PROFILE
+              ? BRAIN_MOB_MIX
+              : COLLISION_SCENE === 'end'
+                ? (['minecraft:enderman'] as const)
+                : COLLISION_SCENE === 'nether'
+                  ? (['minecraft:ghast', 'minecraft:ghast', 'minecraft:ghast', 'minecraft:piglin'] as const)
+                  : MIX;
         const entity = runtime.spawn(BREEDING_PAIRS > 0 ? 'minecraft:sheep' : mobs[index % mobs.length]!, at);
         if (entity !== undefined && BREEDING_PAIRS > 0) breedingIds.push(entity.id);
     }
 
+    if (COLLISION_SCENE === 'end') runtime.spawn('minecraft:ender_dragon', { x: 0, y: FLOOR_Y + 1, z: 0 });
+
     const spawned = runtime.all().length;
-    if (spawned !== count) {
+    const expectedSpawned = count + (COLLISION_SCENE === 'end' ? 1 : 0);
+    if (spawned !== expectedSpawned) {
         throw new Error(
-            `Entity AI benchmark spawned ${spawned} of ${count} requested mobs. ` +
+            `Entity AI benchmark spawned ${spawned} of ${expectedSpawned} expected mobs. ` +
                 'Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
                 '`pnpm --filter @jsprismarine/bedrock-data run datagen:java` first.'
         );
@@ -402,6 +453,7 @@ const scenario = (count: number, seed: number) => {
         tagScans,
         avoidBlockResults,
         sensingCounts,
+        collisionCounts,
         sensingPairs,
         startBreeding: () => breedingIds.forEach((id) => runtime.setInLove(id, 400))
     };
@@ -422,6 +474,8 @@ const run = (
     readonly measuredAvoidBlockResults: number;
     readonly measuredSensingCalls: number;
     readonly measuredSensingRays: number;
+    readonly measuredCollisionQueries: number;
+    readonly measuredCollisionCandidates: number;
 } => {
     const {
         runtime,
@@ -431,6 +485,7 @@ const run = (
         tagScans,
         avoidBlockResults,
         sensingCounts,
+        collisionCounts,
         sensingPairs,
         startBreeding
     } = scenario(count, seed);
@@ -480,6 +535,8 @@ const run = (
     const avoidBlockResultsBeforeMeasure = avoidBlockResults.count;
     const sensingCallsBeforeMeasure = sensingCounts.calls;
     const sensingRaysBeforeMeasure = sensingCounts.rays;
+    const collisionQueriesBeforeMeasure = collisionCounts.calls;
+    const collisionCandidatesBeforeMeasure = collisionCounts.candidates;
     startBreeding();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
@@ -498,7 +555,9 @@ const run = (
         measuredTagMembershipChecks: tagScans.membershipChecks - tagMembershipChecksBeforeMeasure,
         measuredAvoidBlockResults: avoidBlockResults.count - avoidBlockResultsBeforeMeasure,
         measuredSensingCalls: sensingCounts.calls - sensingCallsBeforeMeasure,
-        measuredSensingRays: sensingCounts.rays - sensingRaysBeforeMeasure
+        measuredSensingRays: sensingCounts.rays - sensingRaysBeforeMeasure,
+        measuredCollisionQueries: collisionCounts.calls - collisionQueriesBeforeMeasure,
+        measuredCollisionCandidates: collisionCounts.candidates - collisionCandidatesBeforeMeasure
     };
 };
 
@@ -533,21 +592,24 @@ const report = (count: number): void => {
             `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''}` +
             `${BRAIN_MOB_PROFILE ? `, ${result.measuredTagEnumerations} tag enumerations, ${result.measuredTagMembershipChecks} tag membership checks` : ''}` +
             `${AVOID_BLOCK_PROFILE ? `, ${result.measuredAvoidBlockResults} avoid_block query results` : ''}` +
-            `${SENSING_PROFILE ? `, ${result.measuredSensingCalls} canSee calls, ${result.measuredSensingRays} rays` : ''})`
+            `${SENSING_PROFILE ? `, ${result.measuredSensingCalls} canSee calls, ${result.measuredSensingRays} rays` : ''}` +
+            `${COLLISION_PROFILE ? `, ${result.measuredCollisionQueries} box queries, ${result.measuredCollisionCandidates} candidates, ${COLLISION_SCENE} dimension` : ''})`
     );
 };
 
 console.log(
     [
-        SENSING_PROFILE
-            ? 'sensing'
-            : AVOID_BLOCK_PROFILE
-              ? 'avoid_block'
-              : BRAIN_MOB_PROFILE
-                ? 'brain mobs'
-                : BREEDING_PAIRS > 0
-                  ? 'breeding mobs'
-                  : 'mobs',
+        COLLISION_PROFILE
+            ? `${COLLISION_SCENE} collisions`
+            : SENSING_PROFILE
+              ? 'sensing'
+              : AVOID_BLOCK_PROFILE
+                ? 'avoid_block'
+                : BRAIN_MOB_PROFILE
+                  ? 'brain mobs'
+                  : BREEDING_PAIRS > 0
+                    ? 'breeding mobs'
+                    : 'mobs',
         'mean ms/tick',
         ' ms/mob',
         '   p50 ms',

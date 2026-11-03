@@ -155,6 +155,7 @@ interface Scenario {
     readonly players: number;
     readonly seed: number;
     readonly ticks: number;
+    readonly extras?: readonly { readonly identifier: string; readonly position: EntityPosition }[];
 }
 
 /** Bedrock identifiers for the twenty Java brain definitions, including renamed mobs. */
@@ -238,17 +239,38 @@ const SCENARIOS: readonly Scenario[] = [
         players: 4,
         seed: 55,
         ticks: 300
+    },
+    {
+        name: 'collision-base',
+        mobs: ['minecraft:cow'],
+        count: 48,
+        spread: 8,
+        players: 0,
+        seed: 66,
+        ticks: 120
+    },
+    {
+        name: 'collision-dragon',
+        mobs: ['minecraft:cow'],
+        count: 48,
+        spread: 8,
+        players: 0,
+        seed: 66,
+        ticks: 120,
+        extras: [{ identifier: 'minecraft:ender_dragon', position: { x: 0, y: FLOOR_Y + 1, z: 0 } }]
     }
 ];
 
 /** Reviewed behavior baselines; the brain-mix digest also locks live entity references in memories. */
-const EXPECTED_DIGESTS: Readonly<Record<string, string>> = {
+const EXPECTED_DIGESTS: Readonly<Partial<Record<string, string>>> = {
     hostile: 'ac6e4551cd5974484d44d06c22a5189c66a77297391710cff2549b038c3a7d95',
     farm: '06ce634e1500f6f52a238a0bcb352eaf8edb4d904090570ddc541d836dde699e',
     mixed: '86d28a23d6324db532c95e9271b7524a940cff78b0026f4d06ddb8d0fc2ac614',
     stacked: '61ecca73ee3d869c94612b3cd2a411e14ab702cda7bc578d04624122ccbf0a7b',
     sparse: '29aa8215bd262c183f42147a7cdc299fede76de05bbe2859721f7e9e8bdb3300',
-    'brain-mix': '49887ee656cee995cbc8735eb2b1f5479a1dfffb2d78c0207b8947a4ba8c9e5d'
+    'brain-mix': '49887ee656cee995cbc8735eb2b1f5479a1dfffb2d78c0207b8947a4ba8c9e5d',
+    'collision-base': '66d70b851f3a72b4480074745e3545e084062bc8cfa61b6ba00850a965de0e9e',
+    'collision-dragon': '236beabb21c88d410c33a64b50cbefe1aa85f47af64c3d56e06ad7e2445ff05c'
 };
 
 /** One number's exact bits, so a digest catches a change below printed precision. */
@@ -298,6 +320,7 @@ const digestOf = (
         };
         runtime.spawn(scenario.mobs[index % scenario.mobs.length]!, at);
     }
+    for (const extra of scenario.extras ?? []) runtime.spawn(extra.identifier, extra.position);
 
     let recordedSounds = 0;
     let recordedDrops = 0;
@@ -359,8 +382,8 @@ for (const scenario of selected) {
     const started = performance.now();
     const original = digestOf(scenario, undefined);
     const expected = EXPECTED_DIGESTS[scenario.name];
-    // Keep the Java behavior golden as the parity guard; replay adds a separate per-tick stability check.
-    if (original.outputDigest !== expected) {
+    // The added collision cases measure query cost; only reviewed behavior baselines gate equality.
+    if (expected !== undefined && original.outputDigest !== expected) {
         throw new Error(
             `${scenario.name} entity AI digest changed: expected ${expected}, got ${original.outputDigest}`
         );

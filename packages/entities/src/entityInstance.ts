@@ -126,6 +126,8 @@ export interface EntitySensorCandidate {
 
 /** What an entity needs from the world around it. */
 export interface EntityEnvironment {
+    /** Refreshes world indexes when an event changes the active component set. */
+    componentSetChanged?(entity: EntityInstance): void;
     /**
      * Builds the filter context for one evaluation. The entity fills in its
      * own facts (properties, components, type families, attributes) over
@@ -976,6 +978,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             if (previous !== undefined && previous.component === entry.component && !reinitialized) continue;
             entry.component.handlers.onInitialize?.(this);
         }
+
+        this.environment.componentSetChanged?.(this);
     }
 
     /**
