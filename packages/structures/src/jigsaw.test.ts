@@ -399,6 +399,24 @@ describe('assembleJigsaw', () => {
         expect(layout(assembleJigsaw(config, sources(2024)))).toEqual(layout(assembleJigsaw(config, sources(2024))));
     });
 
+    it('keeps cached transform inputs and random draws unchanged across assemblies', () => {
+        const center = TEMPLATES['test:center'];
+        const houses = POOLS['test:houses'];
+        if (center === undefined || houses === undefined) throw new Error('jigsaw cache fixtures are incomplete');
+        const originalJigsaws = jigsawBlocksOf(center);
+        const originalElements = houses.elements.map(({ element, weight }) => ({ element, weight }));
+        const firstRandom = createLegacyRandom(2024);
+        const repeatedRandom = createLegacyRandom(2024);
+
+        const first = assembleJigsaw(config, sources(0, { random: firstRandom }));
+        const repeated = assembleJigsaw(config, sources(0, { random: repeatedRandom }));
+
+        expect(repeated).toEqual(first);
+        expect(repeatedRandom.nextLong()).toBe(firstRandom.nextLong());
+        expect(jigsawBlocksOf(center)).toEqual(originalJigsaws);
+        expect(houses.elements).toEqual(originalElements);
+    });
+
     it('produces a different layout for a different seed', () => {
         expect(layout(assembleJigsaw(config, sources(2024)))).not.toEqual(layout(assembleJigsaw(config, sources(7))));
     });

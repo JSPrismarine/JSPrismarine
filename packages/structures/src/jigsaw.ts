@@ -444,6 +444,43 @@ const rotateJigsaw = (
     };
 };
 
+/** Deterministic jigsaw transforms keyed by the complete template and world transform. */
+const rotatedJigsawCache = new WeakMap<BedrockStructureTemplate, Map<string, readonly JigsawBlockInfo[]>>();
+const ROTATED_JIGSAW_CACHE_LIMIT = 64;
+
+/** Returns the unshuffled jigsaw list for one template, rotation, and origin. */
+const rotatedJigsawsCached = (
+    template: BedrockStructureTemplate,
+    rotation: Rotation,
+    origin: TemplatePosition
+): readonly JigsawBlockInfo[] => {
+    let byTransform = rotatedJigsawCache.get(template);
+    if (byTransform === undefined) {
+        byTransform = new Map();
+        rotatedJigsawCache.set(template, byTransform);
+    }
+
+    const key = `${rotation}|${origin[0]},${origin[1]},${origin[2]}`;
+    const cached = byTransform.get(key);
+    if (cached !== undefined) {
+        // Refresh the entry so repeated world transforms stay hot without retaining every origin.
+        byTransform.delete(key);
+        byTransform.set(key, cached);
+        return cached;
+    }
+
+    const transformed = jigsawBlocksCached(template).map((jigsaw) =>
+        rotateJigsaw(jigsaw, template.size, rotation, origin)
+    );
+    // World origins are unbounded across generated chunks, so keep a small LRU per template.
+    if (byTransform.size >= ROTATED_JIGSAW_CACHE_LIMIT) {
+        const oldest = byTransform.keys().next().value;
+        if (oldest !== undefined) byTransform.delete(oldest);
+    }
+    byTransform.set(key, transformed);
+    return transformed;
+};
+
 /**
  * How far above a piece's own floor its ground sits.
  *
@@ -470,8 +507,18 @@ const shuffled = <T>(values: readonly T[], random: RandomSource): T[] => {
 };
 
 /** The pool's elements with each repeated by its weight, which is what Java draws from. */
-const expandByWeight = (pool: TemplatePool): PoolElement[] =>
-    pool.elements.flatMap((entry) => Array.from({ length: Math.max(0, entry.weight) }, () => entry.element));
+const expandedPoolCache = new WeakMap<TemplatePool, readonly PoolElement[]>();
+
+const expandByWeight = (pool: TemplatePool): readonly PoolElement[] => {
+    const cached = expandedPoolCache.get(pool);
+    if (cached !== undefined) return cached;
+
+    const expanded = pool.elements.flatMap((entry) =>
+        Array.from({ length: Math.max(0, entry.weight) }, () => entry.element)
+    );
+    expandedPoolCache.set(pool, expanded);
+    return expanded;
+};
 
 const boxOf = (position: TemplatePosition, size: TemplatePosition): BoundingBox => ({
     minX: position[0],
@@ -544,10 +591,11 @@ const shuffledJigsaws = (
     origin: TemplatePosition,
     random: RandomSource
 ): JigsawBlockInfo[] =>
-    shuffled(
-        jigsawBlocksCached(template).map((jigsaw) => rotateJigsaw(jigsaw, template.size, rotation, origin)),
-        random
-    ).sort((left, right) => right.selectionPriority - left.selectionPriority);
+    // Cache only the deterministic transform; Java's shuffle still gets a fresh mutable copy
+    // so repeated candidates consume the same random draws and cannot mutate the cached order.
+    shuffled(rotatedJigsawsCached(template, rotation, origin), random).sort(
+        (left, right) => right.selectionPriority - left.selectionPriority
+    );
 
 /** The tallest element of a pool, which is the room the expansion hack reserves. */
 const poolYSpan = (pool: TemplatePool | undefined, sources: JigsawSources): number => {
