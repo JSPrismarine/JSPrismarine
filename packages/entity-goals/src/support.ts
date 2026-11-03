@@ -126,6 +126,12 @@ export class GoalSupport {
         return this.entity.random.next();
     }
 
+    /** Draws a Java bounded integer, preserving the world's integer RNG stream when available. */
+    public randomInt(bound: number): number {
+        const random = this.entity.random;
+        return random.nextInt === undefined ? Math.floor(this.random() * bound) : random.nextInt(bound);
+    }
+
     /** Whether a chance in [0, 1] comes up this tick. */
     public chance(probability: number): boolean {
         if (probability >= 1) return true;
@@ -163,6 +169,11 @@ export class GoalSupport {
     public isNight(): boolean {
         const time = this.timeOfDay();
         return time !== undefined && (time >= 13000 || time < 1000);
+    }
+
+    /** Whether the world answers Java's bright-outside precondition. */
+    public isBrightOutside(): boolean {
+        return this.world.isBrightOutside?.() ?? false;
     }
 
     /** Whether it is raining or thundering now. */

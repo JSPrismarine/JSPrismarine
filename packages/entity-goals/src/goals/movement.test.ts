@@ -239,22 +239,69 @@ describe('minecraft:behavior.follow_mob', () => {
 });
 
 describe('minecraft:behavior.flee_sun', () => {
-    it('only walks to a position the sky does not reach', () => {
-        const floor = Array.from({ length: 16 }, () => '#'.repeat(16));
-        const sunlit = Array.from({ length: 16 }, () => 's'.repeat(16));
+    const openSky = flatWorld().navigation?.();
+    if (openSky === undefined) throw new Error('flatWorld must provide a navigation view');
+    const sky = {
+        ...openSky,
+        canSeeSky: (position: { readonly x: number }) => position.x === 8,
+        walkTargetValue: () => -0.5
+    };
+    const baseWorld: GoalWorld = {
+        navigation: () => sky,
+        isBrightOutside: () => true
+    };
 
-        const openSky = voxelGrid([floor, sunlit, sunlit]);
-
+    it('checks the Java preconditions before drawing its 20 by 6 by 20 candidate', () => {
+        const bounds: number[] = [];
         const harness = new GoalHarness({
             goals: { 'minecraft:behavior.flee_sun': { priority: 2, speed_multiplier: 1 } },
             components: walker,
-            world: { navigation: () => openSky },
+            flags: { on_fire: true },
+            world: baseWorld,
             at: { x: 8.5, y: 1, z: 8.5 },
-            random: () => 0.5
+            randomInt: (bound) => {
+                bounds.push(bound);
+                const draw = [11, 3, 10][bounds.length - 1];
+                if (draw === undefined) throw new Error('flee_sun drew more than three values for its first candidate');
+                return draw;
+            }
         });
 
         harness.tick();
 
+        expect(bounds).toEqual([20, 6, 20]);
+        expect(harness.actuator.log).toContain('moveTo 9.5,1,8.5 @1');
+    });
+
+    it.each([
+        ['has an attack target', { world: { ...baseWorld, target: () => testMob('target', { x: 12, y: 1, z: 8 }) } }],
+        ['is not bright outside', { world: { ...baseWorld, isBrightOutside: () => false } }],
+        ['is not on fire', { flags: { on_fire: false } }],
+        [
+            'cannot see the sky from its current position',
+            {
+                world: { ...baseWorld, navigation: () => ({ ...sky, canSeeSky: () => false }) }
+            }
+        ],
+        ['wears a helmet', { headEquipped: true }]
+    ])('draws no random values when the mob %s', (_condition, override) => {
+        const bounds: number[] = [];
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.flee_sun': { priority: 2, speed_multiplier: 1 } },
+            components: walker,
+            flags: { on_fire: true },
+            world: baseWorld,
+            at: { x: 8.5, y: 1, z: 8.5 },
+            randomInt: (bound) => {
+                bounds.push(bound);
+                return 0;
+            },
+            ...override
+        });
+
+        harness.tick();
+
+        expect(bounds).toEqual([]);
         expect(harness.running()).toEqual([]);
     });
 });

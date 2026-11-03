@@ -146,6 +146,18 @@ const run = (fixture: EntityFixture, ticks: number): void => {
 };
 
 describe('the goal world over the entity runtime', () => {
+    describe('daylight', () => {
+        it("answers Java's bright-outside window from the level clock", () => {
+            const daylight = fixtureOf(new TestEntityWorld({ dayTime: 6000 }));
+            const daytimeMob = spawned(daylight, 'jsprismarine:pet', groundAt(0, 0));
+            const nighttime = fixtureOf(new TestEntityWorld({ dayTime: 18000 }));
+            const nighttimeMob = spawned(nighttime, 'jsprismarine:pet', groundAt(0, 0));
+
+            expect(goalWorldOf(daytimeMob.body, daylight.runtime).isBrightOutside()).toBe(true);
+            expect(goalWorldOf(nighttimeMob.body, nighttime.runtime).isBrightOutside()).toBe(false);
+        });
+    });
+
     describe('visibility', () => {
         it('checks solid blocks between the eyes of entities in follow range', () => {
             const world = new TestEntityWorld();

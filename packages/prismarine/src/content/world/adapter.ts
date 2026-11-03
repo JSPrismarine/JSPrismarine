@@ -217,6 +217,8 @@ export interface ContentLevelFacts {
     readonly maxY: number;
     /** Whether the dimension has a sky, which the nether and the end do not. */
     readonly hasSkyLight: boolean;
+    /** Whether the dimension clock is fixed, which prevents Java from being bright outside. */
+    readonly hasFixedTime?: boolean;
     /** The dimension's minimum ambient brightness, from its Java `ambient_light` value. */
     readonly ambientLight?: number;
     /** The visual contribution of sky light, when the dimension type defines one. */

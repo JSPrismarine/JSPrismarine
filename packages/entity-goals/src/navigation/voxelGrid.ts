@@ -20,6 +20,7 @@ export interface VoxelKind {
     readonly door?: DoorState;
     readonly damaging?: boolean;
     readonly sunlit?: boolean;
+    readonly skyVisible?: boolean;
     readonly portal?: boolean;
     readonly climbable?: boolean;
 }
@@ -42,7 +43,7 @@ export const VOXEL_KINDS: Readonly<Record<string, VoxelKind>> = {
     '*': { identifier: 'minecraft:fire', passable: true, solid: false, damaging: true },
     L: { identifier: 'minecraft:ladder', passable: true, solid: false, climbable: true },
     o: { identifier: 'minecraft:portal', passable: true, solid: false, portal: true },
-    s: { identifier: 'minecraft:air', passable: true, solid: false, sunlit: true }
+    s: { identifier: 'minecraft:air', passable: true, solid: false, sunlit: true, skyVisible: true }
 };
 
 /** The block outside the written world, which the path finder treats as unloaded. */
@@ -77,6 +78,8 @@ export const voxelGrid = (layers: readonly (readonly string[])[]): NavigationVie
         doorAt: (position) => kindAt(position).door,
         isDamaging: (position) => kindAt(position).damaging === true,
         isSunlit: (position) => kindAt(position).sunlit === true,
+        canSeeSky: (position) => kindAt(position).skyVisible === true,
+        walkTargetValue: () => -0.5,
         isPortal: (position) => kindAt(position).portal === true,
         isClimbable: (position) => kindAt(position).climbable === true,
         isLadder: (position) => kindAt(position).identifier === 'minecraft:ladder'

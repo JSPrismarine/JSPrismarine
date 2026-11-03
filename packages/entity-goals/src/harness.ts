@@ -148,10 +148,14 @@ export interface GoalHarnessOptions {
     readonly world?: GoalWorld;
     /** Draws the goals' random numbers; defaults to a seeded generator, so a run repeats. */
     readonly random?: () => number;
+    /** Draws Java bounded integers directly, so tests can check their exact order and count. */
+    readonly randomInt?: (bound: number) => number;
     /** Where the entity starts. */
     readonly at?: EntityPosition;
     /** The entity's own boolean facts, such as `in_water`. */
     readonly flags?: Partial<Record<EntityFlag, boolean>>;
+    /** Whether the entity has a test helmet in its head slot. */
+    readonly headEquipped?: boolean;
     /** The world facts the time and weather tests read. */
     readonly worldFacts?: FilterWorldView;
     readonly identifier?: string;
@@ -200,9 +204,18 @@ export class GoalHarness {
         this.entity = types.spawn(identifier, {
             environment: {
                 actuator: this.actuator,
-                random: { next: draws },
+                random: {
+                    next: draws,
+                    nextInt: options.randomInt ?? ((bound) => Math.floor(draws() * bound))
+                },
                 filterContext: (): FilterContext => ({
-                    self: { flag: (name) => options.flags?.[name] },
+                    self: {
+                        flag: (name) => options.flags?.[name],
+                        equipment: (slot, index) =>
+                            options.headEquipped === true && slot === 'head' && index === 0
+                                ? { identifier: () => 'minecraft:iron_helmet' }
+                                : undefined
+                    },
                     world: options.worldFacts
                 })
             }

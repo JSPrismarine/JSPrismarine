@@ -213,6 +213,8 @@ export interface FilterWorldView {
 export interface RandomSource {
     /** The next value in [0, 1). */
     next(): number;
+    /** The next integer in `[0, bound)`, when the source can draw it directly. */
+    nextInt?(bound: number): number;
 }
 
 /** A random source backed by `Math.random`. */

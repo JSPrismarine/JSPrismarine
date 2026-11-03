@@ -41,6 +41,10 @@ export interface NavigationView {
     isDamaging?(position: EntityPosition): boolean;
     /** Whether the sky reaches the block, for `avoid_sun`. */
     isSunlit?(position: EntityPosition): boolean;
+    /** Whether Java's level says the block column can see the sky. */
+    canSeeSky?(position: EntityPosition): boolean;
+    /** The entity's Java walk-target value at the block, for hide-position searches. */
+    walkTargetValue?(position: EntityPosition): number;
     /** Whether the block is a portal, for `avoid_portals`. */
     isPortal?(position: EntityPosition): boolean;
     /** Whether an entity climbs the block, such as a ladder or a vine. */

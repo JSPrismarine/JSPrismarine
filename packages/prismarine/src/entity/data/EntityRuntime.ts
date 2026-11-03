@@ -730,7 +730,10 @@ export class EntityRuntime implements EntityScene {
                           };
                 },
                 entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
-                random: { next: () => this.world.random.nextFloat() },
+                random: {
+                    next: () => this.world.random.nextFloat(),
+                    nextInt: (bound) => this.world.random.nextInt(bound)
+                },
                 javaStats: content.entities.javaStats,
                 javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
                 remove: (removed, reason) => this.removeInstance(removed, reason),

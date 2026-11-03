@@ -3,7 +3,7 @@ import type { Filter } from '@jsprismarine/packs';
 
 import type { RegisterableGoal } from '../goal';
 import { goal } from '../goal';
-import { centerOf } from '../navigation/view';
+import { blockOf, centerOf } from '../navigation/view';
 import type { GoalBody, GoalEvent, Range, TargetEntityType } from '../params';
 import {
     bodySchema,
@@ -693,9 +693,9 @@ export const avoidBlock = goal<AvoidBlockParams>({
  * `minecraft:behavior.flee_sun`, which the seven sunlight-sensitive entities
  * carry.
  *
- * Java's `FleeSunGoal` draws ten candidates in a 20 by 6 by 20 box and keeps
- * the first the sky does not reach, which is what `NavigationView.isSunlit`
- * answers here.
+ * Java's `FleeSunGoal` checks its five preconditions before drawing, then
+ * tries ten positions in a 20 by 6 by 20 box and keeps the first hidden,
+ * negatively valued position. It does not pathfind each candidate.
  */
 export const fleeSun = goal<{ readonly speedMultiplier: number }>({
     name: 'minecraft:behavior.flee_sun',
@@ -704,17 +704,24 @@ export const fleeSun = goal<{ readonly speedMultiplier: number }>({
     create: (params, support) =>
         walkTo(support, {
             find: () => {
+                if (support.target() !== undefined) return undefined;
+                if (!support.isBrightOutside()) return undefined;
+                if (!support.flag('on_fire')) return undefined;
                 const view = support.navigation();
                 if (view === undefined) return undefined;
                 const here = support.position();
+                if (view.canSeeSky?.(blockOf(here)) !== true) return undefined;
+                if (support.entity.filterContext().self.equipment?.('head', 0) !== undefined) return undefined;
+
                 for (let attempt = 0; attempt < 10; attempt += 1) {
                     const candidate = {
-                        x: Math.floor(here.x) + Math.floor(support.random() * 20) - 10,
-                        y: Math.floor(here.y) + Math.floor(support.random() * 6) - 3,
-                        z: Math.floor(here.z) + Math.floor(support.random() * 20) - 10
+                        x: Math.floor(here.x) + support.randomInt(20) - 10,
+                        y: Math.floor(here.y) + support.randomInt(6) - 3,
+                        z: Math.floor(here.z) + support.randomInt(20) - 10
                     };
-                    if (view.isSunlit?.(candidate) === true) continue;
-                    if (support.navigator.canReach(candidate, 1)) return centerOf(candidate);
+                    if (view.canSeeSky?.(candidate) !== false) continue;
+                    if ((view.walkTargetValue?.(candidate) ?? -0.5) >= 0) continue;
+                    return centerOf(candidate);
                 }
                 return undefined;
             },

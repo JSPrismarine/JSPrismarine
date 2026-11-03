@@ -128,6 +128,8 @@ export interface GoalDamage {
 export interface GoalWorld {
     /** The blocks around the entity, which is what the path finder reads. */
     navigation?(): NavigationView | undefined;
+    /** Whether Java's level considers it bright outside. */
+    isBrightOutside?(): boolean;
     /**
      * Every matching entity within the radius, nearest first.
      *

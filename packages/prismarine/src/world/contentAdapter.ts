@@ -201,6 +201,9 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         get hasSkyLight() {
             return type().java.hasSkylight;
         },
+        get hasFixedTime() {
+            return type().java.hasFixedTime;
+        },
         get ambientLight() {
             return type().java.ambientLight;
         },

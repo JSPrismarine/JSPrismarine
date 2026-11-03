@@ -16,6 +16,7 @@ import { canEntityAttack, canEntityAttackView, isShareablesParams } from '@jspri
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
+import { isDay } from '../../world/DayCycle';
 import { EYE_HEIGHT } from '../Human';
 import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
@@ -149,6 +150,12 @@ const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: 
 export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalWorld> => {
     return {
         navigation: () => scene.navigation(),
+        // FleeSunGoal's bytecode checks this before drawing. The vanilla
+        // Overworld clock's bright interval is the daytime interval here.
+        isBrightOutside: () =>
+            scene.world.level.hasSkyLight &&
+            scene.world.level.hasFixedTime !== true &&
+            isDay(scene.world.level.dayTime()),
         // Players among them, because `nearest_attackable_target` searches this list and 49
         // vanilla entities use it with an `is_family: player` entry. Java's
         // `NearestAttackableTargetGoal` searches `LivingEntity`, which is players included;

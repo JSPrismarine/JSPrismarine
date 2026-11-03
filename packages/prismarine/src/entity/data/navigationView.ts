@@ -241,7 +241,18 @@ export const navigationViewOf = (
             isSunlit: (position) =>
                 level === undefined
                     ? blocks.light(position) >= SUNLIT_LIGHT_LEVEL
-                    : level.hasSkyLight && isDay(level.dayTime()) && blocks.skyLight?.(position) === SUNLIT_LIGHT_LEVEL
+                    : level.hasSkyLight && isDay(level.dayTime()) && blocks.skyLight?.(position) === SUNLIT_LIGHT_LEVEL,
+            // The engine's open-sky value is 15; keeping this separate from `isSunlit` matters
+            // because Java asks sky visibility independently of daytime.
+            canSeeSky: (position) => level?.hasSkyLight === true && blocks.skyLight?.(position) === SUNLIT_LIGHT_LEVEL,
+            walkTargetValue: (position) => {
+                // Match LevelReader's light-dependent value curve, then Monster's negation.
+                const rawBrightness = blocks.light(position) / SUNLIT_LIGHT_LEVEL;
+                const brightness = rawBrightness / (4 - 3 * rawBrightness);
+                const ambientLight = level?.ambientLight ?? 0;
+                const lightCost = ambientLight + brightness * (1 - ambientLight) - 0.5;
+                return -lightCost;
+            }
         },
         invalidateBlockCache
     };
