@@ -81,7 +81,7 @@
         "bench:bot-fleet": "pnpm -w run build && node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/botFleetLoad.bench.ts",
         "bench:bot-fleet:gate": "pnpm -w run build && node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/botFleetLoad.bench.ts --baseline benchmarks/botFleetLoad.baseline.json",
         "bench:bot-fleet:baseline": "pnpm -w run build && node --conditions=jsprismarine:dist benchmarks/runExternal.mjs benchmarks/botFleetLoad.bench.ts --update-baseline benchmarks/botFleetLoad.baseline.json",
-        "bench:movement-fanout": "node benchmarks/run.mjs benchmarks/movementFanout.bench.ts",
+        "bench:movement-fanout": "node benchmarks/run.mjs benchmarks/entityMovementFanout.bench.ts",
         "bench:entity-movement-delta": "node benchmarks/run.mjs benchmarks/entityMovementDelta.bench.ts",
         "bench:entity-movement-fanout": "node benchmarks/run.mjs benchmarks/entityMovementFanout.bench.ts",
         "bench:runtime-id-fanout": "node benchmarks/run.mjs benchmarks/runtimeIdFanout.bench.ts",

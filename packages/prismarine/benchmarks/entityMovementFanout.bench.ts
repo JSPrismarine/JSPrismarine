@@ -86,7 +86,7 @@ const players = codecs.map((codec, index) => {
         tracks: (runtimeId: bigint) => tracked.has(runtimeId),
         getConnection: () => connection
     });
-    return stub<Player>({ getNetworkSession: () => session });
+    return stub<Player>({ getRuntimeId: () => BigInt(index + 10_000), getNetworkSession: () => session });
 });
 const visibleWorld = stub<World>({ getName: () => 'entity movement fan-out benchmark', getPlayers: () => players });
 const config = stub<Config>({ getPacketCompressionLevel: () => 1, getPacketCompressionThreshold: () => 256 });
