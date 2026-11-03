@@ -167,7 +167,7 @@ export interface TickControl {
  */
 export class ServerTicker implements Ticker, TickControl {
     private readonly server: TickerServer;
-    private tickerTimer: NodeJS.Timeout | undefined;
+    private cancelPendingTick: (() => void) | undefined;
     private running = false;
     private tps = 20;
     private tickMs = 0;
@@ -457,8 +457,18 @@ export class ServerTicker implements Ticker, TickControl {
                 if (!server.isStopping() && this.running) {
                     const delay = Math.max(0, sleepTime);
                     nextTickExpectedStartAt = endTime + delay;
-                    this.tickerTimer = setTimeout(tick, delay);
-                    this.tickerTimer.unref();
+                    if (sleepTime <= 0) {
+                        // Node clamps an overdue zero-delay timeout to roughly 1 ms. An
+                        // immediate keeps catch-up ticks back-to-back while still yielding
+                        // through the event loop so sockets and other I/O get a turn.
+                        const immediate = setImmediate(tick);
+                        immediate.unref();
+                        this.cancelPendingTick = () => clearImmediate(immediate);
+                    } else {
+                        const timeout = setTimeout(tick, sleepTime);
+                        timeout.unref();
+                        this.cancelPendingTick = () => clearTimeout(timeout);
+                    }
                 }
             }
         };
@@ -470,8 +480,8 @@ export class ServerTicker implements Ticker, TickControl {
     /** Stops the loop: clears the pending timer and stops a tick in flight from rescheduling. */
     public stop(): void {
         this.running = false;
-        clearTimeout(this.tickerTimer);
-        this.tickerTimer = undefined;
+        this.cancelPendingTick?.();
+        this.cancelPendingTick = undefined;
     }
 }
 

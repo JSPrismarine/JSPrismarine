@@ -49,6 +49,7 @@
         "build:watch": "vite build --watch",
         "bench:chunks": "node --import tsx benchmarks/chunkGeneration.ts",
         "bench:commands": "node benchmarks/run.mjs benchmarks/commandTree.bench.ts",
+        "bench:ticker": "node benchmarks/run.mjs benchmarks/tickerCatchup.bench.ts",
         "bench:network": "node --import tsx benchmarks/blockProximity.bench.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",

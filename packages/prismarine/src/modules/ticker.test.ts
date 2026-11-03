@@ -52,7 +52,9 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
 
 describe('modules/ticker', () => {
     beforeEach(() => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+        vi.useFakeTimers({
+            toFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'clearImmediate', 'performance', 'Date']
+        });
     });
 
     afterEach(() => {
@@ -94,6 +96,56 @@ describe('modules/ticker', () => {
         try {
             await vi.advanceTimersByTimeAsync(0);
             expect(order.slice(0, 2)).toEqual(['network', 'tick']);
+        } finally {
+            await handle.stop();
+        }
+    });
+
+    it('uses a timeout for a tick that finishes before its fixed deadline', async () => {
+        const harness = buildHarness();
+        const timeout = vi.spyOn(globalThis, 'setTimeout');
+        const immediate = vi.spyOn(globalThis, 'setImmediate');
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(timeout.mock.calls.some(([, delay]) => delay === TICK_MS)).toBe(true);
+            expect(immediate).not.toHaveBeenCalled();
+            expect(harness.ticker.getTick()).toBe(1);
+            expect(harness.warnings).toEqual([]);
+        } finally {
+            await handle.stop();
+        }
+    });
+
+    it('uses an immediate for a late tick, then resumes the same fixed epoch', async () => {
+        const harness = buildHarness();
+        let stalled = false;
+        const eventLoopOrder: string[] = [];
+        harness.deps.emitTick = async (event) => {
+            harness.tickEvents.push(event);
+            eventLoopOrder.push(`tick:${event.getTick()}`);
+        };
+        harness.deps.tickFunctions = async () => {
+            if (!stalled) {
+                stalled = true;
+                vi.advanceTimersByTime(75);
+                // Let the queued I/O callback run before the overdue tick resumes.
+                setImmediate(() => eventLoopOrder.push('io'));
+            }
+        };
+        const timeout = vi.spyOn(globalThis, 'setTimeout');
+        const immediate = vi.spyOn(globalThis, 'setImmediate');
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(immediate).toHaveBeenCalledTimes(2);
+            expect(harness.ticker.getTick()).toBe(2);
+            expect(harness.tickEvents.map((event) => event.getTick())).toEqual([0, 1]);
+            expect(eventLoopOrder).toEqual(['tick:0', 'io', 'tick:1']);
+            expect(timeout.mock.calls.some(([, delay]) => delay === 25)).toBe(true);
+            expect(harness.warnings).toEqual([]);
         } finally {
             await handle.stop();
         }
@@ -166,7 +218,7 @@ describe('modules/ticker', () => {
         const handle = await startTestModule(tickerModule(harness.ticker));
         try {
             await vi.advanceTimersByTimeAsync(TICK_MS * 3);
-            expect(harness.warnings.some((message) => message.startsWith("Can't keep up!"))).toBe(true);
+            expect(harness.warnings).toContain("Can't keep up! Skipping 49 ticks (2450 ms behind)");
 
             // The backlog was skipped: after another second the loop has run
             // roughly one tick per period, not two seconds' worth of extras.
