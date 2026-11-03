@@ -12,13 +12,12 @@ const SURFACE_Y = -60;
 const CANOPY_Y = SURFACE_Y + 6;
 
 /**
- * The columns the canopy covers around a player standing in chunk 0, 0.
+ * The columns the spawn pass samples around a player standing in chunk 0, 0.
  *
- * The spawn pass samples four chunks each way, so this is about a third of what it reaches:
- * a roof wide enough to catch a spawn within a cycle or two, and small enough that putting it
- * up does not flood the client with block changes.
+ * Four chunks each way, which is the simulation distance the spawner uses as its radius. The
+ * whole of it is roofed over, so every cow it places comes out from under the canopy.
  */
-const REGION = { from: -40, to: 40 };
+const REGION = { from: -64, to: 79 };
 
 /** How far apart the logs holding the canopy up stand, which is twice a leaf's decay distance. */
 const LOG_SPACING = 12;
@@ -40,16 +39,12 @@ export const naturalSpawnUnderCanopy: Scenario = {
 
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
 
-        // One strip at a time, with a pause between: the whole roof in a single fill is thousands
-        // of block changes in one batch, which knocks the client off the server.
         const { from, to } = REGION;
+        server.command(`fill ${from} ${CANOPY_Y} ${from} ${to} ${CANOPY_Y} ${to} minecraft:oak_leaves`);
+        // Leaves with no log within six blocks decay on a random tick, and a canopy that came
+        // down while the spawn pass was running would prove nothing either way.
         for (let x = from; x <= to; x += LOG_SPACING) {
-            const strip = Math.min(x + LOG_SPACING - 1, to);
-            server.command(`fill ${x} ${CANOPY_Y} ${from} ${strip} ${CANOPY_Y} ${to} minecraft:oak_leaves`);
-            // Leaves with no log within six blocks decay on a random tick, and a canopy that
-            // came down while the spawn pass was running would prove nothing either way.
             server.command(`fill ${x} ${CANOPY_Y} ${from} ${x} ${CANOPY_Y} ${to} minecraft:oak_log`);
-            await sleep(500);
         }
 
         // One animal cycle is 400 ticks and fills the pool, so each round clears the herd the

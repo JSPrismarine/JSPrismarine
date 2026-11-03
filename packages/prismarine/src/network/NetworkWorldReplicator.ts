@@ -28,6 +28,8 @@ import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPa
 import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
 import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
+import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubChunkBlocksPacket';
+import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/structure/UpdateSubChunkNetworkBlockInfo';
 import Vec3 from '@jsprismarine/protocol/structure/Vec3';
 import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
@@ -58,6 +60,38 @@ interface BlockEntityChange {
 
 /** The pending-map key for a position, which is what makes the last write to it win. */
 const positionKey = (position: Vector3): string => `${position.getX()},${position.getY()},${position.getZ()}`;
+
+/**
+ * How the client applies a block change: as network-authored, with the neighboring visuals
+ * recalculated, which is what Bedrock Dedicated Server's own block updates carry.
+ */
+const BLOCK_UPDATE_FLAGS = UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network;
+
+/** How many blocks a sub chunk spans on each axis. */
+const SUB_CHUNK_SIZE = 16;
+
+/** Which sub chunk a position is in, for grouping a tick's changes. */
+const subChunkKey = (position: Vector3): string =>
+    `${toChunk(position.getX())},${Math.floor(position.getY() / SUB_CHUNK_SIZE)},${toChunk(position.getZ())}`;
+
+/** The origin corner of the sub chunk a position is in, which the packet names it by. */
+const subChunkOrigin = (position: Vector3): BlockPos =>
+    new BlockPos(
+        toChunk(position.getX()) * SUB_CHUNK_SIZE,
+        Math.floor(position.getY() / SUB_CHUNK_SIZE) * SUB_CHUNK_SIZE,
+        toChunk(position.getZ()) * SUB_CHUNK_SIZE
+    );
+
+/** The single-block update, which is shorter than a sub chunk packet holding one change. */
+const updateBlockPacket = ({ position, blockRuntimeId }: BlockChange): UpdateBlockPacket => {
+    const packet = new UpdateBlockPacket();
+    packet.x = position.getX();
+    packet.y = position.getY();
+    packet.z = position.getZ();
+    packet.blockRuntimeId = blockRuntimeId;
+    packet.flags = BLOCK_UPDATE_FLAGS;
+    return packet;
+};
 
 /**
  * Turns what happened in one world into packets, and decides who gets them.
@@ -250,21 +284,59 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /**
      * The Protocol packets for a set of block changes.
+     *
+     * One `UpdateSubChunkBlocksPacket` per sub chunk that changed more than one block, which
+     * is the packet the protocol has for exactly this and what keeps a `/fill` from becoming
+     * twenty thousand packets in one batch - a batch that size disconnects a real client. A
+     * sub chunk with one change keeps its `UpdateBlockPacket`, which is the shorter of the two
+     * for a single block and what a placement or a break sends.
+     *
+     * Grouping reorders changes across sub chunks. Nothing reads that order: the pending map
+     * is keyed by position, so each position appears once and the result is the same whichever
+     * sub chunk lands first.
      * @param {BlockChange[]} changes - What to put in the batch.
-     * @returns {UpdateBlockPacket[]} One packet per visible block change.
+     * @returns The packets, in sub chunk order.
      */
-    private blockPackets(changes: readonly BlockChange[]): UpdateBlockPacket[] {
-        return changes.map(({ position, blockRuntimeId }) => {
-            const packet = new UpdateBlockPacket();
-            packet.x = position.getX();
-            packet.y = position.getY();
-            packet.z = position.getZ();
-            packet.blockRuntimeId = blockRuntimeId;
-            // Match Bedrock Dedicated Server's block updates: clients must treat the change
-            // as network-authored and recalculate neighboring block visuals.
-            packet.flags = UpdateBlockFlagsType.Neighbors | UpdateBlockFlagsType.Network;
-            return packet;
-        });
+    private blockPackets(changes: readonly BlockChange[]): NetworkPacket<unknown>[] {
+        const bySubChunk = new Map<string, BlockChange[]>();
+        for (const change of changes) {
+            const key = subChunkKey(change.position);
+            const bucket = bySubChunk.get(key);
+            if (bucket === undefined) bySubChunk.set(key, [change]);
+            else bucket.push(change);
+        }
+
+        const packets: NetworkPacket<unknown>[] = [];
+        for (const bucket of bySubChunk.values()) {
+            const single = bucket.length === 1 ? bucket[0] : undefined;
+            if (single !== undefined) {
+                packets.push(updateBlockPacket(single));
+                continue;
+            }
+
+            packets.push(
+                new UpdateSubChunkBlocksPacket({
+                    subChunkBlockPosition: subChunkOrigin(bucket[0]!.position),
+                    blocksChanged: {
+                        standards: bucket.map(
+                            ({ position, blockRuntimeId }) =>
+                                new UpdateSubChunkNetworkBlockInfo(
+                                    new BlockPos(position.getX(), position.getY(), position.getZ()),
+                                    blockRuntimeId,
+                                    BLOCK_UPDATE_FLAGS,
+                                    0n,
+                                    0
+                                )
+                        ),
+                        // The second layer is waterlogging, and a pending change only ever
+                        // carries the first.
+                        extras: []
+                    }
+                })
+            );
+        }
+
+        return packets;
     }
 
     /**
