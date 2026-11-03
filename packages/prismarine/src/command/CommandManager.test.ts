@@ -61,6 +61,16 @@ describe('command', () => {
             expect(commandManager.registerCommand).toHaveBeenCalledTimes(Object.keys(Commands).length);
         });
 
+        it('keeps pre-enable tree access and reuses one flattened list', () => {
+            const commandManager = new CommandManager(server);
+            const tree = commandManager.getVanillaCommands();
+            const commands = commandManager.getVanillaCommandList();
+
+            expect(commandManager.getVanillaCommands()).toBe(tree);
+            expect(commandManager.getVanillaCommandList()).toBe(commands);
+            expect(commands.map(({ name }) => name)).toContain('teleport');
+        });
+
         it('should clear commands on disable', async () => {
             const commandManager = new CommandManager(server);
 

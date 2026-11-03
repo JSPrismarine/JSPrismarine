@@ -445,7 +445,9 @@ describe('the command layer on a booted server', () => {
 
         it('caches a failed parse and invalidates it when content rebuilds the vanilla tree', async () => {
             const manager = server.getCommandManager();
-            const oldDispatcher = manager.getVanillaCommands().getDispatcher();
+            const oldRegistry = manager.getVanillaCommands();
+            const oldDispatcher = oldRegistry.getDispatcher();
+            const oldFlattenedCommands = manager.getVanillaCommandList();
             const firstParse = vi.spyOn(oldDispatcher, 'parse');
             const commandLine = 'setblock 16 70 16 mypack:cache_block';
             await run('/function fixture:cache-block');
@@ -471,6 +473,7 @@ describe('the command layer on a booted server', () => {
             }
 
             const newDispatcher = manager.getVanillaCommands().getDispatcher();
+            const rebuiltFlattenedCommands = manager.getVanillaCommandList();
             const rebuiltParse = vi.spyOn(newDispatcher, 'parse');
             await run('/function fixture:cache-block');
             const result = rebuiltParse.mock.results.find(
@@ -480,6 +483,9 @@ describe('the command layer on a booted server', () => {
             expect(result).toBeDefined();
             expect(result?.getReader().canRead()).toBe(false);
             expect(result?.getExceptions().size).toBe(0);
+            expect(manager.getVanillaCommands()).not.toBe(oldRegistry);
+            expect(rebuiltFlattenedCommands).not.toBe(oldFlattenedCommands);
+            expect(manager.getVanillaCommandList()).toBe(rebuiltFlattenedCommands);
         });
 
         it('reports a function nobody declared instead of accepting the line', async () => {

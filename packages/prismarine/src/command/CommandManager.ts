@@ -101,7 +101,10 @@ export class CommandManager implements Service {
      * implement still run on the old one. A command name belongs to exactly
      * one of them, which is what {@link CommandManager.vanillaName} decides.
      */
-    private vanilla: CommandRegistry<CommandSource>;
+    private vanilla: CommandRegistry<CommandSource> | undefined;
+
+    /** One flattened view per immutable vanilla tree, shared by every session. */
+    private flattenedVanillaCommands: readonly FlattenedCommand[] | undefined;
 
     /** Recently parsed function lines for the active vanilla command tree. */
     private readonly functionParseCache = new Map<string, ParseResults<CommandSource>>();
@@ -123,7 +126,12 @@ export class CommandManager implements Service {
         this.server = server;
         this.dispatcher = new CommandDispatcher<CommandExecutor>();
         this.host = serverCommandHost(server);
-        this.vanilla = buildVanillaCommands();
+    }
+
+    /** Keeps the pre-enable API available without building a throwaway tree at startup. */
+    private vanillaRegistry(): CommandRegistry<CommandSource> {
+        this.vanilla ??= buildVanillaCommands();
+        return this.vanilla;
     }
 
     /**
@@ -173,7 +181,7 @@ export class CommandManager implements Service {
      * that opens its own.
      */
     private runFunctionLine(commandLine: string, source: CommandSource): { result?: number; forks?: number } {
-        const dispatcher = this.vanilla.getDispatcher();
+        const dispatcher = this.vanillaRegistry().getDispatcher();
         let parsed = this.functionParseCache.get(commandLine);
         if (parsed === undefined) {
             parsed = dispatcher.parse(commandLine, source);
@@ -261,12 +269,13 @@ export class CommandManager implements Service {
         // against what it loaded, so a pack's own entity, block, item or
         // enchantment is spellable.
         this.vanilla = buildVanillaCommands(contentRegistryIds(this.server.getContent()));
+        this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
 
         this.server
             .getLogger()
             .verbose(
-                `Registered §b${this.vanilla.getNames().length}§r vanilla command(s); ` +
+                `Registered §b${this.vanillaRegistry().getNames().length}§r vanilla command(s); ` +
                     `§e${Object.keys(UNWIRED_COMMANDS).length}§r need a subsystem this server does not have`
             );
 
@@ -431,20 +440,20 @@ export class CommandManager implements Service {
 
     /** The vanilla command set, for the session that has to advertise it. */
     public getVanillaCommands(): CommandRegistry<CommandSource> {
-        return this.vanilla;
+        return this.vanillaRegistry();
     }
 
     /**
      * The vanilla command set flattened into Bedrock's overload shape.
      *
-     * Flattened per call rather than cached: a command's tree never changes,
-     * but the list is built once per recipient and the cost is a walk of the
-     * fifty-odd trees this server registers, which is less than the packet it
-     * goes out in.
+     * The tree is immutable after build, so every recipient shares this
+     * unfiltered flattened view. Recipient-specific permission checks happen
+     * after this accessor, while the packet is assembled.
      * @returns {FlattenedCommand[]} One entry per command, aliases folded in.
      */
     public getVanillaCommandList(): readonly FlattenedCommand[] {
-        return flattenCommandTree(this.vanilla).commands;
+        this.flattenedVanillaCommands ??= flattenCommandTree(this.vanillaRegistry()).commands;
+        return this.flattenedVanillaCommands;
     }
 
     /**
@@ -456,8 +465,9 @@ export class CommandManager implements Service {
      */
     public vanillaName(name: string): string | undefined {
         const lower = name.toLowerCase();
-        if (this.vanilla.getMetadata(lower) !== undefined) return lower;
-        return this.vanilla.getAliasOwner(lower);
+        const vanilla = this.vanillaRegistry();
+        if (vanilla.getMetadata(lower) !== undefined) return lower;
+        return vanilla.getAliasOwner(lower);
     }
 
     /**
@@ -480,7 +490,9 @@ export class CommandManager implements Service {
     }
 
     private helpPage(page: number): readonly string[] {
-        const names = this.vanilla.getNames().sort((left, right) => left.localeCompare(right));
+        const names = this.vanillaRegistry()
+            .getNames()
+            .sort((left, right) => left.localeCompare(right));
         const pageCount = Math.max(1, Math.ceil(names.length / HELP_PAGE_SIZE));
         if (!Number.isSafeInteger(page) || page < 1) {
             return ['§cHelp page numbers start at 1. Use /help to open the first page.'];
@@ -503,7 +515,7 @@ export class CommandManager implements Service {
     }
 
     private helpUsage(name: string): string {
-        const root = this.vanilla.getRoot().getChild(name);
+        const root = this.vanillaRegistry().getRoot().getChild(name);
         if (root === undefined) return `/${name}`;
 
         const syntax = this.commandSyntax(root, root, [`/${name}`]);
@@ -531,7 +543,7 @@ export class CommandManager implements Service {
         const owner = this.vanillaName(typedName.toLowerCase());
         if (owner === undefined) return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
 
-        const commandRoot = this.vanilla.getRoot().getChild(owner);
+        const commandRoot = this.vanillaRegistry().getRoot().getChild(owner);
         if (commandRoot === undefined) return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
 
         let node = commandRoot;
@@ -561,7 +573,7 @@ export class CommandManager implements Service {
         const description = this.helpDescription(owner);
         if (description !== undefined) lines.push(`§7${description}`);
 
-        const metadata = this.vanilla.getMetadata(owner);
+        const metadata = this.vanillaRegistry().getMetadata(owner);
         if (metadata !== undefined && metadata.aliases.length > 0 && route.length === 0) {
             lines.push(`§7Aliases: ${metadata.aliases.map((alias) => `/${alias}`).join(', ')}`);
         }
@@ -643,7 +655,7 @@ export class CommandManager implements Service {
     }
 
     private helpDescription(name: string): string | undefined {
-        const description = this.vanilla.getMetadata(name)?.description;
+        const description = this.vanillaRegistry().getMetadata(name)?.description;
         if (description !== undefined && !description.startsWith('commands.')) return description;
         return bedrockCommand(name)?.description;
     }
@@ -698,7 +710,8 @@ export class CommandManager implements Service {
         name: string,
         input: string
     ): Promise<boolean> {
-        const metadata = this.vanilla.getMetadata(name)!;
+        const vanilla = this.vanillaRegistry();
+        const metadata = vanilla.getMetadata(name)!;
 
         if (sender instanceof Player) {
             if (!this.server.getPermissionManager().can(sender).execute(vanillaPermissionOf(name))) {
@@ -721,7 +734,7 @@ export class CommandManager implements Service {
         // line started is awaited here before the call returns.
         let results: unknown = [];
         const started = collectAsyncCommands(() => {
-            results = this.vanilla.getDispatcher().execute(input, source);
+            results = vanilla.getDispatcher().execute(input, source);
         });
         await Promise.all(started);
 

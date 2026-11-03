@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto';
+
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
+import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import { flattenCommandTree } from '../flatten';
 import type { CommandHost, CommandSource, EntityRef, TickCommandHost } from '../host';
@@ -64,6 +67,23 @@ describe('the command set', () => {
         expect(payload.commands.map((command) => command.name).sort()).toEqual(registry.getNames().sort());
         expect(payload.commands.every((command) => command.overloads.length > 0)).toBe(true);
         expect(notes.every((note) => note.severity === 'degraded' || note.reason === 'overload-limit')).toBe(true);
+    });
+
+    it('keeps the Java command packet, notes, and usage strings at the 26.3 baseline', () => {
+        const registry = registerVanillaCommands();
+        const { payload, notes } = buildAvailableCommands(registry);
+        const source = createCommandSource({
+            host: testCommandHost(),
+            permissionLevel: CommandPermissionLevel.OWNER
+        });
+        const usages = registry.getDispatcher().getAllUsage(registry.getRoot(), source, false);
+        const digest = createHash('sha1')
+            .update(JSON.stringify({ payload, notes, usage: usages }))
+            .digest('hex');
+
+        // This digest covers command nodes, argument shapes, aliases, overload ordering,
+        // flattening notes, and the complete usage walk against Java's pinned command data.
+        expect(digest).toBe('7514b3d18aa3eaa2a9dafa8276c788c660ed8971');
     });
 });
 

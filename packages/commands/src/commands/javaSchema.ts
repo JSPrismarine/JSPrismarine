@@ -41,6 +41,7 @@ import {
     stringArgument,
     timeArgument
 } from '../argumentTypes';
+import type { BedrockParameterShape } from '../parameterTypes';
 import type { CommandSource, Rotation, Vector3 } from '../host';
 import { gameRule } from '../gamerules';
 import {
@@ -420,12 +421,26 @@ const javaBedrockType = (part: JavaPathPart): string | undefined => {
     }
 };
 
-const legacyArgumentShape = (part: LegacyPathPart): string | undefined => {
+const legacyArgumentShapes = new WeakMap<
+    ArgumentCommandNode<CommandSource, unknown>,
+    { readonly type: unknown; readonly shape: BedrockParameterShape | undefined }
+>();
+
+/**
+ * Describes a legacy argument once for the lifetime of its current type.
+ * Argument nodes can be retargeted while Java routes are merged, so remember
+ * the type alongside the shape and refresh if a merge changes it.
+ */
+const legacyArgumentShape = (part: LegacyPathPart): BedrockParameterShape | undefined => {
     if (part.kind !== 'argument' || part.node === undefined) return undefined;
     const type = part.node.getType();
     if (!describesBedrock(type)) return undefined;
+    const cached = legacyArgumentShapes.get(part.node);
+    if (cached?.type === type) return cached.shape;
+
     const shape = type.describeBedrock();
-    return shape?.kind === 'basic' ? shape.type : shape?.kind === 'enum' ? `ENUM:${shape.values.join('|')}` : undefined;
+    legacyArgumentShapes.set(part.node, { type, shape });
+    return shape;
 };
 
 const compatibleArgument = (legacy: LegacyPathPart, java: JavaPathPart): number => {
@@ -434,18 +449,24 @@ const compatibleArgument = (legacy: LegacyPathPart, java: JavaPathPart): number 
     const javaShape = javaBedrockType(java);
     if (javaShape === undefined) return 0;
     if (
-        (shape === 'POSITION' || shape === 'POSITION_FLOAT') &&
+        shape.kind === 'basic' &&
+        (shape.type === 'POSITION' || shape.type === 'POSITION_FLOAT') &&
         (javaShape === 'POSITION' || javaShape === 'POSITION_FLOAT')
     ) {
         return 4;
     }
-    if (shape === javaShape || shape === 'ID' || (shape.startsWith('ENUM:') && javaShape === 'BOOL')) return 4;
+    if (
+        (shape.kind === 'basic' && (shape.type === javaShape || shape.type === 'ID')) ||
+        (shape.kind === 'enum' && javaShape === 'BOOL')
+    ) {
+        return 4;
+    }
     return -8;
 };
 
 const literalValues = (part: LegacyPathPart): readonly string[] => {
     const shape = legacyArgumentShape(part);
-    return shape?.startsWith('ENUM:') ? shape.slice('ENUM:'.length).split('|') : [];
+    return shape?.kind === 'enum' ? shape.values : [];
 };
 
 const bindLegacyArguments = (

@@ -150,6 +150,56 @@ describe('PlayerSession', () => {
             expect(names).not.toContain('stop');
         });
 
+        it('filters the shared cached tree using each senders current permissions', async () => {
+            const sent: NetworkPacket[] = [];
+            let permissions = [...DEFAULT_PERMISSIONS];
+            const players: Player[] = [];
+            const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
+            const server = stub<Server>({
+                emit: async () => {},
+                getLogger: () => logger,
+                getContent: () => testContent(),
+                getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
+                getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
+                getCommandManager: () => commandManager,
+                getConfig: () =>
+                    stub<Config>({
+                        getProximityBroadcast: () => false,
+                        getEntityTrackingHysteresis: () => 2,
+                        getEntityTrackingInterval: () => 4
+                    })
+            });
+            const commandManager = new CommandManager(server);
+            await commandManager.enable();
+            const cachedCommands = commandManager.getVanillaCommandList();
+            const player = stub<Player>({
+                getName: () => 'Steve',
+                getServer: () => server,
+                isOp: () => false,
+                getPermissions: () => permissions
+            });
+            players.push(player);
+            const connection = stub<ClientConnection>({
+                sendDataPacket: async (packet) => {
+                    sent.push(packet);
+                }
+            });
+            const session = new PlayerSession(server, connection, player);
+
+            await session.sendAvailableCommands();
+            permissions = ['minecraft.command.stop'];
+            await session.sendAvailableCommands();
+
+            const packets = sent.filter(
+                (packet): packet is AvailableCommandsPacket => packet instanceof AvailableCommandsPacket
+            );
+            const names = packets.map((packet) => packet.commandData.map(({ commandName }) => commandName));
+            expect(names[0]).toContain('help');
+            expect(names[0]).not.toContain('stop');
+            expect(names[1]).toEqual(['stop']);
+            expect(commandManager.getVanillaCommandList()).toBe(cachedCommands);
+        });
+
         it('never offers a command whose subsystem is missing', async () => {
             const names = (await commandsSentTo({ op: true })).map(({ commandName }) => commandName);
 
