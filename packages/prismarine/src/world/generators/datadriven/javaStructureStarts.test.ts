@@ -245,6 +245,33 @@ describe('StructureStartSource', () => {
         expect(assemblies).toBe(expected.length);
     });
 
+    it('reports each worker-local start-cache miss, including starts rejected by the biome', () => {
+        const builds: Array<{ set: string; chunkX: number; chunkZ: number }> = [];
+        const source = new StructureStartSource({
+            seed: SEED,
+            registries: registriesOf([ELSEWHERE]),
+            level,
+            templates,
+            isPossibleBiome: (biome) => biome === HERE || biome === ELSEWHERE,
+            builders: new Map<string, StructureBuilder>([['test:hut', hutBuilder]]),
+            onBuildStart: (set, chunkX, chunkZ) => builds.push({ set, chunkX, chunkZ })
+        });
+        const named = source.usedSets()[0];
+        if (named === undefined) throw new Error('Expected the fixture structure set to be usable');
+        const candidate = candidateChunksIn(named.set.placement, SEED, {
+            minChunkX: 0,
+            minChunkZ: 0,
+            maxChunkX: 15,
+            maxChunkZ: 15
+        })[0];
+        if (candidate === undefined) throw new Error('Expected a fixture structure candidate');
+
+        source.startAt(named, candidate.x, candidate.z);
+        source.startAt(named, candidate.x, candidate.z);
+
+        expect(builds).toEqual([{ set: named.id, chunkX: candidate.x, chunkZ: candidate.z }]);
+    });
+
     describe('locate', () => {
         it('finds the nearest start to the origin, not whichever candidate came first', () => {
             const source = sourceOf();

@@ -148,6 +148,8 @@ export interface DataDrivenGeneratorOptions {
     readonly structures?: boolean;
     /** Overrides the builder for a `worldgen/structure` type, which a test uses to isolate one. */
     readonly structureBuilders?: ReadonlyMap<string, StructureBuilder>;
+    /** Observes each worker-local structure-start cache miss for generation profiling. */
+    readonly onStructureStartBuild?: (set: string, chunkX: number, chunkZ: number, elapsedMs: number) => void;
     /**
      * Where the structure templates `template` and `fossil` stamp come from.
      *
@@ -2288,7 +2290,10 @@ export class DataDrivenGenerator implements Generator {
                           level,
                           templates: createStructureTemplateStore(this.options.templates ?? EMPTY_TEMPLATES),
                           isPossibleBiome: (biome) => possibleBiomes.has(biome),
-                          builders: this.options.structureBuilders ?? STRUCTURE_BUILDERS
+                          builders: this.options.structureBuilders ?? STRUCTURE_BUILDERS,
+                          ...(this.options.onStructureStartBuild === undefined
+                              ? {}
+                              : { onBuildStart: this.options.onStructureStartBuild })
                       })
                   }),
             carversOf: this.carverLookup(),

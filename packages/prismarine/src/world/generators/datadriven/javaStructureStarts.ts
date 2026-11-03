@@ -12,6 +12,8 @@
  * the world seed and the chunk it starts in. That is what makes the cache safe and what makes
  * two neighboring chunks agree about the same village.
  */
+import { performance } from 'node:perf_hooks';
+
 import type { DecorationStep } from '@jsprismarine/features';
 import { DECORATION_STEPS } from '@jsprismarine/features';
 import type { BoundingBox, RandomSource, TemplatePool } from '@jsprismarine/structures';
@@ -142,6 +144,8 @@ export interface StructureStartOptions {
     readonly isPossibleBiome: (biome: string) => boolean;
     /** The builder for each `worldgen/structure` type. */
     readonly builders: ReadonlyMap<string, StructureBuilder>;
+    /** Called for every worker-local start-cache miss, before {@link StructureStartSource.buildStart}. */
+    readonly onBuildStart?: (set: string, chunkX: number, chunkZ: number, elapsedMs: number) => void;
 }
 
 /** The step a structure document names, defaulting to the one 44 of the 52 carry. */
@@ -297,7 +301,18 @@ export class StructureStartSource {
         const cached = this.starts.get(key);
         if (cached !== undefined) return cached;
 
-        const built = this.buildStart(named, chunkX, chunkZ);
+        let built: StructureStart | null;
+        if (this.options.onBuildStart === undefined) {
+            built = this.buildStart(named, chunkX, chunkZ);
+        } else {
+            const started = performance.now();
+            try {
+                built = this.buildStart(named, chunkX, chunkZ);
+            } finally {
+                // Observe cache misses, including rejected starts, rather than only successful layouts.
+                this.options.onBuildStart(named.id, chunkX, chunkZ, performance.now() - started);
+            }
+        }
         if (this.starts.size >= CACHE_LIMIT) this.starts.clear();
         this.starts.set(key, built);
         return built;

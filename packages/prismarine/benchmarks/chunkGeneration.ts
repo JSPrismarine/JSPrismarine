@@ -187,9 +187,11 @@ const percentile = (sorted: readonly number[], fraction: number): number =>
     sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
 for (let warmup = 0; warmup < warmups; warmup++) await run();
+const cpuBeforeSamples = process.cpuUsage();
 const runs: Run[] = [];
 // Do not overlap samples: independent generators still compete for CPU and distort each sample.
 for (let sample = 0; sample < sampleCount; sample++) runs.push(await run());
+const cpuForSamples = process.cpuUsage(cpuBeforeSamples);
 const times = runs.map(({ ms }) => ms).sort((left, right) => left - right);
 const digests = new Set(runs.map(({ outputDigest }) => outputDigest));
 if (digests.size !== 1) throw new Error('Chunk-generation output digest changed between samples');
@@ -218,6 +220,7 @@ process.stdout.write(
             p95: percentile(times, 0.95),
             max: times.at(-1) ?? 0
         },
+        processCpuMsForSamples: (cpuForSamples.user + cpuForSamples.system) / 1000,
         throughputChunksPerSecond: (chunks / p50) * 1000,
         processCpuMsByRun: runs.map(({ processCpuMs }) => processCpuMs),
         mainHeapUsedBytesByRun: runs.map(({ mainHeapUsedBytes }) => mainHeapUsedBytes),
