@@ -19,6 +19,10 @@ import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { Transport, TransportConnection } from './transport/Transport';
 
+// Batch codecs are stateless after construction, so share them across every inbound frame.
+const UNCOMPRESSED_BATCH_CODEC = BatchCodec.uncompressed();
+const COMPRESSED_BATCH_CODEC = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB });
+
 /** A decoded packet the phase gate has paired with the handler it will run. */
 interface GatedPacket {
     readonly packet: NetworkPacket<unknown>;

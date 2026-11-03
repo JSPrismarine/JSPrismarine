@@ -1,7 +1,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BATCH_PACKET_ID, BatchCodec } from './BatchCodec';
 import { CompressionCodec, UNCOMPRESSED_BATCH } from './CompressionCodec';
 
@@ -15,6 +16,25 @@ const handBuilt = (packets: Buffer[]): Buffer => {
         stream.write(packet);
     }
     return stream.getBuffer();
+};
+
+/** Produces repeatable high-entropy bytes that do not shrink below the async inflate cutoff. */
+const noisyBytes = (length: number): Buffer => {
+    const bytes = Buffer.allocUnsafe(length);
+    let state = 0x6d2b79f5;
+    for (let index = 0; index < length; index++) {
+        state ^= state << 13;
+        state ^= state >>> 17;
+        state ^= state << 5;
+        bytes[index] = state & 0xff;
+    }
+    return bytes;
+};
+
+const packetDigest = (packets: readonly Buffer[]): string => {
+    const hash = createHash('sha256');
+    for (const packet of packets) hash.update(`${packet.byteLength}:`).update(packet);
+    return hash.digest('hex');
 };
 
 describe('BatchCodec, before compression is negotiated', () => {
@@ -127,6 +147,27 @@ describe('BatchCodec, once compression is negotiated', () => {
         expect(encoded.byteLength).toBeGreaterThan(packets[0]!.byteLength);
         expect(codec.decode(encoded)).toEqual(packets);
     });
+
+    it('keeps decoded packet digests while inflating small bodies synchronously and large ones asynchronously', async () => {
+        const codec = zlib();
+        const frames = [codec.encode([noisyBytes(150)]), codec.encode([noisyBytes(32 * 1024)])];
+        expect(frames[0]!.subarray(2).byteLength).toBeLessThan(8 * 1024);
+        expect(frames[1]!.subarray(2).byteLength).toBeGreaterThan(16 * 1024);
+
+        const synchronousPackets = frames.flatMap((frame) => codec.decode(frame));
+        const synchronousInflate = vi.spyOn(CompressionCodec.prototype, 'decompress');
+        const asynchronousInflate = vi.spyOn(CompressionCodec.prototype, 'decompressAsync');
+        const asynchronousPackets: Buffer[] = [];
+        try {
+            for (const frame of frames) asynchronousPackets.push(...(await codec.decodeAsync(frame)));
+
+            expect(synchronousInflate).toHaveBeenCalledTimes(1);
+            expect(asynchronousInflate).toHaveBeenCalledTimes(1);
+            expect(packetDigest(asynchronousPackets)).toBe(packetDigest(synchronousPackets));
+        } finally {
+            vi.restoreAllMocks();
+        }
+    });
 });
 
 describe('BatchCodec, malformed input', () => {
@@ -177,7 +218,28 @@ describe('BatchCodec, malformed input', () => {
             maxDecompressedLength: 64 * 1024
         });
 
-        expect(() => guarded.decode(bomb)).toThrow();
+        let error: unknown;
+        try {
+            guarded.decode(bomb);
+        } catch (reason: unknown) {
+            error = reason;
+        }
+        expect(error).toMatchObject({ code: 'ERR_BUFFER_TOO_LARGE' });
+    });
+
+    it('enforces the output ceiling when a large compressed body uses asynchronous inflate', async () => {
+        const bomb = Buffer.concat([
+            Buffer.from([BATCH_PACKET_ID, PacketCompressionAlgorithm.ZLIB]),
+            deflateRawSync(Buffer.concat([Buffer.alloc(4 * 1024 * 1024), noisyBytes(32 * 1024)]))
+        ]);
+        expect(bomb.subarray(2).byteLength).toBeGreaterThan(16 * 1024);
+        const guarded = BatchCodec.compressed({
+            algorithm: PacketCompressionAlgorithm.ZLIB,
+            maxDecompressedLength: 64 * 1024
+        });
+
+        const error = await guarded.decodeAsync(bomb).catch((reason: unknown) => reason);
+        expect(error).toMatchObject({ code: 'ERR_BUFFER_TOO_LARGE' });
     });
 });
 

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { InetAddress } from '@jsprismarine/raknet';
-import { BatchCodec } from '@jsprismarine/protocol';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { BatchCodec } from '@jsprismarine/protocol';
 import type { EventEmitter } from '../events/EventEmitter';
 import type Server from '../Server';
 import SessionManager from '../SessionManager';
@@ -126,6 +126,12 @@ const captureTextRecord = async () => {
     await source.transport.emitFrame(frameOf(message('replay input')), address('source:1'));
 
     return trace.records()[0]!;
+};
+
+/** One negotiated compressed batch, used to exercise the dispatcher's adaptive inflate path. */
+const compressedFrameOf = (packet: TextPacket) => {
+    packet.encode();
+    return BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB }).encode([packet.getBuffer()]);
 };
 
 /** Wires a dispatcher over typed doubles; each test picks the registry and connections. */
@@ -631,6 +637,38 @@ describe('network', () => {
             await Promise.all([first, second]);
 
             expect(handled).toStrictEqual(['first:start', 'first:finish', 'second:start', 'second:finish']);
+        });
+
+        it('dispatches compressed small and large frames in arrival order', async () => {
+            const handled: string[] = [];
+            const smallText = 'small:' + 'x'.repeat(64);
+            let state = 0x6d2b79f5;
+            const largeText = Array.from({ length: 32 * 1024 }, () => {
+                state ^= state << 13;
+                state ^= state >>> 17;
+                state ^= state << 5;
+                return String.fromCharCode(33 + ((state >>> 0) % 94));
+            }).join('');
+            const frames = [compressedFrameOf(message(smallText)), compressedFrameOf(message(largeText))];
+            expect(frames[0]!.subarray(2).byteLength).toBeLessThan(8 * 1024);
+            expect(frames[1]!.subarray(2).byteLength).toBeGreaterThan(16 * 1024);
+            const { transport } = makeDispatcher({
+                compressed: true,
+                handler: {
+                    phases: ['handshake'],
+                    handle: async (packet) => {
+                        if (!(packet instanceof TextPacket)) throw new Error('expected a text packet');
+                        const text = packet.getPacketData()?.message;
+                        if (text === undefined) throw new Error('expected a text message');
+                        handled.push(text);
+                    }
+                }
+            });
+            await transport.emitConnect(fakeConnection('a:1').connection);
+
+            for (const frame of frames) await transport.emitFrame(frame, address('a:1'));
+
+            expect(handled).toStrictEqual([smallText, largeText]);
         });
 
         it('drops a play packet that arrives before login has completed', async () => {

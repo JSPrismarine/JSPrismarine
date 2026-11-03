@@ -5,6 +5,9 @@ import { CompressionCodec } from './CompressionCodec';
 /** The id every batch carries, and the only packet id RakNet ever sees from Minecraft. */
 export const BATCH_PACKET_ID = 0xfe;
 
+/** Small compressed bodies are cheaper to inflate on the caller than to queue in libuv. */
+const SYNC_INFLATE_BODY_LIMIT = 8 * 1024;
+
 /**
  * A batch: the outermost Minecraft layer, sitting directly inside a RakNet frame.
  *
@@ -72,13 +75,21 @@ export class BatchCodec {
         return BatchCodec.splitPackets(this.compression === null ? body : this.compression.decompress(algorithm, body));
     }
 
-    /** The same, with the inflate handed to zlib's asynchronous API. */
+    /** The async entry point; small compressed bodies inflate inline, and larger ones use zlib's async API. */
     public async decodeAsync(batch: Buffer): Promise<Buffer[]> {
         const { algorithm, body } = this.split(batch);
+        let payload = body;
 
-        return BatchCodec.splitPackets(
-            this.compression === null ? body : await this.compression.decompressAsync(algorithm, body)
-        );
+        if (this.compression !== null) {
+            // The bound is on compressed input bytes: short gameplay frames avoid pool
+            // contention, while larger transfers keep inflation off the main thread.
+            payload =
+                algorithm !== PacketCompressionAlgorithm.NONE && body.byteLength > SYNC_INFLATE_BODY_LIMIT
+                    ? await this.compression.decompressAsync(algorithm, body)
+                    : this.compression.decompress(algorithm, body);
+        }
+
+        return BatchCodec.splitPackets(payload);
     }
 
     private static frame(algorithm: PacketCompressionAlgorithm, body: Buffer): Buffer {
