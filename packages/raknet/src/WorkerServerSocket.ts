@@ -122,9 +122,12 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         // `--input-type` is valid for the parent when it runs `-e` or stdin, but Node
         // rejects it for a worker that loads a file. Keep the other runtime flags intact.
         const workerExecArgv = process.execArgv.filter((argument) => !argument.startsWith('--input-type'));
+        // Resolve the source-only loader from this package. A bare `tsx` specifier is resolved
+        // from the process entry point, which may be the monorepo root without that dependency.
+        const tsxLoader = sourceWorker ? import.meta.resolve('tsx') : undefined;
         const execArgv =
-            sourceWorker && !workerExecArgv.some((argument) => argument === 'tsx')
-                ? [...workerExecArgv, '--import', 'tsx']
+            tsxLoader !== undefined && !workerExecArgv.some((argument) => argument === 'tsx' || argument === tsxLoader)
+                ? [...workerExecArgv, '--import', tsxLoader]
                 : workerExecArgv;
         const options: WorkerServerOptions = {
             address,
