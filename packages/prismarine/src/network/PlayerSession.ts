@@ -62,6 +62,7 @@ import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimension
 import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
 import ChunkRadiusUpdatedPacket from '@jsprismarine/protocol/packet/ChunkRadiusUpdatedPacket';
 import ContainerOpenPacket from '@jsprismarine/protocol/packet/ContainerOpenPacket';
+import ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDataPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
 import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
@@ -286,6 +287,15 @@ export default class PlayerSession {
      * to be remembered here.
      */
     private blockContainer: OpenBlockContainer | undefined;
+
+    /**
+     * The last value sent for each `ContainerSetData` property of the open block container.
+     *
+     * A cooking station ticks every tick and its counters move on most of them, so without
+     * this a furnace would be three packets a tick per watcher. Cleared with the window, so a
+     * player who opens one mid-cook is sent the whole state rather than the tail of it.
+     */
+    private readonly containerData = new Map<number, number>();
 
     /**
      * The tick of the last `PlayerAuthInputPacket` handled for this client, or `0n` before the
@@ -974,6 +984,8 @@ export default class PlayerSession {
         // and a block is not an actor.
         packet.containerEntityId = -1n;
         this.openWindows.set(packet.windowId, packet.containerType);
+        // A fresh screen has been told nothing yet, so the next tick sends it everything.
+        this.containerData.clear();
         const opened: OpenBlockContainer = {
             windowId: packet.windowId,
             position: at,
@@ -1052,6 +1064,40 @@ export default class PlayerSession {
     }
 
     /**
+     * Sets properties on the open block container's screen, which is how a progress bar moves.
+     *
+     * A property whose value has not changed since the last send is skipped; see
+     * {@link PlayerSession.containerData}. Nothing is sent when the screen was opened from a
+     * different block, so a station ticking across the world cannot write over the screen the
+     * player is actually looking at.
+     *
+     * @param at - The block the properties belong to.
+     * @param properties - The property values by id, as the station reports them.
+     */
+    public async sendContainerData(at: Vector3, properties: ReadonlyMap<number, number>): Promise<void> {
+        const open = this.blockContainer;
+        if (open === undefined) return;
+        if (
+            open.position.getX() !== at.getX() ||
+            open.position.getY() !== at.getY() ||
+            open.position.getZ() !== at.getZ()
+        ) {
+            return;
+        }
+
+        for (const [id, value] of properties) {
+            if (this.containerData.get(id) === value) continue;
+            this.containerData.set(id, value);
+
+            const packet = new ContainerSetDataPacket();
+            packet.containerId = open.windowId;
+            packet.id = id;
+            packet.value = value;
+            await this.send(packet);
+        }
+    }
+
+    /**
      * Forgets a window the client reports closed.
      *
      * The docs have the server delete its container manager when the client's `ContainerClose`
@@ -1061,7 +1107,10 @@ export default class PlayerSession {
      * @returns {boolean} whether a window with that id was open.
      */
     public closeWindow(windowId: number): boolean {
-        if (this.blockContainer?.windowId === windowId) this.blockContainer = undefined;
+        if (this.blockContainer?.windowId === windowId) {
+            this.blockContainer = undefined;
+            this.containerData.clear();
+        }
 
         return this.openWindows.delete(windowId);
     }

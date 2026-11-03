@@ -37,6 +37,9 @@ import { Item as ItemEntity } from '../entity/other/Item';
 import type ClientConnection from '../network/ClientConnection';
 import Codec2193 from '../network/codec/Codec2193';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
+import type ContainerSetDataPacket from '@jsprismarine/protocol/packet/ContainerSetDataPacket';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import { FURNACE_DATA_BURN_DURATION, FURNACE_DATA_BURN_REMAINING, FURNACE_DATA_COOK_TICKS } from '../world/cooking';
 import ItemStackRequestHandler from '../network/handler/ItemStackRequestHandler';
 import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
 import type { ItemStackRequest } from '@jsprismarine/protocol';
@@ -68,6 +71,8 @@ const HELD_SLOT = 0;
 
 /** The blocks this file places, which the fixture content has to declare. */
 const BLOCKS = [
+    // The air a spawn search reads, which is what a player joining the fixture world needs.
+    'minecraft:air',
     'minecraft:chest',
     'minecraft:furnace',
     'minecraft:lit_furnace',
@@ -255,6 +260,15 @@ const buildScene = async (name: string) => {
 };
 
 /** A player standing beside the chest, wired to a session that sends nowhere. */
+/** Every packet a built player's session was handed, so a test can read what went out. */
+const sentPackets: { name: string; packet: unknown }[] = [];
+
+/** The container properties sent since the list was last cleared, in order. */
+const containerDataSent = (): ContainerSetDataPacket[] =>
+    sentPackets
+        .filter(({ name }) => name === 'ContainerSetDataPacket')
+        .map(({ packet }) => packet as ContainerSetDataPacket);
+
 const buildPlayer = (world: World, server: Server, name: string): Player => {
     const player = new Player({
         position: new Position(CHEST.x + 0.5, CHEST.y, CHEST.z + 2.5, world),
@@ -273,7 +287,9 @@ const buildPlayer = (world: World, server: Server, name: string): Player => {
     const connection = stub<ClientConnection>({
         codec: Codec2193,
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
-        sendDataPacket: async () => {},
+        sendDataPacket: async (packet: NetworkPacket<unknown>) => {
+            sentPackets.push({ name: packet.getName(), packet });
+        },
         attachPlayerSession: () => {},
         closePlayerSession: async () => {},
         disconnect: async () => {}
@@ -462,6 +478,106 @@ describe('a block container a player can put things in', () => {
             'minecraft:coal',
             'minecraft:iron_ingot'
         ]);
+
+        await level.disable();
+    }, 120_000);
+
+    /**
+     * The progress arrow and the flame are `ContainerSetDataPacket` properties and nothing
+     * else: the client draws them from property 0 against a fixed cook total, and from
+     * properties 1 and 2 as the fraction of the current fuel left. A server that only wrote
+     * the block entity left both at zero, so a furnace cooked with a dead screen in front of
+     * it.
+     */
+    it('reports cook and burn progress to a player watching the furnace', async () => {
+        const scene = await buildScene('progress');
+        const { server, world, level, blocks } = scene;
+        const player = buildPlayer(world, server, 'Smelter');
+        await world.addEntity(player);
+        // The progress goes to the world's online players, which is what a joined player is.
+        await player.enable();
+
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [
+                { identifier: 'minecraft:iron_ore', count: 4 },
+                { identifier: 'minecraft:coal', count: 4 },
+                undefined
+            ],
+            capacity: 3
+        });
+
+        await player
+            .getNetworkSession()
+            .openBlockContainer(
+                new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+                'minecraft:furnace',
+                openContainerContents(player, FURNACE, 'minecraft:furnace')
+            );
+
+        sentPackets.length = 0;
+        for (let tick = 1; tick <= 40; tick++) {
+            level.setTicks(tick);
+            await world.update(tick);
+        }
+
+        const data = containerDataSent();
+        const windowId = player.getNetworkSession().getOpenBlockContainer()?.windowId;
+        expect(data.every((packet) => packet.containerId === windowId)).toBe(true);
+
+        // Property 0 is the cook ticks the arrow is drawn from, and it has to move.
+        const cook = data.filter(({ id }) => id === FURNACE_DATA_COOK_TICKS).map(({ value }) => value);
+        expect(cook.length).toBeGreaterThan(1);
+        expect(cook.at(-1)).toBeGreaterThan(cook[0]!);
+
+        // One is the fuel left and two is what it started with, which is the flame's fraction.
+        const remaining = data.filter(({ id }) => id === FURNACE_DATA_BURN_REMAINING).map(({ value }) => value);
+        const duration = data.filter(({ id }) => id === FURNACE_DATA_BURN_DURATION).map(({ value }) => value);
+        expect(duration.at(-1)).toBeGreaterThan(0);
+        expect(remaining.at(-1)).toBeLessThan(duration.at(-1)!);
+        expect(remaining.at(-1)).toBeGreaterThan(0);
+
+        await level.disable();
+    }, 120_000);
+
+    it('primes a screen once and then sends only what changes', async () => {
+        const scene = await buildScene('progress-quiet');
+        const { server, world, level, blocks } = scene;
+        const player = buildPlayer(world, server, 'Smelter');
+        await world.addEntity(player);
+        await player.enable();
+
+        // Nothing to cook, so no counter moves and the screen needs no packet at all.
+        blocks.setBlock(FURNACE, 'minecraft:furnace');
+        blocks.setBlockData(FURNACE, { items: [undefined, undefined, undefined], capacity: 3 });
+
+        await player
+            .getNetworkSession()
+            .openBlockContainer(
+                new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
+                'minecraft:furnace',
+                openContainerContents(player, FURNACE, 'minecraft:furnace')
+            );
+
+        // The first tick after an open primes the screen with the state it has been told
+        // nothing about, whatever that state is.
+        sentPackets.length = 0;
+        level.setTicks(1);
+        await world.update(1);
+        expect(containerDataSent().map(({ id, value }) => [id, value])).toEqual([
+            [FURNACE_DATA_COOK_TICKS, 0],
+            [FURNACE_DATA_BURN_REMAINING, 0],
+            [FURNACE_DATA_BURN_DURATION, 0]
+        ]);
+
+        // Nothing is cooking, so no counter moves and the screen is told nothing more.
+        sentPackets.length = 0;
+        for (let tick = 2; tick <= 20; tick++) {
+            level.setTicks(tick);
+            await world.update(tick);
+        }
+
+        expect(containerDataSent()).toEqual([]);
 
         await level.disable();
     }, 120_000);
