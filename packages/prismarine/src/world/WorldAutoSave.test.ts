@@ -64,6 +64,8 @@ const testServer = (): Server => {
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
         // No data-driven runtime: this world runs the written entity classes.
         getEntityRuntime: () => inertEntityRuntime(),
+        // Weather can draw randomness during a tick; keep persistence tests reproducible.
+        getRandom: () => () => 0.5,
         // The tick asks every world for its portal contacts; nothing here stands in one.
         getDimensionTravel: () => new DimensionTravel(server)
     });
