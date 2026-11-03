@@ -2,7 +2,7 @@ import type { Difficulty, PlayerPermissionLevel } from '@jsprismarine/minecraft'
 import { Gametype, Generator } from '@jsprismarine/minecraft';
 import type { BlockPos, NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
-import { GameRuleType } from '../packet/StartGamePacket';
+import { GameRuleType } from '../packet/GameRuleType';
 import type { EduSharedUriResourceData as EduSharedUriResource } from './EduSharedUriResource';
 import Experiments from './Experiments';
 import type SpawnSettings from './SpawnSettings';
