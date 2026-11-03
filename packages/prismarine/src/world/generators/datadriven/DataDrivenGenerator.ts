@@ -98,6 +98,7 @@ import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 import type { BeardJunction, BeardPiece } from './javaStructureBeard';
 import { BEARD_RADIUS, createBeardifier } from './javaStructureBeard';
 import { createNoiseStructureLevel } from './javaStructureLevel';
+import { SampleContextPool } from './SampleContextPool';
 import { asStructureRandom } from './javaStructureRandom';
 import { chunkWriteBox, createRegionStructureWriter } from './javaStructureRegion';
 import { createTagExpander } from './javaStructurePlacement';
@@ -712,6 +713,8 @@ export class DataDrivenGenerator implements Generator {
     private readonly pipelines = new Map<string, SeededPipeline>();
     /** Parsed biome sources by {@link biomeSourceCacheKey}, shared by every seed of one key. */
     private readonly biomeSources = new Map<string, BiomeSource>();
+    /** Reuses a bounded number of chunk-local caches in this worker's serialized terrain tasks. */
+    private readonly sampleContexts = new SampleContextPool();
     /**
      * The `worldgen/noise_settings` documents, the registries' plus any inline document a key
      * brought along. The map {@link DataDrivenGenerator.worldgen} reads, so an entry added here
@@ -1639,8 +1642,25 @@ export class DataDrivenGenerator implements Generator {
         junctions: readonly BeardJunction[] = []
     ): Promise<GenerationRegion> {
         const region = this.createRegion(cx, cz, 0, pipeline);
+        const context = this.sampleContexts.acquire();
+        try {
+            const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz, context });
+            return await this.buildTerrainWithSampler(cx, cz, pipeline, beard, junctions, region, sampler);
+        } finally {
+            this.sampleContexts.release(context);
+        }
+    }
 
-        const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz });
+    /** Runs all terrain consumers before returning the sampler's context to its worker-local pool. */
+    private async buildTerrainWithSampler(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        beard: readonly BeardPiece[],
+        junctions: readonly BeardJunction[],
+        region: GenerationRegion,
+        sampler: ChunkSampler
+    ): Promise<GenerationRegion> {
         // Java reads the structure starts before it samples the terrain, so a village flattens
         // the hillside it is about to stand on. The starts are laid out against the bare noise,
         // which has no beard of its own, so there is no circle here.

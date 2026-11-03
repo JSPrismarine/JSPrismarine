@@ -294,8 +294,10 @@ export class SampleContext {
     public reset(): void {
         // A reset starts a fresh chunk walk; its caller re-enables buffering only when cell order is guaranteed.
         this.interpolationBuffersEnabled = false;
-        for (const cell of this.cells) cell.reset();
-        for (const cache of this.cornerCaches) cache.clear();
+        // Density node ids can leave holes in these sparse slot arrays; Array iteration yields
+        // undefined for holes, so only reset slots that were allocated by a sampler.
+        for (const cell of this.cells) cell?.reset();
+        for (const cache of this.cornerCaches) cache?.clear();
         this.cellOrigins.fill(Number.NaN);
         this.interpolationBufferFilled.fill(0);
     }

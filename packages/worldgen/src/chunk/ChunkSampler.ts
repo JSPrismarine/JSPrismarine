@@ -28,6 +28,8 @@ export interface ChunkSamplerOptions {
     readonly chunkZ: number;
     /** Overrides the dimension-wide fluid picker, which parity harnesses sometimes need. */
     readonly fluidPicker?: FluidPicker;
+    /** An exclusive caller-owned context; reset and reuse it only after this sampler has finished. */
+    readonly context?: SampleContext;
 }
 
 /**
@@ -82,7 +84,7 @@ export class ChunkSampler {
             maxBlockZ: minBlockZ + CHUNK_SIZE - 1
         };
 
-        this.context = randomState.createContext();
+        this.context = options.context ?? randomState.createContext();
         this.finalDensity = randomState.sampler(settings.noiseRouter.finalDensity);
         this.defaultBlock = settings.defaultBlock;
 

@@ -149,15 +149,17 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
     );
 
     it(
-        'gives a different chunk for a different seed',
+        'reuses terrain scratch across seeds and chunks without changing fresh-generator results',
         async () => {
             const registries = loadJavaWorldgenRegistries(sources!);
-            const other = new DataDrivenGenerator({ registries, decorate: false, carve: false });
+            const fresh = new DataDrivenGenerator({ registries, decorate: false, carve: false });
 
             const mine = await terrainOnly.generateChunk(1, -2, SEED);
-            const theirs = await other.generateChunk(1, -2, SEED + 1n);
+            const reused = await terrainOnly.generateChunk(-6, 7, SEED + 1n);
+            const freshResult = await fresh.generateChunk(-6, 7, SEED + 1n);
 
-            expect(columnOf(theirs, 7, 9)).not.toEqual(columnOf(mine, 7, 9));
+            expect(columnOf(reused, 7, 9)).not.toEqual(columnOf(mine, 7, 9));
+            expect(reused.networkSerialize().equals(freshResult.networkSerialize())).toBe(true);
         },
         CHUNK_TIMEOUT
     );
