@@ -90,7 +90,8 @@ const hasPlantSupport = (world: WorldActions, block: HookBlock): boolean => {
 
     const name = bareName(block.identifier);
     const tag = PLANT_SUPPORT_TAGS[name] ?? 'minecraft:supports_vegetation';
-    if (world.hasBlockTag !== undefined) return world.hasBlockTag(below, tag);
+    const tagged = world.hasBlockTag?.(below, tag);
+    if (tagged !== undefined) return tagged;
 
     const groundName = bareName(below.identifier);
     switch (tag) {

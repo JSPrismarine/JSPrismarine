@@ -141,7 +141,10 @@ const flammabilityOf = (content: ServerContent, block: HookBlock): BlockFlammabi
 };
 
 /** Reads Java block tags through the state-aware Bedrock-to-Java mapping. */
-const hasBlockTag = (content: ServerContent, block: HookBlock, tag: string): boolean => {
+const hasBlockTag = (content: ServerContent, block: HookBlock, tag: string): boolean | undefined => {
+    // A stack that never loaded the tag cannot answer for it; see `WorldActions.hasBlockTag`.
+    if (!content.tags.has('block', tag)) return undefined;
+
     if (content.tags.includes('block', tag, block.identifier)) return true;
     const mapped = bedrockBlockStateToJava(block.identifier, block.states);
     const javaIdentifiers = mapped.kind === 'mapped' ? [mapped.java.name] : bedrockBlockToJava(block.identifier);

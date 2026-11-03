@@ -29,7 +29,7 @@ export const GROWS_CROPS_TAG = 'minecraft:grows_crops';
  * The blocks a crop accepts under it, for a host that answers no tags.
  *
  * Both crop tags hold farmland and nothing else in vanilla; the tags are the source of truth
- * and this is only reached when `hasBlockTag` is absent.
+ * and this is only reached when the stack declares no such tag.
  */
 export const FARMLAND_NAMES: ReadonlySet<string> = new Set(['farmland']);
 

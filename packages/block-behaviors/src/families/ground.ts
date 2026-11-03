@@ -28,7 +28,8 @@ export const MAINTAINS_FARMLAND_TAG = 'minecraft:maintains_farmland';
 /**
  * Java's `#minecraft:maintains_farmland`, for a host that answers no tags at all.
  *
- * The tag is the source of truth and this is only reached when `hasBlockTag` is absent, so
+ * The tag is the source of truth and this is only reached when the stack declares no such
+ * tag, so
  * these are the vanilla members written in Bedrock's spelling - `beetroot` for Java's
  * `beetroots` - minus what a tagless host cannot resolve: `#minecraft:fence_gates` is a nested
  * tag and `moving_piston` is a block this server does not have. Java's two attached stems are

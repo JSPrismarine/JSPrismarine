@@ -119,9 +119,8 @@ class JavaTagDimension extends VoxelDimension {
         super(OVERWORLD);
     }
 
-    public hasBlockTag(block: HookBlock, tag: string): boolean {
-        return this.content.tags.includes('block', tag, block.identifier);
-    }
+    public override hasBlockTag = (block: HookBlock, tag: string): boolean =>
+        this.content.tags.includes('block', tag, block.identifier);
 }
 
 class JavaTagWorld extends VoxelWorld {
