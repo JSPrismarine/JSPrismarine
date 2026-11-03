@@ -177,7 +177,11 @@ export class Item extends Entity {
         if (this.pickupDelay > 0) this.pickupDelay--;
 
         await this.move();
+        // Another entity can merge this stack while movement awaits the world; removed stacks stop here.
+        if (this.taken) return;
         await this.tryMerge();
+        // A lower-ID stack can claim this one while its own merge awaits removal notifications.
+        if (this.taken) return;
         await this.tryPickup();
     }
 
@@ -192,12 +196,15 @@ export class Item extends Entity {
      * each swallow the other and leave two stacks where there was one.
      */
     private async tryMerge(): Promise<void> {
+        if (this.taken) return;
+
         const mine = this.item?.getItem();
         if (!mine || mine.getAmount() >= mine.getMaxAmount()) return;
 
         const position = this.getPosition();
 
         for (const other of this.getWorld().getEntityGrid().nearItems(position.getX(), position.getZ(), MERGE_RANGE)) {
+            if (this.taken) return;
             if (!(other instanceof Item) || other === this) continue;
             if (other.taken || other.getRuntimeId() < this.getRuntimeId()) continue;
 
@@ -221,6 +228,9 @@ export class Item extends Entity {
             // it to a player who happens to be standing there.
             other.taken = true;
             await this.getWorld().removeEntity(other);
+
+            // A competing lower-ID merge may have removed this survivor during the await.
+            if (this.taken) return;
 
             // And the client is told the survivor grew.
             //
@@ -297,7 +307,7 @@ export class Item extends Entity {
      * and the inventory both follow from the one packet.
      */
     private async tryPickup(): Promise<void> {
-        if (!this.item || this.pickupDelay > 0) return;
+        if (this.taken || !this.item || this.pickupDelay > 0) return;
 
         const taker = this.getWorld()
             .getPlayers()

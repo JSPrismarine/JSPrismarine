@@ -97,6 +97,21 @@ const tick = async (entity: Item, n: number) => {
     for (let i = 0; i < n; i++) await entity.update(i);
 };
 
+/** Two stacks indexed together on the floor for merge and pickup tests. */
+const lying = (world: any, items: Array<{ name: string; count: number; x: number; pickupDelay?: number }>) => {
+    const entities = items.map(
+        ({ name, count, x, pickupDelay }) =>
+            new Item({
+                item: new ContainerEntry({ item: new ItemStack({ runtimeId: 0, name, count }), count }),
+                position: new Position(x, 64.125, 0.5, world),
+                pickupDelay
+            })
+    );
+    world.grid.rebuild(entities);
+
+    return entities;
+};
+
 describe('entity', () => {
     describe('Item', () => {
         describe('gravity', () => {
@@ -208,20 +223,6 @@ describe('entity', () => {
         });
 
         describe('merging', () => {
-            /** Two stacks side by side on the floor, and a grid that knows where they are. */
-            const lying = (world: any, items: Array<{ name: string; count: number; x: number }>) => {
-                const entities = items.map(
-                    ({ name, count, x }) =>
-                        new Item({
-                            item: new ContainerEntry({ item: new ItemStack({ runtimeId: 0, name, count }), count }),
-                            position: new Position(x, 64.125, 0.5, world)
-                        })
-                );
-                world.grid.rebuild(entities);
-
-                return entities;
-            };
-
             it('keeps the general grid order for nearby items across chunk boundaries', () => {
                 const world = fakeWorld(63);
                 const [nextChunk, firstCurrentChunk, secondCurrentChunk, outsideRadius] = lying(world, [
@@ -340,6 +341,48 @@ describe('entity', () => {
         });
 
         describe('pickup', () => {
+            it('does not pick up a stack removed by a concurrent merge', async () => {
+                const world = fakeWorld(63);
+                const [older, higher] = lying(world, [
+                    { name: 'minecraft:cobblestone', count: 1, x: 0.9, pickupDelay: 0 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 1.1, pickupDelay: 0 }
+                ]);
+                const player = fakePlayer(1, 64, 0.5);
+                world.players.push(player);
+
+                let markHigherMoving!: () => void;
+                const higherMoving = new Promise<void>((resolve) => {
+                    markHigherMoving = resolve;
+                });
+                let releaseHigherMove!: () => void;
+                const higherMoveGate = new Promise<void>((resolve) => {
+                    releaseHigherMove = resolve;
+                });
+                const getBlock = world.getBlock;
+                world.getBlock = async (x, y, z) => {
+                    // The item positions straddle x=1 so their floored block coordinates differ.
+                    if (x === 1) {
+                        markHigherMoving();
+                        await higherMoveGate;
+                    }
+                    return getBlock(x, y, z);
+                };
+
+                const olderUpdate = older!.update(1);
+                const higherUpdate = higher!.update(1);
+                try {
+                    await higherMoving;
+                    await olderUpdate;
+                    expect(world.removed).toContain(higher);
+                    expect(player.held.reduce((count, entry) => count + entry.getItem().getAmount(), 0)).toBe(2);
+                } finally {
+                    releaseHigherMove();
+                }
+                await higherUpdate;
+
+                expect(player.held.reduce((count, entry) => count + entry.getItem().getAmount(), 0)).toBe(2);
+            });
+
             it('goes to a player standing over it, and leaves the world', async () => {
                 const world = fakeWorld(63);
                 const player = fakePlayer(0.5, 64, 0.5);
