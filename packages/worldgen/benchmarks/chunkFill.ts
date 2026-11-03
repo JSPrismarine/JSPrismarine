@@ -11,6 +11,7 @@
  *   it has in a running server once the surface pass and the biome source have sampled. The
  *   cell count it reports is the one that exposes a sampler sized from the wrong tree.
  * - `density`: the density pass alone, so a change can be charged to one half or the other.
+ * - `generated`: the whole fill with the optional JavaScript density compiler enabled.
  */
 import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
 import { CHUNK_SIZE, ChunkSampler } from '../src/chunk/ChunkSampler';
@@ -20,9 +21,9 @@ import type { Noise } from '../src/noise/GradientNoise';
 import { NoiseStack } from '../src/noise/NoiseStack';
 
 /** The arms this file knows how to run. */
-export type BenchmarkArm = 'density' | 'fill' | 'router';
+export type BenchmarkArm = 'density' | 'fill' | 'generated' | 'router';
 
-const ARMS: readonly BenchmarkArm[] = ['fill', 'router', 'density'];
+const ARMS: readonly BenchmarkArm[] = ['fill', 'router', 'density', 'generated'];
 
 const CHUNKS = [
     [3, -5],
@@ -44,8 +45,21 @@ const data = new WorldgenData({
 });
 
 const settings = data.settings('minecraft:overworld');
-const state = new RandomState(data, 1234n, settings);
-const countedState = new RandomState(data, 1234n, settings);
+const requested = ARMS.find((arm) => arm === process.argv[2]);
+if (!requested) throw new RangeError(`Pass one of ${ARMS.join(', ')}, not ${process.argv[2]}`);
+const compilerOptions = requested === 'generated' ? { generatedFunctions: true } : {};
+const compileState = new RandomState(data, 1234n, settings, compilerOptions);
+global.gc?.();
+const compileHeapBefore = process.memoryUsage().heapUsed;
+const compileStarted = performance.now();
+for (const node of Object.values(settings.noiseRouter)) compileState.sampler(node);
+const compileMilliseconds = performance.now() - compileStarted;
+// Collect temporary compiler objects so this delta approximates retained per-state heap.
+global.gc?.();
+const compileHeapBytes = process.memoryUsage().heapUsed - compileHeapBefore;
+const state = new RandomState(data, 1234n, settings, compilerOptions);
+const countedState = new RandomState(data, 1234n, settings, compilerOptions);
+const finalDensity = settings.noiseRouter.finalDensity;
 const octaveSamples = { count: 0 };
 const instrumentedOctaves = new Set<Noise>();
 for (const id of data.noiseIds) {
@@ -73,8 +87,6 @@ for (const id of data.noiseIds) {
         });
     }
 }
-const finalDensity = settings.noiseRouter.finalDensity;
-
 // The density-only arm walks final_density's lattice even though the router arm compiles
 // chunk_surface_level, whose 16 by 1 cell size must not change the terrain fill.
 
@@ -150,11 +162,16 @@ const run = (
     digest: string;
     octaveSamplesPerChunk: number;
     cellsPerChunk: number;
+    compileMilliseconds: number;
+    compileHeapBytes: number;
+    generatedFunctionCount: number;
+    generatedFunctionBytes: number;
+    closureFallbackCount: number;
 } => {
     const walk = arm === 'density' ? fillDensity : fillChunk;
     // Compile every slot before anything is measured in the router arm. This matches a running
     // server after the surface pass compiled `chunk_surface_level`.
-    if (arm === 'router') {
+    if (arm === 'router' || arm === 'generated') {
         for (const slot of Object.values(settings.noiseRouter)) state.sampler(slot);
         for (const slot of Object.values(settings.noiseRouter)) countedState.sampler(slot);
     }
@@ -187,10 +204,13 @@ const run = (
         checksum,
         digest: digest.toString(16).padStart(8, '0'),
         octaveSamplesPerChunk: octaveSamples.count / CHUNKS.length,
-        cellsPerChunk
+        cellsPerChunk,
+        compileMilliseconds,
+        compileHeapBytes,
+        generatedFunctionCount: compileState.generatedFunctionCount,
+        generatedFunctionBytes: compileState.generatedFunctionBytes,
+        closureFallbackCount: compileState.closureFallbackCount
     };
 };
 
-const requested = ARMS.find((arm) => arm === process.argv[2]);
-if (!requested) throw new RangeError(`Pass one of ${ARMS.join(', ')}, not ${process.argv[2]}`);
 process.stdout.write(`${JSON.stringify(run(requested))}\n`);

@@ -44,7 +44,9 @@ interface TerrainParityCase {
     readonly details: string[];
 }
 
-const compareTerrain = (): {
+const compareTerrain = (
+    generatedFunctions: boolean
+): {
     gaps: string[];
     columns: number;
     heights: number;
@@ -63,7 +65,7 @@ const compareTerrain = (): {
         noiseSettings: parse(registries.noiseSettings)
     });
     const settings = data.settings(vectors.settings);
-    const state = new RandomState(data, BigInt(vectors.seed), settings);
+    const state = new RandomState(data, BigInt(vectors.seed), settings, { generatedFunctions });
     const sampler = new ChunkSampler(state, { chunkX: vectors.chunkX, chunkZ: vectors.chunkZ });
 
     const gaps: string[] = [];
@@ -124,33 +126,53 @@ const compareTerrain = (): {
 };
 
 describeFamily(FAMILIES.worldgenTerrain, [REFERENCES.worldgenRegistries, REFERENCES.worldgenColumns], () => {
-    const { gaps, columns, heights, detail, cases } = compareTerrain();
-    const verdict = checkAllowList(FAMILIES.worldgenTerrain, gaps);
-    const unexpected = new Set(verdict.unexpected);
+    const closure = compareTerrain(false);
+    const generated = compareTerrain(true);
+    const closureVerdict = checkAllowList(FAMILIES.worldgenTerrain, closure.gaps);
+    const generatedVerdict = checkAllowList(FAMILIES.worldgenTerrain, generated.gaps);
+    const unexpected = new Set([...closureVerdict.unexpected, ...generatedVerdict.unexpected]);
+    const generatedCases = new Map(generated.cases.map((entry) => [entry.id, entry]));
 
     reportParityCases(
         FAMILIES.worldgenTerrain,
         import.meta.filename,
-        cases.map(({ id, title, context, gaps: caseGaps, details }) => ({
-            id,
-            title,
-            context,
-            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
-            ...(details.length === 0 ? {} : { details: details.join('; ') })
-        }))
+        closure.cases.map(({ id, title, context, gaps: caseGaps, details }) => {
+            const generatedCase = generatedCases.get(id);
+            if (!generatedCase) throw new Error(`Generated parity omitted terrain column ${id}`);
+            const allGaps = [...new Set([...caseGaps, ...generatedCase.gaps])];
+            const allDetails = [...details, ...generatedCase.details];
+            const disagrees =
+                caseGaps.join('\0') !== generatedCase.gaps.join('\0') ||
+                details.join('\0') !== generatedCase.details.join('\0');
+            return {
+                id,
+                title,
+                context,
+                status: disagrees || allGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+                ...(allDetails.length === 0 ? {} : { details: allDetails.join('; ') })
+            };
+        })
     );
 
-    it('generates the blocks, heightmap and terrain class Java generates', () => {
-        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
+    it('generates the blocks, heightmap and terrain class Java generates with both density evaluators', () => {
+        expect(closureVerdict.unexpected, closure.detail.join('\n')).toEqual([]);
+        expect(generatedVerdict.unexpected, generated.detail.join('\n')).toEqual([]);
+        expect(generated.gaps).toEqual(closure.gaps);
     });
 
     it('carries no stale allow-list entry', () => {
-        expect(verdict.stale).toEqual([]);
+        expect(closureVerdict.stale).toEqual([]);
+        expect(generatedVerdict.stale).toEqual([]);
     });
 
     it('covers each whole reference column, floor to sky', () => {
-        reportParityProgress(FAMILIES.worldgenTerrain, { javaColumns: columns, blockPositions: heights });
-        expect(columns).toBeGreaterThan(0);
-        expect(heights).toBe(columns * loadJavaColumns().height);
+        reportParityProgress(FAMILIES.worldgenTerrain, {
+            javaColumns: closure.columns,
+            blockPositions: closure.heights
+        });
+        expect(closure.columns).toBeGreaterThan(0);
+        expect(closure.heights).toBe(closure.columns * loadJavaColumns().height);
+        expect(generated.columns).toBe(closure.columns);
+        expect(generated.heights).toBe(closure.heights);
     });
 });

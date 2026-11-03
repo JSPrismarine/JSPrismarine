@@ -15,7 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
 
-const ARMS = ['fill', 'router', 'density'] as const;
+const ARMS = ['fill', 'router', 'density', 'generated'] as const;
 
 interface ArmResult {
     readonly arm: string;
@@ -24,6 +24,11 @@ interface ArmResult {
     readonly digest: string;
     readonly octaveSamplesPerChunk: number;
     readonly cellsPerChunk: number;
+    readonly compileMilliseconds: number;
+    readonly compileHeapBytes: number;
+    readonly generatedFunctionCount: number;
+    readonly generatedFunctionBytes: number;
+    readonly closureFallbackCount: number;
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -38,8 +43,10 @@ try {
 
     const best = new Map<string, ArmResult>();
     for (let round = 0; round < rounds; round++) {
-        for (const arm of ARMS) {
-            const output = execFileSync(process.execPath, [entry, arm], { encoding: 'utf8' });
+        for (let offset = 0; offset < ARMS.length; offset++) {
+            const arm = ARMS[(round + offset) % ARMS.length];
+            if (arm === undefined) throw new Error(`No benchmark arm at offset ${offset}`);
+            const output = execFileSync(process.execPath, ['--expose-gc', entry, arm], { encoding: 'utf8' });
             const result: ArmResult = JSON.parse(output);
             const previous = best.get(arm);
             if (!previous || result.millisecondsPerChunk < previous.millisecondsPerChunk) best.set(arm, result);
@@ -56,6 +63,15 @@ try {
                 `${result.cellsPerChunk} cells/chunk, ` +
                 `${result.octaveSamplesPerChunk} octave samples/chunk, digest ${result.digest}\n`
         );
+        if (arm !== 'density') {
+            process.stdout.write(
+                `  compile ${result.compileMilliseconds.toFixed(2)} ms, ` +
+                    `${result.compileHeapBytes} heap bytes, ` +
+                    `${result.generatedFunctionCount} functions, ` +
+                    `${result.generatedFunctionBytes} source bytes, ` +
+                    `${result.closureFallbackCount} closure fallbacks\n`
+            );
+        }
     }
 
     // An arm counts the same blocks every round, so a checksum that moves between rounds means

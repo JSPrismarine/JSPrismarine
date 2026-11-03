@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
 import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
@@ -141,6 +141,36 @@ describe('parsing', () => {
 
     it('reports the available density operators', () => {
         reportProgress(`Density function parser exposes ${DENSITY_FUNCTION_TYPES.length} operator types.`);
+    });
+});
+
+describe('generated density compiler', () => {
+    it('falls back to a closure when the host rejects dynamic code generation', () => {
+        const compiler = new DensityFunctionCompiler(
+            {
+                noise: () => linearNoise,
+                random: () => new LegacyRandomSource(1234n),
+                endIslandRandom: () => new LegacyRandomSource(1234n)
+            },
+            { generatedFunctions: true }
+        );
+        vi.stubGlobal(
+            'Function',
+            class {
+                public constructor() {
+                    throw new EvalError('dynamic code generation is forbidden');
+                }
+            }
+        );
+
+        try {
+            const sampler = compiler.compile(parseDensityFunction(2.5, () => ({ type: 'constant', value: 0 })));
+            expect(sampler(new SampleContext(), 0, 0, 0)).toBe(2.5);
+            expect(compiler.generatedFunctionCount).toBe(0);
+            expect(compiler.closureFallbackCount).toBe(1);
+        } finally {
+            vi.unstubAllGlobals();
+        }
     });
 });
 

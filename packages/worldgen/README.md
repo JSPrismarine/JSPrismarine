@@ -103,9 +103,20 @@ and `old_blended_noise` with its three fractal Brownian motion stacks.
 
 The vanilla 26.3 data uses 34 of them; the other 10 are available to data packs.
 
-Trees are parsed once, references resolved eagerly, and each tree compiled once into closures. A
+Trees are parsed once, references resolved eagerly, and each tree compiled once. The closure
+compiler is the default. `RandomState` also accepts `{ generatedFunctions: true }` as its optional
+fourth argument to prototype JavaScript evaluators for supported arithmetic nodes; stateful and
+unsupported nodes stay closures, and hosts that reject dynamic code fall back to closures. A
 `cache` node gets a memo slot in the `SampleContext`, and an `interpolated` node records its cell
 corners there, which is what makes a full overworld chunk 0.63 seconds instead of 16.7.
+
+The prototype stays opt-in because the measured chunk fill was slower. On Node 26.12.1, Darwin
+arm64, `pnpm --filter @jsprismarine/worldgen run bench 3`
+reported best-of-three chunk fills of 24.19 ms for closures and 28.68 ms for generated functions,
+with identical block digests. The generated state took 26.14 ms to compile versus 20.41 ms for
+closures, and retained 653,800 heap bytes versus 621,616 (32,184 more). It emitted 35 functions
+totaling 10,743 source bytes; 89 nodes remained closures. The benchmark reports source size and
+post-GC heap deltas, not the engine's machine-code size.
 
 **Settings and the router.** `parseNoiseGeneratorSettings` reads a `worldgen/noise_settings`
 document into the eight router slots (`temperature`, `vegetation`, `continents`, `erosion`,

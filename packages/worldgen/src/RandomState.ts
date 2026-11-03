@@ -1,4 +1,9 @@
-import type { CompileEnvironment, DensitySampler, InterpolationCellSize } from './density/compile';
+import type {
+    CompileEnvironment,
+    DensityFunctionCompilerOptions,
+    DensitySampler,
+    InterpolationCellSize
+} from './density/compile';
 import { DensityFunctionCompiler } from './density/compile';
 import type { DensityFunctionNode } from './density/DensityFunction';
 import { SampleContext } from './density/SampleContext';
@@ -36,7 +41,9 @@ export class RandomState {
         /** The 64-bit world seed. */
         public readonly seed: bigint,
         /** The settings whose `legacy_random_source` flag chooses the generator. */
-        public readonly settings: NoiseGeneratorSettings
+        public readonly settings: NoiseGeneratorSettings,
+        /** Optional compiler experiment flags, which leave the closure implementation as default. */
+        compilerOptions: DensityFunctionCompilerOptions = {}
     ) {
         const root: RandomSource = settings.useLegacyRandomSource
             ? new LegacyRandomSource(seed)
@@ -51,7 +58,7 @@ export class RandomState {
                     : this.random.fromHashOf(id),
             endIslandRandom: () => new LegacyRandomSource(seed)
         };
-        this.compiler = new DensityFunctionCompiler(environment);
+        this.compiler = new DensityFunctionCompiler(environment, compilerOptions);
     }
 
     /**
@@ -117,6 +124,21 @@ export class RandomState {
      */
     public interpolationCellSizeOf(node: DensityFunctionNode): InterpolationCellSize | undefined {
         return this.compiler.interpolationCellSizeOf(node);
+    }
+
+    /** How many density samplers the optional code generator emitted. */
+    public get generatedFunctionCount(): number {
+        return this.compiler.generatedFunctionCount;
+    }
+
+    /** Source characters emitted by the optional density code generator. */
+    public get generatedFunctionBytes(): number {
+        return this.compiler.generatedFunctionBytes;
+    }
+
+    /** Density nodes that remained on the closure compiler. */
+    public get closureFallbackCount(): number {
+        return this.compiler.closureFallbackCount;
     }
 
     /** Creates the per-chunk mutable state a sampler reads, with every memo slot empty. */

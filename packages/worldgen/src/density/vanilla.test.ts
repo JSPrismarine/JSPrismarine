@@ -76,24 +76,72 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
         const originHitSeeds: string[] = [];
 
         for (const expected of vectors.spawn.positions) {
-            const state = new RandomState(data, BigInt(expected.seed), settings);
-            const context = state.createContext();
-            const samplers = new Map<DensityFunctionNode, ReturnType<RandomState['sampler']>>();
-            const actual = findNoiseSpawnPosition(settings.spawnTargets, (node, x, y, z) => {
-                let sampler = samplers.get(node);
-                if (sampler === undefined) {
-                    sampler = state.sampler(node);
-                    samplers.set(node, sampler);
-                }
-                return sampler(context, x, y, z);
-            });
+            for (const compilerOptions of [{}, { generatedFunctions: true }]) {
+                const state = new RandomState(data, BigInt(expected.seed), settings, compilerOptions);
+                const context = state.createContext();
+                const samplers = new Map<DensityFunctionNode, ReturnType<RandomState['sampler']>>();
+                const actual = findNoiseSpawnPosition(settings.spawnTargets, (node, x, y, z) => {
+                    let sampler = samplers.get(node);
+                    if (sampler === undefined) {
+                        sampler = state.sampler(node);
+                        samplers.set(node, sampler);
+                    }
+                    return sampler(context, x, y, z);
+                });
 
-            expect([actual.x, actual.y, actual.z], `seed ${expected.seed}`).toEqual(expected.block);
-            expect(actual.candidates, `seed ${expected.seed}`).toBeGreaterThan(0);
-            if (actual.x === 0 && actual.z === 0) originHitSeeds.push(expected.seed);
+                expect([actual.x, actual.y, actual.z], `seed ${expected.seed}`).toEqual(expected.block);
+                expect(actual.candidates, `seed ${expected.seed}`).toBeGreaterThan(0);
+                if (actual.x === 0 && actual.z === 0) originHitSeeds.push(expected.seed);
+            }
         }
 
         expect(originHitSeeds).toContain('987654321');
+    });
+
+    it('matches closure output bits across parsed vanilla density graphs', () => {
+        const settings = data.settings('minecraft:overworld');
+        const reference = new RandomState(data, SEED, settings);
+        const generated = new RandomState(data, SEED, settings, { generatedFunctions: true });
+        const referenceContext = reference.createContext();
+        const generatedContext = generated.createContext();
+        const positions: [number, number, number][] = [
+            [0, 0, 0],
+            [-1, -1, -1],
+            [-4, -8, -4],
+            [-5, -9, -5],
+            [3, 7, -9],
+            [4, 8, -8],
+            [15, -17, -31],
+            [-16, -24, 32]
+        ];
+        let random = 0x6d2b79f5;
+        const nextCoordinate = (): number => {
+            random = (Math.imul(random, 1664525) + 1013904223) >>> 0;
+            return (random % 8193) - 4096;
+        };
+        for (let index = 0; index < 24; index++) positions.push([nextCoordinate(), nextCoordinate(), nextCoordinate()]);
+
+        const float = new Float32Array(1);
+        const bits = new Uint32Array(float.buffer);
+        const floatBits = (value: number): number => {
+            float[0] = value;
+            return bits[0] ?? 0;
+        };
+
+        for (const id of data.densityFunctionIds) {
+            const node = data.densityFunction(id);
+            const referenceSampler = reference.sampler(node);
+            const generatedSampler = generated.sampler(node);
+            for (const [x, y, z] of positions) {
+                expect(floatBits(generatedSampler(generatedContext, x, y, z)), `${id} at ${x},${y},${z}`).toBe(
+                    floatBits(referenceSampler(referenceContext, x, y, z))
+                );
+            }
+        }
+
+        expect(generated.generatedFunctionCount).toBeGreaterThan(0);
+        expect(generated.generatedFunctionBytes).toBeGreaterThan(0);
+        expect(generated.closureFallbackCount).toBeGreaterThan(0);
     });
 
     it('covers the operator types the vanilla data uses', () => {
@@ -126,11 +174,15 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
 
     describe.each(dimensions)('$settings', (dimension) => {
         const settings: NoiseGeneratorSettings = data.settings(dimension.settings);
-        const state = new RandomState(data, SEED, settings);
+        const closureState = new RandomState(data, SEED, settings);
+        const generatedState = new RandomState(data, SEED, settings, { generatedFunctions: true });
+        const states = [closureState, generatedState];
 
         const check = (name: string, node: DensityFunctionNode, expected: number[]): void => {
-            const actual = VECTOR_POSITIONS.map(([x, y, z]) => state.sampleUncached(node, x, y, z));
-            expect({ name, actual }).toEqual({ name, actual: expected.map(expectedFloat) });
+            for (const state of states) {
+                const actual = VECTOR_POSITIONS.map(([x, y, z]) => state.sampleUncached(node, x, y, z));
+                expect({ name, actual }).toEqual({ name, actual: expected.map(expectedFloat) });
+            }
         };
 
         it('matches Java for every noise router slot', () => {
@@ -167,7 +219,7 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
             const second = new RandomState(data, SEED, settings);
             for (const [x, y, z] of VECTOR_POSITIONS) {
                 expect(second.sampleUncached(settings.noiseRouter.finalDensity, x, y, z)).toBe(
-                    state.sampleUncached(settings.noiseRouter.finalDensity, x, y, z)
+                    closureState.sampleUncached(settings.noiseRouter.finalDensity, x, y, z)
                 );
             }
         });
@@ -177,7 +229,7 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', { tags: ['real-data'
             const differences = VECTOR_POSITIONS.filter(
                 ([x, y, z]) =>
                     other.sampleUncached(settings.noiseRouter.finalDensity, x, y, z) !==
-                    state.sampleUncached(settings.noiseRouter.finalDensity, x, y, z)
+                    closureState.sampleUncached(settings.noiseRouter.finalDensity, x, y, z)
             );
             expect(differences.length).toBeGreaterThan(0);
         });

@@ -12,6 +12,17 @@ import type { SampleContext } from './SampleContext';
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
 
+type GeneratedEvaluatorFactory = (
+    captures: readonly DensitySampler[],
+    constants: readonly number[],
+    f32Function: typeof f32,
+    squareFunction: (value: number) => number,
+    cubeFunction: (value: number) => number,
+    squeezeFunction: (value: number) => number,
+    clampFunction: (value: number, min: number, max: number) => number,
+    lerpFunction: (alpha: number, first: number, second: number) => number
+) => DensitySampler;
+
 /**
  * The block extent an `interpolated` node holds its eight corners still across.
  *
@@ -57,6 +68,10 @@ export interface CompileEnvironment {
 export interface DensityFunctionCompilerOptions {
     /** Whether interpolated nodes fill a reusable typed array for cells up to 4096 blocks. */
     readonly precomputeInterpolationCells?: boolean;
+    /** Emits a closed JavaScript evaluator for supported nodes; disabled unless explicitly measured. */
+    readonly generatedFunctions?: boolean;
+    /** Maximum generated source length before one tree falls back to closures. */
+    readonly maximumGeneratedFunctionLength?: number;
 }
 
 /** Large datapack interpolation cells stay on the scalar path to avoid large per-context buffers. */
@@ -156,17 +171,39 @@ export class DensityFunctionCompiler {
     private cellSizeXz = 0;
     private cellSizeY = 0;
     private readonly precomputeInterpolationCells: boolean;
+    private readonly generatedFunctions: boolean;
+    private readonly maximumGeneratedFunctionLength: number;
+    private generatedCount = 0;
+    private generatedBytes = 0;
+    private closureFallbacks = 0;
 
     public constructor(
         private readonly environment: CompileEnvironment,
         options: DensityFunctionCompilerOptions = {}
     ) {
         this.precomputeInterpolationCells = options.precomputeInterpolationCells ?? true;
+        this.generatedFunctions = options.generatedFunctions ?? false;
+        this.maximumGeneratedFunctionLength = options.maximumGeneratedFunctionLength ?? 64 * 1024;
     }
 
     /** How many memo slots the trees compiled so far need. */
     public get cacheCount(): number {
         return this.nextCacheId;
+    }
+
+    /** How many sampler functions the optional closed-node code generator emitted. */
+    public get generatedFunctionCount(): number {
+        return this.generatedCount;
+    }
+
+    /** Source characters compiled by the optional code generator; generated source is ASCII. */
+    public get generatedFunctionBytes(): number {
+        return this.generatedBytes;
+    }
+
+    /** How many nodes used the closure compiler because code generation was disabled or unsupported. */
+    public get closureFallbackCount(): number {
+        return this.closureFallbacks;
     }
 
     /**
@@ -222,9 +259,157 @@ export class DensityFunctionCompiler {
     public compile(node: DensityFunctionNode): DensitySampler {
         const existing = this.compiled.get(node);
         if (existing) return existing;
-        const sampler = this.build(node);
+        const generated = this.generatedFunctions ? this.buildGenerated(node) : undefined;
+        if (generated === undefined) this.closureFallbacks++;
+        const sampler = generated ?? this.build(node);
         this.compiled.set(node, sampler);
         return sampler;
+    }
+
+    /** Builds an evaluator from a closed set of AST kinds, leaving stateful nodes as captures. */
+    private buildGenerated(node: DensityFunctionNode): DensitySampler | undefined {
+        const captures: DensitySampler[] = [];
+        const constants: number[] = [];
+        const constant = (value: number): string => {
+            const index = constants.push(f32(value)) - 1;
+            return `constants[${index}]`;
+        };
+        const child = (entry: DensityFunctionNode, x = 'x', y = 'y', z = 'z'): string => {
+            const inline = this.generatedExpression(entry, child, constant, x, y, z);
+            if (inline !== undefined) return inline;
+            const index = captures.push(this.compile(entry)) - 1;
+            return `captures[${index}](context, ${x}, ${y}, ${z})`;
+        };
+
+        const expression = this.generatedExpression(node, child, constant, 'x', 'y', 'z');
+        if (expression === undefined) return undefined;
+        const source = `return (context, x, y, z) => ${expression};`;
+        if (source.length > this.maximumGeneratedFunctionLength) return undefined;
+
+        try {
+            // Only compiler-authored expressions and indexed constants enter this constructor; pack strings never become source.
+            // TypeScript cannot infer the fixed factory signature returned by `new Function`.
+            const factory = new Function(
+                'captures',
+                'constants',
+                'f32',
+                'square',
+                'cube',
+                'squeeze',
+                'clamp',
+                'lerpF',
+                source
+            ) as GeneratedEvaluatorFactory;
+            const generated = factory(captures, constants, f32, square, cube, squeeze, clamp, lerpF);
+            this.generatedCount++;
+            this.generatedBytes += source.length;
+            return generated;
+        } catch (error) {
+            // Hosts that forbid dynamic code generation can still use the equivalent closure path.
+            if (error instanceof EvalError) return undefined;
+            throw error;
+        }
+    }
+
+    /** Emits expressions for pure arithmetic and delegates stateful or uncommon nodes to closures. */
+    private generatedExpression(
+        node: DensityFunctionNode,
+        child: (node: DensityFunctionNode, x?: string, y?: string, z?: string) => string,
+        constant: (value: number) => string,
+        x: string,
+        y: string,
+        z: string
+    ): string | undefined {
+        switch (node.type) {
+            case 'constant':
+                return constant(node.value);
+            case 'abs':
+                return `Math.abs(${child(node.input, x, y, z)})`;
+            case 'square':
+                return `square(${child(node.input, x, y, z)})`;
+            case 'cube':
+                return `cube(${child(node.input, x, y, z)})`;
+            case 'sqrt':
+                return `f32(Math.sqrt(${child(node.input, x, y, z)}))`;
+            case 'half_negative':
+                return `((value) => value > 0 ? value : f32(value * 0.5))(${child(node.input, x, y, z)})`;
+            case 'quarter_negative':
+                return `((value) => value > 0 ? value : f32(value * 0.25))(${child(node.input, x, y, z)})`;
+            case 'reciprocal':
+                return `f32(1 / ${child(node.input, x, y, z)})`;
+            case 'negate':
+                return `-${child(node.input, x, y, z)}`;
+            case 'squeeze':
+                return `squeeze(${child(node.input, x, y, z)})`;
+            case 'log':
+                return `f32(Math.log(${child(node.input, x, y, z)}))`;
+            case 'sign':
+                return `Math.sign(${child(node.input, x, y, z)})`;
+            case 'add': {
+                const left = child(node.left, x, y, z);
+                const right = child(node.right, x, y, z);
+                return `f32(${left} + ${right})`;
+            }
+            case 'sub': {
+                const leftConstant = isConstant(node.left) ? f32(node.left.value) : undefined;
+                const rightConstant = isConstant(node.right) ? f32(node.right.value) : undefined;
+                if (leftConstant !== undefined) {
+                    return `f32(${constant(leftConstant)} - ${child(node.right, x, y, z)})`;
+                }
+                if (rightConstant !== undefined) {
+                    return `f32(${child(node.left, x, y, z)} + ${constant(f32(-rightConstant))})`;
+                }
+                return `f32(${child(node.left, x, y, z)} - ${child(node.right, x, y, z)})`;
+            }
+            case 'mul': {
+                const leftConstant = isConstant(node.left) ? f32(node.left.value) : undefined;
+                const rightConstant = isConstant(node.right) ? f32(node.right.value) : undefined;
+                if (leftConstant !== undefined) {
+                    return `f32(${child(node.right, x, y, z)} * ${constant(leftConstant)})`;
+                }
+                if (rightConstant !== undefined) {
+                    return `f32(${child(node.left, x, y, z)} * ${constant(rightConstant)})`;
+                }
+                return `((left) => left === 0 ? 0 : f32(left * ${child(node.right, x, y, z)}))(${child(node.left, x, y, z)})`;
+            }
+            case 'div': {
+                const leftConstant = isConstant(node.left) ? f32(node.left.value) : undefined;
+                const rightConstant = isConstant(node.right) ? f32(node.right.value) : undefined;
+                if (leftConstant !== undefined) {
+                    return `f32(${constant(leftConstant)} / ${child(node.right, x, y, z)})`;
+                }
+                if (rightConstant !== undefined) {
+                    return `f32(${child(node.left, x, y, z)} * ${constant(f32(1 / rightConstant))})`;
+                }
+                return `((left) => left === 0 ? 0 : f32(left / ${child(node.right, x, y, z)}))(${child(node.left, x, y, z)})`;
+            }
+            case 'min':
+                return `Math.min(${child(node.left, x, y, z)}, ${child(node.right, x, y, z)})`;
+            case 'max':
+                return `Math.max(${child(node.left, x, y, z)}, ${child(node.right, x, y, z)})`;
+            case 'clamp':
+                return `clamp(${child(node.input, x, y, z)}, ${constant(node.min)}, ${constant(node.max)})`;
+            case 'lerp': {
+                const first = child(node.first, x, y, z);
+                const second = child(node.second, x, y, z);
+                return `((weight) => weight === 0 ? ${first} : weight === 1 ? ${second} : lerpF(weight, ${first}, ${second}))(${child(node.alpha, x, y, z)})`;
+            }
+            case 'range_choice':
+                return `((value) => value >= ${constant(node.minInclusive)} && value < ${constant(node.maxExclusive)} ? ${child(node.whenInRange, x, y, z)} : ${child(node.whenOutOfRange, x, y, z)})(${child(node.input, x, y, z)})`;
+            case 'slice': {
+                const fixed = constant(node.coordinate);
+                switch (node.axis) {
+                    case 'x':
+                        return child(node.input, fixed, y, z);
+                    case 'y':
+                        return child(node.input, x, fixed, z);
+                    case 'z':
+                        return child(node.input, x, y, fixed);
+                }
+            }
+            default:
+                return undefined;
+        }
     }
 
     /** Whether every operation in a tree is independent of its y coordinate. */
