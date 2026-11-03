@@ -185,19 +185,67 @@ injection point rather than a stub:
 
 ## Known gaps
 
-- Filling a full overworld chunk through `forEachCellBlock` takes roughly 30 ms on an Apple M1
-  Pro, and that figure was taken on a host at load average 40 to 120, so read it as an order of
-  magnitude rather than a budget. About a quarter of it is Perlin evaluation on the 1225 cell
-  corners, which is already the fewest evaluations the lattice allows, and about a third is the
-  per-block walk of the density graph. Java samples whole volumes at once where this samples
-  positions. The levers left are interpolating incrementally inside a cell and compiling the
-  graph to one function body instead of a tree of closures. Per-chunk cost is not the only
-  lever: a chunk's fill reads nothing outside itself, so a server gets throughput by running
-  several of them at once rather than by making one faster.
+- The scalar sampler remains the default. The opt-in volume evaluator and its current measurements
+  are described in [Volume density prototype](#volume-density-prototype); it is slower on the
+  measured overworld graph and only handles a subset of node types. A chunk's fill reads nothing
+  outside itself, so a server can also raise throughput by generating several chunks at once.
 - The random sources use `BigInt` for their 64-bit state. That is exact and slow, and it is the
   reason `PositionalRandomFactory.at` is the most expensive call in the ore vein stage.
 - Nothing here reads a data pack. `WorldgenData` takes the three registries as maps of parsed JSON,
   which is what `@jsprismarine/packs` produces.
+
+## Volume density prototype
+
+`ChunkSampler` can evaluate final density into typed arrays one interpolation cell at a time:
+
+```ts
+const sampler = new ChunkSampler(state, {
+    chunkX: 3,
+    chunkZ: -5,
+    useVolumeDensity: true
+});
+```
+
+The option affects `forEachCellBlock`, which is the chunk-fill path. It defaults to `false`, so
+`fill`, `column` and other callers keep using the scalar evaluator. The volume evaluator writes
+`Float64Array` results in x-fastest, then z, then y order. A sampler reuses its output and
+intermediate buffers across cells.
+
+The volume compiler evaluates constants, unary arithmetic, `add`, `sub`, `min`, `max`, and
+`clamp` over arrays. It also handles `mul` and `div` when either operand is constant. All other
+node types, including noise, gradient, cache, interpolation, spline, rounding, `pow`, `slice`,
+and selection nodes, use the existing scalar compiler. Dynamic-by-dynamic `mul` and `div` also
+stay scalar because they can skip their right operand when the left value is zero.
+
+`RandomState` caches each compiled volume plan for that state. Every call to `volumeSampler`, and
+every `ChunkSampler` using `useVolumeDensity`, gets its own mutable workspace. Keep each evaluator
+and `SampleContext` exclusive to one active chunk at a time. The scalar `SampleContext` caches
+remain per chunk; the volume workspace stores intermediate values for one cell and retains its
+largest capacity until that sampler is discarded. Cells larger than 4,096 blocks use the scalar
+path to cap per-evaluator memory.
+
+Run `pnpm --filter @jsprismarine/worldgen run bench:density-volume` to compare the overworld
+`final_density` graph and a whole chunk fill. It runs comparisons and memory measurements in
+isolated Node worker threads, checks matching digests, and reports graph throughput, buffer growth,
+and memory observed in the worker.
+Both chunk-fill arms disable proven-cell skipping so they make the same density and aquifer calls.
+Node 26 does not allow `--expose-gc` in worker threads, so the reported heap and array-buffer sizes
+are snapshots that may include garbage not yet collected. Heap deltas can be negative when
+automatic collection runs during a fill.
+
+On Node 26.12.1, Darwin arm64, best-of-three measurements were 17.30 ms scalar and 23.51 ms volume
+for 98,304 density samples, or 5.68 million versus 4.18 million samples per second. Full chunk
+fills took 35.22 ms scalar and 41.92 ms volume, with matching density and block digests. The volume
+plan used six instructions, three scalar fallbacks, one workspace growth, 6,144 bytes of retained
+intermediate arrays, and a 1,024-byte cell output buffer. Separate worker runs observed array-buffer
+growth of 690,407 bytes scalar and 697,575 bytes volume during a fill. The evaluator adds memory
+without improving throughput on this graph, so it remains opt-in.
+
+This prototype does not meet the RFC's full measurement criteria. It does not measure allocation
+counts inside the JavaScript engine, compare multiple worker counts, or run the full worldgen
+corpus through `ChunkSampler`'s volume option. Density outputs were compared over the Java column
+corpus, and one full chunk matched the existing golden. Broader corpus parity and worker-count
+measurements remain before enabling the volume path by default.
 
 ## The surface pass, the biomes and the carvers
 

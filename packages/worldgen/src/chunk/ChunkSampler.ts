@@ -1,4 +1,4 @@
-import type { DensitySampler } from '../density/compile';
+import type { DensitySampler, DensityVolumeEvaluator } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { SampleContext } from '../density/SampleContext';
 import type { RandomState } from '../RandomState';
@@ -12,6 +12,9 @@ export const AQUIFER_SEED = 'minecraft:aquifer';
 
 /** The side length of a chunk column in blocks. */
 export const CHUNK_SIZE = 16;
+
+/** Keeps per-evaluator intermediate arrays within the same cell-sized bound as interpolation buffers. */
+const MAX_VOLUME_DENSITY_SAMPLES = 4096;
 
 /** One block of a generated column. */
 export interface ColumnBlock {
@@ -35,6 +38,8 @@ export interface ChunkSamplerOptions {
     readonly skipProvenCells?: boolean;
     /** Re-samples skipped blocks through the scalar path and checks their states and fluid flags. */
     readonly verifySkippedCells?: boolean;
+    /** Evaluates each visited interpolation cell into typed arrays instead of sampling each block. */
+    readonly useVolumeDensity?: boolean;
 }
 
 interface InterpolatedDensityProof {
@@ -94,6 +99,10 @@ export class ChunkSampler {
     private readonly cellsZ: number;
     private readonly fluidPicker: FluidPicker;
     private readonly interpolatedDensityProof: InterpolatedDensityProof | undefined;
+    private readonly volumeDensityEvaluator: DensityVolumeEvaluator | undefined;
+    private readonly volumeDensityBounds:
+        { minX: number; minY: number; minZ: number; sizeX: number; sizeY: number; sizeZ: number } | undefined;
+    private readonly volumeDensityValues: Float64Array | undefined;
     private readonly skipProvenCells: boolean;
     private readonly verifySkippedCells: boolean;
     private skippedCells = 0;
@@ -121,6 +130,12 @@ export class ChunkSampler {
 
         this.context = options.context ?? randomState.createContext();
         this.finalDensity = randomState.sampler(settings.noiseRouter.finalDensity);
+        this.volumeDensityEvaluator = options.useVolumeDensity
+            ? randomState.volumeSampler(settings.noiseRouter.finalDensity)
+            : undefined;
+        this.volumeDensityBounds = this.volumeDensityEvaluator
+            ? { minX: 0, minY: 0, minZ: 0, sizeX: 0, sizeY: 0, sizeZ: 0 }
+            : undefined;
         this.defaultBlock = settings.defaultBlock;
         this.verifySkippedCells = options.verifySkippedCells ?? false;
 
@@ -149,6 +164,12 @@ export class ChunkSampler {
         this.cellsY = this.cellSpan(this.volume.minBlockY, this.volume.maxBlockY, this.cellSizeY);
         this.cellsZ = this.cellSpan(this.volume.minBlockZ, this.volume.maxBlockZ, this.cellSizeXz);
         this.cellCount = this.cellsX * this.cellsY * this.cellsZ;
+
+        const maximumCellXz = Math.min(this.cellSizeXz, CHUNK_SIZE);
+        const maximumCellY = Math.min(this.cellSizeY, settings.noiseSettings.height);
+        this.volumeDensityValues = this.volumeDensityEvaluator
+            ? new Float64Array(Math.min(maximumCellXz * maximumCellXz * maximumCellY, MAX_VOLUME_DENSITY_SAMPLES))
+            : undefined;
     }
 
     /**
@@ -320,6 +341,12 @@ export class ChunkSampler {
             return;
         }
 
+        const cellSampleCount = (lastX - firstX + 1) * (lastY - firstY + 1) * (lastZ - firstZ + 1);
+        if (this.volumeDensityEvaluator && cellSampleCount <= (this.volumeDensityValues?.length ?? 0)) {
+            this.forEachVolumeCellBlock(firstX, lastX, firstY, lastY, firstZ, lastZ, aquifer, visit);
+            return;
+        }
+
         const walkingCellBefore = this.walkingCell;
         this.walkingCell = true;
         try {
@@ -339,6 +366,56 @@ export class ChunkSampler {
             }
         } finally {
             this.walkingCell = walkingCellBefore;
+        }
+    }
+
+    private forEachVolumeCellBlock(
+        firstX: number,
+        lastX: number,
+        firstY: number,
+        lastY: number,
+        firstZ: number,
+        lastZ: number,
+        aquifer: Aquifer,
+        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void
+    ): void {
+        const evaluator = this.volumeDensityEvaluator;
+        const volume = this.volumeDensityBounds;
+        const values = this.volumeDensityValues;
+        if (evaluator === undefined || volume === undefined || values === undefined) {
+            throw new Error('Volume density workspace is missing');
+        }
+
+        volume.minX = firstX;
+        volume.minY = firstY;
+        volume.minZ = firstZ;
+        volume.sizeX = lastX - firstX + 1;
+        volume.sizeY = lastY - firstY + 1;
+        volume.sizeZ = lastZ - firstZ + 1;
+        const bufferingBeforeSample = this.context.interpolationBuffersEnabled;
+        this.context.interpolationBuffersEnabled = true;
+        try {
+            evaluator.sample(this.context, volume, values);
+        } finally {
+            this.context.interpolationBuffersEnabled = bufferingBeforeSample;
+        }
+
+        const planeSize = volume.sizeX * volume.sizeZ;
+        for (let x = firstX; x <= lastX; x++) {
+            for (let z = firstZ; z <= lastZ; z++) {
+                for (let y = lastY; y >= firstY; y--) {
+                    const index = (y - firstY) * planeSize + (z - firstZ) * volume.sizeX + (x - firstX);
+                    const density = values[index] ?? 0;
+                    const substance = aquifer.computeSubstance(x, y, z, density);
+                    visit(
+                        x,
+                        y,
+                        z,
+                        substance ?? this.defaultBlock,
+                        substance !== undefined && substance !== AIR && aquifer.shouldScheduleFluidUpdate()
+                    );
+                }
+            }
         }
     }
 

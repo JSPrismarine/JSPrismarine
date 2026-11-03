@@ -175,4 +175,44 @@ describeFamily(FAMILIES.worldgenTerrain, [REFERENCES.worldgenRegistries, REFEREN
         expect(generated.columns).toBe(closure.columns);
         expect(generated.heights).toBe(closure.heights);
     });
+
+    it('samples every Java terrain reference position identically in density volumes', () => {
+        const vectors = loadJavaColumns();
+        const registries = loadJavaWorldgenRegistries();
+        const parse = (documents: Record<string, string>): Map<string, unknown> =>
+            new Map(Object.entries(documents).map(([id, document]) => [id, JSON.parse(document) as unknown]));
+        const data = new WorldgenData({
+            densityFunctions: parse(registries.densityFunctions),
+            noises: parse(registries.noises),
+            noiseSettings: parse(registries.noiseSettings)
+        });
+        const state = new RandomState(data, BigInt(vectors.seed), data.settings(vectors.settings));
+        const node = state.settings.noiseRouter.finalDensity;
+        const scalar = state.sampler(node);
+        const volumeSampler = state.volumeSampler(node);
+
+        for (const column of vectors.columns) {
+            const volume = {
+                minX: column.x,
+                minY: vectors.minY,
+                minZ: column.z,
+                sizeX: 1,
+                sizeY: vectors.height,
+                sizeZ: 1
+            };
+            const actual = new Float64Array(vectors.height);
+            const context = state.createContext();
+            context.interpolationBuffersEnabled = true;
+            volumeSampler.sample(context, volume, actual);
+
+            const scalarContext = state.createContext();
+            scalarContext.interpolationBuffersEnabled = true;
+            for (let offset = 0; offset < vectors.height; offset++) {
+                const y = vectors.minY + offset;
+                expect(actual[offset], `density at ${column.x},${y},${column.z}`).toBe(
+                    scalar(scalarContext, column.x, y, column.z)
+                );
+            }
+        }
+    });
 });

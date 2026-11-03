@@ -5,12 +5,258 @@ import { SimplexNoise } from '../noise/SimplexNoise';
 import type { RandomSource } from '../random/RandomSource';
 import type { CompiledSpline } from './CubicSpline';
 import { compileMultipointSpline } from './CubicSpline';
-import type { DensityFunctionNode, DistanceMetric, SplineNode } from './DensityFunction';
+import type {
+    BinaryDensityType,
+    DensityFunctionNode,
+    DistanceMetric,
+    SplineNode,
+    UnaryDensityType
+} from './DensityFunction';
 import { densityInputsOf } from './DensityFunction';
 import type { SampleContext } from './SampleContext';
 
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
+
+/** An integer block volume sampled with x varying fastest, then z, then y. */
+export interface DensityVolume {
+    /** The lowest block x in the volume. */
+    readonly minX: number;
+    /** The lowest block y in the volume. */
+    readonly minY: number;
+    /** The lowest block z in the volume. */
+    readonly minZ: number;
+    /** The number of x positions. */
+    readonly sizeX: number;
+    /** The number of y positions. */
+    readonly sizeY: number;
+    /** The number of z positions. */
+    readonly sizeZ: number;
+}
+
+/** A compiled volume evaluator with a workspace it reuses between calls. Keep one per active task. */
+export interface DensityVolumeEvaluator {
+    /** Number of distinct instructions in the compiled tree. */
+    readonly instructionCount: number;
+    /** Number of nodes delegated to the scalar density compiler. */
+    readonly scalarFallbackCount: number;
+    /** Bytes retained by the evaluator's intermediate typed arrays. */
+    readonly retainedWorkspaceBytes: number;
+    /** Number of times the evaluator had to resize its workspace. */
+    readonly workspaceGrowthCount: number;
+    /**
+     * Samples a rectangular volume into caller-owned storage.
+     *
+     * @throws When the bounds aren't safe integer block coordinates or the output is too short.
+     */
+    sample(context: SampleContext, volume: DensityVolume, output: Float64Array): void;
+}
+
+type VolumeBinaryType = Extract<BinaryDensityType, 'add' | 'div' | 'max' | 'min' | 'mul' | 'sub'>;
+
+type VolumeInstruction =
+    | { readonly type: 'scalar'; readonly sampler: DensitySampler }
+    | { readonly type: 'constant'; readonly value: number }
+    | { readonly type: 'unary'; readonly operator: UnaryDensityType; readonly input: number }
+    | {
+          readonly type: 'binary';
+          readonly operator: VolumeBinaryType;
+          readonly left: number;
+          readonly right: number;
+          readonly leftConstant: number | undefined;
+          readonly rightConstant: number | undefined;
+      }
+    | { readonly type: 'clamp'; readonly input: number; readonly min: number; readonly max: number };
+
+interface DensityVolumePlan {
+    readonly instructions: readonly VolumeInstruction[];
+    readonly outputIndex: number;
+    readonly scalarFallbackCount: number;
+}
+
+const sampleCountOf = (volume: DensityVolume): number => {
+    if (
+        !Number.isSafeInteger(volume.minX) ||
+        !Number.isSafeInteger(volume.minY) ||
+        !Number.isSafeInteger(volume.minZ) ||
+        !Number.isSafeInteger(volume.sizeX) ||
+        !Number.isSafeInteger(volume.sizeY) ||
+        !Number.isSafeInteger(volume.sizeZ) ||
+        volume.sizeX < 0 ||
+        volume.sizeY < 0 ||
+        volume.sizeZ < 0
+    ) {
+        throw new RangeError('Density volume origins and sizes must be safe integer block coordinates');
+    }
+
+    const count = volume.sizeX * volume.sizeY * volume.sizeZ;
+    if (!Number.isSafeInteger(count))
+        throw new RangeError('Density volume sample count exceeds the safe integer range');
+    if (
+        (volume.sizeX > 0 && !Number.isSafeInteger(volume.minX + volume.sizeX - 1)) ||
+        (volume.sizeY > 0 && !Number.isSafeInteger(volume.minY + volume.sizeY - 1)) ||
+        (volume.sizeZ > 0 && !Number.isSafeInteger(volume.minZ + volume.sizeZ - 1))
+    ) {
+        throw new RangeError('Density volume end coordinates exceed the safe integer range');
+    }
+    return count;
+};
+
+const applyUnaryDensity = (operator: UnaryDensityType, value: number): number => {
+    switch (operator) {
+        case 'abs':
+            return Math.abs(value);
+        case 'square':
+            return square(value);
+        case 'cube':
+            return cube(value);
+        case 'sqrt':
+            return f32(Math.sqrt(value));
+        case 'half_negative':
+            return value > 0 ? value : f32(value * 0.5);
+        case 'quarter_negative':
+            return value > 0 ? value : f32(value * 0.25);
+        case 'reciprocal':
+            return f32(1 / value);
+        case 'negate':
+            return -value;
+        case 'squeeze':
+            return squeeze(value);
+        case 'log':
+            return f32(Math.log(value));
+        case 'sign':
+            return Math.sign(value);
+    }
+};
+
+const applyBinaryDensity = (
+    instruction: Extract<VolumeInstruction, { type: 'binary' }>,
+    left: number,
+    right: number
+): number => {
+    switch (instruction.operator) {
+        case 'add':
+            if (instruction.leftConstant !== undefined) return f32(right + instruction.leftConstant);
+            return f32(left + (instruction.rightConstant ?? right));
+        case 'sub':
+            if (instruction.leftConstant !== undefined) return f32(instruction.leftConstant - right);
+            if (instruction.rightConstant !== undefined) return f32(left + f32(-instruction.rightConstant));
+            return f32(left - right);
+        case 'mul':
+            if (instruction.leftConstant !== undefined) return f32(right * instruction.leftConstant);
+            if (instruction.rightConstant !== undefined) return f32(left * instruction.rightConstant);
+            return f32(left * right);
+        case 'div':
+            if (instruction.leftConstant !== undefined) return f32(instruction.leftConstant / right);
+            if (instruction.rightConstant !== undefined) return f32(left * f32(1 / instruction.rightConstant));
+            return f32(left / right);
+        case 'min':
+            return Math.min(left, right);
+        case 'max':
+            return Math.max(left, right);
+    }
+};
+
+class CompiledDensityVolumeEvaluator implements DensityVolumeEvaluator {
+    private readonly buffers: Float64Array[];
+    private capacity = 0;
+    private growths = 0;
+
+    public constructor(private readonly plan: DensityVolumePlan) {
+        this.buffers = plan.instructions.map(() => new Float64Array(0));
+    }
+
+    /** Number of distinct instructions in the compiled tree. */
+    public get instructionCount(): number {
+        return this.plan.instructions.length;
+    }
+
+    /** Number of nodes delegated to the scalar density compiler. */
+    public get scalarFallbackCount(): number {
+        return this.plan.scalarFallbackCount;
+    }
+
+    /** Bytes retained by the evaluator's intermediate typed arrays. */
+    public get retainedWorkspaceBytes(): number {
+        return this.capacity * this.plan.instructions.length * Float64Array.BYTES_PER_ELEMENT;
+    }
+
+    /** Number of times the evaluator had to resize its workspace. */
+    public get workspaceGrowthCount(): number {
+        return this.growths;
+    }
+
+    /** Samples a rectangular volume into caller-owned storage. */
+    public sample(context: SampleContext, volume: DensityVolume, output: Float64Array): void {
+        const count = sampleCountOf(volume);
+        if (output.length < count) {
+            throw new RangeError(`Density volume output needs ${count} values, got ${output.length}`);
+        }
+        if (count === 0) return;
+        this.growWorkspace(count);
+
+        const planeSize = volume.sizeX * volume.sizeZ;
+        for (let instructionIndex = 0; instructionIndex < this.plan.instructions.length; instructionIndex++) {
+            const instruction = this.plan.instructions[instructionIndex];
+            const outputBuffer = this.buffers[instructionIndex];
+            if (instruction === undefined || outputBuffer === undefined) {
+                throw new Error(`Missing density volume instruction ${instructionIndex}`);
+            }
+
+            switch (instruction.type) {
+                case 'constant':
+                    outputBuffer.fill(instruction.value, 0, count);
+                    break;
+                case 'scalar':
+                    for (let index = 0; index < count; index++) {
+                        const x = volume.minX + (index % volume.sizeX);
+                        const z = volume.minZ + (Math.floor(index / volume.sizeX) % volume.sizeZ);
+                        const y = volume.minY + Math.floor(index / planeSize);
+                        outputBuffer[index] = instruction.sampler(context, x, y, z);
+                    }
+                    break;
+                case 'unary': {
+                    const input = this.buffers[instruction.input];
+                    if (input === undefined) throw new Error(`Missing density volume input ${instruction.input}`);
+                    for (let index = 0; index < count; index++) {
+                        outputBuffer[index] = applyUnaryDensity(instruction.operator, input[index] ?? 0);
+                    }
+                    break;
+                }
+                case 'binary': {
+                    const left = this.buffers[instruction.left];
+                    const right = this.buffers[instruction.right];
+                    if (left === undefined || right === undefined) {
+                        throw new Error(`Missing density volume inputs ${instruction.left} and ${instruction.right}`);
+                    }
+                    for (let index = 0; index < count; index++) {
+                        outputBuffer[index] = applyBinaryDensity(instruction, left[index] ?? 0, right[index] ?? 0);
+                    }
+                    break;
+                }
+                case 'clamp': {
+                    const input = this.buffers[instruction.input];
+                    if (input === undefined) throw new Error(`Missing density volume input ${instruction.input}`);
+                    for (let index = 0; index < count; index++) {
+                        outputBuffer[index] = clamp(input[index] ?? 0, instruction.min, instruction.max);
+                    }
+                    break;
+                }
+            }
+        }
+
+        const result = this.buffers[this.plan.outputIndex];
+        if (result === undefined) throw new Error(`Missing density volume output ${this.plan.outputIndex}`);
+        for (let index = 0; index < count; index++) output[index] = result[index] ?? 0;
+    }
+
+    private growWorkspace(count: number): void {
+        if (count <= this.capacity) return;
+        for (let index = 0; index < this.buffers.length; index++) this.buffers[index] = new Float64Array(count);
+        this.capacity = count;
+        this.growths++;
+    }
+}
 
 type GeneratedEvaluatorFactory = (
     captures: readonly DensitySampler[],
@@ -164,6 +410,7 @@ const endIslandHeight = (noise: Noise, sectionX: number, sectionZ: number): numb
  */
 export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
+    private readonly volumePlans = new Map<DensityFunctionNode, DensityVolumePlan>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
     private readonly domainAxesByNode = new Map<DensityFunctionNode, number>();
@@ -305,6 +552,90 @@ export class DensityFunctionCompiler {
         const sampler = generated ?? this.build(node);
         this.compiled.set(node, sampler);
         return sampler;
+    }
+
+    /** Compiles an opt-in typed-array evaluator with scalar samplers for unsupported nodes. */
+    public compileVolume(node: DensityFunctionNode): DensityVolumeEvaluator {
+        const cachedPlan = this.volumePlans.get(node);
+        if (cachedPlan !== undefined) return new CompiledDensityVolumeEvaluator(cachedPlan);
+
+        const instructions: VolumeInstruction[] = [];
+        const indexes = new Map<DensityFunctionNode, number>();
+        let scalarFallbackCount = 0;
+
+        const compileNode = (entry: DensityFunctionNode): number => {
+            const known = indexes.get(entry);
+            if (known !== undefined) return known;
+
+            let instruction: VolumeInstruction;
+            switch (entry.type) {
+                case 'constant':
+                    instruction = { type: 'constant', value: f32(entry.value) };
+                    break;
+                case 'abs':
+                case 'cube':
+                case 'half_negative':
+                case 'log':
+                case 'negate':
+                case 'quarter_negative':
+                case 'reciprocal':
+                case 'sign':
+                case 'sqrt':
+                case 'square':
+                case 'squeeze':
+                    instruction = { type: 'unary', operator: entry.type, input: compileNode(entry.input) };
+                    break;
+                case 'add':
+                case 'sub':
+                case 'max':
+                case 'min':
+                case 'mul':
+                case 'div': {
+                    // Dynamic multiply and divide can skip the right side when the left is zero.
+                    // Keep those nodes scalar so the volume pass preserves that evaluation rule.
+                    if (
+                        (entry.type === 'mul' || entry.type === 'div') &&
+                        !isConstant(entry.left) &&
+                        !isConstant(entry.right)
+                    ) {
+                        instruction = { type: 'scalar', sampler: this.compile(entry) };
+                        scalarFallbackCount++;
+                        break;
+                    }
+
+                    instruction = {
+                        type: 'binary',
+                        operator: entry.type,
+                        left: compileNode(entry.left),
+                        right: compileNode(entry.right),
+                        leftConstant: isConstant(entry.left) ? f32(entry.left.value) : undefined,
+                        rightConstant: isConstant(entry.right) ? f32(entry.right.value) : undefined
+                    };
+                    break;
+                }
+                case 'clamp':
+                    instruction = {
+                        type: 'clamp',
+                        input: compileNode(entry.input),
+                        min: f32(entry.min),
+                        max: f32(entry.max)
+                    };
+                    break;
+                default:
+                    instruction = { type: 'scalar', sampler: this.compile(entry) };
+                    scalarFallbackCount++;
+                    break;
+            }
+
+            const index = instructions.push(instruction) - 1;
+            indexes.set(entry, index);
+            return index;
+        };
+
+        const outputIndex = compileNode(node);
+        const plan = { instructions, outputIndex, scalarFallbackCount };
+        this.volumePlans.set(node, plan);
+        return new CompiledDensityVolumeEvaluator(plan);
     }
 
     /** Builds an evaluator from a closed set of AST kinds, leaving stateful nodes as captures. */

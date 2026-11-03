@@ -62,6 +62,23 @@ describe('the overworld golden chunks', () => {
         }
     );
 
+    it.each(GOLDEN_CHUNKS.slice(0, 1))(
+        'reproduces chunk $chunkX,$chunkZ with the opt-in volume density path',
+        { timeout: 120_000 },
+        ({ chunkX, chunkZ, sha256 }) => {
+            expect(
+                hashChunk(
+                    new ChunkSampler(state, {
+                        chunkX,
+                        chunkZ,
+                        skipProvenCells: false,
+                        useVolumeDensity: true
+                    })
+                )
+            ).toBe(sha256);
+        }
+    );
+
     it.each(GOLDEN_CHUNKS.slice(0, 2))(
         'walks chunk $chunkX,$chunkZ cell by cell to the same blocks',
         { timeout: 120_000 },
