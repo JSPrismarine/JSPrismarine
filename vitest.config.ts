@@ -35,8 +35,7 @@ const exclude = [
     'node_modules/**/*.*',
     'turbo/**/*.*',
     'vite.config.ts',
-    'vitest.config.ts',
-    'vitest.workspace.ts'
+    'vitest.config.ts'
 ];
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
