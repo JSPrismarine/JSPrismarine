@@ -24,6 +24,17 @@ interface PackedNetworkStorage {
     readonly words: Uint32Array;
 }
 
+interface InternedUniformStorage {
+    readonly blocks: Uint8Array;
+    readonly palette: number[];
+    readonly paletteIndex: Map<number, number>;
+    readonly packedWords: Uint32Array;
+    readonly packedBitsPerBlock: number;
+}
+
+const EMPTY_BLOCKS = new Uint8Array();
+const EMPTY_PACKED_WORDS = new Uint32Array();
+
 /** The widths shared by Bedrock's persistent and network storage encodings. */
 const bitsForPaletteSize = (paletteSize: number): number => {
     if (paletteSize <= 1) return 0;
@@ -53,6 +64,17 @@ const packIndices = (indices: ArrayLike<number>, bitsPerBlock: number): Uint32Ar
 const MAX_PALETTE_SIZE = 65536;
 
 export default class BlockStorage {
+    /** Identical uniform palette/index states share one immutable backing. */
+    private static readonly internedUniformStorages = new Map<string, WeakRef<InternedUniformStorage>>();
+    private static readonly internedUniformStorageFinalizer = new FinalizationRegistry<{
+        readonly key: string;
+        readonly reference: WeakRef<InternedUniformStorage>;
+    }>(({ key, reference }) => {
+        if (BlockStorage.internedUniformStorages.get(key) === reference) {
+            BlockStorage.internedUniformStorages.delete(key);
+        }
+    });
+
     /**
      * One palette index per block, in XZY order.
      *
@@ -78,7 +100,11 @@ export default class BlockStorage {
      * scans - `includes` then `indexOf` - it used to cost. World generation places roughly
      * 18000 blocks per chunk, so that difference is most of the generator's time.
      */
-    private readonly paletteIndex: Map<number, number>;
+    private paletteIndex: Map<number, number>;
+    /** This wrapper points at immutable interned fields until its first write. */
+    private hasSharedUniformStorage = false;
+    /** Keeps the weakly interned backing alive for as long as this wrapper uses it. */
+    private internedUniformStorage: InternedUniformStorage | undefined;
 
     public constructor({ blocks, palette, [OWNED_INDICES]: ownsIndices }: BlockStorageData) {
         this.airRuntimeId = BlockRuntimeIds.getByName('minecraft:air');
@@ -153,6 +179,7 @@ export default class BlockStorage {
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
         const slot = BlockStorage.getIndex(bx, by, bz);
         const previous = this.palette[this.getPaletteIndexAtIndex(slot)]!;
+        this.detachSharedUniformStorage();
         // Adding the 257th state may replace the byte array, so resolve the slot before indexing it.
         const paletteIndex = this.getOrAddPaletteIndex(runtimeId);
         if (this.packedWords === undefined) this.blocks[slot] = paletteIndex;
@@ -170,12 +197,112 @@ export default class BlockStorage {
      * @internal Called when a provider returns a completed chunk; repeated calls are free.
      */
     public pack(): void {
-        if (this.packedWords !== undefined) return;
+        if (this.packedWords !== undefined) {
+            const uniformPaletteIndex = this.uniformPaletteIndex();
+            if (uniformPaletteIndex !== null) {
+                this.useInternedUniformStorage(
+                    this.palette[uniformPaletteIndex]!,
+                    uniformPaletteIndex,
+                    this.packedWords
+                );
+            }
+            return;
+        }
 
         this.packedBitsPerBlock = bitsForPaletteSize(this.palette.length);
-        this.packedWords = packIndices(this.blocks, this.packedBitsPerBlock);
-        this.blocks = new Uint8Array();
+        const packed = this.packAndFindUniformPaletteIndex(this.packedBitsPerBlock);
+        this.packedWords = packed.words;
+        this.blocks = EMPTY_BLOCKS;
         this.packedNetworkStorage = undefined;
+        if (packed.uniformPaletteIndex !== null) {
+            this.useInternedUniformStorage(
+                this.palette[packed.uniformPaletteIndex]!,
+                packed.uniformPaletteIndex,
+                packed.words
+            );
+        }
+    }
+
+    /** Finds one repeated palette slot; exact indices keep persistent bytes unchanged. */
+    private uniformPaletteIndex(): number | null {
+        if (this.palette.length === 1) return 0;
+
+        const firstPaletteIndex = this.getPaletteIndexAtIndex(0);
+        for (let index = 1; index < BLOCKS_PER_SUBCHUNK; index++) {
+            if (this.getPaletteIndexAtIndex(index) !== firstPaletteIndex) return null;
+        }
+
+        return firstPaletteIndex;
+    }
+
+    /** Packs once while detecting uniformity, avoiding a second full-section scan at finalization. */
+    private packAndFindUniformPaletteIndex(bitsPerBlock: number): {
+        readonly words: Uint32Array;
+        readonly uniformPaletteIndex: number | null;
+    } {
+        if (bitsPerBlock === 0) return { words: EMPTY_PACKED_WORDS, uniformPaletteIndex: 0 };
+
+        const blocksPerWord = Math.floor(32 / bitsPerBlock);
+        const words = new Uint32Array(Math.ceil(BLOCKS_PER_SUBCHUNK / blocksPerWord));
+        let firstPaletteIndex: number | undefined;
+        let uniform = true;
+        for (let index = 0; index < BLOCKS_PER_SUBCHUNK; index++) {
+            const paletteIndex = this.blocks[index]!;
+            if (firstPaletteIndex === undefined) firstPaletteIndex = paletteIndex;
+            else if (paletteIndex !== firstPaletteIndex) uniform = false;
+
+            const word = Math.floor(index / blocksPerWord);
+            const slot = index % blocksPerWord;
+            words[word] = words[word]! | (paletteIndex << (slot * bitsPerBlock));
+        }
+
+        return { words, uniformPaletteIndex: uniform ? (firstPaletteIndex ?? 0) : null };
+    }
+
+    /** Points this wrapper at the canonical immutable data for an identical uniform section. */
+    private useInternedUniformStorage(runtimeId: number, paletteIndex: number, packedWords: Uint32Array): void {
+        // Unused palette entries and the repeated index are part of the persistent bytes, so they
+        // belong in the key even when every index resolves to the same runtime id.
+        const internKey = `${paletteIndex}:${this.palette.join(',')}`;
+        let shared = BlockStorage.internedUniformStorages.get(internKey)?.deref();
+        if (shared === undefined) {
+            const palette = [...this.palette];
+            Object.freeze(palette);
+            const packedBitsPerBlock = bitsForPaletteSize(palette.length);
+            shared = {
+                blocks: EMPTY_BLOCKS,
+                palette,
+                paletteIndex: new Map(palette.map((entry, index) => [entry, index])),
+                packedWords,
+                packedBitsPerBlock
+            };
+            const reference = new WeakRef(shared);
+            BlockStorage.internedUniformStorages.set(internKey, reference);
+            BlockStorage.internedUniformStorageFinalizer.register(shared, { key: internKey, reference });
+        }
+
+        this.internedUniformStorage = shared;
+        this.blocks = shared.blocks;
+        this.palette = shared.palette;
+        this.paletteIndex = shared.paletteIndex;
+        this.packedWords = shared.packedWords;
+        this.packedBitsPerBlock = shared.packedBitsPerBlock;
+        this.packedNetworkStorage = undefined;
+        this.nonAirBlocks = runtimeId === this.airRuntimeId ? 0 : BLOCKS_PER_SUBCHUNK;
+        this.hasSharedUniformStorage = true;
+    }
+
+    /** Clones all mutable fields before exposing a write through any public mutation path. */
+    private detachSharedUniformStorage(): void {
+        if (!this.hasSharedUniformStorage) return;
+
+        this.blocks = this.blocks.slice();
+        this.palette = [...this.palette];
+        this.paletteIndex = new Map(this.paletteIndex);
+        this.packedWords = this.packedWords?.slice();
+        this.packedNetworkStorage = undefined;
+        this.internedUniformStorage = undefined;
+        this.hasSharedUniformStorage = false;
     }
 
     /**
@@ -188,8 +315,10 @@ export default class BlockStorage {
     }
 
     /**
-     * Retained index and cached network-word bytes, for storage profiling.
+     * Retained index and cached network-word bytes held by this storage, for storage profiling.
      *
+     * Multiple storages may share these buffers after uniform section interning, so aggregate
+     * measurements must deduplicate their backing buffer identities.
      * @internal
      */
     public getRetainedIndexStorageByteLength(): number {
@@ -365,6 +494,10 @@ export default class BlockStorage {
 
     /** Caches compact network palette ordering and words for finalized storage. */
     private packNetworkStorage(): PackedNetworkStorage {
+        if (this.packedBitsPerBlock === 0) {
+            return { bitsPerBlock: 0, palette: this.palette, words: this.packedWords! };
+        }
+
         const compactIndices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
         const compactPalette: number[] = [];
         const compactSlotByOriginal = new Map<number, number>();

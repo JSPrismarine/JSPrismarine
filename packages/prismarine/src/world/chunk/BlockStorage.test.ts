@@ -76,6 +76,28 @@ describe('world', () => {
             expect(storage.getRuntimeId(1, 2, 3)).toBe(dirt());
         });
 
+        it('preserves unused palette entries and repeated indices when interning a uniform section', () => {
+            const storage = new BlockStorage({
+                blocks: new Uint8Array(4096).fill(1),
+                palette: [air(), stone(), dirt()]
+            });
+            const networkBefore = new BinaryStream();
+            storage.networkSerialize(networkBefore);
+            const persistentBefore = new BinaryStream();
+            encodePersistentStorage(storage, persistentBefore);
+
+            storage.pack();
+
+            const networkAfter = new BinaryStream();
+            storage.networkSerialize(networkAfter);
+            const persistentAfter = new BinaryStream();
+            encodePersistentStorage(storage, persistentAfter);
+            expect(networkAfter.getBuffer()).toEqual(networkBefore.getBuffer());
+            expect(persistentAfter.getBuffer()).toEqual(persistentBefore.getBuffer());
+            expect(storage.getPalette()).toEqual([air(), stone(), dirt()]);
+            expect(storage.getPaletteIndexAt(1, 2, 3)).toBe(1);
+        });
+
         it('reads palette slots by their XZY linear index', () => {
             const storage = new BlockStorage({});
             storage.setBlock(1, 2, 3, dirt());

@@ -103,6 +103,30 @@ const measureChunkMutations = (chunk: Chunk, targets: readonly MutationTarget[])
 
 const currentIndexBytes = (storage: BlockStorage): number => storage.getIndexStorageByteLength();
 const retainedBytesForStorage = (storage: BlockStorage): number => storage.getRetainedIndexStorageByteLength();
+const retainedBytesForStorages = (storages: readonly BlockStorage[]): number => {
+    const buffers = new Set<ArrayBufferLike>();
+    for (const storage of storages) {
+        const blocks: unknown = Reflect.get(storage, 'blocks');
+        if (blocks instanceof Uint8Array || blocks instanceof Uint16Array) buffers.add(blocks.buffer);
+
+        const packedWords: unknown = Reflect.get(storage, 'packedWords');
+        if (packedWords instanceof Uint32Array) buffers.add(packedWords.buffer);
+
+        const packedNetworkStorage: unknown = Reflect.get(storage, 'packedNetworkStorage');
+        if (
+            typeof packedNetworkStorage === 'object' &&
+            packedNetworkStorage !== null &&
+            'words' in packedNetworkStorage
+        ) {
+            const networkWords: unknown = packedNetworkStorage.words;
+            if (networkWords instanceof Uint32Array) buffers.add(networkWords.buffer);
+        }
+    }
+
+    return [...buffers].reduce((total, buffer) => total + buffer.byteLength, 0);
+};
+const storagesOf = (chunk: Chunk): BlockStorage[] =>
+    Array.from(chunk.getSubChunkEntries()).flatMap(([, subChunk]) => subChunk.getStorages());
 
 const measureStorageEncoder = (
     uniform: boolean,
@@ -228,11 +252,7 @@ const chunkPackedIndexBytes = Array.from(chunk.getSubChunkEntries()).reduce(
         total + subChunk.getStorages().reduce((section, storage) => section + currentIndexBytes(storage), 0),
     0
 );
-const chunkRetainedIndexBytes = Array.from(chunk.getSubChunkEntries()).reduce(
-    (total, [, subChunk]) =>
-        total + subChunk.getStorages().reduce((section, storage) => section + retainedBytesForStorage(storage), 0),
-    0
-);
+const chunkRetainedIndexBytes = retainedBytesForStorages(storagesOf(chunk));
 
 const worldgenSources = findJavaWorldgenSources();
 if (worldgenSources === undefined) {
@@ -312,12 +332,7 @@ for (let sampleIndex = 0; sampleIndex < SAMPLES + 2; sampleIndex++) {
                 total + subChunk.getStorages().reduce((section, storage) => section + currentIndexBytes(storage), 0),
             0
         );
-        const retainedIndexBytes = Array.from(generated.getSubChunkEntries()).reduce(
-            (total, [, subChunk]) =>
-                total +
-                subChunk.getStorages().reduce((section, storage) => section + retainedBytesForStorage(storage), 0),
-            0
-        );
+        const retainedIndexBytes = retainedBytesForStorages(storagesOf(generated));
         generatedChunkSummary = {
             sections: persistent.length,
             mutationWritesPerSample: MUTATIONS,
