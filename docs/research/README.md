@@ -38,6 +38,7 @@ The dimension notes, written 2026-10-30, ask what it takes to run the Overworld,
 
 ## Method and prior art
 
+- [move-actor-delta.md](move-actor-delta.md): compressed MoveActorAbsolute and MoveActorDelta measurements over deterministic walking, idle, and farm-mob runtime traces, plus the decision to keep absolute movement packets.
 - [packet-codec-enforcement.md](packet-codec-enforcement.md): existing one-way packet codecs, enforcement options, and a fingerprinted legacy baseline.
 - [protocol-2225-delta.md](protocol-2225-delta.md): everything that changed on the wire between protocol 2193 and 2225 (Minecraft 1.26.60), verified against Mojang's release schemas and gophertunnel, with what `Codec2225` implements and what is still inherited from 2193.
 - [protocol-2225-added-packets.md](protocol-2225-added-packets.md): the field layout of the eight packets protocol 2225 added, read off the pinned v1.26.60 release schemas, with the `Compression`-means-varint and optional-field conventions they turn on.
