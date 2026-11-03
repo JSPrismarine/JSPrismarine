@@ -1,6 +1,7 @@
 import { crc32cUpdate, mask } from '../util/Crc32c';
 import { decompress, isCompressionType } from '../compression/Compression';
 import { BlockReader } from './BlockReader';
+import { BlockCache } from './BlockCache';
 import { ByteReader } from '../util/ByteReader';
 import { CorruptionError } from '../Errors';
 import { FOOTER_LENGTH, decodeFooter, readBlockHandle } from './Footer';
@@ -26,6 +27,20 @@ export const bufferSource = (buffer: Buffer): TableSource => ({
 
 const BLOCK_TRAILER_LENGTH = 5;
 
+/** Shared cache identity for blocks read from one table file. */
+export interface TableReaderOptions {
+    /** The database file number used to namespace this table's block keys. */
+    fileNumber?: number;
+    /** A cache shared by all tables in one database. */
+    blockCache?: BlockCache;
+}
+
+/** Whether a sequential table scan should populate the point-lookup block cache. */
+export interface TableScanOptions {
+    /** Populate the point-lookup cache while scanning; defaults to true. */
+    useCache?: boolean;
+}
+
 /**
  * Reads a table file.
  *
@@ -38,24 +53,34 @@ export class TableReader {
     private readonly source: TableSource;
     private readonly compare: (a: Buffer, b: Buffer) => number;
     private readonly indexHandle: BlockHandle;
-    private readonly blocks = new Map<number, BlockReader>();
-    private indexBlock: BlockReader | null = null;
+    private readonly fileNumber: number;
+    private readonly blockCache: BlockCache;
 
-    public constructor(source: TableSource, comparator: (a: Buffer, b: Buffer) => number) {
+    public constructor(
+        source: TableSource,
+        comparator: (a: Buffer, b: Buffer) => number,
+        options: TableReaderOptions = {}
+    ) {
         if (source.size < FOOTER_LENGTH) {
             throw new CorruptionError(`Table is ${source.size} bytes, shorter than its own footer`);
         }
 
         this.source = source;
         this.compare = comparator;
+        this.fileNumber = options.fileNumber ?? 0;
+        // Standalone readers retain their prior per-table, unbounded cache behavior. Database
+        // readers pass one shared bounded cache and a unique file number.
+        this.blockCache = options.blockCache ?? new BlockCache(Number.MAX_SAFE_INTEGER);
         this.indexHandle = decodeFooter(
             Buffer.from(source.read(source.size - FOOTER_LENGTH, FOOTER_LENGTH))
         ).indexHandle;
     }
 
-    private readBlock(handle: BlockHandle): BlockReader {
-        const cached = this.blocks.get(handle.offset);
-        if (cached) return cached;
+    private readBlock(handle: BlockHandle, useCache = true, pinned = false): BlockReader {
+        if (useCache) {
+            const cached = this.blockCache.get(this.fileNumber, handle.offset);
+            if (cached !== null) return cached;
+        }
 
         const raw = this.source.read(handle.offset, handle.size + BLOCK_TRAILER_LENGTH);
         const payload = raw.subarray(0, handle.size);
@@ -73,14 +98,14 @@ export class TableReader {
             throw new CorruptionError(`Block at offset ${handle.offset} has compression type ${type}`);
         }
 
-        const block = new BlockReader(decompress(type, payload), this.compare);
-        this.blocks.set(handle.offset, block);
+        const contents = decompress(type, payload);
+        const block = new BlockReader(contents, this.compare);
+        if (useCache) this.blockCache.set(this.fileNumber, handle.offset, block, contents.byteLength, pinned);
         return block;
     }
 
-    private index(): BlockReader {
-        this.indexBlock ??= this.readBlock(this.indexHandle);
-        return this.indexBlock;
+    private index(useCache: boolean): BlockReader {
+        return this.readBlock(this.indexHandle, useCache, true);
     }
 
     /** The value stored for exactly `key`, or null. Callers handle the deletion tombstone. */
@@ -103,7 +128,7 @@ export class TableReader {
         // the first index entry at or after the target names the block the target would be in. A
         // block that then yields nothing means the target sits in the gap the separator covers,
         // so the answer is the next block's first entry.
-        for (const index of this.index().seekFrom(key)) {
+        for (const index of this.index(true).seekFrom(key)) {
             const found = this.readBlock(readBlockHandle(new ByteReader(index.value))).seek(key);
             if (found !== null) return found;
         }
@@ -112,19 +137,21 @@ export class TableReader {
     }
 
     /** Every entry from the first one at or after `key`, in order, to the end of the table. */
-    public *seekFrom(key: Buffer): IterableIterator<BlockEntry> {
+    public *seekFrom(key: Buffer, options: TableScanOptions = {}): IterableIterator<BlockEntry> {
         let from: Buffer | null = key;
 
-        for (const index of this.index().seekFrom(key)) {
-            const block = this.readBlock(readBlockHandle(new ByteReader(index.value)));
+        const useCache = options.useCache ?? true;
+        for (const index of this.index(useCache).seekFrom(key)) {
+            const block = this.readBlock(readBlockHandle(new ByteReader(index.value)), useCache);
             yield* from === null ? block.entries() : block.seekFrom(from);
             from = null;
         }
     }
 
-    public *entries(): IterableIterator<BlockEntry> {
-        for (const index of this.index().entries()) {
-            yield* this.readBlock(readBlockHandle(new ByteReader(index.value))).entries();
+    public *entries(options: TableScanOptions = {}): IterableIterator<BlockEntry> {
+        const useCache = options.useCache ?? true;
+        for (const index of this.index(useCache).entries()) {
+            yield* this.readBlock(readBlockHandle(new ByteReader(index.value)), useCache).entries();
         }
     }
 }

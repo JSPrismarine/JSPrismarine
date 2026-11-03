@@ -18,6 +18,7 @@ import { MemTable } from './db/MemTable';
 import { MAX_LEVELS, VersionSet } from './db/VersionSet';
 import { TableBuilder } from './format/TableBuilder';
 import { TableReader } from './format/TableReader';
+import { BlockCache } from './format/BlockCache';
 import {
     MAX_SEQUENCE,
     ValueType,
@@ -33,12 +34,19 @@ import { decodeVersionEdit, encodeVersionEdit } from './db/VersionEdit';
 import { resolveOptions } from './DatabaseOptions';
 import type { DatabaseOptions, ResolvedOptions } from './DatabaseOptions';
 import type { FileMetaData, VersionEdit } from './db/VersionEdit';
+import type { BlockCacheStats } from './format/BlockCache';
 
 export interface DatabaseStats {
+    /** Number of unmerged level 0 files. */
     level0Files: number;
+    /** Number of live table files at all levels. */
     totalFiles: number;
+    /** Bytes currently held by the mutable table. */
     memtableBytes: number;
+    /** Highest sequence number ever written to this database. */
     lastSequence: bigint;
+    /** Shared point-lookup cache usage and hit rate. */
+    blockCache: BlockCacheStats;
 }
 
 export interface KeyRange {
@@ -61,6 +69,7 @@ export class Database {
     private readonly options: ResolvedOptions;
     private readonly versions = new VersionSet();
     private readonly tables = new Map<number, { reader: TableReader; file: TableFile }>();
+    private readonly blockCache: BlockCache;
 
     private lock: DirectoryLock | null = null;
     private memtable = new MemTable();
@@ -71,6 +80,7 @@ export class Database {
     private constructor(directory: string, options: ResolvedOptions) {
         this.directory = directory;
         this.options = options;
+        this.blockCache = new BlockCache(options.blockCacheSize);
     }
 
     public static async open(directory: string, options: DatabaseOptions = {}): Promise<Database> {
@@ -290,7 +300,7 @@ export class Database {
     }
 
     private *tableEntries(file: FileMetaData): IterableIterator<{ internalKey: Buffer; value: Buffer | null }> {
-        for (const entry of this.table(file).entries()) {
+        for (const entry of this.table(file).entries({ useCache: false })) {
             const { type } = parseInternalKey(entry.key);
             yield { internalKey: entry.key, value: type === ValueType.Deletion ? null : entry.value };
         }
@@ -301,7 +311,10 @@ export class Database {
         if (cached) return cached.reader;
 
         const handle = new TableFile(path.join(this.directory, tableFileName(file.number)));
-        const reader = new TableReader(handle, compareInternalKeys);
+        const reader = new TableReader(handle, compareInternalKeys, {
+            fileNumber: file.number,
+            blockCache: this.blockCache
+        });
         this.tables.set(file.number, { reader, file: handle });
         return reader;
     }
@@ -394,7 +407,9 @@ export class Database {
         }
 
         const inputs1 = this.versions.overlapping(1, smallest, largest);
-        const sources = [...inputs0, ...inputs1].map((file) => this.table(file).entries()[Symbol.iterator]());
+        const sources = [...inputs0, ...inputs1].map((file) =>
+            this.table(file).entries({ useCache: false })[Symbol.iterator]()
+        );
 
         const outputs: Array<[number, FileMetaData]> = [];
         let builder: TableBuilder | null = null;
@@ -538,6 +553,7 @@ export class Database {
 
         cached.file.close();
         this.tables.delete(number);
+        this.blockCache.deleteFile(number);
     }
 
     public get stats(): DatabaseStats {
@@ -545,7 +561,8 @@ export class Database {
             level0Files: this.versions.files(0).length,
             totalFiles: this.versions.totalFiles,
             memtableBytes: this.memtable.size,
-            lastSequence: this.versions.lastSequence
+            lastSequence: this.versions.lastSequence,
+            blockCache: this.blockCache.stats
         };
     }
 

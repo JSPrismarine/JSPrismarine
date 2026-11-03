@@ -11,6 +11,8 @@ export interface DatabaseOptions {
     readOnly?: boolean;
     /** How much may accumulate in memory before it is flushed to a table. */
     writeBufferSize?: number;
+    /** Maximum bytes of decompressed data blocks retained for point lookups. */
+    blockCacheSize?: number;
     /** The size a compaction's output files are cut at. */
     maxFileSize?: number;
     blockSize?: number;
@@ -31,6 +33,7 @@ export const resolveOptions = (options: DatabaseOptions = {}): ResolvedOptions =
     errorIfExists: options.errorIfExists ?? false,
     readOnly: options.readOnly ?? false,
     writeBufferSize: options.writeBufferSize ?? 4 * 1024 * 1024,
+    blockCacheSize: options.blockCacheSize ?? 64 * 1024 * 1024,
     maxFileSize: options.maxFileSize ?? 2 * 1024 * 1024,
     blockSize: options.blockSize ?? 4096,
     blockRestartInterval: options.blockRestartInterval ?? 16,

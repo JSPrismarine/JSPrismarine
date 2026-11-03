@@ -389,6 +389,59 @@ describe('leveldb', () => {
                 );
                 await reopened.close();
             });
+
+            it('bounds block memory and keeps cache evictions transparent across compaction and reopen', async () => {
+                const directory = scratch();
+                const database = await Database.open(directory, {
+                    writeBufferSize: 1024 * 1024,
+                    maxFileSize: 8 * 1024,
+                    l0CompactionTrigger: 2,
+                    blockCacheSize: 1024
+                });
+                const expected = new Map<string, Buffer>();
+
+                for (let index = 0; index < 80; index++) {
+                    const entryKey = `first:${String(index).padStart(3, '0')}`;
+                    const value = Buffer.alloc(128, index);
+                    expected.set(entryKey, value);
+                    database.put(key(entryKey), value);
+                }
+                await database.flush();
+
+                const fileToRead = [...database.keys()][0];
+                if (fileToRead === undefined) throw new Error('Expected stored keys');
+                database.get(fileToRead);
+                database.get(fileToRead);
+
+                const beforeCompaction = database.stats.blockCache;
+                expect(beforeCompaction.dataBytes).toBeLessThanOrEqual(1024);
+                expect(beforeCompaction.hits).toBeGreaterThan(0);
+
+                for (let index = 0; index < 80; index++) {
+                    const entryKey = `second:${String(index).padStart(3, '0')}`;
+                    const value = Buffer.alloc(128, index);
+                    expected.set(entryKey, value);
+                    database.put(key(entryKey), value);
+                }
+
+                // Sequential compaction scans must not fill the point-read cache.
+                await database.flush();
+                expect(database.stats.blockCache.hits).toBe(beforeCompaction.hits);
+                expect(database.stats.blockCache.misses).toBe(beforeCompaction.misses);
+
+                for (const [entryKey, value] of expected) {
+                    expect(database.get(key(entryKey))).toEqual(value);
+                }
+                expect(database.stats.blockCache.dataBytes).toBeLessThanOrEqual(1024);
+                await database.close();
+
+                const reopened = await Database.open(directory, { readOnly: true, blockCacheSize: 1024 });
+                for (const [entryKey, value] of expected) {
+                    expect(reopened.get(key(entryKey))).toEqual(value);
+                }
+                expect(reopened.stats.blockCache.dataBytes).toBeLessThanOrEqual(1024);
+                await reopened.close();
+            });
         });
 
         describe('locking', () => {

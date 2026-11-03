@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockBuilder } from './BlockBuilder';
 import { BlockReader } from './BlockReader';
+import { BlockCache } from './BlockCache';
 import { CompressionType } from '../compression/Compression';
 import { compareBytewise } from '../util/Comparator';
 import { CorruptionError } from '../Errors';
@@ -287,6 +288,63 @@ describe('leveldb', () => {
 
                 expect(new Set(seen).size).toBe(1000);
                 expect(seen).toEqual([...seen].sort());
+            });
+        });
+
+        it('shares a byte-bounded cache and pins the table index', () => {
+            const entries: Array<[Buffer, Buffer]> = sortedKeys(300).map((k) => [k, Buffer.from('v'.repeat(64))]);
+            const cache = new BlockCache(1024);
+            const bytes = buildTable(entries);
+            const options = {
+                fileNumber: 7,
+                blockCache: cache
+            };
+            const table = new TableReader(bufferSource(bytes), compareBytewise, options);
+            const secondReader = new TableReader(bufferSource(bytes), compareBytewise, options);
+
+            table.get(entries[0]![0]);
+            const hitsBeforeSecondReader = cache.stats.hits;
+            secondReader.get(entries[0]![0]);
+            expect(cache.stats.hits).toBeGreaterThan(hitsBeforeSecondReader);
+
+            for (const [k] of entries) table.get(k);
+
+            expect(cache.stats.dataBytes).toBeLessThanOrEqual(1024);
+            expect(cache.stats.pinnedBytes).toBeGreaterThan(0);
+            expect(cache.stats.residentBytes).toBe(cache.stats.dataBytes + cache.stats.pinnedBytes);
+            expect(cache.stats.misses).toBeGreaterThan(0);
+        });
+
+        it('evicts the least-recently used data block first', () => {
+            const cache = new BlockCache(1024);
+            const emptyBlock = new BlockReader(Buffer.alloc(4), compareBytewise);
+            cache.set(1, 10, emptyBlock, 500);
+            cache.set(1, 20, emptyBlock, 500);
+            expect(cache.get(1, 10)).toBe(emptyBlock);
+            cache.set(1, 30, emptyBlock, 500);
+
+            expect(cache.get(1, 10)).toBe(emptyBlock);
+            expect(cache.get(1, 20)).toBeNull();
+            expect(cache.get(1, 30)).toBe(emptyBlock);
+            expect(cache.stats.dataBytes).toBe(1000);
+        });
+
+        it('does not populate the point-lookup cache during a sequential scan', () => {
+            const cache = new BlockCache(1024);
+            const table = new TableReader(
+                bufferSource(buildTable(sortedKeys(100).map((k) => [k, key('v')]))),
+                compareBytewise,
+                { fileNumber: 8, blockCache: cache }
+            );
+
+            expect([...table.entries({ useCache: false })]).toHaveLength(100);
+            expect(cache.stats).toEqual({
+                hits: 0,
+                misses: 0,
+                dataBytes: 0,
+                pinnedBytes: 0,
+                residentBytes: 0,
+                hitRate: 0
             });
         });
 
