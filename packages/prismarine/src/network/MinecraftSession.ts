@@ -20,6 +20,10 @@ import path from 'node:path';
 import { PacketLogFilter } from './PacketLogFilter';
 import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 
+const isPacketList = (
+    value: readonly NetworkPacket<unknown>[] | NetworkPacket<unknown>
+): value is readonly NetworkPacket<unknown>[] => Array.isArray(value);
+
 /**
  * The packet class names a debugging variable lists, comma-separated.
  *
@@ -85,10 +89,6 @@ const sameBatchOptions = (left: PacketBatchOptions, right: PacketBatchOptions): 
  * sends `ServerToClientHandshake`, and a client accepts a plaintext session when no handshake
  * arrives - and the transport's own `capabilities.encrypted` says whether the wire covers it.
  */
-const isPacketList = (
-    value: readonly NetworkPacket<unknown>[] | NetworkPacket<unknown>
-): value is readonly NetworkPacket<unknown>[] => Array.isArray(value);
-
 export default class MinecraftSession {
     /**
      * The protocol codec this session speaks. Every session starts on the layout-stable
