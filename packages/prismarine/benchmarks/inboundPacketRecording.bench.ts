@@ -124,7 +124,7 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
     const handler = {
         phases: ['handshake'] as const satisfies readonly SessionPhase[],
         handle: async (packet: unknown) => {
-            if (packet instanceof TextPacket) checksum += packet.getPacketData()!.message.length;
+            if (packet instanceof TextPacket) checksum += packet.getName().length;
         }
     };
     const logger = stub<Logger>({
@@ -172,50 +172,105 @@ const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
     };
 };
 
-let decodeChecksum = 0;
-const decodeBaseline = measureCpuMs(() => {
-    for (let index = 0; index < packetCount; index += 1) {
-        decodeChecksum += decode(payloads[index % payloads.length]!).getName().length;
+const dispatchPackets = async (
+    harness: Awaited<ReturnType<typeof createReplayHarness>>,
+    count: number
+): Promise<void> => {
+    for (let index = 0; index < count; index += 1) {
+        const payload = payloads[index % payloads.length]!;
+        await harness.dispatchFrame(payload, Math.floor(index / 20));
     }
-});
+};
 
-const trace = new InboundPacketTrace();
+const warmupCount = Math.min(packetCount, 5_000);
+for (let index = 0; index < warmupCount; index += 1) {
+    decode(payloads[index % payloads.length]!);
+}
+
+// Warm each async dispatcher path separately so its first run does not absorb JIT and setup costs.
+const warmupBaseline = await createReplayHarness();
+await dispatchPackets(warmupBaseline, warmupCount);
+const warmupTrace = new InboundPacketTrace();
+const warmupRecording = await createReplayHarness(warmupTrace);
+await dispatchPackets(warmupRecording, warmupCount);
+const warmupEncodedTrace = warmupTrace.serialize();
+const warmupReplay = await createReplayHarness();
+for (const record of InboundPacketTrace.deserialize(warmupEncodedTrace).records()) {
+    await warmupReplay.replayRecord(record);
+}
+
+const SAMPLE_COUNT = 3;
+const decodeSamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
+const baselineSamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
+const recordingSamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
+const replaySamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
+const dispatcherReplaySamples: { readonly wallMs: number; readonly cpuMs: number }[] = [];
+let trace: InboundPacketTrace | undefined;
 let encodedTrace = Buffer.alloc(0);
-const baselineHarness = await createReplayHarness();
-const baseline = await measureCpuMsAsync(async () => {
-    for (let index = 0; index < packetCount; index += 1) {
-        const payload = payloads[index % payloads.length]!;
-        await baselineHarness.dispatchFrame(payload, Math.floor(index / 20));
-    }
-});
+let checksums = { decoded: 0, baseline: 0, recording: 0, replay: 0 };
 
-const recordingHarness = await createReplayHarness(trace);
-const recording = await measureCpuMsAsync(async () => {
-    for (let index = 0; index < packetCount; index += 1) {
-        const payload = payloads[index % payloads.length]!;
-        await recordingHarness.dispatchFrame(payload, Math.floor(index / 20));
-    }
-    encodedTrace = trace.serialize();
-});
+for (let sample = 0; sample < SAMPLE_COUNT; sample += 1) {
+    const decodeBaseline = measureCpuMs(() => {
+        for (let index = 0; index < packetCount; index += 1) {
+            decode(payloads[index % payloads.length]!);
+        }
+    });
+    decodeSamples.push(decodeBaseline);
 
-const replay = measureCpuMs(() => {
-    const restored = InboundPacketTrace.deserialize(encodedTrace);
-    for (const record of restored.records()) decodeChecksum += decode(Buffer.from(record.payload)).getName().length;
-});
+    const baselineHarness = await createReplayHarness();
+    const baseline = await measureCpuMsAsync(() => dispatchPackets(baselineHarness, packetCount));
+    baselineSamples.push(baseline);
 
-const replayHarness = await createReplayHarness();
-const dispatcherReplay = await measureCpuMsAsync(async () => {
-    const restored = InboundPacketTrace.deserialize(encodedTrace);
-    for (const record of restored.records()) {
-        await replayHarness.replayRecord(record);
-    }
+    const currentTrace = new InboundPacketTrace();
+    trace = currentTrace;
+    const recordingHarness = await createReplayHarness(currentTrace);
+    const recording = await measureCpuMsAsync(async () => {
+        await dispatchPackets(recordingHarness, packetCount);
+        encodedTrace = currentTrace.serialize();
+    });
+    recordingSamples.push(recording);
+
+    const replay = measureCpuMs(() => {
+        const restored = InboundPacketTrace.deserialize(encodedTrace);
+        for (const record of restored.records()) decode(Buffer.from(record.payload));
+    });
+    replaySamples.push(replay);
+
+    const replayHarness = await createReplayHarness();
+    const dispatcherReplay = await measureCpuMsAsync(async () => {
+        const restored = InboundPacketTrace.deserialize(encodedTrace);
+        for (const record of restored.records()) {
+            await replayHarness.replayRecord(record);
+        }
+    });
+    dispatcherReplaySamples.push(dispatcherReplay);
+    checksums = {
+        decoded: packetCount * decode(payloads[0]!).getName().length,
+        baseline: baselineHarness.checksum(),
+        recording: recordingHarness.checksum(),
+        replay: replayHarness.checksum()
+    };
+}
+
+if (trace === undefined) throw new Error('benchmark did not collect a packet trace');
+
+const median = (values: readonly number[]): number =>
+    [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)]!;
+const medianSample = (samples: readonly { readonly wallMs: number; readonly cpuMs: number }[]) => ({
+    cpuMs: median(samples.map((sample) => sample.cpuMs)),
+    wallMs: median(samples.map((sample) => sample.wallMs))
 });
+const decodeBaseline = medianSample(decodeSamples);
+const baseline = medianSample(baselineSamples);
+const recording = medianSample(recordingSamples);
+const replay = medianSample(replaySamples);
+const dispatcherReplay = medianSample(dispatcherReplaySamples);
 
 const ratio = (measured: number, reference: number): string =>
     reference === 0 ? 'n/a' : `${(measured / reference).toFixed(2)}x`;
 
 console.log(
-    `dispatched ${packetCount} packets per pass; checksums ${decodeChecksum}, ${baselineHarness.checksum()}, ${recordingHarness.checksum()}, ${replayHarness.checksum()}`
+    `dispatched ${packetCount} packets per pass across ${SAMPLE_COUNT} measured passes; checksums ${checksums.decoded}, ${checksums.baseline}, ${checksums.recording}, ${checksums.replay}`
 );
 console.log(
     `decode only: ${decodeBaseline.cpuMs.toFixed(1)} CPU ms, ${decodeBaseline.wallMs.toFixed(1)} wall ms (packet decoder reference)`
@@ -230,7 +285,7 @@ console.log(
     `decode replay: ${replay.cpuMs.toFixed(1)} CPU ms, ${replay.wallMs.toFixed(1)} wall ms (${ratio(replay.cpuMs, baseline.cpuMs)} unrecorded, trace parse plus decode)`
 );
 console.log(
-    `dispatch replay: ${dispatcherReplay.cpuMs.toFixed(1)} CPU ms, ${dispatcherReplay.wallMs.toFixed(1)} wall ms (${ratio(dispatcherReplay.cpuMs, baseline.cpuMs)} unrecorded, trace parse, decode, phase gate, and handler)`
+    `dispatch replay: ${dispatcherReplay.cpuMs.toFixed(1)} CPU ms, ${dispatcherReplay.wallMs.toFixed(1)} wall ms (${ratio(dispatcherReplay.cpuMs, baseline.cpuMs)} unrecorded, trace parse, batch framing, decode, phase gate, and handler)`
 );
 console.log(
     `storage:  ${trace.getPayloadBytes()} raw payload bytes, ${encodedTrace.byteLength} serialized bytes (${(encodedTrace.byteLength / Math.max(1, trace.getPayloadBytes())).toFixed(2)}x raw)`
