@@ -2,7 +2,8 @@ import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protoc
 import { childProcessLink, isConsoleMessage } from '@jsprismarine/console-protocol';
 import type { LogTransport } from '@jsprismarine/logger';
 import { FileTransport, Logger } from '@jsprismarine/logger';
-import { Config, readContentSettings, RemoteConsole, RemoteLogTransport, Server } from '@jsprismarine/prismarine';
+import type { Config as ServerConfig, Server as PrismarineServer } from '@jsprismarine/prismarine';
+import { readContentSettings } from '@jsprismarine/prismarine/content/settings';
 import { resolvePackStack } from '@jsprismarine/prismarine/content/packStack';
 
 import { existsSync } from 'node:fs';
@@ -70,19 +71,21 @@ const contentPackPaths = (): string[] => {
     }
 };
 
-const fileTransport = (config: Config): FileTransport =>
-    new FileTransport({
-        level: config.getLogLevel(),
-        filename: dataPath('logs', logFileName())
-    });
-
 /**
  * Runs the server in this process. This is today's path: the line console when stdin is
  * available and `headless` is off, the log file either way, and the process's own signal
  * handlers for shutdown. With `remote` set the server is headless and speaks the console
  * protocol over the IPC channel its host opened.
  */
-const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void => {
+const runInProcess = async (args: ServerArgs, { remote }: { remote: boolean }): Promise<void> => {
+    const { Config, RemoteConsole, RemoteLogTransport, Server } = await import('@jsprismarine/prismarine');
+
+    const fileTransport = (config: ServerConfig): FileTransport =>
+        new FileTransport({
+            level: config.getLogLevel(),
+            filename: dataPath('logs', logFileName())
+        });
+
     process.title = 'JSPrismarine';
 
     const devtools = args.devtools || args.devtoolsWait ? openDevTools() : undefined;
@@ -97,7 +100,7 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
 
     const config = new Config({ serverPort: args.port });
     const transports: LogTransport[] = [fileTransport(config), ...(devtools ? [createDevToolsLogTransport()] : [])];
-    let attach: ((server: Server) => void) | undefined;
+    let attach: ((server: PrismarineServer) => void) | undefined;
     if (remote) {
         const link = childProcessLink<ConsoleMessage, ServerMessage>({ validate: isConsoleMessage });
         const transport = new RemoteLogTransport(link);
@@ -233,13 +236,39 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
             }
         }
     });
-    if (devtoolsRelay) {
-        supervisor.onEvent((event) => {
-            if (event.type !== 'supervisor.output' || event.stream !== 'stderr') return;
+    const startupBenchmarkStartedAt = Number(process.env.JSP_HOST_STARTUP_STARTED_AT);
+    let startupBenchmarkReported = false;
+    const reportStartupBenchmark = (text: string): void => {
+        if (
+            startupBenchmarkReported ||
+            !Number.isFinite(startupBenchmarkStartedAt) ||
+            !text.includes('JSPrismarine is now listening on port')
+        )
+            return;
+        startupBenchmarkReported = true;
+        // The benchmark asks the live host for its retained heap after the child is ready.
+        globalThis.gc?.();
+        process.stderr.write(
+            `JSP_HOST_STARTUP_METRIC ${JSON.stringify({
+                elapsedMilliseconds: Date.now() - startupBenchmarkStartedAt,
+                heapUsedBytes: process.memoryUsage().heapUsed
+            })}\n`
+        );
+    };
+    supervisor.onEvent((event) => {
+        if (event.type !== 'supervisor.output') return;
+        if (devtoolsRelay && event.stream === 'stderr') {
             const prefix = 'JSPrismarine inspector target: ';
             if (event.text.startsWith(prefix)) devtoolsRelay.setTarget(event.text.slice(prefix.length));
+        }
+        reportStartupBenchmark(event.text);
+    });
+    supervisor.onLink((link) => {
+        // Logger records use IPC; raw child stdout does not carry the server's listening line.
+        link.onMessage((message) => {
+            if (message.type === 'log') reportStartupBenchmark(message.formatted);
         });
-    }
+    });
     supervisor.handleSignals();
     // Before the frontend attaches, so this runs ahead of any handler the TUI registers.
     handleFatalErrors({ supervisor, ui });
@@ -282,7 +311,7 @@ const main = async (): Promise<void> => {
     }
 
     if (args.role === 'server') {
-        runInProcess(args, { remote: true });
+        await runInProcess(args, { remote: true });
         return;
     }
 
@@ -321,7 +350,7 @@ const main = async (): Promise<void> => {
         return;
     }
 
-    runInProcess(args, { remote: false });
+    await runInProcess(args, { remote: false });
 };
 
 void main();

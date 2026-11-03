@@ -11,6 +11,8 @@
         "incremental": false,
         "inlineSourceMap": false,
         "paths": {
+            // Keep subpath imports on dist declarations instead of mixing in their source graph.
+            "@jsprismarine/prismarine/*": ["../prismarine/dist/*.d.ts"],
             "@jsprismarine/*": ["../*/dist/index.d.ts"]
         }
     },

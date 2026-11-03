@@ -46,6 +46,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "typecheck": "tsc-ts --noEmit",
         "bench:startup": "node benchmarks/startup.mjs",
+        "bench:host-startup": "node benchmarks/hostStartup.mjs",
         "start": "pnpm --filter @jsprismarine/server... run build && cross-env NODE_ENV=production node --conditions=jsprismarine:dist --unhandled-rejections=strict ./dist/Server.es.js",
         "dev": "cross-env NODE_ENV=development node --import tsx ./src/Server.ts --watch",
         "dev:native-prototype": "cross-env NODE_ENV=development node --import ./scripts/native-typescript-loader.mjs ./src/Server.ts --watch",
