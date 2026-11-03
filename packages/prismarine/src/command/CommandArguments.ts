@@ -238,7 +238,8 @@ export class CommandArgumentEntity implements CommandArgument {
                 return ParseTargetSelector({
                     input: player,
                     source,
-                    entities: source.getWorld().getEntities()
+                    entities: source.getWorld().getEntities(),
+                    random: source.getServer().getRandom()
                 });
             } catch (error: unknown) {
                 if (!(error instanceof Error && error.message.includes('no results'))) throw error;

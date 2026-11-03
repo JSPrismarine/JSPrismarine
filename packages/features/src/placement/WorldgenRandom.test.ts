@@ -57,6 +57,24 @@ describe('WorldgenRandom', () => {
         expect(random.nextInt()).toBe(first);
     });
 
+    it.each(['legacy', 'xoroshiro'] as const)('restores %s state including the Gaussian cache', (algorithm) => {
+        const first = new WorldgenRandom(1234n, algorithm);
+        first.nextGaussian();
+        const state = JSON.parse(JSON.stringify(first.saveState()));
+        const expected = [first.nextGaussian(), first.nextLong().toString()];
+
+        const restored = new WorldgenRandom(0n, algorithm);
+        restored.restoreState(state);
+
+        expect([restored.nextGaussian(), restored.nextLong().toString()]).toEqual(expected);
+    });
+
+    it('does not restore a state from another backing algorithm', () => {
+        const random = new WorldgenRandom(1234n, 'legacy');
+
+        expect(() => random.restoreState(new WorldgenRandom(1234n).saveState())).toThrow(TypeError);
+    });
+
     it('draws every integer of an inclusive range and nothing outside it', () => {
         const random = new WorldgenRandom(1n);
         const seen = new Set<number>();

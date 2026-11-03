@@ -45,7 +45,7 @@ import EntityGrid from './EntityGrid';
 import type { NamedSoundOptions, WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
-import { placePlayerSpawn } from './SpawnPlacement';
+import { placePlayerSpawn, SPAWN_RELOCATION_RANGE } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionType } from './Dimension';
 import type { BlockMining } from './BlockMining';
@@ -1919,6 +1919,9 @@ export class World implements Service {
      */
     public async placePlayerSpawn(random?: RelocationOffset): Promise<PlayerSpawn> {
         const { minY, height } = this.dimension;
+        const relocationOffset =
+            random ??
+            (() => Math.floor(this.server.getRandom()() * (SPAWN_RELOCATION_RANGE * 2 + 1)) - SPAWN_RELOCATION_RANGE);
 
         return placePlayerSpawn(
             await this.getSpawnPosition(),
@@ -1929,7 +1932,7 @@ export class World implements Service {
                 getBlockName: async (x, y, z) => (await this.getBlockState(x, y, z)).name,
                 getHighestBlock: async (x, z) => (await this.getChunkAt(x, z)).getHighestBlockAt(x, z)
             },
-            random
+            relocationOffset
         );
     }
 

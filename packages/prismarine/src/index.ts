@@ -9,6 +9,7 @@ export * from './content/';
 export * from './entity/';
 export * from './inventory/';
 export * from './item/';
+export * from './network/ReplayManifest';
 export * from './utils/';
 export * from './world/';
 
@@ -24,3 +25,4 @@ import PlayerSession from './network/PlayerSession';
 import BaseProvider from './world/providers/BaseProvider';
 
 export { BaseProvider, Chat, ConfigBuilder, Console, Entities, Events, Player, PlayerSession, Server };
+export type { ServerReplayRandomState } from './Server';

@@ -1,6 +1,6 @@
 import { f32 } from '../math';
 import { MarsagliaPolarGaussian } from './MarsagliaPolarGaussian';
-import type { PositionalRandomFactory, RandomSource } from './RandomSource';
+import type { PositionalRandomFactory, RandomSource, XoroshiroRandomSourceState } from './RandomSource';
 import type { Seed128bit } from './randomSupport';
 import { mulLow64 } from './longLanes';
 import {
@@ -160,6 +160,51 @@ export class XoroshiroRandomSource implements RandomSource {
             this.hiHi = laneHiOf(seedHi);
             this.hiLo = laneLoOf(seedHi);
         }
+    }
+
+    /** Returns the four unsigned state lanes and cached Gaussian value for replay. */
+    public saveState(): XoroshiroRandomSourceState {
+        return {
+            version: 1,
+            algorithm: 'xoroshiro128++',
+            lanes: [this.loHi, this.loLo, this.hiHi, this.hiLo],
+            gaussian: this.gaussianSource?.saveState() ?? {
+                version: 1,
+                hasCachedGaussian: false,
+                cachedGaussian: 0
+            }
+        };
+    }
+
+    /** Restores this source from a JSON-parsed state, rejecting invalid lanes and fixed points. */
+    public restoreState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('algorithm' in state) ||
+            !('lanes' in state) ||
+            !('gaussian' in state) ||
+            state.version !== 1 ||
+            state.algorithm !== 'xoroshiro128++' ||
+            !Array.isArray(state.lanes) ||
+            state.lanes.length !== 4 ||
+            !state.lanes.every(
+                (lane) => typeof lane === 'number' && Number.isInteger(lane) && lane >= 0 && lane <= 0xffffffff
+            ) ||
+            state.lanes.every((lane) => lane === 0)
+        ) {
+            throw new TypeError('Invalid xoroshiro random source state');
+        }
+
+        const gaussian = new MarsagliaPolarGaussian(this);
+        gaussian.restoreState(state.gaussian);
+        this.loHi = state.lanes[0];
+        this.loLo = state.lanes[1];
+        this.hiHi = state.lanes[2];
+        this.hiLo = state.lanes[3];
+        this.gaussianSource ??= new MarsagliaPolarGaussian(this);
+        this.gaussianSource.restoreState(gaussian.saveState());
     }
 
     /** @inheritDoc */

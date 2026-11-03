@@ -30,6 +30,33 @@ interface Seed128 {
     readonly hi: bigint;
 }
 
+/** JSON-safe state for one Java Xoroshiro128++ loot stream. */
+export interface LootRandomState {
+    readonly version: 1;
+    readonly algorithm: 'xoroshiro128++';
+    readonly lo: string;
+    readonly hi: string;
+}
+
+/** One loot sequence ID and the state of its stream. */
+export type LootSequenceEntryState = readonly [sequence: string, state: LootRandomState];
+
+/** JSON-safe state for the unkeyed stream and all named loot sequences. */
+export interface LootSequencesState {
+    readonly version: 1;
+    readonly worldSeed: string;
+    readonly unkeyed: LootRandomState;
+    readonly streams: readonly LootSequenceEntryState[];
+}
+
+/** A loot random source that can continue from a JSON-safe state. */
+export interface StatefulLootRandomSource extends RandomSource {
+    /** Returns the state needed to continue this exact stream. */
+    saveState(): LootRandomState;
+    /** Restores this stream from a state produced by {@link lootSequenceRandom}. */
+    restoreState(state: unknown): void;
+}
+
 /** Stafford's variant 13 mix, the avalanche step Java runs over each half of an upgraded seed. */
 const mixStafford13 = (value: bigint): bigint => {
     let mixed = asLong(value);
@@ -65,7 +92,7 @@ const rotateLeft = (value: bigint, shift: bigint): bigint => {
  * makes. The generator is the same one world generation uses, so a host that
  * already has one may inject it instead through the predicate context.
  */
-class XoroshiroLootRandom implements RandomSource {
+class XoroshiroLootRandom implements StatefulLootRandomSource {
     private lo: bigint;
     private hi: bigint;
 
@@ -78,6 +105,37 @@ class XoroshiroLootRandom implements RandomSource {
             this.lo = asLong(state.lo);
             this.hi = asLong(state.hi);
         }
+    }
+
+    /** Returns the two signed 64-bit state words as decimal strings. */
+    public saveState(): LootRandomState {
+        return { version: 1, algorithm: 'xoroshiro128++', lo: this.lo.toString(), hi: this.hi.toString() };
+    }
+
+    /** Restores this stream from a JSON-parsed state, rejecting malformed or fixed-point states. */
+    public restoreState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('algorithm' in state) ||
+            !('lo' in state) ||
+            !('hi' in state) ||
+            state.version !== 1 ||
+            state.algorithm !== 'xoroshiro128++' ||
+            typeof state.lo !== 'string' ||
+            typeof state.hi !== 'string' ||
+            !isSignedLongString(state.lo) ||
+            !isSignedLongString(state.hi)
+        ) {
+            throw new TypeError('Invalid loot random state');
+        }
+
+        const lo = BigInt(state.lo);
+        const hi = BigInt(state.hi);
+        if ((lo | hi) === 0n) throw new TypeError('Invalid all-zero loot random state');
+        this.lo = asLong(lo);
+        this.hi = asLong(hi);
     }
 
     /** @inheritDoc */
@@ -129,10 +187,16 @@ class XoroshiroLootRandom implements RandomSource {
  * stream `RandomSource.create(worldSeed)` produces, which is what Java falls
  * back to for a table that names no sequence.
  */
-export const lootSequenceRandom = (worldSeed: bigint, sequence?: string): RandomSource => {
+export const lootSequenceRandom = (worldSeed: bigint, sequence?: string): StatefulLootRandomSource => {
     const base = upgradeUnmixed(worldSeed);
     const keyed = sequence === undefined ? base : hashInto(base, seedFromHashOf(sequence));
     return new XoroshiroLootRandom({ lo: mixStafford13(keyed.lo), hi: mixStafford13(keyed.hi) });
+};
+
+const isSignedLongString = (value: string): boolean => {
+    if (!/^(0|-?[1-9]\d*)$/.test(value)) return false;
+    const parsed = BigInt(value);
+    return parsed >= -(1n << 63n) && parsed < 1n << 63n;
 };
 
 const hashInto = (seed: Seed128, key: Seed128): Seed128 => ({
@@ -149,8 +213,8 @@ const hashInto = (seed: Seed128, key: Seed128): Seed128 => ({
  * unkeyed stream, standing in for Java's level random.
  */
 export class LootSequences {
-    private readonly streams = new Map<string, RandomSource>();
-    private readonly unkeyed: RandomSource;
+    private readonly streams = new Map<string, StatefulLootRandomSource>();
+    private readonly unkeyed: StatefulLootRandomSource;
 
     public constructor(public readonly worldSeed: bigint) {
         this.unkeyed = lootSequenceRandom(worldSeed);
@@ -166,5 +230,52 @@ export class LootSequences {
         const created = lootSequenceRandom(this.worldSeed, sequence);
         this.streams.set(sequence, created);
         return created;
+    }
+
+    /** Captures every advanced sequence, including the shared unkeyed stream. */
+    public saveState(): LootSequencesState {
+        return {
+            version: 1,
+            worldSeed: this.worldSeed.toString(),
+            unkeyed: this.unkeyed.saveState(),
+            streams: [...this.streams]
+                .sort(([left], [right]) => left.localeCompare(right))
+                .map(([sequence, random]) => [sequence, random.saveState()] as const)
+        };
+    }
+
+    /** Restores streams from a JSON-parsed state after checking its seed and every sequence. */
+    public restoreState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('worldSeed' in state) ||
+            !('unkeyed' in state) ||
+            !('streams' in state) ||
+            state.version !== 1 ||
+            state.worldSeed !== this.worldSeed.toString() ||
+            !Array.isArray(state.streams)
+        ) {
+            throw new TypeError('Invalid loot sequence state');
+        }
+
+        const unkeyed = lootSequenceRandom(this.worldSeed);
+        unkeyed.restoreState(state.unkeyed);
+        const streams = new Map<string, StatefulLootRandomSource>();
+        for (const entry of state.streams) {
+            if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string' || entry[0].length === 0) {
+                throw new TypeError('Invalid named loot sequence state');
+            }
+            if (streams.has(entry[0])) throw new TypeError(`Duplicate loot sequence state: ${entry[0]}`);
+
+            const random = lootSequenceRandom(this.worldSeed, entry[0]);
+            random.restoreState(entry[1]);
+            streams.set(entry[0], random);
+        }
+
+        this.unkeyed.restoreState(unkeyed.saveState());
+        this.streams.clear();
+        for (const [sequence, random] of streams) this.streams.set(sequence, random);
     }
 }

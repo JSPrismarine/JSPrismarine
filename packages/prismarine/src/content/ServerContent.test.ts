@@ -26,6 +26,21 @@ describe('buildServerContent', () => {
         expect(content.items.types.get('minecraft:diamond_pickaxe')?.hasTag('minecraft:is_pickaxe')).toBe(true);
     });
 
+    it('fingerprints the effective definitions and content tables', () => {
+        const original = fixtureDefinitions();
+        const biomes = new Map(original.biomes);
+        biomes.set('minecraft:plains', definitionOf('biomes', 'minecraft:plains', { changed: true }));
+
+        const changed = buildServerContent(
+            fixtureContentOptions({ load: () => ({ definitions: { ...original, biomes }, diagnostics: [] }) })
+        );
+        const repeated = buildServerContent(fixtureContentOptions());
+
+        expect(repeated.contentFingerprint).toMatch(/^[0-9a-f]{64}$/);
+        expect(repeated.contentFingerprint).toBe(buildServerContent(fixtureContentOptions()).contentFingerprint);
+        expect(changed.contentFingerprint).not.toBe(repeated.contentFingerprint);
+    });
+
     it('loads Bedrock item tags and component bodies without replacing Java defaults', () => {
         const definitions = fixtureDefinitions();
         const gem = definitionOf('items', 'test:gem', {

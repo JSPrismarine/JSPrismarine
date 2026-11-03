@@ -31,11 +31,14 @@ const isSort = (value: string): value is Sort => SORTS.some((sort) => sort === v
 const ParseTargetSelector = ({
     input,
     entities,
-    source
+    source,
+    random = Math.random
 }: {
     input: string;
     entities: Entity[];
     source: Entity;
+    /** Random draw for `@r`, supplied by the live server during command execution. */
+    random?: () => number;
 }): Entity[] => {
     if (!input.startsWith('@')) throw new Error('input does not start with "@"');
 
@@ -139,7 +142,7 @@ const ParseTargetSelector = ({
             break;
         case 'random':
             // FIXME: respect limit filter
-            targets = [targets[Math.floor(Math.random() * targets.length)]!];
+            targets = [targets[Math.floor(random() * targets.length)]!];
             break;
         // TODO: case 'arbitrary':
         default:

@@ -8,6 +8,8 @@
  * resolves each domain's definitions into types, and flattens the hot
  * per-state columns, in the one order those steps allow.
  */
+import { createHash } from 'node:crypto';
+
 import { AdvancementEngine, parseAdvancement } from '@jsprismarine/advancements';
 import { item_tags, java_entity_attributes, java_entity_navigation } from '@jsprismarine/bedrock-data';
 import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
@@ -105,6 +107,8 @@ export interface ServerContentEntities {
  * them from zero.
  */
 export interface ServerContent {
+    /** SHA-256 of the effective definition files and built-in content tables used by this build. */
+    readonly contentFingerprint: string;
     /** The composed pack stack, before any domain resolved it. */
     readonly definitions: Definitions;
     /** Everything the load and every resolve reported, in build order. */
@@ -192,6 +196,60 @@ const registryOf = (name: string, definitions: ReadonlyMap<string, Definition>):
     registry.rebuild(definitions);
     return registry;
 };
+
+/** Stable JSON for the effective runtime data; object and map insertion order cannot change it. */
+const stableContentData = (value: unknown, ancestors = new WeakSet<object>()): unknown => {
+    if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'undefined') return '[undefined]';
+    if (typeof value === 'bigint') return `${value}n`;
+    if (typeof value === 'function') return '[function]';
+    if (typeof value !== 'object') return String(value);
+    if (ancestors.has(value)) return `[cycle:${value.constructor.name}]`;
+
+    ancestors.add(value);
+    let normalized: unknown;
+    if (Array.isArray(value)) {
+        normalized = value.map((entry) => stableContentData(entry, ancestors));
+    } else if (value instanceof Map) {
+        normalized = {
+            type: 'Map',
+            entries: [...value]
+                .map(
+                    ([key, entry]) => [stableContentData(key, ancestors), stableContentData(entry, ancestors)] as const
+                )
+                .sort(([left], [right]) => {
+                    const leftKey = JSON.stringify(left) ?? '';
+                    const rightKey = JSON.stringify(right) ?? '';
+                    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+                })
+        };
+    } else if (value instanceof Set) {
+        normalized = [...value]
+            .map((entry) => stableContentData(entry, ancestors))
+            .sort((left, right) => {
+                const leftKey = JSON.stringify(left) ?? '';
+                const rightKey = JSON.stringify(right) ?? '';
+                return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+            });
+    } else {
+        const entries: [string, unknown][] = [];
+        for (const key of Object.keys(value).sort()) {
+            const property = Object.getOwnPropertyDescriptor(value, key);
+            if (property !== undefined && 'value' in property) entries.push([key, property.value]);
+        }
+        normalized = Object.fromEntries(entries.map(([key, entry]) => [key, stableContentData(entry, ancestors)]));
+    }
+    ancestors.delete(value);
+    return normalized;
+};
+
+/** Hashes data files after pack composition plus the repository-owned tables they resolve against. */
+const fingerprintContent = (input: unknown): string =>
+    createHash('sha256')
+        .update(JSON.stringify(stableContentData(input)))
+        .digest('hex');
 
 /**
  * Builds every content registry from a pack stack.
@@ -340,8 +398,10 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // stays out: an `exploration_map` needs a structure search, and this
     // server has none to offer yet, so the modifier reports rather than
     // pointing a map at a made-up place.
+    const javaLootDefinitions = javaLootTables(definitions.lootTablesJava);
+    const bedrockLootDefinitions = bedrockLootTables(definitions.lootTables);
     const loot = new LootRegistry(
-        { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+        { ...definitions, lootTables: javaLootDefinitions },
         {
             worldSeed: options.seed ?? 0n,
             enchantments: (random) => createEnchantmentView(enchantments, { random }),
@@ -356,7 +416,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     // than a word sitting beside it: `javaLootTables` over this map is the
     // mistake that armed 2000 zombies of 2000, and it no longer compiles.
     const equipmentLoot = new LootRegistry(
-        { ...definitions, lootTables: bedrockLootTables(definitions.lootTables) },
+        { ...definitions, lootTables: bedrockLootDefinitions },
         { worldSeed: options.seed ?? 0n, items: itemStackOpsFor(items.types), strict }
     );
 
@@ -381,7 +441,36 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     });
     advancements.load(parseAdvancements(definitions.advancements, resolver, diagnostics));
 
+    const effectiveTags = tags.registries.map((registry) => [
+        registry,
+        tags.tags(registry).map((id) => [id, tags.members(registry, id)])
+    ]);
+    const contentFingerprint = fingerprintContent({
+        version: 1,
+        definitions,
+        blockPalette: blockPalette.entries.map((entry) => [entry.identifier, entry.firstRuntimeId, entry.model.states]),
+        itemDefinitions,
+        bedrockItemTags: item_tags,
+        javaEntityAttributes: java_entity_attributes,
+        javaEntityNavigation: java_entity_navigation,
+        javaLootDefinitions,
+        bedrockLootDefinitions,
+        effectiveTags,
+        resolvedBlockStates: blocks.states.map((state) => ({
+            identifier: state.type.identifier,
+            index: state.index,
+            runtimeId: state.runtimeId,
+            values: state.values,
+            permutations: state.permutations,
+            tags: state.tags,
+            javaTags: state.javaTags
+        })),
+        itemIdentifiers: [...items.registry.keys()],
+        entityIdentifiers: [...entityTypes.registry.keys()]
+    });
+
     const content: ServerContent = {
+        contentFingerprint,
         definitions,
         diagnostics,
         world,

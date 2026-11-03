@@ -1,6 +1,6 @@
 import { f32 } from '../math';
 import { MarsagliaPolarGaussian } from './MarsagliaPolarGaussian';
-import type { PositionalRandomFactory, RandomSource } from './RandomSource';
+import type { LegacyRandomSourceState, PositionalRandomFactory, RandomSource } from './RandomSource';
 import { asLong, javaStringHashCode, positionalSeed } from './randomSupport';
 
 const MULTIPLIER = 25214903917n;
@@ -29,6 +29,42 @@ export class LegacyRandomSource implements RandomSource {
         const mixed = BigInt.asUintN(48, seed ^ MULTIPLIER);
         this.seedHigh = Number(mixed >> 24n);
         this.seedLow = Number(mixed & LOW_LANE_MASK_BIGINT);
+    }
+
+    /** Returns the 48-bit LCG state and cached Gaussian value for replay. */
+    public saveState(): LegacyRandomSourceState {
+        return {
+            version: 1,
+            algorithm: 'legacy',
+            seed: this.seedHigh * LOW_LANE_SIZE + this.seedLow,
+            gaussian: this.gaussianSource.saveState()
+        };
+    }
+
+    /** Restores this source from a JSON-parsed state, rejecting unknown algorithms or versions. */
+    public restoreState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('algorithm' in state) ||
+            !('seed' in state) ||
+            !('gaussian' in state) ||
+            state.version !== 1 ||
+            state.algorithm !== 'legacy' ||
+            typeof state.seed !== 'number' ||
+            !Number.isSafeInteger(state.seed) ||
+            state.seed < 0 ||
+            state.seed >= 2 ** 48
+        ) {
+            throw new TypeError('Invalid legacy random source state');
+        }
+
+        const gaussian = new MarsagliaPolarGaussian(this);
+        gaussian.restoreState(state.gaussian);
+        this.seedHigh = Math.floor(state.seed / LOW_LANE_SIZE);
+        this.seedLow = state.seed & LOW_LANE_MASK;
+        this.gaussianSource.restoreState(gaussian.saveState());
     }
 
     /** Advances the state and returns the top `bits` bits, as Java's `next(int)` does. */

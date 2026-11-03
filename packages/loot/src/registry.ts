@@ -16,6 +16,7 @@ import type { DynamicDropSource, LootTable, SlotSourceView } from './model';
 import type { LootPackDefinitions } from './packs';
 import { createPackResolver, packJson } from './packs';
 import { LootSequences } from './random';
+import type { LootSequencesState } from './random';
 import { lootTableReferences, parseLootTable, rollLootTable } from './table';
 
 /**
@@ -187,6 +188,16 @@ export class LootRegistry {
     /** The world seed every sequenced stream is keyed from. */
     public get worldSeed(): bigint {
         return this.sequences.worldSeed;
+    }
+
+    /** Captures the advanced named and unkeyed streams used by this registry. */
+    public saveRandomState(): LootSequencesState {
+        return this.sequences.saveState();
+    }
+
+    /** Restores the registry streams from a JSON-parsed state with the same world seed. */
+    public restoreRandomState(state: unknown): void {
+        this.sequences.restoreState(state);
     }
 
     /**

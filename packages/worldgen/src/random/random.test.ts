@@ -154,6 +154,47 @@ describe('Xoroshiro128PlusPlus', () => {
     });
 });
 
+describe('random source state', () => {
+    it('restores the legacy LCG and cached Gaussian across JSON serialization', () => {
+        const first = new LegacyRandomSource(1234n);
+        first.nextGaussian();
+        const state = JSON.parse(JSON.stringify(first.saveState()));
+        const expected = [first.nextGaussian(), first.nextLong().toString()];
+
+        const restored = new LegacyRandomSource(0n);
+        restored.restoreState(state);
+
+        expect([restored.nextGaussian(), restored.nextLong().toString()]).toEqual(expected);
+    });
+
+    it('restores xoroshiro lanes and cached Gaussian across JSON serialization', () => {
+        const first = XoroshiroRandomSource.fromSeed(-1234n);
+        first.nextGaussian();
+        const state = JSON.parse(JSON.stringify(first.saveState()));
+        const expected = [first.nextGaussian(), first.nextLong().toString()];
+
+        const restored = XoroshiroRandomSource.fromSeed(0n);
+        restored.restoreState(state);
+
+        expect([restored.nextGaussian(), restored.nextLong().toString()]).toEqual(expected);
+    });
+
+    it('rejects states from a different algorithm and the xoroshiro all-zero fixed point', () => {
+        const legacy = new LegacyRandomSource(0n);
+        const xoroshiro = XoroshiroRandomSource.fromSeed(0n);
+
+        expect(() => legacy.restoreState({ version: 1, algorithm: 'xoroshiro128++' })).toThrow(TypeError);
+        expect(() =>
+            xoroshiro.restoreState({
+                version: 1,
+                algorithm: 'xoroshiro128++',
+                lanes: [0, 0, 0, 0],
+                gaussian: { version: 1, hasCachedGaussian: false, cachedGaussian: 0 }
+            })
+        ).toThrow(TypeError);
+    });
+});
+
 describe('the number-lane random math', () => {
     it('matches the BigInt low-64-bit product for randomized signed operands', () => {
         let state = 0x123456789abcdefn;

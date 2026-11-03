@@ -31,6 +31,34 @@ export interface RandomSource {
     forkPositional(): PositionalRandomFactory;
 }
 
+/** The cached second Gaussian draw, which is part of a random source's continuation state. */
+export interface GaussianCacheState {
+    readonly version: 1;
+    readonly hasCachedGaussian: boolean;
+    readonly cachedGaussian: number;
+}
+
+/** JSON-safe state for {@link LegacyRandomSource}. */
+export interface LegacyRandomSourceState {
+    readonly version: 1;
+    readonly algorithm: 'legacy';
+    /** The 48-bit internal Java LCG state, represented as an exact JSON number. */
+    readonly seed: number;
+    readonly gaussian: GaussianCacheState;
+}
+
+/** JSON-safe state for {@link XoroshiroRandomSource}. */
+export interface XoroshiroRandomSourceState {
+    readonly version: 1;
+    readonly algorithm: 'xoroshiro128++';
+    /** Unsigned high/low 32-bit lanes for the two 64-bit words. */
+    readonly lanes: readonly [number, number, number, number];
+    readonly gaussian: GaussianCacheState;
+}
+
+/** A saved state from either built-in Java random source. */
+export type RandomSourceState = LegacyRandomSourceState | XoroshiroRandomSourceState;
+
 /**
  * Derives a {@link RandomSource} from a position, a name or a seed.
  *

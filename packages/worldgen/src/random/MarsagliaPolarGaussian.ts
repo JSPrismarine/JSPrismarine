@@ -1,4 +1,4 @@
-import type { RandomSource } from './RandomSource';
+import type { GaussianCacheState, RandomSource } from './RandomSource';
 
 /**
  * The Marsaglia polar method Java Edition uses for `nextGaussian`.
@@ -15,6 +15,35 @@ export class MarsagliaPolarGaussian {
     /** Forgets the cached second value, as Java does when a source is reseeded. */
     public reset(): void {
         this.haveNextNextGaussian = false;
+    }
+
+    /** Returns the cached second value, if the next call can use it without drawing. */
+    public saveState(): GaussianCacheState {
+        return {
+            version: 1,
+            hasCachedGaussian: this.haveNextNextGaussian,
+            cachedGaussian: this.nextNextGaussian
+        };
+    }
+
+    /** Restores the cached half of a Gaussian draw from a JSON-parsed value. */
+    public restoreState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('hasCachedGaussian' in state) ||
+            !('cachedGaussian' in state) ||
+            state.version !== 1 ||
+            typeof state.hasCachedGaussian !== 'boolean' ||
+            typeof state.cachedGaussian !== 'number' ||
+            !Number.isFinite(state.cachedGaussian)
+        ) {
+            throw new TypeError('Invalid Gaussian cache state');
+        }
+
+        this.haveNextNextGaussian = state.hasCachedGaussian;
+        this.nextNextGaussian = state.cachedGaussian;
     }
 
     /** Returns the next normally distributed value with mean 0 and standard deviation 1. */

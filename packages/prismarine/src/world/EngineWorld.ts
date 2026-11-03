@@ -95,8 +95,8 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
             return { analogOutput, comparatorOutput };
         },
 
-        randomInt: (bound) => Math.floor(Math.random() * bound),
-        randomFloat: () => Math.random(),
+        randomInt: (bound) => Math.floor(world.getServer().getRandom()() * bound),
+        randomFloat: () => world.getServer().getRandom()(),
 
         getMinY: () => dimension.minY,
         getMaxY: () => maxY(dimension)

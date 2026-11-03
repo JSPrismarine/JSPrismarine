@@ -1,3 +1,5 @@
+import { randomInt as cryptoRandomInt } from 'node:crypto';
+
 import { Kernel } from '@jsprismarine/kernel';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { RakNetListenerLike } from '@jsprismarine/raknet';
@@ -7,6 +9,9 @@ import SessionManager from './SessionManager';
 import { ShutdownLifecycle } from './ShutdownLifecycle';
 import type BanManager from './ban/BanManager';
 import type { Random } from './utils/Random';
+import { seededRandom } from '@jsprismarine/predicates';
+import type { SeededRandomState, StatefulRandomSource } from '@jsprismarine/predicates';
+import type { LootSequencesState } from '@jsprismarine/loot';
 import type { ChatManager } from './chat/ChatManager';
 import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport';
 import { buildServerContent } from './content/ServerContent';
@@ -48,12 +53,29 @@ import ChunkScheduler from './world/ChunkScheduler';
 import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
 import { DimensionTravel } from './world/portal/DimensionTravel';
 import WorldManager from './world/WorldManager';
+import type { RandomSequencesState } from './command/host/randomSequences';
 
 import type { Config } from './config/Config';
 import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
 import pkg from '../package.json' with { type: 'json' };
+
+/** The active random streams held by a server at one replay boundary. */
+export interface ServerReplayRandomState {
+    /** Version of this aggregate state shape. */
+    readonly version: 1;
+    /** General server chance source used by weather, loot fallbacks, and command selection. */
+    readonly server: SeededRandomState;
+    /** Per-dimension streams supplied to data-driven content behaviors. */
+    readonly contentWorlds: readonly (readonly [dimension: string, state: SeededRandomState])[];
+    /** Named and unkeyed Java loot-table streams. */
+    readonly javaLoot: LootSequencesState;
+    /** Named and unkeyed Bedrock equipment-loot streams. */
+    readonly bedrockLoot: LootSequencesState;
+    /** `/random` command sequence streams. */
+    readonly commandSequences: RandomSequencesState;
+}
 
 /**
  * JSPrismarine's main server class.
@@ -128,8 +150,16 @@ export default class Server extends EventEmitter {
      */
     private readonly creativeInventory = new CreativeInventory(() => this.getContent());
 
-    /** The source of chance for anything that rolls - see {@link Server.getRandom}. */
-    private random: Random = Math.random;
+    /**
+     * The source of chance for anything that rolls - see {@link Server.getRandom}.
+     *
+     * The default keeps a seeded Mulberry32 stream so its continuation can be captured. A plugin
+     * callback keeps the existing draw contract, but replay capture rejects it unless restored
+     * from a recorded built-in state.
+     */
+    private randomSource: StatefulRandomSource = seededRandom(cryptoRandomInt(0, 0x1_0000_0000));
+    private randomStateAvailable = true;
+    private random: Random = () => this.randomSource.nextFloat();
 
     /**
      * Every content registry built from the pack stack.
@@ -736,12 +766,59 @@ export default class Server extends EventEmitter {
         return this.random;
     }
 
+    /** Captures every stateful random stream the server keeps between ticks. */
+    public getReplayRandomState(): ServerReplayRandomState {
+        if (!this.randomStateAvailable) {
+            throw new Error('The configured server random callback has no serializable state');
+        }
+        const content = this.getContent();
+        const world = this.getContentWorld();
+        return {
+            version: 1,
+            server: this.randomSource.saveState(),
+            contentWorlds: world.saveRandomStates(),
+            javaLoot: content.loot.saveRandomState(),
+            bedrockLoot: content.equipmentLoot.saveRandomState(),
+            commandSequences: this.commandManager.saveRandomSequenceState()
+        };
+    }
+
+    /** Restores the saved random streams without changing any draw sites or their order. */
+    public restoreReplayRandomState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('server' in state) ||
+            !('contentWorlds' in state) ||
+            !('javaLoot' in state) ||
+            !('bedrockLoot' in state) ||
+            !('commandSequences' in state) ||
+            state.version !== 1
+        ) {
+            throw new TypeError('Invalid server replay random state');
+        }
+
+        const content = this.getContent();
+        const world = this.getContentWorld();
+        const serverRandom = seededRandom(0);
+        serverRandom.restoreState(state.server);
+        content.loot.restoreRandomState(state.javaLoot);
+        content.equipmentLoot.restoreRandomState(state.bedrockLoot);
+        this.commandManager.restoreRandomSequenceState(state.commandSequences);
+        world.restoreRandomStates(state.contentWorlds);
+        this.randomSource = serverRandom;
+        this.randomStateAvailable = true;
+        this.random = () => this.randomSource.nextFloat();
+    }
+
     /**
      * Replaces the source of chance.
      * @param {Random} random - what to roll with from now on.
      */
     public setRandom(random: Random): void {
         this.random = random;
+        this.randomStateAvailable = false;
     }
 
     /**

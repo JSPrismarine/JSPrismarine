@@ -25,6 +25,8 @@ import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen'
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import type { Server } from '../';
+import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../network/ReplayManifest';
+import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import Player from '../Player';
@@ -225,8 +227,7 @@ export class Level {
         // under a ceiling, so the level events go to the worlds with a sky.
         this.weather = new WorldWeather({
             cycleAllowed: () => this.gameRuleManager.getGameRule(GameRules.DoWeatherCycle)?.[0] !== false,
-            // Read the configured source for every Java weather draw. The default is still
-            // Math.random, while a seeded host can replace it without changing draw points.
+            // Read the configured source for every Java weather draw without changing draw points.
             randomInt: (bound) => Math.floor(this.server.getRandom()() * bound),
             broadcast: (event, data) => {
                 for (const world of this.worlds()) {
@@ -519,6 +520,27 @@ export class Level {
         return DEFAULT_ANNOUNCED_BIOME;
     }
 
+    /** Fingerprints resolved level inputs without loading Java registries for flat or void levels. */
+    private replayInputFingerprints(): { activeContentFingerprint: string; worldgenFingerprint: string } {
+        const stems = [...this.stems];
+        const dimensionTypes = [...this.dimensionTypes];
+        const usesJavaWorldgen = stems.some(([, stem]) => stem.generator.type === 'minecraft:noise');
+        const worldgenRegistries = usesJavaWorldgen ? this.worldgen() : null;
+        const worldgenFingerprint = replayInputFingerprint({ stems, dimensionTypes, worldgenRegistries });
+        const activeContentFingerprint = replayInputFingerprint({
+            content: this.server.getContent().contentFingerprint,
+            worldgen: worldgenFingerprint
+        });
+        return { activeContentFingerprint, worldgenFingerprint };
+    }
+
+    /** Digests only the ready worlds' loaded state, leaving unloaded provider rows outside the boundary. */
+    private replayWorldDigests(): readonly (readonly [dimension: string, digest: string])[] {
+        return [...this.worlds()]
+            .map((world) => [world.getDimension().id, world.replayStateDigest()] as const)
+            .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+    }
+
     // ------------------------------------------------------------------ the save-level state
 
     /** The level's clock, in ticks since it was created. */
@@ -539,6 +561,79 @@ export class Level {
     /** The level's weather: one cycle for the whole save, rendered where there is a sky. */
     public getWeather(): WorldWeather {
         return this.weather;
+    }
+
+    /** Captures a versioned replay boundary for level metadata, active inputs, random state, and loaded-world digests. */
+    public captureReplayInitialState(): ReplayInitialStateManifest {
+        const { activeContentFingerprint, worldgenFingerprint } = this.replayInputFingerprints();
+        const gameRules = [...this.gameRuleManager.getGameRules()]
+            .map(([name, [value, editable]]) => ({ name, value, editable }))
+            .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+        const dimensions = [...this.stems].map(([id, stem]) => ({
+            id,
+            type: stem.type,
+            generator: stem.generator.type
+        }));
+
+        return {
+            format: 'jsprismarine-replay-initial-state',
+            version: 1,
+            level: {
+                name: this.name,
+                seed: this.seed.toString(),
+                tick: this.currentTick,
+                weather: { ...this.weather.saved() },
+                gameRules,
+                dimensions
+            },
+            contentFingerprint: this.server.getContent().contentFingerprint,
+            worldgenFingerprint,
+            activeContentFingerprint,
+            randomState: this.server.getReplayRandomState(),
+            loadedWorldDigests: this.replayWorldDigests(),
+            // The provider writes chunks, entity records, and level metadata through separate calls.
+            // These digests reject a mismatched starting world, but they cannot recreate it or
+            // claim that concurrent LevelDB updates formed one atomic snapshot.
+            storageBoundary: {
+                provider: this.provider.constructor.name,
+                kind: 'loaded-world-digests-only',
+                includesUnloadedPersistentState: false,
+                atomic: false,
+                restoresWorldState: false
+            }
+        };
+    }
+
+    /** Verifies a matching initial boundary and restores only its random streams. */
+    public restoreReplayRandomState(manifest: ReplayInitialStateManifest): void {
+        serializeReplayInitialStateManifest(manifest);
+        const currentInputs = this.replayInputFingerprints();
+        const currentGameRules = [...this.gameRuleManager.getGameRules()]
+            .map(([name, [value, editable]]) => ({ name, value, editable }))
+            .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+        const currentDimensions = [...this.stems].map(([id, stem]) => ({
+            id,
+            type: stem.type,
+            generator: stem.generator.type
+        }));
+
+        if (
+            manifest.level.name !== this.name ||
+            manifest.level.seed !== this.seed.toString() ||
+            manifest.level.tick !== this.currentTick ||
+            JSON.stringify(manifest.level.weather) !== JSON.stringify(this.weather.saved()) ||
+            JSON.stringify(manifest.level.gameRules) !== JSON.stringify(currentGameRules) ||
+            JSON.stringify(manifest.level.dimensions) !== JSON.stringify(currentDimensions) ||
+            manifest.contentFingerprint !== this.server.getContent().contentFingerprint ||
+            manifest.worldgenFingerprint !== currentInputs.worldgenFingerprint ||
+            manifest.activeContentFingerprint !== currentInputs.activeContentFingerprint ||
+            manifest.storageBoundary.provider !== this.provider.constructor.name ||
+            JSON.stringify(manifest.loadedWorldDigests) !== JSON.stringify(this.replayWorldDigests())
+        ) {
+            throw new Error("Replay manifest does not match this level's current initial state");
+        }
+
+        this.server.restoreReplayRandomState(manifest.randomState);
     }
 
     /**

@@ -55,17 +55,20 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
 /**
  * Builds the host the vanilla command set runs against.
  *
- * The scoreboard and the random sequences are built here and nowhere else:
- * both are server state that only commands read, so this is the composition
- * root for them as well as for the five groups.
+ * The scoreboard is built here, while the command manager owns and passes the
+ * random sequences so replay capture can save the same streams this host uses.
  *
  * @param server - The live server. Held rather than snapshotted: a command
  *   runs long after the host was built and has to see the world as it is then.
  * @param onStopRequested - Called when the `stop` command reaches its server host.
+ * @param sequences - The command-owned random streams, shared with replay capture.
  */
-export const serverCommandHost = (server: Server, onStopRequested: () => void = () => {}): CommandHost => {
+export const serverCommandHost = (
+    server: Server,
+    onStopRequested: () => void = () => {},
+    sequences: RandomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed())
+): CommandHost => {
     const scoreboard = new Scoreboard();
-    const sequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
 
     return {
         entities: entityCommandHost(server, scoreboard),

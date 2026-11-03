@@ -94,4 +94,35 @@ describe('the sequence cache', () => {
 
         expect(draw(first)).toEqual(draw(second));
     });
+
+    it('restores keyed and unkeyed streams from a JSON state', () => {
+        const first = new LootSequences(-99n);
+        first.forSequence(undefined).nextFloat();
+        first.forSequence('minecraft:blocks/coal_ore').nextInt(7);
+        first.forSequence('minecraft:chests/simple_dungeon').nextFloat();
+        const state = JSON.parse(JSON.stringify(first.saveState()));
+        const expected = [
+            first.forSequence(undefined).nextFloat(),
+            first.forSequence('minecraft:blocks/coal_ore').nextInt(19),
+            first.forSequence('minecraft:chests/simple_dungeon').nextFloat()
+        ];
+
+        const restored = new LootSequences(-99n);
+        restored.restoreState(state);
+
+        expect([
+            restored.forSequence(undefined).nextFloat(),
+            restored.forSequence('minecraft:blocks/coal_ore').nextInt(19),
+            restored.forSequence('minecraft:chests/simple_dungeon').nextFloat()
+        ]).toEqual(expected);
+    });
+
+    it('rejects a state from a different world seed without replacing existing streams', () => {
+        const sequences = new LootSequences(1n);
+        const stream = sequences.forSequence('minecraft:blocks/coal_ore');
+        const before = stream.nextFloat();
+
+        expect(() => sequences.restoreState(new LootSequences(2n).saveState())).toThrow(TypeError);
+        expect(stream.nextFloat()).not.toBe(before);
+    });
 });

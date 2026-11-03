@@ -1,5 +1,6 @@
 import type { PositionalRandomFactory, RandomSource } from '@jsprismarine/worldgen';
 import { LegacyRandomSource, MarsagliaPolarGaussian, XoroshiroRandomSource } from '@jsprismarine/worldgen';
+import type { LegacyRandomSourceState, XoroshiroRandomSourceState } from '@jsprismarine/worldgen';
 
 const asLong = (value: bigint): bigint => BigInt.asIntN(64, value);
 const f32 = Math.fround;
@@ -8,6 +9,14 @@ const DOUBLE_UNIT = 1.110223e-16;
 
 /** Which generator backs a {@link WorldgenRandom}. The decoration pass uses Xoroshiro. */
 export type WorldgenRandomAlgorithm = 'xoroshiro' | 'legacy';
+
+/** JSON-safe continuation state for Java's reseedable world-generation stream. */
+export interface WorldgenRandomState {
+    readonly version: 1;
+    readonly algorithm: WorldgenRandomAlgorithm;
+    readonly delegate: LegacyRandomSourceState | XoroshiroRandomSourceState;
+    readonly gaussian: ReturnType<MarsagliaPolarGaussian['saveState']>;
+}
 
 /**
  * Java Edition's `WorldgenRandom`: a reseedable stream, plus the four seed derivations world
@@ -45,6 +54,49 @@ export class WorldgenRandom implements RandomSource {
 
     private create(seed: bigint): RandomSource {
         return this.algorithm === 'legacy' ? new LegacyRandomSource(seed) : XoroshiroRandomSource.fromSeed(seed);
+    }
+
+    /** Captures the backing stream and Java's separately cached Gaussian value. */
+    public saveState(): WorldgenRandomState {
+        if (!(this.delegate instanceof LegacyRandomSource) && !(this.delegate instanceof XoroshiroRandomSource)) {
+            throw new TypeError('WorldgenRandom has an unsupported random source');
+        }
+        return {
+            version: 1,
+            algorithm: this.algorithm,
+            delegate: this.delegate.saveState(),
+            gaussian: this.gaussianSource.saveState()
+        };
+    }
+
+    /** Restores a state produced by {@link saveState}, including Java's cached Gaussian value. */
+    public restoreState(state: unknown): void {
+        if (
+            typeof state !== 'object' ||
+            state === null ||
+            !('version' in state) ||
+            !('algorithm' in state) ||
+            !('delegate' in state) ||
+            !('gaussian' in state) ||
+            state.version !== 1 ||
+            state.algorithm !== this.algorithm
+        ) {
+            throw new TypeError('Invalid WorldgenRandom state');
+        }
+
+        const delegate = this.create(0n);
+        if (state.algorithm === 'legacy' && delegate instanceof LegacyRandomSource) {
+            delegate.restoreState(state.delegate);
+        } else if (state.algorithm === 'xoroshiro' && delegate instanceof XoroshiroRandomSource) {
+            delegate.restoreState(state.delegate);
+        } else {
+            throw new TypeError('WorldgenRandom state does not match its algorithm');
+        }
+
+        const gaussian = new MarsagliaPolarGaussian(delegate);
+        gaussian.restoreState(state.gaussian);
+        this.delegate = delegate;
+        this.gaussianSource.restoreState(gaussian.saveState());
     }
 
     /** Restarts the stream from a seed, as Java's `setSeed` does. */

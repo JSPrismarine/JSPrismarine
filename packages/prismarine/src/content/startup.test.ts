@@ -7,6 +7,7 @@ import { Logger } from '@jsprismarine/logger';
 import { reportProgress } from '../../../../.test/reportProgress';
 
 import Server from '../Server';
+import { deserializeReplayInitialStateManifest, serializeReplayInitialStateManifest } from '../network/ReplayManifest';
 import { Config } from '../config/Config';
 import { PACK_STACK_ENV } from './packStack';
 import { buildServerContent } from './ServerContent';
@@ -114,6 +115,30 @@ describe('the server building its content at startup', () => {
 
         expect(server.getContent().blocks.types.size).toBe(2);
         expect(server.getContent().items.registry.size).toBe(3);
+        await expect(() => server.shutdown()).not.toThrow();
+    }, 60_000);
+
+    it('captures a versioned replay boundary and restores its random streams', async () => {
+        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '/nowhere/bedrock');
+        vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
+
+        const server = await bootstrap('replay-state');
+        const level = server.getWorldManager().getDefaultWorld().getLevel();
+        const manifest = level.captureReplayInitialState();
+        const restored = deserializeReplayInitialStateManifest(serializeReplayInitialStateManifest(manifest));
+        const expected = server.getRandom()();
+        server.getRandom()();
+
+        level.restoreReplayRandomState(restored);
+
+        expect(restored).toEqual(manifest);
+        expect(server.getRandom()()).toBe(expected);
+        expect(manifest.storageBoundary).toMatchObject({
+            kind: 'loaded-world-digests-only',
+            includesUnloadedPersistentState: false,
+            atomic: false,
+            restoresWorldState: false
+        });
         await expect(() => server.shutdown()).not.toThrow();
     }, 60_000);
 });

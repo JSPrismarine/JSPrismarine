@@ -49,4 +49,25 @@ describe('seededRandom', () => {
             expect(value).toBeLessThan(1);
         }
     });
+
+    it('restores the next draws from a JSON round-trip state', () => {
+        const random = seededRandom(1234);
+        random.nextFloat();
+        const state = JSON.parse(JSON.stringify(random.saveState()));
+        const expected = [random.nextFloat(), random.nextInt(37)];
+
+        const restored = seededRandom(0);
+        restored.restoreState(state);
+
+        expect([restored.nextFloat(), restored.nextInt(37)]).toEqual(expected);
+    });
+
+    it('rejects state from an unsupported algorithm or outside the uint32 range', () => {
+        const random = seededRandom(0);
+
+        expect(() => random.restoreState({ version: 1, algorithm: 'other', state: 0 })).toThrow(TypeError);
+        expect(() => random.restoreState({ version: 1, algorithm: 'mulberry32', state: 0x1_0000_0000 })).toThrow(
+            TypeError
+        );
+    });
 });

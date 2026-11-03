@@ -75,6 +75,25 @@ describe('utils', () => {
             ).toStrictEqual(entities);
         });
 
+        it('uses the supplied random source for "@r"', () => {
+            const source = sheep();
+            const entities = [source, sheep(), sheep()];
+            let draws = 0;
+
+            expect(
+                ParseTargetSelector({
+                    input: '@r',
+                    entities,
+                    source,
+                    random: () => {
+                        draws++;
+                        return 0.75;
+                    }
+                })
+            ).toStrictEqual([entities[2]]);
+            expect(draws).toBe(1);
+        });
+
         it('returns all non player entities upon "@e[type=!player]"', () => {
             const source = sheep();
             const player = fakePlayer();

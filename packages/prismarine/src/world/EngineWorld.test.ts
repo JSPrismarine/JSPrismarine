@@ -3,11 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { behaviorFor, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { Block } from '../block/Block';
+import { BlockState } from '../block/state/BlockState';
 import { definitionOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
@@ -64,8 +67,9 @@ const flatChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
-const testServer = (content: ServerContent = testContent()): Server => {
+const testServer = (content: ServerContent = testContent(), random: () => number = Math.random): Server => {
     const server: Server = stub<Server>({
+        getRandom: () => random,
         getLogger: () =>
             stub<Logger>({
                 info: () => {},
@@ -134,12 +138,13 @@ const setRandomTickSpeed = (world: World, blocksPerSubChunk: number): void => {
 /** A world with nine flat chunks around the origin already in memory. */
 const flatWorld = async (
     randomTickHandlers?: Record<string, (at: { x: number; y: number; z: number }) => void>,
-    buildContent?: (world: () => World | undefined) => ServerContent
+    buildContent?: (world: () => World | undefined) => ServerContent,
+    random: () => number = Math.random
 ) => {
     let world: World | undefined;
     const content = buildContent?.(() => world) ?? testContent();
 
-    const server = testServer(content);
+    const server = testServer(content, random);
     world = new World({
         name: 'engine-systems-test',
         path: path.join(os.tmpdir(), 'engine-systems-test'),
@@ -227,6 +232,25 @@ describe('world', () => {
             if (previousDirectory === undefined) delete process.env['JSP_DIR'];
             else process.env['JSP_DIR'] = previousDirectory;
             fs.rmSync(directory, { recursive: true, force: true });
+        });
+
+        it('uses the server random source for engine draws and spawn relocation', async () => {
+            const values = [0.25, 0.75, 0.1, 0.9];
+            let draws = 0;
+            const world = await flatWorld(undefined, undefined, () => values[draws++]!);
+            const engine = createEngineWorld(world);
+
+            expect(engine.randomFloat()).toBe(0.25);
+            expect(engine.randomInt(4)).toBe(3);
+            world.getBlock = async () => new Block({ name: 'minecraft:air' });
+            world.getBlockState = async () => new BlockState('minecraft:birch_leaves');
+            world.setSpawnPosition(new Vector3(0, 63, 0));
+
+            const spawn = await world.placePlayerSpawn();
+
+            expect(spawn.relocated).toBe(true);
+            expect(spawn.position).toEqual(new Vector3(-11.5, 65, 12.5));
+            expect(draws).toBe(4);
         });
 
         /**

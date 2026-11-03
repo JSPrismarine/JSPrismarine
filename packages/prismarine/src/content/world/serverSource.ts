@@ -13,8 +13,8 @@
  * resolves its world at call time; see `src/world/contentAdapter.ts`.
  */
 import { javaBlockStates } from '@jsprismarine/mapping';
-import type { RandomSource } from '@jsprismarine/predicates';
-import { seededRandom } from '@jsprismarine/predicates';
+import type { RandomSource, SeededRandomState } from '@jsprismarine/predicates';
+import { isStatefulRandomSource, seededRandom } from '@jsprismarine/predicates';
 
 import { createContentBlockGroup } from '../../block/contentAdapter';
 import { resolveTransform } from '../../item/blockTransformers';
@@ -243,6 +243,10 @@ const reportFrom = (world: () => World | undefined, dimension: string, message: 
 export interface ServerWorldHandle extends ServerWorldSource {
     /** The item actor port of one dimension; see {@link ServerItemActorPort.duringInteraction}. */
     actorsAt(dimension: string): ServerItemActorPort;
+    /** Captures the seeded random stream of each content adapter already built. */
+    saveRandomStates(): readonly (readonly [dimension: string, state: SeededRandomState])[];
+    /** Restores exactly the adapter streams represented by a replay state. */
+    restoreRandomStates(states: unknown): void;
 }
 
 /**
@@ -268,6 +272,63 @@ export const serverWorldSource = (options: ServerWorldSourceOptions): ServerWorl
     return {
         at: (dimension) => wiringAt(dimension).adapter,
         actorsAt: (dimension) => wiringAt(dimension).actors,
+        saveRandomStates: () =>
+            [...wirings]
+                .sort(([left], [right]) => left.localeCompare(right))
+                .map(([dimension, wiring]) => {
+                    const random = wiring.adapter.random;
+                    if (!isStatefulRandomSource(random)) {
+                        throw new Error(`The ${dimension} content random source cannot be saved for replay`);
+                    }
+                    return [dimension, random.saveState()] as const;
+                }),
+        restoreRandomStates: (states: unknown) => {
+            if (!Array.isArray(states)) throw new TypeError('Invalid content random states');
+
+            const entries = new Map<string, unknown>();
+            for (const entry of states) {
+                if (
+                    !Array.isArray(entry) ||
+                    entry.length !== 2 ||
+                    typeof entry[0] !== 'string' ||
+                    entries.has(entry[0])
+                ) {
+                    throw new TypeError('Invalid content random state entry');
+                }
+                entries.set(entry[0], entry[1]);
+            }
+
+            const missing = [...wirings.keys()].filter((dimension) => !entries.has(dimension));
+            if (missing.length > 0) {
+                throw new Error(`Replay state has no content random stream for: ${missing.join(', ')}`);
+            }
+            // Validate every saved counter before constructing adapters or changing a live stream.
+            for (const state of entries.values()) {
+                const candidate = seededRandom(0);
+                candidate.restoreState(state);
+            }
+
+            if (options.random !== undefined && !isStatefulRandomSource(options.random)) {
+                throw new Error('The configured content random source cannot be restored for replay');
+            }
+
+            for (const dimension of entries.keys()) {
+                if (wirings.has(dimension)) continue;
+                wiringAt(dimension);
+            }
+
+            const prepared = [...entries].map(([dimension, state]) => {
+                const random = wirings.get(dimension)!.adapter.random;
+                if (!isStatefulRandomSource(random)) {
+                    throw new Error(`The ${dimension} content random source cannot be restored for replay`);
+                }
+                const candidate = seededRandom(0);
+                candidate.restoreState(state);
+                return { dimension, random, state };
+            });
+
+            for (const entry of prepared) entry.random.restoreState(entry.state);
+        },
         ...(entityRuntimes === undefined ? {} : { goalWorld: (entity) => entityRuntimes.goalWorldFor(entity) })
     };
 };

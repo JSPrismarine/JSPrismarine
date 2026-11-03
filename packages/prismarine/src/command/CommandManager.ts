@@ -31,6 +31,8 @@ import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
 import { dimensionIdOf, entityRefOf } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
+import { RandomSequences } from './host/randomSequences';
+import type { RandomSequencesState } from './host/randomSequences';
 import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
 
 /**
@@ -93,6 +95,7 @@ export class CommandManager implements Service {
 
     /** What `@jsprismarine/commands` calls into - see {@link import('./host').serverCommandHost}. */
     private readonly host: CommandHost;
+    private readonly randomSequences: RandomSequences;
 
     /**
      * The vanilla command set, as a Java-shaped Brigadier tree.
@@ -128,9 +131,24 @@ export class CommandManager implements Service {
         this.server = server;
         this.onStopCommandComplete = onStopCommandComplete;
         this.dispatcher = new CommandDispatcher<CommandExecutor>();
-        this.host = serverCommandHost(server, () => {
-            this.stopCommandRequests += 1;
-        });
+        this.randomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
+        this.host = serverCommandHost(
+            server,
+            () => {
+                this.stopCommandRequests += 1;
+            },
+            this.randomSequences
+        );
+    }
+
+    /** Captures the persistent command random streams for a replay baseline. */
+    public saveRandomSequenceState(): RandomSequencesState {
+        return this.randomSequences.saveState();
+    }
+
+    /** Restores command random streams for the same default world. */
+    public restoreRandomSequenceState(state: unknown): void {
+        this.randomSequences.restoreState(state);
     }
 
     /** Keeps the pre-enable API available without building a throwaway tree at startup. */
