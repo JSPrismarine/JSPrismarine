@@ -65,6 +65,7 @@ const COMMENTS = {
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
     'online-mode': 'Whether players must be signed in to Xbox Live.',
+    'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
     'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
     'packet-compression-algorithm':
         'The batch algorithm advertised to clients: zlib (default), snappy, or none. Other choices may use more bandwidth or differ in client support.',
@@ -109,6 +110,7 @@ const DEFAULTS = {
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
     'online-mode': true,
+    'use-raknet-worker': false,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'packet-compression-algorithm': DEFAULT_PACKET_COMPRESSION_ALGORITHM,
     'enable-query': true,
@@ -177,6 +179,7 @@ export class Config {
     private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
     private onlineMode: boolean = DEFAULTS['online-mode'];
+    private useRakNetWorker: boolean = DEFAULTS['use-raknet-worker'];
     private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
     private packetCompressionAlgorithm: ConfigFile['packet-compression-algorithm'] =
         DEFAULTS['packet-compression-algorithm'];
@@ -266,6 +269,7 @@ export class Config {
         this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
         this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
+        this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
         this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.packetCompressionAlgorithm = read(
             'packet-compression-algorithm',
@@ -499,6 +503,11 @@ export class Config {
      */
     public getOnlineMode(): boolean {
         return this.onlineMode;
+    }
+
+    /** Whether RakNet UDP I/O and reliability updates run outside the game thread. */
+    public getUseRakNetWorker(): boolean {
+        return this.useRakNetWorker;
     }
 
     /**

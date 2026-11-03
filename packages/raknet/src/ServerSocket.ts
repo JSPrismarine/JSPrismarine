@@ -10,7 +10,7 @@ import { OfflineHandler } from './protocol/OfflineHandler';
 import type Packet from './protocol/Packet';
 import FrameSet from './protocol/FrameSet';
 import { monotonicNow } from './utils/Clock';
-import type { Logger, RakNetPeer } from './RakNetPeer';
+import type { Logger, RakNetListenerLike } from './RakNetPeer';
 import type { ServerName } from './utils/ServerName';
 import { configureSocketBuffers, validateSocketBufferOptions } from './SocketBuffers';
 import type { SocketBufferOptions } from './SocketBuffers';
@@ -21,7 +21,14 @@ export type DatagramSendMode = 'copy' | 'scatter-gather';
 /** Keep the iovec count conservative because UDP vector limits vary by platform. */
 const MAX_SCATTER_GATHER_FRAMES = 32;
 
-export default class ServerSocket extends EventEmitter implements RakNetPeer {
+/** A nonzero identifier RakNet advertises in every offline reply. */
+const makeGuid = (): bigint => {
+    let guid = randomBytes(8).readBigUInt64BE();
+    while (guid === 0n) guid = randomBytes(8).readBigUInt64BE();
+    return guid;
+};
+
+export default class ServerSocket extends EventEmitter implements RakNetListenerLike {
     private readonly socket: Dgram.Socket;
     private readonly guid: bigint;
     /**
@@ -45,6 +52,7 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
      * @param logger - where the socket reports.
      * @param socketBufferOptions - requested UDP buffers, which the OS may cap.
      * @param datagramSendMode - experimental frame-set send path; copy remains the default.
+     * @param serverGuid - optional identifier supplied by a worker-owning facade.
      */
     public constructor(
         private maxConnections: number,
@@ -52,18 +60,17 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
         public readonly serverName: ServerName,
         private readonly logger: Logger,
         private readonly socketBufferOptions: SocketBufferOptions = {},
-        private readonly datagramSendMode: DatagramSendMode = 'copy'
+        private readonly datagramSendMode: DatagramSendMode = 'copy',
+        serverGuid?: bigint
     ) {
         super();
         validateSocketBufferOptions(socketBufferOptions);
         this.socket = Dgram.createSocket('udp4').unref();
         // allocUnsafe would hand us recycled or zeroed memory, not a unique identifier.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4525
-        let guid = randomBytes(8).readBigUInt64BE();
-        while (guid === 0n) guid = randomBytes(8).readBigUInt64BE();
-        this.guid = guid;
+        this.guid = serverGuid ?? makeGuid();
         // The MOTD line carries the guid too, and a client matches the two.
-        this.serverName.setServerId(guid);
+        this.serverName.setServerId(this.guid);
     }
 
     public start(address: string, port: number): void {
@@ -75,6 +82,7 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
                 // dgram rejects buffer getters before bind, so configure and report them here.
                 configureSocketBuffers(this.socket, this.logger, this.socketBufferOptions, 'RakNet/ServerSocket');
                 this.serverName.setPort(this.socket.address().port);
+                this.emit('listening', this.socket.address().port);
             });
         } catch (error: unknown) {
             if (error instanceof Error) {

@@ -76,6 +76,7 @@ describe('JSON schemas', () => {
                 'entity-tracking-hysteresis': 2,
                 'entity-tracking-interval': 4,
                 'online-mode': false,
+                'use-raknet-worker': true,
                 'packet-compression-level': 7,
                 'packet-compression-algorithm': 'zlib',
                 'enable-query': true,

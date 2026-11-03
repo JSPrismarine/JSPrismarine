@@ -12,6 +12,19 @@ export interface ServerNameSource {
     getConfig(): { getMotd(): string; getGamemode(): string; getMaxPlayers(): number };
 }
 
+/** The values a network worker needs to reproduce the server-list pong. */
+export interface ServerNameSnapshot {
+    readonly motd: string;
+    readonly name: string;
+    readonly protocol: number;
+    readonly version: string;
+    readonly onlinePlayers: number;
+    readonly maxPlayers: number;
+    readonly gamemode: string;
+    readonly serverId: string;
+    readonly port: number;
+}
+
 /** The default Bedrock port, advertised until {@link ServerName.setPort} says otherwise. */
 const DEFAULT_PORT = 19_132;
 
@@ -36,6 +49,7 @@ export class ServerName {
     private serverId = 0n;
     private port = DEFAULT_PORT;
     private cachedPongName: string | null = null;
+    private readonly changeListeners = new Set<(snapshot: ServerNameSnapshot) => void>();
 
     /**
      * Create a new server name for a RakNet server.
@@ -62,6 +76,31 @@ export class ServerName {
      */
     public getMotd(): string {
         return this.motd;
+    }
+
+    /** A serializable view of every field used to construct the unconnected pong. */
+    public getSnapshot(): ServerNameSnapshot {
+        return {
+            motd: this.motd,
+            name: this.name,
+            protocol: this.protocol,
+            version: this.version,
+            onlinePlayers: this.onlinePlayers,
+            maxPlayers: this.maxPlayers,
+            gamemode: this.gamemode,
+            serverId: this.serverId.toString(),
+            port: this.port
+        };
+    }
+
+    /**
+     * Observes later changes, for keeping a worker-owned pong cache in sync.
+     * @param listener - Called after a field changes.
+     * @returns A function that stops observing.
+     */
+    public onChange(listener: (snapshot: ServerNameSnapshot) => void): () => void {
+        this.changeListeners.add(listener);
+        return () => this.changeListeners.delete(listener);
     }
     /**
      * Set the message of the day.
@@ -222,5 +261,7 @@ export class ServerName {
 
     private invalidatePongName(): void {
         this.cachedPongName = null;
+        const snapshot = this.getSnapshot();
+        for (const listener of this.changeListeners) listener(snapshot);
     }
 }

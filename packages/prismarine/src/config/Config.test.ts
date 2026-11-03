@@ -68,6 +68,10 @@ describe('config', () => {
             expect(config.getOnlineMode()).toBe(true);
         });
 
+        it('keeps RakNet worker networking opt-in by default', () => {
+            expect(config.getUseRakNetWorker()).toBe(false);
+        });
+
         it('should have the default packet compression level', () => {
             expect(config.getPacketCompressionLevel()).toBe(7);
         });

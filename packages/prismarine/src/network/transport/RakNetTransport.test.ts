@@ -111,6 +111,39 @@ describe('network/transport', () => {
             expect(connected[0]!.getRakNetSession()).toBe(session);
         });
 
+        it('keeps a session connect, frame, and close in order across async listeners', async () => {
+            const listener = new FakeListener();
+            let releaseConnect: (() => void) | undefined;
+            const connectGate = new Promise<void>((resolve) => {
+                releaseConnect = resolve;
+            });
+            const bus = stub<EventEmitter>({
+                hasListeners: () => false,
+                emit: async (id: string) => {
+                    if (id === 'raknetConnect') await connectGate;
+                }
+            });
+            const transport = new RakNetTransport(listener, bus);
+            const order: string[] = [];
+            transport.onConnect(() => void order.push('connect'));
+            transport.onFrame(() => void order.push('frame'));
+            transport.onDisconnect(() => void order.push('close'));
+
+            const { session } = fakeSession('serial:1');
+            const address = session.getAddress();
+            const frame = new Protocol.Frame();
+            frame.content = Buffer.from('ordered');
+            listener.emit('openConnection', session);
+            listener.emit('encapsulated', frame, address);
+            listener.emit('closeConnection', address, 'closed');
+            await settled();
+            expect(order).toStrictEqual([]);
+
+            releaseConnect?.();
+            await settled();
+            expect(order).toStrictEqual(['connect', 'frame', 'close']);
+        });
+
         it('disconnects a session whose connect event was canceled, and tells nobody', async () => {
             const listener = new FakeListener();
             const { bus } = fakeBus((event) => event.preventDefault());

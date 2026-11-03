@@ -1,6 +1,6 @@
 import { Kernel } from '@jsprismarine/kernel';
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import type { RakNetListener } from '@jsprismarine/raknet';
+import type { RakNetListenerLike } from '@jsprismarine/raknet';
 import Console from './Console';
 import { ConsoleSender } from './command/ConsoleSender';
 import SessionManager from './SessionManager';
@@ -223,6 +223,7 @@ export default class Server extends EventEmitter {
         this.commandManager = new CommandManager(this);
         this.ticker = new ServerTicker({
             emitTick: (event) => this.emit('tick', event),
+            pollNetwork: () => this.networking.pollInbound(),
             // The levels, not the worlds: a level advances its clock once and ticks each of its worlds.
             getWorlds: () => this.worldManager.getLevels(),
             tickFunctions: () => this.commandManager.tickFunctions(),
@@ -729,7 +730,7 @@ export default class Server extends EventEmitter {
      * Returns the raknet instance.
      * @returns {RakNetListener | undefined} The raknet instance.
      */
-    public getRaknet(): RakNetListener | undefined {
+    public getRaknet(): RakNetListenerLike | undefined {
         return this.networking.getListener();
     }
 

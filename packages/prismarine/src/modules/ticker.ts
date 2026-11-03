@@ -86,6 +86,8 @@ export interface TickerWorld {
 export interface TickerServer {
     /** Emits the typed server `tick` event and awaits every handler, inside the tick. */
     emitTick(event: TickEvent): Promise<void>;
+    /** Delivers pending network records at this tick's fixed game-thread boundary. */
+    pollNetwork(): number;
     /** The worlds to update this tick, in parallel. */
     getWorlds(): TickerWorld[];
     /** Runs `#minecraft:tick` and whatever `/schedule` put on this tick. */
@@ -298,6 +300,9 @@ export class ServerTicker implements Ticker, TickControl {
             // stood still. A tick that fails is worth a log line; it is not worth the
             // server.
             try {
+                // Worker networking owns UDP and reliability timers, but gameplay handlers
+                // still run on the game thread in deterministic queue order at tick start.
+                server.pollNetwork();
                 const event = new TickEvent(this.getTick());
 
                 // Awaited, so a plugin's tick handler runs *inside* this tick like every

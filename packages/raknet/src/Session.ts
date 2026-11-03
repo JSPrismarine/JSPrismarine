@@ -176,6 +176,8 @@ export default class Session {
     /** Smoothed RTT and its deviation, in milliseconds; null until the first ACK lands. */
     private estimatedRTT: number | null = null;
     private deviationRTT = 0;
+    private retransmissionCount = 0;
+    private roundTripSampleCount = 0;
 
     // Last timestamp of packet received, helpful for timeout
     private lastUpdate: number = monotonicNow();
@@ -1058,6 +1060,7 @@ export default class Session {
                 // A retransmission: the message is stored once, keyed by its own identity.
                 existing.nextActionTime = deadline;
                 existing.timesSent++;
+                this.retransmissionCount++;
             } else {
                 this.resendBuffer.set(frame.reliableIndex, { frame, nextActionTime: deadline, timesSent: 1 });
             }
@@ -1112,6 +1115,7 @@ export default class Session {
      */
     private onRoundTripSample(rtt: number): void {
         if (rtt < 0) return;
+        this.roundTripSampleCount++;
 
         if (this.estimatedRTT === null) {
             this.estimatedRTT = rtt;
@@ -1297,6 +1301,16 @@ export default class Session {
      */
     public getRTT(): number | null {
         return this.estimatedRTT;
+    }
+
+    /** Counts reliable messages resent after a NACK or retransmission deadline. */
+    public getRetransmissionCount(): number {
+        return this.retransmissionCount;
+    }
+
+    /** Counts valid ACK samples folded into the RTT estimate. */
+    public getRoundTripSampleCount(): number {
+        return this.roundTripSampleCount;
     }
 
     /**

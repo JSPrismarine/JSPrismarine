@@ -4,6 +4,7 @@ import RakNetSession, { RakNetPriority as ConnectionPriority } from './Session';
 
 import ClientSocket from './ClientSocket';
 import LoopbackSocket from './LoopbackSocket';
+import WorkerServerSocket from './WorkerServerSocket';
 import { default as RakNetListener, default as ServerSocket } from './ServerSocket';
 import Session from './Session';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
@@ -19,12 +20,14 @@ export {
     RakNetListener,
     RakNetSession,
     ServerSocket,
-    Session
+    Session,
+    WorkerServerSocket
 };
 
 export * from './ClientSocket';
 export * from './Constants';
 export * from './LoopbackSocket';
+export * from './WorkerServerSocket';
 export type * from './RakNetPeer';
 export * from './Session';
 export * from './SocketBuffers';

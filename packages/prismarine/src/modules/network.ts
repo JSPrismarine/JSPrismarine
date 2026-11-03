@@ -1,5 +1,6 @@
 import type { Module } from '@jsprismarine/kernel';
-import { RakNetListener, ServerName } from '@jsprismarine/raknet';
+import { RakNetListener, ServerName, WorkerServerSocket } from '@jsprismarine/raknet';
+import type { RakNetListenerLike } from '@jsprismarine/raknet';
 
 import ClientConnection from '../network/ClientConnection';
 import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
@@ -40,7 +41,10 @@ export interface Networking {
      * the query protocol's raw datagrams and the advertised server name.
      * @returns The listener, or undefined before {@link Networking.start}.
      */
-    getListener(): RakNetListener | undefined;
+    getListener(): RakNetListenerLike | undefined;
+
+    /** Hands worker-delivered network records to the game thread at the start of a tick. */
+    pollInbound(): number;
 }
 
 /**
@@ -50,7 +54,7 @@ export interface Networking {
  * build and provide before anything binds.
  */
 export class ServerNetworking implements Networking {
-    private raknet: RakNetListener | undefined;
+    private raknet: RakNetListenerLike | undefined;
     private dispatcher: NetworkDispatcher<RakNetTransportConnection> | undefined;
 
     public constructor(
@@ -62,12 +66,20 @@ export class ServerNetworking implements Networking {
     /** Binds the RakNet listener and subscribes the packet dispatcher to it. */
     public start(address: string, port: number): void {
         const server = this.server;
-        this.raknet = new RakNetListener(
-            server.getConfig().getMaxPlayers(),
-            server.getConfig().getOnlineMode(),
-            new ServerName(server, latestCodec),
-            server.getLogger()
-        );
+        const serverName = new ServerName(server, latestCodec);
+        this.raknet = server.getConfig().getUseRakNetWorker()
+            ? new WorkerServerSocket(
+                  server.getConfig().getMaxPlayers(),
+                  server.getConfig().getOnlineMode(),
+                  serverName,
+                  server.getLogger()
+              )
+            : new RakNetListener(
+                  server.getConfig().getMaxPlayers(),
+                  server.getConfig().getOnlineMode(),
+                  serverName,
+                  server.getLogger()
+              );
         this.raknet.start(address, port);
 
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
@@ -108,8 +120,13 @@ export class ServerNetworking implements Networking {
     }
 
     /** The listener, or undefined before {@link ServerNetworking.start}. */
-    public getListener(): RakNetListener | undefined {
+    public getListener(): RakNetListenerLike | undefined {
         return this.raknet;
+    }
+
+    /** Drains worker events in queue order; socket mode already delivers on the event loop. */
+    public pollInbound(): number {
+        return this.raknet instanceof WorkerServerSocket ? this.raknet.pollInbound() : 0;
     }
 }
 

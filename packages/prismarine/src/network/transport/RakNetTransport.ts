@@ -88,16 +88,24 @@ export default class RakNetTransport implements Transport<RakNetTransportConnect
     private readonly disconnectListeners: ((address: InetAddress, reason: string) => Promise<void> | void)[] = [];
     private readonly frameListeners: ((payload: Buffer, address: InetAddress) => Promise<void> | void)[] = [];
     private readonly rawListeners: ((payload: Buffer, address: InetAddress) => Promise<void> | void)[] = [];
+    /** Connect, frames, and close must not overtake one another while handlers await. */
+    private readonly sessionDeliveries = new Map<string, Promise<void>>();
 
     public constructor(
         private readonly source: RakNetTransportSource,
         private readonly events: RaknetEventBus
     ) {
-        source.on('openConnection', (session) => void this.handleOpenConnection(session));
+        source.on('openConnection', (session) =>
+            this.enqueueSessionDelivery(session.getAddress().toToken(), () => this.handleOpenConnection(session))
+        );
         source.on('closeConnection', (address, reason) => {
-            void this.deliver(this.disconnectListeners, (listener) => listener(address, reason));
+            this.enqueueSessionDelivery(address.toToken(), () =>
+                this.deliver(this.disconnectListeners, (listener) => listener(address, reason))
+            );
         });
-        source.on('encapsulated', (frame, address) => void this.handleEncapsulated(frame, address));
+        source.on('encapsulated', (frame, address) =>
+            this.enqueueSessionDelivery(address.toToken(), () => this.handleEncapsulated(frame, address))
+        );
         source.on('raw', (buffer, address) => {
             void this.deliver(this.rawListeners, (listener) => listener(buffer, address));
         });
@@ -154,5 +162,23 @@ export default class RakNetTransport implements Transport<RakNetTransportConnect
 
     private async deliver<L>(listeners: readonly L[], call: (listener: L) => Promise<void> | void): Promise<void> {
         for (const listener of listeners) await call(listener);
+    }
+
+    private enqueueSessionDelivery(token: string, deliver: () => Promise<void>): void {
+        const previous = this.sessionDeliveries.get(token) ?? Promise.resolve();
+        const current = previous.catch(() => {}).then(deliver);
+        this.sessionDeliveries.set(token, current);
+
+        const clear = () => {
+            if (this.sessionDeliveries.get(token) === current) this.sessionDeliveries.delete(token);
+        };
+        void current.then(clear, (error: unknown) => {
+            clear();
+            // Preserve the previous event emitter behavior: an async listener failure is
+            // still fatal, but it must not leave later session events permanently queued.
+            queueMicrotask(() => {
+                throw error;
+            });
+        });
     }
 }

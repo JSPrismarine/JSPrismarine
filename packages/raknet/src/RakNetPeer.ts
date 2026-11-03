@@ -1,6 +1,9 @@
 import type { RemoteInfo } from 'node:dgram';
 import type Session from './Session';
 import type Packet from './protocol/Packet';
+import type Frame from './protocol/Frame';
+import type { ServerName } from './utils/ServerName';
+import type InetAddress from './utils/InetAddress';
 
 /**
  * The logging surface RakNet uses.
@@ -46,4 +49,24 @@ export interface RakNetPeer {
      * per session, from {@link Session.disconnect}.
      */
     removeSession(session: Session, reason?: string): void;
+}
+
+/** The server-facing RakNet API shared by the socket and worker-backed implementations. */
+export interface RakNetListenerLike extends RakNetPeer {
+    readonly serverName: ServerName;
+
+    start(address: string, port: number): void;
+    kill(): void;
+    allowIncomingConnections(): boolean;
+    getMaxConnections(): number;
+    setMaxConnections(allowed: number): void;
+    getSessions(): Session[];
+    getSessionByAddress(rinfo: RemoteInfo): Session | null;
+    getSessionByGUID(guid: bigint): Session | null;
+    getServerGuid(): bigint;
+    sendBuffer(buffer: Buffer, rinfo: RemoteInfo): void;
+    on(event: 'openConnection', listener: (session: Session) => void): this;
+    on(event: 'closeConnection', listener: (address: InetAddress, reason: string) => void): this;
+    on(event: 'encapsulated', listener: (frame: Frame, address: InetAddress) => void): this;
+    on(event: 'raw', listener: (buffer: Buffer, address: InetAddress) => void): this;
 }

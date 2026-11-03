@@ -77,4 +77,17 @@ describe('ServerName', () => {
 
         expect(name.toString().split(';')[1]).toBe('Example motd');
     });
+
+    it('notifies a worker mirror when advertised fields change', () => {
+        const name = build();
+        const changes: string[] = [];
+        const stop = name.onChange((snapshot) => changes.push(`${snapshot.motd}:${snapshot.port}`));
+
+        name.setMotd('new motd');
+        name.setPort(19_140);
+        stop();
+        name.setGamemode('Creative');
+
+        expect(changes).toEqual(['new motd:19132', 'new motd:19140']);
+    });
 });

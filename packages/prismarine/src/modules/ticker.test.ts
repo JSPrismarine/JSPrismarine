@@ -17,6 +17,7 @@ const buildHarness = (overrides: Partial<TickerServer> = {}) => {
         emitTick: async (event) => {
             tickEvents.push(event);
         },
+        pollNetwork: () => 0,
         getWorlds: () => [],
         tickFunctions: async () => 0,
         getChunkScheduler: () => ({
@@ -73,6 +74,26 @@ describe('modules/ticker', () => {
             expect(harness.ticker.getTick()).toBe(5);
             expect(harness.tickEvents.map((event) => event.getTick())).toEqual([0, 1, 2, 3, 4]);
             expect(harness.ticker.getTPS()).toBeCloseTo(20, 0);
+        } finally {
+            await handle.stop();
+        }
+    });
+
+    it('hands pending worker network records to the game thread before tick handlers', async () => {
+        const order: string[] = [];
+        const harness = buildHarness({
+            pollNetwork: () => {
+                order.push('network');
+                return 1;
+            },
+            emitTick: async () => {
+                order.push('tick');
+            }
+        });
+        const handle = await startTestModule(tickerModule(harness.ticker));
+        try {
+            await vi.advanceTimersByTimeAsync(0);
+            expect(order.slice(0, 2)).toEqual(['network', 'tick']);
         } finally {
             await handle.stop();
         }

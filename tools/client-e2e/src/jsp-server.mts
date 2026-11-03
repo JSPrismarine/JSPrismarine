@@ -55,6 +55,7 @@ const reserveFreeUdpPort = async (): Promise<number> => {
  * @param options.seconds - Startup budget before the boot is declared failed. Default 120.
  * @param options.naturalCowSpawning - Adds the cow spawn fixture for natural-spawn scenarios.
  * @param options.compressionAlgorithm - Batch algorithm advertised to the client. Defaults to ZLib.
+ * @param options.raknetWorker - Runs RakNet socket and reliability work in a worker thread.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -64,6 +65,7 @@ export const startServer = async (
         seconds?: number;
         naturalCowSpawning?: boolean;
         compressionAlgorithm?: 'zlib' | 'snappy' | 'none';
+        raknetWorker?: boolean;
     } = {}
 ): Promise<JspServer> => {
     const port = options.port ?? (await reserveFreeUdpPort());
@@ -249,6 +251,7 @@ export const startServer = async (
         port: port,
         'online-mode': false,
         'packet-compression-algorithm': options.compressionAlgorithm ?? 'zlib',
+        'use-raknet-worker': options.raknetWorker ?? false,
         'level-name': 'e2e',
         worlds: {
             e2e: {

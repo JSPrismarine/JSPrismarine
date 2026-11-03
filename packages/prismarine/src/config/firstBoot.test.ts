@@ -53,6 +53,7 @@ describe('the config file a boot generates', () => {
         'entity-tracking-hysteresis',
         'entity-tracking-interval',
         'online-mode',
+        'use-raknet-worker',
         'packet-compression-level',
         'packet-compression-algorithm',
         'enable-query',

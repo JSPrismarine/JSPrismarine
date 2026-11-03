@@ -105,6 +105,7 @@ const { values, positionals } = parseArgs({
         port: { type: 'string' },
         protocol: { type: 'string' },
         'compression-algorithm': { type: 'string', default: 'zlib' },
+        'raknet-worker': { type: 'boolean', default: false },
         concurrency: { type: 'string', default: '2' }
     },
     allowPositionals: true
@@ -243,6 +244,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         server = await startServer({
             port: requestedPort,
             compressionAlgorithm,
+            raknetWorker: values['raknet-worker'],
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.naturalCowSpawning === true)
                 ? { naturalCowSpawning: true }
                 : {})
