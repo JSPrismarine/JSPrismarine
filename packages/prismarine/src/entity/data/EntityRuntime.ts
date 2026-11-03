@@ -1331,7 +1331,9 @@ export class EntityRuntime implements EntityScene {
 
     /** Every block matching a query around a position, nearest first. */
     public blocks(center: EntityPosition, query: BlockQuery): readonly GoalBlock[] {
-        const wanted = query.identifiers === undefined ? undefined : new Set(query.identifiers);
+        // BlockQuery documents an empty identifier list as match-all, like an omitted list.
+        const wanted =
+            query.identifiers === undefined || query.identifiers.length === 0 ? undefined : new Set(query.identifiers);
         const found: GoalBlock[] = [];
         const origin = blockPositionOf(center);
 

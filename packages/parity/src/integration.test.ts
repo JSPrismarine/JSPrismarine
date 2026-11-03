@@ -990,6 +990,23 @@ describeFamily(
     FAMILIES.integrationEntityRuntime,
     REAL_STACK_REFERENCES,
     () => {
+        it(
+            'matches Java-stack block queries with empty identifiers to omitted identifiers',
+            { timeout: 180_000 },
+            () => {
+                const { runtime, world } = realStack();
+                world.setBlock({ x: 0, y: 64, z: 0 }, 'minecraft:stone');
+                world.setBlock({ x: 1, y: 64, z: 0 }, 'minecraft:stone');
+                const center = { x: 0.1, y: 64, z: 0.1 };
+
+                const withoutIdentifiers = runtime.blocks(center, { range: 1, height: 0 });
+                const withEmptyIdentifiers = runtime.blocks(center, { identifiers: [], range: 1, height: 0 });
+
+                expect(withEmptyIdentifiers).toEqual(withoutIdentifiers);
+                expect(withEmptyIdentifiers[0]?.position).toEqual({ x: 0, y: 64, z: 0 });
+            }
+        );
+
         it('applies a vanilla entity event and runs its data-driven physics', { timeout: 180_000 }, () => {
             const { runtime } = realStack();
             reportParityProgress(FAMILIES.integrationEntityRuntime, {

@@ -221,6 +221,27 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('block queries', () => {
+        it('treats an empty identifier list as match-all and keeps nearest-first order', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 0, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            const { runtime } = runtimeOf(world);
+            const center = { x: 0.1, y: FLOOR_Y + 1, z: 0.1 };
+            const query = { range: 1, height: 0 };
+
+            const withoutIdentifiers = runtime.blocks(center, query);
+            const withEmptyIdentifiers = runtime.blocks(center, { ...query, identifiers: [] });
+            const distances = withEmptyIdentifiers.map(({ position }) =>
+                Math.hypot(position.x - center.x, position.y - center.y, position.z - center.z)
+            );
+
+            expect(withEmptyIdentifiers).toEqual(withoutIdentifiers);
+            expect(withEmptyIdentifiers[0]?.position).toEqual({ x: 0, y: FLOOR_Y + 1, z: 0 });
+            expect(distances).toEqual([...distances].sort((a, b) => a - b));
+        });
+    });
+
     describe('entity facts', () => {
         it('reads a type’s stats off its definition rather than off a table', () => {
             const { runtime } = runtimeOf();
