@@ -14,6 +14,14 @@ describe('slotsOf', () => {
         expect(slotsOf('minecraft:magenta_shulker_box')).toBe(27);
         expect(slotsOf('minecraft:decorated_pot')).toBe(1);
     });
+
+    // A cooker that lights becomes its own `lit_` block, and 27 answered for one puts a
+    // 27-slot backing behind a three-slot screen, which the client draws as empty.
+    it('keeps a cooker at three slots while it burns', () => {
+        expect(slotsOf('minecraft:lit_furnace')).toBe(3);
+        expect(slotsOf('minecraft:lit_blast_furnace')).toBe(3);
+        expect(slotsOf('minecraft:lit_smoker')).toBe(3);
+    });
 });
 
 describe('emptyContainer', () => {
