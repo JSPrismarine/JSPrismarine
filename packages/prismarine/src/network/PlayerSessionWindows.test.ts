@@ -37,6 +37,7 @@ const sessionFor = () => {
         player,
         windowId: 0,
         openWindows: new Map<number, number>(),
+        containerData: new Map<number, number>(),
         blockContainer: undefined,
         sendInventory: async (windowId: number = WindowIds.INVENTORY) =>
             void inventories.push({ windowId, after: sent.length })

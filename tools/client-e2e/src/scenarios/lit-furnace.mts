@@ -83,6 +83,11 @@ export const litFurnace: Scenario = {
         assert.ok(await hasScreen(client, 'Container', 15_000), 'the lit furnace never opened its screen');
         await client.screenshot(path.join(artifacts, 'lit-furnace-open.png'));
 
+        // Two frames a few seconds apart: the arrow and the flame are drawn from the cook and
+        // burn properties, so a screen that is never told them renders the same pixels twice.
+        await sleep(3_000);
+        await client.screenshot(path.join(artifacts, 'lit-furnace-progress.png'));
+
         // The screen showing what the block holds is the inventory check: pick the ore out of
         // the input slot and drop it on the hotbar, then ask the server whether it arrived.
         await click(client, [732, 241]);
@@ -125,6 +130,6 @@ export const litFurnace: Scenario = {
             `the ore clicked out of the open screen reached the player: ${oreMoved}`
         );
 
-        log('the lit furnace opened a screen with its items, and mining it dropped a furnace');
+        log('the lit furnace opened a screen with its items, its progress, and dropped a furnace');
     }
 };

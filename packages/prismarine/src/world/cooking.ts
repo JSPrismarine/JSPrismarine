@@ -50,6 +50,36 @@ const COOKERS: Readonly<Record<string, Cooker>> = {
     }
 };
 
+/**
+ * The `ContainerSetDataPacket` property a cooking screen draws its progress arrow from: how
+ * many ticks the current item has cooked.
+ *
+ * The three ids are the furnace screen's own, and the packet documents that an id means
+ * whatever the open container says it means. A client divides this by a cook total it holds
+ * itself - 200 ticks for a furnace, 100 for a blast furnace or smoker - rather than by the
+ * `CookTimeTotal` the block entity carries, so the total is not sent.
+ */
+export const FURNACE_DATA_COOK_TICKS = 0;
+
+/** The property holding how much of the burning fuel is left, which is the flame's height. */
+export const FURNACE_DATA_BURN_REMAINING = 1;
+
+/** The property holding what that fuel started with, which the flame is a fraction of. */
+export const FURNACE_DATA_BURN_DURATION = 2;
+
+/**
+ * What a cooking screen has to be told after a tick, by property id.
+ *
+ * @param tags - The block entity {@link tickFurnace} just wrote.
+ * @returns The three furnace properties, for a caller to send to whoever is watching.
+ */
+export const furnaceScreenData = (tags: NBTTagCompound): ReadonlyMap<number, number> =>
+    new Map([
+        [FURNACE_DATA_COOK_TICKS, tags.getShort('CookTime', 0)],
+        [FURNACE_DATA_BURN_REMAINING, tags.getShort('BurnTime', 0)],
+        [FURNACE_DATA_BURN_DURATION, tags.getShort('BurnDuration', 0)]
+    ]);
+
 /** One cooker update and the block identifier that represents its resulting burn state. */
 export interface FurnaceTick {
     /** The complete block entity after its timers and inventory advance. */

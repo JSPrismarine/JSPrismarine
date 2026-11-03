@@ -68,7 +68,7 @@ import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
 import { PortalIndex } from './portal/PortalIndex';
 import { isPortalBlock } from './portal/rules';
-import { tickFurnace } from './cooking';
+import { furnaceScreenData, tickFurnace } from './cooking';
 import { tickSpawner } from './spawners';
 import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
@@ -709,8 +709,29 @@ export class World implements Service {
                     );
                 }
                 writeBlockEntity(this, ticked.tags);
+                // Whoever has this station open is watching its arrow and its flame, and the
+                // block entity write alone tells them nothing.
+                this.sendCookingProgress({ x, y, z }, furnaceScreenData(ticked.tags));
                 if (blockChanged || ticked.inventoryChanged) notifyContentNeighbors(this, { x, y, z });
             }
+        }
+    }
+
+    /**
+     * Hands one cooking station's progress to every player with that station open.
+     *
+     * Fire and forget for the same reason the rest of the tick's sends are: the tick decides
+     * the state now and the packets are not what makes it true, so a slow link delays a
+     * progress bar rather than the world.
+     */
+    private sendCookingProgress(at: ContentPosition, properties: ReadonlyMap<number, number>): void {
+        const position = new Vector3(at.x, at.y, at.z);
+        for (const player of this.getPlayers()) {
+            const session = player.getNetworkSession();
+            if (session.getOpenBlockContainer() === undefined) continue;
+            void session.sendContainerData(position, properties).catch((error: unknown) => {
+                this.server.getLogger().error(error);
+            });
         }
     }
 
