@@ -127,6 +127,9 @@ const MIX = [
     'minecraft:skeleton',
     'minecraft:sheep',
     'minecraft:creeper',
+    'minecraft:cat',
+    'minecraft:ocelot',
+    'minecraft:wolf',
     'minecraft:pig',
     'minecraft:spider',
     'minecraft:chicken'

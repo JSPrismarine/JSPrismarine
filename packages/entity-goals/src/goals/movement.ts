@@ -19,6 +19,7 @@ import {
     tickRangeAt,
     ticksAt
 } from '../params';
+import { targetFamilies } from '../support';
 import type { GoalSupport } from '../support';
 import type { GoalMob } from '../world';
 
@@ -573,6 +574,9 @@ export const avoidMobType = goal<AvoidMobTypeParams>({
     create: (params, support) => {
         let threat: GoalMob | undefined;
         let walking = false;
+        const candidateFamilies = targetFamilies(params.entityTypes);
+        const families = candidateFamilies === undefined ? undefined : [...candidateFamilies];
+        const radius = Math.max(params.maxDistance, ...params.entityTypes.map((entry) => entry.maxDistance));
 
         /** A position further from the threat than the entity stands now. */
         const away = (from: EntityPosition): EntityPosition | undefined => {
@@ -590,9 +594,12 @@ export const avoidMobType = goal<AvoidMobTypeParams>({
 
         return {
             canStart: () => {
-                const radius = Math.max(params.maxDistance, ...params.entityTypes.map((entry) => entry.maxDistance));
+                if (families?.length === 0) {
+                    threat = undefined;
+                    return false;
+                }
                 threat = support
-                    .mobs(radius)
+                    .mobs(radius, families)
                     .find(
                         (mob) =>
                             support.accepts(params.entityTypes, mob) && (params.ignoreVisibility || support.canSee(mob))

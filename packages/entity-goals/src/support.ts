@@ -54,8 +54,13 @@ const requiredFamilies = (filter: Filter | undefined): Set<string> | undefined =
     return families;
 };
 
-/** Candidate families accepted by at least one target entry, when all are bounded. */
-const targetFamilies = (entries: readonly TargetEntityType[]): Set<string> | undefined => {
+/**
+ * Candidate families accepted by at least one target entry, when all are bounded.
+ *
+ * @param entries - The target entries whose filters define candidate families.
+ * @returns The family superset, or undefined when a filter cannot be safely narrowed.
+ */
+export const targetFamilies = (entries: readonly TargetEntityType[]): Set<string> | undefined => {
     if (entries.length === 0) return new Set();
     const families = new Set<string>();
     for (const entry of entries) {

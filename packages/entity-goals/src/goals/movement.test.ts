@@ -202,6 +202,65 @@ describe('minecraft:behavior.avoid_mob_type', () => {
         expect(walk).toContain('@1.5');
     });
 
+    it('queries only its required families and checks visible threats in nearest-first order', () => {
+        const cow = testMob('cow', { x: 2.5, y: 1, z: 8.5 }, { families: ['cow'] });
+        const unseenWolf = testMob('unseen-wolf', { x: 4.5, y: 1, z: 8.5 }, { families: ['wolf'] });
+        const visibleWolf = testMob('visible-wolf', { x: 5.5, y: 1, z: 8.5 }, { families: ['wolf'] });
+        const queries: { radius: number; families: readonly string[] | undefined }[] = [];
+        const visibleChecks: (string | number | undefined)[] = [];
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.avoid_mob_type': {
+                    priority: 3,
+                    entity_types: [
+                        { filters: { test: 'is_family', subject: 'other', value: 'wolf' }, max_dist: 12 },
+                        { filters: { test: 'is_family', subject: 'other', value: 'ocelot' }, max_dist: 8 }
+                    ]
+                }
+            },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                mobs: (radius, families) => {
+                    queries.push({ radius, families });
+                    return [cow, unseenWolf, visibleWolf];
+                },
+                canSee: (mob) => {
+                    visibleChecks.push(mob.id);
+                    return mob.id !== unseenWolf.id;
+                }
+            },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(queries).toEqual([{ radius: 12, families: ['wolf', 'ocelot'] }]);
+        expect(visibleChecks).toEqual([unseenWolf.id, visibleWolf.id]);
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.avoid_mob_type');
+    });
+
+    it('does not scan the world when no entity types are configured', () => {
+        let scans = 0;
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.avoid_mob_type': { priority: 3, entity_types: [] } },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                mobs: () => {
+                    scans += 1;
+                    return [];
+                }
+            },
+            at: { x: 8.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(scans).toBe(0);
+        expect(harness.running()).toEqual([]);
+    });
+
     it('stays put when nothing it avoids is near', () => {
         const cow = testMob('cow', { x: 4.5, y: 1, z: 8.5 }, { families: ['cow'] });
         const harness = new GoalHarness({
