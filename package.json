@@ -99,7 +99,7 @@
         "husky": "9.1.7",
         "lint-staged": "17.6.0",
         "prettier": "3.9.10",
-        "rolldown": "1.2.15",
+        "rolldown": "1.2.16",
         "scriptc": "0.4.7",
         "ts-mockito": "2.6.1",
         "tsc-ts": "0.1.0",
