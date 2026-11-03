@@ -27,6 +27,8 @@ import BlockPhysics from '../src/world/physics/BlockPhysics';
 const AIR = BlockRuntimeIds.getByName('minecraft:air');
 const STONE = BlockRuntimeIds.getByName('minecraft:stone');
 const WATER = BlockRuntimeIds.getByName('minecraft:water');
+/** No pack overrides: EngineWorld then uses Java's default full-cube conductivity rule. */
+const BENCH_CONTENT = { blocks: { types: new Map<string, undefined>() } };
 
 const CAVE_FLOOR = 30;
 const CAVE_CEILING = 40;
@@ -111,10 +113,11 @@ class BenchWorld {
 
     public playNamedSound(): void {}
 
-    public getServer(): any {
+    public getServer() {
         return {
             getLogger: () => ({ error: (error: unknown) => console.error(error) }),
-            getConfig: () => ({ getDifficulty: () => 2 })
+            getConfig: () => ({ getDifficulty: () => 2 }),
+            getContent: () => BENCH_CONTENT
         };
     }
 
