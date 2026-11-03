@@ -130,6 +130,9 @@ there.
   `onChunkLoaded`, and `onChunkUnloaded` drops a column's light. A chunk the view can read but the
   engine has not been told about is treated as unloaded. One entry point for a chunk is simpler to
   reason about than lazily inventing a heightmap for a column nobody declared.
+- **Callers choose which loaded chunks need light.** The Prismarine world initializes the
+  simulation area and a one-chunk guard ring. A light-dependent read outside that ring initializes
+  and settles its loaded chunk on demand; `hasChunk` tells a caller whether a column is resident.
 - **Deferred work is reconstructed, not stored.** Propagation into an unloaded chunk is dropped and
   rebuilt from the neighbors' borders when that chunk loads. A queue of parked nodes would grow with
   every edit next to an unloaded border and would still need the border pass for chunks that unload

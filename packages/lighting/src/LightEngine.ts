@@ -83,6 +83,11 @@ export class LightEngine {
 
     public constructor(private readonly view: BlockLightView) {}
 
+    /** Whether this engine currently holds lighting for a chunk column. */
+    public hasChunk(chunkX: number, chunkZ: number): boolean {
+        return this.columns.has(columnKeyOf(chunkX, chunkZ));
+    }
+
     /** The work the engine still has to do. {@link LightEngine.flush} returns the same numbers. */
     public get pending(): LightQueueDepth {
         return { queued: this.queuedNodes, deferred: this.awaitingChunks.size };

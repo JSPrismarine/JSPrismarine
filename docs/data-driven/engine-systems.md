@@ -49,7 +49,10 @@ runs for a class-based entity and for a data-driven one over two different seams
 `World.update` runs each system in Java's order, and `WorldSystems.tick` is the part that owns
 them. Scheduled block ticks run first, then scheduled fluid ticks, then the chunk tick that draws
 random positions, then the light the writes above queued. Light goes last because every block
-change made earlier in the tick has already added work to its queue.
+change made earlier in the tick has already added work to its queue. The world initializes light
+for the simulation area and one guard chunk around it. While that queue is unsettled, `World.update`
+pauses chunk simulation. A light read in another loaded chunk initializes and settles that chunk
+on demand.
 
 Two kinds of update look similar and behave differently. A **scheduled tick** runs on a future game
 tick. It carries a position, a block type, a trigger tick and one of Java's seven `TickPriority`
@@ -293,6 +296,10 @@ above the highest blocking block, which is never stored and is most of the volum
 chunk. A block change is patched rather than rebuilt. The daylight cycle is not applied here;
 `getSkyLight` returns the geometric level, and the three consumers scale it for time and weather
 themselves.
+
+The world keeps light for the player simulation area and one chunk around it. As players move, it
+drops columns outside that ring and rebuilds them if they return. A rule that reads light in another
+loaded chunk initializes and settles that column on demand.
 
 The `blocks.light` value those rules read also applies the dimension's visual sky-light factor and
 ambient light. The End's ambient light sets a minimum of 3, while the Nether's sets a minimum of 1;

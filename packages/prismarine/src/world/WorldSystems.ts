@@ -93,8 +93,12 @@ export interface WorldSystemsView {
      * which in an Overworld is mostly open sky.
      */
     topOfColumn?(x: number, z: number): number;
-    /** The chunk coordinates the world holds in memory, which is what the light pass crosses. */
+    /** The chunk coordinates held in memory, used by fallbacks and world-wide reads. */
     loadedChunks(): Iterable<{ readonly x: number; readonly z: number }>;
+    /** Chunks whose simulation distance and guard ring currently require lighting. */
+    lightChunks?(): Iterable<{ readonly x: number; readonly z: number }>;
+    /** Whether a newly loaded chunk should be initialized for light immediately. */
+    shouldInitializeLight?(chunkX: number, chunkZ: number): boolean;
     /** `random_tick_speed`, which is draws per section rather than a rate. */
     randomTickSpeed?(): number;
     /**
@@ -164,6 +168,9 @@ export class WorldSystems {
 
     private readonly randomPositions = new BlockRandomPositions();
 
+    /** The active light columns, separate from chunks which are merely loaded in memory. */
+    private readonly litChunks = new Map<string, { readonly x: number; readonly z: number }>();
+
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
     private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
 
@@ -189,14 +196,54 @@ export class WorldSystems {
         this.engine.updateAround(at, block.name);
     }
 
-    /** Computes a newly loaded chunk's light and re-seeds across its neighbors' borders. */
+    /** Computes a newly loaded in-ring chunk's light and re-seeds its neighbors' borders. */
     public onChunkLoaded(chunkX: number, chunkZ: number): void {
+        if (!(this.view.shouldInitializeLight?.(chunkX, chunkZ) ?? true)) return;
+
         this.lighting.onChunkLoaded(chunkX, chunkZ);
+        this.litChunks.set(this.lightChunkKey(chunkX, chunkZ), { x: chunkX, z: chunkZ });
+    }
+
+    /** Initializes newly relevant chunks before a world tick can run light-dependent simulation. */
+    public prepareLighting(): void {
+        const lightChunks = this.view.lightChunks?.();
+        if (lightChunks === undefined) return;
+
+        const required = new Map<string, { readonly x: number; readonly z: number }>();
+        for (const chunk of lightChunks) required.set(this.lightChunkKey(chunk.x, chunk.z), chunk);
+
+        // Chunks left behind as a player moves no longer need resident light; returning chunks
+        // are rebuilt and border-seeded when they re-enter the ring.
+        for (const [key, chunk] of this.litChunks) {
+            if (required.has(key)) continue;
+            this.lighting.onChunkUnloaded(chunk.x, chunk.z);
+            this.litChunks.delete(key);
+        }
+
+        for (const { x, z } of required.values()) this.initializeLightChunk(x, z);
+    }
+
+    /** Whether all active light propagation has settled enough for simulation reads. */
+    public get isLightingSettled(): boolean {
+        return this.lighting.pending.queued === 0;
+    }
+
+    /** Reads block light, initializing and settling an otherwise deferred loaded chunk on demand. */
+    public getBlockLight(x: number, y: number, z: number): number {
+        this.ensureLightForRead(x, y, z);
+        return this.lighting.getBlockLight(x, y, z);
+    }
+
+    /** Reads sky light, initializing and settling an otherwise deferred loaded chunk on demand. */
+    public getSkyLight(x: number, y: number, z: number): number {
+        this.ensureLightForRead(x, y, z);
+        return this.lighting.getSkyLight(x, y, z);
     }
 
     /** Drops a chunk's light. The neighbors keep what it gave them until something changes. */
     public onChunkUnloaded(chunkX: number, chunkZ: number): void {
         this.lighting.onChunkUnloaded(chunkX, chunkZ);
+        this.litChunks.delete(this.lightChunkKey(chunkX, chunkZ));
         this.redstoneUpdateHandlers?.forgetChunk(chunkX, chunkZ);
     }
 
@@ -225,38 +272,43 @@ export class WorldSystems {
     }
 
     /**
-     * Runs one world tick's systems: scheduled ticks, then random ticks, then light.
-     *
-     * The order is `ServerLevel.tick`'s: block ticks before fluid ticks, both before the chunk
-     * tick that draws the random positions. Light goes last because every write above may have
-     * queued some.
+     * Advances one world tick, pausing scheduled and random chunk work until the active light
+     * ring settles, then spending this tick's light budget.
      */
     public tick(currentTick: number): WorldSystemsReport {
-        const scheduled = this.ticks.tick(
-            currentTick,
-            (kind: TickKind, tick: ScheduledTick) => {
-                const activeBlock = kind === 'fluid' ? this.view.blockAt(tick.at.x, tick.at.y, tick.at.z) : undefined;
-                const activeFluidType =
-                    activeBlock !== undefined && isLiquid(activeBlock.name) ? activeBlock.name : undefined;
-                const contentType = activeFluidType ?? tick.type;
-                const contentHandler = this.blockTickHandlers?.[contentType];
-                if (kind === 'fluid') {
-                    // The block list runs first. If both lists contain a tick for the
-                    // same active liquid, that earlier pass already advanced it. Resolve
-                    // by the current block because queued ticks can name a previous
-                    // source or flowing state.
-                    if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
-                    contentHandler?.(tick.at);
-                    return;
-                }
-                contentHandler?.(tick.at);
-            },
-            SCHEDULED_TICK_BUDGET_PER_TICK
-        );
+        this.prepareLighting();
+
+        // A chunk's simulation boundary is one chunk inside the initialized light ring. Keep
+        // simulation paused while its light flood is budgeted over later ticks.
+        const lightingSettled = this.isLightingSettled;
+        const scheduled = lightingSettled
+            ? this.ticks.tick(
+                  currentTick,
+                  (kind: TickKind, tick: ScheduledTick) => {
+                      const activeBlock =
+                          kind === 'fluid' ? this.view.blockAt(tick.at.x, tick.at.y, tick.at.z) : undefined;
+                      const activeFluidType =
+                          activeBlock !== undefined && isLiquid(activeBlock.name) ? activeBlock.name : undefined;
+                      const contentType = activeFluidType ?? tick.type;
+                      const contentHandler = this.blockTickHandlers?.[contentType];
+                      if (kind === 'fluid') {
+                          // The block list runs first. If both lists contain a tick for the
+                          // same active liquid, that earlier pass already advanced it. Resolve
+                          // by the current block because queued ticks can name a previous
+                          // source or flowing state.
+                          if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
+                          contentHandler?.(tick.at);
+                          return;
+                      }
+                      contentHandler?.(tick.at);
+                  },
+                  SCHEDULED_TICK_BUDGET_PER_TICK
+              )
+            : 0;
 
         return {
             scheduled,
-            randomTicked: this.runRandomTicks(),
+            randomTicked: lightingSettled ? this.runRandomTicks() : 0,
             light: this.lighting.flush(LIGHT_BUDGET_PER_TICK)
         };
     }
@@ -324,6 +376,23 @@ export class WorldSystems {
             blockAt: (x, y, z) => this.lightPropertiesAt(x, y, z),
             topOfColumn: (x, z) => this.view.topOfColumn?.(x, z) ?? maxY(dimension) + 1
         };
+    }
+
+    private ensureLightForRead(x: number, y: number, z: number): void {
+        if (this.lighting.hasChunk(x >> 4, z >> 4) || this.view.blockAt(x, y, z) === undefined) return;
+
+        this.initializeLightChunk(x >> 4, z >> 4);
+        this.lighting.flush();
+    }
+
+    private initializeLightChunk(chunkX: number, chunkZ: number): void {
+        if (this.lighting.hasChunk(chunkX, chunkZ)) return;
+        this.lighting.onChunkLoaded(chunkX, chunkZ);
+        this.litChunks.set(this.lightChunkKey(chunkX, chunkZ), { x: chunkX, z: chunkZ });
+    }
+
+    private lightChunkKey(chunkX: number, chunkZ: number): string {
+        return `${chunkX},${chunkZ}`;
     }
 
     /**

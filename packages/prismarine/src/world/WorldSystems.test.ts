@@ -1,10 +1,13 @@
+import { createHash } from 'node:crypto';
+
 import { describe, expect, it } from 'vitest';
 
 import type { BlockPosition } from '@jsprismarine/engine-systems';
 import { createTestWorld } from '@jsprismarine/engine-systems';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import { Dimensions } from './Dimension';
+import Chunk from './chunk/Chunk';
+import { Dimensions, maxY } from './Dimension';
 import type { SystemBlock, WorldSystemsAccess, WorldSystemsOptions, WorldSystemsView } from './WorldSystems';
 import { LIGHT_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
 
@@ -38,6 +41,22 @@ const sameBlock = (a: SystemBlock | undefined, b: SystemBlock): boolean =>
     a.name === b.name &&
     Object.keys(b.states).length === Object.keys(a.states).length &&
     Object.entries(b.states).every(([state, value]) => a.states[state] === value);
+
+/** Hashes both light layers at every block in one chunk, including all dimension heights. */
+const lightDigest = (systems: WorldSystems, chunkX: number, chunkZ: number): string => {
+    const digest = createHash('sha256');
+    const values = Buffer.alloc(16 * 16 * Dimensions.Overworld.height * 2);
+    let offset = 0;
+    for (let x = chunkX * 16; x < chunkX * 16 + 16; x++) {
+        for (let z = chunkZ * 16; z < chunkZ * 16 + 16; z++) {
+            for (let y = Dimensions.Overworld.minY; y <= maxY(Dimensions.Overworld); y++) {
+                values[offset++] = systems.lighting.getBlockLight(x, y, z);
+                values[offset++] = systems.lighting.getSkyLight(x, y, z);
+            }
+        }
+    }
+    return digest.update(values).digest('hex');
+};
 
 /**
  * A world reduced to a block map and a chunk list.
@@ -176,6 +195,112 @@ describe('world', () => {
                 };
 
                 expect(levels(scene(shortcutView, shortcut.blocks))).toEqual(levels(scene(plain.view, plain.blocks)));
+            });
+
+            it('matches eager lighting in the simulation chunk and readies guard chunks on demand', () => {
+                const coordinates = Array.from({ length: 25 }, (_unused, index) => ({
+                    x: (index % 5) - 2,
+                    z: Math.floor(index / 5) - 2
+                }));
+                const chunks = new Map(
+                    coordinates.map(({ x, z }) => [
+                        Chunk.packXZ(x, z),
+                        new Chunk(x, z, new Map(), Dimensions.Overworld)
+                    ])
+                );
+                const chunkAt = (x: number, z: number): Chunk => {
+                    const chunk = chunks.get(Chunk.packXZ(x, z));
+                    if (chunk === undefined) throw new Error(`Missing chunk ${x},${z}`);
+                    return chunk;
+                };
+                const stone = BlockRuntimeIds.getByName('minecraft:stone');
+                for (const chunk of chunks.values()) {
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) {
+                            const height = 39 + ((chunk.getX() * 13 + chunk.getZ() * 7 + x + z) & 3);
+                            chunk.fillColumn(x, z, 36, height, stone);
+                        }
+                    }
+                }
+                chunkAt(1, 0).setBlockRuntimeId(0, 42, 8, BlockRuntimeIds.getByName('minecraft:glowstone'));
+                chunkAt(0, 0).setBlockRuntimeId(15, 43, 8, BlockRuntimeIds.getByName('minecraft:glass'));
+                chunkAt(0, 0).setBlockRuntimeId(15, 42, 9, BlockRuntimeIds.getByName('minecraft:water'));
+                const makeSystems = (deferred: boolean) => {
+                    let centerX = 0;
+                    const view: WorldSystemsView = {
+                        dimension: Dimensions.Overworld,
+                        blockAt: (x, y, z) => {
+                            const chunk = chunks.get(Chunk.packXZ(x >> 4, z >> 4));
+                            if (chunk === undefined) return undefined;
+                            const block = chunk.getBlock(x & 0xf, y, z & 0xf);
+                            return { name: block.name, states: block.properties };
+                        },
+                        topOfColumn: (x, z) =>
+                            (chunks.get(Chunk.packXZ(x >> 4, z >> 4))?.getHighestBlockAt(x & 0xf, z & 0xf) ??
+                                maxY(Dimensions.Overworld)) + 1,
+                        loadedChunks: () => coordinates,
+                        ...(deferred && {
+                            shouldInitializeLight: (x: number, z: number) =>
+                                Math.abs(x - centerX) <= 1 && Math.abs(z) <= 1,
+                            lightChunks: function* () {
+                                for (const { x, z } of coordinates) {
+                                    if (Math.abs(x - centerX) <= 1 && Math.abs(z) <= 1) yield { x, z };
+                                }
+                            }
+                        })
+                    };
+                    const systems = new WorldSystems({ view, world: createTestWorld() });
+                    for (const { x, z } of coordinates) systems.onChunkLoaded(x, z);
+                    if (deferred) systems.prepareLighting();
+                    systems.lighting.flush();
+                    return { systems, moveCenter: (x: number) => (centerX = x) };
+                };
+
+                const eager = makeSystems(false).systems;
+                const deferred = makeSystems(true);
+                expect(deferred.systems.lighting.hasChunk(2, 2)).toBe(false);
+                expect(lightDigest(deferred.systems, 0, 0)).toBe(lightDigest(eager, 0, 0));
+
+                deferred.moveCenter(1);
+                deferred.systems.prepareLighting();
+                deferred.systems.lighting.flush();
+                expect(deferred.systems.lighting.hasChunk(-1, 0)).toBe(false);
+                expect(deferred.systems.lighting.hasChunk(2, 0)).toBe(true);
+                expect(lightDigest(deferred.systems, 1, 0)).toBe(lightDigest(eager, 1, 0));
+
+                deferred.systems.getSkyLight(32, 40, 32);
+                expect(deferred.systems.lighting.hasChunk(2, 2)).toBe(true);
+            });
+
+            it('waits for light to settle before drawing random ticks', () => {
+                const { blocks, view, world } = worldOf();
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) blocks.set(key(x, 40, z), STONE);
+                }
+                let randomTickReads = 0;
+                const systems = new WorldSystems({
+                    view: {
+                        ...view,
+                        lightChunks: () => [{ x: 0, z: 0 }],
+                        shouldInitializeLight: () => true,
+                        randomTickSpeed: () => 1,
+                        randomTickChunks: () => {
+                            randomTickReads++;
+                            return [];
+                        }
+                    },
+                    world
+                });
+
+                let tick = 1;
+                systems.tick(tick++);
+                expect(randomTickReads).toBe(0);
+                while (!systems.isLightingSettled && tick < 100) systems.tick(tick++);
+                expect(systems.isLightingSettled).toBe(true);
+                expect(randomTickReads).toBe(0);
+
+                systems.tick(tick);
+                expect(randomTickReads).toBe(1);
             });
 
             it('stops the flood at an opaque block', () => {

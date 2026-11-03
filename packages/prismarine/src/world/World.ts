@@ -197,6 +197,9 @@ const CHUNK_UNLOAD_BATCH_SIZE = 8;
  */
 export const SIMULATION_DISTANCE = 10;
 
+/** One fully lit chunk beyond simulation distance keeps edge light propagation complete. */
+const LIGHT_GUARD_CHUNKS = 1;
+
 /**
  * How much a body is shrunk before the blocks it overlaps are listed: Java's
  * `Entity.checkInsideBlocks` deflates the bounding box by `1.0E-6`.
@@ -212,6 +215,7 @@ interface PlayerChunkCoverage {
 interface ChunkPlayerCounts {
     simulation: number;
     retention: number;
+    light: number;
 }
 
 /**
@@ -263,8 +267,13 @@ class PlayerChunkRefCounts {
         return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.retention ?? 0) > 0;
     }
 
+    public lights(chunkX: number, chunkZ: number): boolean {
+        return (this.chunks.get(Chunk.packXZ(chunkX, chunkZ))?.light ?? 0) > 0;
+    }
+
     private changeCoverage(coverage: PlayerChunkCoverage, change: -1 | 1): void {
         this.changeArea(coverage.x, coverage.z, SIMULATION_DISTANCE, 'simulation', change);
+        this.changeArea(coverage.x, coverage.z, SIMULATION_DISTANCE + LIGHT_GUARD_CHUNKS, 'light', change);
         this.changeArea(coverage.x, coverage.z, coverage.viewDistance, 'retention', change);
     }
 
@@ -278,10 +287,10 @@ class PlayerChunkRefCounts {
         for (let chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
             for (let chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
                 const key = Chunk.packXZ(chunkX, chunkZ);
-                const counts = this.chunks.get(key) ?? { simulation: 0, retention: 0 };
+                const counts = this.chunks.get(key) ?? { simulation: 0, retention: 0, light: 0 };
                 counts[area] += change;
 
-                if (counts.simulation === 0 && counts.retention === 0) this.chunks.delete(key);
+                if (counts.simulation === 0 && counts.retention === 0 && counts.light === 0) this.chunks.delete(key);
                 else this.chunks.set(key, counts);
             }
         }
@@ -551,6 +560,8 @@ export class World implements Service {
                 blockRuntimeIdAt: (x, y, z) => this.loadedBlockRuntimeIdAt(x, y, z),
                 topOfColumn: (x, z) => this.topOfColumn(x, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
+                lightChunks: () => this.lightChunks(),
+                shouldInitializeLight: (chunkX, chunkZ) => this.chunkNeedsLight(chunkX, chunkZ),
                 randomTickSpeed: () => {
                     const [value] = this.getGameRuleManager().getGameRule(GameRules.RandomTickSpeed) ?? [];
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
@@ -706,6 +717,8 @@ export class World implements Service {
 
     /** Advances cooking block entities in chunks that are currently simulated. */
     private tickCookingStations(playerChunkRefCounts: PlayerChunkRefCounts): void {
+        if (!this.lightingReadyForSimulation()) return;
+
         const content = this.server.getContent?.();
         if (content === undefined) return;
 
@@ -766,6 +779,8 @@ export class World implements Service {
      * holding the chunk and the next save both see it.
      */
     private tickSpawners(playerChunkRefCounts: PlayerChunkRefCounts): void {
+        if (!this.lightingReadyForSimulation()) return;
+
         // Resolved on the first spawner met rather than up front: most ticks of most worlds
         // meet none, and this pass should cost them nothing.
         let random: (() => number) | undefined;
@@ -866,7 +881,8 @@ export class World implements Service {
         // before the sand under it fell away.
         const endBlockUpdatesProfile = startProfile?.(`World.blockUpdates:${this.name}`);
         try {
-            await this.runBlockUpdates();
+            this.systems.prepareLighting?.();
+            if (this.lightingReadyForSimulation()) await this.runBlockUpdates();
         } finally {
             endBlockUpdatesProfile?.();
         }
@@ -887,6 +903,7 @@ export class World implements Service {
         this.tickCookingStations(playerChunkRefCounts);
         this.tickSpawners(playerChunkRefCounts);
         const isPositionTicking = (x: number, z: number): boolean =>
+            this.lightingReadyForSimulation() &&
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
         const entities = this.getEntities();
 
@@ -2217,14 +2234,14 @@ export class World implements Service {
      * collision; a fire does not dampen light here either, so the position it stands in still
      * reads 15.
      *
-     * @returns False for a position in a chunk whose light the engine has not computed, which
-     * is also what a fire there would answer: nothing is ticking it. Always false in a
-     * dimension without a sky, where Java's `hasSkylight` is false and nothing can see rain.
+     * @returns False in an unloaded chunk or a dimension without a sky. A loaded chunk outside
+     * the simulation light ring is initialized and settled on demand before this test reads it.
      */
     public isRainingAt(x: number, y: number, z: number): boolean {
         if (!this.dimension.java.hasSkylight || !this.level.getWeather().raining()) return false;
 
-        return this.systems.lighting.getSkyLight(x, y, z) === FULL_SKY_LIGHT;
+        const skyLight = this.systems.getSkyLight?.(x, y, z) ?? this.systems.lighting.getSkyLight(x, y, z);
+        return skyLight === FULL_SKY_LIGHT;
     }
 
     /**
@@ -2257,6 +2274,8 @@ export class World implements Service {
      * sections.
      */
     public randomTickChunks(): RandomTickChunk[] {
+        if (!this.lightingReadyForSimulation()) return [];
+
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
         if (this.players.size === 0) return [];
@@ -2279,6 +2298,28 @@ export class World implements Service {
 
     private getPlayerChunkRefCounts(): PlayerChunkRefCounts {
         return (this.playerChunkRefCounts ??= new PlayerChunkRefCounts());
+    }
+
+    /** Whether the current simulation area can safely read light-dependent world state. */
+    private lightingReadyForSimulation(): boolean {
+        return this.systems.isLightingSettled ?? true;
+    }
+
+    private chunkNeedsLight(chunkX: number, chunkZ: number): boolean {
+        const playerChunkRefCounts = this.getPlayerChunkRefCounts();
+        playerChunkRefCounts.synchronize(this.players);
+        return playerChunkRefCounts.lights(chunkX, chunkZ);
+    }
+
+    /** Loaded chunks in the simulation area and its one-chunk light guard ring. */
+    private *lightChunks(): Iterable<{ readonly x: number; readonly z: number }> {
+        const playerChunkRefCounts = this.getPlayerChunkRefCounts();
+        playerChunkRefCounts.synchronize(this.players);
+
+        for (const chunk of this.chunks.values()) {
+            if (!playerChunkRefCounts.lights(chunk.getX(), chunk.getZ())) continue;
+            yield { x: chunk.getX(), z: chunk.getZ() };
+        }
     }
 
     /**

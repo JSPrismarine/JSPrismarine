@@ -252,14 +252,20 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         // rules ask for brightness. The End and Nether suppress sky light, but their ambient
         // floors keep the dimension from reading as pitch black.
         light: (at) => {
-            const lighting = live().getSystems().lighting;
+            const systems = live().getSystems();
+            const lighting = systems.lighting;
             const ambientLight = Math.floor((level.ambientLight ?? 0) * 15);
             const skyLight = Math.floor(
-                lighting.getSkyLight(at.x, at.y, at.z) * (level.skyLightFactor ?? (level.hasSkyLight ? 1 : 0))
+                (systems.getSkyLight?.(at.x, at.y, at.z) ?? lighting.getSkyLight(at.x, at.y, at.z)) *
+                    (level.skyLightFactor ?? (level.hasSkyLight ? 1 : 0))
             );
-            return Math.max(lighting.getBlockLight(at.x, at.y, at.z), skyLight, ambientLight);
+            const blockLight = systems.getBlockLight?.(at.x, at.y, at.z) ?? lighting.getBlockLight(at.x, at.y, at.z);
+            return Math.max(blockLight, skyLight, ambientLight);
         },
-        skyLight: (at) => live().getSystems().lighting.getSkyLight(at.x, at.y, at.z),
+        skyLight: (at) => {
+            const systems = live().getSystems();
+            return systems.getSkyLight?.(at.x, at.y, at.z) ?? systems.lighting.getSkyLight(at.x, at.y, at.z);
+        },
         isLoaded: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) !== null,
         surfaceY: (x, z) => {
             const chunk = live().getLoadedChunk(x >> 4, z >> 4);
