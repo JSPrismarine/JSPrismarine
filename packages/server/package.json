@@ -40,7 +40,9 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "typecheck": "tsc-ts --noEmit",
         "start": "cross-env NODE_ENV=production node --unhandled-rejections=strict --import tsx ./src/Server.ts",
-        "dev": "cross-env NODE_ENV=development node --import tsx ./src/Server.ts --watch"
+        "dev": "cross-env NODE_ENV=development node --import tsx ./src/Server.ts --watch",
+        "dev:native-prototype": "cross-env NODE_ENV=development node --import ./scripts/native-typescript-loader.mjs ./src/Server.ts --watch",
+        "bench:native-typescript": "node ./scripts/native-typescript-benchmark.mjs"
     },
     "repository": {
         "type": "git",
