@@ -193,6 +193,28 @@ describe('the command layer on a booted server', () => {
         expect(world.loadedBlockAt(2, 70, 2)?.name).toBe('minecraft:cobblestone');
     });
 
+    // Without the states, every /fill writes a default state: logs all point one way and the
+    // leaves it places are the decaying kind, with no way to ask for anything else.
+    it('fills a region in the block state /fill was given', async () => {
+        await expect(run('/fill 1 72 1 2 72 2 minecraft:oak_log ["pillar_axis"="x"]')).resolves.toBe(true);
+
+        expect(world.loadedBlockAt(1, 72, 1)?.states).toMatchObject({ pillar_axis: 'x' });
+        expect(world.loadedBlockAt(2, 72, 2)?.states).toMatchObject({ pillar_axis: 'x' });
+    });
+
+    it('still reads the fill mode after a block state', async () => {
+        await run('/fill 1 73 1 2 73 2 minecraft:stone');
+        await run('/setblock 1 73 1 minecraft:air');
+
+        await expect(run('/fill 1 73 1 2 73 2 minecraft:oak_log ["pillar_axis"="z"] keep')).resolves.toBe(true);
+
+        // `keep` writes only where the region was empty, and what it wrote there is the state
+        // the line named rather than the block's default.
+        expect(world.loadedBlockAt(1, 73, 1)?.name).toBe('minecraft:oak_log');
+        expect(world.loadedBlockAt(1, 73, 1)?.states).toMatchObject({ pillar_axis: 'z' });
+        expect(world.loadedBlockAt(2, 73, 2)?.name).toBe('minecraft:stone');
+    });
+
     it('summons an entity through /summon', async () => {
         const before = world.getEntities().length;
 
