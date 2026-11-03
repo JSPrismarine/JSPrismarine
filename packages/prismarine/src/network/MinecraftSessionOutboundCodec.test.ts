@@ -113,6 +113,19 @@ describe('network', () => {
             expect(trace.getPayloadBytes()).toBe(payload!.byteLength);
         });
 
+        it('records the tick when async packet framing reaches the transport', async () => {
+            const { session } = fakeSession(Codec2193);
+            const trace = new OutboundPacketTrace();
+            let tick = 12;
+            session.setOutboundPacketRecorder(trace, 4, () => tick);
+
+            const sending = session.sendPacketsAsync([animate()]);
+            tick = 13;
+            await sending;
+
+            expect(trace.records().map((record) => record.tick)).toEqual([13]);
+        });
+
         it('keeps per-tick output digests stable across unrelated connection scheduling', () => {
             const first = new OutboundPacketTrace();
             const second = new OutboundPacketTrace();

@@ -121,6 +121,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const clientConnection = this.createConnection(connection);
         const connectionId = this.nextConnectionId;
         this.nextConnectionId += 1;
+        // Playback assigns captured ids on a fresh server even when that server is not recording.
         this.connectionsByTraceId.set(connectionId, clientConnection);
         this.traceConnectionIds.set(clientConnection, connectionId);
         if (this.outboundPacketRecorder !== undefined) {
@@ -304,7 +305,11 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     }
 
     /** Runs the handler, with the collaborator its phases entitle it to. */
-    private async dispatch({ packet, handler }: GatedPacket, connection: ClientConnection): Promise<readonly never[]> {
+    private async dispatch(
+        { packet, handler }: GatedPacket,
+        connection: ClientConnection,
+        recordInbound = true
+    ): Promise<readonly never[]> {
         try {
             // A handshake- or login-phase handler takes the bare connection; every other
             // handler needs the player session that login creates. A packet that reaches
@@ -312,10 +317,14 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // wrong shape.
             const session = connection.getPlayerSession();
             if (takesConnection(handler)) {
-                if (this.inboundPacketRecorder !== undefined) this.recordInboundPacket(packet, connection);
+                if (recordInbound && this.inboundPacketRecorder !== undefined) {
+                    this.recordInboundPacket(packet, connection);
+                }
                 await handler.handle(packet, this.server, connection);
             } else if (session !== null) {
-                if (this.inboundPacketRecorder !== undefined) this.recordInboundPacket(packet, connection);
+                if (recordInbound && this.inboundPacketRecorder !== undefined) {
+                    this.recordInboundPacket(packet, connection);
+                }
                 await handler.handle(packet, this.server, session);
             } else this.logger.debug(`Dropped §b${packet.constructor.name}§r: received before login completed`);
         } catch (error: unknown) {
@@ -396,7 +405,8 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
 
         this.logInbound(packet);
-        await this.dispatch(gated[0]!, connection);
+        // This input is already in the source trace; playback must not append it a second time.
+        await this.dispatch(gated[0]!, connection, false);
         this.replaySequences.set(record.connectionId, expectedSequence + 1);
     }
 

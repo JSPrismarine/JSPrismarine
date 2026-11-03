@@ -286,11 +286,12 @@ describe('network', () => {
             await first.transport.emitConnect(fakeConnection('first:1').connection);
             await first.transport.emitFrame(frameOf(message('bot input')), address('first:1'));
 
-            const replay = makeDispatcher({ tick: () => 6, handler });
+            const replay = makeDispatcher({ recorder: trace, tick: () => 6, handler });
             await replay.transport.emitConnect(fakeConnection('restored:1').connection);
             await replay.dispatcher.replayInboundRecord(trace.records()[0]!);
 
             expect(handled).toEqual(['bot input', 'bot input']);
+            expect(trace.records()).toHaveLength(1);
         });
 
         it('keeps the arrival tick when a prior handler holds the connection queue', async () => {

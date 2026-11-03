@@ -130,10 +130,8 @@ export default class MinecraftSession {
         if (this.dropsPackets(packets)) return;
 
         const batch = encodePacketBatch(packets, this.codec, batchOptions);
-        const tick = this.outboundTick?.();
         void this.ordered(() => {
-            this.frame(batch.content, direct);
-            this.recordOutbound(batch.packets, tick);
+            this.frameAndRecord(batch.content, batch.packets, direct);
         });
     }
 
@@ -151,13 +149,11 @@ export default class MinecraftSession {
     ): Promise<void> {
         if (this.dropsPackets(packets)) return;
 
-        const tick = this.outboundTick?.();
         this.pendingAsyncSends++;
         try {
             await this.chain(async () => {
                 const batch = await encodePacketBatchAsync(packets, this.codec, batchOptions);
-                this.frame(batch.content, direct);
-                this.recordOutbound(batch.packets, tick);
+                this.frameAndRecord(batch.content, batch.packets, direct);
 
                 // One line per packet, as `sendDataPacket` writes, so a join trace shows the
                 // chunks between the publisher updates instead of a gap where they went out.
@@ -191,13 +187,11 @@ export default class MinecraftSession {
         const representative = packets[0];
         if (representative !== undefined) this.dump(representative);
         if (this.dropsPackets(packets)) return;
-        const tick = this.outboundTick?.();
 
         // Through the same ordering chain as everything else, so a shared batch cannot
         // overtake a chunk batch that is still compressing.
         void this.ordered(() => {
-            this.frame(content, direct);
-            this.recordOutbound(packets, tick);
+            this.frameAndRecord(content, packets, direct);
             if (representative !== undefined && this.logFilter.shouldLog(representative)) {
                 this.logger.silly(`Sent §b${representative.getName()}§r packet`);
             }
@@ -206,6 +200,13 @@ export default class MinecraftSession {
 
     private frame(content: Buffer, direct: boolean): void {
         this.connection.sendFrame(content, direct);
+    }
+
+    /** Reads the tick after queued work finishes, at the same boundary where the frame is sent. */
+    private frameAndRecord(content: Buffer, packets: readonly NetworkPacket<unknown>[], direct: boolean): void {
+        const tick = this.outboundPacketRecorder === undefined ? undefined : this.outboundTick?.();
+        this.frame(content, direct);
+        this.recordOutbound(packets, tick);
     }
 
     /** Records encoded packet bytes after their batch reaches the transport queue. */
@@ -247,7 +248,6 @@ export default class MinecraftSession {
         }
 
         const encodedPacket = batch.packets[0]!;
-        const tick = this.outboundTick?.();
 
         // After encoding, so a dumped packet is the bytes the client would have been given,
         // whether or not it is also dropped.
@@ -257,8 +257,7 @@ export default class MinecraftSession {
         // Behind any chunk batch still compressing, so this packet does not overtake terrain
         // it was meant to follow.
         await this.ordered(() => {
-            this.frame(batch.content, direct);
-            this.recordOutbound(batch.packets, tick);
+            this.frameAndRecord(batch.content, batch.packets, direct);
             if (this.logFilter.shouldLog(encodedPacket)) {
                 this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
             }
