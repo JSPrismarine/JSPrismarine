@@ -36,4 +36,13 @@ export default class ParseResults<S> {
     public getExceptions(): Map<CommandNode<S>, Error> {
         return this.exceptions;
     }
+
+    /**
+     * Copies the parse for another source without running any argument parsers again.
+     *
+     * @param source - The source the resulting context tree should carry.
+     */
+    public copyFor(source: S): ParseResults<S> {
+        return new ParseResults(this.context.copyFor(source), this.reader, new Map(this.exceptions));
+    }
 }

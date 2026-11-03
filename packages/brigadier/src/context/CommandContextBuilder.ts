@@ -83,7 +83,20 @@ export default class CommandContextBuilder<S> {
         copy.nodes.push(...this.nodes);
         copy.child = this.child;
         copy.range = this.range;
+        // Cached parses still need their redirect modifier when rebound to a new source.
+        copy.modifier = this.modifier;
         copy.forks = this.forks;
+        return copy;
+    }
+
+    /**
+     * Copies this parse context tree for a new source while keeping the parsed arguments and nodes.
+     *
+     * @param source - The source that execution and redirect modifiers should observe.
+     */
+    public copyFor(source: S): CommandContextBuilder<S> {
+        const copy = this.copy().withSource(source);
+        copy.child = this.child ? this.child.copyFor(source) : null;
         return copy;
     }
 

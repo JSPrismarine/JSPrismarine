@@ -353,6 +353,8 @@ describe('the command layer on a booted server', () => {
                 ].join('\n'),
                 'data/fixture/function/place.mcfunction': '$setblock $(x) $(y) $(z) minecraft:gold_block\n',
                 'data/fixture/function/under.mcfunction': 'setblock ~ ~-1 ~ minecraft:diamond_block\n',
+                'data/fixture/function/redirected.mcfunction': 'setblock ~ ~-2 ~ minecraft:gold_block\n',
+                'data/fixture/function/cache-block.mcfunction': 'setblock 16 70 16 mypack:cache_block\n',
                 'data/fixture/function/call.mcfunction': 'function fixture:build\n',
                 'data/fixture/function/ticked.mcfunction': 'setblock 11 70 11 minecraft:emerald_block\n',
                 'data/fixture/function/plain.mcfunction': 'setblock 14 70 14 minecraft:iron_block\n',
@@ -421,6 +423,63 @@ describe('the command layer on a booted server', () => {
 
             expect(world.loadedBlockAt(13, 69, 13)?.name).toBe('minecraft:diamond_block');
             expect(world.loadedBlockAt(15, 69, 15)?.name).toBe('minecraft:diamond_block');
+        });
+
+        it('reuses one parsed function line across sources and redirects', async () => {
+            await run('/summon minecraft:pig 3 70 3');
+            await run('/summon minecraft:pig 7 70 7');
+            await run('/tag @e[type=pig,x=3,y=70,z=3,dx=4,dy=0,dz=4] add parse_cache_source');
+
+            const dispatcher = server.getCommandManager().getVanillaCommands().getDispatcher();
+            const parse = vi.spyOn(dispatcher, 'parse');
+            await expect(
+                run('/execute as @e[type=pig,tag=parse_cache_source] at @s run function fixture:redirected')
+            ).resolves.toBe(true);
+
+            expect(world.loadedBlockAt(3, 68, 3)?.name).toBe('minecraft:gold_block');
+            expect(world.loadedBlockAt(7, 68, 7)?.name).toBe('minecraft:gold_block');
+            expect(parse.mock.calls.filter(([line]) => line === 'setblock ~ ~-2 ~ minecraft:gold_block')).toHaveLength(
+                1
+            );
+        });
+
+        it('caches a failed parse and invalidates it when content rebuilds the vanilla tree', async () => {
+            const manager = server.getCommandManager();
+            const oldDispatcher = manager.getVanillaCommands().getDispatcher();
+            const firstParse = vi.spyOn(oldDispatcher, 'parse');
+            const commandLine = 'setblock 16 70 16 mypack:cache_block';
+            await run('/function fixture:cache-block');
+            await run('/function fixture:cache-block');
+            expect(firstParse.mock.calls.filter(([line]) => line === commandLine)).toHaveLength(1);
+            const invalidResult = firstParse.mock.results.find(
+                (_entry, index) => firstParse.mock.calls[index]?.[0] === commandLine
+            )?.value;
+            expect(invalidResult?.getReader().canRead()).toBe(true);
+
+            const content = server.getContent();
+            const existingBlock = content.blocks.types.values().next().value;
+            if (existingBlock === undefined) throw new Error('The command fixture has no block type to reuse.');
+            const types = new Map(content.blocks.types);
+            types.set('mypack:cache_block', existingBlock);
+            const updatedContent = { ...content, blocks: { ...content.blocks, types } };
+            const getContent = vi.spyOn(server, 'getContent').mockReturnValue(updatedContent);
+            try {
+                await manager.disable();
+                await manager.enable();
+            } finally {
+                getContent.mockRestore();
+            }
+
+            const newDispatcher = manager.getVanillaCommands().getDispatcher();
+            const rebuiltParse = vi.spyOn(newDispatcher, 'parse');
+            await run('/function fixture:cache-block');
+            const result = rebuiltParse.mock.results.find(
+                (_entry, index) => rebuiltParse.mock.calls[index]?.[0] === commandLine
+            )?.value;
+
+            expect(result).toBeDefined();
+            expect(result?.getReader().canRead()).toBe(false);
+            expect(result?.getExceptions().size).toBe(0);
         });
 
         it('reports a function nobody declared instead of accepting the line', async () => {

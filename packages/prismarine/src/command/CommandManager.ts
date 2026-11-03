@@ -1,4 +1,4 @@
-import type { RootCommandNode } from '@jsprismarine/brigadier';
+import type { ParseResults, RootCommandNode } from '@jsprismarine/brigadier';
 import { ArgumentCommandNode, CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
 import { bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
@@ -48,6 +48,7 @@ export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: 
 
 const HELP_PAGE_SIZE = 7;
 const MAX_HELP_SYNTAX_LINES = 18;
+const MAX_FUNCTION_PARSE_CACHE_ENTRIES = 8192;
 
 /** A literal encoded as a one-value hard enum for the Bedrock command packet. */
 class LiteralCommandArgument extends CommandArgument {
@@ -101,6 +102,9 @@ export class CommandManager implements Service {
      * one of them, which is what {@link CommandManager.vanillaName} decides.
      */
     private vanilla: CommandRegistry<CommandSource>;
+
+    /** Recently parsed function lines for the active vanilla command tree. */
+    private readonly functionParseCache = new Map<string, ParseResults<CommandSource>>();
 
     /**
      * The mcfunction runtime, built on first use.
@@ -169,7 +173,23 @@ export class CommandManager implements Service {
      * that opens its own.
      */
     private runFunctionLine(commandLine: string, source: CommandSource): { result?: number; forks?: number } {
-        const results = this.vanilla.getDispatcher().execute(commandLine, source);
+        const dispatcher = this.vanilla.getDispatcher();
+        let parsed = this.functionParseCache.get(commandLine);
+        if (parsed === undefined) {
+            parsed = dispatcher.parse(commandLine, source);
+            this.functionParseCache.set(commandLine, parsed);
+            if (this.functionParseCache.size > MAX_FUNCTION_PARSE_CACHE_ENTRIES) {
+                const oldest = this.functionParseCache.keys().next().value;
+                if (oldest !== undefined) this.functionParseCache.delete(oldest);
+            }
+        } else {
+            this.functionParseCache.delete(commandLine);
+            this.functionParseCache.set(commandLine, parsed);
+        }
+
+        // Vanilla argument parsers do not read the source; copy the cached context so each
+        // execution and redirect modifier sees its current source, not the source from the miss.
+        const results = dispatcher.execute(parsed.copyFor(source));
         if (!Array.isArray(results)) return {};
 
         const result = results.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
@@ -241,6 +261,7 @@ export class CommandManager implements Service {
         // against what it loaded, so a pack's own entity, block, item or
         // enchantment is spellable.
         this.vanilla = buildVanillaCommands(contentRegistryIds(this.server.getContent()));
+        this.functionParseCache.clear();
 
         this.server
             .getLogger()
