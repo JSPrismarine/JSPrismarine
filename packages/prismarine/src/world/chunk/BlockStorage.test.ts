@@ -76,5 +76,36 @@ describe('world', () => {
             expect(read.getRuntimeId(7, 8, 9)).toBe(dirt());
             expect(read.getRuntimeId(0, 0, 0)).toBe(air());
         });
+
+        it('uses zero-bit network storage for uniform air and non-air palettes', () => {
+            const water = BlockRuntimeIds.getByName('minecraft:water');
+
+            for (const runtimeId of [air(), water]) {
+                const storage = new BlockStorage({ palette: [runtimeId] });
+                const stream = new BinaryStream();
+                storage.networkSerialize(stream);
+
+                expect(stream.getBuffer()[0]).toBe(1);
+                const restored = BlockStorage.networkDeserialize(new BinaryStream(stream.getBuffer()));
+                expect(restored.getRuntimeId(0, 0, 0)).toBe(runtimeId);
+                expect(restored.getRuntimeId(15, 15, 15)).toBe(runtimeId);
+            }
+        });
+
+        it('drops palette entries that no block uses during network serialization', () => {
+            const indices = new Uint16Array(4096);
+            indices[15] = 2;
+            indices[31] = 3;
+            const palette = [air(), stone(), dirt(), BlockRuntimeIds.getByName('minecraft:water')];
+            const storage = new BlockStorage({ blocks: indices, palette });
+            const stream = new BinaryStream();
+            storage.networkSerialize(stream);
+
+            const restored = BlockStorage.networkDeserialize(new BinaryStream(stream.getBuffer()));
+            expect(restored.getPalette()).toEqual([air(), dirt(), BlockRuntimeIds.getByName('minecraft:water')]);
+            expect(restored.getRuntimeId(0, 0, 0)).toBe(air());
+            expect(restored.getRuntimeId(0, 15, 0)).toBe(dirt());
+            expect(restored.getRuntimeId(0, 15, 1)).toBe(BlockRuntimeIds.getByName('minecraft:water'));
+        });
     });
 });

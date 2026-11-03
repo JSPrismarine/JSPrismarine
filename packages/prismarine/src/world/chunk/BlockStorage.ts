@@ -143,14 +143,39 @@ export default class BlockStorage {
         return index;
     }
 
+    /** Writes only palette states used by this section, with zero bits for a uniform section. */
     public networkSerialize(stream: BinaryStream): void {
+        const compactIndices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+        const compactPalette: number[] = [];
+        const indexByOriginal = new Map<number, number>();
+
+        for (let position = 0; position < BLOCKS_PER_SUBCHUNK; position++) {
+            const originalIndex = this.blocks[position]!;
+            let compactIndex = indexByOriginal.get(originalIndex);
+            if (compactIndex === undefined) {
+                const runtimeId = this.palette[originalIndex];
+                if (runtimeId === undefined) {
+                    throw new RangeError(`Sub chunk block refers to missing palette index ${originalIndex}`);
+                }
+
+                compactIndex = compactPalette.length;
+                indexByOriginal.set(originalIndex, compactIndex);
+                compactPalette.push(runtimeId);
+            }
+
+            compactIndices[position] = compactIndex;
+        }
+
         // https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37
-        let bitsPerBlock = Math.ceil(Math.log2(this.palette.length));
+        let bitsPerBlock = Math.ceil(Math.log2(compactPalette.length));
 
         switch (bitsPerBlock) {
             case 0:
-                bitsPerBlock = 1;
-                break;
+                // Zero-bit storage has one palette entry and no packed words.
+                stream.writeByte(1);
+                stream.writeVarInt(compactPalette.length);
+                for (const runtimeId of compactPalette) stream.writeVarInt(runtimeId);
+                return;
             case 1:
             case 2:
             case 3:
@@ -178,15 +203,15 @@ export default class BlockStorage {
         for (let w = 0; w < wordsPerChunk; w++) {
             let word = 0;
             for (let block = 0; block < blocksPerWord; block++) {
-                const state = this.blocks[position++]!;
+                const state = compactIndices[position++]!;
                 word |= state << (bitsPerBlock * block);
             }
             stream.writeIntLE(word);
         }
 
         // Write palette entries as runtime ids
-        stream.writeVarInt(this.palette.length);
-        for (const val of this.palette) {
+        stream.writeVarInt(compactPalette.length);
+        for (const val of compactPalette) {
             stream.writeVarInt(val);
         }
     }

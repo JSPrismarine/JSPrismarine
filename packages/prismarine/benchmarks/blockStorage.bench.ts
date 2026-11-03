@@ -51,6 +51,17 @@ const storageOf = (dense: boolean): BlockStorage => {
     return storage;
 };
 
+const editedUniformStorageOf = (): BlockStorage => {
+    const storage = storageOf(true);
+    const air = BlockRuntimeIds.getByName('minecraft:air');
+    for (let x = 0; x < 16; x++) {
+        for (let y = 0; y < 16; y++) {
+            for (let z = 0; z < 16; z++) storage.setBlock(x, y, z, air);
+        }
+    }
+    return storage;
+};
+
 const percentile = (sorted: readonly number[], fraction: number): number =>
     sorted[Math.min(sorted.length - 1, Math.ceil(fraction * sorted.length) - 1)] ?? 0;
 
@@ -92,18 +103,58 @@ const allocationSample = (
     };
 };
 
-for (const dense of [false, true]) {
-    const storage = storageOf(dense);
+const networkEncodingSizes = (storage: BlockStorage): { readonly bytes: number; readonly savedBytes: number } => {
+    const current = new BinaryStream();
+    storage.networkSerialize(current);
+
+    // Reproduce the previous wire layout to report the bytes removed by palette compaction.
+    const previous = new BinaryStream();
+    const palette = storage.getPalette();
+    let bitsPerBlock = Math.ceil(Math.log2(palette.length));
+    if (bitsPerBlock === 0) bitsPerBlock = 1;
+    else if (bitsPerBlock === 7 || bitsPerBlock === 8) bitsPerBlock = 8;
+    else if (bitsPerBlock > 8) bitsPerBlock = 16;
+
+    previous.writeByte((bitsPerBlock << 1) | 1);
+    const blocksPerWord = Math.floor(32 / bitsPerBlock);
+    const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
+    let position = 0;
+    for (let wordIndex = 0; wordIndex < wordsPerChunk; wordIndex++) {
+        let word = 0;
+        for (let block = 0; block < blocksPerWord; block++) {
+            word |= storage.getPaletteIndexAtIndex(position++) << (bitsPerBlock * block);
+        }
+        previous.writeIntLE(word);
+    }
+
+    previous.writeVarInt(palette.length);
+    for (const runtimeId of palette) previous.writeVarInt(runtimeId);
+
+    return {
+        bytes: current.getBuffer().byteLength,
+        savedBytes: previous.getBuffer().byteLength - current.getBuffer().byteLength
+    };
+};
+
+const scenarios: Array<[string, () => BlockStorage]> = [
+    ['sparse', () => storageOf(false)],
+    ['dense', () => storageOf(true)],
+    ['edited-uniform', editedUniformStorageOf]
+];
+
+for (const [scenario, createStorage] of scenarios) {
+    const storage = createStorage();
     for (let warmup = 0; warmup < 3; warmup++) sample(storage);
 
     const runs = Array.from({ length: SAMPLES }, () => sample(storage));
     const sorted = runs.map(({ ms }) => ms).sort((left, right) => left - right);
     const allocations = allocationSample(storage);
     const digests = new Set(runs.map(({ digest }) => digest));
+    const network = networkEncodingSizes(storage);
 
     console.log(
         JSON.stringify({
-            benchmark: dense ? 'persistent-block-storage-dense' : 'persistent-block-storage-sparse',
+            benchmark: `persistent-block-storage-${scenario}`,
             seed: 0,
             node: process.version,
             platform: `${os.platform()}-${os.arch()}`,
@@ -117,6 +168,8 @@ for (const dense of [false, true]) {
                 max: sorted.at(-1) ?? 0
             },
             allocations,
+            networkBytes: network.bytes,
+            networkBytesSaved: network.savedBytes,
             outputDigest: digests.size === 1 ? runs[0]?.digest : 'unstable'
         })
     );

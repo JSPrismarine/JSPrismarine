@@ -778,7 +778,6 @@
     "packages/prismarine/src/world/chunk/BlockStorage.ts public method `BlockStorage.getBlock`",
     "packages/prismarine/src/world/chunk/BlockStorage.ts public method `BlockStorage.isEmpty`",
     "packages/prismarine/src/world/chunk/BlockStorage.ts public method `BlockStorage.networkDeserialize`",
-    "packages/prismarine/src/world/chunk/BlockStorage.ts public method `BlockStorage.networkSerialize`",
     "packages/prismarine/src/world/chunk/BlockStorage.ts public method `BlockStorage.setBlock`",
     "packages/prismarine/src/world/chunk/Chunk.ts exported class `Chunk`",
     "packages/prismarine/src/world/chunk/Chunk.ts public method `Chunk.getBlockEntities`",
