@@ -1,45 +1,75 @@
 import { createHash } from 'node:crypto';
 
 import { asLong } from '../random/randomSupport';
+import { mulLow64 } from '../random/longLanes';
 import type { BiomeResolver } from './BiomeSource';
 
 const LCG_MULTIPLIER = 6364136223846793005n;
 const LCG_INCREMENT = 1442695040888963407n;
+const UINT32_MASK = 0xffffffffn;
+const LCG_MULTIPLIER_HI = Number((LCG_MULTIPLIER >> 32n) & UINT32_MASK);
+const LCG_MULTIPLIER_LO = Number(LCG_MULTIPLIER & UINT32_MASK);
+const LCG_INCREMENT_HI = Number((LCG_INCREMENT >> 32n) & UINT32_MASK);
+const LCG_INCREMENT_LO = Number(LCG_INCREMENT & UINT32_MASK);
 
-/** Java's `LinearCongruentialGenerator.next`, the mixing step the biome zoomer runs on. */
-const lcgNext = (seed: bigint, value: bigint): bigint =>
-    asLong(asLong(seed * asLong(asLong(seed * LCG_MULTIPLIER) + LCG_INCREMENT)) + value);
-
-/** Turns one mixed value into the jitter Java adds to a cell's distance, in `[-0.45, 0.45)`. */
-const fiddle = (value: bigint): number => {
-    const shifted = value >> 24n;
-    const modulus = ((shifted % 1024n) + 1024n) % 1024n;
-    return (Number(modulus) / 1024 - 0.5) * 0.9;
+/** Java's `LinearCongruentialGenerator.next`, using the shared exact 64-bit lane multiplier. */
+const lcgNext = (
+    seedHi: number,
+    seedLo: number,
+    valueHi: number,
+    valueLo: number,
+    result: { hi: number; lo: number },
+    product: { hi: number; lo: number }
+): void => {
+    // LinearCongruentialGenerator.next is seed * (seed * multiplier + increment) + value,
+    // with each result reduced modulo 2^64; reusing two lane objects avoids per-miss allocations.
+    mulLow64(seedHi, seedLo, seedHi, seedLo, product);
+    const squareHi = product.hi;
+    const squareLo = product.lo;
+    mulLow64(squareHi, squareLo, LCG_MULTIPLIER_HI, LCG_MULTIPLIER_LO, product);
+    let sumHi = product.hi;
+    let sumLo = product.lo;
+    mulLow64(seedHi, seedLo, LCG_INCREMENT_HI, LCG_INCREMENT_LO, product);
+    let sum = sumLo + product.lo;
+    sumHi = (sumHi + product.hi + (sum > 0xffffffff ? 1 : 0)) >>> 0;
+    sumLo = sum >>> 0;
+    sum = sumLo + valueLo;
+    result.hi = (sumHi + valueHi + (sum > 0xffffffff ? 1 : 0)) >>> 0;
+    result.lo = sum >>> 0;
 };
+
+/** Turns bits 24 through 33 into the jitter Java adds to a cell's distance. */
+const fiddle = (hi: number, lo: number): number => ((((lo >>> 24) | (hi << 8)) & 1023) / 1024 - 0.5) * 0.9;
 
 /** Writes one lattice point's three jitter offsets into `target` at `offset`. */
 const fiddleOffsets = (
-    seed: bigint,
+    seedHi: number,
+    seedLo: number,
     cellX: number,
     cellY: number,
     cellZ: number,
     target: Float64Array,
-    offset: number
+    offset: number,
+    value: { hi: number; lo: number },
+    product: { hi: number; lo: number }
 ): void => {
-    const x = BigInt(cellX);
-    const y = BigInt(cellY);
-    const z = BigInt(cellZ);
-    let value = lcgNext(seed, x);
-    value = lcgNext(value, y);
-    value = lcgNext(value, z);
-    value = lcgNext(value, x);
-    value = lcgNext(value, y);
-    value = lcgNext(value, z);
-    target[offset] = fiddle(value);
-    value = lcgNext(value, seed);
-    target[offset + 1] = fiddle(value);
-    value = lcgNext(value, seed);
-    target[offset + 2] = fiddle(value);
+    const xHi = cellX < 0 ? 0xffffffff : 0;
+    const xLo = cellX >>> 0;
+    const yHi = cellY < 0 ? 0xffffffff : 0;
+    const yLo = cellY >>> 0;
+    const zHi = cellZ < 0 ? 0xffffffff : 0;
+    const zLo = cellZ >>> 0;
+    lcgNext(seedHi, seedLo, xHi, xLo, value, product);
+    lcgNext(value.hi, value.lo, yHi, yLo, value, product);
+    lcgNext(value.hi, value.lo, zHi, zLo, value, product);
+    lcgNext(value.hi, value.lo, xHi, xLo, value, product);
+    lcgNext(value.hi, value.lo, yHi, yLo, value, product);
+    lcgNext(value.hi, value.lo, zHi, zLo, value, product);
+    target[offset] = fiddle(value.hi, value.lo);
+    lcgNext(value.hi, value.lo, seedHi, seedLo, value, product);
+    target[offset + 1] = fiddle(value.hi, value.lo);
+    lcgNext(value.hi, value.lo, seedHi, seedLo, value, product);
+    target[offset + 2] = fiddle(value.hi, value.lo);
 };
 
 /** How many lattice points across x, and across z, the jitter cache indexes. */
@@ -66,12 +96,20 @@ export class BiomeManager {
     private readonly jitterKeyZ = new Int32Array(JITTER_SLOTS);
     private readonly jitterFilled = new Uint8Array(JITTER_SLOTS);
     private readonly jitter = new Float64Array(JITTER_SLOTS * 3);
+    private readonly jitterValue = { hi: 0, lo: 0 };
+    private readonly jitterProduct = { hi: 0, lo: 0 };
+    private readonly zoomSeedHi: number;
+    private readonly zoomSeedLo: number;
 
     public constructor(
         private readonly resolver: BiomeResolver,
         /** The jitter seed, which Java derives from the world seed with {@link obfuscateSeed}. */
         public readonly zoomSeed: bigint
-    ) {}
+    ) {
+        const unsignedSeed = BigInt.asUintN(64, zoomSeed);
+        this.zoomSeedHi = Number(unsignedSeed >> 32n);
+        this.zoomSeedLo = Number(unsignedSeed & UINT32_MASK);
+    }
 
     /**
      * Derives the jitter seed from a world seed.
@@ -156,7 +194,17 @@ export class BiomeManager {
             return offset;
         }
 
-        fiddleOffsets(this.zoomSeed, pointX, pointY, pointZ, this.jitter, offset);
+        fiddleOffsets(
+            this.zoomSeedHi,
+            this.zoomSeedLo,
+            pointX,
+            pointY,
+            pointZ,
+            this.jitter,
+            offset,
+            this.jitterValue,
+            this.jitterProduct
+        );
         this.jitterKeyX[slot] = pointX;
         this.jitterKeyY[slot] = pointY;
         this.jitterKeyZ[slot] = pointZ;

@@ -3,9 +3,13 @@ import { MarsagliaPolarGaussian } from './MarsagliaPolarGaussian';
 import type { PositionalRandomFactory, RandomSource } from './RandomSource';
 import { asLong, javaStringHashCode, positionalSeed } from './randomSupport';
 
-const MODULUS_MASK = 281474976710655n;
 const MULTIPLIER = 25214903917n;
-const INCREMENT = 11n;
+const MULTIPLIER_LOW = 0xece66d;
+const MULTIPLIER_HIGH = 0x5de;
+const LOW_LANE_BITS = 24;
+const LOW_LANE_SIZE = 2 ** LOW_LANE_BITS;
+const LOW_LANE_MASK = LOW_LANE_SIZE - 1;
+const LOW_LANE_MASK_BIGINT = 0xffffffn;
 const FLOAT_UNIT = f32(5.9604645e-8);
 const DOUBLE_UNIT = f32(1.110223e-16);
 
@@ -17,17 +21,30 @@ const DOUBLE_UNIT = f32(1.110223e-16);
  * `legacy_random_source: true`, and structure placement uses it in every dimension.
  */
 export class LegacyRandomSource implements RandomSource {
-    private seed: bigint;
+    private seedHigh: number;
+    private seedLow: number;
     private readonly gaussianSource = new MarsagliaPolarGaussian(this);
 
     public constructor(seed: bigint) {
-        this.seed = asLong((seed ^ MULTIPLIER) & MODULUS_MASK);
+        const mixed = BigInt.asUintN(48, seed ^ MULTIPLIER);
+        this.seedHigh = Number(mixed >> 24n);
+        this.seedLow = Number(mixed & LOW_LANE_MASK_BIGINT);
     }
 
     /** Advances the state and returns the top `bits` bits, as Java's `next(int)` does. */
     public next(bits: number): number {
-        this.seed = asLong((this.seed * MULTIPLIER + INCREMENT) & MODULUS_MASK);
-        return Number(BigInt.asIntN(32, this.seed >> BigInt(48 - bits)));
+        const previousLow = this.seedLow;
+        // A 24-by-24 product and the two cross products stay exact as doubles; masking retains
+        // precisely the 48 bits Java's long multiplication keeps.
+        const lowProduct = previousLow * MULTIPLIER_LOW + 11;
+        this.seedLow = lowProduct & LOW_LANE_MASK;
+        this.seedHigh =
+            (this.seedHigh * MULTIPLIER_LOW + previousLow * MULTIPLIER_HIGH + Math.floor(lowProduct / LOW_LANE_SIZE)) &
+            LOW_LANE_MASK;
+        if (bits <= LOW_LANE_BITS) return this.seedHigh >>> (LOW_LANE_BITS - bits);
+
+        const value = Math.floor(this.seedHigh * 2 ** (bits - LOW_LANE_BITS) + this.seedLow / 2 ** (48 - bits));
+        return bits === 32 ? value | 0 : value;
     }
 
     /** @inheritDoc */
@@ -39,7 +56,7 @@ export class LegacyRandomSource implements RandomSource {
     public nextIntBounded(bound: number): number {
         if (bound <= 0) throw new RangeError('Bound must be positive');
         if ((bound & (bound - 1)) === 0) {
-            return Number(BigInt.asIntN(32, (BigInt(bound) * BigInt(this.next(31))) >> 31n));
+            return this.next(31) >>> (31 - Math.log2(bound));
         }
 
         let sample: number;
@@ -70,9 +87,10 @@ export class LegacyRandomSource implements RandomSource {
 
     /** @inheritDoc */
     public nextDouble(): number {
-        const upper = BigInt(this.next(26));
-        const lower = BigInt(this.next(27));
-        return Number((upper << 27n) + lower) * DOUBLE_UNIT;
+        const upper = this.next(26);
+        const lower = this.next(27);
+        // The 26+27-bit integer fits exactly in JavaScript's 53-bit significand.
+        return (upper * 134217728 + lower) * DOUBLE_UNIT;
     }
 
     /** @inheritDoc */

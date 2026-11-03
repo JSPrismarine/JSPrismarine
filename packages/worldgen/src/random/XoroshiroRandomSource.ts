@@ -2,6 +2,7 @@ import { f32 } from '../math';
 import { MarsagliaPolarGaussian } from './MarsagliaPolarGaussian';
 import type { PositionalRandomFactory, RandomSource } from './RandomSource';
 import type { Seed128bit } from './randomSupport';
+import { mulLow64 } from './longLanes';
 import {
     asLong,
     GOLDEN_RATIO_64,
@@ -72,24 +73,13 @@ const SILVER_LO = laneLoOf(SILVER_RATIO_64);
 /* The pair-returning helpers below leave their result here; JavaScript is single-threaded. */
 let tmpHi = 0;
 let tmpLo = 0;
+const mulScratch = { hi: 0, lo: 0 };
 
-/** Leaves the low 64 bits of the product of two lane pairs in `tmpHi`/`tmpLo`. */
-const mulLow64 = (aHi: number, aLo: number, bHi: number, bLo: number): void => {
-    const a0 = aLo & 0xffff;
-    const a1 = aLo >>> 16;
-    const b0 = bLo & 0xffff;
-    const b1 = bLo >>> 16;
-    const low = a0 * b0;
-    const mid = a0 * b1 + a1 * b0;
-    const lowFull = low + (mid % 65536) * 65536;
-    tmpLo = lowFull >>> 0;
-    tmpHi =
-        (a1 * b1 +
-            Math.floor(mid / 65536) +
-            Math.floor(lowFull / 4294967296) +
-            (Math.imul(aLo, bHi) >>> 0) +
-            (Math.imul(aHi, bLo) >>> 0)) >>>
-        0;
+/** Reuses the shared product helper and mirrors its result in the lane scratch used below. */
+const mulLow64ToTemp = (aHi: number, aLo: number, bHi: number, bLo: number): void => {
+    mulLow64(aHi, aLo, bHi, bLo, mulScratch);
+    tmpHi = mulScratch.hi;
+    tmpLo = mulScratch.lo;
 };
 
 /**
@@ -102,16 +92,16 @@ const mulLow64 = (aHi: number, aLo: number, bHi: number, bLo: number): void => {
 const positionalSeedLanes = (x: number, y: number, z: number): void => {
     const xTerm = Math.imul(x | 0, 3129871);
     const zInt = z | 0;
-    mulLow64((zInt >> 31) >>> 0, zInt >>> 0, 0, 116129781);
+    mulLow64ToTemp((zInt >> 31) >>> 0, zInt >>> 0, 0, 116129781);
     const yInt = y | 0;
     const hi = ((xTerm >> 31) ^ tmpHi ^ (yInt >> 31)) >>> 0;
     const lo = (xTerm ^ tmpLo ^ yInt) >>> 0;
     // seed = seed * seed * 42317861 + seed * 11
-    mulLow64(hi, lo, hi, lo);
-    mulLow64(tmpHi, tmpLo, 0, 42317861);
+    mulLow64ToTemp(hi, lo, hi, lo);
+    mulLow64ToTemp(tmpHi, tmpLo, 0, 42317861);
     const productHi = tmpHi;
     const productLo = tmpLo;
-    mulLow64(hi, lo, 0, 11);
+    mulLow64ToTemp(hi, lo, 0, 11);
     const sumLo = productLo + tmpLo;
     const sumHi = productHi + tmpHi + (sumLo > 0xffffffff ? 1 : 0);
     // seed >> 16, an arithmetic shift
@@ -176,6 +166,17 @@ export class XoroshiroRandomSource implements RandomSource {
     public nextLong(): bigint {
         this.advance();
         return asLong((BigInt(this.outHi) << 32n) | BigInt(this.outLo));
+    }
+
+    /** Returns the high `bits` from the next output without constructing a 64-bit bigint. */
+    public nextBits(bits: number): number {
+        if (!Number.isInteger(bits) || bits < 0 || bits > 32) {
+            throw new RangeError(`Bit count must be an integer in [0, 32], got ${bits}`);
+        }
+        this.advance();
+        if (bits === 0) return 0;
+        const value = this.outHi >>> (32 - bits);
+        return bits === 32 ? value | 0 : value;
     }
 
     /** @inheritDoc */

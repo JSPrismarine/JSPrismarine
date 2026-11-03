@@ -97,8 +97,8 @@ export class WorldgenRandom implements RandomSource {
     /** Returns the top `bits` bits of the backing stream, as Java's `next(int)` does. */
     public next(bits: number): number {
         if (this.delegate instanceof LegacyRandomSource) return this.delegate.next(bits);
-        const drawn = BigInt.asUintN(64, this.delegate.nextLong());
-        return Number(BigInt.asIntN(32, drawn >> BigInt(64 - bits)));
+        if (this.delegate instanceof XoroshiroRandomSource) return this.delegate.nextBits(bits);
+        throw new TypeError('WorldgenRandom has an unsupported random source');
     }
 
     /** @inheritDoc */
@@ -110,7 +110,7 @@ export class WorldgenRandom implements RandomSource {
     public nextIntBounded(bound: number): number {
         if (bound <= 0) throw new RangeError('Bound must be positive');
         if ((bound & (bound - 1)) === 0) {
-            return Number(BigInt.asIntN(32, (BigInt(bound) * BigInt(this.next(31))) >> 31n));
+            return this.next(31) >>> (31 - Math.log2(bound));
         }
 
         let sample: number;
@@ -141,9 +141,10 @@ export class WorldgenRandom implements RandomSource {
 
     /** @inheritDoc */
     public nextDouble(): number {
-        const upper = BigInt(this.next(26));
-        const lower = BigInt(this.next(27));
-        return Number((upper << 27n) + lower) * DOUBLE_UNIT;
+        const upper = this.next(26);
+        const lower = this.next(27);
+        // The 26+27-bit integer fits exactly in JavaScript's 53-bit significand.
+        return (upper * 134217728 + lower) * DOUBLE_UNIT;
     }
 
     /** @inheritDoc */

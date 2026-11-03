@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { expectedFloats, vectors } from '../../vectors/vectors';
 import { LegacyRandomSource } from './LegacyRandomSource';
+import { mulLow64 } from './longLanes';
 import type { PositionalRandomFactory } from './RandomSource';
 import {
+    asLong,
     javaStringHashCode,
     mixStafford13,
     positionalSeed,
@@ -152,6 +154,63 @@ describe('Xoroshiro128PlusPlus', () => {
     });
 });
 
+describe('the number-lane random math', () => {
+    it('matches the BigInt low-64-bit product for randomized signed operands', () => {
+        let state = 0x123456789abcdefn;
+        const next = (): bigint => {
+            state = BigInt.asUintN(64, state * 6364136223846793005n + 1442695040888963407n);
+            return BigInt.asIntN(64, state);
+        };
+        const pair = (value: bigint): { hi: number; lo: number } => {
+            const unsigned = BigInt.asUintN(64, value);
+            return { hi: Number(unsigned >> 32n), lo: Number(unsigned & 0xffffffffn) };
+        };
+        const result = { hi: 0, lo: 0 };
+
+        for (let index = 0; index < 10_000; index++) {
+            const left = pair(next());
+            const right = pair(next());
+            mulLow64(left.hi, left.lo, right.hi, right.lo, result);
+            const expected = BigInt.asUintN(
+                64,
+                ((BigInt(left.hi) << 32n) | BigInt(left.lo)) * ((BigInt(right.hi) << 32n) | BigInt(right.lo))
+            );
+            expect([result.hi, result.lo]).toEqual([Number(expected >> 32n), Number(expected & 0xffffffffn)]);
+        }
+    });
+
+    it('matches the retained BigInt legacy LCG through randomized state transitions', () => {
+        const mask = (1n << 48n) - 1n;
+        const seeds = [
+            ...seedVectors.map((vector) => BigInt(vector.seed)),
+            -(1n << 63n),
+            -1n,
+            0n,
+            1n,
+            (1n << 63n) - 1n,
+            ...Array.from({ length: 128 }, (_, index) =>
+                BigInt.asIntN(64, BigInt(index + 1) * 6364136223846793005n + 1442695040888963407n)
+            )
+        ];
+        for (const seed of seeds) {
+            const actual = new LegacyRandomSource(seed);
+            let reference = BigInt.asUintN(48, seed ^ 25214903917n);
+            for (let draw = 0; draw < 1024; draw++) {
+                const bits = draw % 33;
+                reference = (reference * 25214903917n + 11n) & mask;
+                const raw = Number(reference >> BigInt(48 - bits));
+                const expected = bits === 32 ? Number(BigInt.asIntN(32, BigInt(raw))) : raw;
+                expect(actual.next(bits)).toBe(expected);
+            }
+            reference = (reference * 25214903917n + 11n) & mask;
+            const upper = Number(BigInt.asIntN(32, reference >> 16n));
+            reference = (reference * 25214903917n + 11n) & mask;
+            const lower = Number(BigInt.asIntN(32, reference >> 16n));
+            expect(actual.nextLong()).toBe(asLong((BigInt(upper) << 32n) + BigInt(lower)));
+        }
+    });
+});
+
 /**
  * `XoroshiroRandomSource` runs the recurrence over 32-bit lanes; this oracle is the original
  * `BigInt` formulation of every derived method over {@link Xoroshiro128PlusPlus}, which the jar
@@ -174,6 +233,10 @@ class BigIntOracle {
         return Number(BigInt.asIntN(32, this.generator.nextLong()));
     }
 
+    public nextHighBits(bits: number): number {
+        return Number(BigInt.asIntN(32, this.nextBitsReference(bits)));
+    }
+
     public nextIntBounded(bound: number): number {
         const boundBig = BigInt(bound);
         let product = BigInt(this.nextInt() >>> 0) * boundBig;
@@ -193,14 +256,14 @@ class BigIntOracle {
     }
 
     public nextFloat(): number {
-        return Math.fround(Math.fround(Number(this.nextBits(24))) * Math.fround(5.9604645e-8));
+        return Math.fround(Math.fround(Number(this.nextBitsReference(24))) * Math.fround(5.9604645e-8));
     }
 
     public nextDouble(): number {
-        return Number(this.nextBits(53)) * Math.fround(1.110223e-16);
+        return Number(this.nextBitsReference(53)) * Math.fround(1.110223e-16);
     }
 
-    private nextBits(bits: number): bigint {
+    private nextBitsReference(bits: number): bigint {
         return BigInt.asUintN(64, this.generator.nextLong()) >> BigInt(64 - bits);
     }
 }
@@ -274,6 +337,19 @@ describe('the lane implementation against the BigInt oracle', () => {
                     expect(lanes.nextIntBounded(9)).toBe(oracle.nextIntBounded(9));
                 }
             }
+        }
+    });
+
+    it('returns the same high output bits without changing draw consumption', () => {
+        const bitCounts = [0, 1, 8, 24, 26, 27, 31, 32];
+        for (const seed of seedCases) {
+            const actual = new XoroshiroRandomSource(seed[0], seed[1]);
+            const oracle = new BigIntOracle(seed[0], seed[1]);
+            for (let draw = 0; draw < 256; draw++) {
+                const bits = bitCounts[draw % bitCounts.length] ?? 0;
+                expect(actual.nextBits(bits)).toBe(oracle.nextHighBits(bits));
+            }
+            expect(actual.nextLong()).toBe(oracle.nextLong());
         }
     });
 
