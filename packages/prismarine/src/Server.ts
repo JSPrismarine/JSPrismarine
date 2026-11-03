@@ -32,6 +32,7 @@ import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
 import { networkModule, ServerNetworking } from './modules/network';
 import type { InboundPacketRecorder } from './network/InboundPacketTrace';
+import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
 import { permissionsModule } from './modules/permissions';
 import { recipesModule, stationsModule } from './modules/recipes';
 import { socialModule } from './modules/social';
@@ -182,6 +183,7 @@ export default class Server extends EventEmitter {
      * @param {boolean} [options.profile] - Record server phase and event-loop timings.
      * @param {InboundPacketRecorder} [options.inboundPacketRecorder] - Opt-in sink for accepted inbound packet bytes,
      *   which may include login identity data.
+     * @param {OutboundPacketRecorder} [options.outboundPacketRecorder] - Opt-in sink for encoded clientbound packets.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -189,18 +191,20 @@ export default class Server extends EventEmitter {
         config,
         headless = false,
         profile = false,
-        inboundPacketRecorder
+        inboundPacketRecorder,
+        outboundPacketRecorder
     }: {
         logger: Logger;
         config: Config;
         headless?: boolean;
         profile?: boolean;
         inboundPacketRecorder?: InboundPacketRecorder;
+        outboundPacketRecorder?: OutboundPacketRecorder;
     }) {
         super();
 
         this.headless = headless;
-        this.networking = new ServerNetworking(this, inboundPacketRecorder);
+        this.networking = new ServerNetworking(this, inboundPacketRecorder, outboundPacketRecorder);
 
         const protocols = describeSupportedProtocols();
         logger.info(

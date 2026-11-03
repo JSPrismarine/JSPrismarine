@@ -125,7 +125,7 @@ const makeDispatcher = (options?: {
     });
     const built: ClientConnection[] = [];
 
-    new NetworkDispatcher({
+    const dispatcher = new NetworkDispatcher({
         transport,
         sessionManager,
         packetHandlerRegistry,
@@ -147,7 +147,7 @@ const makeDispatcher = (options?: {
         query: { enabled: () => false, onRaw: async () => Buffer.alloc(0) }
     });
 
-    return { transport, sessionManager, lines, server, built };
+    return { transport, sessionManager, lines, server, built, dispatcher };
 };
 
 describe('network', () => {
@@ -271,6 +271,26 @@ describe('network', () => {
                     payload: otherPayload
                 }
             ]);
+        });
+
+        it('replays accepted packet bytes through the handler on the matching connection and tick', async () => {
+            const trace = new InboundPacketTrace();
+            const handled: string[] = [];
+            const handler = {
+                phases: ['handshake'] as const,
+                handle: async (packet: unknown) => {
+                    if (packet instanceof TextPacket) handled.push(packet.getPacketData()!.message);
+                }
+            };
+            const first = makeDispatcher({ recorder: trace, tick: () => 6, handler });
+            await first.transport.emitConnect(fakeConnection('first:1').connection);
+            await first.transport.emitFrame(frameOf(message('bot input')), address('first:1'));
+
+            const replay = makeDispatcher({ tick: () => 6, handler });
+            await replay.transport.emitConnect(fakeConnection('restored:1').connection);
+            await replay.dispatcher.replayInboundRecord(trace.records()[0]!);
+
+            expect(handled).toEqual(['bot input', 'bot input']);
         });
 
         it('keeps the arrival tick when a prior handler holds the connection queue', async () => {

@@ -1,6 +1,6 @@
 /**
- * Measures opt-in packet trace recording and offline trace decoding against the same packet
- * decode workload. This is a packet-trace microbenchmark, not a live world replay benchmark.
+ * Measures accepted-packet recording and live dispatcher playback against decode-only work.
+ * World ticking, snapshot restoration, and their digests are outside this packet benchmark.
  *
  * Run: pnpm --filter @jsprismarine/prismarine run bench:inbound-packets -- [packet count]
  */
@@ -9,7 +9,20 @@ import { performance } from 'node:perf_hooks';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
-import { TextPacketType } from '@jsprismarine/protocol';
+import { BatchCodec, TextPacketType } from '@jsprismarine/protocol';
+import type { Logger } from '@jsprismarine/logger';
+import type { InetAddress } from '@jsprismarine/raknet';
+import type { EventEmitter } from '../src/events/EventEmitter';
+import type Server from '../src/Server';
+import { stub } from '../src/testing/stub.test.helper';
+import SessionManager from '../src/SessionManager';
+import type ClientConnection from '../src/network/ClientConnection';
+import { PacketLogFilter } from '../src/network/PacketLogFilter';
+import NetworkDispatcher from '../src/network/NetworkDispatcher';
+import type PacketHandlerRegistry from '../src/network/PacketHandlerRegistry';
+import type { InboundPacketRecorder } from '../src/network/InboundPacketTrace';
+import type { SessionPhase } from '../src/network/SessionPhase';
+import type { Transport, TransportCapabilities, TransportConnection } from '../src/network/transport/Transport';
 
 import Codec2193 from '../src/network/codec/Codec2193';
 import { InboundPacketTrace } from '../src/network/InboundPacketTrace';
@@ -48,47 +61,176 @@ const measureCpuMs = (work: () => void): { readonly wallMs: number; readonly cpu
     };
 };
 
-let checksum = 0;
-const baseline = measureCpuMs(() => {
+const measureCpuMsAsync = async (
+    work: () => Promise<void>
+): Promise<{ readonly wallMs: number; readonly cpuMs: number }> => {
+    const started = performance.now();
+    const cpuStarted = process.cpuUsage();
+    await work();
+    const cpu = process.cpuUsage(cpuStarted);
+    return {
+        wallMs: performance.now() - started,
+        cpuMs: (cpu.user + cpu.system) / 1000
+    };
+};
+
+/** Transport seam for replay, which feeds records directly to the dispatcher. */
+class ReplayTransport implements Transport<TransportConnection> {
+    private connect: ((connection: TransportConnection) => Promise<void> | void) | undefined;
+    private frame: ((payload: Buffer, address: InetAddress) => Promise<void> | void) | undefined;
+
+    public onConnect(listener: (connection: TransportConnection) => Promise<void> | void): void {
+        this.connect = listener;
+    }
+
+    public onDisconnect(): void {}
+
+    public onFrame(listener: (payload: Buffer, address: InetAddress) => Promise<void> | void): void {
+        this.frame = listener;
+    }
+
+    public onRaw(): void {}
+
+    public close(): void {}
+
+    public async admit(connection: TransportConnection): Promise<void> {
+        await this.connect?.(connection);
+    }
+
+    public async emitFrame(payload: Buffer, address: InetAddress): Promise<void> {
+        await this.frame?.(payload, address);
+    }
+}
+
+const replayCapabilities: TransportCapabilities = {
+    encrypted: false,
+    reliableOrdered: true,
+    maxFrameSize: Number.POSITIVE_INFINITY
+};
+
+const replayTransportConnection: TransportConnection = {
+    token: 'benchmark:1',
+    capabilities: replayCapabilities,
+    sendFrame: () => {},
+    close: () => {}
+};
+
+const replayAddress = stub<InetAddress>({ toToken: () => 'benchmark:1' });
+
+/** Creates a dispatcher run with the same input and handler path, with capture optional. */
+const createReplayHarness = async (recorder?: InboundPacketRecorder) => {
+    let tick = 0;
+    let checksum = 0;
+    const handler = {
+        phases: ['handshake'] as const satisfies readonly SessionPhase[],
+        handle: async (packet: unknown) => {
+            if (packet instanceof TextPacket) checksum += packet.getPacketData()!.message.length;
+        }
+    };
+    const logger = stub<Logger>({
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+        verbose: () => {},
+        silly: () => {}
+    });
+    const transport = new ReplayTransport();
+    const dispatcher = new NetworkDispatcher({
+        transport,
+        sessionManager: new SessionManager(),
+        packetHandlerRegistry: stub<PacketHandlerRegistry>({ getHandler: () => handler }),
+        events: stub<EventEmitter>({ emit: async () => {} }),
+        server: stub<Server>({ getTick: () => tick }),
+        logger,
+        logFilter: new PacketLogFilter(),
+        ...(recorder === undefined ? {} : { inboundPacketRecorder: recorder }),
+        createConnection: () =>
+            stub<ClientConnection>({
+                codec: Codec2193,
+                hasCompression: false,
+                phase: 'handshake',
+                getPlayerSession: () => null
+            }),
+        query: { enabled: () => false, onRaw: async () => undefined }
+    });
+    await transport.admit(replayTransportConnection);
+
+    return {
+        checksum: () => checksum,
+        setTick: (value: number) => {
+            tick = value;
+        },
+        dispatchFrame: async (payload: Buffer, atTick: number) => {
+            tick = atTick;
+            await transport.emitFrame(BatchCodec.uncompressed().encode([payload]), replayAddress);
+        },
+        replayRecord: async (record: Parameters<typeof dispatcher.replayInboundRecord>[0]) => {
+            tick = record.tick;
+            await dispatcher.replayInboundRecord(record);
+        }
+    };
+};
+
+let decodeChecksum = 0;
+const decodeBaseline = measureCpuMs(() => {
     for (let index = 0; index < packetCount; index += 1) {
-        checksum += decode(payloads[index % payloads.length]!).getName().length;
+        decodeChecksum += decode(payloads[index % payloads.length]!).getName().length;
     }
 });
 
 const trace = new InboundPacketTrace();
 let encodedTrace = Buffer.alloc(0);
-const recording = measureCpuMs(() => {
+const baselineHarness = await createReplayHarness();
+const baseline = await measureCpuMsAsync(async () => {
     for (let index = 0; index < packetCount; index += 1) {
         const payload = payloads[index % payloads.length]!;
-        const packet = decode(payload);
-        checksum += packet.getName().length;
-        trace.record({
-            connectionId: 1,
-            sequence: index,
-            tick: Math.floor(index / 20),
-            protocolVersion: Codec2193.protocolVersion,
-            packetName: packet.getName(),
-            payload: Buffer.from(payload)
-        });
+        await baselineHarness.dispatchFrame(payload, Math.floor(index / 20));
+    }
+});
+
+const recordingHarness = await createReplayHarness(trace);
+const recording = await measureCpuMsAsync(async () => {
+    for (let index = 0; index < packetCount; index += 1) {
+        const payload = payloads[index % payloads.length]!;
+        await recordingHarness.dispatchFrame(payload, Math.floor(index / 20));
     }
     encodedTrace = trace.serialize();
 });
 
 const replay = measureCpuMs(() => {
     const restored = InboundPacketTrace.deserialize(encodedTrace);
-    for (const record of restored.records()) checksum += decode(Buffer.from(record.payload)).getName().length;
+    for (const record of restored.records()) decodeChecksum += decode(Buffer.from(record.payload)).getName().length;
+});
+
+const replayHarness = await createReplayHarness();
+const dispatcherReplay = await measureCpuMsAsync(async () => {
+    const restored = InboundPacketTrace.deserialize(encodedTrace);
+    for (const record of restored.records()) {
+        await replayHarness.replayRecord(record);
+    }
 });
 
 const ratio = (measured: number, reference: number): string =>
     reference === 0 ? 'n/a' : `${(measured / reference).toFixed(2)}x`;
 
-console.log(`decoded ${packetCount} packets per pass; checksum ${checksum}`);
-console.log(`baseline: ${baseline.cpuMs.toFixed(1)} CPU ms, ${baseline.wallMs.toFixed(1)} wall ms (decode only)`);
 console.log(
-    `record:   ${recording.cpuMs.toFixed(1)} CPU ms, ${recording.wallMs.toFixed(1)} wall ms (${ratio(recording.cpuMs, baseline.cpuMs)} baseline)`
+    `dispatched ${packetCount} packets per pass; checksums ${decodeChecksum}, ${baselineHarness.checksum()}, ${recordingHarness.checksum()}, ${replayHarness.checksum()}`
 );
 console.log(
-    `replay:   ${replay.cpuMs.toFixed(1)} CPU ms, ${replay.wallMs.toFixed(1)} wall ms (${ratio(replay.cpuMs, baseline.cpuMs)} baseline, trace parse plus decode)`
+    `decode only: ${decodeBaseline.cpuMs.toFixed(1)} CPU ms, ${decodeBaseline.wallMs.toFixed(1)} wall ms (packet decoder reference)`
+);
+console.log(
+    `unrecorded:  ${baseline.cpuMs.toFixed(1)} CPU ms, ${baseline.wallMs.toFixed(1)} wall ms (batch decode, phase gate, and handler)`
+);
+console.log(
+    `record:      ${recording.cpuMs.toFixed(1)} CPU ms, ${recording.wallMs.toFixed(1)} wall ms (${ratio(recording.cpuMs, baseline.cpuMs)} unrecorded)`
+);
+console.log(
+    `decode replay: ${replay.cpuMs.toFixed(1)} CPU ms, ${replay.wallMs.toFixed(1)} wall ms (${ratio(replay.cpuMs, baseline.cpuMs)} unrecorded, trace parse plus decode)`
+);
+console.log(
+    `dispatch replay: ${dispatcherReplay.cpuMs.toFixed(1)} CPU ms, ${dispatcherReplay.wallMs.toFixed(1)} wall ms (${ratio(dispatcherReplay.cpuMs, baseline.cpuMs)} unrecorded, trace parse, decode, phase gate, and handler)`
 );
 console.log(
     `storage:  ${trace.getPayloadBytes()} raw payload bytes, ${encodedTrace.byteLength} serialized bytes (${(encodedTrace.byteLength / Math.max(1, trace.getPayloadBytes())).toFixed(2)}x raw)`

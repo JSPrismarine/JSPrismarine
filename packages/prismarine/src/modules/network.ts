@@ -2,9 +2,11 @@ import type { Module } from '@jsprismarine/kernel';
 import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 
 import ClientConnection from '../network/ClientConnection';
-import type { InboundPacketRecorder } from '../network/InboundPacketTrace';
+import type { InboundPacketRecord, InboundPacketRecorder } from '../network/InboundPacketTrace';
+import type { OutboundPacketRecorder } from '../network/OutboundPacketTrace';
 import NetworkDispatcher from '../network/NetworkDispatcher';
 import RakNetTransport from '../network/transport/RakNetTransport';
+import type { RakNetTransportConnection } from '../network/transport/RakNetTransport';
 import { latestCodec } from '../network/codec/CodecRegistry';
 import type Server from '../Server';
 import { networkToken } from './tokens';
@@ -23,6 +25,9 @@ export interface Networking {
      * @param port - The port to bind.
      */
     start(address: string, port: number): void;
+
+    /** Replays one accepted packet through the connected session's handler path. */
+    replayInboundRecord?(record: InboundPacketRecord, tickOffset?: number): Promise<void>;
 
     /**
      * Kills the listener, dropping every session with it. A no-op before
@@ -46,10 +51,12 @@ export interface Networking {
  */
 export class ServerNetworking implements Networking {
     private raknet: RakNetListener | undefined;
+    private dispatcher: NetworkDispatcher<RakNetTransportConnection> | undefined;
 
     public constructor(
         private readonly server: Server,
-        private readonly inboundPacketRecorder?: InboundPacketRecorder
+        private readonly inboundPacketRecorder?: InboundPacketRecorder,
+        private readonly outboundPacketRecorder?: OutboundPacketRecorder
     ) {}
 
     /** Binds the RakNet listener and subscribes the packet dispatcher to it. */
@@ -65,7 +72,7 @@ export class ServerNetworking implements Networking {
 
         // The dispatcher subscribes itself; holding it is unnecessary, the transport keeps
         // it alive through the listeners it installed.
-        new NetworkDispatcher({
+        this.dispatcher = new NetworkDispatcher({
             transport: new RakNetTransport(this.raknet, server),
             sessionManager: server.getSessionManager(),
             packetHandlerRegistry: server.getPacketHandlerRegistry(),
@@ -74,6 +81,7 @@ export class ServerNetworking implements Networking {
             logger: server.getLogger(),
             logFilter: server.getPacketLogFilter(),
             inboundPacketRecorder: this.inboundPacketRecorder,
+            outboundPacketRecorder: this.outboundPacketRecorder,
             createConnection: (connection) =>
                 new ClientConnection(connection, server.getLogger(), server.getPacketLogFilter()),
             query: {
@@ -81,6 +89,17 @@ export class ServerNetworking implements Networking {
                 onRaw: (payload, address) => server.getQueryManager().onRaw(payload, address)
             }
         });
+    }
+
+    /**
+     * Replays an accepted packet after the caller restores its session and advances the tick.
+     *
+     * @throws {Error} Before the listener starts, or when the dispatcher rejects the record.
+     */
+    public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
+        const dispatcher = this.dispatcher;
+        if (dispatcher === undefined) throw new Error('Cannot replay a packet before networking starts');
+        await dispatcher.replayInboundRecord(record, tickOffset);
     }
 
     /** Kills the listener if one was started. */

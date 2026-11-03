@@ -7,6 +7,7 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession, { broadcastSharedBatches } from './MinecraftSession';
+import { OutboundPacketTrace } from './OutboundPacketTrace';
 import type { TransportConnection } from './transport/Transport';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import Codec2193 from './codec/Codec2193';
@@ -88,6 +89,55 @@ describe('network', () => {
             decoded2193!.decode();
             expect(decoded2193!.feof()).toBe(true);
             expect(decoded2193).toMatchObject({ action: 1, runtimeEntityId: 300n, swingSource: 'attack' });
+        });
+
+        it('records framed packet bytes and hashes them by the send tick', async () => {
+            const { framed, session } = fakeSession(Codec2193);
+            const trace = new OutboundPacketTrace();
+            session.setOutboundPacketRecorder(trace, 4, () => 12);
+
+            await session.sendDataPacket(animate(), false);
+
+            const [payload] = unbatch(framed[0]!, false);
+            expect(trace.records()).toEqual([
+                {
+                    connectionId: 4,
+                    sequence: 0,
+                    tick: 12,
+                    protocolVersion: Codec2193.protocolVersion,
+                    packetName: 'AnimatePacket',
+                    payload
+                }
+            ]);
+            expect(trace.packetDigestsByTick().get(12)).toMatch(/^[a-f0-9]{64}$/);
+            expect(trace.getPayloadBytes()).toBe(payload!.byteLength);
+        });
+
+        it('keeps per-tick output digests stable across unrelated connection scheduling', () => {
+            const first = new OutboundPacketTrace();
+            const second = new OutboundPacketTrace();
+            const records = [
+                {
+                    connectionId: 2,
+                    sequence: 0,
+                    tick: 12,
+                    protocolVersion: Codec2193.protocolVersion,
+                    packetName: 'AnimatePacket',
+                    payload: Buffer.from([2])
+                },
+                {
+                    connectionId: 1,
+                    sequence: 0,
+                    tick: 12,
+                    protocolVersion: Codec2193.protocolVersion,
+                    packetName: 'AnimatePacket',
+                    payload: Buffer.from([1])
+                }
+            ];
+            for (const record of records) first.record(record);
+            for (const record of [...records].reverse()) second.record(record);
+
+            expect(first.packetDigestsByTick()).toEqual(second.packetDigestsByTick());
         });
 
         it('a 2225 session sends the versioned StartGame layout through the Protocol packet', async () => {

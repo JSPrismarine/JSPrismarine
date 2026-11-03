@@ -44,10 +44,16 @@ instance as `inboundPacketRecorder` to the `Server` constructor. It captures acc
 packets with their process-local connection id, per-connection sequence, arrival tick, protocol
 version, and encoded bytes. `serialize()` writes a versioned JSON trace, and
 `InboundPacketTrace.deserialize()` reads it back. The trace does not include a world snapshot or
-content fingerprints, so it cannot replay a live world by itself. Packet bytes may contain login
-identity data; keep capture opt-in and protect any trace you store. Run
-`pnpm --filter @jsprismarine/prismarine run bench:inbound-packets` to measure packet decode,
-trace recording, replay decode, and serialized storage costs.
+content fingerprints, so it cannot restore a live world by itself. A `NetworkDispatcher` can feed
+each record back through its decoded handler path; the built-in server exposes that method through
+`server.getKernel().get(networkToken).replayInboundRecord?.(record, tickOffset)`. The caller must
+restore matching connections and advance the server to each recorded tick. Pass an
+`OutboundPacketTrace` as `outboundPacketRecorder` to the `Server` constructor to capture encoded
+clientbound packets and compare their per-tick digests. `World.replayStateDigest()` hashes loaded
+chunks, entities, level weather and rules, and player inventories for a per-tick world comparison.
+Packet bytes may contain login identity data; keep capture opt-in and protect any trace you store.
+Run `pnpm --filter @jsprismarine/prismarine run bench:inbound-packets` to measure packet decode,
+trace recording, replay decode, and serialized storage costs against decode-only work.
 
 ## JSON Schemas
 

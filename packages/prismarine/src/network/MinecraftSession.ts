@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { PacketLogFilter } from './PacketLogFilter';
+import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 
 /**
  * The packet class names a debugging variable lists, comma-separated.
@@ -76,6 +77,10 @@ export default class MinecraftSession {
      */
     private outbound: Promise<void> = Promise.resolve();
     private pendingAsyncSends = 0;
+    private outboundPacketRecorder: OutboundPacketRecorder | undefined;
+    private outboundConnectionId: number | undefined;
+    private outboundTick: (() => number) | undefined;
+    private nextOutboundSequence = 0;
 
     public constructor(
         connection: TransportConnection,
@@ -86,6 +91,17 @@ export default class MinecraftSession {
         private readonly dumpDir: string = defaultDumpDir()
     ) {
         this.connection = connection;
+    }
+
+    /** Enables opt-in output capture after the dispatcher assigns this connection its id. */
+    public setOutboundPacketRecorder(
+        recorder: OutboundPacketRecorder,
+        connectionId: number,
+        getTick: () => number
+    ): void {
+        this.outboundPacketRecorder = recorder;
+        this.outboundConnectionId = connectionId;
+        this.outboundTick = getTick;
     }
 
     /** Frames now if nothing is waiting to be framed, otherwise behind whatever is. */
@@ -114,7 +130,11 @@ export default class MinecraftSession {
         if (this.dropsPackets(packets)) return;
 
         const batch = encodePacketBatch(packets, this.codec, batchOptions);
-        void this.ordered(() => this.frame(batch.content, direct));
+        const tick = this.outboundTick?.();
+        void this.ordered(() => {
+            this.frame(batch.content, direct);
+            this.recordOutbound(batch.packets, tick);
+        });
     }
 
     /**
@@ -131,11 +151,13 @@ export default class MinecraftSession {
     ): Promise<void> {
         if (this.dropsPackets(packets)) return;
 
+        const tick = this.outboundTick?.();
         this.pendingAsyncSends++;
         try {
             await this.chain(async () => {
                 const batch = await encodePacketBatchAsync(packets, this.codec, batchOptions);
                 this.frame(batch.content, direct);
+                this.recordOutbound(batch.packets, tick);
 
                 // One line per packet, as `sendDataPacket` writes, so a join trace shows the
                 // chunks between the publisher updates instead of a gap where they went out.
@@ -169,11 +191,13 @@ export default class MinecraftSession {
         const representative = packets[0];
         if (representative !== undefined) this.dump(representative);
         if (this.dropsPackets(packets)) return;
+        const tick = this.outboundTick?.();
 
         // Through the same ordering chain as everything else, so a shared batch cannot
         // overtake a chunk batch that is still compressing.
         void this.ordered(() => {
             this.frame(content, direct);
+            this.recordOutbound(packets, tick);
             if (representative !== undefined && this.logFilter.shouldLog(representative)) {
                 this.logger.silly(`Sent §b${representative.getName()}§r packet`);
             }
@@ -182,6 +206,32 @@ export default class MinecraftSession {
 
     private frame(content: Buffer, direct: boolean): void {
         this.connection.sendFrame(content, direct);
+    }
+
+    /** Records encoded packet bytes after their batch reaches the transport queue. */
+    private recordOutbound(packets: readonly NetworkPacket<unknown>[], tick: number | undefined): void {
+        const recorder = this.outboundPacketRecorder;
+        const connectionId = this.outboundConnectionId;
+        if (recorder === undefined || connectionId === undefined || tick === undefined) return;
+
+        for (const packet of packets) {
+            const sequence = this.nextOutboundSequence;
+            this.nextOutboundSequence += 1;
+            try {
+                recorder.record({
+                    connectionId,
+                    sequence,
+                    tick,
+                    protocolVersion: this.codec.protocolVersion,
+                    packetName: packet.getName(),
+                    payload: Buffer.from(packet.getBuffer())
+                });
+            } catch (error: unknown) {
+                // Output capture is diagnostic; a sink failure must not strand a framed packet.
+                this.logger.error(`Outbound packet recorder failed for ${packet.getName()}: ${error}`);
+                this.logger.error(error);
+            }
+        }
     }
 
     public async sendDataPacket(packet: NetworkPacket<unknown>, comp = true, direct = false): Promise<void> {
@@ -197,6 +247,7 @@ export default class MinecraftSession {
         }
 
         const encodedPacket = batch.packets[0]!;
+        const tick = this.outboundTick?.();
 
         // After encoding, so a dumped packet is the bytes the client would have been given,
         // whether or not it is also dropped.
@@ -207,6 +258,7 @@ export default class MinecraftSession {
         // it was meant to follow.
         await this.ordered(() => {
             this.frame(batch.content, direct);
+            this.recordOutbound(batch.packets, tick);
             if (this.logFilter.shouldLog(encodedPacket)) {
                 this.logger.silly(`Sent §b${encodedPacket.getName()}§r packet`);
             }

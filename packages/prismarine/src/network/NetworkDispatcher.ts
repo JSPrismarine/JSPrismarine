@@ -14,7 +14,8 @@ import { takesConnection } from './handler/ConnectionPacketHandler';
 import type { PacketLogFilter } from './PacketLogFilter';
 import type PacketHandlerRegistry from './PacketHandlerRegistry';
 import type { RegisteredHandler } from './PacketHandlerRegistry';
-import type { InboundPacketRecorder } from './InboundPacketTrace';
+import type { InboundPacketRecord, InboundPacketRecorder } from './InboundPacketTrace';
+import type { OutboundPacketRecorder } from './OutboundPacketTrace';
 import { Pipeline } from './pipeline/ConnectionPipeline';
 import type { Transport, TransportConnection } from './transport/Transport';
 
@@ -41,6 +42,8 @@ export interface NetworkDispatcherOptions<C extends TransportConnection> {
     logFilter: PacketLogFilter;
     /** Optional sink for accepted inbound packet bytes. Disabled unless the server opts in. */
     inboundPacketRecorder?: InboundPacketRecorder;
+    /** Optional sink for clientbound packet bytes. Disabled unless the server opts in. */
+    outboundPacketRecorder?: OutboundPacketRecorder;
     /** Builds the connection object the session registry holds for a transport connection. */
     createConnection: (connection: C) => ClientConnection;
     /** The query protocol's view of the transport's raw datagrams. */
@@ -73,9 +76,13 @@ export default class NetworkDispatcher<C extends TransportConnection> {
     private readonly createConnection: NetworkDispatcherOptions<C>['createConnection'];
     private readonly query: NetworkDispatcherOptions<C>['query'];
     private readonly inboundPacketRecorder: NetworkDispatcherOptions<C>['inboundPacketRecorder'];
+    private readonly outboundPacketRecorder: NetworkDispatcherOptions<C>['outboundPacketRecorder'];
     private readonly packetPayloads: WeakMap<NetworkPacket<unknown>, { payload: Buffer; tick: number }> | undefined;
     private readonly frameTicks: WeakMap<ClientConnection, number> | undefined;
     private readonly connectionSequences: WeakMap<ClientConnection, { id: number; next: number }> | undefined;
+    private readonly connectionsByTraceId = new Map<number, ClientConnection>();
+    private readonly traceConnectionIds = new WeakMap<ClientConnection, number>();
+    private readonly replaySequences = new Map<number, number>();
     private nextConnectionId = 1;
     /** Keeps each reliable-ordered client stream sequential through async packet handlers. */
     private readonly frameQueues = new WeakMap<ClientConnection, Promise<void>>();
@@ -90,6 +97,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         this.createConnection = options.createConnection;
         this.query = options.query;
         this.inboundPacketRecorder = options.inboundPacketRecorder;
+        this.outboundPacketRecorder = options.outboundPacketRecorder;
         this.packetPayloads = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
         this.frameTicks = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
         this.connectionSequences = options.inboundPacketRecorder === undefined ? undefined : new WeakMap();
@@ -111,11 +119,19 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         const timer = new Timer();
         this.logger.debug(`${token} is attempting to connect`);
         const clientConnection = this.createConnection(connection);
+        const connectionId = this.nextConnectionId;
+        this.nextConnectionId += 1;
+        this.connectionsByTraceId.set(connectionId, clientConnection);
+        this.traceConnectionIds.set(clientConnection, connectionId);
+        if (this.outboundPacketRecorder !== undefined) {
+            clientConnection.setOutboundPacketRecorder(this.outboundPacketRecorder, connectionId, () =>
+                this.server.getTick()
+            );
+        }
         if (this.inboundPacketRecorder !== undefined) {
             // A process-local ordinal avoids writing the client's address into a trace. It is
             // stable for this capture and does not identify the same client across captures.
-            this.connectionSequences?.set(clientConnection, { id: this.nextConnectionId, next: 0 });
-            this.nextConnectionId += 1;
+            this.connectionSequences?.set(clientConnection, { id: connectionId, next: 0 });
         }
         this.sessionManager.add(token, clientConnection);
         this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`);
@@ -133,6 +149,13 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         // that had just replaced it.
         const session = this.sessionManager.get(token);
         this.sessionManager.remove(token);
+        if (session !== null) {
+            const connectionId = this.traceConnectionIds.get(session);
+            if (connectionId !== undefined) {
+                this.connectionsByTraceId.delete(connectionId);
+                this.replaySequences.delete(connectionId);
+            }
+        }
 
         // Read before the tear-down below, which detaches the session and takes the
         // player out of its world. A player is only added to a world once the client
@@ -328,6 +351,53 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             this.logger.error(`Inbound packet recorder failed for ${packet.getName()}: ${error}`);
             this.logger.error(error);
         }
+    }
+
+    /**
+     * Dispatches one captured packet through a connection admitted by this dispatcher.
+     *
+     * The caller advances the server to the record's tick before calling. Packet-local order,
+     * protocol version, and phase checks fail fast when the restored connection differs.
+     *
+     * @throws {Error} When the connection, sequence, tick, protocol, or packet does not match.
+     */
+    public async replayInboundRecord(record: InboundPacketRecord, tickOffset = 0): Promise<void> {
+        const connection = this.connectionsByTraceId.get(record.connectionId);
+        if (connection === undefined) throw new Error(`Replay connection ${record.connectionId} is not connected`);
+
+        const expectedSequence = this.replaySequences.get(record.connectionId) ?? 0;
+        if (record.sequence !== expectedSequence) {
+            throw new Error(
+                `Replay connection ${record.connectionId} expected packet ${expectedSequence}, got ${record.sequence}`
+            );
+        }
+
+        const expectedTick = record.tick + tickOffset;
+        const currentTick = this.server.getTick();
+        if (currentTick !== expectedTick) {
+            throw new Error(`Replay packet tick ${expectedTick} does not match server tick ${currentTick}`);
+        }
+        if (connection.codec.protocolVersion !== record.protocolVersion) {
+            throw new Error(
+                `Replay protocol ${record.protocolVersion} does not match connection protocol ${connection.codec.protocolVersion}`
+            );
+        }
+
+        this.frameTicks?.set(connection, currentTick);
+        const packets = this.decodePacket(Buffer.from(record.payload), connection);
+        const packet = packets[0];
+        if (packets.length !== 1 || packet === undefined || packet.getName() !== record.packetName) {
+            throw new Error(`Replay bytes did not decode as ${record.packetName}`);
+        }
+
+        const gated = this.gatePhase(packet, connection);
+        if (gated.length !== 1) {
+            throw new Error(`Replay packet ${record.packetName} was rejected in the ${connection.phase} phase`);
+        }
+
+        this.logInbound(packet);
+        await this.dispatch(gated[0]!, connection);
+        this.replaySequences.set(record.connectionId, expectedSequence + 1);
     }
 
     /** One failure shape for the lookup and the handler itself, as the old dispatch had it. */
