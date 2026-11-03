@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../.test/reportProgress.ts';
 import { FAMILIES } from './families.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * Holds every declarative wire layout to `encode(decode(bytes)) === bytes` over raw payloads a
@@ -54,6 +55,43 @@ describe(FAMILIES.protocolWireRoundtrip, () => {
             });
 
             it('re-encodes every defined packet to the bytes the real server sent', () => {
+                reportParityCases(
+                    FAMILIES.protocolWireRoundtrip,
+                    import.meta.filename,
+                    [...fixtures].map(([id]) => {
+                        const name = nameOf(id);
+                        if (name === undefined || !wireDefinitions.has(name)) {
+                            return {
+                                id: `protocol:${protocolVersion}/packet:${id.toString(16)}`,
+                                title: name ?? `Packet 0x${id.toString(16)}`,
+                                context: `Java server wire fixture · protocol ${protocolVersion}`,
+                                status: 'not measured' as const
+                            };
+                        }
+
+                        let matched = false;
+                        try {
+                            const bytes = fixtures.get(id)!;
+                            const layout = layoutAt(wireDefinitions.get(name)!, protocolVersion);
+                            const stream = new BinaryStream(bytes);
+                            const payload = layout.decode(stream);
+                            if (stream.feof()) {
+                                const encoded = new BinaryStream();
+                                layout.encode(encoded, payload);
+                                matched = encoded.getBuffer().equals(bytes);
+                            }
+                        } catch {
+                            matched = false;
+                        }
+
+                        return parityCase(
+                            `protocol:${protocolVersion}/packet:${name}`,
+                            name,
+                            `Java server wire fixture · protocol ${protocolVersion}`,
+                            matched
+                        );
+                    })
+                );
                 expect(defined.length).toBeGreaterThan(0);
                 for (const id of defined) {
                     const bytes = fixtures.get(id)!;

@@ -14,6 +14,7 @@ import { FAMILIES } from './families.ts';
 import { loadActorIdentifiers, loadJavaEntityAttributes } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 import { loadVanillaEntityTypes } from './vanillaEntities.ts';
 
 /** Reads a numeric field from one of Mojang's parsed component records. */
@@ -36,6 +37,30 @@ describeFamily(
             const dragonHealth = dragon?.entity.components.get('minecraft:health');
             const boss = dragon?.entity.components.get('minecraft:boss');
             const javaDragon = loadJavaEntityAttributes()['minecraft:ender_dragon'];
+
+            const crystalMatches =
+                numberField(crystalHealth, 'value') === 1 &&
+                numberField(crystalHealth, 'max') === 1 &&
+                numberField(crystalExplosion, 'power') === 6;
+            const dragonMatches =
+                numberField(dragonHealth, 'value') === 200 &&
+                numberField(dragonHealth, 'max') === 200 &&
+                numberField(boss, 'hud_range') === 125 &&
+                javaDragon?.attributes['minecraft:max_health'] === 200;
+            reportParityCases(FAMILIES.gameplayEndFight, import.meta.filename, [
+                {
+                    id: 'minecraft:ender_crystal/explosion',
+                    title: 'minecraft:ender_crystal',
+                    context: 'Vanilla crystal health and explosion data used by the End fight',
+                    status: crystalMatches ? 'passed' : 'failed'
+                },
+                {
+                    id: 'minecraft:ender_dragon/health',
+                    title: 'minecraft:ender_dragon',
+                    context: 'Java max health and vanilla boss data used by the End fight',
+                    status: dragonMatches ? 'passed' : 'failed'
+                }
+            ]);
 
             expect(numberField(crystalHealth, 'value')).toBe(1);
             expect(numberField(crystalHealth, 'max')).toBe(1);

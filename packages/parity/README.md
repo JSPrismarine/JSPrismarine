@@ -2,7 +2,7 @@
 
 The parity test suite of the [data-driven vanilla plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md)
 (section 8): Vitest comparisons between what the server ships and the reference data the
-repository carries, with a dashboard. Roadmap status and the current milestone are in the plan's
+repository carries, with a dashboard and searchable data-level tracker. Roadmap status and the current milestone are in the plan's
 [section 9](../../docs/plans/data-driven-vanilla.md#status-and-current-milestone). Private, never
 published.
 
@@ -134,10 +134,11 @@ Expected gaps are typed entries in [`src/allowlist.ts`](src/allowlist.ts), each 
 identifier, a kind, a reason and a reference. A family's test fails both when a gap has no entry
 and when an entry's gap has closed, so the list cannot hide a regression or go stale.
 
-The kind separates two very different things. An `accepted` gap is correct behavior: Bedrock has
-no concept for the Java value, or the project chose Bedrock's rule for a reason the research
-records. A `defect` is a gap this suite found that nobody has fixed; the dashboard counts those
-in their own column, and a family carrying one reads `defects` rather than `green`.
+The kind separates three different cases. `intentional` records an edition or product constraint,
+such as a Java value Bedrock cannot represent or a deliberate choice to keep Bedrock behavior.
+`deferred` records work with an identified implementation path that has been postponed. A
+`defect` is a gap this suite found that nobody has fixed; the dashboard counts each kind in its
+own column, and a family carrying a defect reads `defects` rather than `green`.
 
 The reviewed losses of `@jsprismarine/mapping` become allow-list rows automatically, derived
 from that package's own loss list, which is what plan section 5 asks for. The three registries
@@ -149,7 +150,7 @@ The entity stat rows work the same way. Which edition decides a stat is settled 
 [ADR 0001](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/adr/0001-entity-stat-authority.md) and held in
 `@jsprismarine/entities`; `statRuling` turns a measured disagreement into a verdict and a
 reason, and `allowlist.ts` builds the row from that. A `bedrock` or `exception` ruling is an
-accepted gap, a `java` ruling is a defect, and the allow-list test fails if a row's kind or
+intentional difference, a `java` ruling is a defect, and the allow-list test fails if a row's kind or
 reason drifts from what the decision says.
 
 ## What a row does not claim
@@ -189,12 +190,20 @@ pnpm --filter @jsprismarine/parity run dashboard
 
 Runs the suite with the JSON reporter and renders a Markdown table to stdout and
 `dist/dashboard.md`, one row per declared family with its status and its passed, failed,
-not-measured, accepted-gap and defect counts. In CI the real-data job appends the table to
+not-measured, intentional-difference, deferred, and defect counts. In CI the real-data job appends the table to
 `$GITHUB_STEP_SUMMARY`. On same-repository pull requests, the job also runs the dashboard at the
 PR's base commit, then creates or updates one comment comparing the current dashboard with that
 baseline. The updater searches every comment page for its marker and edits the existing bot comment
 in place. The renderer is a pure function with its own tests,
 [`src/dashboard/render.ts`](src/dashboard/render.ts).
+
+The same command writes the docs site's tracker to `dist/tracker.json`. It counts named data
+comparisons that a family explicitly reports, such as a Java entity's stats, an item identifier,
+a recipe, or a worldgen column. This keeps maintenance assertions out of the progress totals and
+lets you find a subject such as `minecraft:blaze` even when one Vitest test compares many entities
+in a loop. A `not measured:` marker remains visible when reference data is missing, while
+intentional differences, deferred work, and known defects appear as separate entries. File paths
+and issue references in those entries link to their source.
 
 The entity coverage summary reports aggregate component counts and runtime results. Per-entity
 component counts and identifiers for unimplemented components, registered components without
@@ -212,8 +221,12 @@ active components, unimplemented components, spawn/tick failures, and entity def
 3. Write `src/<family>.test.ts` with a compare function that returns gap ids, wrapped in
    `describeFamily(FAMILIES.<family>, [<references>], ...)`, and assert both halves of
    `checkAllowList` are empty.
-4. Give each accepted gap an allow-list entry with a reason and a reference, and each gap the
-   suite found and nobody fixed an entry of kind `defect`.
-5. Run the suite and the dashboard; the new family appears as its own row. CI fails when a
+4. Give each intentional difference or deferred item an allow-list entry with a reason and a
+   reference, and each gap the suite found and nobody fixed an entry of kind `defect`.
+5. Report each compared data item with
+   `reportParityCases(FAMILIES.<family>, import.meta.filename, cases)` so the tracker can search
+   the identifier and link to the comparison source. Keep allow-list maintenance and coverage
+   volume assertions out of the case list.
+6. Run the suite and the dashboard; the new family appears as its own row. CI fails when a
    declared family has no test, so any new parity surface needs a comparison that reaches the
    dashboard.

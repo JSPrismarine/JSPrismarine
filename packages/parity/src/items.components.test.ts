@@ -10,6 +10,7 @@ import { loadRequiredItemList } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Phase 1's item half: the Java default components for every item, carried on Bedrock
@@ -27,25 +28,45 @@ import { REFERENCES } from './references.ts';
  * disagree on an item's Bedrock identity, and `resolve:<code>@<file>` for a row the component
  * runtime reports a diagnostic for, named by its code and file.
  */
-const compareItemComponents = (): { gaps: string[]; rows: number; detail: string[] } => {
+interface ItemComponentCase {
+    readonly javaId: string;
+    readonly bedrockId?: string;
+    readonly gaps: string[];
+}
+
+const compareItemComponents = (): { gaps: string[]; rows: number; detail: string[]; cases: ItemComponentCase[] } => {
     const advertised = loadRequiredItemList();
     const componentTypes = new Set(itemTypesTable.componentTypes);
     const gaps = new Set<string>();
     const detail: string[] = [];
 
     const javaWithRow = new Set<string>();
+    const caseMap = new Map<string, ItemComponentCase>();
     for (const [bedrockId, row] of Object.entries(itemTypesTable.items)) {
-        javaWithRow.add(row.java);
-        for (const merged of row.merged ?? []) javaWithRow.add(merged.java);
+        const javaIds = [row.java, ...(row.merged ?? []).map(({ java }) => java)];
+        for (const javaId of javaIds) {
+            javaWithRow.add(javaId);
+            caseMap.set(javaId, { javaId, bedrockId, gaps: [] });
+        }
 
-        if (!(bedrockId in advertised)) gaps.add(`unadvertised:${bedrockId}`);
+        if (!(bedrockId in advertised)) {
+            const gap = `unadvertised:${bedrockId}`;
+            gaps.add(gap);
+            for (const javaId of javaIds) caseMap.get(javaId)?.gaps.push(gap);
+        }
         for (const component of Object.keys(row.components)) {
-            if (!componentTypes.has(component)) gaps.add(`unknown-component:${component}`);
+            if (!componentTypes.has(component)) {
+                const gap = `unknown-component:${component}`;
+                gaps.add(gap);
+                for (const javaId of javaIds) caseMap.get(javaId)?.gaps.push(gap);
+            }
         }
 
         const mapped = javaItemToBedrock(row.java);
         if (mapped.kind !== 'unknown' && mapped.bedrock.identifier !== bedrockId) {
-            gaps.add(`mapping-disagrees:${row.java}`);
+            const gap = `mapping-disagrees:${row.java}`;
+            gaps.add(gap);
+            caseMap.get(row.java)?.gaps.push(gap);
             if (detail.length < 20) {
                 detail.push(`${row.java}: item table says ${bedrockId}, mapping says ${mapped.bedrock.identifier}`);
             }
@@ -58,21 +79,43 @@ const compareItemComponents = (): { gaps: string[]; rows: number; detail: string
     const reviewedLosses = new Set<string>(ITEM_LOSSES.map((loss) => loss.javaId));
     for (const javaId of Object.keys(itemsTable.items)) {
         if (javaWithRow.has(javaId)) continue;
-        gaps.add(reviewedLosses.has(javaId) ? `loss:${javaId}` : `unmapped-java-item:${javaId}`);
+        const gap = reviewedLosses.has(javaId) ? `loss:${javaId}` : `unmapped-java-item:${javaId}`;
+        gaps.add(gap);
+        caseMap.set(javaId, { javaId, gaps: [gap] });
     }
 
     const { diagnostics } = loadItemTypes();
     for (const diagnostic of diagnostics) {
-        gaps.add(`resolve:${diagnostic.code}@${diagnostic.path ?? diagnostic.pack}`);
+        const gap = `resolve:${diagnostic.code}@${diagnostic.path ?? diagnostic.pack}`;
+        gaps.add(gap);
         if (detail.length < 20) detail.push(`${diagnostic.path ?? diagnostic.pack}: ${diagnostic.message}`);
     }
 
-    return { gaps: [...gaps], rows: Object.keys(itemTypesTable.items).length, detail };
+    return {
+        gaps: [...gaps],
+        rows: Object.keys(itemTypesTable.items).length,
+        detail,
+        cases: [...caseMap.values()]
+    };
 };
 
 describeFamily(FAMILIES.itemsComponents, [REFERENCES.bedrockItemCapture], () => {
-    const { gaps, rows, detail } = compareItemComponents();
+    const { gaps, rows, detail, cases } = compareItemComponents();
     const verdict = checkAllowList(FAMILIES.itemsComponents, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.itemsComponents,
+        import.meta.filename,
+        cases.map(({ javaId, bedrockId, gaps: caseGaps }) => ({
+            id: javaId,
+            title: javaId,
+            context:
+                bedrockId === undefined ? 'Java item components · no Bedrock row' : `Java components → ${bedrockId}`,
+            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(caseGaps.length === 0 ? {} : { details: caseGaps.join(', ') })
+        }))
+    );
 
     it('carries Java components on identities the Bedrock capture advertises', () => {
         expect(verdict.unexpected, detail.join('\n')).toEqual([]);

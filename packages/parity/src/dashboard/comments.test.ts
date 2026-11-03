@@ -23,7 +23,8 @@ const tracker = (cases: readonly TrackerCase[]): TrackerData => ({
     passed: cases.filter((entry) => entry.kind === 'check' && entry.status === 'passed').length,
     failed: cases.filter((entry) => entry.kind === 'check' && entry.status === 'failed').length,
     notMeasured: cases.filter((entry) => entry.kind === 'check' && entry.status === 'not measured').length,
-    accepted: cases.filter((entry) => entry.status === 'accepted').length,
+    intentional: cases.filter((entry) => entry.status === 'intentional').length,
+    deferred: cases.filter((entry) => entry.status === 'deferred').length,
     defects: cases.filter((entry) => entry.status === 'defect').length
 });
 
@@ -73,7 +74,7 @@ describe('parity report comment lookup', () => {
             id: 'gap:registry.blocks/minecraft:fixture_block',
             title: 'minecraft:fixture_block',
             kind: 'gap',
-            status: 'accepted',
+            status: 'intentional',
             sourceFile: 'packages/parity/src/allowlist.ts'
         });
         const comment = renderParityComment(
@@ -85,7 +86,7 @@ describe('parity report comment lookup', () => {
         );
 
         expect(comment).toContain('Gap: minecraft:fixture_block');
-        expect(comment).toContain('accepted');
-        expect(comment).toContain('accepted gaps +1');
+        expect(comment).toContain('intentional');
+        expect(comment).toContain('intentional differences +1');
     });
 });

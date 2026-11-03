@@ -26,6 +26,7 @@ import type ClientConnection from '@jsprismarine/prismarine/network/ClientConnec
 import type Server from '@jsprismarine/prismarine/Server';
 
 import { FAMILIES } from './families.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 /**
  * The multi-version negotiation surface: a client's first packet names a protocol version,
@@ -106,6 +107,19 @@ describe(FAMILIES.protocolNegotiation, () => {
         'a protocol %i client negotiates its own codec and gets the network settings',
         async (protocolVersion, codec) => {
             const { sent, hangups, connection } = await negotiate(protocolVersion);
+            reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+                parityCase(
+                    `protocol:${protocolVersion}/network-settings`,
+                    `Protocol ${protocolVersion}`,
+                    'Client protocol negotiation and login settings',
+                    connection.codec === codec &&
+                        connection.codec.protocolVersion === protocolVersion &&
+                        connection.phase === 'login' &&
+                        sent.length === 1 &&
+                        sent[0] instanceof NetworkSettingsPacket &&
+                        hangups.length === 0
+                )
+            ]);
 
             expect(connection.codec).toBe(codec);
             expect(connection.codec.protocolVersion).toBe(protocolVersion);
@@ -127,6 +141,26 @@ describe(FAMILIES.protocolNegotiation, () => {
 
         const of2193 = Codec2193.createPacket(id2193)!;
         const of2225 = Codec2225.createPacket(id2225)!;
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+            parityCase(
+                'packet:level-chunk/version-stamp/2193',
+                'LevelChunkPacket · protocol 2193',
+                'Each negotiated codec selects its own packet layout',
+                id2225 === id2193 &&
+                    of2193.getName() === 'LevelChunkPacket' &&
+                    of2193.constructor === of2225.constructor &&
+                    of2193.codecProtocol === 2193
+            ),
+            parityCase(
+                'packet:level-chunk/version-stamp/2225',
+                'LevelChunkPacket · protocol 2225',
+                'Each negotiated codec selects its own packet layout',
+                id2225 === id2193 &&
+                    of2225.getName() === 'LevelChunkPacket' &&
+                    of2225.constructor === of2193.constructor &&
+                    of2225.codecProtocol === 2225
+            )
+        ]);
         expect(of2193.getName()).toBe('LevelChunkPacket');
         expect(of2225.getName()).toBe('LevelChunkPacket');
         expect(of2225.constructor).toBe(of2193.constructor);
@@ -161,12 +195,27 @@ describe(FAMILIES.protocolNegotiation, () => {
 
         const bytes2193 = encodeFor(Codec2193);
         const bytes2225 = encodeFor(Codec2225);
+        const prepared = Codec2225.prepareOutbound(chunk());
+        const idempotent = Codec2225.prepareOutbound(prepared) === prepared;
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+            parityCase(
+                'packet:level-chunk/layout/2193',
+                'LevelChunkPacket · protocol 2193 layout',
+                'Outbound wire payload is the expected 2193 layout',
+                bytes2225.equals(Buffer.concat([bytes2193, Buffer.from([0])]))
+            ),
+            parityCase(
+                'packet:level-chunk/layout/2225',
+                'LevelChunkPacket · protocol 2225 layout',
+                'Outbound wire payload is the expected 2225 layout',
+                bytes2225.equals(Buffer.concat([bytes2193, Buffer.from([0])])) && idempotent
+            )
+        ]);
 
         // The 2225 layout is the 2193 one plus the trailing Is Client Biome Update boolean.
         expect(bytes2225).toStrictEqual(Buffer.concat([bytes2193, Buffer.from([0])]));
 
         // Preparing is idempotent: the stamp is the whole per-send cost.
-        const prepared = Codec2225.prepareOutbound(chunk());
         expect(Codec2225.prepareOutbound(prepared)).toBe(prepared);
     });
 
@@ -217,10 +266,40 @@ describe(FAMILIES.protocolNegotiation, () => {
         expect(reads(Codec2225, bytes2225)).toBe(true);
         expect(reads(Codec2225, bytes2193)).toBe(false);
         expect(reads(Codec2193, bytes2225)).toBe(false);
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+            parityCase(
+                'packet:player-list/2193',
+                'PlayerListPacket · protocol 2193',
+                'Client reads its own player-list wire layout',
+                reads(Codec2193, bytes2193) && !reads(Codec2225, bytes2193)
+            ),
+            parityCase(
+                'packet:player-list/2225',
+                'PlayerListPacket · protocol 2225',
+                'Client reads its own player-list wire layout',
+                reads(Codec2225, bytes2225) && !reads(Codec2193, bytes2225)
+            )
+        ]);
     });
 
     it('an older unsupported client is told it is outdated, status before the hangup', async () => {
         const { sent, hangups, connection } = await negotiate(800);
+        const matched =
+            connection.codec === undefined &&
+            sent.length === 1 &&
+            sent[0] instanceof PlayStatusPacket &&
+            sent[0].getPacketData()?.status === PlayStatus.LoginFailed_ClientOld &&
+            hangups.length === 1 &&
+            hangups[0]!.reason === DisconnectReason.OUTDATED_CLIENT &&
+            hangups[0]!.message.includes(latestCodec.minecraftVersions.at(-1)!);
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+            parityCase(
+                'unsupported:older-client',
+                'Unsupported older client',
+                'Server reports the client as outdated before disconnecting',
+                matched
+            )
+        ]);
 
         expect(connection.codec).toBeUndefined();
         expect(sent).toHaveLength(1);
@@ -235,6 +314,17 @@ describe(FAMILIES.protocolNegotiation, () => {
 
     it('a newer unsupported client is told the server is outdated', async () => {
         const { sent, hangups } = await negotiate(latestCodec.protocolVersion + 1);
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+            parityCase(
+                'unsupported:newer-client',
+                'Unsupported newer client',
+                'Server reports its own protocol as outdated before disconnecting',
+                sent[0] instanceof PlayStatusPacket &&
+                    sent[0].getPacketData()?.status === PlayStatus.LoginFailed_ServerOld &&
+                    hangups.length === 1 &&
+                    hangups[0]!.reason === DisconnectReason.OUTDATED_SERVER
+            )
+        ]);
 
         expect(sent[0]?.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(hangups).toHaveLength(1);
@@ -243,13 +333,26 @@ describe(FAMILIES.protocolNegotiation, () => {
 
     it('the versions the server reports are exactly the ones a client can negotiate', async () => {
         const described = describeSupportedProtocols().join('\n');
+        const cases: ReturnType<typeof parityCase>[] = [];
 
         for (const codec of registeredCodecs) {
             const { connection } = await negotiate(codec.protocolVersion);
+
+            cases.push(
+                parityCase(
+                    `advertised:protocol-${codec.protocolVersion}`,
+                    `${codec.protocolVersion} · ${codec.minecraftVersions.join(', ')}`,
+                    'Server advertises only protocols the client can negotiate',
+                    connection.codec === codec &&
+                        described.includes(`protocol §e${codec.protocolVersion}§r`) &&
+                        codec.minecraftVersions.every((version) => described.includes(`§e${version}§r`))
+                )
+            );
 
             expect(connection.codec).toBe(codec);
             expect(described).toContain(`protocol §e${codec.protocolVersion}§r`);
             for (const version of codec.minecraftVersions) expect(described).toContain(`§e${version}§r`);
         }
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, cases);
     });
 });

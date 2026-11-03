@@ -8,6 +8,7 @@ import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
 import { loadActorIdentifiers } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -43,7 +44,32 @@ const compareEntities = (): string[] => {
 };
 
 describe(FAMILIES.registryEntities, () => {
-    const verdict = checkAllowList(FAMILIES.registryEntities, compareEntities());
+    const gaps = compareEntities();
+    const verdict = checkAllowList(FAMILIES.registryEntities, gaps);
+    const unexpected = new Set(verdict.unexpected);
+    const identifiers = loadActorIdentifiers();
+
+    reportParityCases(FAMILIES.registryEntities, import.meta.filename, [
+        {
+            id: 'actor-identifier-payload',
+            title: 'AvailableActorIdentifiersPacket',
+            context: 'Bedrock actor identifier payload against the captured packet bytes',
+            status: unexpected.has('payload') ? 'failed' : 'passed',
+            ...(unexpected.has('payload') ? { details: 'The advertised actor list differs from the capture.' } : {})
+        },
+        ...identifiers.map(({ id }) => {
+            const caseGaps = [`duplicate-id:${id}`, `namespace:${id}`, `spawn-egg:${id}`].filter((gap) =>
+                gaps.includes(gap)
+            );
+            return {
+                id,
+                title: id,
+                context: 'Bedrock actor identifier and matching spawn egg',
+                status: caseGaps.some((gap) => unexpected.has(gap)) ? ('failed' as const) : ('passed' as const),
+                ...(caseGaps.length === 0 ? {} : { details: caseGaps.join(', ') })
+            };
+        })
+    ]);
 
     it('advertises the golden actor list, well formed, with an egg item per egg-spawnable type', () => {
         expect(verdict.unexpected).toEqual([]);
@@ -54,7 +80,6 @@ describe(FAMILIES.registryEntities, () => {
     });
 
     it('reports the current advertised actor catalog size', () => {
-        const identifiers = loadActorIdentifiers();
         reportParityProgress(FAMILIES.registryEntities, { bedrockActorIdentifiers: identifiers.length });
         expect(identifiers.length).toBeGreaterThan(0);
     });

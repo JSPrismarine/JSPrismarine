@@ -5,6 +5,7 @@ import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
 import { loadRequiredItemList, loadRuntimeItemStates } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Compares the two independent item sources with each other first - the capture from a 1.26.51
@@ -16,7 +17,12 @@ import { reportParityProgress } from './progress.ts';
  * goldens differ on an id or component flag, `table:<name>` when the shipped table differs
  * from the capture.
  */
-const compareItems = (): string[] => {
+interface RegistryItemCase {
+    readonly id: string;
+    readonly gaps: string[];
+}
+
+const compareItems = (): { gaps: string[]; cases: RegistryItemCase[] } => {
     const capture = loadRequiredItemList();
     const dump = loadRuntimeItemStates();
     const gaps: string[] = [];
@@ -44,11 +50,27 @@ const compareItems = (): string[] => {
     }
     for (const name of tableNames) gaps.push(`table:${name}`);
 
-    return gaps;
+    const identifiers = new Set([...Object.keys(capture), ...dumpByName.keys(), ...Object.keys(item_table)]);
+    const cases = [...identifiers].map((id) => ({ id, gaps: gaps.filter((gap) => gap.endsWith(id)) }));
+    return { gaps, cases };
 };
 
 describe(FAMILIES.registryItems, () => {
-    const verdict = checkAllowList(FAMILIES.registryItems, compareItems());
+    const comparison = compareItems();
+    const verdict = checkAllowList(FAMILIES.registryItems, comparison.gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.registryItems,
+        import.meta.filename,
+        comparison.cases.map(({ id, gaps }) => ({
+            id,
+            title: id,
+            context: 'Bedrock item capture, runtime dump, and server item table',
+            status: gaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(gaps.length === 0 ? {} : { details: gaps.join(', ') })
+        }))
+    );
 
     it('ships every item the capture contains, with the id and flags both goldens agree on', () => {
         expect(verdict.unexpected).toEqual([]);

@@ -8,6 +8,7 @@ import { loadJavaColumns, loadJavaWorldgenRegistries } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Phase 4's terrain half, as far as the repository's reference data reaches.
@@ -35,7 +36,21 @@ const heightmapOf = (blocks: readonly string[], minY: number): number => {
 const expand = (runs: readonly JavaColumnRun[]): string[] =>
     runs.flatMap((run) => Array.from({ length: run.count }, () => run.block));
 
-const compareTerrain = (): { gaps: string[]; columns: number; heights: number; detail: string[] } => {
+interface TerrainParityCase {
+    readonly id: string;
+    readonly title: string;
+    readonly context: string;
+    readonly gaps: string[];
+    readonly details: string[];
+}
+
+const compareTerrain = (): {
+    gaps: string[];
+    columns: number;
+    heights: number;
+    detail: string[];
+    cases: TerrainParityCase[];
+} => {
     const vectors = loadJavaColumns();
     const registries = loadJavaWorldgenRegistries();
     const parse = (documents: Record<string, string>): Map<string, unknown> =>
@@ -53,6 +68,7 @@ const compareTerrain = (): { gaps: string[]; columns: number; heights: number; d
 
     const gaps: string[] = [];
     const detail: string[] = [];
+    const cases: TerrainParityCase[] = [];
     let heights = 0;
 
     for (const column of vectors.columns) {
@@ -60,36 +76,69 @@ const compareTerrain = (): { gaps: string[]; columns: number; heights: number; d
         const found = sampler.column(column.x, column.z).map((entry) => entry.state);
         heights += expected.length;
         const at = `${column.x},${column.z}`;
+        const caseGaps: string[] = [];
+        const caseDetails: string[] = [];
 
         if (found.join('\u0000') !== expected.join('\u0000')) {
-            gaps.push(`blocks:${at}`);
+            const gap = `blocks:${at}`;
+            gaps.push(gap);
+            caseGaps.push(gap);
             const first = found.findIndex((block, index) => block !== expected[index]);
-            detail.push(
-                `column ${at} first differs at y ${vectors.minY + first}: server ${found[first]}, Java ${expected[first]}`
-            );
+            const mismatch = `column ${at} first differs at y ${vectors.minY + first}: server ${found[first]}, Java ${expected[first]}`;
+            detail.push(mismatch);
+            caseDetails.push(mismatch);
         }
 
         const foundHeight = heightmapOf(found, vectors.minY);
         const expectedHeight = heightmapOf(expected, vectors.minY);
         if (foundHeight !== expectedHeight) {
-            gaps.push(`heightmap:${at}`);
-            detail.push(`column ${at} heightmap: server ${foundHeight}, Java ${expectedHeight}`);
+            const gap = `heightmap:${at}`;
+            gaps.push(gap);
+            caseGaps.push(gap);
+            const mismatch = `column ${at} heightmap: server ${foundHeight}, Java ${expectedHeight}`;
+            detail.push(mismatch);
+            caseDetails.push(mismatch);
         }
 
         const foundClasses = [...new Set(found)].sort().join(' ');
         const expectedClasses = [...new Set(expected)].sort().join(' ');
         if (foundClasses !== expectedClasses) {
-            gaps.push(`terrain-class:${at}`);
-            detail.push(`column ${at} terrain class: server [${foundClasses}], Java [${expectedClasses}]`);
+            const gap = `terrain-class:${at}`;
+            gaps.push(gap);
+            caseGaps.push(gap);
+            const mismatch = `column ${at} terrain class: server [${foundClasses}], Java [${expectedClasses}]`;
+            detail.push(mismatch);
+            caseDetails.push(mismatch);
         }
+
+        cases.push({
+            id: at,
+            title: `column ${at}`,
+            context: `Java terrain blocks · ${expectedClasses}`,
+            gaps: caseGaps,
+            details: caseDetails
+        });
     }
 
-    return { gaps, columns: vectors.columns.length, heights, detail };
+    return { gaps, columns: vectors.columns.length, heights, detail, cases };
 };
 
 describeFamily(FAMILIES.worldgenTerrain, [REFERENCES.worldgenRegistries, REFERENCES.worldgenColumns], () => {
-    const { gaps, columns, heights, detail } = compareTerrain();
+    const { gaps, columns, heights, detail, cases } = compareTerrain();
     const verdict = checkAllowList(FAMILIES.worldgenTerrain, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.worldgenTerrain,
+        import.meta.filename,
+        cases.map(({ id, title, context, gaps: caseGaps, details }) => ({
+            id,
+            title,
+            context,
+            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(details.length === 0 ? {} : { details: details.join('; ') })
+        }))
+    );
 
     it('generates the blocks, heightmap and terrain class Java generates', () => {
         expect(verdict.unexpected, detail.join('\n')).toEqual([]);

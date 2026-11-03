@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -20,6 +21,34 @@ describe(FAMILIES.conformanceClaim, () => {
     // that enumerates the exclusions. Today the plan is the only place that publishes it; when
     // a README or docs page takes the claim public, add that file here.
     const claimLocations = ['docs/plans/data-driven-vanilla.md'];
+
+    reportParityCases(FAMILIES.conformanceClaim, import.meta.filename, [
+        ...claimLocations.flatMap((location) => {
+            const text = readFileSync(join(repoRoot, location), 'utf-8');
+            return [
+                parityCase(
+                    `claim:${location}/wording`,
+                    location,
+                    'Published Java parity claim wording',
+                    text.replaceAll('\n', ' ').includes(CLAIM)
+                ),
+                parityCase(
+                    `claim:${location}/reference`,
+                    location,
+                    'Published Java parity claim reference',
+                    text.includes('edition-behavior-differences.md')
+                )
+            ];
+        }),
+        parityCase(
+            'claim:edition-differences/wording',
+            'Edition behavior differences note',
+            'Java parity claim source',
+            readFileSync(join(repoRoot, 'docs/research/edition-behavior-differences.md'), 'utf-8')
+                .replaceAll('\n', ' ')
+                .includes(CLAIM)
+        )
+    ]);
 
     it.each(claimLocations)('%s states the adopted parity claim verbatim', (location) => {
         const text = readFileSync(join(repoRoot, location), 'utf-8').replaceAll('\n', ' ');

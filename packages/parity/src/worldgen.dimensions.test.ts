@@ -29,6 +29,7 @@ import { openGeneration } from './generation/capture.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * The dimensions, from Java's data to a Bedrock chunk payload.
@@ -48,6 +49,16 @@ import { REFERENCES } from './references.ts';
  */
 
 const SEED = 1234n;
+
+// Keep each tracker status aligned with the same matcher the test uses below.
+const sameData = (actual: unknown, expected: unknown): boolean => {
+    try {
+        expect(actual).toEqual(expected);
+        return true;
+    } catch {
+        return false;
+    }
+};
 
 /** Generating three chunks at the origin, the Overworld's an ocean, takes seconds. */
 const GENERATION_TIMEOUT = 600_000;
@@ -349,6 +360,34 @@ describeFamily(
 
         describe('the dimension types', () => {
             it('are the four of the 26.3 datapack, with the fields table 1.1 lists', () => {
+                const cases = [
+                    ...Object.entries(EXPECTED_TYPES).map(([id, expected]) => {
+                        const type = types.get(id);
+                        const matched =
+                            type !== undefined &&
+                            (() => {
+                                const { attributes, ...parsed } = type;
+                                return attributes.size > 0 && sameData(parsed, expected);
+                            })();
+                        return {
+                            id: `dimension-type:${id}`,
+                            title: id,
+                            context: 'Java dimension_type fields',
+                            status: matched ? ('passed' as const) : ('failed' as const)
+                        };
+                    }),
+                    ...[...types.keys()]
+                        .filter((id) => !(id in EXPECTED_TYPES))
+                        .map((id) => ({
+                            id: `dimension-type:${id}`,
+                            title: id,
+                            context: 'Unexpected Java dimension_type',
+                            status: 'failed' as const,
+                            details: 'The Java dimension type is not represented in the reviewed parity table.'
+                        }))
+                ];
+                reportParityCases(FAMILIES.worldgenDimensions, import.meta.filename, cases);
+
                 expect([...types.keys()].sort()).toEqual(Object.keys(EXPECTED_TYPES).sort());
                 for (const [id, expected] of Object.entries(EXPECTED_TYPES)) {
                     const { attributes, ...parsed } = types.get(id)!;
@@ -358,6 +397,21 @@ describeFamily(
             });
 
             it('carry the gameplay rules that used to be booleans as attributes', () => {
+                const cases = Object.entries(EXPECTED_ATTRIBUTES).flatMap(([attribute, byType]) =>
+                    Object.keys(EXPECTED_OVERLAY).map((id) => {
+                        const actual = types.get(id)?.attributes.get(attribute);
+                        const expected = byType[id];
+                        const matched = sameData(actual, expected);
+                        return {
+                            id: `attribute:${id}/${attribute}`,
+                            title: `${id} · ${attribute}`,
+                            context: 'Java dimension_type attribute',
+                            status: matched ? ('passed' as const) : ('failed' as const)
+                        };
+                    })
+                );
+                reportParityCases(FAMILIES.worldgenDimensions, import.meta.filename, cases);
+
                 for (const [attribute, byType] of Object.entries(EXPECTED_ATTRIBUTES)) {
                     for (const id of Object.keys(EXPECTED_OVERLAY)) {
                         expect(types.get(id)!.attributes.get(attribute), `${id} ${attribute}`).toEqual(byType[id]);
@@ -366,6 +420,25 @@ describeFamily(
             });
 
             it('take the Bedrock id, name, generator and height clamp the overlay rows give them', () => {
+                reportParityCases(
+                    FAMILIES.worldgenDimensions,
+                    import.meta.filename,
+                    Object.entries(EXPECTED_OVERLAY).map(([id, expected]) => {
+                        const overlay = bedrockDimensionOverlay(id);
+                        const matched =
+                            overlay !== undefined &&
+                            overlay.dimensionId === expected.dimensionId &&
+                            overlay.bedrockName === expected.bedrockName &&
+                            overlay.generatorType === expected.generatorType;
+                        return {
+                            id: `bedrock-overlay:${id}`,
+                            title: id,
+                            context: 'Java dimension_type to Bedrock dimension overlay',
+                            status: matched ? ('passed' as const) : ('failed' as const)
+                        };
+                    })
+                );
+
                 for (const [id, expected] of Object.entries(EXPECTED_OVERLAY)) {
                     const overlay = bedrockDimensionOverlay(id);
                     expect(overlay, id).toBeDefined();
@@ -389,6 +462,26 @@ describeFamily(
 
         describe('the world presets', () => {
             it('are the seven of the 26.3 datapack, each with the Overworld generator of table 1.2', () => {
+                const cases = [
+                    ...Object.entries(OVERWORLD_GENERATORS).map(([id, generator]) => ({
+                        id: `preset:${id}/minecraft:overworld`,
+                        title: id,
+                        context: `Java world preset Overworld generator · ${generator.type}`,
+                        status: sameData(presets.get(id)?.dimensions.get(OVERWORLD_STEM_ID)?.generator, generator)
+                            ? ('passed' as const)
+                            : ('failed' as const)
+                    })),
+                    ...[...presets.keys()]
+                        .filter((id) => !(id in OVERWORLD_GENERATORS))
+                        .map((id) => ({
+                            id: `preset:${id}/minecraft:overworld`,
+                            title: id,
+                            context: 'Unexpected Java world preset',
+                            status: 'failed' as const
+                        }))
+                ];
+                reportParityCases(FAMILIES.worldgenDimensions, import.meta.filename, cases);
+
                 expect([...presets.keys()].sort()).toEqual(Object.keys(OVERWORLD_GENERATORS).sort());
                 for (const [id, generator] of Object.entries(OVERWORLD_GENERATORS)) {
                     const stem = presets.get(id)!.dimensions.get(OVERWORLD_STEM_ID);
@@ -398,6 +491,27 @@ describeFamily(
             });
 
             it('keep the Nether and End stems of `normal.json` everywhere but `flat_all_dimensions`', () => {
+                const cases = [...presets].flatMap(([id, preset]) => {
+                    const expected = id === 'minecraft:flat_all_dimensions' ? FLAT_ALL_DIMENSIONS : NORMAL_STEMS;
+                    return [
+                        {
+                            id: `preset:${id}/dimension-count`,
+                            title: `${id} · dimension count`,
+                            context: 'Java world preset dimensions',
+                            status: preset.dimensions.size === 3 ? ('passed' as const) : ('failed' as const)
+                        },
+                        ...[NETHER_TYPE_ID, END_TYPE_ID].map((stemId) => ({
+                            id: `preset:${id}/${stemId}`,
+                            title: `${id} · ${stemId}`,
+                            context: 'Java world preset dimension stem',
+                            status: sameData(preset.dimensions.get(stemId), expected[stemId])
+                                ? ('passed' as const)
+                                : ('failed' as const)
+                        }))
+                    ];
+                });
+                reportParityCases(FAMILIES.worldgenDimensions, import.meta.filename, cases);
+
                 const normal = presets.get(NORMAL_PRESET_ID)!;
                 expect([...normal.dimensions.keys()]).toEqual(Object.keys(NORMAL_STEMS));
                 expect(Object.fromEntries(normal.dimensions)).toEqual(NORMAL_STEMS);

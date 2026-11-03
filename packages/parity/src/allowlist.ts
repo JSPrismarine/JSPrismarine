@@ -21,13 +21,15 @@ import type { Family } from './families.ts';
 /** Why a comparison is allowed to report a gap. */
 export type GapKind =
     /**
-     * The gap is correct behavior. Bedrock has no concept for the Java value, or the project
-     * decided against Java's rule for a reason written down in the research.
+     * The gap reflects an edition or product constraint: Bedrock has no concept for the Java
+     * value, or the project deliberately chose different behavior.
      */
-    | 'accepted'
+    | 'intentional'
+    /** The gap is understood and has a path to implementation, but that work is postponed. */
+    | 'deferred'
     /**
      * The gap is a defect this suite found and nobody has fixed. The row is not green; the
-     * dashboard counts these separately so a defect cannot pass for an accepted gap.
+     * dashboard counts these separately so a defect cannot pass for an intentional difference.
      */
     | 'defect';
 
@@ -40,7 +42,7 @@ export interface AllowListEntry {
     family: Family;
     /** The gap id the comparison reports, for example `minecraft:zombie` or `item:minecraft:spear`. */
     id: string;
-    /** Whether the gap is correct behavior or an unfixed defect. */
+    /** Whether the gap is intentional, deferred work, or an unfixed defect. */
     kind: GapKind;
     /** Why the gap is expected rather than a defect, or what the defect is. */
     reason: string;
@@ -59,63 +61,63 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
     ...BLOCK_LOSSES.map((loss) => ({
         family: 'mapping.blocks' as const,
         id: `loss:${loss.javaId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: loss.reason,
         reference: loss.reference
     })),
     ...BLOCK_MERGES.map((merge) => ({
         family: 'mapping.blocks' as const,
         id: `merge:${merge.bedrockId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: merge.reason,
         reference: merge.reference
     })),
     ...ITEM_LOSSES.map((loss) => ({
         family: 'mapping.items' as const,
         id: `loss:${loss.javaId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: loss.reason,
         reference: loss.reference
     })),
     ...ITEM_LOSSES.map((loss) => ({
         family: 'items.components' as const,
         id: `loss:${loss.javaId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: `${loss.reason} The item type table carries no row for it, so it has no Java components.`,
         reference: loss.reference
     })),
     ...ITEM_MERGES.map((merge) => ({
         family: 'mapping.items' as const,
         id: `merge:${merge.bedrockId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: merge.recovery,
         reference: merge.reference
     })),
     ...ENTITY_LOSSES.map((loss) => ({
         family: 'mapping.entities' as const,
         id: `loss:${loss.javaId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: loss.reason,
         reference: loss.reference
     })),
     ...ENTITY_MERGES.map((merge) => ({
         family: 'mapping.entities' as const,
         id: `merge:${merge.bedrockId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: merge.recovery,
         reference: merge.reference
     })),
     ...REGISTRY_LOSSES.map((loss) => ({
         family: 'mapping.registries' as const,
         id: `loss:${loss.registry}/${loss.javaId}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: loss.reason,
         reference: loss.reference
     })),
     ...BLOCK_ENTITY_CONTENT_LOSSES.map((loss) => ({
         family: 'mapping.blockentities' as const,
         id: `loss:${loss.javaType}/${loss.field}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason: loss.reason,
         reference: loss.reference
     }))
@@ -126,15 +128,15 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
  * identifier, as allow-list rows.
  *
  * Nothing in the repository publishes the pairing for these three, so the mapping names no
- * entry of them and the dashboard carries the whole registry as one accepted gap. The reason
- * and the reference come from `UNTRANSLATED_REGISTRIES` itself, and the carrier goes on the
- * end because it says what a Phase 2 or Phase 3 capture would have to produce.
+ * entry of them yet. The dashboard marks them as deferred because a Phase 2 or Phase 3 capture
+ * can provide the missing Bedrock side. The reason and reference come from
+ * `UNTRANSLATED_REGISTRIES` itself, and the carrier says what the capture would have to produce.
  */
 const untranslatedRegistryEntries = (): readonly AllowListEntry[] =>
     UNTRANSLATED_REGISTRIES.map((registry) => ({
         family: 'mapping.untranslated' as const,
         id: `untranslated:${registry.registry}`,
-        kind: 'accepted' as const,
+        kind: 'deferred' as const,
         reason: `${registry.reason} It travels in ${registry.carrier}.`,
         reference: registry.reference
     }));
@@ -148,7 +150,7 @@ const STAT_DECISION = 'docs/adr/0001-entity-stat-authority.md, and decision 11 o
  *
  * This is measured output, not a ruling. Which mobs differ is what the comparison found;
  * `statRuling` supplies the verdict and the reason for each one. Every pair here falls under a
- * stat the decision gives to Bedrock, so the whole group is one categorical accept - the client
+ * stat the decision gives to Bedrock, so the whole group is an intentional difference - the client
  * predicts the movement speeds and draws the hitbox, so Bedrock's number is the one that cannot
  * desync. `jump_strength` is the one Bedrock-decided stat with no row, because the two editions
  * already agree on every mount.
@@ -185,7 +187,7 @@ const BEDROCK_DECIDED_DISAGREEMENTS = [
  * One entity stat gap, with the kind and the reason taken from the decision rather than
  * restated here.
  *
- * A `bedrock` or `exception` ruling is an accepted divergence and carries the decision's own
+ * A `bedrock` or `exception` ruling is an intentional divergence and carries the decision's own
  * reason. A `java` ruling means the server should be running Java's number and is not, so the
  * row would be a defect; no row here rules that way today, and one that started to would turn
  * its own entry red without this file changing.
@@ -195,7 +197,7 @@ const statEntry = (identifier: string, stat: SharedStat): AllowListEntry => {
     return {
         family: 'entities.stats',
         id: `${stat}:${identifier}`,
-        kind: ruling.kind === 'java' ? 'defect' : 'accepted',
+        kind: ruling.kind === 'java' ? 'defect' : 'intentional',
         reason: ruling.reason,
         reference: STAT_DECISION
     };
@@ -238,7 +240,7 @@ const engineActorEntries = (): readonly AllowListEntry[] =>
     ).map(([id, reason]) => ({
         family: 'entities.addactor' as const,
         id: `no-definition:${id}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason,
         reference: 'bedrock-samples 1.26.50.4 behavior_pack/entities, which has no file for it'
     }));
@@ -255,14 +257,14 @@ const bodilessActorEntries = (): readonly AllowListEntry[] =>
     ).map(([id, reason]) => ({
         family: 'entities.addactor' as const,
         id: `no-collision-box:${id}`,
-        kind: 'accepted' as const,
+        kind: 'intentional' as const,
         reason,
         reference: 'bedrock-samples 1.26.50.4 behavior_pack/entities'
     }));
 
 /**
  * Every expected gap the suite carries. Entries land here when a comparison starts failing for
- * a reason the project accepts, and leave when the gap closes - `checkAllowList` fails the
+ * a reason the project records, and leave when the gap closes - `checkAllowList` fails the
  * suite in both directions, so this list can neither hide a new gap nor go stale.
  */
 export const allowList: readonly AllowListEntry[] = [
@@ -272,28 +274,28 @@ export const allowList: readonly AllowListEntry[] = [
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:evocation_illager',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'The actor keeps the legacy id; the egg item is minecraft:evoker_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:tropicalfish',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'The actor keeps the legacy id; the egg item is minecraft:tropical_fish_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:villager_v2',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'The actor keeps the legacy _v2 id; the egg item is minecraft:villager_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:zombie_villager_v2',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'The actor keeps the legacy _v2 id; the egg item is minecraft:zombie_villager_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
@@ -315,14 +317,14 @@ export const allowList: readonly AllowListEntry[] = [
     {
         family: 'recipes.registry',
         id: 'loss:minecraft:furnace_minecart',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'Bedrock has no furnace minecart item, so the recipe makes the listed fallback.',
         reference: 'docs/research/java-to-bedrock-translation.md section 3'
     },
     {
         family: 'recipes.registry',
         id: 'loss:minecraft:spectral_arrow',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'Bedrock has no spectral arrow, so the recipe makes a plain arrow.',
         reference: 'docs/research/java-to-bedrock-translation.md section 3'
     },

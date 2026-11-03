@@ -9,6 +9,7 @@ import { loadRequiredItemList } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Chunker's totality property for the item domain. Every Java item resolves to a Bedrock item,
@@ -19,38 +20,71 @@ import { REFERENCES } from './references.ts';
  * loss, `merge:<bedrock id>` for a Bedrock item more than one Java item reaches, and
  * `unadvertised:<bedrock id>` for an output the item capture does not list.
  */
-const compareItemMapping = (): { gaps: string[]; items: number } => {
+interface ItemMappingCase {
+    readonly javaId: string;
+    readonly bedrockId?: string;
+    readonly gaps: string[];
+}
+
+const compareItemMapping = (): { gaps: string[]; items: number; cases: ItemMappingCase[] } => {
     const advertised = loadRequiredItemList();
     const gaps = new Set<string>();
     const javaByBedrock = new Map<string, Set<string>>();
     const javaIds = Object.keys(itemsTable.items);
+    const cases: ItemMappingCase[] = [];
 
     for (const javaId of javaIds) {
         const result = javaItemToBedrock(javaId);
+        const caseGaps: string[] = [];
         if (result.kind === 'unknown') {
-            gaps.add(`unknown:${javaId}`);
+            caseGaps.push(`unknown:${javaId}`);
+            gaps.add(caseGaps[0]!);
+            cases.push({ javaId, gaps: caseGaps });
             continue;
         }
-        if (result.kind === 'loss') gaps.add(`loss:${javaId}`);
+        if (result.kind === 'loss') {
+            caseGaps.push(`loss:${javaId}`);
+            gaps.add(caseGaps[0]!);
+        }
 
         const bedrockId = result.bedrock.identifier;
-        if (!(bedrockId in advertised)) gaps.add(`unadvertised:${bedrockId}`);
+        if (!(bedrockId in advertised)) {
+            caseGaps.push(`unadvertised:${bedrockId}`);
+            gaps.add(caseGaps.at(-1)!);
+        }
 
         const sources = javaByBedrock.get(bedrockId);
         if (sources) sources.add(javaId);
         else javaByBedrock.set(bedrockId, new Set([javaId]));
+        cases.push({ javaId, bedrockId, gaps: caseGaps });
     }
 
     for (const [bedrockId, sources] of javaByBedrock) {
-        if (sources.size > 1) gaps.add(`merge:${bedrockId}`);
+        if (sources.size <= 1) continue;
+        const merge = `merge:${bedrockId}`;
+        gaps.add(merge);
+        for (const javaId of sources) cases.find((entry) => entry.javaId === javaId)?.gaps.push(merge);
     }
 
-    return { gaps: [...gaps], items: javaIds.length };
+    return { gaps: [...gaps], items: javaIds.length, cases };
 };
 
 describeFamily(FAMILIES.mappingItems, [REFERENCES.bedrockItemCapture], () => {
-    const { gaps, items } = compareItemMapping();
+    const { gaps, items, cases } = compareItemMapping();
     const verdict = checkAllowList(FAMILIES.mappingItems, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.mappingItems,
+        import.meta.filename,
+        cases.map(({ javaId, bedrockId, gaps: caseGaps }) => ({
+            id: javaId,
+            title: javaId,
+            context: bedrockId === undefined ? 'Java item type · no Bedrock item' : `Java item type → ${bedrockId}`,
+            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(caseGaps.length === 0 ? {} : { details: caseGaps.join(', ') })
+        }))
+    );
 
     it('maps every Java item onto an item the Bedrock capture advertises', () => {
         expect(verdict.unexpected).toEqual([]);

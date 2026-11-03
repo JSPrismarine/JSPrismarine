@@ -7,6 +7,7 @@ import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * What a Java block entity's contents lose on the way into the Bedrock block entity.
@@ -140,15 +141,34 @@ const PROBES: readonly Probe[] = [
 ];
 
 /** The rows whose field did not reach the Bedrock block entity, as gap ids. */
-const compareBlockEntityContent = (): string[] =>
-    PROBES.filter((probe) => {
+const compareBlockEntityContent = (): { gaps: string[]; cases: { row: string; arrived: boolean }[] } => {
+    const cases = PROBES.map((probe) => {
         const bedrock = new NBTTagCompound('');
         applyJavaBlockEntityContent(bedrock, probe.java(), { javaBlock: probe.javaBlock });
-        return !probe.arrived(bedrock);
-    }).map((probe) => `loss:${probe.row}`);
+        return { row: probe.row, arrived: probe.arrived(bedrock) };
+    });
+    return { gaps: cases.filter((entry) => !entry.arrived).map(({ row }) => `loss:${row}`), cases };
+};
 
 describeFamily(FAMILIES.mappingBlockEntities, [REFERENCES.javaIdentifierCensus], () => {
-    const verdict = checkAllowList(FAMILIES.mappingBlockEntities, compareBlockEntityContent());
+    const comparison = compareBlockEntityContent();
+    const verdict = checkAllowList(FAMILIES.mappingBlockEntities, comparison.gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.mappingBlockEntities,
+        import.meta.filename,
+        comparison.cases.map(({ row, arrived }) => {
+            const gap = `loss:${row}`;
+            return {
+                id: row,
+                title: row,
+                context: 'Java block entity field → Bedrock block entity NBT',
+                status: unexpected.has(gap) ? ('failed' as const) : ('passed' as const),
+                ...(arrived ? {} : { details: 'The Java field is absent from the translated Bedrock block entity.' })
+            };
+        })
+    );
 
     it('loses nothing out of a block entity that is not on the reviewed list', () => {
         expect(verdict.unexpected).toEqual([]);

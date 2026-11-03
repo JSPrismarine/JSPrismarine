@@ -15,6 +15,7 @@ import { javaDefaultStates, loadJavaBlockStates } from './javaBlockStates.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { reportParityProgress } from './progress.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Phase 1's exit criterion: the per-state block property table against the Java 26.3 jar dump,
@@ -114,43 +115,79 @@ const statesOf = (stateKey: string): Record<string, string | number> =>
             })
     );
 
-const compareBlockProperties = (): { gaps: string[]; states: number; fields: number; detail: string[] } => {
+interface BlockPropertyCase {
+    readonly id: string;
+    states: number;
+    fields: number;
+    readonly gaps: string[];
+    readonly details: string[];
+}
+
+const compareBlockProperties = (): {
+    gaps: string[];
+    states: number;
+    fields: number;
+    detail: string[];
+    cases: BlockPropertyCase[];
+} => {
     const sources = javaSourcesByBedrockState();
     const gaps = new Set<string>();
     const detail: string[] = [];
+    const caseMap = new Map<string, BlockPropertyCase>();
     let fields = 0;
 
     for (const [bedrockKey, candidates] of sources) {
         const separator = bedrockKey.indexOf('|');
         const name = bedrockKey.slice(0, separator);
         const stateKey = bedrockKey.slice(separator + 1);
+        const parityCase = caseMap.get(name) ?? { id: name, states: 0, fields: 0, gaps: [], details: [] };
+        parityCase.states += 1;
+        caseMap.set(name, parityCase);
 
         const shipped = bedrockBlockPropertiesOf(name, statesOf(stateKey));
         if (shipped === undefined) {
-            gaps.add(`no-row:${name}`);
+            const gap = `no-row:${name}`;
+            gaps.add(gap);
+            parityCase.gaps.push(gap);
             continue;
         }
 
         for (const [field, value] of Object.entries(shipped)) {
             fields += 1;
+            parityCase.fields += 1;
             if (candidates.some((candidate) => candidate.row[field] === value)) continue;
-            gaps.add(`${name}#${field}`);
+            const gap = `${name}#${field}`;
+            gaps.add(gap);
+            parityCase.gaps.push(gap);
             if (detail.length < 20) {
-                detail.push(
-                    `${name}[${stateKey}] ${field}: table ${String(value)}, Java ${candidates
-                        .map((candidate) => `${String(candidate.row[field])} from ${candidate.describe}`)
-                        .join(' or ')}`
-                );
+                const mismatch = `${name}[${stateKey}] ${field}: table ${String(value)}, Java ${candidates
+                    .map((candidate) => `${String(candidate.row[field])} from ${candidate.describe}`)
+                    .join(' or ')}`;
+                detail.push(mismatch);
+                if (parityCase.details.length < 8) parityCase.details.push(mismatch);
             }
         }
     }
 
-    return { gaps: [...gaps], states: sources.size, fields, detail };
+    return { gaps: [...gaps], states: sources.size, fields, detail, cases: [...caseMap.values()] };
 };
 
 describeFamily(FAMILIES.blocksProperties, [REFERENCES.javaBlockProperties], () => {
-    const { gaps, states, fields, detail } = compareBlockProperties();
+    const { gaps, states, fields, detail, cases } = compareBlockProperties();
     const verdict = checkAllowList(FAMILIES.blocksProperties, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.blocksProperties,
+        import.meta.filename,
+        cases.map(({ id, states: stateCount, fields: fieldCount, gaps: caseGaps, details }) => ({
+            id,
+            title: id,
+            context: `Java block properties · ${stateCount} Bedrock states, ${fieldCount} fields`,
+            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(details.length === 0 ? {} : { details: details.join('; ') })
+        }))
+    );
 
     it('gives every Bedrock state the Java block it stands for, field by field', () => {
         expect(verdict.unexpected, detail.join('\n')).toEqual([]);

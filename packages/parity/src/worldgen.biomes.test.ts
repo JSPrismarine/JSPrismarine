@@ -9,6 +9,7 @@ import { loadJavaBiomePoints, loadNetworkBiomes, unpackClimatePoint } from './go
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /** Reads one dumped target, which the oracle writes in quantized units already. */
 const targetOf = (values: readonly number[]): ClimateTargetPoint => ({
@@ -33,11 +34,24 @@ const targetOf = (values: readonly number[]): ClimateTargetPoint => ({
  * `unadvertised:<java biome>` where the biome does not resolve onto one the client is told
  * about.
  */
-const compareBiomeSource = (): { gaps: string[]; lookups: number; boxes: number; detail: string[] } => {
+interface BiomeParityCase {
+    readonly id: string;
+    lookups: number;
+    readonly gaps: string[];
+}
+
+const compareBiomeSource = (): {
+    gaps: string[];
+    lookups: number;
+    boxes: number;
+    detail: string[];
+    cases: BiomeParityCase[];
+} => {
     const vectors = loadJavaBiomePoints();
     const advertised = new Set(loadNetworkBiomes().map((biome) => biome.name));
     const gaps: string[] = [];
     const detail: string[] = [];
+    const caseMap = new Map<string, BiomeParityCase>();
     let lookups = 0;
     let boxes = 0;
 
@@ -46,29 +60,52 @@ const compareBiomeSource = (): { gaps: string[]; lookups: number; boxes: number;
         boxes += entries.length;
         const source = new MultiNoiseBiomeSource(new ClimateParameterList(entries));
 
+        for (const biome of list.biomes) {
+            if (!caseMap.has(biome)) caseMap.set(biome, { id: biome, lookups: 0, gaps: [] });
+        }
+
         list.lookups.forEach((lookup, index) => {
             lookups += 1;
+            const parityCase = caseMap.get(lookup.tree);
+            if (parityCase !== undefined) parityCase.lookups += 1;
             // The dumper writes targets already quantized, which is the unit the search tree
             // works in, so they go in as they are rather than through `climateTarget`.
             const found = source.parameters.find(targetOf(lookup.target));
             if (found === lookup.tree) return;
-            gaps.push(`lookup:${list.name}#${index}`);
+            const gap = `lookup:${list.name}#${index}`;
+            gaps.push(gap);
+            parityCase?.gaps.push(gap);
             detail.push(`${list.name} target ${lookup.target.join(',')}: server ${found}, Java ${lookup.tree}`);
         });
 
         for (const biome of list.biomes) {
             const mapped = javaIdentifierToBedrock('biome', biome);
             if (mapped.kind === 'mapped' && advertised.has(mapped.bedrock)) continue;
-            gaps.push(`unadvertised:${biome}`);
+            const gap = `unadvertised:${biome}`;
+            gaps.push(gap);
+            caseMap.get(biome)?.gaps.push(gap);
         }
     }
 
-    return { gaps: [...new Set(gaps)], lookups, boxes, detail };
+    return { gaps: [...new Set(gaps)], lookups, boxes, detail, cases: [...caseMap.values()] };
 };
 
 describeFamily(FAMILIES.worldgenBiomes, [REFERENCES.worldgenBiomePoints, REFERENCES.bedrockBiomeDefinitions], () => {
-    const { gaps, lookups, boxes, detail } = compareBiomeSource();
+    const { gaps, lookups, boxes, detail, cases } = compareBiomeSource();
     const verdict = checkAllowList(FAMILIES.worldgenBiomes, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.worldgenBiomes,
+        import.meta.filename,
+        cases.map(({ id, lookups: lookupCount, gaps: caseGaps }) => ({
+            id,
+            title: id,
+            context: `Java biome climate lookup · ${lookupCount} sampled targets`,
+            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(caseGaps.length === 0 ? {} : { details: caseGaps.join(', ') })
+        }))
+    );
 
     it('picks the biome Java picks, and one a Bedrock client is told about', () => {
         expect(verdict.unexpected, detail.join('\n')).toEqual([]);

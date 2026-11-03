@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AllowListEntry } from '../allowlist.ts';
-import { ALL_FAMILIES, FAMILIES } from '../families.ts';
+import { FAMILIES } from '../families.ts';
 import type { VitestJsonReport } from './render.ts';
-import { buildTrackerData } from './tracker.ts';
+import type { ReportedParityCase } from './tracker.ts';
+import { buildTrackerData, trackerProgressPercent, trackerProgressTotal } from './tracker.ts';
 
 const repositoryRoot = '/workspace';
 const parityRoot = `${repositoryRoot}/packages/parity`;
@@ -20,13 +21,13 @@ const report: VitestJsonReport = {
                     location: { line: 32, column: 9 }
                 },
                 {
-                    ancestorTitles: [FAMILIES.registryBlocks, 'state palette'],
-                    title: 'matches the captured properties',
-                    status: 'failed'
+                    ancestorTitles: [FAMILIES.conformanceClaim],
+                    title: 'records the claim',
+                    status: 'passed'
                 },
                 {
-                    ancestorTitles: ['dashboard renderer'],
-                    title: 'renders every family',
+                    ancestorTitles: [FAMILIES.worldgenFeatures],
+                    title: 'not measured: no distribution',
                     status: 'skipped'
                 }
             ]
@@ -34,13 +35,31 @@ const report: VitestJsonReport = {
     ]
 };
 
+const parityCases: ReportedParityCase[] = [
+    {
+        family: FAMILIES.registryBlocks,
+        id: 'minecraft:fixture_block',
+        title: 'minecraft:fixture_block',
+        context: 'Java block registry mapping',
+        status: 'failed',
+        sourceFile: 'packages/parity/src/registry.blocks.test.ts'
+    }
+];
+
 const allowList: AllowListEntry[] = [
     {
         family: FAMILIES.registryBlocks,
         id: 'minecraft:fixture_block#hardness',
-        kind: 'accepted',
+        kind: 'intentional',
         reason: 'The reference format omits the property.',
-        reference: 'fixture reference'
+        reference: 'docs/plans/data-driven-vanilla.md section 12, issue #123, https://example.com/decision'
+    },
+    {
+        family: FAMILIES.registryBlocks,
+        id: 'fixture_deferred_block',
+        kind: 'deferred',
+        reason: 'The Bedrock capture is not complete.',
+        reference: 'docs/research/edition-behavior-differences.md'
     },
     {
         family: FAMILIES.registryBlocks,
@@ -52,52 +71,71 @@ const allowList: AllowListEntry[] = [
 ];
 
 describe('parity tracker data', () => {
-    it('includes every declared-family assertion and skips suite helper tests', () => {
-        const tracker = buildTrackerData(report, allowList, repositoryRoot, parityRoot, {
-            generatedAt: '2026-01-01T00:00:00.000Z',
-            sourceCommit: 'abc123'
-        });
-
-        expect(
-            tracker.cases.slice(0, 2).map(({ title, context, status, sourceFile, line }) => ({
-                title,
-                context,
-                status,
-                sourceFile,
-                line
-            }))
-        ).toEqual([
-            {
-                title: 'contains every captured block',
-                context: 'block palette',
-                status: 'passed',
-                sourceFile: 'packages/parity/src/registry.blocks.test.ts',
-                line: 32
-            },
-            {
-                title: 'matches the captured properties',
-                context: 'state palette',
-                status: 'failed',
-                sourceFile: 'packages/parity/src/registry.blocks.test.ts',
-                line: undefined
-            }
-        ]);
-        expect(tracker.cases).toHaveLength(4);
-        expect(tracker.checks).toBe(2);
-        expect(tracker.passed).toBe(1);
-        expect(tracker.failed).toBe(1);
-        expect(tracker.notMeasured).toBe(0);
-        expect(tracker.accepted).toBe(1);
-        expect(tracker.defects).toBe(1);
-        expect(tracker.sourceCommit).toBe('abc123');
+    it('counts deferred work and known defects against parity progress', () => {
+        expect(trackerProgressTotal({ checks: 100, deferred: 3, defects: 2 })).toBe(105);
     });
 
-    it('keeps declared families with no comparisons in the snapshot', () => {
-        const tracker = buildTrackerData(report, allowList, repositoryRoot, parityRoot);
-        const emptyFamily = tracker.families.find((family) => family.id === FAMILIES.registryItems);
+    it('does not round an incomplete parity score up to 100 percent', () => {
+        expect(trackerProgressPercent(32_000, 32_000)).toBe('100.0000');
+        expect(trackerProgressPercent(31_999, 32_000)).toBe('99.9969');
+        expect(trackerProgressPercent(1_000_000, 1_000_001)).toBe('99.9999');
+    });
 
-        expect(tracker.families.map(({ id }) => id)).toEqual(expect.arrayContaining([...ALL_FAMILIES]));
-        expect(emptyFamily).toMatchObject({ checks: 0, passed: 0, cases: [] });
+    it('includes explicit data comparisons and excludes ordinary parity-suite assertions', () => {
+        const tracker = buildTrackerData(
+            report,
+            allowList,
+            repositoryRoot,
+            parityRoot,
+            {
+                generatedAt: '2026-01-01T00:00:00.000Z',
+                sourceCommit: '0123456789012345678901234567890123456789'
+            },
+            parityCases
+        );
+
+        expect(tracker.cases[0]).toMatchObject({
+            title: 'minecraft:fixture_block',
+            context: 'Java block registry mapping',
+            status: 'failed',
+            sourceFile: 'packages/parity/src/registry.blocks.test.ts'
+        });
+        expect(tracker.cases[1]).toMatchObject({ family: FAMILIES.worldgenFeatures, status: 'not measured' });
+        expect(tracker.cases).toHaveLength(5);
+        expect(tracker.cases.some(({ title }) => title === 'records the claim')).toBe(false);
+        expect(tracker.checks).toBe(2);
+        expect(tracker.passed).toBe(0);
+        expect(tracker.failed).toBe(1);
+        expect(tracker.notMeasured).toBe(1);
+        expect(tracker.intentional).toBe(1);
+        expect(tracker.deferred).toBe(1);
+        expect(tracker.defects).toBe(1);
+        expect(tracker.sourceCommit).toBe('0123456789012345678901234567890123456789');
+        expect(tracker.cases[2]?.references).toEqual([
+            {
+                text: 'docs/plans/data-driven-vanilla.md',
+                href: 'https://github.com/JSPrismarine/JSPrismarine/blob/0123456789012345678901234567890123456789/docs/plans/data-driven-vanilla.md'
+            },
+            { text: ' section 12, ' },
+            {
+                text: '#123',
+                href: 'https://github.com/JSPrismarine/JSPrismarine/issues/123'
+            },
+            { text: ', ' },
+            { text: 'https://example.com/decision', href: 'https://example.com/decision' }
+        ]);
+        expect(tracker.cases[3]).toMatchObject({ status: 'deferred' });
+    });
+
+    it('omits families with no parity cases from the snapshot', () => {
+        const tracker = buildTrackerData(report, allowList, repositoryRoot, parityRoot, {}, parityCases);
+
+        expect(tracker.families.map(({ id }) => id)).toContain(FAMILIES.registryBlocks);
+        expect(tracker.families.map(({ id }) => id)).not.toContain(FAMILIES.registryItems);
+        expect(tracker.families.every((family) => family.cases.length > 0)).toBe(true);
+        expect(tracker.families.map(({ id }) => id)).toEqual(
+            expect.arrayContaining([FAMILIES.registryBlocks, FAMILIES.worldgenFeatures])
+        );
         expect(tracker.families.some((family) => family.id === '(other)')).toBe(false);
     });
 });

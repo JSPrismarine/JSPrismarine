@@ -5,6 +5,7 @@ import { FAMILIES } from './families.ts';
 import { checkAllowList } from './allowlist.ts';
 import { loadBlockPaletteCapture } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Compares the block catalog the server ships (`blockSchemas`, generated from the capture by
@@ -15,15 +16,28 @@ import { reportParityProgress } from './progress.ts';
  * Gap ids: `missing-block:<name>`, `extra-block:<name>`, `states:<name>` for a property-set
  * mismatch, `domain:<name>#<property>` for a value-set mismatch.
  */
-const compareBlocks = (): string[] => {
+interface RegistryBlockCase {
+    readonly id: string;
+    readonly gaps: string[];
+}
+
+const compareBlocks = (): { gaps: string[]; cases: RegistryBlockCase[] } => {
     const capture = loadBlockPaletteCapture();
     const gaps: string[] = [];
+    const caseMap = new Map<string, RegistryBlockCase>();
+    const addGap = (name: string, gap: string): void => {
+        gaps.push(gap);
+        const current = caseMap.get(name) ?? { id: name, gaps: [] };
+        current.gaps.push(gap);
+        caseMap.set(name, current);
+    };
 
     const captureNames = new Set(Object.keys(capture.states));
     const ourNames = new Set(Object.keys(blockSchemas.blocks));
+    for (const name of new Set([...captureNames, ...ourNames])) caseMap.set(name, { id: name, gaps: [] });
 
-    for (const name of captureNames) if (!ourNames.has(name)) gaps.push(`missing-block:${name}`);
-    for (const name of ourNames) if (!captureNames.has(name)) gaps.push(`extra-block:${name}`);
+    for (const name of captureNames) if (!ourNames.has(name)) addGap(name, `missing-block:${name}`);
+    for (const name of ourNames) if (!captureNames.has(name)) addGap(name, `extra-block:${name}`);
 
     for (const name of captureNames) {
         const schema = blockSchemas.blocks[name];
@@ -32,7 +46,7 @@ const compareBlocks = (): string[] => {
         const captureProperties = Object.keys(capture.states[name]!).sort();
         const ourProperties = Object.keys(schema.properties).sort();
         if (captureProperties.join() !== ourProperties.join()) {
-            gaps.push(`states:${name}`);
+            addGap(name, `states:${name}`);
             continue;
         }
 
@@ -42,16 +56,30 @@ const compareBlocks = (): string[] => {
 
             const domain = (capture.domains[name]?.[property]?.values ?? []).map(asWire).sort();
             const values = [...schema.properties[property]!.values].map(asWire).sort();
-            if (JSON.stringify(domain) !== JSON.stringify(values)) gaps.push(`domain:${name}#${property}`);
+            if (JSON.stringify(domain) !== JSON.stringify(values)) addGap(name, `domain:${name}#${property}`);
         }
     }
 
-    return gaps;
+    return { gaps, cases: [...caseMap.values()] };
 };
 
 describe(FAMILIES.registryBlocks, () => {
     const capture = loadBlockPaletteCapture();
-    const verdict = checkAllowList(FAMILIES.registryBlocks, compareBlocks());
+    const comparison = compareBlocks();
+    const verdict = checkAllowList(FAMILIES.registryBlocks, comparison.gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.registryBlocks,
+        import.meta.filename,
+        comparison.cases.map(({ id, gaps }) => ({
+            id,
+            title: id,
+            context: 'Bedrock block palette against the server block schemas',
+            status: gaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(gaps.length === 0 ? {} : { details: gaps.join(', ') })
+        }))
+    );
 
     it('ships every block, property and value the palette capture contains', () => {
         expect(verdict.unexpected).toEqual([]);

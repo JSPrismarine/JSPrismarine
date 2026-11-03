@@ -39,6 +39,7 @@ import { describeFamily } from './measure.ts';
 import { loadBlockPaletteCapture, loadRequiredItemList } from './goldens.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { parityCase, reportParityCases } from './trackerCases.ts';
 import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
@@ -236,6 +237,93 @@ const runtimeTagGaps = (content: ServerContent): string[] => {
     return gaps;
 };
 
+/** One Java tag membership and whether its mapped runtime type carries that membership. */
+const runtimeTagCases = (
+    content: ServerContent,
+    unexpected: ReadonlySet<string>
+): {
+    id: string;
+    title: string;
+    context: string;
+    status: 'passed' | 'failed';
+    details?: string;
+}[] => {
+    const cases: {
+        id: string;
+        title: string;
+        context: string;
+        status: 'passed' | 'failed';
+        details?: string;
+    }[] = [];
+
+    for (const tag of content.tags.tags('block')) {
+        for (const javaId of content.tags.members('block', tag)) {
+            const mapping = javaBlockStateToBedrock(javaId);
+            if (mapping.kind !== 'mapped') continue;
+            const inverse = bedrockBlockStateToJava(mapping.bedrock.name, mapping.bedrock.states);
+            if (inverse.kind !== 'mapped' || inverse.java.name !== javaId) continue;
+            const block = content.blocks.types.get(mapping.bedrock.name);
+            const gap =
+                block === undefined
+                    ? `block:${javaId}:missing:${mapping.bedrock.name}`
+                    : !block.hasJavaTag(tag)
+                      ? `block:${javaId}:tag:${tag}`
+                      : undefined;
+            cases.push({
+                id: `block/${javaId}#${tag}`,
+                title: javaId,
+                context: `Java block tag #${tag} → ${mapping.bedrock.name}`,
+                status: gap === undefined || !unexpected.has(gap) ? 'passed' : 'failed',
+                ...(gap === undefined ? {} : { details: gap })
+            });
+        }
+    }
+
+    for (const tag of content.tags.tags('item')) {
+        for (const javaId of content.tags.members('item', tag)) {
+            const mapping = javaItemToBedrock(javaId);
+            if (mapping.kind !== 'mapped') continue;
+            const item = content.items.types.get(mapping.bedrock.identifier);
+            const gap =
+                item === undefined
+                    ? `item:${javaId}:missing:${mapping.bedrock.identifier}`
+                    : !item.hasJavaTag(tag)
+                      ? `item:${javaId}:tag:${tag}`
+                      : undefined;
+            cases.push({
+                id: `item/${javaId}#${tag}`,
+                title: javaId,
+                context: `Java item tag #${tag} → ${mapping.bedrock.identifier}`,
+                status: gap === undefined || !unexpected.has(gap) ? 'passed' : 'failed',
+                ...(gap === undefined ? {} : { details: gap })
+            });
+        }
+    }
+
+    for (const tag of content.tags.tags('entity_type')) {
+        for (const javaId of content.tags.members('entity_type', tag)) {
+            const mapping = javaEntityTypeToBedrock(javaId);
+            if (mapping.kind !== 'mapped') continue;
+            const entity = content.entities.registry.get(mapping.bedrock);
+            const gap =
+                entity === undefined
+                    ? `entity:${javaId}:missing:${mapping.bedrock}`
+                    : !entity.hasTag(tag)
+                      ? `entity:${javaId}:tag:${tag}`
+                      : undefined;
+            cases.push({
+                id: `entity/${javaId}#${tag}`,
+                title: javaId,
+                context: `Java entity tag #${tag} → ${mapping.bedrock}`,
+                status: gap === undefined || !unexpected.has(gap) ? 'passed' : 'failed',
+                ...(gap === undefined ? {} : { details: gap })
+            });
+        }
+    }
+
+    return cases;
+};
+
 /** Counts the resolved tags and memberships the real stack exposes in each registry. */
 const runtimeTagMeasurements = (content: ServerContent): Record<string, number> => {
     const measurements: Record<string, number> = {};
@@ -334,7 +422,13 @@ const biomeWorldViewGaps = (content: ServerContent): string[] => {
 };
 
 /** Checks payload entries and their references against the registries a client receives. */
-const clientPayloadComparison = (content: ServerContent): { gaps: string[]; measurements: Record<string, number> } => {
+const clientPayloadComparison = (
+    content: ServerContent
+): {
+    gaps: string[];
+    measurements: Record<string, number>;
+    cases: ReturnType<typeof parityCase>[];
+} => {
     const payloads = buildNetworkContentPayloads(content);
     const gaps: string[] = [];
     const capturedBlocks = new Map(block_definitions.map((entry) => [entry.name, entry.definition]));
@@ -434,8 +528,103 @@ const clientPayloadComparison = (content: ServerContent): { gaps: string[]; meas
     if (outputGaps.length > 0) gaps.push(`crafting-outputs:${outputGaps.join(',')}`);
     if (!payloads.crafting.cleanRecipes) gaps.push('crafting-clear-flag');
 
+    const cases = [
+        parityCase(
+            'block-property-catalog',
+            'Block property catalog',
+            'Bedrock block definitions in the client payload',
+            !gaps.includes('block-property-catalog')
+        ),
+        ...[...new Set([...expectedCaptured, ...actualCaptured].map((entry) => entry.name))].map((name) => {
+            const block = actualCaptured.find((entry) => entry.name === name);
+            const captured = capturedBlocks.get(name);
+            return parityCase(
+                `block-property:${name}`,
+                name,
+                'Bedrock block property definition',
+                block !== undefined && captured !== undefined && block.definition.equals(captured)
+            );
+        }),
+        parityCase(
+            'invented-block-report',
+            'Invented block count',
+            'Client payload report matches unrecognized block properties',
+            !gaps.includes('invented-block-report')
+        ),
+        parityCase(
+            'item-registry-catalog',
+            'Item registry catalog',
+            'Server item types in the client payload',
+            !gaps.includes('item-registry-catalog')
+        ),
+        ...[...new Set([...contentItems, ...payloadItems])].map((name) => {
+            const entry = advertisedItems.get(name);
+            const captured = capturedItems[name];
+            const matched =
+                entry !== undefined &&
+                content.items.types.has(name) &&
+                (captured === undefined
+                    ? allocated.has(name)
+                    : entry.runtimeId === captured.runtime_id && entry.componentBased === captured.component_based);
+            return parityCase(`item:${name}`, name, 'Bedrock item registry payload', matched);
+        }),
+        ...[...allocated].map((name) =>
+            parityCase(
+                `allocated-item:${name}`,
+                name,
+                'Allocated item id has a client registry entry',
+                advertisedItems.has(name)
+            )
+        ),
+        parityCase(
+            'creative-items-without-registry-entry',
+            'Creative item registry references',
+            'Every creative item has an item registry entry',
+            payloads.report.unknownCreativeItems.length === 0
+        ),
+        ...payloads.creativeItems.map((source) =>
+            parityCase(
+                `creative:${source.name}`,
+                source.name,
+                'Creative item runtime id and group',
+                !gaps.some((gap) => gap.startsWith(`creative:${source.name}:`))
+            )
+        ),
+        ...payloads.creative.groups.map((group) =>
+            parityCase(
+                `creative-group:${group.name}`,
+                group.name,
+                'Creative group icon references an item registry entry',
+                group.icon.runtimeId === 0 || runtimeIds.has(group.icon.runtimeId)
+            )
+        ),
+        ...[...new Set(ingredientGaps)].map((ingredient) =>
+            parityCase(
+                `crafting-ingredient:${ingredient}`,
+                ingredient,
+                'Crafting ingredient reference resolves in the client registry',
+                false
+            )
+        ),
+        ...[...new Set(outputGaps)].map((runtimeId) =>
+            parityCase(
+                `crafting-output:${runtimeId}`,
+                `Runtime item ${runtimeId}`,
+                'Crafting output has a client item registry entry',
+                false
+            )
+        ),
+        parityCase(
+            'crafting-clean-recipes',
+            'Clean recipes flag',
+            'Client crafting payload signals a full recipe replacement',
+            payloads.crafting.cleanRecipes
+        )
+    ];
+
     return {
         gaps,
+        cases,
         measurements: {
             blockPropertyEntries: payloads.blockProperties.length,
             itemEntries: payloads.items.length,
@@ -498,7 +687,7 @@ describeFamily(FAMILIES.integrationBlockBehaviors, REAL_STACK_REFERENCES, () => 
     it('keeps a dead bush on sand using Java dry vegetation support data', { timeout: 180_000 }, () => {
         const { content } = realStack();
         const tag = 'minecraft:supports_dry_vegetation';
-        expect(content.tags.includes('block', tag, 'minecraft:sand')).toBe(true);
+        const supported = content.tags.includes('block', tag, 'minecraft:sand');
 
         const harness = bindFamily(floraFamily, 'minecraft:deadbush', { world: new JavaTagWorld(content) });
         const plant = { x: 0, y: 1, z: 0 };
@@ -507,7 +696,17 @@ describeFamily(FAMILIES.integrationBlockBehaviors, REAL_STACK_REFERENCES, () => 
 
         harness.neighborChanged(plant, 'down');
 
-        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:deadbush');
+        const remained = harness.dimension.identifierAt(plant) === 'minecraft:deadbush';
+        reportParityCases(FAMILIES.integrationBlockBehaviors, import.meta.filename, [
+            {
+                id: 'minecraft:deadbush#minecraft:supports_dry_vegetation',
+                title: 'minecraft:deadbush',
+                context: 'Java block tag #minecraft:supports_dry_vegetation includes minecraft:sand',
+                status: supported && remained ? 'passed' : 'failed'
+            }
+        ]);
+        expect(supported).toBe(true);
+        expect(remained).toBe(true);
     });
 });
 
@@ -531,6 +730,22 @@ describeFamily(
                 const verdict = checkAllowList(FAMILIES.integrationTags, gaps);
                 const definitions = [...content.definitions.tags.values()];
                 const values = definitions.flatMap((definition) => tagValuesOf(definition.data));
+                const unexpected = new Set(verdict.unexpected);
+
+                reportParityCases(FAMILIES.integrationTags, import.meta.filename, [
+                    ...runtimeTagCases(content, unexpected),
+                    ...definitions.map((definition) => {
+                        const members = tagValuesOf(definition.data);
+                        const related = verdict.unexpected.filter((gap) => gap.includes(definition.identifier));
+                        return {
+                            id: `tag:${definition.identifier}`,
+                            title: definition.identifier,
+                            context: `Java tag members: ${members.map(({ id }) => id).join(', ')}`,
+                            status: related.length === 0 ? ('passed' as const) : ('failed' as const),
+                            ...(related.length === 0 ? {} : { details: related.join('; ') })
+                        };
+                    })
+                ]);
 
                 reportParityProgress(FAMILIES.integrationTags, {
                     loadedTagDefinitions: definitions.length,
@@ -557,15 +772,26 @@ describeFamily(
             const plant = { x: 0, y: 1, z: 0 };
 
             for (const identifier of ['minecraft:sand', 'minecraft:gravel']) {
-                expect(content.tags.includes('block', tag, identifier)).toBe(true);
+                const supported = content.tags.includes('block', tag, identifier);
                 const harness = bindFamily(bambooFamily, 'minecraft:bamboo', { world: new JavaTagWorld(content) });
                 harness.dimension.set(ground, identifier);
                 harness.dimension.set(plant, 'minecraft:bamboo');
 
                 harness.neighborChanged(plant, 'down');
 
-                expect(harness.dimension.identifierAt(plant)).toBe('minecraft:bamboo');
-                expect(harness.dimension.drops).toEqual([]);
+                const remained = harness.dimension.identifierAt(plant) === 'minecraft:bamboo';
+                const noDrops = harness.dimension.drops.length === 0;
+                reportParityCases(FAMILIES.integrationTags, import.meta.filename, [
+                    {
+                        id: `minecraft:bamboo/support:${identifier}`,
+                        title: 'minecraft:bamboo',
+                        context: `Java tag #${tag} support on ${identifier}`,
+                        status: supported && remained && noDrops ? 'passed' : 'failed'
+                    }
+                ]);
+                expect(supported).toBe(true);
+                expect(remained).toBe(true);
+                expect(noDrops).toBe(true);
             }
         });
 
@@ -597,7 +823,17 @@ describeFamily(
             cube.instance.fire('minecraft:become_bouncy');
             runtime.tick(1);
 
-            expect(cube.instance.hasComponent('minecraft:bounciness')).toBe(true);
+            const bouncy = cube.instance.hasComponent('minecraft:bounciness');
+            const moving = cube.body.velocity.x > 0 && cube.body.velocity.y > 0;
+            reportParityCases(FAMILIES.integrationEntityRuntime, import.meta.filename, [
+                {
+                    id: 'minecraft:sulfur_cube/minecraft:become_bouncy',
+                    title: 'minecraft:sulfur_cube',
+                    context: 'Java vanilla event → bounciness component and runtime physics',
+                    status: bouncy && moving ? 'passed' : 'failed'
+                }
+            ]);
+            expect(bouncy).toBe(true);
             expect(cube.body.velocity.x).toBeGreaterThan(0);
             expect(cube.body.velocity.y).toBeGreaterThan(0);
             runtime.remove(cube.id, 'parity runtime check complete');
@@ -620,6 +856,21 @@ describeFamily(
             runtime.dropSnifferSeed(sniffer.body);
 
             const drops = world.drops.slice(dropsBefore);
+            const validDrops =
+                drops.length > 0 &&
+                drops.every(({ item }) => item.count > 0) &&
+                drops.every(({ item }) =>
+                    ['minecraft:torchflower_seeds', 'minecraft:pitcher_pod'].includes(item.identifier)
+                ) &&
+                world.sounds.slice(soundsBefore).includes('minecraft:entity.sniffer.drop_seed');
+            reportParityCases(FAMILIES.gameplayBrainEffects, import.meta.filename, [
+                {
+                    id: 'minecraft:sniffer/digging',
+                    title: 'minecraft:sniffer',
+                    context: 'Java digging → seed drops and entity sound',
+                    status: validDrops ? 'passed' : 'failed'
+                }
+            ]);
             expect(drops.length).toBeGreaterThan(0);
             expect(drops.every(({ item }) => item.count > 0)).toBe(true);
             expect(
@@ -644,6 +895,22 @@ describeFamily(
 
             runtime.sonicBoom(warden.body, target.id);
 
+            const health = target.instance.attributes.get('health')?.current;
+            const impulse = Math.hypot(target.body.velocity.x, target.body.velocity.y - 0.5, target.body.velocity.z);
+            const matches =
+                health === startingHealth - 10 &&
+                Math.abs(target.body.velocity.x) < 1e-5 &&
+                target.body.velocity.z > 0 &&
+                Math.abs(impulse - 2.5) < 1e-5 &&
+                world.sounds.slice(soundsBefore).includes('minecraft:entity.warden.sonic_boom');
+            reportParityCases(FAMILIES.gameplayBrainEffects, import.meta.filename, [
+                {
+                    id: 'minecraft:warden/minecraft:sonic_boom',
+                    title: 'minecraft:warden',
+                    context: 'Java sonic-boom damage and impulse against minecraft:cow',
+                    status: matches ? 'passed' : 'failed'
+                }
+            ]);
             expect(target.instance.attributes.get('health')?.current).toBe(startingHealth - 10);
             expect(target.body.velocity.x).toBeCloseTo(0);
             expect(target.body.velocity.z).toBeGreaterThan(0);
@@ -668,12 +935,21 @@ describeFamily(
             runtime.villagerRaidEffect(villager.body, 'celebrate_victory');
             runtime.villagerRaidEffect(villager.body, 'reset_status');
 
-            expect(world.villagerRaidEffects.slice(effectsBefore).map(({ effect }) => effect)).toEqual([
-                'ring_bell',
-                'move_to_sky_seeing_spot',
-                'celebrate_victory',
-                'reset_status'
+            const effects = world.villagerRaidEffects.slice(effectsBefore).map(({ effect }) => effect);
+            const expected = ['ring_bell', 'move_to_sky_seeing_spot', 'celebrate_victory', 'reset_status'];
+            const matches =
+                JSON.stringify(runtime.villagerRaidState(villager.body)) === JSON.stringify(world.villagerRaidState) &&
+                JSON.stringify(effects) === JSON.stringify(expected);
+            reportParityCases(FAMILIES.gameplayBrainEffects, import.meta.filename, [
+                {
+                    id: 'minecraft:villager/raid-effects',
+                    title: 'minecraft:villager',
+                    context: 'Java raid state and host effects',
+                    status: matches ? 'passed' : 'failed'
+                }
             ]);
+            expect(runtime.villagerRaidState(villager.body)).toEqual(world.villagerRaidState);
+            expect(effects).toEqual(expected);
             world.villagerRaidState = undefined;
             runtime.remove(villager.id, 'parity brain effect complete');
         });
@@ -728,12 +1004,28 @@ describeFamily(
                         engineRules: new Map()
                     }).cycle('animal', 0);
 
-                expect(cowRules.length).toBeGreaterThan(0);
                 const supportedSpawns = runWithDistance(world, 0);
+                const rejectedUnsupported = runWithDistance({ ...world, solid: () => false }, 0).length === 0;
+                const rejectedSpawnRadius = runWithDistance(world, SPAWN_CONSTANTS.minimumSpawnDistance).length === 0;
+                const matches =
+                    cowRules.length > 0 &&
+                    supportedSpawns.length > 0 &&
+                    supportedSpawns.every(({ position }) => position.y === 64) &&
+                    rejectedUnsupported &&
+                    rejectedSpawnRadius;
+                reportParityCases(FAMILIES.integrationSpawning, import.meta.filename, [
+                    {
+                        id: 'minecraft:cow/animal-spawn',
+                        title: 'minecraft:cow',
+                        context: 'Java spawn rules · surface support and world-spawn exclusion radius',
+                        status: matches ? 'passed' : 'failed'
+                    }
+                ]);
+                expect(cowRules.length).toBeGreaterThan(0);
                 expect(supportedSpawns.length).toBeGreaterThan(0);
                 expect(supportedSpawns.every(({ position }) => position.y === 64)).toBe(true);
-                expect(runWithDistance({ ...world, solid: () => false }, 0)).toEqual([]);
-                expect(runWithDistance(world, SPAWN_CONSTANTS.minimumSpawnDistance)).toEqual([]);
+                expect(rejectedUnsupported).toBe(true);
+                expect(rejectedSpawnRadius).toBe(true);
             }
         );
     },
@@ -759,8 +1051,16 @@ const groupComponentNamesByNamespace = (identifiers: readonly string[]): string 
         .join(';');
 };
 
+interface EntityRuntimeCase {
+    readonly identifier: string;
+    readonly components: readonly string[];
+    readonly gaps: readonly string[];
+}
+
 /** Compares every entity declaration with its resolved type, component path, and live spawn/tick. */
-const compareEntityRuntimeCoverage = (stack: RealStack): { gaps: string[]; measurements: Record<string, number> } => {
+const compareEntityRuntimeCoverage = (
+    stack: RealStack
+): { gaps: string[]; measurements: Record<string, number>; cases: EntityRuntimeCase[] } => {
     const { content, runtime, reports, reportContext } = stack;
     const source = content.definitions.entities;
     const types = content.entities.registry;
@@ -941,8 +1241,15 @@ const compareEntityRuntimeCoverage = (stack: RealStack): { gaps: string[]; measu
         measurements[`entity:${identifier}:component-coverage:${summary}`] = coverage.declared;
     }
 
+    const cases = sourceIdentifiers.map((identifier): EntityRuntimeCase => {
+        const type = types.get(identifier);
+        const relatedGaps = gaps.filter((gap) => gap.includes(`${identifier}:`) || gap.endsWith(`:${identifier}`));
+        return { identifier, components: type?.declaredComponents ?? [], gaps: relatedGaps };
+    });
+
     return {
         gaps,
+        cases,
         measurements: {
             ...measurements,
             sourceEntityDeclarations: source.size,
@@ -975,6 +1282,19 @@ describeFamily(
             const stack = realStack();
             const comparison = compareEntityRuntimeCoverage(stack);
             const verdict = checkAllowList(FAMILIES.integrationEntityCoverage, comparison.gaps);
+            const unexpected = new Set(verdict.unexpected);
+
+            reportParityCases(
+                FAMILIES.integrationEntityCoverage,
+                import.meta.filename,
+                comparison.cases.map(({ identifier, components, gaps }) => ({
+                    id: identifier,
+                    title: identifier,
+                    context: `Declared entity components: ${components.join(', ')}`,
+                    status: gaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+                    ...(gaps.length === 0 ? {} : { details: gaps.join('; ') })
+                }))
+            );
 
             reportParityProgress(FAMILIES.integrationEntityCoverage, comparison.measurements);
             expect(verdict.unexpected).toEqual([]);
@@ -994,6 +1314,7 @@ describeFamily(
             () => {
                 const { content } = realStack();
                 const comparison = clientPayloadComparison(content);
+                reportParityCases(FAMILIES.integrationClientPackets, import.meta.filename, comparison.cases);
                 reportParityProgress(FAMILIES.integrationClientPackets, comparison.measurements);
                 expect(comparison.gaps).toEqual([]);
             }

@@ -9,6 +9,7 @@ import { loadNetworkBiomes } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
+import { reportParityCases } from './trackerCases.ts';
 
 /**
  * Chunker's totality property for the four registries beyond blocks, items and entities:
@@ -21,10 +22,22 @@ import { REFERENCES } from './references.ts';
  * `loss:<registry>/<java id>` for a reviewed loss, and `unadvertised:<bedrock id>` for a biome
  * output the capture does not carry.
  */
-const compareRegistryMapping = (): { gaps: string[]; entries: Map<MappedRegistry, number> } => {
+interface RegistryMappingCase {
+    readonly registry: MappedRegistry;
+    readonly javaId: string;
+    readonly bedrockId?: string;
+    readonly gaps: string[];
+}
+
+const compareRegistryMapping = (): {
+    gaps: string[];
+    entries: Map<MappedRegistry, number>;
+    cases: RegistryMappingCase[];
+} => {
     const advertisedBiomes = new Set(loadNetworkBiomes().map((biome) => biome.name));
     const gaps = new Set<string>();
     const entries = new Map<MappedRegistry, number>();
+    const cases: RegistryMappingCase[] = [];
 
     for (const registry of MAPPED_REGISTRIES) {
         // A lossy entry may or may not keep a table row, so the walk is the union: Java's
@@ -34,27 +47,47 @@ const compareRegistryMapping = (): { gaps: string[]; entries: Map<MappedRegistry
         for (const javaId of new Set([...Object.keys(registriesTable[registry]), ...lossIds])) {
             entryCount += 1;
             const result = javaIdentifierToBedrock(registry, javaId);
+            const caseGaps: string[] = [];
             if (result.kind === 'unknown') {
-                gaps.add(`unknown:${registry}/${javaId}`);
+                caseGaps.push(`unknown:${registry}/${javaId}`);
+                gaps.add(caseGaps[0]!);
+                cases.push({ registry, javaId, gaps: caseGaps });
                 continue;
             }
             if (result.kind === 'loss') {
-                gaps.add(`loss:${registry}/${javaId}`);
+                caseGaps.push(`loss:${registry}/${javaId}`);
+                gaps.add(caseGaps[0]!);
+                cases.push({ registry, javaId, gaps: caseGaps });
                 continue;
             }
             if (registry === 'biome' && !advertisedBiomes.has(result.bedrock)) {
-                gaps.add(`unadvertised:${result.bedrock}`);
+                caseGaps.push(`unadvertised:${result.bedrock}`);
+                gaps.add(caseGaps[0]!);
             }
+            cases.push({ registry, javaId, bedrockId: result.bedrock, gaps: caseGaps });
         }
         entries.set(registry, entryCount);
     }
 
-    return { gaps: [...gaps], entries };
+    return { gaps: [...gaps], entries, cases };
 };
 
 describeFamily(FAMILIES.mappingRegistries, [REFERENCES.bedrockBiomeDefinitions], () => {
-    const { gaps, entries } = compareRegistryMapping();
+    const { gaps, entries, cases } = compareRegistryMapping();
     const verdict = checkAllowList(FAMILIES.mappingRegistries, gaps);
+    const unexpected = new Set(verdict.unexpected);
+
+    reportParityCases(
+        FAMILIES.mappingRegistries,
+        import.meta.filename,
+        cases.map(({ registry, javaId, bedrockId, gaps: caseGaps }) => ({
+            id: `${registry}/${javaId}`,
+            title: javaId,
+            context: bedrockId === undefined ? `${registry} registry mapping` : `${registry} registry → ${bedrockId}`,
+            status: caseGaps.some((gap) => unexpected.has(gap)) ? 'failed' : 'passed',
+            ...(caseGaps.length === 0 ? {} : { details: caseGaps.join(', ') })
+        }))
+    );
 
     it('maps every biome onto one the server advertises, and every other entry onto a Bedrock name', () => {
         expect(verdict.unexpected).toEqual([]);
