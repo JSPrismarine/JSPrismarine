@@ -31,6 +31,7 @@ import { findJavaTemplateSource } from './javaStructureTemplates';
 import { cacheRoot } from './javaWorldgenData';
 import { readRegistryBundle } from './registryBundle';
 import type { GenerationRegionPayload } from './GenerationRegion';
+import { SharedTerrainTileStore } from './SharedTerrainTileStore';
 
 /**
  * What a worker is handed once, to build its generator from.
@@ -49,6 +50,12 @@ export interface ChunkPipelineSetup {
     readonly structures?: boolean;
     /** Whether to load the standard Java jar templates. Defaults to true for whole chunks. */
     readonly javaTemplates?: boolean;
+    /** Shared immutable terrain tiles, when the parent opted into the bounded cache. */
+    readonly sharedTerrainTileStoreBuffer?: SharedArrayBuffer;
+    /** Registry identity computed once by the parent and included in tile keys. */
+    readonly sharedTerrainRegistryFingerprint?: string;
+    /** Optional counter for measuring actual terrain tile builds across workers. */
+    readonly terrainTileBuildStats?: SharedArrayBuffer;
 }
 
 /**
@@ -88,7 +95,11 @@ const isSetup = (value: unknown): value is ChunkPipelineSetup =>
     value !== null &&
     'registryBundle' in value &&
     value.registryBundle instanceof SharedArrayBuffer &&
-    (!('sharedClimateParameters' in value) || isSharedClimateParameters(value.sharedClimateParameters));
+    (!('sharedClimateParameters' in value) || isSharedClimateParameters(value.sharedClimateParameters)) &&
+    (!('sharedTerrainTileStoreBuffer' in value) || value.sharedTerrainTileStoreBuffer instanceof SharedArrayBuffer) &&
+    (!('sharedTerrainRegistryFingerprint' in value) || typeof value.sharedTerrainRegistryFingerprint === 'string') &&
+    (!('terrainTileBuildStats' in value) || value.terrainTileBuildStats instanceof SharedArrayBuffer) &&
+    'sharedTerrainTileStoreBuffer' in value === 'sharedTerrainRegistryFingerprint' in value;
 
 /** Whether a task's input is a chunk task's, checked at the same boundary. */
 const isChunkInput = (value: unknown): value is ChunkTaskInput =>
@@ -164,6 +175,13 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
             : { sharedClimateParameters: setup.sharedClimateParameters }),
         ...(setup.carve === undefined ? {} : { carve: setup.carve }),
         ...(setup.structures === undefined ? {} : { structures: setup.structures }),
+        ...(setup.sharedTerrainTileStoreBuffer === undefined
+            ? {}
+            : {
+                  sharedTerrainTileStore: new SharedTerrainTileStore(setup.sharedTerrainTileStoreBuffer),
+                  sharedTerrainRegistryFingerprint: setup.sharedTerrainRegistryFingerprint
+              }),
+        ...(setup.terrainTileBuildStats === undefined ? {} : { terrainTileBuildStats: setup.terrainTileBuildStats }),
         // Read off disk here rather than carried, because the templates are tens of megabytes
         // of structure NBT and a worker reads them once for the life of the process.
         ...(setup.javaTemplates === false

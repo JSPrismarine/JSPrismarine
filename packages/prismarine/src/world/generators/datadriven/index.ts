@@ -19,6 +19,11 @@ export {
     type RegionBlockEntity,
     type RegionEntitySpawn
 } from './GenerationRegion';
+export {
+    SharedTerrainTileStore,
+    type SharedTerrainTileStoreOptions,
+    type SharedTerrainTileStoreStats
+} from './SharedTerrainTileStore';
 export { createJavaBlockOracle } from './javaBlockOracle';
 export { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 export {

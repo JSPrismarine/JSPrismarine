@@ -14,6 +14,7 @@
 import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { threadId } from 'node:worker_threads';
 
 import type { GenerationPriority, StepRegion } from '@jsprismarine/chunkgen';
 import {
@@ -114,6 +115,7 @@ import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
 import { fingerprintWorldgenInput, TerrainProtoCache, terrainProtoCacheKey } from './TerrainProtoCache';
 import type { TerrainProtoCacheOptions } from './TerrainProtoCache';
+import type { SharedTerrainTileStore } from './SharedTerrainTileStore';
 import { shareRegistryBundle } from './registryBundle';
 import { shareClimateTables } from './sharedClimateTables';
 import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
@@ -185,6 +187,12 @@ export interface DataDrivenGeneratorOptions {
      * `worldgenFingerprint`; custom structure builders and worker pipelines cannot use this cache.
      */
     readonly persistentProtoCache?: TerrainProtoCacheOptions;
+    /** Opt-in bounded process-local storage for terrain tiles shared by worker threads. */
+    readonly sharedTerrainTileStore?: SharedTerrainTileStore;
+    /** @internal Registry fingerprint shared by the parent with its whole-chunk workers. */
+    readonly sharedTerrainRegistryFingerprint?: string;
+    /** @internal Optional counter for measuring terrain tile builds across workers. */
+    readonly terrainTileBuildStats?: SharedArrayBuffer;
     /**
      * How many chunks of one world are built at once.
      *
@@ -254,6 +262,12 @@ export interface ChunkPoolOptions {
     readonly regionChunks?: number;
     /** How far behind a region's owner falls before its work is given away. */
     readonly stealAfter?: number;
+    /** Optional benchmark buffer with one heap-used byte count per worker after its last task. */
+    readonly workerHeapStats?: SharedArrayBuffer;
+    /** First-task wall, thread CPU, and heap measurements for each worker. */
+    readonly workerStartupStats?: SharedArrayBuffer;
+    /** Optional directory where each worker writes one `.heapsnapshot` after its first task. */
+    readonly workerHeapSnapshotDirectory?: string;
     /** Told once, with the reason, when the chunks end up on this thread after all. */
     readonly onUnavailable?: (reason: string) => void;
 }
@@ -299,6 +313,8 @@ export interface TerrainPoolOptions {
     readonly worker?: string;
     /** Optional benchmark buffer with one heap-used byte count per worker after its last task. */
     readonly workerHeapStats?: SharedArrayBuffer;
+    /** First-task wall, thread CPU, and heap measurements for each worker. */
+    readonly workerStartupStats?: SharedArrayBuffer;
     /** Optional directory where each terrain worker writes a heap snapshot after its first task. */
     readonly workerHeapSnapshotDirectory?: string;
     /**
@@ -759,6 +775,14 @@ export class DataDrivenGenerator implements Generator {
     /** Effective registries and templates bound into terrain-cache keys. */
     private readonly terrainProtoCacheFingerprints:
         { readonly registries: string; readonly templates: string } | undefined;
+    /** Registry identity bound into shared terrain tile keys. */
+    private readonly terrainRegistryFingerprint: string | undefined;
+    /** Template identity bound into shared terrain tile keys. */
+    private readonly terrainTemplateFingerprint: string | undefined;
+    /** Optional cross-worker count of actual terrain tile builds. */
+    private readonly terrainTileBuildStats: Int32Array | undefined;
+    /** Optional shared terrain tiles; absent unless a caller opts in. */
+    private readonly sharedTerrainTileStore: SharedTerrainTileStore | undefined;
     /** Reuses a bounded number of chunk-local caches in this worker's serialized terrain tasks. */
     private readonly sampleContexts = new SampleContextPool();
     /**
@@ -811,6 +835,30 @@ export class DataDrivenGenerator implements Generator {
 
     public constructor(private readonly options: DataDrivenGeneratorOptions) {
         const registries = options.registries;
+        this.sharedTerrainTileStore = options.sharedTerrainTileStore;
+        if (options.sharedTerrainRegistryFingerprint !== undefined && this.sharedTerrainTileStore === undefined) {
+            throw new TypeError('A shared terrain registry fingerprint requires a shared terrain tile store');
+        }
+        this.terrainRegistryFingerprint =
+            options.sharedTerrainRegistryFingerprint ??
+            (options.persistentProtoCache !== undefined || this.sharedTerrainTileStore !== undefined
+                ? fingerprintWorldgenInput(registries)
+                : undefined);
+        const templateFingerprint =
+            options.persistentProtoCache === undefined && this.sharedTerrainTileStore === undefined
+                ? undefined
+                : (options.templates ?? EMPTY_TEMPLATES).worldgenFingerprint?.();
+        this.terrainTemplateFingerprint = templateFingerprint;
+        if (
+            options.terrainTileBuildStats !== undefined &&
+            options.terrainTileBuildStats.byteLength < Int32Array.BYTES_PER_ELEMENT
+        ) {
+            throw new RangeError('Terrain tile build stats need one Int32 counter');
+        }
+        this.terrainTileBuildStats =
+            options.terrainTileBuildStats === undefined
+                ? undefined
+                : new Int32Array(options.terrainTileBuildStats, 0, 1);
         if (options.persistentProtoCache !== undefined) {
             if (options.structureBuilders !== undefined) {
                 throw new TypeError('Persistent terrain caching does not support custom structure builders');
@@ -826,17 +874,38 @@ export class DataDrivenGenerator implements Generator {
                 throw new TypeError('Persistent terrain caching does not support custom worker pipelines');
             }
 
-            const templates = options.templates ?? EMPTY_TEMPLATES;
-            const templateFingerprint = templates.worldgenFingerprint?.();
             if (templateFingerprint === undefined) {
                 throw new TypeError('Persistent terrain caching requires a template source worldgenFingerprint');
             }
 
+            const registryFingerprint = this.terrainRegistryFingerprint;
+            if (registryFingerprint === undefined)
+                throw new Error('Persistent terrain cache has no registry fingerprint');
+
             this.terrainProtoCache = new TerrainProtoCache(options.persistentProtoCache);
             this.terrainProtoCacheFingerprints = {
-                registries: fingerprintWorldgenInput(registries),
+                registries: registryFingerprint,
                 templates: templateFingerprint
             };
+        }
+        if (this.sharedTerrainTileStore !== undefined) {
+            const isSharedTerrainWorker = options.sharedTerrainRegistryFingerprint !== undefined;
+            if (options.structureBuilders !== undefined) {
+                throw new TypeError('Shared terrain caching does not support custom structure builders');
+            }
+            if (templateFingerprint === undefined) {
+                throw new TypeError('Shared terrain caching requires a template source worldgenFingerprint');
+            }
+            // The worker attaches to the parent's store but does not create a nested chunk pool.
+            if (!isSharedTerrainWorker) {
+                const chunks = options.chunks;
+                if (chunks === undefined || options.stages !== undefined) {
+                    throw new TypeError('Shared terrain caching requires the whole-chunk worker pool');
+                }
+                if (chunks.pipeline !== defaultChunkPipeline() || chunks.worker !== undefined) {
+                    throw new TypeError('Shared terrain caching does not support custom worker pipelines');
+                }
+            }
         }
         this.sharedClimateParameters =
             options.sharedClimateParameters?.size === 0 ? undefined : options.sharedClimateParameters;
@@ -934,13 +1003,32 @@ export class DataDrivenGenerator implements Generator {
     private openChunkPool(registries: JavaWorldgenRegistries): ShardedGenerationPool | undefined {
         const chunks = this.options.chunks;
         if (chunks === undefined) return undefined;
+        const sharedTileSetup = (() => {
+            const store = this.sharedTerrainTileStore;
+            if (store === undefined) return {};
+            const registryFingerprint = this.terrainRegistryFingerprint;
+            if (registryFingerprint === undefined)
+                throw new Error('The shared terrain tile store has no registry fingerprint');
+            return {
+                sharedTerrainTileStoreBuffer: store.buffer,
+                sharedTerrainRegistryFingerprint: registryFingerprint
+            };
+        })();
 
         const where = {
             pipeline: chunks.pipeline,
             workers: chunks.workers,
             ...(chunks.worker === undefined ? {} : { worker: chunks.worker }),
             ...(chunks.regionChunks === undefined ? {} : { regionChunks: chunks.regionChunks }),
-            ...(chunks.stealAfter === undefined ? {} : { stealAfter: chunks.stealAfter })
+            ...(chunks.stealAfter === undefined ? {} : { stealAfter: chunks.stealAfter }),
+            ...(chunks.workerHeapStats === undefined ? {} : { workerHeapStats: chunks.workerHeapStats }),
+            ...(chunks.workerStartupStats === undefined ? {} : { workerStartupStats: chunks.workerStartupStats }),
+            ...(chunks.workerHeapSnapshotDirectory === undefined
+                ? {}
+                : { workerHeapSnapshotDirectory: chunks.workerHeapSnapshotDirectory }),
+            ...(this.sharedTerrainTileStore === undefined
+                ? {}
+                : { onWorkerExit: (owner: number) => this.sharedTerrainTileStore?.recoverOwner(owner) })
         };
         const reason = ShardedGenerationPool.unavailable(where);
         if (reason !== undefined) {
@@ -954,7 +1042,12 @@ export class DataDrivenGenerator implements Generator {
             setup: {
                 registryBundle: shareRegistryBundle(registries),
                 ...(sharedClimateParameters === undefined ? {} : { sharedClimateParameters }),
-                carve: this.options.carve !== false
+                carve: this.options.carve !== false,
+                structures: this.options.structures !== false,
+                ...sharedTileSetup,
+                ...(this.options.terrainTileBuildStats === undefined
+                    ? {}
+                    : { terrainTileBuildStats: this.options.terrainTileBuildStats })
             } satisfies ChunkPipelineSetup
         });
     }
@@ -974,6 +1067,7 @@ export class DataDrivenGenerator implements Generator {
             pipeline: terrain.pipeline,
             workers: terrain.workers,
             ...(terrain.workerHeapStats === undefined ? {} : { workerHeapStats: terrain.workerHeapStats }),
+            ...(terrain.workerStartupStats === undefined ? {} : { workerStartupStats: terrain.workerStartupStats }),
             ...(terrain.workerHeapSnapshotDirectory === undefined
                 ? {}
                 : { workerHeapSnapshotDirectory: terrain.workerHeapSnapshotDirectory }),
@@ -1599,19 +1693,38 @@ export class DataDrivenGenerator implements Generator {
         }
 
         if (tile === undefined) {
-            tile = await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline);
-            this.options.onTerrainTileBuild?.(
-                pipeline.dimension.id,
-                pipeline.randomState.seed,
-                chunk.chunkX,
-                chunk.chunkZ
-            );
+            const build = async (): Promise<GenerationRegion> => {
+                const generated = await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline);
+                this.recordTerrainTileBuild(chunk.chunkX, chunk.chunkZ, pipeline);
+                return generated;
+            };
+            const sharedStore = this.sharedTerrainTileStore;
+            if (sharedStore === undefined) {
+                tile = await build();
+            } else {
+                const sharedKey = this.sharedTerrainTileCacheKey(chunk.chunkX, chunk.chunkZ, pipeline);
+                const payload = await sharedStore.getOrCreate(sharedKey, threadId, async () =>
+                    (await build()).workerInput()
+                );
+                try {
+                    tile = this.adoptRegion(payload, pipeline);
+                } catch {
+                    sharedStore.invalidate(sharedKey);
+                    tile = await build();
+                }
+            }
             if (cache !== undefined && key !== undefined) await cache.write(key, tile.workerInput());
         }
 
         // Terrain is immutable across neighboring feature passes; derived patches remain local.
         chunk.recordTerrain(tile);
         return chunk;
+    }
+
+    /** Counts one actual terrain fill for benchmarks and optional workload observers. */
+    private recordTerrainTileBuild(cx: number, cz: number, pipeline: SeededPipeline): void {
+        this.options.onTerrainTileBuild?.(pipeline.dimension.id, pipeline.randomState.seed, cx, cz);
+        if (this.terrainTileBuildStats !== undefined) Atomics.add(this.terrainTileBuildStats, 0, 1);
     }
 
     private terrainCacheKey(cx: number, cz: number, pipeline: SeededPipeline): string {
@@ -1625,6 +1738,29 @@ export class DataDrivenGenerator implements Generator {
             settings: pipeline.settings,
             effectiveDataPackRegistryFingerprint: fingerprints.registries,
             templateFingerprint: fingerprints.templates,
+            carve: this.options.carve !== false,
+            structures: this.options.structures !== false,
+            chunk: { x: cx, z: cz }
+        });
+    }
+
+    /** Complete identity for a process-local tile, including the data that can change its fill. */
+    private sharedTerrainTileCacheKey(cx: number, cz: number, pipeline: SeededPipeline): string {
+        const registryFingerprint = this.terrainRegistryFingerprint;
+        if (registryFingerprint === undefined)
+            throw new Error('The shared terrain tile store has no registry fingerprint');
+        const templateFingerprint = this.terrainTemplateFingerprint;
+        if (templateFingerprint === undefined)
+            throw new Error('The shared terrain tile store has no template fingerprint');
+
+        return terrainProtoCacheKey({
+            generator: 'java-data-driven',
+            seed: pipeline.randomState.seed.toString(),
+            dimension: pipeline.dimension,
+            pipeline: pipeline.key,
+            settings: pipeline.settings,
+            effectiveDataPackRegistryFingerprint: registryFingerprint,
+            effectiveStructureTemplateFingerprint: templateFingerprint,
             carve: this.options.carve !== false,
             structures: this.options.structures !== false,
             chunk: { x: cx, z: cz }

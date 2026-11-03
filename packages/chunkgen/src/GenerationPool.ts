@@ -216,6 +216,8 @@ export interface GenerationPoolOptions {
      * completed task, so the snapshot contains the initialized pipeline and one task's result.
      */
     readonly workerHeapSnapshotDirectory?: string;
+    /** Called with a worker thread ID after that worker exits, including pool shutdown. */
+    readonly onWorkerExit?: (threadId: number) => void;
     /**
      * How many tasks may be with the workers at once, which defaults to one more than there are
      * workers.
@@ -560,6 +562,7 @@ const piscinaRunner: TaskRunnerFactory = (options) => {
  */
 export class GenerationPool {
     private readonly runner: TaskRunner;
+    private readonly observedWorkers = new WeakSet<Worker>();
     private closed = false;
 
     /** The backlog, one list per band, each in arrival order. */
@@ -762,14 +765,33 @@ export class GenerationPool {
     private dispatch(task: GenerationTask): Promise<GenerationResult> {
         this.running++;
         const result = this.runner.run(task);
+        this.observeWorkerExits();
         // `finally` on its own would make the caller wait for the release, and a rejection here
         // is the caller's to see rather than this one's to handle.
         void result.then(
-            () => this.release(),
-            () => this.release()
+            () => {
+                this.observeWorkerExits();
+                this.release();
+            },
+            () => {
+                this.observeWorkerExits();
+                this.release();
+            }
         );
 
         return result;
+    }
+
+    /** Attaches cleanup to every worker started by piscina or the embedded runner so far. */
+    private observeWorkerExits(): void {
+        if (this.options.onWorkerExit === undefined) return;
+        for (const candidate of this.runner.threads) {
+            if (!(candidate instanceof Worker) || this.observedWorkers.has(candidate)) continue;
+            const threadId = candidate.threadId;
+            if (threadId < 0) continue;
+            this.observedWorkers.add(candidate);
+            candidate.once('exit', () => this.options.onWorkerExit?.(threadId));
+        }
     }
 
     /** Lets the highest-priority waiting task through, now that a slot has come free. */

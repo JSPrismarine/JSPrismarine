@@ -114,3 +114,31 @@ structure builders and worker pipelines are not supported with persistent terrai
 `pnpm --filter @jsprismarine/prismarine run bench:terrain-cache` to compare an 11 by 11 preload and
 a 3 by 3 player return after six distant chunk requests. The benchmark reports cache storage,
 record bytes written, write amplification, and time saved against regeneration.
+
+## Shared terrain tiles
+
+Worker-based whole-chunk generation can also share a bounded in-memory store for immutable terrain
+tiles. It is opt-in and lasts only as long as the generator's process. When every slot is occupied,
+or a tile is larger than `maxTileBytes`, the worker builds that tile locally. A worker exit releases
+any unpublished claims from that worker; completed tiles remain available to the other workers.
+
+```ts
+import { DataDrivenGenerator, defaultChunkPipeline } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import { SharedTerrainTileStore } from '@jsprismarine/prismarine/world/generators/datadriven/SharedTerrainTileStore';
+
+const terrainTiles = new SharedTerrainTileStore({
+    maxBytes: 32 * 1024 * 1024,
+    maxTileBytes: 512 * 1024
+});
+const generator = new DataDrivenGenerator({
+    registries,
+    sharedTerrainTileStore: terrainTiles,
+    chunks: { pipeline: defaultChunkPipeline(), workers: 4 }
+});
+```
+
+The complete seed, dimension, generator settings, effective registry and template fingerprints,
+generation flags, and chunk coordinates identify each tile. Custom template sources need a stable
+`worldgenFingerprint`. Run `pnpm --filter @jsprismarine/prismarine run bench:chunks` with the
+`chunks` arm and the `shared` tile-store mode to compare throughput and memory with worker-local
+generation.

@@ -7,6 +7,7 @@ import {
     defaultChunkPipeline,
     defaultTerrainPipeline
 } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
+import { SharedTerrainTileStore } from '@jsprismarine/prismarine/world/generators/datadriven/SharedTerrainTileStore';
 import { chunkWorkerCount } from '@jsprismarine/prismarine/world/generators/chunkConcurrency';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -185,11 +186,15 @@ const readingsFor = async (subject: (typeof SUBJECTS)[number]): Promise<Readings
 };
 
 /** Builds the structure-bearing chunks through the whole-chunk worker pool. */
-const shardPoolDigestsFor = async (workers: number): Promise<ReadonlyMap<string, string>> => {
+const shardPoolDigestsFor = async (
+    workers: number,
+    sharedTerrainTileStore?: SharedTerrainTileStore
+): Promise<ReadonlyMap<string, string>> => {
     let unavailable: string | undefined;
     const generator = new DataDrivenGenerator({
         registries: environment!.registries,
         templates: environment!.templates,
+        ...(sharedTerrainTileStore === undefined ? {} : { sharedTerrainTileStore }),
         chunks: {
             pipeline: defaultChunkPipeline(),
             workers,
@@ -313,10 +318,26 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
 
     describe('whole-chunk shard pools', () => {
         const digests = new Map<number, ReadonlyMap<string, string>>();
+        const sharedDigests = new Map<
+            number,
+            { readonly cold: ReadonlyMap<string, string>; readonly warm: ReadonlyMap<string, string> }
+        >();
+        const sharedWarmHits = new Map<number, number>();
 
         beforeAll(async () => {
             for (const workers of SHARD_POOL_WORKERS) {
                 digests.set(workers, await shardPoolDigestsFor(workers));
+            }
+            for (const workers of SHARD_POOL_WORKERS) {
+                const sharedTerrainTileStore = new SharedTerrainTileStore({
+                    maxBytes: 64 * 1024 * 1024,
+                    maxTileBytes: 512 * 1024
+                });
+                const cold = await shardPoolDigestsFor(workers, sharedTerrainTileStore);
+                const hitsAfterColdRun = sharedTerrainTileStore.getStats().hits;
+                const warm = await shardPoolDigestsFor(workers, sharedTerrainTileStore);
+                sharedDigests.set(workers, { cold, warm });
+                sharedWarmHits.set(workers, sharedTerrainTileStore.getStats().hits - hitsAfterColdRun);
             }
         }, DETERMINISM_TIMEOUT);
 
@@ -344,6 +365,41 @@ describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFER
                 expect(found.get(subject.id), subject.id).toBe(baseline.get(subject.id));
             }
         });
+
+        it(
+            'keeps cold and warm shared-terrain digests equal to worker-local generation',
+            () => {
+                const cases = SHARD_POOL_WORKERS.flatMap((workers) => {
+                    const shared = sharedDigests.get(workers);
+                    return SHARD_POOL_SUBJECTS.flatMap((subject) =>
+                        (['cold', 'warm'] as const).map((state) =>
+                            parityCase(
+                                `shared-terrain:${state}:${workers}:${subject.id}`,
+                                subject.id,
+                                `${state} shared terrain tiles with ${workers} worker${workers === 1 ? '' : 's'}`,
+                                shared?.[state].get(subject.id) === digests.get(workers)?.get(subject.id)
+                            )
+                        )
+                    );
+                });
+                reportParityCases(FAMILIES.worldgenDeterminism, import.meta.filename, cases);
+
+                for (const workers of SHARD_POOL_WORKERS) {
+                    for (const subject of SHARD_POOL_SUBJECTS) {
+                        const shared = sharedDigests.get(workers);
+                        const localDigest = digests.get(workers)?.get(subject.id);
+                        expect(shared?.cold.get(subject.id), `cold · ${workers} workers · ${subject.id}`).toBe(
+                            localDigest
+                        );
+                        expect(shared?.warm.get(subject.id), `warm · ${workers} workers · ${subject.id}`).toBe(
+                            localDigest
+                        );
+                    }
+                    expect(sharedWarmHits.get(workers), `${workers} workers warm shared-cache hits`).toBeGreaterThan(0);
+                }
+            },
+            DETERMINISM_TIMEOUT
+        );
     });
 
     it(

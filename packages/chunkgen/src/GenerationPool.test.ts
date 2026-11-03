@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { GenerationPool, GenerationPoolClosedError, workerExecArgv } from './GenerationPool';
 
 const FAKE_PIPELINE = fileURLToPath(new URL('../test/fakePipeline.mjs', import.meta.url));
+const EXIT_PIPELINE = fileURLToPath(new URL('../test/exitPipeline.mjs', import.meta.url));
 
 /** What the fixture answers with. */
 interface FakePayload {
@@ -101,6 +102,24 @@ describe('GenerationPool', () => {
         expect(Atomics.load(stats, 1)).toBeGreaterThan(0n);
         expect(Atomics.load(stats, 2)).toBeGreaterThan(0n);
         expect(Atomics.load(stats, 3)).toBeGreaterThan(0n);
+    }, 60_000);
+
+    it('reports the worker thread ID when a task exits its worker unexpectedly', async () => {
+        let notifyExit!: (threadId: number) => void;
+        const exited = new Promise<number>((resolve) => {
+            notifyExit = resolve;
+        });
+        pool = new GenerationPool({
+            pipeline: EXIT_PIPELINE,
+            workers: 1,
+            onWorkerExit: notifyExit
+        });
+
+        await expect(
+            pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0, input: 'exit' })
+        ).rejects.toThrow();
+
+        await expect(exited).resolves.toBeGreaterThan(0);
     }, 60_000);
 
     it('writes one worker heap snapshot after its first task when a directory is requested', async () => {
