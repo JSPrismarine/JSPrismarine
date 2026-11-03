@@ -71,6 +71,7 @@
         "bench:inbound-latency": "node benchmarks/run.mjs benchmarks/inboundLatency.bench.ts",
         "bench:session-outbound": "node benchmarks/run.mjs benchmarks/sessionOutbound.bench.ts",
         "bench:network": "node benchmarks/run.mjs benchmarks/blockProximity.bench.ts",
+        "bench:movement-idle": "node benchmarks/run.mjs benchmarks/idleMovement.bench.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",
         "bench:world-keys": "node benchmarks/run.mjs benchmarks/worldMapKeys.bench.ts",

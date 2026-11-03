@@ -41,6 +41,7 @@ export const applyClientMovement = async (
 ): Promise<void> => {
     const player = session.getPlayer();
 
+    // Keep the per-input plugin event cadence stable; unchanged poses only skip state and network work.
     const event = new PlayerMoveEvent(player, movement.position, movement.mode ?? PositionMode.Normal);
     server.post(['playerMove', event]);
     if (event.isCanceled()) {
@@ -49,18 +50,33 @@ export const applyClientMovement = async (
         return;
     }
 
+    // Object.is distinguishes signed zero, which has a different float encoding on the wire.
+    const previous = player.getPosition();
+    const positionChanged =
+        !Object.is(previous.getX(), movement.position.getX()) ||
+        !Object.is(previous.getY(), movement.position.getY()) ||
+        !Object.is(previous.getZ(), movement.position.getZ());
+    const rotationChanged =
+        !Object.is(player.pitch, movement.pitch) ||
+        !Object.is(player.yaw, movement.yaw) ||
+        !Object.is(player.headYaw, movement.headYaw);
     const groundChanged = player.isOnGround() !== movement.onGround;
-    await player.setPosition(
-        {
-            position: movement.position,
-            pitch: movement.pitch,
-            yaw: movement.yaw,
-            headYaw: movement.headYaw
-        },
-        false
-    );
 
-    await player.setOnGround(movement.onGround);
+    if (!positionChanged && !rotationChanged && !groundChanged) return;
+
+    if (positionChanged || rotationChanged) {
+        await player.setPosition(
+            {
+                position: movement.position,
+                pitch: movement.pitch,
+                yaw: movement.yaw,
+                headYaw: movement.headYaw
+            },
+            false
+        );
+    }
+
+    if (groundChanged) await player.setOnGround(movement.onGround);
 
     if (groundChanged) {
         // Position queues a snapshot before landing logic updates the on-ground bit. Replacing

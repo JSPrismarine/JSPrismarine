@@ -6,6 +6,8 @@ import type { JspServer } from './jsp-server.mts';
 export interface ScenarioContext {
     server: JspServer;
     client: CinnabarClient;
+    /** Starts another isolated cinnabar client connected to this suite's server. */
+    createClient: (displayName: string) => Promise<CinnabarClient>;
     /** The display name the client joined with, as the server sees it. */
     playerName: string;
     /** Directory for this scenario's screenshots and recordings. */

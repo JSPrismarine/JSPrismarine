@@ -39,6 +39,7 @@ import { summonEntity } from './scenarios/summon-entity.mts';
 import { leverLamp } from './scenarios/lever-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
+import { movementFanout } from './scenarios/movement-fanout.mts';
 import { movementRotation } from './scenarios/movement-rotation.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -74,6 +75,7 @@ const suites: ScenarioSuite[] = [
             damage,
             lookDirection,
             gait,
+            movementFanout,
             movementRotation,
             chat,
             miningDrops,
@@ -252,17 +254,18 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                 ? { naturalCowSpawning: true }
                 : {})
         });
-        console.log(`${suite.name}: server listening on 127.0.0.1:${server.port}`);
+        const suiteServer = server;
+        console.log(`${suite.name}: server listening on 127.0.0.1:${suiteServer.port}`);
         client = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
         await client.launch({
-            userRoot: path.join(server.dir, 'client-user-root'),
+            userRoot: path.join(suiteServer.dir, 'client-user-root'),
             clientBinary: cinnabar.clientBinary,
             displayName: playerName,
             muteAudio: !values.record
         });
 
-        const joined = server.waitForLine(new RegExp(`${playerName} joined the game`), 120_000);
-        await client.connect(server.port);
+        const joined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), 120_000);
+        await client.connect(suiteServer.port);
         await client.waitFor('in_world', 120_000);
         await client.waitForScreenAbsent('Loading', 120_000);
         await joined;
@@ -271,6 +274,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
         for (const [scenarioIndex, scenario] of suite.scenarios.entries()) {
             const scenarioArtifacts = path.join(artifacts, scenario.name);
             fs.mkdirSync(scenarioArtifacts, { recursive: true });
+            const scenarioClients: CinnabarClient[] = [];
             let recordingStarted = false;
             try {
                 if (values.record) {
@@ -278,8 +282,32 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     recordingStarted = true;
                 }
                 await scenario.run({
-                    server,
+                    server: suiteServer,
                     client,
+                    createClient: async (displayName) => {
+                        if (!/^[a-zA-Z0-9_-]{1,16}$/.test(displayName)) {
+                            throw new Error(
+                                'additional client names must be 1 to 16 letters, numbers, underscores, or hyphens'
+                            );
+                        }
+                        const additional = await CinnabarClient.start(cinnabar.checkout, cinnabar.binaries.mcp);
+                        scenarioClients.push(additional);
+                        await additional.launch({
+                            userRoot: path.join(suiteServer.dir, `client-user-root-${displayName}`),
+                            clientBinary: cinnabar.clientBinary,
+                            displayName,
+                            muteAudio: true
+                        });
+                        const additionalJoined = suiteServer.waitForLine(
+                            new RegExp(`${displayName} joined the game`),
+                            120_000
+                        );
+                        await additional.connect(suiteServer.port);
+                        await additional.waitFor('in_world', 120_000);
+                        await additional.waitForScreenAbsent('Loading', 120_000);
+                        await additionalJoined;
+                        return additional;
+                    },
                     playerName,
                     artifacts: scenarioArtifacts,
                     log: (message) => console.log(`${scenario.name}: ${message}`)
@@ -296,6 +324,11 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                 if (recordingStarted) {
                     const recording = await client.recordStop().catch(() => undefined);
                     if (recording) console.log(`${scenario.name}: recording ${String(recording.path)}`);
+                }
+                for (const additional of scenarioClients.reverse()) {
+                    await additional.close().catch((error: unknown) => {
+                        console.warn(`${scenario.name}: additional client cleanup failed: ${String(error)}`);
+                    });
                 }
             }
 

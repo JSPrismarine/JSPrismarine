@@ -12,7 +12,7 @@ import type PlayerSession from '../PlayerSession';
 import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
 
 import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
-import MovePlayerHandler from './MovePlayerHandler';
+import MovePlayerHandler, { applyClientMovement } from './MovePlayerHandler';
 
 /**
  * At protocol 2193 `MovePlayerPacket` is client-bound. The bot harness still sends it, so
@@ -62,6 +62,61 @@ const move = (configure: (data: MovePlayer) => void = () => {}): MovePlayerPacke
 };
 
 describe('MovePlayerHandler', () => {
+    it('keeps posting movement events but queues movement only for changed poses', async () => {
+        const world = stub<World>({ getPlayers: () => [], broadcastMove: vi.fn(async () => {}) });
+        const pose = {
+            position: new Position(0, 64, 0, world),
+            pitch: 0,
+            yaw: 0,
+            headYaw: 0,
+            onGround: false
+        };
+        const player = stub<Player>({
+            getName: () => 'tester',
+            getRuntimeId: () => 7n,
+            getPosition: () => pose.position,
+            pitch: pose.pitch,
+            yaw: pose.yaw,
+            headYaw: pose.headYaw,
+            isOnGround: () => pose.onGround,
+            getWorld: () => world,
+            setPosition: vi.fn(async ({ position, pitch, yaw, headYaw }) => {
+                pose.position = new Position(position.getX(), position.getY(), position.getZ(), world);
+                pose.pitch = pitch;
+                pose.yaw = yaw;
+                pose.headYaw = headYaw;
+                await world.broadcastMove(player);
+            }),
+            setOnGround: vi.fn(async (onGround: boolean) => void (pose.onGround = onGround))
+        });
+        Object.defineProperties(player, {
+            pitch: { get: () => pose.pitch },
+            yaw: { get: () => pose.yaw },
+            headYaw: { get: () => pose.headYaw }
+        });
+        const session = stub<PlayerSession>({ getPlayer: () => player });
+        let events = 0;
+        const server = stub<Server>({ post: () => ++events });
+        const movement = {
+            position: new Vector3(3, 70, -4),
+            pitch: 5,
+            yaw: 90,
+            headYaw: 85,
+            onGround: true
+        };
+
+        await applyClientMovement(server, session, movement);
+        await applyClientMovement(server, session, movement);
+        await applyClientMovement(server, session, { ...movement, yaw: 91 });
+        await applyClientMovement(server, session, { ...movement, yaw: 91, onGround: false });
+
+        expect(events).toBe(4);
+        expect(player.setPosition).toHaveBeenCalledTimes(2);
+        expect(player.setOnGround).toHaveBeenCalledTimes(2);
+        // Position plus landing queues twice; the tick replicator coalesces both into the final pose.
+        expect(world.broadcastMove).toHaveBeenCalledTimes(4);
+    });
+
     it('moves the player for a normal move of their own runtime id', async () => {
         const { dropped, player, session, server } = fake();
 

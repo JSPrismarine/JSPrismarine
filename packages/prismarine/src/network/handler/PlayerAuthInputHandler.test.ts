@@ -56,6 +56,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
             return true;
         }
     });
+    let groundState = false;
     const player = stub<Player>({
         isOnline: () => true,
         gamemode: Gametype.SURVIVAL,
@@ -65,8 +66,11 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false }
             async ({ position }: { position: Vector3 }) =>
                 void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
         ),
-        isOnGround: () => false,
-        setOnGround: vi.fn(async (onGround: boolean) => void calls.push(`ground ${onGround}`)),
+        isOnGround: () => groundState,
+        setOnGround: vi.fn(async (onGround: boolean) => {
+            groundState = onGround;
+            calls.push(`ground ${onGround}`);
+        }),
         addJumpExhaustion: () => void calls.push('jump'),
         setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`),
         setSneaking: async (sneaking) => void calls.push(`sneak ${sneaking}`),
