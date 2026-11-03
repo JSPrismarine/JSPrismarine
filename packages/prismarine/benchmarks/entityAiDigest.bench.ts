@@ -9,7 +9,11 @@
  * mob a goal picked would show up here as a different hash.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
- *        packages/prismarine/benchmarks/entityAiDigest.bench.ts [scenario names...]
+ *        packages/prismarine/benchmarks/entityAiDigest.bench.ts [scenario names...] [--verify-replay]
+ *
+ * `--verify-replay` runs each selected in-process scenario a second time and
+ * compares every tick's entity state and recorded effects. This checks the
+ * existing synthetic runtime workload; it does not capture live server packets.
  */
 import { createHash } from 'node:crypto';
 
@@ -30,6 +34,7 @@ import type { ServerContent } from '../src/content/ServerContent';
 import { entityContentGroups } from '../src/entity/contentAdapter';
 import { EntityRuntime } from '../src/entity/data/EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from '../src/entity/data/host';
+import { firstDivergentTick } from './entityAiReplay';
 
 const FLOOR_Y = 63;
 
@@ -204,10 +209,14 @@ const bits = (value: number): string => {
     return view.getBigUint64(0).toString(16);
 };
 
-const digestOf = (scenario: Scenario, content: ServerContent | undefined): string => {
+const digestOf = (
+    scenario: Scenario,
+    content: ServerContent | undefined
+): { readonly outputDigest: string; readonly tickDigests: readonly string[] } => {
     const hash = createHash('sha256');
     const sounds: string[] = [];
     const drops: string[] = [];
+    const tickDigests: string[] = [];
     const random = seededRandom(scenario.seed);
     const world = digestWorld(random, sounds);
     const players: ContentEntity[] = Array.from({ length: scenario.players }, (_unused, index) => ({
@@ -241,6 +250,8 @@ const digestOf = (scenario: Scenario, content: ServerContent | undefined): strin
         runtime.spawn(scenario.mobs[index % scenario.mobs.length]!, at);
     }
 
+    let recordedSounds = 0;
+    let recordedDrops = 0;
     for (let tick = 0; tick < scenario.ticks; tick += 1) {
         for (const [index, player] of players.entries()) {
             const angle = tick / 40 + (index * 2 * Math.PI) / Math.max(1, scenario.players);
@@ -252,8 +263,11 @@ const digestOf = (scenario: Scenario, content: ServerContent | undefined): strin
         }
         runtime.tick(tick);
 
+        // Keep the old whole-run digest and also hash each tick separately, so a replay check
+        // can name the first state where the same seeded workload diverged.
+        const tickHash = createHash('sha256');
         for (const entity of runtime.all()) {
-            hash.update(
+            const state =
                 [
                     tick,
                     entity.id,
@@ -270,19 +284,47 @@ const digestOf = (scenario: Scenario, content: ServerContent | undefined): strin
                     entity.body.loveTicks,
                     entity.instance.goals.runningGoals().join(','),
                     entity.instance.attributes.get('health')?.current ?? '-'
-                ].join('|') + '\n'
-            );
+                ].join('|') + '\n';
+            hash.update(state);
+            tickHash.update(state);
         }
+
+        tickHash.update(`sounds ${sounds.slice(recordedSounds).join(',')}\n`);
+        tickHash.update(`drops ${drops.slice(recordedDrops).join(',')}\n`);
+        recordedSounds = sounds.length;
+        recordedDrops = drops.length;
+        tickDigests.push(tickHash.digest('hex'));
     }
 
     hash.update(`sounds ${sounds.join(',')}\n`);
     hash.update(`drops ${drops.join(',')}\n`);
-    return hash.digest('hex');
+    return { outputDigest: hash.digest('hex'), tickDigests };
 };
 
-const only = process.argv.slice(2);
-for (const scenario of SCENARIOS.filter((entry) => only.length === 0 || only.includes(entry.name))) {
+const args = process.argv.slice(2);
+const verifyReplay = args.includes('--verify-replay');
+const only = args.filter((argument) => argument !== '--verify-replay');
+const selected = SCENARIOS.filter((entry) => only.length === 0 || only.includes(entry.name));
+
+for (const scenario of selected) {
     const started = performance.now();
-    const digest = digestOf(scenario, undefined);
-    console.log(`${scenario.name.padEnd(10)} ${digest}  ${((performance.now() - started) / 1000).toFixed(1)}s`);
+    const original = digestOf(scenario, undefined);
+    let replaySummary = '';
+
+    if (verifyReplay) {
+        const replay = digestOf(scenario, undefined);
+        const divergentTick = firstDivergentTick(original.tickDigests, replay.tickDigests);
+
+        if (divergentTick !== undefined) {
+            throw new Error(`${scenario.name} replay diverged at tick ${divergentTick}`);
+        }
+        if (original.outputDigest !== replay.outputDigest) {
+            throw new Error(`${scenario.name} replay changed the final output digest without a tick divergence`);
+        }
+        replaySummary = `  replay matched ${original.tickDigests.length} tick digests`;
+    }
+
+    console.log(
+        `${scenario.name.padEnd(10)} ${original.outputDigest}  ${((performance.now() - started) / 1000).toFixed(1)}s${replaySummary}`
+    );
 }
