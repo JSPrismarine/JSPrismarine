@@ -208,6 +208,46 @@ describe('climate lookups at exact ties', () => {
 });
 
 describe('the flattened climate search tree', () => {
+    it('keeps the stable tree order when climate centers repeat', () => {
+        // Repeated centers and equal comparator keys exercise the stable tie order Java's tree uses.
+        const entries: ClimateEntry<number>[] = Array.from({ length: 47 }, (_, index) => {
+            const center = (axis: number): number => ((index * (axis + 3) + axis * 5) % 9) - 4;
+            const span = (axis: number) => {
+                const value = center(axis);
+                const radius = (index + axis * 2) % 3;
+                return { min: value - radius, max: value + radius };
+            };
+            return {
+                value: index,
+                point: {
+                    temperature: span(0),
+                    humidity: span(1),
+                    continentalness: span(2),
+                    erosion: span(3),
+                    depth: span(4),
+                    weirdness: span(5),
+                    offset: center(6)
+                }
+            };
+        });
+        const parameters = new ClimateParameterList(entries);
+        const targets = Array.from({ length: 21 }, (_, index) => {
+            const coordinate = (axis: number): number => ((index * (axis + 1) + axis * 4) % 11) - 5;
+            return {
+                temperature: coordinate(0),
+                humidity: coordinate(1),
+                continentalness: coordinate(2),
+                erosion: coordinate(3),
+                depth: coordinate(4),
+                weirdness: coordinate(5)
+            };
+        });
+
+        expect(targets.map((target) => parameters.find(target))).toEqual([
+            4, 7, 0, 7, 4, 0, 4, 4, 5, 8, 37, 4, 7, 0, 7, 4, 0, 4, 4, 5, 8
+        ]);
+    });
+
     it('matches a prior-result-seeded brute-force search for one million random targets', () => {
         const overworld = biomeVectors.parameterLists.find((list) => list.name === 'minecraft:overworld');
         if (overworld === undefined) throw new Error('the vector file has no overworld parameter list');

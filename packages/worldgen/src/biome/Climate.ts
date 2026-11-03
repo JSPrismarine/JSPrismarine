@@ -141,8 +141,17 @@ export const climateFitness = (point: ClimateParameterPoint, target: ClimateTarg
 
 abstract class TreeNode<T> {
     public readonly value?: T;
+    /** Centers are reused by every sort in this build; querying them in comparators repeats work. */
+    public readonly axisCenters: Float64Array;
 
-    public constructor(public readonly parameterSpace: readonly ClimateParameter[]) {}
+    public constructor(public readonly parameterSpace: readonly ClimateParameter[]) {
+        this.axisCenters = new Float64Array(CLIMATE_PARAMETER_COUNT);
+        for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
+            const parameter = parameterSpace[axis];
+            if (parameter === undefined) throw new Error(`Climate tree node is missing axis ${axis}`);
+            this.axisCenters[axis] = Math.trunc((parameter.min + parameter.max) / 2);
+        }
+    }
 }
 
 class TreeLeaf<T> extends TreeNode<T> {
@@ -261,18 +270,14 @@ const buildParameterSpace = <T>(children: readonly TreeNode<T>[]): ClimateParame
     return bounds as ClimateParameter[];
 };
 
-/** The center of one axis of a node's box, truncated the way Java's `long` division is. */
-const axisCenter = (node: TreeNode<unknown>, axis: number): number => {
-    const parameter = node.parameterSpace[axis] as ClimateParameter;
-    return Math.trunc((parameter.min + parameter.max) / 2);
-};
-
 const sortByAxis = <T>(nodes: TreeNode<T>[], axis: number, absolute: boolean): void => {
     nodes.sort((left, right) => {
         for (let step = 0; step < CLIMATE_PARAMETER_COUNT; step++) {
             const current = (axis + step) % CLIMATE_PARAMETER_COUNT;
-            const a = absolute ? Math.abs(axisCenter(left, current)) : axisCenter(left, current);
-            const b = absolute ? Math.abs(axisCenter(right, current)) : axisCenter(right, current);
+            const leftCenter = left.axisCenters[current] ?? 0;
+            const rightCenter = right.axisCenters[current] ?? 0;
+            const a = absolute ? Math.abs(leftCenter) : leftCenter;
+            const b = absolute ? Math.abs(rightCenter) : rightCenter;
             if (a !== b) return a < b ? -1 : 1;
         }
         return 0;
@@ -310,8 +315,8 @@ const buildTree = <T>(children: TreeNode<T>[], childrenPerNode: number): TreeNod
             let leftTotal = 0;
             let rightTotal = 0;
             for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
-                leftTotal += Math.abs(axisCenter(left, axis));
-                rightTotal += Math.abs(axisCenter(right, axis));
+                leftTotal += Math.abs(left.axisCenters[axis] ?? 0);
+                rightTotal += Math.abs(right.axisCenters[axis] ?? 0);
             }
             return leftTotal - rightTotal;
         });
