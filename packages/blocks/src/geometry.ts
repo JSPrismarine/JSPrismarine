@@ -15,7 +15,7 @@
  * it to emit `minecraft:collision_box` for blocks that never collide, fixed
  * partial shapes, and state-varying shapes.
  */
-import table from './tables/blockGeometry.json';
+import table from './tables/blockGeometry';
 
 /** What a liquid reaching a block does, as Bedrock's `liquidReactionOnTouch` names it. */
 export type LiquidReaction =

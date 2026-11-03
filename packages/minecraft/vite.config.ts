@@ -5,12 +5,20 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, mergeConfig } from 'vite';
 import base from '../../vite.config.ts';
 import pkg from './package.json' with { type: 'json' };
+import { preserveJsonAssets } from '../../scripts/preserve-json-assets.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const input = Object.fromEntries(
     globSync('./**/src/**/*.{ts*,json}', {
-        ignore: ['**/*.d.ts', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/*.test.*']
+        ignore: [
+            '**/*.d.ts',
+            '**/coverage/**',
+            '**/dist/**',
+            '**/node_modules/**',
+            '**/*.test.*',
+            '**/src/generated/v2193/recipes.json'
+        ]
     }).map((file) => {
         const filenameWithoutExt = file.slice(0, file.length - extname(file).length);
 
@@ -35,6 +43,7 @@ export default mergeConfig(
             rollupOptions: {
                 external: [...Object.keys(pkg.dependencies ?? {})]
             }
-        }
+        },
+        plugins: [preserveJsonAssets(__dirname, ['generated/v2193/recipes.json'])]
     })
 );

@@ -2,6 +2,7 @@ import { blockSchemas } from '@jsprismarine/minecraft/generated/block-schemas';
 import { reportProgress } from '../../../.test/reportProgress';
 import { describe, expect, it } from 'vitest';
 
+import table from './tables/blockGeometry.json' with { type: 'json' };
 import {
     BEDROCK_GEOMETRY_STATE_COUNT,
     FULL_BLOCK,
@@ -12,6 +13,12 @@ import {
 } from './geometry';
 
 describe('bedrockCollisionTopOf', () => {
+    it('reads every table row from the generated JSON asset', () => {
+        for (const [identifier, row] of Object.entries(table.blocks)) {
+            expect(bedrockCollisionTopOf(identifier)).toBe(row.top);
+        }
+    });
+
     it('covers every block the palette declares', () => {
         const missing = Object.keys(blockSchemas.blocks).filter(
             (identifier) => bedrockCollisionTopOf(identifier) === undefined

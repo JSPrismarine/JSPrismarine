@@ -7,6 +7,7 @@ import { cookingFuel, food, maxDamage, tool } from './components/defaults';
 import { itemName, maxStackSize } from './components/universal';
 import { loadItemTypes, vanillaItemDefinitions } from './itemTypes';
 import { itemTypesTable } from './tables';
+import itemTypesJson from './tables/itemTypes.json' with { type: 'json' };
 
 const { registry, types, diagnostics } = loadItemTypes({ strict: true });
 
@@ -22,6 +23,10 @@ const bedrockItem = (identifier: string, components: Record<string, unknown>): D
 });
 
 describe('the generated item type table', () => {
+    it('matches the generated JSON asset', () => {
+        expect(itemTypesTable).toEqual(itemTypesJson);
+    });
+
     it('is pinned to the versions the plan names', () => {
         expect(itemTypesTable.javaVersion).toBe('26.3');
         expect(itemTypesTable.bedrockVersion).toBe('1.26.51.1');

@@ -3,7 +3,7 @@
  * shape the generator guarantees. Everything else in the package reads the
  * table through this module, so the parsed-JSON boundary is cast exactly once.
  */
-import itemTypesJson from './tables/itemTypes.json';
+import itemTypesJson from './tables/itemTypes';
 
 /** One Bedrock item identifier's row of the item type table. */
 export interface ItemTableRow {

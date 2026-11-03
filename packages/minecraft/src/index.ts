@@ -13,7 +13,7 @@ import { Generator } from './Generator';
 import { blockSchemas } from './generated/block-schemas';
 // The default protocol version's recipes. JSON cannot be re-exported the way the generated
 // enums are, so this names the version directly; it moves when `defaultProtocolVersion` does.
-import vanillaRecipes from './generated/v2193/recipes.json';
+import vanillaRecipes from './generated/v2193/recipes';
 import { ItemStackRequestActionType } from './generated/ItemStackRequestActionType';
 import { AbilityLayerFlag } from './generated/AbilityLayerFlag';
 import { ContainerUiId } from './generated/ContainerUiId';
