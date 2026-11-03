@@ -32,11 +32,12 @@ const checks = packageRows.flatMap(({ directory, manifest }) => {
         const selector = key === './*' ? './index' : key;
         const specifier = key === '.' ? manifest.name : `${manifest.name}/${selector.slice(2)}`;
         const wildcard = selector.slice(2);
+        // Node substitutes the captured export subpath at every `*` in the target pattern.
         candidates.push({
             specifier,
             directory,
-            source: path.resolve(directory, sourceTarget.replace('*', wildcard)),
-            dist: path.resolve(directory, distTarget.replace('*', wildcard))
+            source: path.resolve(directory, sourceTarget.replaceAll('*', wildcard)),
+            dist: path.resolve(directory, distTarget.replaceAll('*', wildcard))
         });
     }
     return candidates;
