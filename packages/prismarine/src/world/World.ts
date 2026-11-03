@@ -2854,9 +2854,9 @@ export class World implements Service {
         const chunkIndex = this.entityChunkIndices.get(runtimeIdKey);
         if (chunkIndex !== undefined) {
             this.chunks.get(chunkIndex)?.markEntitiesChanged();
-            const runtimeIds = this.entityRuntimeIdsByChunk.get(chunkIndex);
+            const runtimeIds = this.runtimeIdsByChunk().get(chunkIndex);
             runtimeIds?.delete(runtimeIdKey);
-            if (runtimeIds?.size === 0) this.entityRuntimeIdsByChunk.delete(chunkIndex);
+            if (runtimeIds?.size === 0) this.runtimeIdsByChunk().delete(chunkIndex);
         }
         this.entityChunkIndices.delete(runtimeIdKey);
 
@@ -3051,9 +3051,7 @@ export class World implements Service {
     }
 
     private entitiesInChunk(chunk: Chunk): Entity[] {
-        // Lightweight World test doubles can bypass field initializers; normal instances keep this map from construction.
-        this.entityRuntimeIdsByChunk ??= new Map();
-        const runtimeIds = this.entityRuntimeIdsByChunk.get(Chunk.packXZ(chunk.getX(), chunk.getZ()));
+        const runtimeIds = this.runtimeIdsByChunk().get(Chunk.packXZ(chunk.getX(), chunk.getZ()));
         if (runtimeIds === undefined) return [];
 
         const entities: Entity[] = [];
@@ -3062,6 +3060,14 @@ export class World implements Service {
             if (entity !== undefined) entities.push(entity);
         }
         return entities;
+    }
+
+    /**
+     * Returns the reverse actor index, creating it for lightweight World test doubles that bypass
+     * the constructor. Normal worlds already own the map from field initialization.
+     */
+    private runtimeIdsByChunk(): Map<number, Set<number>> {
+        return (this.entityRuntimeIdsByChunk ??= new Map());
     }
 
     /** Builds the entity and actor indexes once for every chunk in a save or unload pass. */
@@ -3140,6 +3146,7 @@ export class World implements Service {
 
     private markEntityChunkChanged(entity: Entity): void {
         if (entity instanceof Player) return;
+        const runtimeIdsByChunk = this.runtimeIdsByChunk();
 
         const runtimeId = entity.getRuntimeId();
         const position = entity.getPosition();
@@ -3149,16 +3156,16 @@ export class World implements Service {
 
         if (previousChunkIndex !== undefined && previousChunkIndex !== nextChunkIndex) {
             this.chunks.get(previousChunkIndex)?.markEntitiesChanged();
-            const previousRuntimeIds = this.entityRuntimeIdsByChunk.get(previousChunkIndex);
+            const previousRuntimeIds = runtimeIdsByChunk.get(previousChunkIndex);
             previousRuntimeIds?.delete(runtimeIdKey);
-            if (previousRuntimeIds?.size === 0) this.entityRuntimeIdsByChunk.delete(previousChunkIndex);
+            if (previousRuntimeIds?.size === 0) runtimeIdsByChunk.delete(previousChunkIndex);
         }
         this.chunks.get(nextChunkIndex)?.markEntitiesChanged();
         this.entityChunkIndices.set(runtimeIdKey, nextChunkIndex);
-        let nextRuntimeIds = this.entityRuntimeIdsByChunk.get(nextChunkIndex);
+        let nextRuntimeIds = runtimeIdsByChunk.get(nextChunkIndex);
         if (nextRuntimeIds === undefined) {
             nextRuntimeIds = new Set();
-            this.entityRuntimeIdsByChunk.set(nextChunkIndex, nextRuntimeIds);
+            runtimeIdsByChunk.set(nextChunkIndex, nextRuntimeIds);
         }
         nextRuntimeIds.add(runtimeIdKey);
     }

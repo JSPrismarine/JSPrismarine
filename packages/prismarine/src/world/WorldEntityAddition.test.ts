@@ -10,6 +10,7 @@ import EntityGrid from './EntityGrid';
 import { Dimensions } from './Dimension';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { World } from './World';
+import { Position } from './Position';
 
 const bodyOf = (identifier: string): Entity =>
     stubOf(GenericEntity, {
@@ -50,5 +51,24 @@ describe('World.addEntity', () => {
 
         expect(restored).toEqual([body]);
         expect(world.getEntity(body.getRuntimeId())).toBe(body);
+    });
+});
+
+describe('World.broadcastMove', () => {
+    it('initializes the reverse chunk index when a prototype world tracks entity movement', async () => {
+        const world: World = Object.assign(Object.create(World.prototype), {
+            chunks: new Map(),
+            entityChunkIndices: new Map(),
+            entityGrid: new EntityGrid()
+        });
+        world.attachChangeSink(NULL_WORLD_CHANGE_SINK);
+        const entity = stubOf(GenericEntity, {
+            getRuntimeId: () => 42n,
+            getType: () => 'minecraft:cow',
+            getPosition: () => new Position(32, 64, -16, world),
+            persistentNbt: null
+        });
+
+        await world.broadcastMove(entity);
     });
 });
