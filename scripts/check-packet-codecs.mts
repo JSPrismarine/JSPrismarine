@@ -55,7 +55,7 @@ const extendsClass = (declaration: ClassDeclaration, className: string): boolean
     declaration.heritageClauses?.nodes.some(
         (clause) =>
             clause.types.nodes.some((type) => {
-                const expression = type.expression;
+                const expression = 'expression' in type ? type.expression : type.typeName;
                 return 'text' in expression && typeof expression.text === 'string' && expression.text === className;
             }) ?? false
     ) ?? false;
