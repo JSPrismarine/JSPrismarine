@@ -46,6 +46,7 @@ import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
+import { dimensionByBedrockId, maxSubChunk, minSubChunk } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
@@ -67,6 +68,12 @@ import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryConte
 import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
 import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
+import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
+import type SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
+import type { SubChunkEntry } from '@jsprismarine/protocol/packet/SubChunkPacket';
+import SubChunkPos from '@jsprismarine/protocol/structure/SubChunkPos';
+import SubChunkPosOffset from '@jsprismarine/protocol/structure/SubChunkPosOffset';
+import SubChunkHeightmapData from '@jsprismarine/protocol/structure/SubChunkHeightmapData';
 import type ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
@@ -105,7 +112,6 @@ import CommandParameter, { CommandParameterType } from '@jsprismarine/protocol/w
 import ChunkSender from './ChunkSender';
 import ChunkBatchCache from './ChunkBatchCache';
 import { ClientBlobCache } from './ClientBlobCache';
-import type { ClientBlob } from './ClientBlobCache';
 import type { CachedChunkDelivery } from '../world/ChunkScheduler';
 import { TextPacketType } from '@jsprismarine/protocol';
 
@@ -125,15 +131,9 @@ const chunkBatchCache = new ChunkBatchCache();
 interface QueuedChunk {
     readonly chunk: Chunk;
     readonly payload: Buffer;
-    /** Full payload retained in the same backing store for a queued cached packet. */
-    readonly uncachedPayload?: Buffer;
     readonly revision: number;
-    /** Full serialized bytes retained by this queued entry, including blob views. */
+    /** Bytes retained by this queued request-mode packet. */
     readonly memoryBytes: number;
-    /** Present when the packet carries client-cache metadata. */
-    readonly blobs?: readonly ClientBlob[];
-    /** Hashes in packet metadata order, matching `blobs`. */
-    readonly blobHashes?: readonly bigint[];
 }
 
 /**
@@ -433,30 +433,13 @@ export default class PlayerSession {
         return { kind: 'queued', queuedBytes };
     }
 
-    /** Selects whether future chunk packets use the cache path offered by this client. */
+    /** Enables or clears client blob caching for subsequent subchunk requests. */
     public setClientCacheEnabled(enabled: boolean): void {
         this.clientCacheEnabled = enabled;
-        if (enabled) return;
-
-        this.clientBlobCache.clear();
-        for (let index = 0; index < this.chunkSendQueue.length; index++) {
-            const queued = this.chunkSendQueue[index]!;
-            if (queued.blobs === undefined) continue;
-
-            // A queued cached packet may outlive the client's opt-in; replace it before sending.
-            const payload = queued.uncachedPayload;
-            if (payload === undefined) throw new Error('Cached chunk queue entry lost its uncached payload');
-            const uncached: QueuedChunk = {
-                chunk: queued.chunk,
-                payload,
-                revision: queued.revision,
-                memoryBytes: payload.byteLength
-            };
-            this.chunkSendQueue[index] = uncached;
-        }
+        if (!enabled) this.clientBlobCache.clear();
     }
 
-    /** Whether this session will mark future chunk packets as cached. */
+    /** Whether this session will use cached blobs in request-mode subchunk responses. */
     public getClientCacheEnabled(): boolean {
         return this.clientCacheEnabled;
     }
@@ -472,6 +455,73 @@ export default class PlayerSession {
         response.blobs = blobs;
         await this.send(response);
         return blobs.length;
+    }
+
+    /**
+     * Answers requested sections with their bytes, block entities, heightmaps, and cache ids.
+     * @param packet - The requested chunk columns and absolute subchunk center.
+     */
+    public async handleSubChunkRequest(packet: SubChunkRequestPacket): Promise<number> {
+        if (packet.offsets.length === 0) return 0;
+
+        const online = this.isConnected();
+        const world = online ? this.player.getWorld() : undefined;
+        const dimension = world?.getDimension();
+        const cacheEnabled = this.clientCacheEnabled;
+        const entries = packet.offsets.map((offset) => {
+            const y = packet.centerPos.y + offset.y;
+            const entry: SubChunkEntry = {
+                offset: new SubChunkPosOffset(offset.x, offset.y, offset.z),
+                result: SubChunkRequestResult.PLAYER_DOESNT_EXIST,
+                heightMaps: new SubChunkHeightmapData()
+            };
+
+            if (!online || world === undefined || dimension === undefined) return entry;
+            if (packet.dimensionType !== dimension.bedrockId) {
+                entry.result = SubChunkRequestResult.WRONG_DIMENSION;
+                return entry;
+            }
+            const clientRange = dimension.custom ? dimension : (dimensionByBedrockId(dimension.bedrockId) ?? dimension);
+            if (y < minSubChunk(clientRange) || y > maxSubChunk(clientRange)) {
+                entry.result = SubChunkRequestResult.INDEX_OUT_OF_BOUNDS;
+                return entry;
+            }
+
+            const x = packet.centerPos.x + offset.x;
+            const z = packet.centerPos.z + offset.z;
+            const chunk = world.getLoadedChunk(x, z);
+            if (chunk === null || chunk.getX() !== x || chunk.getZ() !== z) {
+                entry.result = SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST;
+                return entry;
+            }
+
+            const blob = cacheEnabled ? this.clientBlobCache.prepareRequestSubChunk(chunk, y) : undefined;
+            const data = blob?.data ?? chunk.networkSerializeRequestSubChunk(y);
+            const allAir = data.byteLength === 2 && data[0] === 8 && data[1] === 0;
+            entry.result = allAir ? SubChunkRequestResult.SUCCESS_ALL_AIR : SubChunkRequestResult.SUCCESS;
+            entry.heightMaps = chunk.networkSubChunkHeightmaps(y);
+
+            if (blob !== undefined) {
+                this.clientBlobCache.track([blob]);
+                Object.assign(entry, { blobId: blob.id });
+
+                // The client can reuse a confirmed blob. An all-air section also carries only
+                // its hash when caching is enabled; a miss is answered through the cache packet.
+                if (allAir || this.clientBlobCache.hasClientBlob(blob.id)) return entry;
+            }
+
+            Object.assign(entry, { serializedSubChunk: data });
+            return entry;
+        });
+
+        const response = new SubChunkPacket({
+            cacheEnabled,
+            dimension: packet.dimensionType,
+            centerPos: new SubChunkPos(packet.centerPos.x, packet.centerPos.y, packet.centerPos.z),
+            entries
+        });
+        await this.send(response);
+        return entries.length;
     }
 
     public isConnected(): boolean {
@@ -658,7 +708,7 @@ export default class PlayerSession {
         try {
             await publisherSend;
             const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
-            for (const { chunk, payload, revision, blobs, blobHashes } of chunksToSend) {
+            for (const { chunk, payload, revision } of chunksToSend) {
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
                     revision,
@@ -669,20 +719,16 @@ export default class PlayerSession {
                             chunkX: chunk.getX(),
                             chunkZ: chunk.getZ(),
                             dimension: chunk.getDimension().bedrockId,
-                            subChunkCount: chunk.getNetworkSubChunkCount(),
-                            clientSubChunkRequestsEnabled: false,
-                            cached: blobs !== undefined,
-                            blobHashes: blobHashes === undefined ? undefined : [...blobHashes],
+                            subChunkCount: chunk.getNetworkSubChunkRequestLimit(),
+                            clientSubChunkRequestsEnabled: true,
+                            cached: false,
                             payload
                         })
                     ],
                     this.connection.compressionAlgorithm,
                     this.connection.compressionThreshold,
-                    blobs === undefined ? 'uncached' : 'client-cache'
+                    'request-mode'
                 );
-
-                // Register bytes before the chunk packet can reach the client and trigger a miss report.
-                if (blobs !== undefined) this.clientBlobCache.track(blobs);
 
                 // Shared compression is safe; framing and encryption remain ordered per connection.
                 await this.connection.sendSharedCompressedBatchAsync(
@@ -898,25 +944,12 @@ export default class PlayerSession {
     }
 
     private prepareQueuedChunk(chunk: Chunk): QueuedChunk {
-        if (!this.clientCacheEnabled) {
-            const payload = chunk.networkSerialize();
-            return {
-                chunk,
-                payload,
-                revision: chunk.getNetworkRevision(),
-                memoryBytes: payload.byteLength
-            };
-        }
-
-        const prepared = this.clientBlobCache.prepareChunk(chunk);
+        const payload = chunk.networkSerializeRequestSkeleton();
         return {
             chunk,
-            payload: prepared.cachedPayload,
-            uncachedPayload: prepared.payload,
+            payload,
             revision: chunk.getNetworkRevision(),
-            memoryBytes: prepared.payload.byteLength,
-            blobs: prepared.blobs,
-            blobHashes: prepared.blobHashes
+            memoryBytes: payload.byteLength
         };
     }
 

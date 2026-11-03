@@ -53,6 +53,7 @@ import { dimensionsScenario } from './scenarios/dimensions.mts';
 import { enderDragon } from './scenarios/ender-dragon.mts';
 import { chunkCompletionReadiness } from './scenarios/chunk-completion-readiness.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
+import { subChunkRequestDelivery } from './scenarios/subchunk-request-delivery.mts';
 
 interface ScenarioSuite {
     name: string;
@@ -64,6 +65,7 @@ const suites: ScenarioSuite[] = [
         name: 'gameplay-and-dimensions',
         scenarios: [
             cachedChunkDelivery,
+            subChunkRequestDelivery,
             spawn,
             chunkCompletionReadiness,
             movement,

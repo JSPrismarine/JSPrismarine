@@ -29,6 +29,10 @@ interface CachedSubChunkBlob extends ClientBlob {
     readonly revision: number;
 }
 
+interface CachedRequestSubChunkBlob extends ClientBlob {
+    readonly revision: number;
+}
+
 interface CachedChunkBlobs extends PreparedClientChunkBlobs {
     readonly subChunks: readonly CachedSubChunkBlob[];
     readonly biomeIdentity: object;
@@ -37,16 +41,48 @@ interface CachedChunkBlobs extends PreparedClientChunkBlobs {
 }
 
 const cachedByChunk = new WeakMap<Chunk, CachedChunkBlobs>();
+const requestBlobsByChunk = new WeakMap<Chunk, Map<number, CachedRequestSubChunkBlob>>();
 
 /** Keeps missed chunk blobs for one connection until the client acknowledges them. */
 export class ClientBlobCache {
     private readonly pending = new Map<bigint, Buffer>();
+    private readonly found = new Set<bigint>();
 
     /** Total blob payload bytes held while waiting for client acknowledgements. */
     public get pendingBytes(): number {
         let bytes = 0;
         for (const data of this.pending.values()) bytes += data.byteLength;
         return bytes;
+    }
+
+    /**
+     * Whether this client has confirmed it holds a subchunk blob.
+     * @param blobId - The content hash reported by the client.
+     */
+    public hasClientBlob(blobId: bigint): boolean {
+        return this.found.has(blobId);
+    }
+
+    /**
+     * Serializes and hashes one request-mode subchunk, reusing an unchanged revision.
+     * @param chunk - The requested chunk column.
+     * @param y - Absolute subchunk index.
+     */
+    public prepareRequestSubChunk(chunk: Chunk, y: number): ClientBlob {
+        let cachedByY = requestBlobsByChunk.get(chunk);
+        if (cachedByY === undefined) {
+            cachedByY = new Map();
+            requestBlobsByChunk.set(chunk, cachedByY);
+        }
+
+        const revision = chunk.getNetworkRevision();
+        const previous = cachedByY.get(y);
+        if (previous?.revision === revision) return previous;
+
+        const data = chunk.networkSerializeRequestSubChunk(y);
+        const blob: CachedRequestSubChunkBlob = { id: xxHash64(data), data, revision };
+        cachedByY.set(y, blob);
+        return blob;
     }
 
     /**
@@ -103,6 +139,7 @@ export class ClientBlobCache {
     /** Drops this session's pending byte copies after cache use has been disabled. */
     public clear(): void {
         this.pending.clear();
+        this.found.clear();
     }
 
     /**
@@ -128,7 +165,13 @@ export class ClientBlobCache {
         }
 
         for (const blobId of foundIds) {
-            if (!missing.has(blobId)) this.pending.delete(blobId);
+            if (missing.has(blobId)) continue;
+            this.pending.delete(blobId);
+            this.found.add(blobId);
+        }
+
+        for (const blobId of missingIds) {
+            this.found.delete(blobId);
         }
 
         return blobs;

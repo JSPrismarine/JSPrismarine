@@ -52,7 +52,7 @@ const CACHED_BYTES = Buffer.from([
     ...[0x64, 0x00, 0x00, 0x00], // Subchunk Position Z 100
     0x02, // SubChunk Data count, a varuint32
     ...[0xff, 0x02, 0x00], // entry 1: SubChunk Pos Offset (-1, 2, 0), three signed bytes
-    0x01, // SubChunk Request Result: Success
+    0x00, // SubChunk Request Result: Success at protocol 2193
     0x01, // Serialized Sub Chunk present
     ...[0x03, 0x0a, 0x0b, 0x0c], // Serialized Sub Chunk: varuint32 length 3, then the bytes
     0x01, // Height Map Type: HasData
@@ -63,7 +63,7 @@ const CACHED_BYTES = Buffer.from([
     0x01, // Blob Id present
     ...[0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01], // Blob Id 0x0102030405060708, little-endian uint64
     ...[0x00, 0xfc, 0x01], // entry 2: SubChunk Pos Offset (0, -4, 1)
-    0x06, // SubChunk Request Result: SuccessAllAir
+    0x05, // SubChunk Request Result: SuccessAllAir at protocol 2193
     0x00, // Serialized Sub Chunk absent
     0x03, // Height Map Type: AllTooLow
     0x00, // Subchunk Height Map absent
@@ -95,7 +95,7 @@ const PLAIN_BYTES = Buffer.from([
     ...Array.from({ length: 12 }, () => 0x00), // Center Pos (0, 0, 0)
     0x01, // SubChunk Data count
     ...[0x00, 0x00, 0x00], // SubChunk Pos Offset (0, 0, 0)
-    0x01, // SubChunk Request Result: Success
+    0x00, // SubChunk Request Result: Success at protocol 2193
     0x01, // Serialized Sub Chunk present
     ...[0x01, 0x09], // Serialized Sub Chunk: one byte
     0x00, // Height Map Type: NoData
@@ -157,6 +157,53 @@ describe('SubChunkPacket', () => {
 
         expect(data).toEqual(PLAIN);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('uses the shifted result values at protocol 2225', () => {
+        const packet = new SubChunkPacket(PLAIN);
+        packet.codecProtocol = 2225;
+        const buffer = packet.serialize(new NetworkBinaryStream());
+        const resultIndex = 2 + 1 + 1 + 12 + 1 + 3;
+
+        expect(buffer[resultIndex]).toBe(SubChunkRequestResult.SUCCESS);
+
+        const decoded = new SubChunkPacket();
+        decoded.codecProtocol = 2225;
+        expect(decoded.deserialize(new NetworkBinaryStream(buffer))).toEqual(PLAIN);
+    });
+
+    it.each([2193, 2225])('writes and reads every server result at protocol %i', (protocol) => {
+        const results = [
+            SubChunkRequestResult.SUCCESS,
+            SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST,
+            SubChunkRequestResult.WRONG_DIMENSION,
+            SubChunkRequestResult.PLAYER_DOESNT_EXIST,
+            SubChunkRequestResult.INDEX_OUT_OF_BOUNDS,
+            SubChunkRequestResult.SUCCESS_ALL_AIR
+        ];
+        const data: SubChunk = {
+            cacheEnabled: false,
+            dimension: 0,
+            centerPos: new SubChunkPos(0, 0, 0),
+            entries: results.map((result, index) => ({
+                offset: new SubChunkPosOffset(index, 0, 0),
+                result,
+                heightMaps: new SubChunkHeightmapData()
+            }))
+        };
+        const packet = new SubChunkPacket(data);
+        packet.codecProtocol = protocol;
+        const buffer = packet.serialize(new NetworkBinaryStream());
+        const firstResultIndex = 2 + 1 + 1 + 12 + 1 + 3;
+        const wireOffset = protocol === 2193 ? -1 : 0;
+
+        expect(results.map((_result, index) => buffer[firstResultIndex + index * 10])).toEqual(
+            results.map((_result, index) => index + 1 + wireOffset)
+        );
+
+        const decoded = new SubChunkPacket();
+        decoded.codecProtocol = protocol;
+        expect(decoded.deserialize(new NetworkBinaryStream(buffer))).toEqual(data);
     });
 
     it.each([

@@ -9,6 +9,8 @@ import type { NetworkPacket } from '@jsprismarine/protocol';
 import ClientCacheBlobStatusPacket from '@jsprismarine/protocol/packet/ClientCacheBlobStatusPacket';
 import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
 import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
+import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
+import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import { Dimensions } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
 import type { World } from '../world/World';
@@ -17,7 +19,6 @@ import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
 import Codec2193 from './codec/Codec2193';
-import { ClientBlobCache } from './ClientBlobCache';
 
 /**
  * The chunk queue's lifecycle, which is the part of `PlayerSession` a moving player exercises
@@ -153,7 +154,7 @@ describe('network', () => {
             expect(Reflect.get(residentSession, 'chunkSendQueue')).toHaveLength(1);
         });
 
-        it('queues cache metadata while accounting for the complete chunk bytes', () => {
+        it('queues request-mode skeleton bytes regardless of cache status', () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
             chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
             const world = stub<World>({ getLoadedChunk: () => chunk });
@@ -163,51 +164,47 @@ describe('network', () => {
                 getWorld: () => world
             });
             const cacheSession = new PlayerSession(server, stub<ClientConnection>(), cachePlayer);
-            const prepared = chunk.networkSerializeBlobs();
+            const payload = chunk.networkSerializeRequestSkeleton();
             cacheSession.setClientCacheEnabled(true);
 
             const delivered = cacheSession.tryDeliverLoaded(1, 2);
             const queued = Reflect.get(cacheSession, 'chunkSendQueue');
 
-            expect(delivered).toEqual({ kind: 'queued', queuedBytes: prepared.payload.byteLength });
+            expect(delivered).toEqual({ kind: 'queued', queuedBytes: payload.byteLength });
             expect(queued).toMatchObject([
                 {
-                    payload: prepared.cachedPayload,
-                    memoryBytes: prepared.payload.byteLength,
-                    blobs: prepared.subChunks
-                        .map(({ bytes }) => ({ data: bytes }))
-                        .concat({ data: prepared.biomes.bytes }),
-                    blobHashes: expect.any(Array)
+                    payload,
+                    memoryBytes: payload.byteLength
                 }
             ]);
-            expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(prepared.payload.byteLength);
+            expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(payload.byteLength);
 
             cacheSession.setClientCacheEnabled(false);
 
-            expect(queued).toMatchObject([{ payload: prepared.payload, memoryBytes: prepared.payload.byteLength }]);
+            expect(queued).toMatchObject([{ payload, memoryBytes: payload.byteLength }]);
             expect(queued).not.toMatchObject([{ blobs: expect.any(Array), blobHashes: expect.any(Array) }]);
-            expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(prepared.payload.byteLength);
+            expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(payload.byteLength);
         });
 
-        it('sends cached chunk metadata and answers only requested blobs until they are acknowledged', async () => {
+        it('sends a request-mode chunk skeleton without duplicating biome or subchunk blobs', async () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
             chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
             const world = stub<World>({ getLoadedChunk: () => chunk });
             const playerWithWorld = stub<Player>({
                 viewDistance: 2,
                 getPosition: () => new Position(0, 64, 0, world),
-                getWorld: () => world
+                getWorld: () => world,
+                isOnline: () => true
             });
-            const sentPackets: NetworkPacket<unknown>[] = [];
             const sentBatches: NetworkPacket<unknown>[][] = [];
             const connection = stub<ClientConnection>({
                 codec: Codec2193,
-                sendDataPacket: async (packet) => void sentPackets.push(packet),
+                sendDataPacket: async () => {},
                 sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
             });
             const cacheSession = new PlayerSession(server, connection, playerWithWorld);
             cacheSession.setClientCacheEnabled(true);
-            const prepared = new ClientBlobCache().prepareChunk(chunk);
+            const payload = chunk.networkSerializeRequestSkeleton();
             cacheSession.tryDeliverLoaded(1, 2);
 
             await cacheSession.flush();
@@ -215,32 +212,144 @@ describe('network', () => {
             const chunkPacket = sentBatches
                 .flat()
                 .find((packet): packet is LevelChunkPacket => packet instanceof LevelChunkPacket);
-            expect(chunkPacket?.getPacketData()).toMatchObject({
-                cached: true,
-                blobHashes: prepared.blobHashes,
-                payload: prepared.cachedPayload
+            const chunkData = chunkPacket?.getPacketData();
+            expect(chunkData).toMatchObject({
+                cached: false,
+                clientSubChunkRequestsEnabled: true,
+                subChunkCount: chunk.getNetworkSubChunkRequestLimit(),
+                payload
             });
+            if (chunkData === null || chunkData === undefined) throw new Error('LevelChunk packet data is unavailable');
+            expect(chunkData.blobHashes).toBeUndefined();
+        });
+
+        it('answers missing, invalid, and repeated requests with request-mode results', async () => {
+            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
+            chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+            const world = stub<World>({
+                getDimension: () => Dimensions.Overworld,
+                getLoadedChunk: (x, z) => (x === 1 && z === 2 ? chunk : null)
+            });
+            const playerWithWorld = stub<Player>({ getWorld: () => world, isOnline: () => true });
+            const sentPackets: NetworkPacket<unknown>[] = [];
+            const sessionWithResponses = new PlayerSession(
+                server,
+                stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
+                playerWithWorld
+            );
+            const request = new SubChunkRequestPacket();
+            request.dimensionType = 0;
+            request.centerPos = { x: 1, y: -4, z: 2 };
+            request.offsets = [
+                { x: 0, y: 0, z: 0 },
+                { x: 1, y: 0, z: 0 },
+                { x: 0, y: 300, z: 0 }
+            ];
+
+            expect(await sessionWithResponses.handleSubChunkRequest(request)).toBe(3);
+            const first = sentPackets.at(-1);
+            expect(first).toBeInstanceOf(SubChunkPacket);
+            if (!(first instanceof SubChunkPacket)) throw new Error('SubChunkPacket response was not sent');
+            const firstData = first.getPacketData();
+            if (firstData === null) throw new Error('First SubChunkPacket data is unavailable');
+            const firstEntries = firstData.entries;
+            expect(firstEntries.map(({ result }) => result)).toEqual([
+                SubChunkRequestResult.SUCCESS,
+                SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST,
+                SubChunkRequestResult.INDEX_OUT_OF_BOUNDS
+            ]);
+            expect(firstEntries[0]?.serializedSubChunk).toEqual(chunk.networkSerializeRequestSubChunk(-4));
+
+            request.offsets = [{ x: 0, y: 0, z: 0 }];
+            await sessionWithResponses.handleSubChunkRequest(request);
+            const repeated = sentPackets.at(-1);
+            if (!(repeated instanceof SubChunkPacket)) throw new Error('Repeated SubChunkPacket response was not sent');
+            const repeatedData = repeated.getPacketData();
+            if (repeatedData === null) throw new Error('Repeated SubChunkPacket data is unavailable');
+            expect(repeatedData.entries[0]?.serializedSubChunk).toEqual(firstEntries[0]?.serializedSubChunk);
+
+            request.dimensionType = 1;
+            await sessionWithResponses.handleSubChunkRequest(request);
+            const wrongDimension = sentPackets.at(-1);
+            if (!(wrongDimension instanceof SubChunkPacket)) throw new Error('Wrong-dimension response was not sent');
+            const wrongDimensionData = wrongDimension.getPacketData();
+            if (wrongDimensionData === null) throw new Error('Wrong-dimension response data is unavailable');
+            expect(wrongDimensionData.entries[0]?.result).toBe(SubChunkRequestResult.WRONG_DIMENSION);
+        });
+
+        it('uses confirmed subchunk blobs on repeat requests and serves cache misses', async () => {
+            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
+            const world = stub<World>({
+                getDimension: () => Dimensions.Overworld,
+                getLoadedChunk: () => chunk
+            });
+            const playerWithWorld = stub<Player>({ getWorld: () => world, isOnline: () => true });
+            const sentPackets: NetworkPacket<unknown>[] = [];
+            const cacheSession = new PlayerSession(
+                server,
+                stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
+                playerWithWorld
+            );
+            cacheSession.setClientCacheEnabled(true);
+            const request = new SubChunkRequestPacket();
+            request.dimensionType = 0;
+            request.centerPos = { x: 1, y: -3, z: 2 };
+            request.offsets = [{ x: 0, y: 0, z: 0 }];
+
+            await cacheSession.handleSubChunkRequest(request);
+            const initial = sentPackets.at(-1);
+            if (!(initial instanceof SubChunkPacket)) throw new Error('Initial SubChunkPacket response was not sent');
+            const initialData = initial.getPacketData();
+            if (initialData === null) throw new Error('Initial SubChunkPacket data is unavailable');
+            const initialEntry = initialData.entries[0];
+            expect(initialEntry?.result).toBe(SubChunkRequestResult.SUCCESS_ALL_AIR);
+            expect(initialEntry?.serializedSubChunk).toBeUndefined();
+            const blobId = initialEntry?.blobId;
+            if (blobId === undefined) throw new Error('Cached all-air response did not include a blob id');
 
             const missing = new ClientCacheBlobStatusPacket();
-            missing.missingIds = [...prepared.blobHashes];
-            const sentCount = await cacheSession.handleClientCacheBlobStatus(missing);
+            missing.missingIds = [blobId];
+            expect(await cacheSession.handleClientCacheBlobStatus(missing)).toBe(1);
+            const missResponse = sentPackets.at(-1);
+            if (!(missResponse instanceof ClientCacheMissResponsePacket)) {
+                throw new Error('ClientCacheMissResponsePacket was not sent');
+            }
+            expect(missResponse.blobs).toEqual([{ blobId, blobData: Buffer.from([8, 0]) }]);
 
-            expect(sentCount).toBe(new Set(prepared.blobHashes).size);
-            const response = sentPackets.find(
-                (packet): packet is ClientCacheMissResponsePacket => packet instanceof ClientCacheMissResponsePacket
-            );
-            expect(response?.blobs).toEqual(
-                [...new Map(prepared.blobs.map(({ id, data }) => [id, data]))].map(([blobId, blobData]) => ({
-                    blobId,
-                    blobData
-                }))
-            );
+            const found = new ClientCacheBlobStatusPacket();
+            found.foundIds = [blobId];
+            await cacheSession.handleClientCacheBlobStatus(found);
+            await cacheSession.handleSubChunkRequest(request);
+            const repeated = sentPackets.at(-1);
+            if (!(repeated instanceof SubChunkPacket)) throw new Error('Repeated SubChunkPacket response was not sent');
+            const repeatedData = repeated.getPacketData();
+            if (repeatedData === null) throw new Error('Repeated SubChunkPacket data is unavailable');
+            expect(repeatedData.entries[0]).toMatchObject({ blobId });
+            expect(repeatedData.entries[0]?.serializedSubChunk).toBeUndefined();
 
-            const acknowledged = new ClientCacheBlobStatusPacket();
-            acknowledged.foundIds = [...prepared.blobHashes];
-            await cacheSession.handleClientCacheBlobStatus(acknowledged);
-            expect(await cacheSession.handleClientCacheBlobStatus(missing)).toBe(0);
-            expect(sentPackets.filter((packet) => packet instanceof ClientCacheMissResponsePacket)).toHaveLength(1);
+            chunk.setBlockRuntimeId(1, -64, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+            request.centerPos = { x: 1, y: -4, z: 2 };
+            await cacheSession.handleSubChunkRequest(request);
+            const initialTerrain = sentPackets.at(-1);
+            if (!(initialTerrain instanceof SubChunkPacket)) throw new Error('Initial terrain response was not sent');
+            const initialTerrainData = initialTerrain.getPacketData();
+            if (initialTerrainData === null) throw new Error('Initial terrain response data is unavailable');
+            const terrainEntry = initialTerrainData.entries[0];
+            expect(terrainEntry?.result).toBe(SubChunkRequestResult.SUCCESS);
+            expect(terrainEntry?.serializedSubChunk).toEqual(chunk.networkSerializeRequestSubChunk(-4));
+            const terrainBlobId = terrainEntry?.blobId;
+            if (terrainBlobId === undefined) throw new Error('Cached terrain response did not include a blob id');
+
+            const terrainFound = new ClientCacheBlobStatusPacket();
+            terrainFound.foundIds = [terrainBlobId];
+            await cacheSession.handleClientCacheBlobStatus(terrainFound);
+            await cacheSession.handleSubChunkRequest(request);
+            const repeatedTerrain = sentPackets.at(-1);
+            if (!(repeatedTerrain instanceof SubChunkPacket)) throw new Error('Repeated terrain response was not sent');
+            const repeatedTerrainData = repeatedTerrain.getPacketData();
+            if (repeatedTerrainData === null) throw new Error('Repeated terrain response data is unavailable');
+            expect(repeatedTerrainData.entries[0]).toMatchObject({ blobId: terrainBlobId });
+            expect(repeatedTerrainData.entries[0]?.serializedSubChunk).toBeUndefined();
         });
     });
 });

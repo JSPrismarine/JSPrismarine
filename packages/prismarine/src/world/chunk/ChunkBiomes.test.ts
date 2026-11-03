@@ -136,5 +136,36 @@ describe('world', () => {
             expect(buffer[0]).toBe((1 << 1) | 1);
             expect(buffer.byteLength).toBe(1 + 128 * 4 + 1 + 2);
         });
+
+        it('reconstructs uniform and mixed network biome palettes', () => {
+            const original = new ChunkBiomes(Dimensions.Overworld);
+            original.fillSection(-4, DESERT);
+            original.fillSection(0, JUNGLE);
+            const mixed = new Uint16Array(4096).fill(JUNGLE);
+            for (let x = 0; x < 8; x++) {
+                for (let z = 0; z < 16; z++) {
+                    for (let y = 0; y < 16; y++) mixed[(x << 8) | (z << 4) | y] = DESERT;
+                }
+            }
+            original.setSection(1, mixed);
+
+            const stream = new BinaryStream();
+            original.networkSerialize(stream, subChunkCount(Dimensions.Overworld));
+            const encoded = stream.getBuffer();
+            const decodedStream = new BinaryStream(encoded);
+            const restored = ChunkBiomes.networkDeserialize(decodedStream, Dimensions.Overworld);
+
+            expect(decodedStream.feof()).toBe(true);
+            for (const [x, y, z] of [
+                [0, -64, 0],
+                [15, -49, 15],
+                [0, 0, 0],
+                [7, 31, 5],
+                [8, 31, 5],
+                [15, 319, 15]
+            ]) {
+                expect(restored.get(x!, y!, z!)).toBe(original.get(x!, y!, z!));
+            }
+        });
     });
 });

@@ -3,25 +3,20 @@ import type PlayerSession from '../PlayerSession';
 import type SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
 import type PacketHandler from './PacketHandler';
 
-/**
- * A sub chunk request.
- *
- * The server sends full chunks in `LevelChunkPacket` and never advertises sub chunk request
- * mode, so a client should not ask. A request that arrives anyway is recorded at debug level
- * and dropped; there is no `SubChunkPacket` to answer with.
- */
+/** Answers the sub chunks a request-mode LevelChunk told the client to fetch. */
 export default class SubChunkRequestHandler implements PacketHandler<SubChunkRequestPacket> {
     public static PacketName = 'SubChunkRequestPacket';
     public readonly phases = ['play'] as const;
 
-    /** Logs the center and how many sub chunks were asked for. */
-    public handle(packet: SubChunkRequestPacket, server: Server, session: PlayerSession): void {
+    /** Sends a result for every requested offset and logs the request summary. */
+    public async handle(packet: SubChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {
         const { centerPos } = packet;
+        const answered = await session.handleSubChunkRequest(packet);
 
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}. The server does not offer sub chunk requests`,
+                `${session.getPlayer().getName()} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}; answered ${answered}`,
                 'SubChunkRequestHandler/handle'
             );
     }

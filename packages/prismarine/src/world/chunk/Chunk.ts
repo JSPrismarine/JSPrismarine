@@ -6,6 +6,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
+import SubChunkHeightmapData, { HeightMapDataType } from '@jsprismarine/protocol/structure/SubChunkHeightmapData';
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Furnace, MobSpawner } from '../../blockentity/BlockEntities';
@@ -159,6 +160,13 @@ export default class Chunk {
     private serializedAt = -1;
     /** The same network revision split into client-cache blobs when a client asks for them. */
     private serializedNetworkBlobs: ChunkNetworkBlobs | null = null;
+    private serializedRequestSkeleton: Buffer | null = null;
+    private serializedRequestSkeletonAt = -1;
+    private readonly serializedRequestSubChunks = new Map<
+        number,
+        { readonly revision: number; readonly bytes: Buffer }
+    >();
+    private networkHeightmap: { readonly revision: number; readonly values: Uint16Array } | null = null;
     private networkRevision = 0;
     private observedSubChunkRevisions: number[] = [];
     private observedStoredSubChunkCount = -1;
@@ -221,6 +229,112 @@ export default class Chunk {
      * the dimension floor so it stays unsigned, indexed `x * 16 + z`.
      */
     public heightmap(): Uint16Array {
+        return new Uint16Array(this.heightmapForNetwork());
+    }
+
+    /** Writes the biome-and-border tail required by a request-mode LevelChunk. */
+    public networkSerializeRequestSkeleton(): Buffer {
+        const revision = this.getNetworkRevision();
+        if (this.serializedRequestSkeleton !== null && this.serializedRequestSkeletonAt === revision) {
+            return this.serializedRequestSkeleton;
+        }
+
+        const stream = new BinaryStream();
+        const client = clientRangeOf(this.dimension);
+        this.biomes.networkSerialize(stream, subChunkCount(client), minSubChunk(client));
+
+        // Request-mode LevelChunk packets carry no block entities; each one travels with its
+        // requested sub chunk so the client never sees an actor beside an unreceived block.
+        stream.writeByte(0);
+
+        this.serializedRequestSkeleton = stream.getBuffer();
+        this.serializedRequestSkeletonAt = revision;
+        return this.serializedRequestSkeleton;
+    }
+
+    /**
+     * Serializes one requested sub chunk and only the block entities that belong to it.
+     * @param y - Absolute subchunk index, including client padding for a shallow vanilla dimension.
+     */
+    public networkSerializeRequestSubChunk(y: number): Buffer {
+        const client = clientRangeOf(this.dimension);
+        if (!Number.isInteger(y) || y < minSubChunk(client) || y > maxSubChunk(client)) {
+            throw new RangeError(`Invalid subchunk height: ${y}`);
+        }
+
+        const revision = this.getNetworkRevision();
+        const cached = this.serializedRequestSubChunks.get(y);
+        if (cached?.revision === revision) return cached.bytes;
+
+        const stream = new BinaryStream();
+        (this.subChunkAtIndex(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
+
+        if (this.blockEntities.size > 0) {
+            const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+            writer.setUseVarint(true);
+            for (const blockEntity of this.blockEntities.values()) {
+                if (blockEntity.getPosition().getY() >> 4 === y) writer.writeCompound(blockEntity.toNBT());
+            }
+        }
+
+        const bytes = stream.getBuffer();
+        this.serializedRequestSubChunks.set(y, { revision, bytes });
+        return bytes;
+    }
+
+    /**
+     * Describes how this sub chunk contributes to the regular and render heightmaps.
+     * @param y - Absolute subchunk index.
+     */
+    public networkSubChunkHeightmaps(y: number): SubChunkHeightmapData {
+        const client = clientRangeOf(this.dimension);
+        if (!Number.isInteger(y) || y < minSubChunk(client) || y > maxSubChunk(client)) {
+            throw new RangeError(`Invalid subchunk height: ${y}`);
+        }
+
+        const baseY = y * 16;
+        const heightmap: number[][] = Array.from({ length: 16 }, () => new Array<number>(16));
+        let allTooHigh = true;
+        let allTooLow = true;
+        const values = this.heightmapForNetwork();
+
+        for (let z = 0; z < 16; z++) {
+            for (let x = 0; x < 16; x++) {
+                const relativeTop = values[x * 16 + z]!;
+                const highestY = relativeTop === 0 ? null : this.dimension.minY + relativeTop - 1;
+                if (highestY === null || highestY < baseY) {
+                    allTooHigh = false;
+                    heightmap[z]![x] = -1;
+                } else if (highestY >= baseY + 16) {
+                    allTooLow = false;
+                    heightmap[z]![x] = 16;
+                } else {
+                    allTooHigh = false;
+                    allTooLow = false;
+                    heightmap[z]![x] = highestY - baseY;
+                }
+            }
+        }
+
+        const heightMapType = allTooHigh
+            ? HeightMapDataType.ALL_TOO_HIGH
+            : allTooLow
+              ? HeightMapDataType.ALL_TOO_LOW
+              : HeightMapDataType.HAS_DATA;
+        const heightMap = heightMapType === HeightMapDataType.HAS_DATA ? heightmap : undefined;
+
+        return new SubChunkHeightmapData(heightMapType, heightMap, HeightMapDataType.ALL_COPIED);
+    }
+
+    /** Highest requestable index relative to the bottom of the LevelChunk's client range. */
+    public getNetworkSubChunkRequestLimit(): number {
+        return Math.max(0, this.getNetworkSubChunkCount() - 1);
+    }
+
+    private heightmapForNetwork(): Uint16Array {
+        const revision = this.getNetworkRevision();
+        if (this.networkHeightmap?.revision === revision) return this.networkHeightmap.values;
+
         const heights = new Uint16Array(256);
 
         for (let x = 0; x < 16; x++) {
@@ -230,6 +344,7 @@ export default class Chunk {
             }
         }
 
+        this.networkHeightmap = { revision, values: heights };
         return heights;
     }
 
@@ -859,7 +974,7 @@ export default class Chunk {
         // One biome section per sub chunk of the client's column, which is the client's full
         // height for this dimension id rather than the sub chunk count written above - 24 for the
         // Overworld, 8 for the Nether, 16 for the End, the same range the padding loop pads to.
-        this.biomes.networkSerialize(stream, subChunkCount(client));
+        this.biomes.networkSerialize(stream, subChunkCount(client), minSubChunk(client));
 
         // Border Blocks: a byte count, then one packed position per border block. Only Education
         // Edition sets any, so the count is always zero.
@@ -916,7 +1031,7 @@ export default class Chunk {
         const biomeIdentity = this.biomes;
         const biomeRevision = biomeIdentity.getRevision();
         const biomeStart = currentOffset;
-        biomeIdentity.networkSerialize(stream, subChunkCount(client));
+        biomeIdentity.networkSerialize(stream, subChunkCount(client), minSubChunk(client));
         const biomeEnd = stream.getWriteBuffer().byteLength;
 
         // The client keeps this border-and-actor tail in LevelChunk even while terrain and

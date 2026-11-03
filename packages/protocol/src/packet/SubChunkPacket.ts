@@ -3,17 +3,18 @@ import { PacketIdentifier } from '../PacketIdentifier';
 import SubChunkHeightmapData, { HeightMapDataType } from '../structure/SubChunkHeightmapData';
 import SubChunkPos from '../structure/SubChunkPos';
 import SubChunkPosOffset from '../structure/SubChunkPosOffset';
+import { SINCE_2207_SUB_CHUNK_RESULTS } from '../wire/wireGates';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
 export { HeightMapDataType };
 
 /**
- * The docs enum `SubChunkRequestResult`: how the server answered one requested sub chunk.
+ * The semantic `SubChunkRequestResult` values used by the server and clients.
  *
- * The 1.26.51 page renders these from 0, but that is the display artifact the brief warns
- * about; the standalone enum schema begins with `Undefined`, gophertunnel and Mojang's own
- * guide number `Success` as 1, and the 1.26.60 preview changelog "changes" them back to these.
+ * Protocol 2193 writes `SUCCESS` as 0 and `SUCCESS_ALL_AIR` as 5. Protocol 2207 shifted the
+ * six wire values up by one and reserves 0 for `UNDEFINED`; the packet codec applies that
+ * version difference while keeping this API stable.
  */
 export enum SubChunkRequestResult {
     /** No result; never sent on purpose. */
@@ -40,8 +41,8 @@ export interface SubChunkEntry {
     result: SubChunkRequestResult;
     /**
      * `Serialized Sub Chunk`, left as bytes: the sub chunk's block storage followed by its block
-     * entities, in the same form `LevelChunkPacket` carries. Absent when the cache is on and the
-     * result is `SUCCESS_ALL_AIR`; the blob then stands in for it.
+     * entities, in the same form `LevelChunkPacket` carries. Absent when a cached blob stands
+     * in for the bytes.
      */
     serializedSubChunk?: Buffer;
     /** `Height Map Data`. */
@@ -78,6 +79,10 @@ export interface SubChunk {
  * Map Data` as a {@link SubChunkHeightmapData}, then `Blob Id` as an optional little-endian
  * uint64.
  *
+ * Protocol 2193 uses request results 0 through 5. Protocol 2225 uses 1 through 6 and reserves
+ * 0 for `UNDEFINED`; see {@link SINCE_2207_SUB_CHUNK_RESULTS}. Both supported versions use the
+ * optional fields introduced at protocol 2168.
+ *
  * Until protocol 2168 the optionals were implied by their neighbors: the sub chunk string was
  * skipped for `SuccessAllAir` with the cache on, each heightmap existed only when its type
  * byte said `HasData`, and the blob id existed only when `Cache Enabled` was set. A reader of
@@ -100,7 +105,7 @@ export default class SubChunkPacket extends NetworkPacket<SubChunk> {
         stream.writeUnsignedVarInt(data.entries.length);
         for (const entry of data.entries) {
             entry.offset.serialize(stream);
-            stream.writeByte(entry.result);
+            stream.writeByte(this.encodeResult(entry.result));
 
             stream.writeBoolean(entry.serializedSubChunk !== undefined);
             if (entry.serializedSubChunk !== undefined) stream.writeLengthPrefixed(entry.serializedSubChunk);
@@ -121,7 +126,7 @@ export default class SubChunkPacket extends NetworkPacket<SubChunk> {
         let count = stream.readUnsignedVarInt();
         while (count-- > 0) {
             const offset = SubChunkPosOffset.deserialize(stream);
-            const result = stream.readByte();
+            const result = this.decodeResult(stream.readByte());
             const serializedSubChunk = stream.readBoolean() ? stream.readLengthPrefixed() : undefined;
             const heightMaps = SubChunkHeightmapData.deserialize(stream);
             const blobId = stream.readBoolean() ? stream.readUnsignedLongLE() : undefined;
@@ -133,5 +138,34 @@ export default class SubChunkPacket extends NetworkPacket<SubChunk> {
         }
 
         return { cacheEnabled, dimension, centerPos, entries };
+    }
+
+    /** Writes the semantic result using this connection's negotiated protocol value. */
+    private encodeResult(result: SubChunkRequestResult): number {
+        if (
+            !Number.isInteger(result) ||
+            result < SubChunkRequestResult.UNDEFINED ||
+            result > SubChunkRequestResult.SUCCESS_ALL_AIR
+        ) {
+            throw new RangeError(`Unknown sub chunk request result ${result}`);
+        }
+        if (SINCE_2207_SUB_CHUNK_RESULTS.includedAt(this.codecProtocol)) return result;
+        if (result === SubChunkRequestResult.UNDEFINED) {
+            throw new RangeError(`SubChunkRequestResult.UNDEFINED is unavailable at protocol ${this.codecProtocol}`);
+        }
+        return result - 1;
+    }
+
+    /** Reads the protocol's result value into the stable semantic enum. */
+    private decodeResult(wireResult: number): SubChunkRequestResult {
+        const result = SINCE_2207_SUB_CHUNK_RESULTS.includedAt(this.codecProtocol) ? wireResult : wireResult + 1;
+        if (
+            !Number.isInteger(result) ||
+            result < SubChunkRequestResult.UNDEFINED ||
+            result > SubChunkRequestResult.SUCCESS_ALL_AIR
+        ) {
+            throw new RangeError(`Unknown sub chunk request result ${wireResult} at protocol ${this.codecProtocol}`);
+        }
+        return result;
     }
 }

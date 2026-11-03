@@ -41,6 +41,12 @@ export const until = (protocolVersion: number, reason: string): WireGate =>
  */
 export const SINCE_2225 = since(2225, 'added at protocol 2225 (Minecraft 1.26.60)');
 
+/** Sub-chunk request result values moved up by one at protocol 2207. */
+export const SINCE_2207_SUB_CHUNK_RESULTS = since(
+    2207,
+    'renumbered SubChunkRequestResult values at protocol 2207 (Minecraft 1.26.60-preview.21)'
+);
+
 /**
  * The other half of a layout change at 2225: the field as it travelled up to 2193, which
  * 2225 replaced rather than merely extended. A moved or reshaped field is a gated pair,

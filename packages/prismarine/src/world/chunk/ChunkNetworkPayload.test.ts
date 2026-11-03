@@ -1,5 +1,10 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
+import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
+import { HeightMapDataType } from '@jsprismarine/protocol/structure/SubChunkHeightmapData';
+import SubChunkPos from '@jsprismarine/protocol/structure/SubChunkPos';
+import SubChunkPosOffset from '@jsprismarine/protocol/structure/SubChunkPosOffset';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
@@ -7,6 +12,7 @@ import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
 import { encodeSubChunk } from '../providers/leveldb/SubChunkCodec';
 import Chunk from './Chunk';
 import SubChunk from './SubChunk';
+import { ChunkBiomes } from './ChunkBiomes';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf, minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionType } from '../Dimension';
 import { VANILLA_DIMENSION_TYPES } from '../vanillaDimensionTypes';
@@ -149,6 +155,29 @@ describe('world', () => {
             expect(restored.getBlockRuntimeId(1, 1, 1)).toBe(stone());
         });
 
+        it('keeps request-mode biomes aligned when a vanilla column has padded sections', () => {
+            const dimension = SHALLOW_OVERWORLD;
+            const chunk = new Chunk(0, 0, new Map(), dimension);
+            const biomes = new ChunkBiomes(dimension);
+            biomes.fillSection(0, 2);
+            biomes.fillSection(4, 21);
+            chunk.setBiomes(biomes);
+
+            const stream = new BinaryStream(chunk.networkSerializeRequestSkeleton());
+            Chunk.networkDeserialize(stream, 0, 0, 0, dimension);
+            const restoredBiomes = ChunkBiomes.networkDeserialize(
+                stream,
+                dimension,
+                subChunkCount(Dimensions.Overworld),
+                minSubChunk(Dimensions.Overworld)
+            );
+
+            expect(restoredBiomes.get(0, 0, 0)).toBe(2);
+            expect(restoredBiomes.get(0, 64, 0)).toBe(21);
+            expect(stream.readByte()).toBe(0);
+            expect(stream.feof()).toBe(true);
+        });
+
         it('reads a version 9 sub chunk past its index byte', () => {
             // Version 9, no layers, index -4 as a signed byte, then a version 8 record with one
             // layer of air. The index byte used to be taken for the first layer's header.
@@ -189,6 +218,130 @@ describe('world', () => {
                 49, -60, -110
             ]);
             expect(stream.feof()).toBe(true);
+        });
+
+        it('reconstructs request-mode sections, heightmaps, biomes, and block entities', () => {
+            const original = build(Dimensions.Overworld);
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+            biomes.fillSection(-4, 2);
+            biomes.set(3, -10, 4, 21);
+            original.setBiomes(biomes);
+
+            const tag = new NBTTagCompound('');
+            tag.addValue('id', new Types.StringVal('Chest'));
+            tag.addValue('x', new Types.NumberVal(49));
+            tag.addValue('y', new Types.NumberVal(-60));
+            tag.addValue('z', new Types.NumberVal(-110));
+            tag.addValue('isMovable', new Types.ByteVal(1));
+            original.setBlockEntity(BlockEntityRegistry.fromNBT(tag));
+
+            const fullStream = new BinaryStream(original.networkSerialize());
+            const fullPath = Chunk.networkDeserialize(
+                fullStream,
+                original.getX(),
+                original.getZ(),
+                original.getNetworkSubChunkCount(),
+                Dimensions.Overworld
+            );
+            fullPath.setBiomes(ChunkBiomes.networkDeserialize(fullStream, Dimensions.Overworld));
+            expect(fullStream.readByte()).toBe(0);
+            while (!fullStream.feof()) {
+                const reader = new NBTReader(fullStream, ByteOrder.LITTLE_ENDIAN);
+                reader.setUseVarint(true);
+                fullPath.setBlockEntity(BlockEntityRegistry.fromNBT(reader.parse()));
+            }
+
+            const skeletonStream = new BinaryStream(original.networkSerializeRequestSkeleton());
+            const skeleton = Chunk.networkDeserialize(skeletonStream, 3, -7, 0, Dimensions.Overworld);
+            const restoredBiomes = ChunkBiomes.networkDeserialize(skeletonStream, Dimensions.Overworld);
+            expect(skeletonStream.readByte()).toBe(0);
+            expect(skeletonStream.feof()).toBe(true);
+
+            const centerY = 0;
+            const minimumY = minSubChunk(Dimensions.Overworld);
+            const highestRequestY = minimumY + original.getNetworkSubChunkRequestLimit();
+            const entries = [];
+            for (let y = minimumY; y <= highestRequestY; y++) {
+                const serializedSubChunk = original.networkSerializeRequestSubChunk(y);
+                entries.push({
+                    offset: new SubChunkPosOffset(0, y - centerY, 0),
+                    result:
+                        serializedSubChunk.byteLength === 2
+                            ? SubChunkRequestResult.SUCCESS_ALL_AIR
+                            : SubChunkRequestResult.SUCCESS,
+                    serializedSubChunk,
+                    heightMaps: original.networkSubChunkHeightmaps(y)
+                });
+            }
+            const response = new SubChunkPacket({
+                cacheEnabled: false,
+                dimension: Dimensions.Overworld.bedrockId,
+                centerPos: new SubChunkPos(3, centerY, -7),
+                entries
+            });
+            response.codecProtocol = 2193;
+            const responseBuffer = response.serialize(new NetworkBinaryStream());
+            const decodedResponse = new SubChunkPacket();
+            decodedResponse.codecProtocol = 2193;
+            decodedResponse.deserialize(new NetworkBinaryStream(responseBuffer));
+            const decodedData = decodedResponse.getPacketData();
+            if (decodedData === null) throw new Error('Decoded SubChunkPacket data is unavailable');
+
+            const restoredSubChunks = new Map<number, SubChunk>();
+            const restoredEntities: ReturnType<typeof BlockEntityRegistry.fromNBT>[] = [];
+            for (const entry of decodedData.entries) {
+                const y = decodedData.centerPos.y + entry.offset.y;
+                const bytes = entry.serializedSubChunk;
+                if (bytes === undefined) throw new Error(`Uncached response for section ${y} omitted its bytes`);
+
+                const sectionStream = new BinaryStream(bytes);
+                restoredSubChunks.set(y, SubChunk.networkDeserialize(sectionStream));
+                while (!sectionStream.feof()) {
+                    const reader = new NBTReader(sectionStream, ByteOrder.LITTLE_ENDIAN);
+                    reader.setUseVarint(true);
+                    restoredEntities.push(BlockEntityRegistry.fromNBT(reader.parse()));
+                }
+                expect(entry.heightMaps).toEqual(original.networkSubChunkHeightmaps(y));
+            }
+
+            const restored = new Chunk(3, -7, restoredSubChunks, Dimensions.Overworld);
+            restored.setBiomes(restoredBiomes);
+            for (const blockEntity of restoredEntities) restored.setBlockEntity(blockEntity);
+            for (let y = Dimensions.Overworld.minY; y < Dimensions.Overworld.minY + Dimensions.Overworld.height; y++) {
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) {
+                        expect(restored.getBlockRuntimeId(x, y, z)).toBe(fullPath.getBlockRuntimeId(x, y, z));
+                        expect(restored.getBiome(x, y, z)).toBe(fullPath.getBiome(x, y, z));
+                    }
+                }
+            }
+            expect(restored.getBlockEntity(49, -60, -110)?.toNBT().getString('id', '')).toBe('Chest');
+            expect(restored.getBlockEntity(49, -60, -110)?.toNBT().getNumber('y', 0)).toBe(
+                fullPath.getBlockEntity(49, -60, -110)?.toNBT().getNumber('y', 0)
+            );
+            expect(skeleton.getBlockEntity(49, -60, -110)).toBeNull();
+        });
+
+        it('encodes all-too-high, all-too-low, and mixed section heightmaps', () => {
+            const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    chunk.setBlockRuntimeId(x, 70, z, stone());
+                }
+            }
+
+            const allTooHigh = chunk.networkSubChunkHeightmaps(-2);
+            expect(allTooHigh.heightMapType).toBe(HeightMapDataType.ALL_TOO_HIGH);
+            expect(allTooHigh.heightMap).toBeUndefined();
+            expect(allTooHigh.renderHeightMapType).toBe(HeightMapDataType.ALL_COPIED);
+
+            const mixed = chunk.networkSubChunkHeightmaps(4);
+            expect(mixed.heightMapType).toBe(HeightMapDataType.HAS_DATA);
+            expect(mixed.heightMap?.[0]?.[0]).toBe(6);
+
+            const allTooLow = chunk.networkSubChunkHeightmaps(5);
+            expect(allTooLow.heightMapType).toBe(HeightMapDataType.ALL_TOO_LOW);
+            expect(allTooLow.heightMap).toBeUndefined();
         });
 
         it('reconstructs the uncached payload from subchunk, biome, and cached-packet bytes', () => {

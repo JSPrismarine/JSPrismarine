@@ -25,8 +25,8 @@ export interface MissingBlobData {
  * data whose hash does not match the id, so a sender has to use that hash and answer only
  * what was requested.
  *
- * This server keeps the blob cache off and never marks a chunk as cached, so it has no misses
- * to answer and never sends this. The decoder is here for the client package and the tests.
+ * The server answers misses for cached request-mode sub chunks with this packet. The same
+ * packet also supports the older LevelChunk blob layout.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-miss-response-packet/
  * @see https://mojang.github.io/bedrock-protocol-docs/guides/client-cache-miss-response-packet-validation/
  */

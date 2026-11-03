@@ -213,11 +213,91 @@ export class ChunkBiomes {
      * @param stream - The payload being built.
      * @param sectionCount - How many sections the client expects, which is the client's height
      *   for the dimension id rather than this chunk's own sub chunk count.
+     * @param firstSectionIndex - The absolute subchunk index of the first palette in the payload.
      */
-    public networkSerialize(stream: BinaryStream, sectionCount: number): void {
+    public networkSerialize(
+        stream: BinaryStream,
+        sectionCount: number,
+        firstSectionIndex: number = minSubChunk(this.dimension)
+    ): void {
         for (let index = 0; index < sectionCount; index++) {
-            writeNetworkPalette(this.sectionIds(index), stream);
+            const section = firstSectionIndex + index - minSubChunk(this.dimension);
+            writeNetworkPalette(this.sectionIds(section), stream);
         }
+    }
+
+    /**
+     * Reads the biome palettes carried after a request-mode chunk's zero subchunk count.
+     * @param stream - The payload positioned at the first biome palette.
+     * @param dimension - The chunk's own dimension bounds.
+     * @param sectionCount - The number of palettes in the client column.
+     * @param firstSectionIndex - The absolute subchunk index of the first palette.
+     */
+    public static networkDeserialize(
+        stream: BinaryStream,
+        dimension: DimensionType,
+        sectionCount: number = subChunkCount(dimension),
+        firstSectionIndex: number = minSubChunk(dimension)
+    ): ChunkBiomes {
+        const biomes = new ChunkBiomes(dimension);
+        let previous: PackedSection | undefined;
+
+        for (let index = 0; index < sectionCount; index++) {
+            const sectionIndex = firstSectionIndex + index - minSubChunk(dimension);
+            const header = stream.readByte();
+            if (header === 0xff) {
+                if (index === 0) throw new Error('The first biome section cannot inherit from below');
+                if (previous === undefined) throw new Error('A biome section inherited from a missing section');
+                if (sectionIndex >= 0 && sectionIndex < biomes.sections.length)
+                    biomes.sections[sectionIndex] = previous;
+                continue;
+            }
+            if ((header & 1) === 0) throw new Error(`Expected a network biome palette header, got ${header}`);
+
+            const bitsPerBlock = header >>> 1;
+            if (bitsPerBlock === 0) {
+                const biome = stream.readVarInt();
+                biomes.requireBiomeId(biome);
+                previous = biome;
+                if (sectionIndex >= 0 && sectionIndex < biomes.sections.length) biomes.sections[sectionIndex] = biome;
+                continue;
+            }
+            if (!VALID_BITS_PER_BLOCK.includes(bitsPerBlock)) {
+                throw new Error(`Unsupported biome palette width ${bitsPerBlock}`);
+            }
+
+            const perWord = Math.floor(32 / bitsPerBlock);
+            const wordCount = Math.ceil(BLOCKS_PER_SUBCHUNK / perWord);
+            const words = new Uint32Array(wordCount);
+            for (let word = 0; word < wordCount; word++) words[word] = stream.readIntLE() >>> 0;
+
+            const paletteSize = stream.readVarInt();
+            if (!Number.isInteger(paletteSize) || paletteSize <= 0 || paletteSize > MAX_BIOME_ID + 1) {
+                throw new Error(`Invalid biome palette size ${paletteSize}`);
+            }
+            const palette = new Uint16Array(paletteSize);
+            for (let paletteIndex = 0; paletteIndex < paletteSize; paletteIndex++) {
+                const biome = stream.readVarInt();
+                biomes.requireBiomeId(biome);
+                palette[paletteIndex] = biome;
+            }
+
+            const ids = new Int32Array(BLOCKS_PER_SUBCHUNK);
+            const mask = (1 << bitsPerBlock) - 1;
+            for (let block = 0; block < BLOCKS_PER_SUBCHUNK; block++) {
+                const word = words[Math.floor(block / perWord)]!;
+                const slot = block % perWord;
+                const paletteIndex = (word >>> (slot * bitsPerBlock)) & mask;
+                const biome = palette[paletteIndex];
+                if (biome === undefined) throw new Error(`Biome palette index ${paletteIndex} is out of range`);
+                ids[block] = biome;
+            }
+
+            previous = packSection(ids);
+            if (sectionIndex >= 0 && sectionIndex < biomes.sections.length) biomes.sections[sectionIndex] = previous;
+        }
+
+        return biomes;
     }
 
     private sectionIndexOf(y: number): number {
