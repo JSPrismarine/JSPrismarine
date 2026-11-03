@@ -23,7 +23,7 @@
  */
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
-import { GameRuleType } from '../../packet/StartGamePacket';
+import { GameRuleType } from '../../packet/GameRuleType';
 import { definePacket, gated } from '../define';
 import * as t from '../fieldTypes';
 import { SINCE_2225 } from '../wireGates';

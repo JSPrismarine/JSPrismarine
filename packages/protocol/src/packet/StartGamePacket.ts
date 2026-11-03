@@ -4,22 +4,17 @@ import type { ProtocolContext } from '../ProtocolContext';
 import { startGamePacket } from '../wire/definitions/startGame';
 import { layoutAt } from '../wire/WireLayout';
 import { SINCE_2225 } from '../wire/wireGates';
+import { GameRuleType } from './GameRuleType';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+
+export { GameRuleType };
 
 /** Coordinates used by the player position and world spawn fields in `StartGamePacket`. */
 export interface Vec3Like {
     x: number;
     y: number;
     z: number;
-}
-
-/** What kind of value a game rule carries, which is written in front of the value. */
-export enum GameRuleType {
-    NONE = 0,
-    BOOL = 1,
-    INT = 2,
-    FLOAT = 3
 }
 
 /** `EditorLevelMigrationVersion` values carried from protocol 2225. */
