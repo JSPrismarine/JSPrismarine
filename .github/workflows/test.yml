@@ -30,9 +30,9 @@ jobs:
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/vitest
-                  key: ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'vitest.workspace.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
+                  key: ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
                   restore-keys: |
-                      ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'vitest.workspace.ts', 'packages/**/vitest.config.ts') }}-
+                      ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
 
             - name: 🔨 Build
               run: pnpm run build
