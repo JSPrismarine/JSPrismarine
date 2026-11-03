@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "benchmark": "prismarine-bot-fleet",
+    "terrain": "flat",
+    "workloadDigest": "62c433af6952556c880c5e3ffe9fd923babbe070e779a83f35c928ea85255d32",
+    "environment": {
+        "arch": "arm64",
+        "cpuModel": "Apple M1 Pro",
+        "nodeMajor": 26,
+        "platform": "darwin"
+    },
+    "maxRegressionPercent": 40,
+    "cpuUsPerTick": {
+        "join": 17312.8225,
+        "steady": 26997.725,
+        "crowd": 25208.9775
+    }
+}
