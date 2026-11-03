@@ -102,7 +102,7 @@ describe('what a worker is handed', () => {
 
         await expect(
             Promise.resolve(pipeline.run({ status: 'full', chunkX: 3, chunkZ: -4, dimension: 0, input: { seed: '1' } }))
-        ).rejects.toThrowError('The chunk task at 3, -4 carries no seed and pipeline key.');
+        ).rejects.toThrowError('The chunk task at 3, -4 carries no seed, pipeline key and valid start plans.');
         await expect(
             Promise.resolve(
                 pipeline.run({
