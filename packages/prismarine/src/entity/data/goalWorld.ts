@@ -129,6 +129,12 @@ const randomPosition = (
 /** How many positions a random walk draws before giving up, as Java's `RandomPos` does. */
 const RANDOM_TARGET_ATTEMPTS = 10;
 
+/** Looks up a player without rebuilding or scanning the host list when an index exists. */
+const playerById = (scene: EntityScene, id: number) => {
+    const indexed = scene.host.playerById;
+    return indexed === undefined ? scene.host.players().find((player) => player.id === id) : indexed(id);
+};
+
 /** The nearest player within a distance, or undefined when there is none. */
 const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: number) => {
     let nearest: { position: EntityPosition; away: number } | undefined;
@@ -174,7 +180,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         },
         isAttackable: (mob) => {
             if (mob.identifier?.() === 'minecraft:player' && typeof mob.id === 'number') {
-                const player = scene.host.players().find((candidate) => candidate.id === mob.id);
+                const player = playerById(scene, mob.id);
                 const attacker = scene.byId(entity.id);
                 return (
                     player !== undefined &&

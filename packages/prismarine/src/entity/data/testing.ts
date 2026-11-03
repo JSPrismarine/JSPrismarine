@@ -388,6 +388,10 @@ export class TestEntityWorld {
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
+    /** Number of host player-list reads, used to assert the runtime's tick snapshot. */
+    public playerListReads = 0;
+    /** A synchronous host-side player mutation a test can perform after damage. */
+    public onHurt: ((id: number) => void) | undefined;
     /** The raid state the host reports, which a test may replace between ticks. */
     public villagerRaidState: VillagerRaidState | undefined;
 
@@ -472,7 +476,10 @@ export class TestEntityWorld {
      */
     public get host(): EntityHostFacts {
         return {
-            players: () => this.players,
+            players: () => {
+                this.playerListReads += 1;
+                return this.players;
+            },
             drop: (position, item) => {
                 this.drops.push({ position, item });
                 this.lying.set(this.nextItemId, { id: this.nextItemId, position, item });
@@ -490,14 +497,16 @@ export class TestEntityWorld {
                 else this.lying.set(id, { ...found, item: { ...found.item, count: remaining } });
                 return { ...found.item, count: takenCount };
             },
-            hurt: (id, amount, cause, sourceId, deathMessageOverride) =>
+            hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
                 this.hits.push({
                     id,
                     amount,
                     cause,
                     sourceId,
                     ...(deathMessageOverride === undefined ? {} : { deathMessageOverride })
-                }),
+                });
+                this.onHurt?.(id);
+            },
             applySonicBoom: (id, amount, sourceId, impulse) =>
                 this.sonicBoomHits.push({ id, amount, sourceId, impulse }),
             villagerRaidStateAt: () => this.villagerRaidState,

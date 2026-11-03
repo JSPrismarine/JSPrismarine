@@ -932,6 +932,18 @@ describe('the data-driven entity runtime over a live world', () => {
         );
     };
 
+    it('reuses the live player filter view while reading current player state', () => {
+        const player = addPlayer(0, 0);
+        const id = Number(player.getRuntimeId());
+        const first = live.runtime.host.playerView?.(id);
+        const second = live.runtime.host.playerView?.(id);
+
+        expect(first).toBeDefined();
+        expect(second).toBe(first);
+        player.addTag('changed-during-runtime');
+        expect(first?.names?.('has_tag')).toContain('changed-during-runtime');
+    });
+
     it('queries nearby dropped items by live spatial candidates and keeps exact nearest-first ties', async () => {
         const addItem = async (x: number, y: number, z: number): Promise<ItemEntity> => {
             const item = new ItemEntity({

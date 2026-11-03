@@ -66,7 +66,13 @@ const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
           };
 
 /** The live player's family and equipment, which `minecraft:interact` filters inspect. */
+const playerFilterViews = new WeakMap<Player, FilterEntityView>();
+
+/** Reuses a player's filter closures while they continue to read that player's live state. */
 const playerFilterView = (player: Player): FilterEntityView => {
+    const cached = playerFilterViews.get(player);
+    if (cached !== undefined) return cached;
+
     const inventory = player.getInventory();
     const armorSlots = new Map<EquipmentSlot, number>([
         ['head', 0],
@@ -124,7 +130,7 @@ const playerFilterView = (player: Player): FilterEntityView => {
                 return 1;
         }
     };
-    return {
+    const view: FilterEntityView = {
         id: () => Number(player.getRuntimeId()),
         names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.getTags() : undefined),
         flag: (name) => {
@@ -150,6 +156,8 @@ const playerFilterView = (player: Player): FilterEntityView => {
             return false;
         }
     };
+    playerFilterViews.set(player, view);
+    return view;
 };
 
 /** What {@link EntityRuntimes.open} is given for one dimension. */

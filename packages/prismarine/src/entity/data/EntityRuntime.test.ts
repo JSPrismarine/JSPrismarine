@@ -50,6 +50,64 @@ const moverRuntime = (world = new TestEntityWorld()) =>
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
 describe('EntityRuntime', () => {
+    describe('player snapshots', () => {
+        it('reads one host player list for an unchanged runtime tick', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 99, identifier: 'minecraft:player', position: GROUND }]
+            });
+            const { runtime } = runtimeOf(world);
+            world.playerListReads = 0;
+
+            runtime.tick(1);
+
+            expect(world.playerListReads).toBe(1);
+        });
+
+        it('refreshes the player snapshot after an earlier mob damages a player', () => {
+            const player: ContentEntity = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: GROUND
+            };
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:area_attacker': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:area_attack': {
+                                cause: 'entity_attack',
+                                damage_per_tick: 2,
+                                damage_range: 0.15,
+                                entity_filter: { test: 'is_family', subject: 'other', value: 'player' }
+                            }
+                        }
+                    }
+                }
+            );
+            const attacker = runtime.spawn('jsprismarine:area_attacker', GROUND);
+            const observer = runtime.spawn('minecraft:cow', { ...GROUND, x: 8 });
+            if (attacker === undefined || observer === undefined)
+                throw new Error('the fixture declares no area attacker or cow');
+            for (let tick = 1; tick <= 50; tick += 1) runtime.tick(tick);
+            world.players = [player];
+            world.onHurt = (id) => {
+                if (id === player.id) world.players = [{ ...player, position: { ...GROUND, x: 1000 } }];
+            };
+            world.playerListReads = 0;
+
+            runtime.tick(51);
+
+            expect(world.hits).toHaveLength(1);
+            expect(observer.instance.noActionTime).toBe(51);
+            expect(world.playerListReads).toBe(2);
+        });
+    });
+
     describe('mob inactivity', () => {
         it('resets Java no-action time only while a player is strictly within 32 blocks', () => {
             const world = new TestEntityWorld();

@@ -42,6 +42,12 @@ import { DEFAULT_BOX, PLAYER_BOX } from './facts';
 /** How far a sensor may look for a non-combat target when the type declares no follow range. */
 const DEFAULT_FOLLOW_RANGE = 16;
 
+/** Looks up a player through the tick index when the scene supplies one. */
+const playerById = (scene: EntityScene, id: number) => {
+    const indexed = scene.host.playerById;
+    return indexed === undefined ? scene.host.players().find((player) => player.id === id) : indexed(id);
+};
+
 /** One live entity as a brain sees it. */
 export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEntity => ({
     id: String(entity.id),
@@ -78,7 +84,7 @@ const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity =
     baby: false,
     spectator: player.spectator === true,
     canBeTargeted: () => {
-        const current = scene.host.players().find((candidate) => candidate.id === player.id);
+        const current = playerById(scene, player.id);
         return current !== undefined && current.creative !== true && current.spectator !== true;
     },
     conditions: new Set()

@@ -344,6 +344,11 @@ export interface EntityRuntimeOptions {
     nextId?(): number;
 }
 
+/** The host view exposed to the runtime, with its per-tick player index. */
+interface RuntimeEntityHostFacts extends EntityHostFacts {
+    playerById(id: number): ContentEntity | undefined;
+}
+
 /** One entity's registration in the world's game-event listener registry. */
 interface EntityGameEventRegistration {
     readonly listener: GameEventListener;
@@ -353,7 +358,12 @@ interface EntityGameEventRegistration {
 /** The live entities of one dimension, and the AI that drives them. */
 export class EntityRuntime implements EntityScene {
     public readonly world: EntityWorldFacts;
-    public readonly host: EntityHostFacts;
+    public readonly host: RuntimeEntityHostFacts;
+
+    private readonly sourceHost: EntityHostFacts;
+    private inTick = false;
+    private playerSnapshot: readonly ContentEntity[] | undefined;
+    private playersById: ReadonlyMap<number, ContentEntity> | undefined;
 
     private readonly entities = new Map<number, DataEntity>();
     /** Lethal hits waiting for their queued `minecraft:on_death` events to apply. */
@@ -432,7 +442,69 @@ export class EntityRuntime implements EntityScene {
     public constructor(options: EntityRuntimeOptions) {
         this.lookupContent = options.content;
         this.world = options.world;
-        this.host = options.host;
+        this.sourceHost = options.host;
+        const host: RuntimeEntityHostFacts = {
+            ...options.host,
+            players: () => this.playersForCurrentContext(),
+            playerById: (id) => this.playerForCurrentContext(id)
+        };
+        // Host effects can synchronously change a player's position or eligibility before the
+        // next mob in this same selector pass reads it, so that next lookup must get a fresh row.
+        const invalidatePlayerAfter = (id: number): void => {
+            if (this.inTick && this.playersById?.has(id) === true) this.invalidatePlayerSnapshot();
+        };
+        if (options.host.hurt !== undefined) {
+            const hurt = options.host.hurt;
+            host.hurt = (id, amount, cause, sourceId, deathMessageOverride) => {
+                hurt(id, amount, cause, sourceId, deathMessageOverride);
+                invalidatePlayerAfter(id);
+            };
+        }
+        if (options.host.hurtByProjectile !== undefined) {
+            const hurtByProjectile = options.host.hurtByProjectile;
+            host.hurtByProjectile = (id, amount, projectileId, ownerId) => {
+                hurtByProjectile(id, amount, projectileId, ownerId);
+                invalidatePlayerAfter(id);
+            };
+        }
+        if (options.host.applySonicBoom !== undefined) {
+            const applySonicBoom = options.host.applySonicBoom;
+            host.applySonicBoom = (id, amount, sourceId, impulse) => {
+                applySonicBoom(id, amount, sourceId, impulse);
+                invalidatePlayerAfter(id);
+            };
+        }
+        if (options.host.applyStatusEffect !== undefined) {
+            const applyStatusEffect = options.host.applyStatusEffect;
+            host.applyStatusEffect = (id, effect) => {
+                applyStatusEffect(id, effect);
+                invalidatePlayerAfter(id);
+            };
+        }
+        if (options.host.applyStatusEffectIfChanged !== undefined) {
+            const applyStatusEffectIfChanged = options.host.applyStatusEffectIfChanged;
+            host.applyStatusEffectIfChanged = (id, effect) => {
+                const changed = applyStatusEffectIfChanged(id, effect);
+                if (changed) invalidatePlayerAfter(id);
+                return changed;
+            };
+        }
+        if (options.host.removeStatusEffect !== undefined) {
+            const removeStatusEffect = options.host.removeStatusEffect;
+            host.removeStatusEffect = (id, identifier) => {
+                const removed = removeStatusEffect(id, identifier);
+                if (removed) invalidatePlayerAfter(id);
+                return removed;
+            };
+        }
+        if (options.host.knockback !== undefined) {
+            const knockback = options.host.knockback;
+            host.knockback = (id, directionX, directionZ, strength) => {
+                knockback(id, directionX, directionZ, strength);
+                invalidatePlayerAfter(id);
+            };
+        }
+        this.host = host;
         this.onReport = options.report ?? (() => undefined);
         this.onSpawn = options.onSpawn ?? (() => undefined);
         this.onRemove = options.onRemove ?? (() => undefined);
@@ -958,6 +1030,18 @@ export class EntityRuntime implements EntityScene {
      * @param shouldTick - Optional chunk eligibility rule; omitted callers tick every entity.
      */
     public tick(tick: number, shouldTick?: (position: EntityPosition) => boolean): void {
+        this.inTick = true;
+        try {
+            this.refreshPlayerSnapshot();
+            this.tickEntities(tick, shouldTick);
+        } finally {
+            this.inTick = false;
+            this.invalidatePlayerSnapshot();
+        }
+    }
+
+    /** The per-tick entity work, after the host player snapshot has been taken. */
+    private tickEntities(tick: number, shouldTick?: (position: EntityPosition) => boolean): void {
         this.refreshOnlineOwners();
         this.interest.resetBlockCache();
         if (this.navigationView?.persistsAcrossTicks !== true) this.navigationView?.invalidateBlockCache();
@@ -1012,6 +1096,36 @@ export class EntityRuntime implements EntityScene {
         }
         this.runSpawnCycle(tick);
         this.runDespawnCycle(shouldTick);
+    }
+
+    /** Builds the current tick's player list and id index from the host's live view. */
+    private refreshPlayerSnapshot(): void {
+        const snapshot = this.sourceHost.players();
+        this.playerSnapshot = snapshot;
+        this.playersById = new Map(snapshot.map((player) => [player.id, player]));
+    }
+
+    /** The host's live player list outside a tick, or the shared tick snapshot inside one. */
+    private playersForCurrentContext(): readonly ContentEntity[] {
+        if (!this.inTick) return this.sourceHost.players();
+        if (this.playerSnapshot === undefined) this.refreshPlayerSnapshot();
+        return this.playerSnapshot ?? [];
+    }
+
+    /** Resolves one player without scanning the shared list. */
+    private playerForCurrentContext(id: number): ContentEntity | undefined {
+        if (!this.inTick) {
+            if (this.sourceHost.playerById !== undefined) return this.sourceHost.playerById(id);
+            return this.sourceHost.players().find((player) => player.id === id);
+        }
+        if (this.playersById === undefined) this.refreshPlayerSnapshot();
+        return this.playersById?.get(id);
+    }
+
+    /** Drops both projections after a host action changes a player during this tick. */
+    private invalidatePlayerSnapshot(): void {
+        this.playerSnapshot = undefined;
+        this.playersById = undefined;
     }
 
     /** Mirrors `Mob.checkDespawn`: a player strictly inside 32 blocks resets idle time. */
@@ -1326,7 +1440,7 @@ export class EntityRuntime implements EntityScene {
         const entity = this.entities.get(id);
         if (entity !== undefined) return goalMobOf(entity, this);
 
-        const player = this.host.players().find((candidate) => candidate.id === id);
+        const player = this.host.playerById(id);
         return player === undefined
             ? undefined
             : playerGoalMob(
@@ -1668,7 +1782,7 @@ export class EntityRuntime implements EntityScene {
         if (cause === DamageCause.SelfDestruct) return amount;
 
         const isExplosion = cause === 'entity_explosion' || cause === 'block_explosion';
-        const fromPlayer = sourceId !== undefined && this.host.players().some((player) => player.id === sourceId);
+        const fromPlayer = sourceId !== undefined && this.host.playerById(sourceId) !== undefined;
         if (!isExplosion && !fromPlayer) return undefined;
 
         const scaled = amount / 4 + Math.min(amount, 1);
@@ -1738,7 +1852,7 @@ export class EntityRuntime implements EntityScene {
             }
 
             if (targetId !== undefined && targetView !== undefined) {
-                const targetPlayer = this.host.players().find((player) => player.id === targetId);
+                const targetPlayer = this.host.playerById(targetId);
                 if (targetPlayer?.creative === true || targetPlayer?.spectator === true) continue;
                 if (!canEntityAttackView(candidate.instance, targetView)) continue;
 
@@ -2810,7 +2924,7 @@ export class EntityRuntime implements EntityScene {
         itemIdentifier: string
     ): readonly ContentItemDrop[] {
         const source = this.lootEntityViewOf(entity);
-        const player = this.host.players().find((candidate) => candidate.id === owner);
+        const player = this.host.playerById(owner);
         const sourceMob = this.mobById(owner);
         const origin = player?.position ?? sourceMob?.position() ?? entity.position;
         const tool: ItemStack = { id: itemIdentifier, count: 1, components: new Map() };
@@ -2939,8 +3053,7 @@ export class EntityRuntime implements EntityScene {
 
         const target = this.entities.get(targetId);
         if (target?.removed !== undefined) return;
-        const player =
-            target === undefined ? this.host.players().find((candidate) => candidate.id === targetId) : undefined;
+        const player = target === undefined ? this.host.playerById(targetId) : undefined;
         const targetPosition = target?.position ?? player?.position;
         if (targetPosition === undefined) return;
 

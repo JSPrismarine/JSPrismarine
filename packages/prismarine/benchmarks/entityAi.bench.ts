@@ -6,14 +6,17 @@
  * `zombie.json` declares, and the goals run against the real `EntityRuntime`,
  * the real goal world and the real path finder. Set `ENTITY_AI_REAL_CHUNKS=1`
  * to back a 441-chunk scene with production `Chunk` storage and report its
- * underlying runtime-id reads.
+ * underlying runtime-id reads. Set `ENTITY_AI_LIVE_PLAYERS=1` to model the live
+ * adapter's per-read player-list mapping and report snapshot/view allocations.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
  * Production-shaped run: ENTITY_AI_REAL_CHUNKS=1 ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
+ * Player allocation run: ENTITY_AI_LIVE_PLAYERS=1 ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
-import type { EntityPosition } from '@jsprismarine/entities';
+import type { EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import { singleDimension } from '../src/content/world/adapter';
@@ -36,6 +39,7 @@ import Chunk from '../src/world/chunk/Chunk';
 /** The y the flat floor's top sits at; everything above it is air. */
 const FLOOR_Y = 63;
 const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1';
+const PRODUCTION_PLAYERS = process.env.ENTITY_AI_LIVE_PLAYERS === '1';
 const CHUNK_RADIUS = PRODUCTION_CHUNKS ? 10 : 0;
 const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
 const SPREAD = PRODUCTION_CHUNKS ? 320 : 64;
@@ -149,12 +153,32 @@ const benchWorld = (random: RandomSource, blockReads: { count: number }) => {
     return world;
 };
 
-/** The host facts, with a player index a test can replace. */
-const benchHost = (players: readonly ContentEntity[]) => {
+/** The host facts, with optional live-adapter allocation behavior and reusable player views. */
+const benchHost = (players: readonly ContentEntity[], allocations: { playerLists: number; playerViews: number }) => {
     const lying = new Map<number, ContentItemEntity>();
+    const viewByPlayer = new WeakMap<ContentEntity, FilterEntityView>();
     let nextItemId = 1;
     const host: EntityHostFacts = {
-        players: () => players,
+        players: () => {
+            if (!PRODUCTION_PLAYERS) return players;
+            allocations.playerLists += 1;
+            // The live world adapter maps stable Player objects to fresh content views.
+            return players.map((player) => ({ ...player, position: { ...player.position } }));
+        },
+        playerView: (id) => {
+            const player = players.find((candidate) => candidate.id === id);
+            if (player === undefined) return undefined;
+            const cached = viewByPlayer.get(player);
+            if (cached !== undefined) return cached;
+
+            allocations.playerViews += 1;
+            const view: FilterEntityView = {
+                id: () => id,
+                names: (name) => (name === 'is_family' ? ['player'] : undefined)
+            };
+            viewByPlayer.set(player, view);
+            return view;
+        },
         drop: (position, item: ContentItemDrop) => {
             lying.set(nextItemId, { id: nextItemId, position, item });
             nextItemId += 1;
@@ -219,7 +243,8 @@ const scenario = (count: number, seed: number) => {
             };
         }
     };
-    const host = benchHost(players);
+    const allocations = { playerLists: 0, playerViews: 0 };
+    const host = benchHost(players, allocations);
 
     let content: ServerContent | undefined;
     const runtime = new EntityRuntime({
@@ -271,6 +296,7 @@ const scenario = (count: number, seed: number) => {
         content,
         walkPlayers,
         blockReads,
+        allocations,
         startBreeding: () => breedingIds.forEach((id) => runtime.setInLove(id, 400))
     };
 };
@@ -280,8 +306,13 @@ const run = (
     count: number,
     tickCount: number,
     seed: number
-): { readonly times: readonly number[]; readonly measuredBlockReads: number } => {
-    const { runtime, walkPlayers, blockReads, startBreeding } = scenario(count, seed);
+): {
+    readonly times: readonly number[];
+    readonly measuredBlockReads: number;
+    readonly measuredPlayerLists: number;
+    readonly playerViewsCreated: number;
+} => {
+    const { runtime, walkPlayers, blockReads, allocations, startBreeding } = scenario(count, seed);
     const times: number[] = [];
     for (let tick = 0; tick < WARMUP; tick += 1) {
         walkPlayers(tick);
@@ -289,6 +320,7 @@ const run = (
     }
 
     const readsBeforeMeasure = blockReads.count;
+    const playerListsBeforeMeasure = allocations.playerLists;
     startBreeding();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
@@ -296,7 +328,12 @@ const run = (
         runtime.tick(tick);
         times.push(performance.now() - started);
     }
-    return { times, measuredBlockReads: blockReads.count - readsBeforeMeasure };
+    return {
+        times,
+        measuredBlockReads: blockReads.count - readsBeforeMeasure,
+        measuredPlayerLists: allocations.playerLists - playerListsBeforeMeasure,
+        playerViewsCreated: allocations.playerViews
+    };
 };
 
 /** The value at a percentile of a sample, nearest-rank. */
@@ -326,7 +363,8 @@ const report = (count: number): void => {
         row.join('  ') +
             `  (${BREEDING_PAIRS > 0 ? `${BREEDING_PAIRS} breeding pairs, ` : ''}` +
             `${result.measuredBlockReads} measured block reads` +
-            `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''})`
+            `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''}` +
+            `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''})`
     );
 };
 

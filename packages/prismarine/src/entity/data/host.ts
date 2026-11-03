@@ -54,6 +54,8 @@ export interface EntityWorldFacts {
 export interface EntityHostFacts {
     /** Every player in the dimension. */
     players(): readonly ContentEntity[];
+    /** One player in the dimension by runtime id, when the host can index players directly. */
+    playerById?(id: number): ContentEntity | undefined;
     /** A live player's full entity-filter view, or undefined when the player has left. */
     playerView?(id: number): FilterEntityView | undefined;
     /** Stable identity of a player runtime id, or undefined when it names no player. */
