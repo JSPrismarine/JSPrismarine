@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Timer from './Timer';
 
 describe('utils', () => {
@@ -6,6 +6,8 @@ describe('utils', () => {
         let timer: Timer;
 
         beforeEach(() => {
+            // This suite measures elapsed wall time; workers can retain fake timers across files.
+            vi.useRealTimers();
             timer = new Timer();
         });
 

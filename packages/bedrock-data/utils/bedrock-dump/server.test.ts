@@ -3,13 +3,15 @@ import { access, chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { COMMON_PROPERTIES, READY_LINE, renderServerProperties, stageServer, startServer } from './server.ts';
 
 let workspace: string;
 
 beforeEach(async () => {
+    // This file waits on real child-process and timeout events; workers can retain fake timers across files.
+    vi.useRealTimers();
     workspace = await mkdtemp(join(tmpdir(), 'jsp-bedrock-dump-'));
 });
 
