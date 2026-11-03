@@ -16,12 +16,13 @@
  * See {@link PackStackRequest.bedrockPacks} for why, and for how to ask for
  * the rest.
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 
 import type { Diagnostic } from '@jsprismarine/content';
-import type { BedrockPackSource, PackSource, PackStack } from '@jsprismarine/packs';
+import type { BedrockPackSource, PackSource, PackStack, PrefixCacheOptions } from '@jsprismarine/packs';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 
 /** Points the resolver at a local copy of one fetched source. */
@@ -67,6 +68,8 @@ export interface PackStackRequest {
 export interface ResolvedPackStack {
     readonly stack: PackStack;
     readonly diagnostics: readonly Diagnostic[];
+    /** The immutable vanilla prefix cache used by the default content loader, when available. */
+    readonly cache?: PrefixCacheOptions;
 }
 
 const nodeModuleResolver = createRequire(import.meta.url);
@@ -103,6 +106,33 @@ const searchUp = (...segments: readonly string[]): string | undefined => {
  */
 const cacheRoot = (): string =>
     searchUp('.cache', 'jsprismarine') ?? join(process.cwd(), 'node_modules', '.cache', 'jsprismarine');
+
+/** Hashes overlay paths and bytes so edits at an unchanged checkout path invalidate the cache. */
+export const fingerprintPackDirectories = (directories: readonly string[]): string => {
+    const files: Array<{ readonly key: string; readonly path: string }> = [];
+    for (const [index, directory] of directories.entries()) {
+        for (const entry of readdirSync(directory, { recursive: true, withFileTypes: true })) {
+            if (!entry.isFile()) continue;
+            const path = join(entry.parentPath, entry.name);
+            files.push({ key: `${index}/${relative(directory, path).split(sep).join('/')}`, path });
+        }
+    }
+
+    files.sort((left, right) => left.key.localeCompare(right.key));
+    const hash = createHash('sha256');
+    for (const file of files) hash.update(file.key).update('\0').update(readFileSync(file.path)).update('\0');
+    return hash.digest('hex');
+};
+
+/** The current packs package version, which is one of the cache's invalidation inputs. */
+const packsVersion = (): string | undefined => {
+    const path = resolveFrom('@jsprismarine/packs/package.json');
+    if (path === undefined) return undefined;
+
+    const manifest: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    if (typeof manifest !== 'object' || manifest === null || !('version' in manifest)) return undefined;
+    return typeof manifest.version === 'string' ? manifest.version : undefined;
+};
 
 /**
  * Where one fetched source is.
@@ -202,6 +232,8 @@ export const entityOverlayPackPath = (): string => {
 export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackStack => {
     const stack: PackSource[] = [];
     const diagnostics: Diagnostic[] = [];
+    const overlayDirectories: string[] = [];
+    let prefixLength = 0;
 
     const missing = (member: string, where: string): void => {
         diagnostics.push({
@@ -218,9 +250,13 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         const layers = sourcePath(override, () => bdsBehaviorPacks(join(root, 'bds')));
         const loose = layers || override ? undefined : samplesBehaviorPack(join(root, 'bedrock-samples'));
 
-        if (layers) stack.push(bedrockSource(layers, request.bedrockPacks ?? [VANILLA_BEHAVIOR_PACK_UUID]));
-        else if (loose) stack.push({ kind: 'directory', path: loose });
-        else {
+        if (layers) {
+            stack.push(bedrockSource(layers, request.bedrockPacks ?? [VANILLA_BEHAVIOR_PACK_UUID]));
+            prefixLength = stack.length;
+        } else if (loose) {
+            stack.push({ kind: 'directory', path: loose });
+            prefixLength = stack.length;
+        } else {
             missing(
                 'the vanilla Bedrock behavior pack',
                 `run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` or set ${PACK_STACK_ENV.vanillaBedrockPack}`
@@ -230,19 +266,27 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
 
     if (request.overlay !== false) {
         const overlay = overlayPackPath();
-        if (existsSync(overlay)) stack.push({ kind: 'directory', path: overlay });
-        else missing('the jsprismarine_vanilla overlay', 'reinstall @jsprismarine/blocks');
+        if (existsSync(overlay)) {
+            stack.push({ kind: 'directory', path: overlay });
+            overlayDirectories.push(overlay);
+            prefixLength = stack.length;
+        } else missing('the jsprismarine_vanilla overlay', 'reinstall @jsprismarine/blocks');
 
         const entityOverlay = entityOverlayPackPath();
-        if (existsSync(entityOverlay)) stack.push({ kind: 'directory', path: entityOverlay });
-        else missing('the jsprismarine entity overlay', 'reinstall @jsprismarine/entities');
+        if (existsSync(entityOverlay)) {
+            stack.push({ kind: 'directory', path: entityOverlay });
+            overlayDirectories.push(entityOverlay);
+            prefixLength = stack.length;
+        } else missing('the jsprismarine entity overlay', 'reinstall @jsprismarine/entities');
     }
 
     if (request.javaVanilla !== false) {
         const override = process.env[PACK_STACK_ENV.vanillaDatapack];
         const datapack = sourcePath(override, () => vanillaDatapack(join(cacheRoot(), 'vanilla-datapack')));
-        if (datapack) stack.push({ kind: 'datapack', path: datapack });
-        else {
+        if (datapack) {
+            stack.push({ kind: 'datapack', path: datapack });
+            prefixLength = stack.length;
+        } else {
             missing(
                 'the Java vanilla datapack',
                 'run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` or set ' +
@@ -251,7 +295,18 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         }
     }
 
+    const version = packsVersion();
+    const cache: PrefixCacheOptions | undefined =
+        prefixLength > 0 && version !== undefined
+            ? {
+                  filePath: join(cacheRoot(), 'composed-vanilla-prefix.v8'),
+                  prefixLength,
+                  fingerprint: fingerprintPackDirectories(overlayDirectories),
+                  validatorKey: 'structural-validator-v1'
+              }
+            : undefined;
+
     stack.push(...(request.worldPacks ?? []), ...(request.pluginPacks ?? []));
 
-    return { stack, diagnostics };
+    return cache === undefined ? { stack, diagnostics } : { stack, diagnostics, cache };
 };

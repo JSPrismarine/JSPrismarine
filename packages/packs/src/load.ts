@@ -8,6 +8,8 @@ import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
 import type { RegistryId } from './registries';
 import { identifierForDefinition, isPathAddressedRegistry, routeForPath } from './registries';
+import type { PrefixCacheOptions } from './prefixCache';
+import { prefixCacheKeyFor, readPrefixCache, writePrefixCache } from './prefixCache';
 import type { PackFileFilter, PackFiles, PackStack } from './sources';
 import { expandSource } from './sources';
 import type { DefinitionValidator } from './validation';
@@ -40,6 +42,8 @@ export interface LoadOptions {
     strict?: boolean;
     /** Replaces the structural validator, so schema-based validation can take over. */
     validator?: DefinitionValidator;
+    /** Caches an immutable leading prefix as one V8 file, then composes later sources on every load. */
+    cache?: PrefixCacheOptions;
 }
 
 /** What {@link load} returns: the composed definitions plus the full report. */
@@ -93,9 +97,8 @@ const expandStack = (stack: PackStack): StackUnit[] =>
     });
 
 /**
- * Finds the packs whose manifests allow them to participate in the stack.
- * This preflight lets path-addressed files skip only when a later pack will
- * actually load; a later pack with a broken manifest cannot replace anything.
+ * Finds packs whose manifests allow them to participate in the stack.
+ * A later malformed pack cannot supersede an earlier file.
  */
 const packsWithLoadableManifest = (units: readonly StackUnit[]): Set<PackFiles> => {
     const loadable = new Set<PackFiles>();
@@ -108,14 +111,18 @@ const packsWithLoadableManifest = (units: readonly StackUnit[]): Set<PackFiles> 
                 const parsed = parseLenientJson(decoder.decode(bytes));
                 if (parseManifest(parsed, pack.origin).manifest !== undefined) loadable.add(pack);
             } catch {
-                // loadManifest reports the parse failure during the normal ordered load below.
+                // loadManifest reports parse failures during the ordered load below.
             }
         }
     }
     return loadable;
 };
 
-/** Maps each path to the last loadable Bedrock pack that provides it. */
+/**
+ * Maps each Bedrock pack-relative path to the last pack in the stack that
+ * provides it, which is the pack whose copy of the file the composed result
+ * uses.
+ */
 const lastProviderOfPath = (
     units: readonly StackUnit[],
     loadablePacks: ReadonlySet<PackFiles>
@@ -137,49 +144,51 @@ const lastProviderOfPath = (
  * definition replaces the earlier one whole, never merged. A pack whose
  * manifest does not validate is skipped and reported.
  *
- * A path-addressed Bedrock file is skipped when a later loadable pack provides
- * the same path, because that path is its identifier and the later copy fully
- * replaces it. Content-addressed files are still parsed when superseded,
- * because their wrapper may declare a different identifier; parse and
- * validation errors from those files are warnings. The vanilla layers rely on
- * this for `entities/npc.json`, which can patch a saved pack before a later
- * layer carries the real definition. The Java half has no equivalent rule,
- * because its tags merge across packs rather than replacing one another.
+ * A Bedrock file that does not parse is an error, except when a later pack in
+ * the stack provides the same pack-relative path. That copy replaces this one
+ * whole, so the broken file cannot reach the composed result and is reported
+ * as a warning instead, which keeps a strict load from failing over a file
+ * nothing reads. The vanilla layers rely on it: two of them ship an
+ * `entities/npc.json` that only patches a saved pack, and a later layer
+ * carries the real one. The Java half has no equivalent rule, because its
+ * tags merge across packs rather than replacing one another.
  *
  * @throws {PackLoadError} In strict mode, when an error is reported. A
  *   warning never fails the load.
  */
-export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult => {
-    const validator = options.validator ?? structuralValidator;
-    const collector = new DiagnosticCollector();
-    const registries: DefinitionRegistries = {
-        blocks: new Map(),
-        items: new Map(),
-        entities: new Map(),
-        lootTables: new Map(),
-        tradeTables: new Map(),
-        spawnRules: new Map(),
-        recipes: new Map(),
-        biomes: new Map(),
-        features: new Map(),
-        featureRules: new Map(),
-        itemCatalog: new Map(),
-        lootTablesJava: new Map(),
-        recipesJava: new Map(),
-        advancements: new Map(),
-        tags: new Map(),
-        blockTransformers: new Map(),
-        enchantments: new Map(),
-        damageTypes: new Map(),
-        predicates: new Map(),
-        itemModifiers: new Map(),
-        functions: new Map(),
-        dimensionTypes: new Map(),
-        dimensions: new Map(),
-        worldgen: new Map()
-    };
+const emptyRegistries = (): DefinitionRegistries => ({
+    blocks: new Map(),
+    items: new Map(),
+    entities: new Map(),
+    lootTables: new Map(),
+    tradeTables: new Map(),
+    spawnRules: new Map(),
+    recipes: new Map(),
+    biomes: new Map(),
+    features: new Map(),
+    featureRules: new Map(),
+    itemCatalog: new Map(),
+    blockTransformers: new Map(),
+    lootTablesJava: new Map(),
+    recipesJava: new Map(),
+    advancements: new Map(),
+    tags: new Map(),
+    enchantments: new Map(),
+    damageTypes: new Map(),
+    predicates: new Map(),
+    itemModifiers: new Map(),
+    functions: new Map(),
+    dimensionTypes: new Map(),
+    dimensions: new Map(),
+    worldgen: new Map()
+});
 
-    const units = expandStack(stack);
+const composeUnits = (
+    units: readonly StackUnit[],
+    registries: DefinitionRegistries,
+    collector: DiagnosticCollector,
+    validator: DefinitionValidator
+): void => {
     const loadablePacks = packsWithLoadableManifest(units);
     const lastProvider = lastProviderOfPath(units, loadablePacks);
 
@@ -198,19 +207,145 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
             for (const [path, bytes] of pack.files) {
                 const superseded = lastProvider.get(path) !== pack;
                 const registry = routeForPath(path);
-                // A path-addressed definition has the same identifier in every layer, so an
-                // earlier copy cannot contribute to the final registry. Wrapper-addressed
-                // files still need parsing because a new identifier may live at the same path.
+                // Path-addressed registries use the file path as their identifier, so an
+                // earlier copy can be skipped once a later loadable pack provides that path.
                 if (superseded && registry !== undefined && isPathAddressedRegistry(registry)) continue;
                 loadDefinitionFile(registries, packName, path, bytes, superseded, validator, collector);
             }
         }
     }
+};
 
-    const failed = collector.diagnostics.some((diagnostic) => diagnostic.severity === 'error');
-    if (options.strict && failed) throw new PackLoadError(collector.diagnostics);
+/** Loads one stack without applying strict mode, so cached prefixes can be checked with their suffix. */
+const loadUncached = (stack: PackStack, validator: DefinitionValidator): LoadResult => {
+    const collector = new DiagnosticCollector();
+    const definitions = emptyRegistries();
+    composeUnits(expandStack(stack), definitions, collector, validator);
+    return { definitions, diagnostics: collector.diagnostics };
+};
 
-    return { definitions: registries, diagnostics: collector.diagnostics };
+const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cache: PrefixCacheOptions): LoadResult => {
+    if (!Number.isSafeInteger(cache.prefixLength) || cache.prefixLength < 1 || cache.prefixLength > stack.length) {
+        throw new RangeError(`cache prefix length ${cache.prefixLength} is outside the pack stack`);
+    }
+
+    const prefix = stack.slice(0, cache.prefixLength);
+    const suffixUnits = expandStack(stack.slice(cache.prefixLength));
+    const suffixLoadablePacks = packsWithLoadableManifest(suffixUnits);
+    const suffixPaths = lastProviderOfPath(suffixUnits, suffixLoadablePacks);
+    const key = prefixCacheKeyFor(stack, cache);
+    const cached = readPrefixCache(cache.filePath, key);
+    let prefixResult: LoadResult;
+
+    if (cached.status === 'hit') {
+        prefixResult = cached.result;
+    } else {
+        if (cached.status === 'corrupt') {
+            console.warn(
+                `[packs] ignoring corrupt composed prefix cache at ${cache.filePath}: ${
+                    cached.error instanceof Error ? cached.error.message : String(cached.error)
+                }; rebuilding from source`
+            );
+        }
+
+        prefixResult = loadUncached(prefix, validator);
+        try {
+            writePrefixCache(cache.filePath, key, prefixResult);
+        } catch (error) {
+            console.warn(
+                `[packs] could not write composed prefix cache at ${cache.filePath}: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+        }
+    }
+
+    const collector = new DiagnosticCollector();
+    // The prefix was validated without its suffix; reapply the loader's
+    // same-path override rule before strict mode sees its definition errors.
+    for (const diagnostic of prefixResult.diagnostics) {
+        const path = diagnostic.path;
+        const registry = path === undefined ? undefined : routeForPath(path);
+        const superseded = diagnostic.code.startsWith('definition.') && path !== undefined && suffixPaths.has(path);
+        if (superseded && registry !== undefined && isPathAddressedRegistry(registry)) continue;
+        collector.add(
+            superseded
+                ? {
+                      ...diagnostic,
+                      severity: diagnostic.severity === 'error' ? 'warning' : diagnostic.severity,
+                      message: `${diagnostic.message}; a later pack supersedes this file`
+                  }
+                : diagnostic
+        );
+    }
+
+    const definitions: DefinitionRegistries = {
+        blocks: new Map(prefixResult.definitions.blocks),
+        items: new Map(prefixResult.definitions.items),
+        entities: new Map(prefixResult.definitions.entities),
+        lootTables: new Map(prefixResult.definitions.lootTables),
+        tradeTables: new Map(prefixResult.definitions.tradeTables),
+        spawnRules: new Map(prefixResult.definitions.spawnRules),
+        recipes: new Map(prefixResult.definitions.recipes),
+        biomes: new Map(prefixResult.definitions.biomes),
+        features: new Map(prefixResult.definitions.features),
+        featureRules: new Map(prefixResult.definitions.featureRules),
+        itemCatalog: new Map(prefixResult.definitions.itemCatalog),
+        blockTransformers: new Map(prefixResult.definitions.blockTransformers),
+        lootTablesJava: new Map(prefixResult.definitions.lootTablesJava),
+        recipesJava: new Map(prefixResult.definitions.recipesJava),
+        advancements: new Map(prefixResult.definitions.advancements),
+        tags: new Map(prefixResult.definitions.tags),
+        enchantments: new Map(prefixResult.definitions.enchantments),
+        damageTypes: new Map(prefixResult.definitions.damageTypes),
+        predicates: new Map(prefixResult.definitions.predicates),
+        itemModifiers: new Map(prefixResult.definitions.itemModifiers),
+        functions: new Map(prefixResult.definitions.functions),
+        dimensionTypes: new Map(prefixResult.definitions.dimensionTypes),
+        dimensions: new Map(prefixResult.definitions.dimensions),
+        worldgen: new Map(prefixResult.definitions.worldgen)
+    };
+    for (const path of suffixPaths.keys()) {
+        const registry = routeForPath(path);
+        if (registry === undefined || !isPathAddressedRegistry(registry)) continue;
+        // The uncached loader skips the prefix copy even if the later file is invalid;
+        // remove it here so a bad suffix cannot leave a stale definition behind.
+        for (const [identifier, definition] of definitions[registry]) {
+            if (definition.path === path) definitions[registry].delete(identifier);
+        }
+    }
+    composeUnits(suffixUnits, definitions, collector, validator);
+    return { definitions, diagnostics: collector.diagnostics };
+};
+
+/**
+ * Loads a pack stack into one `Definitions` object plus a diagnostics report.
+ * Packs apply in stack order and a later pack wins by identifier: its
+ * definition replaces the earlier one whole, never merged. A pack whose
+ * manifest does not validate is skipped and reported.
+ *
+ * A Bedrock file that does not parse is an error, except when a later pack in
+ * the stack provides the same pack-relative path. That copy replaces this one
+ * whole, so the broken file cannot reach the composed result and is reported
+ * as a warning instead, which keeps a strict load from failing over a file
+ * nothing reads. The vanilla layers rely on it: two of them ship an
+ * `entities/npc.json` that only patches a saved pack, and a later layer
+ * carries the real one. The Java half has no equivalent rule, because its
+ * tags merge across packs rather than replacing one another.
+ *
+ * @throws {PackLoadError} In strict mode, when an error is reported. A
+ *   warning never fails the load.
+ */
+export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult => {
+    const validator = options.validator ?? structuralValidator;
+    const result =
+        options.cache === undefined
+            ? loadUncached(stack, validator)
+            : loadCachedPrefix(stack, validator, options.cache);
+    const failed = result.diagnostics.some((diagnostic) => diagnostic.severity === 'error');
+    if (options.strict && failed) throw new PackLoadError(result.diagnostics);
+
+    return result;
 };
 
 /** Parses and validates a pack's manifest; returns the pack name, or undefined to skip the pack. */
@@ -250,8 +385,8 @@ const loadManifest = (
 
 /**
  * Parses, validates and registers one definition file; the latest pack wins
- * by identifier. A superseded content-addressed file reports parse failures
- * as warnings, because its content cannot reach the composed result.
+ * by identifier. A file a later pack supersedes reports its parse failures as
+ * warnings, because its content never reaches the composed result.
  */
 const loadDefinitionFile = (
     registries: DefinitionRegistries,

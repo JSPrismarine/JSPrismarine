@@ -221,7 +221,11 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const resolved = options.stack ? { stack: options.stack, diagnostics: [] } : resolvePackStack(options.packs);
     diagnostics.push(...resolved.diagnostics);
 
-    const loaded = (options.load ?? loadPacks)(resolved.stack, { strict });
+    // Custom loaders may use a different validator or cache format and must opt into caching themselves.
+    const loaded = (options.load ?? loadPacks)(
+        resolved.stack,
+        options.load === undefined && resolved.cache !== undefined ? { strict, cache: resolved.cache } : { strict }
+    );
     diagnostics.push(...loaded.diagnostics);
     const definitions = loaded.definitions;
 

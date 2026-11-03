@@ -15,3 +15,4 @@ export * from './registries';
 export * from './sources';
 export * from './validation';
 export * from './zip';
+export type { PrefixCacheOptions } from './prefixCache';

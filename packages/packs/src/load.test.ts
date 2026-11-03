@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { textFiles, writeBrarchive, writeZip } from '../fixtures/writers';
 import { PackLoadError, load } from './load';
@@ -206,16 +206,23 @@ describe('load', () => {
         writeFileSync(join(base, 'loot_tables', 'entities', 'shared.json'), '{');
         writeFileSync(join(override, 'loot_tables', 'entities', 'shared.json'), JSON.stringify({ pools: [] }));
 
-        const { definitions, diagnostics } = load(
-            [
-                { kind: 'directory', path: base },
-                { kind: 'directory', path: override }
-            ],
-            { strict: true }
-        );
+        const stack = [
+            { kind: 'directory' as const, path: base },
+            { kind: 'directory' as const, path: override }
+        ];
+        const cache = {
+            filePath: join(temporaryDir(), 'prefix.v8'),
+            prefixLength: 1,
+            fingerprint: 'path-addressed-override',
+            validatorKey: 'structural-v1'
+        };
 
-        expect(definitions.lootTables.get('loot_tables/entities/shared.json')?.data).toEqual({ pools: [] });
-        expect(diagnostics.some((diagnostic) => diagnostic.path === 'loot_tables/entities/shared.json')).toBe(false);
+        for (const result of [load(stack, { strict: true }), load(stack, { strict: true, cache })]) {
+            expect(result.definitions.lootTables.get('loot_tables/entities/shared.json')?.data).toEqual({ pools: [] });
+            expect(
+                result.diagnostics.some((diagnostic) => diagnostic.path === 'loot_tables/entities/shared.json')
+            ).toBe(false);
+        }
     });
 
     it('keeps the earlier path-addressed definition when a later pack has an invalid manifest', () => {
@@ -228,13 +235,54 @@ describe('load', () => {
         writeFileSync(join(base, 'loot_tables', 'entities', 'shared.json'), JSON.stringify({ pools: [] }));
         writeFileSync(join(invalidOverride, 'loot_tables', 'entities', 'shared.json'), '{');
 
-        const { definitions, diagnostics } = load([
+        const stack = [
             { kind: 'directory', path: base },
             { kind: 'directory', path: invalidOverride }
-        ]);
+        ] as const;
+        const cache = {
+            filePath: join(temporaryDir(), 'prefix.v8'),
+            prefixLength: 1,
+            fingerprint: 'invalid-manifest-does-not-override',
+            validatorKey: 'structural-v1'
+        };
 
-        expect(definitions.lootTables.get('loot_tables/entities/shared.json')?.data).toEqual({ pools: [] });
-        expect(diagnostics.some((diagnostic) => diagnostic.code === 'manifest.invalid')).toBe(true);
+        for (const result of [load(stack), load(stack, { cache })]) {
+            expect(result.definitions.lootTables.get('loot_tables/entities/shared.json')?.data).toEqual({ pools: [] });
+            expect(result.diagnostics.some((diagnostic) => diagnostic.code === 'manifest.invalid')).toBe(true);
+        }
+    });
+
+    it('does not retain a cached path definition when a valid override file is broken', () => {
+        const base = temporaryDir();
+        const brokenOverride = temporaryDir();
+        const manifest = readFileSync(join(basePack, 'manifest.json'));
+        for (const pack of [base, brokenOverride]) writeFileSync(join(pack, 'manifest.json'), manifest);
+        mkdirSync(join(base, 'loot_tables', 'entities'), { recursive: true });
+        mkdirSync(join(brokenOverride, 'loot_tables', 'entities'), { recursive: true });
+        writeFileSync(join(base, 'loot_tables', 'entities', 'shared.json'), JSON.stringify({ pools: [] }));
+        writeFileSync(join(brokenOverride, 'loot_tables', 'entities', 'shared.json'), '{');
+
+        const stack = [
+            { kind: 'directory' as const, path: base },
+            { kind: 'directory' as const, path: brokenOverride }
+        ];
+        const cache = {
+            filePath: join(temporaryDir(), 'prefix.v8'),
+            prefixLength: 1,
+            fingerprint: 'broken-path-addressed-override',
+            validatorKey: 'structural-v1'
+        };
+
+        for (const result of [load(stack), load(stack, { cache })]) {
+            expect(result.definitions.lootTables.has('loot_tables/entities/shared.json')).toBe(false);
+            expect(result.diagnostics).toContainEqual(
+                expect.objectContaining({
+                    severity: 'error',
+                    code: 'definition.invalid-json',
+                    path: 'loot_tables/entities/shared.json'
+                })
+            );
+        }
     });
 
     it('keeps distinct identifiers from superseded content-addressed files', () => {
@@ -306,5 +354,73 @@ describe('load', () => {
     it('loads a clean stack in strict mode', () => {
         const { definitions } = load([{ kind: 'directory', path: overridePack }], { strict: true });
         expect(definitions.entities.get('fixture:robot')).toBeDefined();
+    });
+
+    it('round-trips a cached prefix with diagnostics, then composes live Bedrock and Java suffixes', () => {
+        const root = temporaryDir();
+        const brokenPrefix = packWithBrokenRobot();
+        const datapack = join(root, 'datapack');
+        mkdirSync(join(datapack, 'data', 'fixture', 'recipe'), { recursive: true });
+        writeFileSync(
+            join(datapack, 'pack.mcmeta'),
+            JSON.stringify({ pack: { description: 'fixture datapack', pack_format: 121 } })
+        );
+        writeFileSync(
+            join(datapack, 'data', 'fixture', 'recipe', 'cached.json'),
+            JSON.stringify({ type: 'minecraft:crafting_shapeless', ingredients: [], result: { id: 'minecraft:stone' } })
+        );
+        const stack = [
+            { kind: 'directory' as const, path: brokenPrefix },
+            { kind: 'directory' as const, path: overridePack },
+            { kind: 'datapack' as const, path: datapack }
+        ];
+        const cache = {
+            filePath: join(root, 'cache', 'prefix.v8'),
+            prefixLength: 1,
+            fingerprint: 'overlay-fingerprint',
+            validatorKey: 'structural-v1'
+        };
+
+        const expected = load(stack);
+        expect(expected.definitions.entities.get('fixture:robot')?.pack).toBe('Override Pack');
+        expect(expected.definitions.recipesJava.has('fixture:cached')).toBe(true);
+        expect(expected.diagnostics).toContainEqual(
+            expect.objectContaining({
+                severity: 'warning',
+                code: 'definition.missing-key',
+                path: 'entities/robot.json',
+                message: expect.stringContaining('a later pack supersedes this file')
+            })
+        );
+
+        const first = load(stack, { cache });
+        expect(first).toEqual(expected);
+
+        rmSync(brokenPrefix, { recursive: true, force: true });
+        const warm = load(stack, { cache });
+        expect(warm).toEqual(expected);
+    });
+
+    it('warns and rebuilds when the serialized prefix cache is corrupt', () => {
+        const root = temporaryDir();
+        const cache = {
+            filePath: join(root, 'prefix.v8'),
+            prefixLength: 1,
+            fingerprint: 'overlay-fingerprint',
+            validatorKey: 'structural-v1'
+        };
+        const stack = [{ kind: 'directory' as const, path: basePack }];
+        const expected = load(stack);
+        load(stack, { cache });
+        writeFileSync(cache.filePath, 'not a v8 cache');
+
+        const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        try {
+            expect(load(stack, { cache })).toEqual(expected);
+            expect(warning).toHaveBeenCalledOnce();
+            expect(warning.mock.calls[0]?.[0]).toContain('ignoring corrupt composed prefix cache');
+        } finally {
+            warning.mockRestore();
+        }
     });
 });

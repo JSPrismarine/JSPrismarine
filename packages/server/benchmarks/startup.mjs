@@ -119,6 +119,9 @@ const summary = Object.fromEntries(
         return [
             mode,
             {
+                medianContentLoadMilliseconds: median(
+                    runs.map((result) => result.contentLoadMilliseconds).filter(Number.isFinite)
+                ),
                 medianHeapUsedBytes: median(runs.map((result) => result.heapUsedBytes)),
                 medianMainThreadCpuMicroseconds: median(runs.map((result) => result.mainThreadCpuMicroseconds)),
                 medianProcessCpuMicroseconds: median(runs.map((result) => result.processCpuMicroseconds))

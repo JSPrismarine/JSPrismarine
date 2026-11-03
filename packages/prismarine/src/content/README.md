@@ -14,8 +14,16 @@ single pack that reports an error also fails the build; `content-world-packs` an
 
 ## What one build produces
 
-Against the pinned BDS 1.26.51 pack, the block and entity overlays and the Java 26.3 vanilla datapack,
-`buildServerContent()` takes about 3.6 seconds and reports no errors:
+Against the pinned BDS 1.26.51 pack, the block and entity overlays, and the Java 26.3 vanilla datapack,
+`buildServerContent()` reports no errors. The startup probe recorded 4.66 seconds in source mode and
+2.65 seconds from built JavaScript before prefix caching. After caching, a cold source build took
+2.42 seconds; warm source and built-JavaScript medians were 0.84 and 0.77 seconds. The source warm
+median uses the two warm samples in a three-run benchmark, while the built-JavaScript median uses
+three warm samples. A later three-run benchmark under concurrent client and server load measured
+medians of 2.83 seconds in source mode and 3.05 seconds from built JavaScript. Source mode starts
+first and writes the shared one-file cache. These are local startup measurements; host load and
+the operating system's file cache affect them, so treat them as indicative rather than a fixed
+startup promise.
 
 | Registry | Count |
 | --- | --- |

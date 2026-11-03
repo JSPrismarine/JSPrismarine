@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,13 @@ import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 import { reportProgress } from '../../../../.test/reportProgress';
 
 import { buildServerContent } from './ServerContent';
-import { entityOverlayPackPath, PACK_STACK_ENV, overlayPackPath, resolvePackStack } from './packStack';
+import {
+    entityOverlayPackPath,
+    fingerprintPackDirectories,
+    PACK_STACK_ENV,
+    overlayPackPath,
+    resolvePackStack
+} from './packStack';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -22,7 +28,7 @@ describe('resolvePackStack', () => {
         vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, overlayPackPath());
         vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '');
 
-        const { stack } = resolvePackStack({
+        const { stack, cache } = resolvePackStack({
             javaVanilla: false,
             worldPacks: [{ kind: 'directory', path: '/worlds/one' }],
             pluginPacks: [{ kind: 'datapack', path: '/plugins/two' }]
@@ -35,6 +41,7 @@ describe('resolvePackStack', () => {
             '/worlds/one',
             '/plugins/two'
         ]);
+        expect(cache).toMatchObject({ prefixLength: 3, validatorKey: 'structural-validator-v1' });
     });
 
     it('reports a member that is not on disk instead of throwing', () => {
@@ -108,6 +115,21 @@ describe('resolvePackStack', () => {
 
             expect(stack).toEqual([{ kind: 'brarchiveLayers', path: folder, uuids: undefined }]);
         });
+    });
+});
+
+describe('vanilla overlay cache fingerprint', () => {
+    it('changes when an overlay file changes at the same path', () => {
+        const directory = mkdtempSync(join(tmpdir(), 'jsp-overlay-fingerprint-'));
+        temporaryDirs.push(directory);
+        mkdirSync(join(directory, 'entities'));
+        const definition = join(directory, 'entities', 'robot.json');
+        writeFileSync(definition, '{"first":true}');
+
+        const before = fingerprintPackDirectories([directory]);
+        writeFileSync(definition, '{"first":false}');
+
+        expect(fingerprintPackDirectories([directory])).not.toBe(before);
     });
 });
 

@@ -76,9 +76,15 @@ A second run is a no-op once both directories hold the files the step checks for
 regenerates. The output is Mojang's content and stays in the gitignored cache.
 `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` point consumers at a copy produced elsewhere.
 
-The other half of composition is unchanged: the fetch stage hashes each source's folders into
-`pack-hashes.json`, and `@jsprismarine/packs` reads the vanilla behavior pack's brarchive layers
-directly when a stack loads, so there is no separate composed-pack artifact yet.
+On the first server boot, `@jsprismarine/packs` composes the vanilla behavior pack's brarchive
+layers, the block and entity overlays, and the Java datapack. It writes the resulting definitions
+and diagnostics to one V8 file at
+`node_modules/.cache/jsprismarine/composed-vanilla-prefix.v8`. Warm boots read that prefix from the
+file, then load world and plugin packs on top. The cache key includes the resolved vanilla source
+paths, the `@jsprismarine/packs` version, the structural validator key, and a content hash of the
+overlay files. A source path or package version change, or an overlay edit, rebuilds the cache.
+Corrupt cache files produce a warning and a fresh composition. The fetch stage still hashes each
+source's folders into `pack-hashes.json` for review when an upstream pin changes.
 
 ## Dump
 

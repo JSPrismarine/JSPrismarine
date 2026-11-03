@@ -86,6 +86,19 @@ pack sets `replace`, and `assign` merges key by key. `MERGE_MODES` holds the mod
 `mergeJavaDefinition` applies it. Every 26.3 data registry but tags overrides; `assign` is the mode
 Java gives its language files, which live in a resource pack.
 
+## Caching an immutable prefix
+
+`load` can read a composed leading prefix from one V8 cache file and apply the remaining sources
+on every call. Pass `cache` with the prefix length, a file path, a fingerprint for mutable source
+contents, and a stable key for the validator. The cache key also includes the resolved prefix
+paths and the installed `@jsprismarine/packs` version. A changed key rebuilds and replaces the
+cache; a corrupt file emits a warning, then rebuilds from the sources. Strict-mode errors are
+checked after the live suffix has been composed, so a later pack can still supersede a prefix file.
+
+The server uses this for its pinned Bedrock, overlay, and Java vanilla sources. Its overlay
+fingerprint includes each file's relative path and contents. World and plugin packs remain after
+that prefix and are read on every build.
+
 Datapack definitions reference Java identifiers (items in loot entries, blocks in predicates, tag
 members); `reportIdentifiers` walks the loaded definitions and resolves each reference. Two things
 answer. An injectable `IdentifierResolver` takes the Bedrock side, and its default marks everything
