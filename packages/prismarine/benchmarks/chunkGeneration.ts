@@ -118,6 +118,9 @@ const positions = Array.from({ length: chunks }, (_unused, index) => [index % si
 
 interface Run {
     readonly ms: number;
+    readonly processCpuMs: number;
+    readonly mainHeapUsedBytes: number;
+    readonly rssBytes: number;
     readonly outputDigest: string;
     readonly workerHeapUsedBytes: readonly number[];
 }
@@ -131,6 +134,7 @@ const run = async (): Promise<Run> => {
     // warmup and sample on the generation path instead of measuring a cache hit.
     const generator = createGenerator(workerHeapStats);
     const started = performance.now();
+    const cpuStarted = process.cpuUsage();
     try {
         // All at once, because that is how the preload and the chunk scheduler ask: the depth is
         // what lets a pool have more than one worker busy.
@@ -138,6 +142,8 @@ const run = async (): Promise<Run> => {
             positions.map(async ([x, z]) => ({ x, z, chunk: await generator.generateChunk(x, z, seed) }))
         );
         const elapsed = performance.now() - started;
+        const cpu = process.cpuUsage(cpuStarted);
+        const memory = process.memoryUsage();
         const output = createHash('sha256');
         for (const { x, z, chunk } of generated) {
             output.update(`${x},${z}\0`);
@@ -151,7 +157,14 @@ const run = async (): Promise<Run> => {
                 ? []
                 : Array.from({ length: workerCount }, (_unused, index) => Atomics.load(stats, index + 1));
 
-        return { ms: elapsed, outputDigest: output.digest('hex'), workerHeapUsedBytes };
+        return {
+            ms: elapsed,
+            processCpuMs: (cpu.user + cpu.system) / 1000,
+            mainHeapUsedBytes: memory.heapUsed,
+            rssBytes: memory.rss,
+            outputDigest: output.digest('hex'),
+            workerHeapUsedBytes
+        };
     } finally {
         generator.stopGenerating();
     }
@@ -193,6 +206,9 @@ process.stdout.write(
             max: times.at(-1) ?? 0
         },
         throughputChunksPerSecond: (chunks / p50) * 1000,
+        processCpuMsByRun: runs.map(({ processCpuMs }) => processCpuMs),
+        mainHeapUsedBytesByRun: runs.map(({ mainHeapUsedBytes }) => mainHeapUsedBytes),
+        rssBytesByRun: runs.map(({ rssBytes }) => rssBytes),
         workerHeapUsedBytesByRun: runs.map(({ workerHeapUsedBytes }) => workerHeapUsedBytes),
         outputDigest: runs[0]?.outputDigest
     })}\n`
