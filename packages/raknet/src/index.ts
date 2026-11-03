@@ -27,5 +27,6 @@ export * from './Constants';
 export * from './LoopbackSocket';
 export type * from './RakNetPeer';
 export * from './Session';
+export * from './SocketBuffers';
 export * from './protocol/Protocol';
 export * from './utils/ServerName';

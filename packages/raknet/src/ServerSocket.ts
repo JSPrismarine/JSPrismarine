@@ -11,6 +11,8 @@ import type Packet from './protocol/Packet';
 import { monotonicNow } from './utils/Clock';
 import type { Logger, RakNetPeer } from './RakNetPeer';
 import type { ServerName } from './utils/ServerName';
+import { configureSocketBuffers, validateSocketBufferOptions } from './SocketBuffers';
+import type { SocketBufferOptions } from './SocketBuffers';
 
 export default class ServerSocket extends EventEmitter implements RakNetPeer {
     private readonly socket: Dgram.Socket;
@@ -34,14 +36,17 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
      * check belongs to the game layer's login.
      * @param serverName - the MOTD line; the socket feeds it the guid and the bound port.
      * @param logger - where the socket reports.
+     * @param socketBufferOptions - requested UDP buffers, which the OS may cap.
      */
     public constructor(
         private maxConnections: number,
         _onlineMode: boolean,
         public readonly serverName: ServerName,
-        private readonly logger: Logger
+        private readonly logger: Logger,
+        private readonly socketBufferOptions: SocketBufferOptions = {}
     ) {
         super();
+        validateSocketBufferOptions(socketBufferOptions);
         this.socket = Dgram.createSocket('udp4').unref();
         // allocUnsafe would hand us recycled or zeroed memory, not a unique identifier.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4525
@@ -57,7 +62,11 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
             // The MOTD advertises the port, and the one that was asked for is not always the
             // one that was granted: binding port 0 means "any", which the tests use and which
             // a client reading the MOTD would then be told to connect to.
-            this.socket.bind(port, address, () => this.serverName.setPort(this.socket.address().port));
+            this.socket.bind(port, address, () => {
+                // dgram rejects buffer getters before bind, so configure and report them here.
+                configureSocketBuffers(this.socket, this.logger, this.socketBufferOptions, 'RakNet/ServerSocket');
+                this.serverName.setPort(this.socket.address().port);
+            });
         } catch (error: unknown) {
             if (error instanceof Error) {
                 this.logger.error('Failed to bind socket, error message=%s', 'RakNet/ServerSocket/Start');

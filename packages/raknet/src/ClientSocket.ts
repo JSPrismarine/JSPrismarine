@@ -23,6 +23,8 @@ import { monotonicNow } from './utils/Clock';
 import InetAddress from './utils/InetAddress';
 
 import type { Logger, RakNetPeer } from './RakNetPeer';
+import { configureSocketBuffers, validateSocketBufferOptions } from './SocketBuffers';
+import type { SocketBufferOptions } from './SocketBuffers';
 import type Packet from './protocol/Packet';
 import type OpenConnectionReply1 from './protocol/connection/OpenConnectionReply1';
 import type OpenConnectionReply2 from './protocol/connection/OpenConnectionReply2';
@@ -77,7 +79,7 @@ export interface PingResult {
     readonly rtt: number;
 }
 
-export interface ClientSocketOptions {
+export interface ClientSocketOptions extends SocketBufferOptions {
     /** Overall budget for {@link ClientSocket.connect}. */
     readonly timeoutMs?: number;
     /** Local address to bind. The ephemeral port is always chosen by the OS. */
@@ -127,6 +129,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
         private readonly options: ClientSocketOptions = {}
     ) {
         super();
+        validateSocketBufferOptions(this.options);
         this.socket = Dgram.createSocket('udp4').unref();
         // allocUnsafe would hand us recycled or zeroed memory, not a unique identifier.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4525
@@ -368,6 +371,8 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
             this.socket.once('error', onError);
             this.socket.bind(0, this.options.bindAddress ?? '0.0.0.0', () => {
                 this.socket.removeListener('error', onError);
+                // dgram rejects buffer getters before bind, so configure and report them here.
+                configureSocketBuffers(this.socket, this.logger, this.options, 'RakNet/ClientSocket');
                 this.socket.on('message', this.handleMessage);
                 this.startTicking();
                 resolve();
