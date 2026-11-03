@@ -103,6 +103,20 @@ export class VersionSet {
         }
     }
 
+    /** Visits point-lookup candidates without creating an iterator or candidate wrapper objects. */
+    public visitCandidates(userKey: Buffer, visit: (file: FileMetaData) => boolean): boolean {
+        for (const file of this.levels[0]!) {
+            if (this.mayContain(file, userKey) && visit(file)) return true;
+        }
+
+        for (let level = 1; level < MAX_LEVELS; level++) {
+            const file = this.findFile(this.levels[level]!, userKey);
+            if (file !== null && visit(file)) return true;
+        }
+
+        return false;
+    }
+
     private mayContain(file: FileMetaData, userKey: Buffer): boolean {
         return (
             compareBytewise(userKey, extractUserKey(file.smallest)) >= 0 &&

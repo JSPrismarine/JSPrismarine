@@ -31,7 +31,8 @@ if (port === null) throw new Error('TableBuilderWorker must run in a worker thre
 const tableOptions = (options: BuildTableTask['options']): ConstructorParameters<typeof TableBuilder>[0] => ({
     ...options,
     shortestSeparator: findShortestInternalSeparator,
-    shortSuccessor: findShortInternalSuccessor
+    shortSuccessor: findShortInternalSuccessor,
+    filterKey: extractUserKey
 });
 
 const buildTable = (task: BuildTableTask): TableWorkerResult => {

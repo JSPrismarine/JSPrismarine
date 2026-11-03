@@ -4,7 +4,9 @@ import { BlockBuilder } from './BlockBuilder';
 import { BlockReader } from './BlockReader';
 import { BlockCache } from './BlockCache';
 import { CompressionType } from '../compression/Compression';
+import { bloomFilter2MayContain, createBloomFilter2 } from './BloomFilter';
 import { compareBytewise } from '../util/Comparator';
+import { MAX_SEQUENCE, ValueType, compareInternalKeys, encodeInternalKey, lookupKey } from './InternalKey';
 import { CorruptionError } from '../Errors';
 import { FOOTER_LENGTH, TABLE_MAGIC, decodeFooter, encodeFooter } from './Footer';
 import { TableBuilder } from './TableBuilder';
@@ -128,6 +130,23 @@ describe('leveldb', () => {
 
             it('finds every key it holds', () => {
                 for (const [k] of entries) expect(block.seek(k)?.key).toEqual(k);
+            });
+
+            it('uses the internal-key ordering for allocation-light point seeks', () => {
+                const builder = new BlockBuilder(16);
+                const internalKeys = Array.from({ length: 200 }, (_unused, index) =>
+                    encodeInternalKey(
+                        key(`chunk:${String(index).padStart(6, '0')}`),
+                        BigInt(index + 1),
+                        ValueType.Value
+                    )
+                );
+                for (const internalKey of internalKeys) builder.add(internalKey, Buffer.from('value'));
+
+                const internalBlock = new BlockReader(builder.finish(), compareInternalKeys);
+                const target = lookupKey(key('chunk:000100'), MAX_SEQUENCE);
+
+                expect(internalBlock.seek(target)?.key).toEqual(internalKeys[100]);
             });
         });
 
@@ -254,6 +273,28 @@ describe('leveldb', () => {
 
                 // The index block, the data block it names, and at most one block after it.
                 expect(reads).toBeLessThanOrEqual(3);
+            });
+
+            it('rejects an in-range miss before loading its data block', () => {
+                const entries: Array<[Buffer, Buffer]> = sortedKeys(100).map((entryKey) => [
+                    entryKey,
+                    Buffer.from('v')
+                ]);
+                const filter = createBloomFilter2(entries.map(([entryKey]) => entryKey));
+                const miss = entries
+                    .slice(0, -1)
+                    .map(([entryKey]) => Buffer.concat([entryKey, Buffer.from([0])]))
+                    .find((entryKey) => !bloomFilter2MayContain(entryKey, filter));
+                if (miss === undefined) throw new Error('Expected a definite Bloom filter miss between table keys');
+
+                const cache = new BlockCache(1024);
+                const table = new TableReader(bufferSource(buildTable(entries)), compareBytewise, {
+                    blockCache: cache
+                });
+
+                expect(table.get(miss)).toBeNull();
+                expect(cache.stats.dataBytes).toBe(0);
+                expect(cache.stats.pinnedBytes).toBeGreaterThan(0);
             });
         });
 

@@ -11,6 +11,8 @@ const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-leveldb-block-cache
 const valueBytes = 3 * 1024;
 const entryCount = Math.ceil(targetBytes / valueBytes);
 const keys = [];
+const keysByChunk = [];
+const missingKeys = [];
 let peakArrayBuffers = process.memoryUsage().arrayBuffers;
 
 try {
@@ -22,10 +24,11 @@ try {
     });
 
     for (let index = 0; index < entryCount; index++) {
-        const key = Buffer.alloc(8);
-        key.writeUInt32LE(index, 0);
-        key.writeUInt32LE(0x43484b31, 4);
+        const chunkIndex = Math.floor(index / 30);
+        const key = Buffer.from(`chunk:${String(chunkIndex).padStart(8, '0')}:${String(index % 30).padStart(2, '0')}`);
         keys.push(key);
+        missingKeys.push(Buffer.concat([key, Buffer.from([0])]));
+        (keysByChunk[chunkIndex] ??= []).push(key);
         const value = Buffer.alloc(valueBytes, index & 0xff);
         value.writeUInt32LE(index, 0);
         database.put(key, value);
@@ -38,17 +41,32 @@ try {
     const writeAndCompactionMs = performance.now() - buildStarted;
     peakArrayBuffers = Math.max(peakArrayBuffers, process.memoryUsage().arrayBuffers);
 
-    const started = performance.now();
+    const hitStarted = performance.now();
     for (let pass = 0; pass < 2; pass++) {
         for (let index = 0; index < keys.length; index++) {
             const value = database.get(keys[index]);
             if (value === null || value.readUInt32LE(0) !== index) throw new Error(`Lookup mismatch at ${index}`);
-            if (index % 256 === 0) {
-                peakArrayBuffers = Math.max(peakArrayBuffers, process.memoryUsage().arrayBuffers);
+        }
+    }
+    const hitLookupMs = performance.now() - hitStarted;
+
+    const missStarted = performance.now();
+    for (let pass = 0; pass < 2; pass++) {
+        for (const key of missingKeys) {
+            if (database.get(key) !== null) throw new Error(`Miss matched an existing key: ${key.toString('hex')}`);
+        }
+    }
+    const missLookupMs = performance.now() - missStarted;
+
+    const chunkReadStarted = performance.now();
+    for (let pass = 0; pass < 2; pass++) {
+        for (const chunkKeys of keysByChunk) {
+            for (const key of chunkKeys) {
+                if (database.get(key) === null) throw new Error(`Chunk record is missing: ${key.toString('hex')}`);
             }
         }
     }
-    const lookupMs = performance.now() - started;
+    const chunkReadMs = performance.now() - chunkReadStarted;
     peakArrayBuffers = Math.max(peakArrayBuffers, process.memoryUsage().arrayBuffers);
 
     console.log(
@@ -58,7 +76,17 @@ try {
             entries: entryCount,
             passes: 2,
             writeAndCompactionMs,
-            lookupMs,
+            pointLookups: {
+                hitMs: Number(hitLookupMs.toFixed(2)),
+                hitUsPerLookup: Number(((hitLookupMs * 1000) / (entryCount * 2)).toFixed(3)),
+                missMs: Number(missLookupMs.toFixed(2)),
+                missUsPerLookup: Number(((missLookupMs * 1000) / (entryCount * 2)).toFixed(3))
+            },
+            chunkReads: {
+                chunks: keysByChunk.length,
+                chunkReadMs: Number(chunkReadMs.toFixed(2)),
+                msPerChunk: Number((chunkReadMs / (keysByChunk.length * 2)).toFixed(4))
+            },
             arrayBuffersPeakBytes: peakArrayBuffers,
             cache: database.stats.blockCache
         })

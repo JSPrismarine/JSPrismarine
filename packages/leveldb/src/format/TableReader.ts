@@ -5,6 +5,7 @@ import { BlockCache } from './BlockCache';
 import { ByteReader } from '../util/ByteReader';
 import { CorruptionError } from '../Errors';
 import { FOOTER_LENGTH, decodeFooter, readBlockHandle } from './Footer';
+import { BLOOM_FILTER2_META_KEY, FilterBlockReader } from './FilterBlock';
 import type { BlockEntry } from './BlockReader';
 import type { BlockHandle } from './Footer';
 
@@ -44,17 +45,17 @@ export interface TableScanOptions {
 /**
  * Reads a table file.
  *
- * Blocks are decompressed on demand and cached, because the index block is consulted on every
- * lookup and a data block is usually consulted several times in a row while a chunk's records are
- * read. The cache is per-table and unbounded, which is fine for the access pattern here: a table
- * is at most a couple of megabytes and is dropped whole when the version stops referencing it.
+ * Blocks are decompressed on demand and cached. Index and filter blocks stay pinned, while data
+ * blocks share the database's bounded cache.
  */
 export class TableReader {
     private readonly source: TableSource;
     private readonly compare: (a: Buffer, b: Buffer) => number;
+    private readonly metaIndexHandle: BlockHandle;
     private readonly indexHandle: BlockHandle;
     private readonly fileNumber: number;
     private readonly blockCache: BlockCache;
+    private filterHandle: BlockHandle | null | undefined;
 
     public constructor(
         source: TableSource,
@@ -71,9 +72,9 @@ export class TableReader {
         // Standalone readers retain their prior per-table, unbounded cache behavior. Database
         // readers pass one shared bounded cache and a unique file number.
         this.blockCache = options.blockCache ?? new BlockCache(Number.MAX_SAFE_INTEGER);
-        this.indexHandle = decodeFooter(
-            Buffer.from(source.read(source.size - FOOTER_LENGTH, FOOTER_LENGTH))
-        ).indexHandle;
+        const footer = decodeFooter(Buffer.from(source.read(source.size - FOOTER_LENGTH, FOOTER_LENGTH)));
+        this.metaIndexHandle = footer.metaIndexHandle;
+        this.indexHandle = footer.indexHandle;
     }
 
     private readBlock(handle: BlockHandle, useCache = true, pinned = false): BlockReader {
@@ -82,6 +83,13 @@ export class TableReader {
             if (cached !== null) return cached;
         }
 
+        const contents = this.readBlockContents(handle);
+        const block = new BlockReader(contents, this.compare);
+        if (useCache) this.blockCache.set(this.fileNumber, handle.offset, block, contents.byteLength, pinned);
+        return block;
+    }
+
+    private readBlockContents(handle: BlockHandle): Buffer {
         const raw = this.source.read(handle.offset, handle.size + BLOCK_TRAILER_LENGTH);
         const payload = raw.subarray(0, handle.size);
         const type = raw.readUInt8(handle.size);
@@ -98,21 +106,71 @@ export class TableReader {
             throw new CorruptionError(`Block at offset ${handle.offset} has compression type ${type}`);
         }
 
-        const contents = decompress(type, payload);
-        const block = new BlockReader(contents, this.compare);
-        if (useCache) this.blockCache.set(this.fileNumber, handle.offset, block, contents.byteLength, pinned);
-        return block;
+        return decompress(type, payload);
     }
 
     private index(useCache: boolean): BlockReader {
         return this.readBlock(this.indexHandle, useCache, true);
     }
 
+    private filterBlock(): FilterBlockReader | null {
+        if (this.filterHandle === undefined) this.filterHandle = this.findFilterHandle();
+        if (this.filterHandle === null) return null;
+
+        const cached = this.blockCache.getFilter(this.fileNumber, this.filterHandle.offset);
+        if (cached !== null) return cached;
+
+        try {
+            const contents = this.readBlockContents(this.filterHandle);
+            const filter = new FilterBlockReader(contents);
+            this.blockCache.setFilter(this.fileNumber, this.filterHandle.offset, filter, contents.byteLength, true);
+            return filter;
+        } catch {
+            // Filters are optional metadata: a damaged filter must fall back to the data block.
+            this.filterHandle = null;
+            return null;
+        }
+    }
+
+    private findFilterHandle(): BlockHandle | null {
+        try {
+            for (const entry of this.readBlock(this.metaIndexHandle, true, true).entries()) {
+                if (entry.key.toString() === BLOOM_FILTER2_META_KEY) {
+                    return readBlockHandle(new ByteReader(entry.value));
+                }
+            }
+        } catch {
+            // An unreadable metaindex cannot prove absence, so point lookups use the data block.
+        }
+
+        return null;
+    }
+
     /** The value stored for exactly `key`, or null. Callers handle the deletion tombstone. */
     public get(key: Buffer): Buffer | null {
-        const entry = this.seek(key);
+        const entry = this.lookup(key, key);
 
         return entry !== null && this.compare(entry.key, key) === 0 ? entry.value : null;
+    }
+
+    /**
+     * The first entry at or after `key`, using `filterKey` only to check the candidate data block.
+     *
+     * Database internal keys seek before their stored versions, while the Bloom filter indexes
+     * only the user key. Keeping those keys separate lets point reads use the filter safely.
+     *
+     * @param key - The key used to seek within the table.
+     * @param filterKey - The user key encoded by the filter, defaulting to `key`.
+     */
+    public lookup(key: Buffer, filterKey: Buffer = key): BlockEntry | null {
+        const index = this.index(true).seek(key);
+        if (index === null) return null;
+
+        const handle = readBlockHandle(new ByteReader(index.value));
+        const filter = this.filterBlock();
+        if (filter !== null && !filter.keyMayMatch(handle.offset, filterKey)) return null;
+
+        return this.readBlock(handle).seek(key);
     }
 
     /**

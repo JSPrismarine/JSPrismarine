@@ -1,4 +1,5 @@
 import type { BlockReader } from './BlockReader';
+import type { FilterBlockReader } from './FilterBlock';
 
 /** Current and cumulative point-lookup cache usage. */
 export interface BlockCacheStats {
@@ -8,7 +9,7 @@ export interface BlockCacheStats {
     misses: number;
     /** Bytes held by evictable data blocks. */
     dataBytes: number;
-    /** Bytes held by pinned index blocks, which are excluded from the data budget. */
+    /** Bytes held by pinned index and filter blocks, which are excluded from the data budget. */
     pinnedBytes: number;
     /** Total decompressed bytes resident in the cache. */
     residentBytes: number;
@@ -16,13 +17,18 @@ export interface BlockCacheStats {
     hitRate: number;
 }
 
-interface CachedBlock {
+interface CachedBlockBase {
     fileNumber: number;
     offset: number;
-    reader: BlockReader;
     bytes: number;
     pinned: boolean;
 }
+
+type CachedBlock = CachedBlockBase &
+    (
+        | { readonly kind: 'data'; readonly reader: BlockReader }
+        | { readonly kind: 'filter'; readonly reader: FilterBlockReader }
+    );
 
 /**
  * A shared LRU for decompressed table blocks.
@@ -49,9 +55,36 @@ export class BlockCache {
 
     /** Returns a cached block and marks it most recently used. */
     public get(fileNumber: number, offset: number): BlockReader | null {
+        const cached = this.lookup(fileNumber, offset, 'data');
+        return cached?.kind === 'data' ? cached.reader : null;
+    }
+
+    /** Adds a decompressed block, evicting least-recently used data blocks as needed. */
+    public set(fileNumber: number, offset: number, reader: BlockReader, bytes: number, pinned = false): void {
+        this.setValue({ fileNumber, offset, reader, bytes, pinned, kind: 'data' });
+    }
+
+    /** Returns a cached Bloom filter block and marks it most recently used. */
+    public getFilter(fileNumber: number, offset: number): FilterBlockReader | null {
+        const cached = this.lookup(fileNumber, offset, 'filter');
+        return cached?.kind === 'filter' ? cached.reader : null;
+    }
+
+    /** Adds a decoded Bloom filter block to the shared cache. */
+    public setFilter(
+        fileNumber: number,
+        offset: number,
+        reader: FilterBlockReader,
+        bytes: number,
+        pinned = false
+    ): void {
+        this.setValue({ fileNumber, offset, reader, bytes, pinned, kind: 'filter' });
+    }
+
+    private lookup(fileNumber: number, offset: number, kind: CachedBlock['kind']): CachedBlock | null {
         const key = this.key(fileNumber, offset);
         const cached = this.blocks.get(key);
-        if (cached === undefined) {
+        if (cached === undefined || cached.kind !== kind) {
             this.misses++;
             return null;
         }
@@ -59,23 +92,20 @@ export class BlockCache {
         this.blocks.delete(key);
         this.blocks.set(key, cached);
         this.hits++;
-        return cached.reader;
+        return cached;
     }
 
-    /** Adds a decompressed block, evicting least-recently used data blocks as needed. */
-    public set(fileNumber: number, offset: number, reader: BlockReader, bytes: number, pinned = false): void {
-        const key = this.key(fileNumber, offset);
+    private setValue(cached: CachedBlock): void {
+        const key = this.key(cached.fileNumber, cached.offset);
         const existing = this.blocks.get(key);
         if (existing !== undefined) this.remove(key, existing);
 
-        // A pinned index is intentionally allowed beyond the data budget; it is small and avoids
-        // one disk read and decompression on every point lookup of its table.
-        if (!pinned && (bytes > this.byteBudget || this.byteBudget === 0)) return;
+        // Pinned index and filter blocks are small metadata needed by each point lookup.
+        if (!cached.pinned && (cached.bytes > this.byteBudget || this.byteBudget === 0)) return;
 
-        const cached: CachedBlock = { fileNumber, offset, reader, bytes, pinned };
         this.blocks.set(key, cached);
-        if (pinned) this.pinnedBytes += bytes;
-        else this.dataBytes += bytes;
+        if (cached.pinned) this.pinnedBytes += cached.bytes;
+        else this.dataBytes += cached.bytes;
 
         this.evict();
     }

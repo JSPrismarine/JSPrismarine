@@ -267,14 +267,18 @@ export class Database {
         // so the first table with a hit holds the winning version.
         const target = lookupKey(key, MAX_SEQUENCE);
 
-        for (const { file } of this.versions.candidates(key)) {
-            const entry = this.table(file).seek(target);
-            if (entry === null || compareBytewise(extractUserKey(entry.key), key) !== 0) continue;
+        let found = false;
+        let value: Buffer | null = null;
+        this.versions.visitCandidates(key, (file) => {
+            const entry = this.table(file).lookup(target, key);
+            if (entry === null || compareBytewise(extractUserKey(entry.key), key) !== 0) return false;
 
-            return parseInternalKey(entry.key).type === ValueType.Deletion ? null : Buffer.from(entry.value);
-        }
+            found = true;
+            if (parseInternalKey(entry.key).type !== ValueType.Deletion) value = Buffer.from(entry.value);
+            return true;
+        });
 
-        return null;
+        return found ? value : null;
     }
 
     public has(key: Buffer): boolean {

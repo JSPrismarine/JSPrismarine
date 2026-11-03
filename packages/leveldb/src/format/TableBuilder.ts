@@ -5,6 +5,7 @@ import { BlockBuilder } from './BlockBuilder';
 import { ByteWriter } from '../util/ByteWriter';
 import { encodeFooter, writeBlockHandle } from './Footer';
 import type { BlockHandle } from './Footer';
+import { BLOOM_FILTER2_META_KEY, FilterBlockBuilder } from './FilterBlock';
 
 export interface TableBuilderOptions {
     blockSize?: number;
@@ -18,15 +19,12 @@ export interface TableBuilderOptions {
      */
     shortestSeparator?: (start: Buffer, limit: Buffer) => Buffer;
     shortSuccessor?: (key: Buffer) => Buffer;
+    /** Converts stored keys to the user keys that Bloom filters index. */
+    filterKey?: (key: Buffer) => Buffer;
 }
 
 /**
- * Writes a table file: data blocks, then an index over them, then the footer.
- *
- * No filter block. A bloom filter is an optimization LevelDB looks for in the metaindex and does
- * without when it is absent - the same path it takes for databases written before filters existed
- * - so omitting one costs a few wasted block reads and nothing else. Tables the game wrote keep
- * their filters; we simply never consult them.
+ * Writes a table file: data blocks, a Bloom filter block, an index, and a footer.
  */
 export class TableBuilder {
     private readonly blockSize: number;
@@ -34,10 +32,12 @@ export class TableBuilder {
     private readonly compressionLevel: number | undefined;
     private readonly shortestSeparator: (start: Buffer, limit: Buffer) => Buffer;
     private readonly shortSuccessor: (key: Buffer) => Buffer;
+    private readonly filterKey: (key: Buffer) => Buffer;
 
     private readonly output = new ByteWriter(64 * 1024);
     private readonly dataBlock: BlockBuilder;
     private readonly indexBlock: BlockBuilder;
+    private readonly filterBlock = new FilterBlockBuilder();
 
     private lastKey: Buffer = Buffer.alloc(0);
     private entryCount = 0;
@@ -54,9 +54,11 @@ export class TableBuilder {
         this.compressionLevel = options.compressionLevel;
         this.shortestSeparator = options.shortestSeparator ?? findShortestSeparator;
         this.shortSuccessor = options.shortSuccessor ?? findShortSuccessor;
+        this.filterKey = options.filterKey ?? identityFilterKey;
         this.dataBlock = new BlockBuilder(options.blockRestartInterval ?? 16);
         // Index entries are one per data block and rarely share prefixes worth eliding.
         this.indexBlock = new BlockBuilder(1);
+        this.filterBlock.startBlock(0);
     }
 
     public get count(): number {
@@ -72,6 +74,7 @@ export class TableBuilder {
             this.writeIndexEntry(this.shortestSeparator(this.lastKey, key));
         }
 
+        this.filterBlock.addKey(this.filterKey(key));
         this.dataBlock.add(key, value);
         this.lastKey = Buffer.from(key);
         this.entryCount++;
@@ -79,6 +82,7 @@ export class TableBuilder {
         if (this.dataBlock.estimatedSize >= this.blockSize) {
             this.pendingHandle = this.writeBlock(this.dataBlock.finish());
             this.dataBlock.reset();
+            this.filterBlock.startBlock(this.output.length);
         }
     }
 
@@ -106,22 +110,37 @@ export class TableBuilder {
         return { offset, size: data.byteLength };
     }
 
+    private writeRawBlock(contents: Buffer): BlockHandle {
+        const type = CompressionType.None;
+        const offset = this.output.length;
+        this.output.bytes(contents).u8(type);
+        this.output.u32(mask(crc32cUpdate(Buffer.from([type]), crc32cUpdate(contents))));
+        return { offset, size: contents.byteLength };
+    }
+
     public finish(): Buffer {
         if (!this.dataBlock.empty) {
             this.pendingHandle = this.writeBlock(this.dataBlock.finish());
+            this.filterBlock.startBlock(this.output.length);
         }
 
         if (this.pendingHandle !== null) {
             this.writeIndexEntry(this.shortSuccessor(this.lastKey));
         }
 
-        // Empty, but present: LevelDB reads the metaindex before deciding there is no filter.
-        const metaIndexHandle = this.writeBlock(new BlockBuilder(1).finish());
+        const filterHandle = this.writeRawBlock(this.filterBlock.finish());
+        const metaIndex = new BlockBuilder(1);
+        const filterHandleBytes = new ByteWriter(16);
+        writeBlockHandle(filterHandleBytes, filterHandle);
+        metaIndex.add(Buffer.from(BLOOM_FILTER2_META_KEY), filterHandleBytes.finish());
+        const metaIndexHandle = this.writeBlock(metaIndex.finish());
         const indexHandle = this.writeBlock(this.indexBlock.finish());
 
         this.output.bytes(encodeFooter({ metaIndexHandle, indexHandle }));
         return this.output.finish();
     }
 }
+
+const identityFilterKey = (key: Buffer): Buffer => key;
 
 export default TableBuilder;
