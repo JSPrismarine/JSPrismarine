@@ -207,6 +207,76 @@ describe('climate lookups at exact ties', () => {
     });
 });
 
+describe('the flattened climate search tree', () => {
+    it('matches a prior-result-seeded brute-force search for one million random targets', () => {
+        const overworld = biomeVectors.parameterLists.find((list) => list.name === 'minecraft:overworld');
+        if (overworld === undefined) throw new Error('the vector file has no overworld parameter list');
+
+        const entries: ClimateEntry<number>[] = [];
+        for (let index = 0; index < overworld.points.length; index += 128) {
+            const row = overworld.points[index];
+            if (row === undefined) throw new Error(`the overworld vector is missing point ${index}`);
+            entries.push({ ...unpack(row, overworld.biomes), value: entries.length });
+        }
+        const parameters = new ClimateParameterList(entries);
+        const indexOf = new Map(entries.map((entry, index) => [entry.value, index]));
+        const target = {
+            temperature: 0,
+            humidity: 0,
+            continentalness: 0,
+            erosion: 0,
+            depth: 0,
+            weirdness: 0
+        };
+        let random = 0x37a4_19d3;
+        const nextCoordinate = (): number => {
+            random = (Math.imul(random, 1_664_525) + 1_013_904_223) >>> 0;
+            return (random % 40_001) - 20_000;
+        };
+        let priorIndex = 0;
+        const seededBruteForce = (candidateIndex: number): number => {
+            const candidate = entries[candidateIndex];
+            if (candidate === undefined) throw new Error(`missing prior climate candidate ${candidateIndex}`);
+            let closestIndex = candidateIndex;
+            let minimumDistance = climateFitness(candidate.point, target);
+            for (let index = 0; index < entries.length; index++) {
+                const entry = entries[index];
+                if (entry === undefined) throw new Error(`missing climate entry ${index}`);
+                const distance = climateFitness(entry.point, target);
+                if (minimumDistance > distance) {
+                    closestIndex = index;
+                    minimumDistance = distance;
+                }
+            }
+            return closestIndex;
+        };
+
+        for (let query = 0; query < 1_000_000; query++) {
+            target.temperature = nextCoordinate();
+            target.humidity = nextCoordinate();
+            target.continentalness = nextCoordinate();
+            target.erosion = nextCoordinate();
+            target.depth = nextCoordinate();
+            target.weirdness = nextCoordinate();
+
+            // Seed the oracle from the prior leaf; compare distance so the stable tie policy can
+            // select a different, equally near leaf than Java's history-dependent seed.
+            const expectedIndex = seededBruteForce(priorIndex);
+            const actual = parameters.find(target);
+            const actualIndex = indexOf.get(actual);
+            const expected = entries[expectedIndex];
+            const found = actualIndex === undefined ? undefined : entries[actualIndex];
+            if (actualIndex === undefined || expected === undefined || found === undefined) {
+                throw new Error(`climate search returned an unknown leaf at query ${query}`);
+            }
+            if (climateFitness(found.point, target) !== climateFitness(expected.point, target)) {
+                throw new Error(`climate search missed the seeded brute-force minimum at query ${query}`);
+            }
+            priorIndex = actualIndex;
+        }
+    }, 60_000);
+});
+
 describe('the multi-noise biome source', () => {
     const nether = biomeVectors.parameterLists.find((list) => list.name === 'minecraft:nether');
     if (!nether) throw new Error('the vector file has no nether parameter list');

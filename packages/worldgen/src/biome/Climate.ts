@@ -97,9 +97,9 @@ export const climateTarget = (
 });
 
 /** How far a target value lies outside a range, or zero when it lies inside. */
-const parameterDistance = (parameter: ClimateParameter, target: number): number => {
-    const above = target - parameter.max;
-    const below = parameter.min - target;
+const parameterDistance = (min: number, max: number, target: number): number => {
+    const above = target - max;
+    const below = min - target;
     return above > 0 ? above : Math.max(below, 0);
 };
 
@@ -117,90 +117,32 @@ const parameterSpaceOf = (point: ClimateParameterPoint): ClimateParameter[] => [
     { min: point.offset, max: point.offset }
 ];
 
-/** The seven axes of a target point; the offset axis is always zero. */
-const targetArray = (target: ClimateTargetPoint): number[] => [
-    target.temperature,
-    target.humidity,
-    target.continentalness,
-    target.erosion,
-    target.depth,
-    target.weirdness,
-    0
-];
-
 /**
  * The squared distance from a target to a parameter point, which is what "nearest biome"
  * means.
  */
 export const climateFitness = (point: ClimateParameterPoint, target: ClimateTargetPoint): number => {
-    const space = parameterSpaceOf(point);
-    const values = targetArray(target);
-    let total = 0;
-    for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
-        const distance = parameterDistance(space[axis] as ClimateParameter, values[axis] as number);
-        total += distance * distance;
-    }
+    let distance = parameterDistance(point.temperature.min, point.temperature.max, target.temperature);
+    let total = distance * distance;
+    distance = parameterDistance(point.humidity.min, point.humidity.max, target.humidity);
+    total += distance * distance;
+    distance = parameterDistance(point.continentalness.min, point.continentalness.max, target.continentalness);
+    total += distance * distance;
+    distance = parameterDistance(point.erosion.min, point.erosion.max, target.erosion);
+    total += distance * distance;
+    distance = parameterDistance(point.depth.min, point.depth.max, target.depth);
+    total += distance * distance;
+    distance = parameterDistance(point.weirdness.min, point.weirdness.max, target.weirdness);
+    total += distance * distance;
+    distance = parameterDistance(point.offset, point.offset, 0);
+    total += distance * distance;
     return total;
 };
 
 abstract class TreeNode<T> {
-    /**
-     * The depth-first position of the first leaf under this node, counting leaves in the order
-     * {@link TreeSubtree.search} visits them. It is assigned once the tree is built.
-     */
-    public firstRank = 0;
+    public readonly value?: T;
 
     public constructor(public readonly parameterSpace: readonly ClimateParameter[]) {}
-
-    /** The lower bound on the distance from the target to anything inside this node. */
-    public distance(target: ClimateTargetPoint): number {
-        // Inline `parameterDistance`: search runs this for every axis of every candidate subtree.
-        // The seven-axis climate format is fixed, so unroll the loop and its indexed reads.
-        const parameter0 = this.parameterSpace[0] as ClimateParameter;
-        let above = target.temperature - parameter0.max;
-        let below = parameter0.min - target.temperature;
-        let distance = above > 0 ? above : Math.max(below, 0);
-        let total = distance * distance;
-
-        const parameter1 = this.parameterSpace[1] as ClimateParameter;
-        above = target.humidity - parameter1.max;
-        below = parameter1.min - target.humidity;
-        distance = above > 0 ? above : Math.max(below, 0);
-        total += distance * distance;
-
-        const parameter2 = this.parameterSpace[2] as ClimateParameter;
-        above = target.continentalness - parameter2.max;
-        below = parameter2.min - target.continentalness;
-        distance = above > 0 ? above : Math.max(below, 0);
-        total += distance * distance;
-
-        const parameter3 = this.parameterSpace[3] as ClimateParameter;
-        above = target.erosion - parameter3.max;
-        below = parameter3.min - target.erosion;
-        distance = above > 0 ? above : Math.max(below, 0);
-        total += distance * distance;
-
-        const parameter4 = this.parameterSpace[4] as ClimateParameter;
-        above = target.depth - parameter4.max;
-        below = parameter4.min - target.depth;
-        distance = above > 0 ? above : Math.max(below, 0);
-        total += distance * distance;
-
-        const parameter5 = this.parameterSpace[5] as ClimateParameter;
-        above = target.weirdness - parameter5.max;
-        below = parameter5.min - target.weirdness;
-        distance = above > 0 ? above : Math.max(below, 0);
-        total += distance * distance;
-
-        const parameter6 = this.parameterSpace[6] as ClimateParameter;
-        above = -parameter6.max;
-        below = parameter6.min;
-        distance = above > 0 ? above : Math.max(below, 0);
-        total += distance * distance;
-        return total;
-    }
-
-    public abstract search(target: ClimateTargetPoint, candidate: TreeLeaf<T> | undefined): TreeLeaf<T>;
 }
 
 class TreeLeaf<T> extends TreeNode<T> {
@@ -209,15 +151,6 @@ class TreeLeaf<T> extends TreeNode<T> {
         public readonly value: T
     ) {
         super(parameterSpaceOf(point));
-    }
-
-    /** The leaf's depth-first position, which settles an exact tie between two leaves. */
-    public get rank(): number {
-        return this.firstRank;
-    }
-
-    public search(): TreeLeaf<T> {
-        return this;
     }
 }
 
@@ -228,56 +161,93 @@ class TreeSubtree<T> extends TreeNode<T> {
     ) {
         super(parameterSpace ?? buildParameterSpace(children));
     }
-
-    /**
-     * Returns the nearest leaf, and among leaves at the same distance the one that comes first
-     * in depth-first order, whatever `candidate` is.
-     *
-     * Java's search keeps the candidate on a tie, because it replaces it only on a strictly
-     * smaller distance. Its candidate is the thread's previous result, so which of two tied
-     * leaves comes back depends on what the thread looked up before. That is a race here, where
-     * chunk tasks finish in any order. A search with no candidate returns the first tied leaf
-     * in depth-first order, so this reproduces that answer for every candidate: a node whose
-     * lower bound equals the best distance is searched when it starts before the best leaf, and
-     * a tied leaf replaces the best only when it ranks earlier.
-     */
-    public search(target: ClimateTargetPoint, candidate: TreeLeaf<T> | undefined): TreeLeaf<T> {
-        let minDistance = candidate === undefined ? Number.POSITIVE_INFINITY : candidate.distance(target);
-        let closest = candidate;
-        for (const child of this.children) {
-            const childDistance = child.distance(target);
-            if (
-                minDistance > childDistance ||
-                (minDistance === childDistance && (closest as TreeLeaf<T>).rank > child.firstRank)
-            ) {
-                const leaf = child.search(target, closest);
-                const leafDistance = child === leaf ? childDistance : leaf.distance(target);
-                if (
-                    minDistance > leafDistance ||
-                    (minDistance === leafDistance && (closest as TreeLeaf<T>).rank > leaf.rank)
-                ) {
-                    minDistance = leafDistance;
-                    closest = leaf;
-                }
-            }
-        }
-        // A subtree always holds at least one leaf, so the search cannot come back empty.
-        return closest as TreeLeaf<T>;
-    }
 }
 
-/**
- * Numbers the leaves in the order a search visits them and records each node's first number.
- *
- * Returns how many leaves the node holds, so the next sibling starts after them.
- */
-const assignRanks = <T>(node: TreeNode<T>, first: number): number => {
-    node.firstRank = first;
-    if (!(node instanceof TreeSubtree)) return 1;
+/** The compact search data flattened from the construction tree. */
+interface FlatClimateTree<T> {
+    /** Min/max pairs for all seven axes, in node order. */
+    readonly bounds: Float64Array;
+    /** Start and count of each node's child range in `children`. */
+    readonly childStarts: Uint32Array;
+    readonly childCounts: Uint32Array;
+    /** Child node indices in their original construction order. */
+    readonly children: Uint32Array;
+    /** The leaf value index for each node, or -1 for a subtree. */
+    readonly valueIndices: Int32Array;
+    /** The first depth-first leaf rank below each node. */
+    readonly firstLeafRanks: Uint32Array;
+    /** One value per leaf, in flattened traversal order. */
+    readonly values: T[];
+    /** Maximum number of nodes from the root through one leaf. */
+    readonly maxDepth: number;
+}
 
-    let next = first;
-    for (const child of node.children) next += assignRanks(child, next);
-    return next - first;
+/** Flattens the object tree once so a lookup touches only typed arrays and a reusable stack. */
+const flattenTree = <T>(root: TreeNode<T>): FlatClimateTree<T> => {
+    const nodes: TreeNode<T>[] = [];
+    const indices = new Map<TreeNode<T>, number>();
+    let maxDepth = 0;
+
+    const visit = (node: TreeNode<T>, depth: number): void => {
+        indices.set(node, nodes.length);
+        nodes.push(node);
+        maxDepth = Math.max(maxDepth, depth);
+        if (node instanceof TreeSubtree) {
+            for (const child of node.children) visit(child, depth + 1);
+        }
+    };
+    visit(root, 1);
+
+    const bounds = new Float64Array(nodes.length * CLIMATE_PARAMETER_COUNT * 2);
+    const childStarts = new Uint32Array(nodes.length);
+    const childCounts = new Uint32Array(nodes.length);
+    const children = new Uint32Array(nodes.length - 1);
+    const valueIndices = new Int32Array(nodes.length);
+    valueIndices.fill(-1);
+    const firstLeafRanks = new Uint32Array(nodes.length);
+    const values: T[] = [];
+    let childCursor = 0;
+
+    for (let nodeIndex = 0; nodeIndex < nodes.length; nodeIndex++) {
+        const node = nodes[nodeIndex];
+        if (node === undefined) throw new Error('Climate tree flattening lost a node');
+
+        const boundsOffset = nodeIndex * CLIMATE_PARAMETER_COUNT * 2;
+        for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
+            const parameter = node.parameterSpace[axis];
+            if (parameter === undefined) throw new Error(`Climate tree node is missing axis ${axis}`);
+            bounds[boundsOffset + axis * 2] = parameter.min;
+            bounds[boundsOffset + axis * 2 + 1] = parameter.max;
+        }
+
+        if (node instanceof TreeSubtree) {
+            childStarts[nodeIndex] = childCursor;
+            childCounts[nodeIndex] = node.children.length;
+            for (const child of node.children) {
+                const childIndex = indices.get(child);
+                if (childIndex === undefined) throw new Error('Climate tree flattening lost a child index');
+                children[childCursor] = childIndex;
+                childCursor++;
+            }
+        } else if (node instanceof TreeLeaf) {
+            valueIndices[nodeIndex] = values.length;
+            firstLeafRanks[nodeIndex] = values.length;
+            values.push(node.value);
+        }
+    }
+
+    // Node indices are pre-order, so a reverse pass can copy each subtree's first leaf rank
+    // from its first child without a second tree walk.
+    for (let nodeIndex = nodes.length - 1; nodeIndex >= 0; nodeIndex--) {
+        if ((valueIndices[nodeIndex] ?? -1) >= 0) continue;
+        const firstChild = children[childStarts[nodeIndex] ?? 0];
+        if (firstChild === undefined) throw new Error('Climate tree subtree has no first child');
+        const rank = firstLeafRanks[firstChild];
+        if (rank === undefined) throw new Error('Climate tree subtree lost its first leaf rank');
+        firstLeafRanks[nodeIndex] = rank;
+    }
+
+    return { bounds, childStarts, childCounts, children, valueIndices, firstLeafRanks, values, maxDepth };
 };
 
 const buildParameterSpace = <T>(children: readonly TreeNode<T>[]): ClimateParameter[] => {
@@ -378,20 +348,34 @@ export interface ClimateEntry<T> {
 /**
  * A list of climate boxes with the search tree Java builds over it.
  *
- * The tree is an exact nearest-box index, not an approximation: it only skips a subtree whose
- * lower-bound distance already exceeds the best box found so far. {@link findBruteForce} is
- * the same query by linear scan, and the two agree for every target.
+ * The tree is an exact nearest-box index, not an approximation: it skips a subtree when its
+ * lower-bound distance is worse than the best box found so far, or when an equal bound contains
+ * no leaf earlier in tree order. {@link findBruteForce} is the same query by linear scan, and the
+ * two agree on the nearest distance for every target.
  *
  * Two boxes can sit at exactly the same distance from a target. Java breaks that tie in favor of
- * the box a thread found last, so its answer depends on that thread's earlier lookups. This
- * list keeps Java's seeding, because starting the search near the answer prunes most of the
- * tree, but breaks the tie by tree order instead: a lookup returns the first nearest box in
- * depth-first order, which is what Java returns for a thread with no earlier result. A lookup
- * is then a function of the target alone, and chunks generated in any order see the same biomes.
+ * the box a thread found last, so its answer depends on that thread's earlier lookups. This list
+ * keeps Java's prior-result seed for pruning, but uses the first depth-first leaf rank to settle
+ * exact ties. A lookup then depends on the target alone, and chunks generated in any order see the
+ * same biomes.
  */
 export class ClimateParameterList<T> {
-    private readonly root: TreeNode<T>;
-    private lastResult: TreeLeaf<T> | undefined;
+    private readonly bounds: Float64Array;
+    private readonly childStarts: Uint32Array;
+    private readonly childCounts: Uint32Array;
+    private readonly children: Uint32Array;
+    private readonly valueIndices: Int32Array;
+    private readonly firstLeafRanks: Uint32Array;
+    private readonly values: T[];
+    private lastResult = -1;
+    private readonly searchStack: {
+        readonly nodes: Uint32Array;
+        readonly nextChildren: Uint32Array;
+        readonly minimumDistances: Float64Array;
+        readonly closestLeaves: Int32Array;
+        readonly pendingChildren: Uint32Array;
+        readonly pendingDistances: Float64Array;
+    };
 
     public constructor(
         /** The boxes, in the order the data pack lists them. */
@@ -400,15 +384,106 @@ export class ClimateParameterList<T> {
     ) {
         if (entries.length === 0) throw new RangeError('A climate parameter list needs at least one entry');
         const leaves = entries.map((entry) => new TreeLeaf(entry.point, entry.value));
-        this.root = buildTree<T>(leaves, childrenPerNode);
-        assignRanks(this.root, 0);
+        const tree = flattenTree(buildTree<T>(leaves, childrenPerNode));
+        this.bounds = tree.bounds;
+        this.childStarts = tree.childStarts;
+        this.childCounts = tree.childCounts;
+        this.children = tree.children;
+        this.valueIndices = tree.valueIndices;
+        this.firstLeafRanks = tree.firstLeafRanks;
+        this.values = tree.values;
+        // Searches are synchronous, so one instance-owned stack avoids allocating a frame per lookup.
+        this.searchStack = {
+            nodes: new Uint32Array(tree.maxDepth),
+            nextChildren: new Uint32Array(tree.maxDepth),
+            minimumDistances: new Float64Array(tree.maxDepth),
+            closestLeaves: new Int32Array(tree.maxDepth),
+            pendingChildren: new Uint32Array(tree.maxDepth),
+            pendingDistances: new Float64Array(tree.maxDepth)
+        };
     }
 
-    /** Returns the value of the box nearest the target, through the search tree. */
+    /** Returns the value of the nearest box, breaking exact ties by first tree order. */
     public find(target: ClimateTargetPoint): T {
-        const leaf = this.root.search(target, this.lastResult);
-        this.lastResult = leaf;
-        return leaf.value;
+        const stack = this.searchStack;
+        let depth = 0;
+        let returnedLeaf = -1;
+        const candidate = this.lastResult;
+        stack.nodes[0] = 0;
+        stack.nextChildren[0] = this.childStarts[0] ?? 0;
+        stack.minimumDistances[0] = candidate < 0 ? Number.POSITIVE_INFINITY : this.distance(candidate, target);
+        stack.closestLeaves[0] = candidate;
+
+        for (;;) {
+            if (returnedLeaf >= 0) {
+                if (depth === 0) {
+                    this.lastResult = returnedLeaf;
+                    const valueIndex = this.valueIndices[returnedLeaf] ?? -1;
+                    // Flattening assigns every leaf one dense value-table index.
+                    return this.values[valueIndex] as T;
+                }
+
+                depth--;
+                const child = stack.pendingChildren[depth + 1] ?? 0;
+                const childDistance = stack.pendingDistances[depth + 1] ?? Number.POSITIVE_INFINITY;
+                const leafDistance = child === returnedLeaf ? childDistance : this.distance(returnedLeaf, target);
+                const parentMinimum = stack.minimumDistances[depth] ?? Number.POSITIVE_INFINITY;
+                const parentClosest = stack.closestLeaves[depth] ?? -1;
+                const parentRank = parentClosest < 0 ? Number.POSITIVE_INFINITY : (this.valueIndices[parentClosest] ?? -1);
+                const leafRank = this.valueIndices[returnedLeaf] ?? -1;
+                if (parentMinimum > leafDistance || (parentMinimum === leafDistance && parentRank > leafRank)) {
+                    stack.minimumDistances[depth] = leafDistance;
+                    stack.closestLeaves[depth] = returnedLeaf;
+                }
+                returnedLeaf = -1;
+                continue;
+            }
+
+            const node = stack.nodes[depth] ?? 0;
+            const childCount = this.childCounts[node] ?? 0;
+            if (childCount === 0) {
+                returnedLeaf = node;
+                continue;
+            }
+
+            const nextChild = stack.nextChildren[depth] ?? 0;
+            const childEnd = (this.childStarts[node] ?? 0) + childCount;
+            if (nextChild >= childEnd) {
+                returnedLeaf = stack.closestLeaves[depth] ?? -1;
+                if (returnedLeaf < 0) throw new Error('A climate search subtree produced no leaf');
+                continue;
+            }
+
+            const child = this.children[nextChild] ?? 0;
+            stack.nextChildren[depth] = nextChild + 1;
+            const childDistance = this.distance(child, target);
+            const minimumDistance = stack.minimumDistances[depth] ?? Number.POSITIVE_INFINITY;
+            const closest = stack.closestLeaves[depth] ?? -1;
+            const closestRank = closest < 0 ? Number.POSITIVE_INFINITY : (this.valueIndices[closest] ?? -1);
+            const firstLeafRank = this.firstLeafRanks[child] ?? 0;
+            if (
+                minimumDistance > childDistance ||
+                (minimumDistance === childDistance && closestRank > firstLeafRank)
+            ) {
+                if ((this.childCounts[child] ?? 0) === 0) {
+                    const leafRank = this.valueIndices[child] ?? -1;
+                    if (minimumDistance > childDistance || (minimumDistance === childDistance && closestRank > leafRank)) {
+                        stack.minimumDistances[depth] = childDistance;
+                        stack.closestLeaves[depth] = child;
+                    }
+                } else {
+                    depth++;
+                    stack.nodes[depth] = child;
+                    stack.nextChildren[depth] = this.childStarts[child] ?? 0;
+                    const inheritedCandidate = stack.closestLeaves[depth - 1] ?? -1;
+                    stack.closestLeaves[depth] = inheritedCandidate;
+                    stack.minimumDistances[depth] =
+                        inheritedCandidate < 0 ? Number.POSITIVE_INFINITY : this.distance(inheritedCandidate, target);
+                    stack.pendingChildren[depth] = child;
+                    stack.pendingDistances[depth] = childDistance;
+                }
+            }
+        }
     }
 
     /** Returns the value of the box nearest the target by scanning every box. */
@@ -425,6 +500,30 @@ export class ClimateParameterList<T> {
             }
         }
         return best;
+    }
+
+    /** The target's lower-bound distance from one flattened node's seven climate ranges. */
+    private distance(node: number, target: ClimateTargetPoint): number {
+        const offset = node * CLIMATE_PARAMETER_COUNT * 2;
+        let distance = parameterDistance(this.bounds[offset] ?? 0, this.bounds[offset + 1] ?? 0, target.temperature);
+        let total = distance * distance;
+        distance = parameterDistance(this.bounds[offset + 2] ?? 0, this.bounds[offset + 3] ?? 0, target.humidity);
+        total += distance * distance;
+        distance = parameterDistance(
+            this.bounds[offset + 4] ?? 0,
+            this.bounds[offset + 5] ?? 0,
+            target.continentalness
+        );
+        total += distance * distance;
+        distance = parameterDistance(this.bounds[offset + 6] ?? 0, this.bounds[offset + 7] ?? 0, target.erosion);
+        total += distance * distance;
+        distance = parameterDistance(this.bounds[offset + 8] ?? 0, this.bounds[offset + 9] ?? 0, target.depth);
+        total += distance * distance;
+        distance = parameterDistance(this.bounds[offset + 10] ?? 0, this.bounds[offset + 11] ?? 0, target.weirdness);
+        total += distance * distance;
+        distance = parameterDistance(this.bounds[offset + 12] ?? 0, this.bounds[offset + 13] ?? 0, 0);
+        total += distance * distance;
+        return total;
     }
 }
 
