@@ -51,7 +51,10 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         send: async (packet: any) => void sent.push(packet),
         getConnection: () => ({
             codec: Codec2193,
-            sendSharedBatch: (content: Buffer) => void batches.push(content)
+            sendSharedBatch: (content: Buffer) => {
+                batches.push(content);
+                return Promise.resolve();
+            }
         })
     };
 

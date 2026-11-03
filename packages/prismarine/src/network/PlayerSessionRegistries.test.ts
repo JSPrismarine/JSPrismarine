@@ -36,7 +36,11 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
     const sent: NetworkPacket[] = [];
     const connection = stub<ClientConnection>({
         codec,
-        sendDataPacket: async (packet) => void sent.push(packet)
+        sendDataPacket: async (packet) => void sent.push(packet),
+        sendSharedBatchAsync: async (batch) => {
+            const encoded = await batch;
+            sent.push(...encoded.packets);
+        }
     });
     const player = stub<Player>({ getServer: () => server, getName: () => 'runner' });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
@@ -51,7 +55,7 @@ const sessionFor = (server: Server, codec: ProtocolCodec = Codec2193) => {
 const logger = () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {} });
 
 /** The config both paths read, with everything the server has set to go out. */
-const everyRecipe = () => stub<Config>({ getCraftingRecipeLimit: () => -1 });
+const everyRecipe = () => stub<Config>({ getCraftingRecipeLimit: () => -1, getPacketCompressionLevel: () => 1 });
 
 /** A server with nothing registered and no content build. */
 const captureServer = (overrides: StubMembers<Server> = {}) =>

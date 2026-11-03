@@ -25,6 +25,7 @@ import { ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
 import { overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { createStartGameData } from '../startGameData';
+import { sendCachedJoinPacket } from '../joinPacketCache';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -257,17 +258,20 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         const world = player.getWorld();
         const connection = session.getConnection();
+        const content = server.getContent();
+        const recipeLimit = server.getConfig().getCraftingRecipeLimit();
+        const compressionLevel = server.getConfig().getPacketCompressionLevel();
 
         // Built at startup and cached, so this is a lookup. Undefined only when the
         // build could not produce payloads, and each packet below then writes what it
         // wrote before the content build existed. Built against this session's own item
         // numbering: the registry, the creative entries and the brewing recipes all carry
         // item numbers, and the numbering is a property of the negotiated protocol.
-        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), {
+        const payloads = joinContentPayloads(content, server.getLogger(), {
             itemData: connection.codec.itemData
         });
 
-        await connection.sendDataPacket(new JigsawStructureDataPacket());
+        await sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new JigsawStructureDataPacket());
 
         const worldSpawnPos = await world.getSpawnPosition();
         await connection.sendDataPacket(
@@ -291,17 +295,38 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         // the client could resolve it through.
         const itemRegistry =
             payloads === undefined ? new ItemRegistryPacket() : new ItemRegistryPacket({ items: [...payloads.items] });
-        await connection.sendDataPacket(itemRegistry);
+        await sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, itemRegistry);
 
         // Register each type's render-facing properties before any actor of that type spawns.
-        for (const type of server.getContent().entities.registry.values()) {
+        for (const type of content.entities.registry.values()) {
             const propertyPacket = syncActorPropertyPacket(type.identifier, type.entity.description.properties);
-            if (propertyPacket !== undefined) await connection.sendDataPacket(propertyPacket);
+            if (propertyPacket !== undefined) {
+                await sendCachedJoinPacket(
+                    connection,
+                    content,
+                    recipeLimit,
+                    compressionLevel,
+                    propertyPacket,
+                    type.identifier
+                );
+            }
         }
 
-        await connection.sendDataPacket(new AvailableActorIdentifiersPacket());
-        await connection.sendDataPacket(new BiomeDefinitionListPacket());
-        await connection.sendDataPacket(new FeatureRegistryPacket({ features: [] }));
+        await sendCachedJoinPacket(
+            connection,
+            content,
+            recipeLimit,
+            compressionLevel,
+            new AvailableActorIdentifiersPacket()
+        );
+        await sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new BiomeDefinitionListPacket());
+        await sendCachedJoinPacket(
+            connection,
+            content,
+            recipeLimit,
+            compressionLevel,
+            new FeatureRegistryPacket({ features: [] })
+        );
         await session.sendCreativeContents();
         await session.sendCraftingData();
         await session.sendAvailableCommands();

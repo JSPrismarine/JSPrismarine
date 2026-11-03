@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
@@ -96,6 +96,32 @@ describe('network', () => {
                 encodedBatchOf('a'.repeat(200_000)).toString('base64'),
                 encodedBatchOf('b').toString('base64')
             ]);
+        });
+
+        it('compresses a large single packet asynchronously without letting a later send pass it', async () => {
+            const { framed, session } = fakeSession();
+            let release: ((frame: Buffer) => void) | undefined;
+            const delayedDeflate = new Promise<Buffer>((resolve) => {
+                release = resolve;
+            });
+            const encodeAsync = vi.spyOn(BatchCodec.prototype, 'encodeAsync').mockReturnValue(delayedDeflate);
+
+            const first = session.sendDataPacket(message('large '.repeat(12_000)));
+            const second = session.sendDataPacket(message('later'));
+
+            expect(encodeAsync).toHaveBeenCalledOnce();
+            expect(framed).toEqual([]);
+            const finishDeflate = release;
+            if (finishDeflate === undefined) throw new Error('the large batch did not start compression');
+            finishDeflate(Buffer.from('first frame'));
+
+            await Promise.all([first, second]);
+
+            expect(framed).toEqual([
+                Buffer.from('first frame').toString('base64'),
+                encodedBatchOf('later').toString('base64')
+            ]);
+            encodeAsync.mockRestore();
         });
 
         it('goes back to framing immediately once the queue has drained', async () => {

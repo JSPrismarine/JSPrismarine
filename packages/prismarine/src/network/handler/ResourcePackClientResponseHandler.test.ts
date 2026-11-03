@@ -118,6 +118,11 @@ const harness = ({
         sendDataPacket: async (packet: NetworkPacket) => {
             sent.push(packet.constructor.name);
             packets.push(packet);
+        },
+        sendSharedBatchAsync: async (batch) => {
+            const encoded = await batch;
+            sent.push(...encoded.packets.map((packet) => packet.constructor.name));
+            packets.push(...encoded.packets);
         }
     });
 
@@ -143,6 +148,8 @@ const harness = ({
             stub<Config>({
                 getGamemode: () => 'survival',
                 getDifficulty: () => 1,
+                getCraftingRecipeLimit: () => -1,
+                getPacketCompressionLevel: () => 1,
                 getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking
             }),
         getTick: () => 100,

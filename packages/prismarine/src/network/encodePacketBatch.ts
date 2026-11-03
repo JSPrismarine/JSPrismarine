@@ -28,6 +28,8 @@ export interface EncodedPacketBatch {
 
 /** Whether encoded packet views are for immediate framing or caller retention. */
 export type PacketEncodingLifetime = 'transient' | 'cached';
+/** Compressed packet bodies above this size use zlib's asynchronous API. */
+export const ASYNC_PACKET_BATCH_THRESHOLD = 64 * 1024;
 
 /**
  * Prepares each packet for one negotiated Protocol codec and frames their bytes with Protocol's
@@ -52,6 +54,37 @@ export const encodePacketBatch = (
         packets: encodedPackets,
         packetBuffers: buffers
     };
+};
+
+/**
+ * Encodes small batches synchronously and moves larger deflates to the libuv pool.
+ * Packet encoding still runs once on the calling thread; only zlib moves off it.
+ * @param packets - Packets as the caller built them.
+ * @param codec - The negotiated packet ids, layouts, and Protocol context.
+ * @param options - Compression state and optional zlib level.
+ * @returns The batch directly below the threshold, or a promise above it.
+ */
+export const encodePacketBatchBySize = (
+    packets: readonly NetworkPacket<unknown>[],
+    codec: ProtocolCodec,
+    options: PacketBatchOptions = {},
+    lifetime: PacketEncodingLifetime = 'transient'
+): EncodedPacketBatch | Promise<EncodedPacketBatch> => {
+    const { packets: encodedPackets, buffers: packetBuffers } = preparePackets(packets, codec, lifetime);
+    const batchCodec = batchCodecFor(options);
+    // Bedrock's batch body includes each packet's varuint length prefix in the threshold.
+    const bodyLength = packetBuffers.reduce(
+        (length, packet) => length + varUIntLength(packet.byteLength) + packet.byteLength,
+        0
+    );
+
+    if (options.compressed === false || bodyLength <= ASYNC_PACKET_BATCH_THRESHOLD) {
+        return { content: batchCodec.encode(packetBuffers), packets: encodedPackets, packetBuffers };
+    }
+
+    return batchCodec
+        .encodeAsync(packetBuffers)
+        .then((content) => ({ content, packets: encodedPackets, packetBuffers }));
 };
 
 /** The async counterpart for large batches whose deflate should leave the main thread. */
@@ -90,6 +123,15 @@ const preparePackets = (
         encodedPackets.push(packet);
     }
     return { packets: encodedPackets, buffers };
+};
+
+const varUIntLength = (value: number): number => {
+    let length = 1;
+    while (value >= 0x80) {
+        value = Math.floor(value / 0x80);
+        length++;
+    }
+    return length;
 };
 
 const batchCodecFor = ({

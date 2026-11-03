@@ -51,6 +51,7 @@ import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
 import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
+import { sendCachedJoinPacket } from './joinPacketCache';
 import { creativeContentFrom, craftingDataFromRecipes } from './payloadAdapters';
 import { overworldSpawnOf, playerSpawnPositionPacket } from './spawnPosition';
 import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
@@ -1149,14 +1150,21 @@ export default class PlayerSession {
         const limit = this.server.getConfig().getCraftingRecipeLimit();
         if (limit === 0) return;
 
-        const payloads = joinContentPayloads(this.server.getContent(), this.server.getLogger(), {
+        const content = this.server.getContent();
+        const payloads = joinContentPayloads(content, this.server.getLogger(), {
             itemData: this.connection.codec.itemData
         });
         if (payloads !== undefined && craftingRecipeCount(payloads.crafting) > 0) {
             const all = craftingRecipeCount(payloads.crafting);
             const crafting = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
 
-            await this.connection.sendDataPacket(new CraftingDataPacket(crafting));
+            await sendCachedJoinPacket(
+                this.connection,
+                content,
+                limit,
+                this.server.getConfig().getPacketCompressionLevel(),
+                new CraftingDataPacket(crafting)
+            );
 
             const sent = craftingRecipeCount(crafting);
             this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
@@ -1191,7 +1199,8 @@ export default class PlayerSession {
         // sends back names the entry it was shown. `creativePick` reads the same two sources
         // in the same order.
         const server = this.player.getServer();
-        const payloads = joinContentPayloads(server.getContent(), server.getLogger(), {
+        const content = server.getContent();
+        const payloads = joinContentPayloads(content, server.getLogger(), {
             itemData: this.connection.codec.itemData
         });
         if (payloads === undefined) {
@@ -1202,7 +1211,13 @@ export default class PlayerSession {
             return;
         }
 
-        await this.connection.sendDataPacket(new CreativeContentPacket(payloads.creative));
+        await sendCachedJoinPacket(
+            this.connection,
+            content,
+            this.server.getConfig().getCraftingRecipeLimit(),
+            this.server.getConfig().getPacketCompressionLevel(),
+            new CreativeContentPacket(payloads.creative)
+        );
     }
 
     /**

@@ -31,7 +31,10 @@ const replicatorFor = (
     const players = viewers.map((viewer, index) => {
         const connection = stub<ClientConnection>({
             codec: Codec2193,
-            sendSharedBatch: (content) => void batches[index]!.push(content)
+            sendSharedBatch: (content) => {
+                batches[index]!.push(content);
+                return Promise.resolve();
+            }
         });
         const session = stub<PlayerSession>({ getConnection: () => connection });
         return stub<Player>({
