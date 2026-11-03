@@ -3,8 +3,9 @@ name: Client E2E
 # rendering client, driven headlessly over MCP) and runs the tools/client-e2e scenarios.
 #
 # macOS runners are the one hosted platform where the client's renderer is proven in CI
-# (cinnabar's own GPU tests run on macos-latest via Metal). The client build is slow once per
-# cinnabar pin and then comes from the cache, so warm runs only boot the server, join, and play.
+# (cinnabar's own GPU tests run on macos-latest via Metal). The client build is slow, so it runs
+# once per protocol pin in cinnabar-build, only when the cache has no entry for that exact commit.
+# Every client-e2e job then restores that entry, so a run only boots the server, joins, and plays.
 on:
     workflow_call:
         inputs:
@@ -140,61 +141,90 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PR_NUMBER: ${{ github.event.pull_request.number }}
 
-    cinnabar-prebuild:
-        name: Warm shared Cinnabar compiler cache
+    cinnabar-build:
+        name: 🔨 Build cinnabar client (protocol ${{ matrix.protocol }})
         needs: protocol-matrix
-        runs-on: macos-latest
-        timeout-minutes: 120
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-
-            - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
-              with:
-                  go-version: 'stable'
-                  cache: false
-
-            - name: Restore the latest protocol build cache
-              id: cinnabar-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ needs.protocol-matrix.outputs.latest }}
-                  key: ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
-                  restore-keys: |
-                      ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-
-
-            - name: Prepare the shared Rust compiler cache
-              uses: Mozilla-Actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
-              with:
-                  version: v0.18.0
-
-            - name: 🔨 Build latest pinned Cinnabar client
-              run: pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL"
-              env:
-                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
-                  PROTOCOL: ${{ needs.protocol-matrix.outputs.latest }}
-                  RUSTC_WRAPPER: sccache
-                  SCCACHE_GHA_ENABLED: 'true'
-
-            - name: Save the latest protocol build cache
-              if: ${{ github.ref == 'refs/heads/master' && steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ needs.protocol-matrix.outputs.latest }}
-                  key: ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
-
-    client-e2e:
-        name: 🎮 Client E2E (protocol ${{ matrix.protocol }})
-        needs: [protocol-matrix, cinnabar-prebuild]
         strategy:
             fail-fast: false
             matrix:
                 protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
         runs-on: macos-latest
-        # A cold cinnabar build dominates the first run after a pin change; warm runs take minutes.
         timeout-minutes: 120
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            # One entry per protocol and pinned commit, so bumping one pin leaves the other cached.
+            - name: Resolve the cache key
+              id: pin
+              env:
+                  PROTOCOL: ${{ matrix.protocol }}
+              run: |
+                  commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
+                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+
+            # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
+            - name: Look for an existing build
+              id: cinnabar-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  key: ${{ steps.pin.outputs.key }}
+                  lookup-only: true
+
+            # A pin change misses the exact key but restores the previous pin's build, so cargo
+            # only recompiles what differs.
+            - name: Restore the previous pin's build
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  key: ${{ steps.pin.outputs.key }}
+                  restore-keys: |
+                      ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
+
+            - name: 📦 Install
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: ./.github/common/install
+
+            - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              with:
+                  go-version: 'stable'
+                  cache: false
+
+            - name: Prepare the shared Rust compiler cache
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: Mozilla-Actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+              with:
+                  version: v0.18.0
+
+            - name: 🔨 Build the pinned cinnabar client
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL"
+              env:
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  PROTOCOL: ${{ matrix.protocol }}
+                  RUSTC_WRAPPER: sccache
+                  SCCACHE_GHA_ENABLED: 'true'
+
+            # Save on every ref. A PR's entry is only visible to that PR, which is enough for the
+            # e2e jobs below; master's entries are what other PRs fall back to.
+            - name: Save the build
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
+                  key: ${{ steps.pin.outputs.key }}
+
+    client-e2e:
+        name: 🎮 Client E2E (protocol ${{ matrix.protocol }})
+        needs: [protocol-matrix, cinnabar-build]
+        strategy:
+            fail-fast: false
+            matrix:
+                protocol: ${{ fromJSON(needs.protocol-matrix.outputs.protocols) }}
+        runs-on: macos-latest
+        timeout-minutes: 60
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -216,51 +246,21 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-jsp-sources-
 
-            # PRs can restore the base branch cache, but caches they create are scoped to that PR.
-            # Restore on every run and save only on master so sibling PRs reuse one shared build.
-            - name: Restore the cinnabar build cache
-              # Separate keys let both protocol jobs save and restore one shared build per version.
-              id: cinnabar-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
-                  key: ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
-                  restore-keys: |
-                      ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
-
-            # The prebuild job only warms the latest protocol. A protocol with no cache of its own
-            # restores that build next to its own, and the ensure step copies its Cargo output
-            # directories so only the dependencies that differ between the pins compile. Nothing
-            # matched means no cache at all, so a stale cache from an older pin is left alone.
-            - name: Restore the latest protocol build to seed this protocol
-              if: ${{ matrix.protocol != needs.protocol-matrix.outputs.latest && steps.cinnabar-cache.outputs.cache-matched-key == '' }}
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ needs.protocol-matrix.outputs.latest }}
-                  key: ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
-                  restore-keys: |
-                      ${{ runner.os }}-cinnabar-v${{ needs.protocol-matrix.outputs.latest }}-
-
-            - name: Prepare the shared Rust compiler cache
-              uses: Mozilla-Actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
-              with:
-                  version: v0.18.0
-
-            - name: 🔨 Ensure the pinned cinnabar client
-              run: pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL"
+            - name: Resolve the cache key
+              id: pin
               env:
-                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
                   PROTOCOL: ${{ matrix.protocol }}
-                  RUSTC_WRAPPER: sccache
-                  SCCACHE_GHA_ENABLED: 'true'
+              run: |
+                  commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
+                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
-            # Keep the reusable cache in the default branch scope. PR runs only restore it.
-            - name: Save the cinnabar build cache
-              if: ${{ github.ref == 'refs/heads/master' && steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+            # cinnabar-build guarantees this entry exists, so a miss is a workflow bug, not a reason to compile.
+            - name: Restore the cinnabar build
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
-                  key: ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-${{ hashFiles('tools/client-e2e/cinnabar.json') }}
+                  key: ${{ steps.pin.outputs.key }}
+                  fail-on-cache-miss: true
 
             - name: 🍿 Install ffmpeg for recording
               if: ${{ (inputs.record || github.event_name == 'pull_request' || github.event_name == 'push') && matrix.protocol == needs.protocol-matrix.outputs.latest }}
@@ -269,10 +269,8 @@ jobs:
             - name: 🎮 Run the client e2e scenarios
               env:
                   # Both expand unquoted below: empty vanishes, and scenarios word-split by design.
-                  # run.mts calls ensureCinnabar too; reuse the matrix build from the ensure step.
+                  # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
-                  RUSTC_WRAPPER: sccache
-                  SCCACHE_GHA_ENABLED: 'true'
                   RECORD: ${{ (inputs.record || github.event_name == 'pull_request' || github.event_name == 'push') && matrix.protocol == needs.protocol-matrix.outputs.latest && '--record' || '' }}
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.protocol }}
