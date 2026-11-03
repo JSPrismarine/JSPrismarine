@@ -87,9 +87,10 @@ export class ChunkSampler {
 
         this.fluidPicker = options.fluidPicker ?? createGlobalFluidPicker(settings);
 
-        // Read after the samplers are compiled, because compiling is what registers the
-        // `interpolated` nodes the cell size is taken from.
-        const cell = randomState.interpolationCellSize;
+        // Taken from final density alone. The shared compiler also holds the surface pass's
+        // `chunk_surface_level`, whose cell is 16 by 1, and once that compiles the compiler's
+        // overall cell shrinks to 4 by 1 and a chunk walks 6144 cells instead of 768.
+        const cell = randomState.interpolationCellSizeOf(settings.noiseRouter.finalDensity);
         this.cellSizeXz = cell?.xz ?? CHUNK_SIZE;
         this.cellSizeY = cell?.y ?? settings.noiseSettings.height;
         this.cellsX = this.cellSpan(this.volume.minBlockX, this.volume.maxBlockX, this.cellSizeXz);

@@ -138,6 +138,85 @@ export type DensityFunctionNode =
     | { readonly type: 'slice'; readonly axis: Axis; readonly coordinate: number; readonly input: DensityFunctionNode }
     | { readonly type: 'spline'; readonly spline: SplineNode };
 
+/** The density functions a spline reads as the coordinates of its curves. */
+const splineInputsOf = (spline: SplineNode, into: DensityFunctionNode[]): void => {
+    if (spline.kind === 'constant') return;
+
+    into.push(spline.coordinate);
+    for (const value of spline.values) splineInputsOf(value, into);
+};
+
+/**
+ * Lists the density functions a node reads, in the order its operands are written.
+ *
+ * That is every operand, every noise shift input and every spline coordinate, so a walk that
+ * follows it reaches each node a sampler of the tree can evaluate. A node that reads nothing,
+ * such as a constant or a noise with its own coordinates, lists none.
+ */
+export const densityInputsOf = (node: DensityFunctionNode): readonly DensityFunctionNode[] => {
+    switch (node.type) {
+        case 'constant':
+        case 'beardifier':
+        case 'blend_alpha':
+        case 'blend_offset':
+        case 'end_outer_islands':
+        case 'gradient':
+        case 'shift':
+        case 'shift_a':
+        case 'shift_b':
+        case 'old_blended_noise':
+        case 'distance_to_point':
+            return [];
+        case 'noise':
+            return [node.shiftX, node.shiftY, node.shiftZ];
+        case 'blend_density':
+        case 'cache':
+        case 'clamp':
+        case 'interpolated':
+        case 'slice':
+            return [node.input];
+        case 'abs':
+        case 'cube':
+        case 'half_negative':
+        case 'log':
+        case 'negate':
+        case 'quarter_negative':
+        case 'reciprocal':
+        case 'sign':
+        case 'sqrt':
+        case 'square':
+        case 'squeeze':
+            return [node.input];
+        case 'ceil':
+        case 'floor':
+        case 'round':
+        case 'truncate':
+            return [node.input, node.multiple];
+        case 'add':
+        case 'div':
+        case 'max':
+        case 'min':
+        case 'mul':
+        case 'sub':
+            return [node.left, node.right];
+        case 'find_top_surface':
+            return [node.density, node.upperBound];
+        case 'interval_select':
+            return [node.input, ...node.functions];
+        case 'lerp':
+            return [node.alpha, node.first, node.second];
+        case 'pow':
+            return [node.base, node.exponent];
+        case 'range_choice':
+            return [node.input, node.whenInRange, node.whenOutOfRange];
+        case 'spline': {
+            const inputs: DensityFunctionNode[] = [];
+            splineInputsOf(node.spline, inputs);
+            return inputs;
+        }
+    }
+};
+
 /** The 44 operator names Java Edition 26.3 registers, in registration order. */
 export const DENSITY_FUNCTION_TYPES = [
     'constant',

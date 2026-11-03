@@ -94,9 +94,24 @@ export class RandomState {
      *
      * This is a hint for a caller choosing a visiting order, not part of any result: a sample
      * answers the same whatever order it is asked in.
+     *
+     * @deprecated It covers every tree compiled on this state, so compiling another function
+     *   first, such as the surface pass's `chunk_surface_level`, makes it smaller. Pass the tree
+     *   being walked to {@link RandomState.interpolationCellSizeOf}.
      */
     public get interpolationCellSize(): InterpolationCellSize | undefined {
         return this.compiler.interpolationCellSize;
+    }
+
+    /**
+     * The cell the `interpolated` nodes reachable from one tree hold their corners still
+     * across, or undefined when it holds none.
+     *
+     * A hint for a caller choosing a visiting order, like {@link RandomState.interpolationCellSize},
+     * but fixed by the tree alone, whatever else this state has compiled.
+     */
+    public interpolationCellSizeOf(node: DensityFunctionNode): InterpolationCellSize | undefined {
+        return this.compiler.interpolationCellSizeOf(node);
     }
 
     /** Creates the per-chunk mutable state a sampler reads, with every memo slot empty. */

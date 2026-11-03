@@ -7,6 +7,9 @@
  *
  * Arms:
  * - `fill`: the whole fill the generator does, density and aquifer, block by block.
+ * - `router`: the same fill after every slot of the noise router has compiled on the state, as
+ *   it has in a running server once the surface pass and the biome source have sampled. The
+ *   cell count it reports is the one that exposes a sampler sized from the wrong tree.
  * - `density`: the density pass alone, so a change can be charged to one half or the other.
  */
 import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
@@ -15,9 +18,9 @@ import { RandomState } from '../src/RandomState';
 import { WorldgenData } from '../src/WorldgenData';
 
 /** The arms this file knows how to run. */
-export type BenchmarkArm = 'density' | 'fill';
+export type BenchmarkArm = 'density' | 'fill' | 'router';
 
-const ARMS: readonly BenchmarkArm[] = ['fill', 'density'];
+const ARMS: readonly BenchmarkArm[] = ['fill', 'router', 'density'];
 
 const CHUNKS = [
     [3, -5],
@@ -39,6 +42,7 @@ const data = new WorldgenData({
 });
 
 const state = new RandomState(data, 1234n, data.settings('minecraft:overworld'));
+const finalDensity = state.settings.noiseRouter.finalDensity;
 
 /** Walks every block of a chunk the way the generator does, and counts what it placed. */
 const fillChunk = (sampler: ChunkSampler): number => {
@@ -54,7 +58,7 @@ const fillChunk = (sampler: ChunkSampler): number => {
 // The interpolation cell the density arm walks, so it crosses a cell boundary as rarely as
 // `forEachCellBlock` does. A column walk refetches eight corners every eight blocks and would
 // charge the density pass for an order the generator stopped using.
-const cell = state.interpolationCellSize ?? { xz: CHUNK_SIZE, y: 384 };
+const cell = state.interpolationCellSizeOf(finalDensity) ?? { xz: CHUNK_SIZE, y: 384 };
 
 /** Reads the density of every block of a chunk, cell by cell, with no aquifer. */
 const fillDensity = (sampler: ChunkSampler): number => {
@@ -76,8 +80,13 @@ const fillDensity = (sampler: ChunkSampler): number => {
     return solid;
 };
 
-const run = (arm: BenchmarkArm): { arm: BenchmarkArm; millisecondsPerChunk: number; checksum: number } => {
-    const walk = arm === 'fill' ? fillChunk : fillDensity;
+const run = (
+    arm: BenchmarkArm
+): { arm: BenchmarkArm; millisecondsPerChunk: number; checksum: number; cellsPerChunk: number } => {
+    const walk = arm === 'density' ? fillDensity : fillChunk;
+    // Compile every slot before anything is measured. The surface pass's `chunk_surface_level`
+    // has a 16 by 1 cell, and the state's overall cell shrinks once it compiles.
+    if (arm === 'router') for (const slot of Object.values(state.settings.noiseRouter)) state.sampler(slot);
 
     let checksum = 0;
     let best = Number.POSITIVE_INFINITY;
@@ -89,7 +98,8 @@ const run = (arm: BenchmarkArm): { arm: BenchmarkArm; millisecondsPerChunk: numb
         const elapsed = (performance.now() - started) / CHUNKS.length;
         if (round >= WARMUPS) best = Math.min(best, elapsed);
     }
-    return { arm, millisecondsPerChunk: best, checksum };
+    const cellsPerChunk = new ChunkSampler(state, { chunkX: CHUNKS[0][0], chunkZ: CHUNKS[0][1] }).cellCount;
+    return { arm, millisecondsPerChunk: best, checksum, cellsPerChunk };
 };
 
 const requested = ARMS.find((arm) => arm === process.argv[2]);

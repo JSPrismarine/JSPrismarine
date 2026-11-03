@@ -15,12 +15,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
 
-const ARMS = ['fill', 'density'] as const;
+const ARMS = ['fill', 'router', 'density'] as const;
 
 interface ArmResult {
     readonly arm: string;
     readonly millisecondsPerChunk: number;
     readonly checksum: number;
+    readonly cellsPerChunk: number;
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -48,7 +49,8 @@ try {
     for (const arm of ARMS) {
         const result = best.get(arm);
         if (!result) continue;
-        process.stdout.write(`  ${arm.padEnd(10)} ${result.millisecondsPerChunk.toFixed(2).padStart(8)}\n`);
+        const cells = `${result.cellsPerChunk} cells`.padStart(12);
+        process.stdout.write(`  ${arm.padEnd(10)} ${result.millisecondsPerChunk.toFixed(2).padStart(8)}${cells}\n`);
     }
 
     // An arm counts the same blocks every round, so a checksum that moves between rounds means

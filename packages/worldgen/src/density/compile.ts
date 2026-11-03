@@ -6,6 +6,7 @@ import type { RandomSource } from '../random/RandomSource';
 import type { CompiledSpline } from './CubicSpline';
 import { compileMultipointSpline } from './CubicSpline';
 import type { DensityFunctionNode, DistanceMetric, SplineNode } from './DensityFunction';
+import { densityInputsOf } from './DensityFunction';
 import type { SampleContext } from './SampleContext';
 
 /** A compiled density function: one closure that reads a position and the chunk context. */
@@ -134,6 +135,7 @@ const endIslandHeight = (noise: Noise, sectionX: number, sectionZ: number): numb
 export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
+    private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
     private nextCacheId = 0;
     private cellSizeXz = 0;
     private cellSizeY = 0;
@@ -153,9 +155,40 @@ export class DensityFunctionCompiler {
      * greatest common divisor is what makes the answer right for a set of differing sizes: the
      * cells of a node of size `s` are aligned to multiples of `s`, and `gcd | s`, so a block of
      * the divisor's size never straddles two of them.
+     *
+     * This covers every tree the compiler has seen, so it shrinks when an unrelated tree with a
+     * finer cell compiles. The surface pass compiles `chunk_surface_level` with a 16 by 1 cell,
+     * and a chunk walked in the gcd of both visits eight times as many cells as final density
+     * needs. Use {@link DensityFunctionCompiler.interpolationCellSizeOf} to size a walk.
      */
     public get interpolationCellSize(): InterpolationCellSize | undefined {
         return this.cellSizeXz === 0 || this.cellSizeY === 0 ? undefined : { xz: this.cellSizeXz, y: this.cellSizeY };
+    }
+
+    /**
+     * The cell shared by the `interpolated` nodes reachable from one tree, or undefined when it
+     * holds none.
+     *
+     * The answer is the same gcd {@link DensityFunctionCompiler.interpolationCellSize} takes,
+     * over the nodes this tree can evaluate instead of every node the compiler holds, so it
+     * does not depend on which other trees were compiled first. Trees share subtrees, so the
+     * walk memoizes by node and visits each once.
+     */
+    public interpolationCellSizeOf(node: DensityFunctionNode): InterpolationCellSize | undefined {
+        if (this.cellSizes.has(node)) return this.cellSizes.get(node);
+
+        let xz = node.type === 'interpolated' ? node.cellSizeXz : 0;
+        let y = node.type === 'interpolated' ? node.cellSizeY : 0;
+        for (const input of densityInputsOf(node)) {
+            const inner = this.interpolationCellSizeOf(input);
+            if (inner === undefined) continue;
+            xz = gcd(xz, inner.xz);
+            y = gcd(y, inner.y);
+        }
+
+        const size = xz === 0 || y === 0 ? undefined : { xz, y };
+        this.cellSizes.set(node, size);
+        return size;
     }
 
     /**
