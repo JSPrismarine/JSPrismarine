@@ -24,6 +24,7 @@ import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { miningDrops } from './scenarios/mining-drops.mts';
 import { furnace } from './scenarios/furnace.mts';
+import { litFurnace } from './scenarios/lit-furnace.mts';
 import { recipeBook } from './scenarios/recipe-book.mts';
 import { movement } from './scenarios/movement.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
@@ -53,6 +54,7 @@ const suites: ScenarioSuite[] = [
             subChunkBlockChanges,
             teleport,
             furnace,
+            litFurnace,
             recipeBook,
             placementOverlap,
             enderDragon,
