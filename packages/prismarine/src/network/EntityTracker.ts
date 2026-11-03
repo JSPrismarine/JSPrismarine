@@ -63,7 +63,7 @@ export interface TrackingPlanRequest<T extends TrackableEntity> {
  * the spawner's radii should check that this is still true.
  */
 export class EntityTracker {
-    private readonly tracked = new Set<bigint>();
+    private readonly tracked = new Set<number>();
     private readonly options: EntityTrackerOptions;
 
     public constructor(options: EntityTrackerOptions) {
@@ -72,7 +72,7 @@ export class EntityTracker {
 
     /** Whether this client currently has the entity on screen. */
     public tracks(runtimeId: bigint): boolean {
-        return this.tracked.has(runtimeId);
+        return this.tracked.has(Number(runtimeId));
     }
 
     /** How many entities this client is holding. */
@@ -102,9 +102,10 @@ export class EntityTracker {
             const runtimeId = entity.getRuntimeId();
             if (runtimeId === self) continue;
 
-            missing.delete(runtimeId);
+            const runtimeIdKey = Number(runtimeId);
+            missing.delete(runtimeIdKey);
 
-            const isTracked = this.tracked.has(runtimeId);
+            const isTracked = this.tracked.has(runtimeIdKey);
 
             if (!this.options.enabled) {
                 if (!isTracked) spawn.push(entity);
@@ -130,7 +131,7 @@ export class EntityTracker {
             if (!isInView({ ...test, margin: VIEW_MARGIN_CHUNKS + this.options.hysteresis })) despawn.push(runtimeId);
         }
 
-        for (const runtimeId of missing) despawn.push(runtimeId);
+        for (const runtimeId of missing) despawn.push(BigInt(runtimeId));
 
         return { spawn, despawn };
     }
@@ -147,7 +148,7 @@ export class EntityTracker {
      * @returns {boolean} `true` if it should be spawned now.
      */
     public shouldSpawn(entity: TrackableEntity, viewer: Point3, viewDistance: number): boolean {
-        if (this.tracked.has(entity.getRuntimeId())) return false;
+        if (this.tracked.has(Number(entity.getRuntimeId()))) return false;
         if (!this.options.enabled) return true;
 
         return isInView({
@@ -160,7 +161,7 @@ export class EntityTracker {
 
     /** Records that an entity is now on the client. */
     public add(runtimeId: bigint): void {
-        this.tracked.add(runtimeId);
+        this.tracked.add(Number(runtimeId));
     }
 
     /**
@@ -169,7 +170,7 @@ export class EntityTracker {
      * @returns {boolean} Whether it had been tracked.
      */
     public remove(runtimeId: bigint): boolean {
-        return this.tracked.delete(runtimeId);
+        return this.tracked.delete(Number(runtimeId));
     }
 
     /**
@@ -180,7 +181,7 @@ export class EntityTracker {
      * @returns {bigint[]} The runtime ids that were tracked, in no particular order.
      */
     public clear(): bigint[] {
-        const held = [...this.tracked];
+        const held = [...this.tracked].map(BigInt);
         this.tracked.clear();
         return held;
     }

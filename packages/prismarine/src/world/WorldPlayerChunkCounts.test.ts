@@ -18,7 +18,7 @@ const worldWith = (
     unloadable = false,
     writeChunk: (chunk: Chunk) => Promise<void> = async () => {}
 ): World => {
-    const players = new Map<bigint, Player>();
+    const players = new Map<number, Player>();
     const chunks = new Map(chunkPositions.map(([x, z]) => [Chunk.packXZ(x, z), new Chunk(x, z)]));
 
     const world: World = Object.assign(Object.create(World.prototype), {
@@ -56,7 +56,7 @@ describe('world player chunk counts', () => {
         const world = worldWith(positions);
 
         for (let index = 0; index < PLAYER_COUNT; index++) {
-            world['players'].set(BigInt(index), playerAt(world, index * 1000, 0));
+            world['players'].set(index, playerAt(world, index * 1000, 0));
         }
 
         const absoluteValue = vi.spyOn(Math, 'abs');
@@ -72,7 +72,7 @@ describe('world player chunk counts', () => {
         const world = worldWith(loadedPositions(centerX, 0), true);
 
         for (let index = 0; index < PLAYER_COUNT; index++) {
-            world['players'].set(BigInt(index), playerAt(world, index * 1000, 0));
+            world['players'].set(index, playerAt(world, index * 1000, 0));
         }
 
         const absoluteValue = vi.spyOn(Math, 'abs');
@@ -96,8 +96,8 @@ describe('world player chunk counts', () => {
             getPosition: () => new Position(firstX * 16, 64, 0, world)
         });
         const second = playerAt(world, 0, 0);
-        world['players'].set(1n, first);
-        world['players'].set(2n, second);
+        world['players'].set(1, first);
+        world['players'].set(2, second);
 
         const chunks = Array.from(world['chunks'].values());
         const checks = chunks.map((chunk) => vi.spyOn(chunk, 'getSubChunks'));
@@ -109,7 +109,7 @@ describe('world player chunk counts', () => {
         world.randomTickChunks();
         expect(checks.map(({ mock }) => mock.calls.length)).toEqual([2, 2, 1, 1]);
 
-        world['players'].delete(2n);
+        world['players'].delete(2);
         world.randomTickChunks();
         expect(checks.map(({ mock }) => mock.calls.length)).toEqual([2, 3, 2, 2]);
     });
@@ -129,7 +129,7 @@ describe('world player chunk counts', () => {
             viewDistance: 12,
             getPosition: () => new Position(playerX * 16, 64, 0, world)
         });
-        world['players'].set(1n, player);
+        world['players'].set(1, player);
 
         await world['unloadDistantChunks']();
         expect(world.getLoadedChunk(0, 0)).not.toBeNull();
@@ -166,7 +166,7 @@ describe('world player chunk counts', () => {
             viewDistance: 10,
             getPosition: () => new Position(playerX * 16, 64, 0, world)
         });
-        world['players'].set(1n, player);
+        world['players'].set(1, player);
         world.getLoadedChunk(20, 0)?.markChanged();
 
         const unloading = world['unloadDistantChunks']();
@@ -182,7 +182,7 @@ describe('world player chunk counts', () => {
         const world = worldWith([[20, 0]], true, async () => {
             throw new Error('chunk write failed');
         });
-        world['players'].set(1n, playerAt(world, 0, 0));
+        world['players'].set(1, playerAt(world, 0, 0));
         world.getLoadedChunk(20, 0)?.markChanged();
 
         await world['unloadDistantChunks']();

@@ -212,11 +212,11 @@ const XP_ORB = {
 
 const liveWorld = (
     content: () => ServerContent | undefined
-): { world: World; chunk: Chunk; spawned: Entity[]; entities: Map<bigint, Entity> } => {
+): { world: World; chunk: Chunk; spawned: Entity[]; entities: Map<number, Entity> } => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
-    // Where the item actor port finds the breaking player, which is how a tool wears.
-    const entities = new Map<bigint, Entity>();
+    // Where the item actor port finds the breaking player by the world's numeric runtime ID key.
+    const entities = new Map<number, Entity>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -264,7 +264,7 @@ describe('breakBlockWithContent', () => {
     let world: World;
     let chunk: Chunk;
     let spawned: Entity[];
-    let entities: Map<bigint, Entity>;
+    let entities: Map<number, Entity>;
     let content: ServerContent;
 
     beforeEach(() => {
@@ -342,7 +342,7 @@ describe('breakBlockWithContent', () => {
             getFood: () => 20,
             isOnGround: () => true
         });
-        entities.set(PLAYER_ID, breaker);
+        entities.set(Number(PLAYER_ID), breaker);
         return breaker;
     };
 

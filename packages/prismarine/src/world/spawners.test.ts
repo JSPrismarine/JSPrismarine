@@ -213,8 +213,8 @@ const worldWithSpawner = ({ playerAt, delay = 0 }: { playerAt: Vector3; delay?: 
         getFeetY: () => playerAt.getY(),
         getRuntimeId: () => 1n
     });
-    world['players'].set(1n, player);
-    world['entities'].set(1n, player);
+    world['players'].set(1, player);
+    world['entities'].set(1, player);
 
     const written: WorldChange[] = [];
     world.attachChangeSink({ ...NULL_WORLD_CHANGE_SINK, worldChanged: (change) => void written.push(change) });
@@ -270,7 +270,7 @@ describe('world', () => {
             for (let index = 0; index < 6; index++) {
                 const position = new Position(6 + index * 0.1, 64, 6, world);
                 world['entities'].set(
-                    BigInt(10 + index),
+                    10 + index,
                     stub<Entity>({
                         getType: () => 'minecraft:zombie',
                         getPosition: () => position,

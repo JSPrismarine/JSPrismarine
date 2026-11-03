@@ -614,7 +614,7 @@ describe('useItemOnBlock', () => {
         const strongholdAt = (found: { x: number; y: number; z: number } | undefined) =>
             Object.assign(world, { locateStructure: () => found && { structure: 'minecraft:stronghold', ...found } });
 
-        /** A player holding eyes, in the world's entity index, which is where the throw finds the thrower. */
+        /** A player holding eyes, in the numeric-keyed entity index where the throw finds its thrower. */
         const eyes = (count: number, gamemode: Gametype = Gametype.SURVIVAL) => {
             const player = playerHolding(
                 world,
@@ -622,7 +622,7 @@ describe('useItemOnBlock', () => {
                 false,
                 gamemode
             );
-            Object.assign(world, { entities: new Map([[player.getRuntimeId(), player]]) });
+            Object.assign(world, { entities: new Map([[Number(player.getRuntimeId()), player]]) });
             return player;
         };
 

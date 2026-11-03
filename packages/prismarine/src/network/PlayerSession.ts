@@ -223,7 +223,7 @@ export default class PlayerSession {
      * Keyed by runtime id rather than a list, so one entity contributes one packet however
      * many times it moved within the tick - see {@link PlayerSession.queueMoveActor}.
      */
-    private readonly queuedMoves: Map<bigint, MoveActorAbsolutePacket> = new Map();
+    private readonly queuedMoves: Map<number, MoveActorAbsolutePacket> = new Map();
 
     private readonly chunkSendQueue: Chunk[] = [];
 
@@ -2326,7 +2326,7 @@ export default class PlayerSession {
         // where it ended up. `Entity.setX`, `setY` and `setZ` each announce a move of their
         // own, so a diagonal step produced three identical packets naming the same
         // destination. A `Map` keeps insertion order, so the batch is ordered as before.
-        this.queuedMoves.set(entity.getRuntimeId(), PlayerSession.movePacketFor(entity, teleport));
+        this.queuedMoves.set(Number(entity.getRuntimeId()), PlayerSession.movePacketFor(entity, teleport));
     }
 
     /**

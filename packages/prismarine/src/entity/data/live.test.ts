@@ -891,9 +891,10 @@ describe('the data-driven entity runtime over a live world', () => {
         const player = playerAt(world, x, z);
         // Both maps, the way `World.addEntity` fills them: `getPlayers` reads one and
         // `getEntity`, which is how a blow finds whoever it landed on, reads the other.
+        // `World` indexes runtime ids as numbers, so these fixtures must use the same key type.
         Object.assign(world, {
-            players: new Map([[player.getRuntimeId(), player]]),
-            entities: new Map([[player.getRuntimeId(), player]])
+            players: new Map([[Number(player.getRuntimeId()), player]]),
+            entities: new Map([[Number(player.getRuntimeId()), player]])
         });
         return player;
     };

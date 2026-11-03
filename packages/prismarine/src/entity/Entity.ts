@@ -256,6 +256,11 @@ export class Entity {
         headYaw?: number;
         attributes?: Attribute[];
     }) {
+        // Hot world and tracking indexes use Number(runtimeId), so refuse the first id that
+        // cannot be represented exactly as a JavaScript number.
+        if (Entity.runtimeIdCount >= BigInt(Number.MAX_SAFE_INTEGER)) {
+            throw new RangeError('Entity runtime id counter exceeded Number.MAX_SAFE_INTEGER');
+        }
         Entity.runtimeIdCount += 1n;
         this.runtimeId = Entity.runtimeIdCount;
         this.position = position;

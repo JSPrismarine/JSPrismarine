@@ -20,6 +20,17 @@ const entityAt = (x: number, y: number, z: number) => {
 
 describe('entity', () => {
     describe('Entity', () => {
+        it('stops allocating runtime ids before numeric map keys lose precision', () => {
+            const previousCount = Entity.runtimeIdCount;
+            Entity.runtimeIdCount = BigInt(Number.MAX_SAFE_INTEGER);
+
+            try {
+                expect(() => entityAt(0, 64, 0)).toThrow(RangeError);
+            } finally {
+                Entity.runtimeIdCount = previousCount;
+            }
+        });
+
         describe('setPosition', () => {
             it('moves the entity and tells the world', async () => {
                 const { entity, broadcastMove } = entityAt(0, 64, 0);

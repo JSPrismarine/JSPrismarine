@@ -1,3 +1,5 @@
+import Chunk from '../world/chunk/Chunk';
+
 /** A chunk waiting to be sent, with the squared distance that decides its turn. */
 interface QueuedChunk {
     x: number;
@@ -18,7 +20,7 @@ interface QueuedChunk {
  */
 export class ChunkSender {
     private queue: QueuedChunk[] = [];
-    private readonly queued = new Set<bigint>();
+    private readonly queued = new Set<number>();
 
     private centerX = 0;
     private centerZ = 0;
@@ -26,8 +28,9 @@ export class ChunkSender {
     /** Set when the center moves, so the queue is re-sorted once rather than per insert. */
     private dirty = false;
 
-    private static key(x: number, z: number): bigint {
-        return ((BigInt(x) & 0xffffffffn) << 32n) | (BigInt(z) & 0xffffffffn);
+    private static key(x: number, z: number): number {
+        // Keep the same exact, world-bounded coordinate key used by World chunk maps.
+        return Chunk.packXZ(x, z);
     }
 
     public get size(): number {

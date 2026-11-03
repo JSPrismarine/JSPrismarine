@@ -38,7 +38,8 @@ export class EntityGrid {
     private readonly cells = new Map<number | string, Entity[]>();
     private readonly itemCells = new Map<number | string, ItemIndexEntry[]>();
     private readonly pickupItemCells = new Map<number | string, ItemIndexEntry[]>();
-    private readonly pickupItems = new Map<bigint, ItemIndexEntry>();
+    // Entity allocation stops at MAX_SAFE_INTEGER so numeric runtime-id keys remain exact.
+    private readonly pickupItems = new Map<number, ItemIndexEntry>();
     private nextPickupOrder = 0;
 
     private static key(chunkX: number, chunkZ: number): number | string {
@@ -85,7 +86,7 @@ export class EntityGrid {
 
     /** Adds or replaces one item's live pickup entry without waiting for the next tick rebuild. */
     public add(entity: Entity): void {
-        const id = entity.getRuntimeId();
+        const id = Number(entity.getRuntimeId());
         const previous = this.pickupItems.get(id);
         const order = previous?.order ?? this.nextPickupOrder++;
         if (previous !== undefined) this.removePickupEntry(previous);
@@ -108,13 +109,13 @@ export class EntityGrid {
 
     /** Removes one item's live pickup entry, if it still names this entity instance. */
     public remove(entity: Entity): void {
-        const entry = this.pickupItems.get(entity.getRuntimeId());
+        const entry = this.pickupItems.get(Number(entity.getRuntimeId()));
         if (entry?.entity === entity) this.removePickupEntry(entry);
     }
 
     /** Updates one item's live pickup cell after its position changes. */
     public refilePickupItem(entity: Entity): void {
-        const entry = this.pickupItems.get(entity.getRuntimeId());
+        const entry = this.pickupItems.get(Number(entity.getRuntimeId()));
         if (entry?.entity !== entity) return;
 
         const position = entity.getPosition();
@@ -252,7 +253,7 @@ export class EntityGrid {
         const cell = this.pickupItemCells.get(key);
         if (cell === undefined) this.pickupItemCells.set(key, [entry]);
         else cell.push(entry);
-        this.pickupItems.set(entry.entity.getRuntimeId(), entry);
+        this.pickupItems.set(Number(entry.entity.getRuntimeId()), entry);
     }
 
     /** Replaces the entry in place, preserving its within-cell order. */
@@ -262,7 +263,7 @@ export class EntityGrid {
             const index = cell.indexOf(previous);
             if (index !== -1) cell[index] = updated;
         }
-        this.pickupItems.set(updated.entity.getRuntimeId(), updated);
+        this.pickupItems.set(Number(updated.entity.getRuntimeId()), updated);
     }
 
     /** Removes one entry from its fine cell and id map. */
@@ -274,8 +275,9 @@ export class EntityGrid {
             if (index !== -1) cell.splice(index, 1);
             if (cell.length === 0) this.pickupItemCells.delete(key);
         }
-        if (this.pickupItems.get(entry.entity.getRuntimeId()) === entry) {
-            this.pickupItems.delete(entry.entity.getRuntimeId());
+        const runtimeId = Number(entry.entity.getRuntimeId());
+        if (this.pickupItems.get(runtimeId) === entry) {
+            this.pickupItems.delete(runtimeId);
         }
     }
 

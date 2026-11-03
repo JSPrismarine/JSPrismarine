@@ -81,7 +81,7 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
     chunk.setBlockRuntimeId(8, 64, 8, blockRuntimeId);
     chunk.setBlockEntity(entity);
     const chunks = new Map([[Chunk.packXZ(0, 0), chunk]]);
-    const players = new Map<bigint, Player>();
+    const players = new Map<number, Player>();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
         players,
@@ -91,7 +91,7 @@ const tickWorld = (entity: Furnace, blockIdentifier: string) => {
         systems: { onBlockChanged: () => {} },
         server: { getContent: () => content, getLogger: () => ({ error: vi.fn() }) }
     });
-    players.set(1n, stub<Player>({ viewDistance: 10, getPosition: () => new Position(8, 64, 8, world) }));
+    players.set(1, stub<Player>({ viewDistance: 10, getPosition: () => new Position(8, 64, 8, world) }));
 
     const changes: WorldChange[] = [];
     world.attachChangeSink({

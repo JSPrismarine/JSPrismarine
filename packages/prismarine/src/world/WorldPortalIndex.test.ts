@@ -53,7 +53,7 @@ describe('world portal index', () => {
         const near = portalChunk(0, 0);
         const far = portalChunk(100, 0);
         const world = worldWith([near, far]);
-        world['players'].set(1n, stub<Player>({ viewDistance: 4, getPosition: () => new Position(8, 64, 8, world) }));
+        world['players'].set(1, stub<Player>({ viewDistance: 4, getPosition: () => new Position(8, 64, 8, world) }));
         expect(world.getPortalIndex().size).toBe(4);
 
         await world['unloadDistantChunks']();

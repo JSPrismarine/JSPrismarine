@@ -144,6 +144,19 @@ describe('network', () => {
                 expect(tracker.size).toBe(0);
                 expect(plan(tracker, []).despawn).toEqual([]);
             });
+
+            it('keeps distinct runtime ids at the safe integer limit', () => {
+                const tracker = newTracker();
+                const first = BigInt(Number.MAX_SAFE_INTEGER) - 1n;
+                const second = BigInt(Number.MAX_SAFE_INTEGER);
+                tracker.add(first);
+                tracker.add(second);
+
+                expect(tracker.size).toBe(2);
+                expect(tracker.tracks(first)).toBe(true);
+                expect(tracker.tracks(second)).toBe(true);
+                expect(tracker.clear().sort()).toEqual([first, second]);
+            });
         });
     });
 });

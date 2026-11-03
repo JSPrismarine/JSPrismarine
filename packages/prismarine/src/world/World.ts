@@ -220,10 +220,10 @@ interface ChunkPlayerCounts {
  * the areas whose counts changed.
  */
 class PlayerChunkRefCounts {
-    private readonly players = new Map<bigint, PlayerChunkCoverage>();
+    private readonly players = new Map<number, PlayerChunkCoverage>();
     private readonly chunks = new Map<number, ChunkPlayerCounts>();
 
-    public synchronize(players: ReadonlyMap<bigint, Player>): void {
+    public synchronize(players: ReadonlyMap<number, Player>): void {
         for (const [runtimeId, player] of players) {
             const position = player.getPosition();
             const coverage = {
@@ -398,8 +398,8 @@ export class World implements Service {
     private readonly uuid: string = UUID.randomString();
     private name: string;
 
-    private readonly entities: Map<bigint, Entity> = new Map();
-    private readonly entityChunkIndices = new Map<bigint, number>();
+    private readonly entities: Map<number, Entity> = new Map();
+    private readonly entityChunkIndices = new Map<number, number>();
     private gameEventListenerRegistry: GameEventListenerRegistry | undefined;
 
     /** Where everything is, bucketed once a tick so mobs can ask who they are touching. */
@@ -411,7 +411,7 @@ export class World implements Service {
      * `getPlayers()` is called on essentially every broadcast, and deriving it meant walking
      * every entity in the world each time. Holding the players separately makes that a read.
      */
-    private readonly players: Map<bigint, Player> = new Map();
+    private readonly players: Map<number, Player> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
     private blockWriteVersion = World.nextBlockWriteVersion++;
     private playerChunkRefCounts: PlayerChunkRefCounts | undefined;
@@ -2610,15 +2610,13 @@ export class World implements Service {
         // Kept in step only once something has asked for it; before that the first count
         // reads the map, which already holds this arrival. Re-adding one the world already
         // has is a replacement rather than an arrival.
-        if (
-            this.itemEntities !== undefined &&
-            entity instanceof ItemEntity &&
-            !this.entities.has(entity.getRuntimeId())
-        )
+        const runtimeId = Number(entity.getRuntimeId());
+
+        if (this.itemEntities !== undefined && entity instanceof ItemEntity && !this.entities.has(runtimeId))
             this.itemEntities += 1;
 
-        this.entities.set(entity.getRuntimeId(), entity);
-        if (entity instanceof Player) this.players.set(entity.getRuntimeId(), entity);
+        this.entities.set(runtimeId, entity);
+        if (entity instanceof Player) this.players.set(runtimeId, entity);
         this.entityGrid.add(entity);
         this.markEntityChunkChanged(entity);
 
@@ -2635,16 +2633,17 @@ export class World implements Service {
         this.server.getEntityRuntime?.(this.dimension.name)?.removeBody?.(entity);
 
         const runtimeId = entity.getRuntimeId();
-        const chunkIndex = this.entityChunkIndices.get(runtimeId);
+        const runtimeIdKey = Number(runtimeId);
+        const chunkIndex = this.entityChunkIndices.get(runtimeIdKey);
         if (chunkIndex !== undefined) this.chunks.get(chunkIndex)?.markChanged();
-        this.entityChunkIndices.delete(runtimeId);
+        this.entityChunkIndices.delete(runtimeIdKey);
 
-        if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeId))
+        if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeIdKey))
             this.itemEntities -= 1;
 
         this.entityGrid.remove(entity);
-        this.entities.delete(entity.getRuntimeId());
-        this.players.delete(entity.getRuntimeId());
+        this.entities.delete(runtimeIdKey);
+        this.players.delete(runtimeIdKey);
 
         // Taken out of the maps first, so a leaving player is not among the clients told
         // about its own departure - and so nothing is announced to a session on its way out.
@@ -2874,13 +2873,14 @@ export class World implements Service {
         const runtimeId = entity.getRuntimeId();
         const position = entity.getPosition();
         const nextChunkIndex = Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
-        const previousChunkIndex = this.entityChunkIndices.get(runtimeId);
+        const runtimeIdKey = Number(runtimeId);
+        const previousChunkIndex = this.entityChunkIndices.get(runtimeIdKey);
 
         if (previousChunkIndex !== undefined && previousChunkIndex !== nextChunkIndex) {
             this.chunks.get(previousChunkIndex)?.markChanged();
         }
         this.chunks.get(nextChunkIndex)?.markChanged();
-        this.entityChunkIndices.set(runtimeId, nextChunkIndex);
+        this.entityChunkIndices.set(runtimeIdKey, nextChunkIndex);
     }
 
     private markEntitiesInChunkChanged(chunk: Chunk): void {
@@ -3064,7 +3064,7 @@ export class World implements Service {
      * @returns {Entity | null} The entity, or null if nothing here has that id.
      */
     public getEntity(runtimeId: bigint): Entity | null {
-        return this.entities.get(runtimeId) ?? null;
+        return this.entities.get(Number(runtimeId)) ?? null;
     }
 
     /**
