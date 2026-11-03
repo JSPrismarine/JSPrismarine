@@ -97,6 +97,7 @@ export default class LevelDB extends BaseProvider {
     public readonly supportsChunkUnload = true;
 
     private database: Database | null = null;
+    private chunkWriteBatchBytes = 0;
 
     public constructor(folderPath: string, server: Server) {
         // Recursive, unlike the base class: a world folder's parent may not exist yet.
@@ -147,6 +148,11 @@ export default class LevelDB extends BaseProvider {
         if (!this.database) throw new Error('The world provider is not enabled');
 
         return this.database;
+    }
+
+    /** Approximate logical bytes passed to `Database.write` by chunk save batches. */
+    public getChunkWriteBatchBytes(): number {
+        return this.chunkWriteBatchBytes;
     }
 
     /** Reads world state from the provider record, or from `level.dat` on an imported world. */
@@ -259,12 +265,14 @@ export default class LevelDB extends BaseProvider {
         }
 
         const subChunks = new Map<number, ReturnType<typeof decodeSubChunk>['subChunk']>();
+        const persistedSubChunkKeys = new Set<number>();
         for (let index = minSubChunk(dimension); index <= maxSubChunk(dimension); index++) {
             const value = database.get(key(ChunkTag.SubChunkPrefix, index));
             if (value === null) continue;
 
             const { subChunk } = decodeSubChunk(value);
             subChunks.set(index, subChunk);
+            persistedSubChunkKeys.add(index);
         }
 
         const chunk = new Chunk(cx, cz, subChunks, dimension);
@@ -274,7 +282,8 @@ export default class LevelDB extends BaseProvider {
             chunk.setBiomes(ChunkBiomes.fromSectionIds(decodeData3D(biomes, dimension).palettes, dimension));
         }
 
-        for (const blockEntity of this.readBlockEntities(database.get(key(ChunkTag.BlockEntity)))) {
+        const blockEntityRecord = database.get(key(ChunkTag.BlockEntity));
+        for (const blockEntity of this.readBlockEntities(blockEntityRecord)) {
             chunk.setBlockEntity(blockEntity);
         }
 
@@ -289,7 +298,7 @@ export default class LevelDB extends BaseProvider {
         const hasPendingEntities = this.readPendingEntities(database.get(pendingEntitiesKey), chunk);
 
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
-        chunk.markSaved();
+        chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
         if (repairActorDigest || hasPendingEntities) chunk.markChanged();
         return chunk;
     }
@@ -302,41 +311,54 @@ export default class LevelDB extends BaseProvider {
         const batch = new WriteBatch();
         const key = (tag: ChunkTag, subChunk?: number) =>
             encodeChunkKey({ x: chunk.getX(), z: chunk.getZ(), dimension: dimension.bedrockId, tag, subChunk });
+        const changes = chunk.getPersistenceChanges();
 
-        for (let index = minSubChunk(dimension); index <= maxSubChunk(dimension); index++) {
-            const subChunk = chunk.getSubChunk(index);
-
-            if (!subChunk || subChunk.isEmpty()) {
-                // An all-air slice is stored by not storing it, which is what the game does too.
-                batch.del(key(ChunkTag.SubChunkPrefix, index));
+        for (const { index, subChunk, stored } of changes.subChunks) {
+            if (!stored || subChunk === null) {
+                // Only loaded or previously written keys need tombstones; absent air slices have no value to remove.
+                if (database.get(key(ChunkTag.SubChunkPrefix, index)) !== null) {
+                    batch.del(key(ChunkTag.SubChunkPrefix, index));
+                }
                 continue;
             }
 
             batch.put(key(ChunkTag.SubChunkPrefix, index), encodeSubChunk(subChunk, index, subChunk.sourceVersion));
         }
 
-        batch.put(
-            key(ChunkTag.Data3D),
-            encodeData3D({ heightmap: chunk.heightmap(), palettes: chunk.getBiomes().toSectionIds() }, dimension)
-        );
+        if (changes.data3D) {
+            batch.put(
+                key(ChunkTag.Data3D),
+                encodeData3D({ heightmap: chunk.heightmap(), palettes: chunk.getBiomes().toSectionIds() }, dimension)
+            );
+        }
 
-        batch.put(key(ChunkTag.Version), Buffer.from([CHUNK_VERSION]));
+        const versionKey = key(ChunkTag.Version);
+        const version = Buffer.from([CHUNK_VERSION]);
+        if (!database.get(versionKey)?.equals(version)) batch.put(versionKey, version);
 
         const finalized = Buffer.allocUnsafe(4);
         finalized.writeInt32LE(FINALIZED_DONE);
-        batch.put(key(ChunkTag.FinalizedState), finalized);
-        batch.del(encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId));
+        const finalizedKey = key(ChunkTag.FinalizedState);
+        if (!database.get(finalizedKey)?.equals(finalized)) batch.put(finalizedKey, finalized);
+        const pendingEntitiesKey = encodePendingEntityKey(chunk.getX(), chunk.getZ(), dimension.bedrockId);
+        if (database.get(pendingEntitiesKey) !== null) batch.del(pendingEntitiesKey);
 
-        const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
-        if (blockEntities === null) {
-            batch.del(key(ChunkTag.BlockEntity));
-        } else {
-            batch.put(key(ChunkTag.BlockEntity), blockEntities);
+        if (changes.blockEntities) {
+            const blockEntities = this.writeBlockEntities(chunk.getBlockEntities());
+            const blockEntitiesKey = key(ChunkTag.BlockEntity);
+            if (blockEntities === null) {
+                if (database.get(blockEntitiesKey) !== null) batch.del(blockEntitiesKey);
+            } else {
+                batch.put(blockEntitiesKey, blockEntities);
+            }
         }
 
         this.writeEntities(database, batch, chunk, key, context);
 
-        database.write(batch);
+        if (batch.count > 0) {
+            this.chunkWriteBatchBytes += batch.approximateSize;
+            database.write(batch);
+        }
         chunk.markSaved();
     }
 
@@ -666,23 +688,32 @@ export default class LevelDB extends BaseProvider {
             actorIdsInChunk.add(uniqueId);
             const actorId = actorIdBytes(uniqueId);
             actorIds.push(actorId);
-            batch.put(encodeActorKey(actorId), this.writeActorNbt(nbt));
+            const actorKey = encodeActorKey(actorId);
+            const actorValue = this.writeActorNbt(nbt);
+            if (!database.get(actorKey)?.equals(actorValue)) batch.put(actorKey, actorValue);
         }
 
         for (const actorId of previousActorIds) {
             const uniqueId = actorId.readBigInt64LE();
             if (actorIdsInChunk.has(uniqueId) || usedActorIds.has(uniqueId)) continue;
 
-            batch.del(encodeActorKey(actorId));
+            const actorKey = encodeActorKey(actorId);
+            if (database.get(actorKey) !== null) batch.del(actorKey);
         }
 
-        batch.del(key(ChunkTag.Entity));
+        const legacyEntityKey = key(ChunkTag.Entity);
+        if (database.get(legacyEntityKey) !== null) batch.del(legacyEntityKey);
+        const actorDigestVersionKey = key(ChunkTag.ActorDigestVersion);
         if (actorIds.length === 0) {
-            batch.del(digestKey);
-            batch.del(key(ChunkTag.ActorDigestVersion));
+            if (existingDigest !== null) batch.del(digestKey);
+            if (database.get(actorDigestVersionKey) !== null) batch.del(actorDigestVersionKey);
         } else {
-            batch.put(digestKey, encodeDigest(actorIds));
-            batch.put(key(ChunkTag.ActorDigestVersion), Buffer.from([0]));
+            const digest = encodeDigest(actorIds);
+            if (!existingDigest?.equals(digest)) batch.put(digestKey, digest);
+            const digestVersion = Buffer.from([0]);
+            if (!database.get(actorDigestVersionKey)?.equals(digestVersion)) {
+                batch.put(actorDigestVersionKey, digestVersion);
+            }
         }
     }
 

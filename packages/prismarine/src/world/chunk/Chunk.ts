@@ -39,6 +39,24 @@ const CHUNK_KEY_STRIDE = 1 << CHUNK_KEY_BITS;
 /** Reads one packed axis back as the signed coordinate it was. */
 const signExtendChunkAxis = (axis: number): number => (axis << (32 - CHUNK_KEY_BITS)) >> (32 - CHUNK_KEY_BITS);
 
+/** The persisted parts a chunk write needs to update. */
+export interface ChunkPersistenceChanges {
+    /** This chunk has never been written to its provider. */
+    readonly initial: boolean;
+    /** Changed sub chunks, with whether the corresponding database key should exist. */
+    readonly subChunks: readonly {
+        readonly index: number;
+        readonly subChunk: SubChunk | null;
+        readonly stored: boolean;
+    }[];
+    /** Whether heightmap or biome data changed. */
+    readonly data3D: boolean;
+    /** Whether the chunk's block-entity record changed. */
+    readonly blockEntities: boolean;
+    /** Whether tracked actor membership or location changed. */
+    readonly entities: boolean;
+}
+
 export default class Chunk {
     private x: number;
     private z: number;
@@ -57,6 +75,9 @@ export default class Chunk {
      */
     private readonly blockEntities: Map<number, BlockEntity> = new Map();
     private blockEntityRevision = 0;
+
+    /** Actor changes are separate from block state, so moving one never dirties its block records. */
+    private entityRevision = 0;
 
     /**
      * Which biome each block is in.
@@ -97,6 +118,14 @@ export default class Chunk {
     private observedBiomesEpoch = -1;
     private observedBiomeRevision = -1;
     private observedBlockEntityRevision = -1;
+    private persistenceInitialized = false;
+    private persistedSubChunkRevisions = new Map<number, number>();
+    private persistedSubChunkKeys = new Set<number>();
+    private persistedBiomeEpoch = -1;
+    private persistedBiomeRevision = -1;
+    private persistedBlockEntityRevision = -1;
+    private persistedEntityRevision = -1;
+    private persistedBlockEntitiesPresent = false;
     private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
     public constructor(
@@ -178,11 +207,84 @@ export default class Chunk {
      */
     public markSaved(): void {
         this.hasChanged = false;
+        const subChunkKeys = new Set<number>();
+        for (const index of this.subChunkOrder) {
+            const subChunk = this.subChunkAtIndex(index);
+            if (
+                subChunk !== null &&
+                (!subChunk.isEmpty() ||
+                    (this.persistedSubChunkKeys.has(index) &&
+                        this.persistedSubChunkRevisions.get(index) === subChunk.getRevision()))
+            ) {
+                subChunkKeys.add(index);
+            }
+        }
+        const blockEntitiesPresent =
+            this.blockEntities.size > 0 ||
+            (this.persistedBlockEntitiesPresent && this.persistedBlockEntityRevision === this.blockEntityRevision);
+        this.recordPersistedState(subChunkKeys, blockEntitiesPresent);
     }
 
     /** Marks this chunk dirty when a non-block change needs to be written. */
     public markChanged(): void {
         this.hasChanged = true;
+    }
+
+    /** Marks an actor-only edit, without marking block, biome, or block-entity data dirty. */
+    public markEntitiesChanged(): void {
+        this.hasChanged = true;
+        this.entityRevision++;
+    }
+
+    /** Records the exact sub chunk keys found when a provider loads this chunk. */
+    public markLoadedFromDisk(subChunkKeys: Iterable<number>, blockEntitiesPresent: boolean): void {
+        this.recordPersistedState(subChunkKeys, blockEntitiesPresent);
+        this.hasChanged = false;
+    }
+
+    /** The provider's section-level write plan, derived from the last successful save. */
+    public getPersistenceChanges(): ChunkPersistenceChanges {
+        const initial = !this.persistenceInitialized;
+        const indices = new Set([...this.persistedSubChunkRevisions.keys(), ...this.subChunkOrder]);
+        const subChunks: Array<{ index: number; subChunk: SubChunk | null; stored: boolean }> = [];
+
+        for (const index of indices) {
+            const subChunk = this.subChunkAtIndex(index);
+            const revision = subChunk?.getRevision() ?? -1;
+            const wasStored = this.persistedSubChunkKeys.has(index);
+            const wasChanged = initial || this.persistedSubChunkRevisions.get(index) !== revision;
+            const shouldBeStored = subChunk === null ? false : wasChanged ? !subChunk.isEmpty() : wasStored;
+            if (wasChanged || shouldBeStored !== wasStored) {
+                if (shouldBeStored || wasStored) subChunks.push({ index, subChunk, stored: shouldBeStored });
+            }
+        }
+
+        const biomeRevision = this.biomes.getRevision();
+        const data3D =
+            initial || this.persistedBiomeEpoch !== this.biomesEpoch || this.persistedBiomeRevision !== biomeRevision;
+        const blockEntities =
+            initial ||
+            this.persistedBlockEntityRevision !== this.blockEntityRevision ||
+            this.persistedBlockEntitiesPresent !== this.blockEntities.size > 0;
+        const entities = initial || this.persistedEntityRevision !== this.entityRevision;
+
+        return { initial, subChunks, data3D: data3D || subChunks.length > 0, blockEntities, entities };
+    }
+
+    private recordPersistedState(
+        subChunkKeys: Iterable<number>,
+        blockEntitiesPresent = this.blockEntities.size > 0
+    ): void {
+        this.persistenceInitialized = true;
+        this.persistedSubChunkRevisions = new Map(
+            this.subChunkOrder.map((index) => [index, this.subChunkAtIndex(index)?.getRevision() ?? -1])
+        );
+        this.persistedSubChunkKeys = new Set(subChunkKeys);
+        this.persistedBiomeEpoch = this.biomesEpoch;
+        this.persistedBiomeRevision = this.biomes.getRevision();
+        this.persistedBlockEntityRevision = this.blockEntityRevision;
+        this.persistedEntityRevision = this.entityRevision;
+        this.persistedBlockEntitiesPresent = blockEntitiesPresent;
     }
 
     /** Holds an actor read from disk until the world can create it. */

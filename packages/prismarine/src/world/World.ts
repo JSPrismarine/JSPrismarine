@@ -2690,7 +2690,7 @@ export class World implements Service {
         const runtimeIdKey = Number(runtimeId);
         const chunkIndex = this.entityChunkIndices.get(runtimeIdKey);
         if (chunkIndex !== undefined) {
-            this.chunks.get(chunkIndex)?.markChanged();
+            this.chunks.get(chunkIndex)?.markEntitiesChanged();
             const runtimeIds = this.entityRuntimeIdsByChunk.get(chunkIndex);
             runtimeIds?.delete(runtimeIdKey);
             if (runtimeIds?.size === 0) this.entityRuntimeIdsByChunk.delete(chunkIndex);
@@ -2982,12 +2982,12 @@ export class World implements Service {
         const previousChunkIndex = this.entityChunkIndices.get(runtimeIdKey);
 
         if (previousChunkIndex !== undefined && previousChunkIndex !== nextChunkIndex) {
-            this.chunks.get(previousChunkIndex)?.markChanged();
+            this.chunks.get(previousChunkIndex)?.markEntitiesChanged();
             const previousRuntimeIds = this.entityRuntimeIdsByChunk.get(previousChunkIndex);
             previousRuntimeIds?.delete(runtimeIdKey);
             if (previousRuntimeIds?.size === 0) this.entityRuntimeIdsByChunk.delete(previousChunkIndex);
         }
-        this.chunks.get(nextChunkIndex)?.markChanged();
+        this.chunks.get(nextChunkIndex)?.markEntitiesChanged();
         this.entityChunkIndices.set(runtimeIdKey, nextChunkIndex);
         let nextRuntimeIds = this.entityRuntimeIdsByChunk.get(nextChunkIndex);
         if (nextRuntimeIds === undefined) {
@@ -3006,7 +3006,7 @@ export class World implements Service {
                 Math.floor(position.getX() / 16) === chunk.getX() &&
                 Math.floor(position.getZ() / 16) === chunk.getZ()
             ) {
-                chunk.markChanged();
+                chunk.markEntitiesChanged();
             }
         }
     }

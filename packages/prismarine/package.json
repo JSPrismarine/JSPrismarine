@@ -76,6 +76,7 @@
         "bench:chunk-batches": "node --import tsx benchmarks/chunkBatchCache.ts",
         "bench:light-chunk-load": "node --import tsx benchmarks/lightChunkLoad.ts",
         "bench:world-save": "node --import tsx benchmarks/worldSave.ts",
+        "bench:entity-only-save": "node --import tsx benchmarks/entityOnlyChunkSave.ts",
         "bench:chunk-reads": "node --import tsx benchmarks/chunkReads.bench.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",

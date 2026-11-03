@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
@@ -27,6 +28,7 @@ import { fakeLevel } from '../../../testing/level';
 import type { StoredItemStack } from '../../../inventory/persistence';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
+import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { Position } from '../../Position';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
 import { parseLevelStem } from '@jsprismarine/worldgen';
@@ -113,6 +115,27 @@ const buildChunk = (cx = 0, cz = 0): Chunk => {
     chunk.setBlockRuntimeId(8, 70, 9, id('minecraft:oak_log'));
     chunk.setBlockRuntimeId(1, 310, 1, id('minecraft:dirt'));
     return chunk;
+};
+
+const fullWriteCopy = (source: Chunk): Chunk => {
+    const copy = new Chunk(source.getX(), source.getZ(), source.getSubChunks(), source.getDimension());
+    copy.setBiomes(ChunkBiomes.fromSectionIds(source.getBiomes().toSectionIds(), source.getDimension()));
+    for (const blockEntity of source.getBlockEntities())
+        copy.setBlockEntity(BlockEntityRegistry.fromNBT(blockEntity.toNBT()));
+    return copy;
+};
+
+const databaseDigest = async (worldPath: string): Promise<string> => {
+    const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+    const digest = createHash('sha256');
+    for (const [key, value] of database.entries()) {
+        const lengths = Buffer.allocUnsafe(8);
+        lengths.writeUInt32LE(key.byteLength, 0);
+        lengths.writeUInt32LE(value.byteLength, 4);
+        digest.update(lengths).update(key).update(value);
+    }
+    await database.close();
+    return digest.digest('hex');
 };
 
 describe('world', () => {
@@ -528,6 +551,112 @@ describe('world', () => {
         });
 
         describe('round trip', () => {
+            it('writes one tombstone when a stored sub chunk becomes empty', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                const chunk = new Chunk(0, 0, new Map(), Dimensions.Overworld);
+                chunk.setBlockRuntimeId(1, 64, 1, id('minecraft:stone'));
+                await provider.writeChunk(chunk);
+
+                const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                const subChunkKey = encodeChunkKey({
+                    x: 0,
+                    z: 0,
+                    dimension: Dimensions.Overworld.bedrockId,
+                    tag: ChunkTag.SubChunkPrefix,
+                    subChunk: 4
+                });
+                expect(database.get(subChunkKey)).not.toBeNull();
+                await database.close();
+
+                chunk.setBlockRuntimeId(1, 64, 1, id('minecraft:air'));
+                await provider.writeChunk(chunk);
+                const bytesBeforeUnchangedWrite = provider.getChunkWriteBatchBytes();
+                await provider.writeChunk(chunk);
+                expect(provider.getChunkWriteBatchBytes()).toBe(bytesBeforeUnchangedWrite);
+                await provider.disable();
+
+                const reopened = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+                expect(reopened.get(subChunkKey)).toBeNull();
+                await reopened.close();
+            });
+
+            it('matches full writes after mixed random chunk and actor mutations', async () => {
+                const partialPath = scratch();
+                const fullPath = scratch();
+                let actorX = 1;
+                const position = stub<Position>({ getX: () => actorX, getY: () => 64, getZ: () => 1 });
+                const persistentNbt = new NBTTagCompound('');
+                persistentNbt.addValue('UniqueID', new Types.LongVal(9933n));
+                const actor = stub<Entity>({
+                    getType: () => 'minecraft:cow',
+                    getPosition: () => position,
+                    getTags: () => [],
+                    getStatusEffects: () => [],
+                    getPortalCooldown: () => 0,
+                    getWorld: () => stub<World>({ getDimension: () => Dimensions.Overworld }),
+                    shouldPersist: () => true,
+                    persistentNbt,
+                    yaw: 0,
+                    pitch: 0
+                });
+                const partial = harness(partialPath, 'testworld', 1234n, [actor]);
+                const full = harness(fullPath, 'testworld', 1234n, [actor]);
+                await partial.provider.enable();
+                await full.provider.enable();
+
+                const chunk = buildChunk();
+                await partial.provider.writeChunk(chunk);
+                let random = 0x2739;
+                const next = (): number => {
+                    random = (Math.imul(random, 1_664_525) + 1_013_904_223) >>> 0;
+                    return random;
+                };
+                const beaconNbt = (x: number, y: number, z: number, value: number): NBTTagCompound => {
+                    const nbt = new NBTTagCompound('');
+                    nbt.addValue('id', new Types.StringVal('Beacon'));
+                    nbt.addValue('x', new Types.NumberVal(x));
+                    nbt.addValue('y', new Types.NumberVal(y));
+                    nbt.addValue('z', new Types.NumberVal(z));
+                    nbt.addValue('JSValue', new Types.NumberVal(value));
+                    return nbt;
+                };
+
+                for (let mutation = 0; mutation < 20; mutation++) {
+                    const x = next() & 0xf;
+                    const z = (next() >>> 4) & 0xf;
+                    const y = -64 + ((next() >>> 8) % 384);
+                    switch (mutation % 4) {
+                        case 0:
+                            chunk.setBlockRuntimeId(
+                                x,
+                                y,
+                                z,
+                                mutation % 8 === 0 ? id('minecraft:air') : id('minecraft:stone')
+                            );
+                            break;
+                        case 1:
+                            chunk.getBiomes().set(x, y, z, mutation % 2 === 0 ? DESERT : JUNGLE);
+                            break;
+                        case 2:
+                            chunk.setBlockEntity(BlockEntityRegistry.fromNBT(beaconNbt(x, y, z, mutation)));
+                            break;
+                        default:
+                            chunk.removeBlockEntity(x, y, z);
+                    }
+                    actorX = 1 + (mutation % 14);
+                    chunk.markEntitiesChanged();
+                    await partial.provider.writeChunk(chunk);
+                }
+
+                await full.provider.writeChunk(fullWriteCopy(chunk));
+                await partial.provider.disable();
+                await full.provider.disable();
+
+                expect(await databaseDigest(partialPath)).toBe(await databaseDigest(fullPath));
+            });
+
             it('does not save entities whose data says they are transient', async () => {
                 const worldPath = scratch();
                 let persistent = true;

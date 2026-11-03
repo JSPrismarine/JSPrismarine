@@ -26,6 +26,14 @@ describe('world', () => {
             expect(storage.isEmpty()).toBe(false);
         });
 
+        it('becomes empty when its last non-air block is replaced by air', () => {
+            const storage = new BlockStorage({});
+            storage.setBlock(1, 2, 3, stone());
+            storage.setBlock(1, 2, 3, air());
+
+            expect(storage.isEmpty()).toBe(true);
+        });
+
         it('reads back every block it was given', () => {
             const storage = new BlockStorage({});
             storage.setBlock(1, 2, 3, stone());

@@ -34,6 +34,8 @@ export default class BlockStorage {
      */
     private blocks: Uint8Array | Uint16Array;
     private palette: number[];
+    private nonAirBlocks: number;
+    private readonly airRuntimeId: number;
 
     /**
      * Where each runtime id sits in {@link palette}.
@@ -46,7 +48,8 @@ export default class BlockStorage {
     private readonly paletteIndex: Map<number, number>;
 
     public constructor({ blocks, palette, [OWNED_INDICES]: ownsIndices }: BlockStorageData) {
-        this.palette = palette ?? [BlockRuntimeIds.getByName('minecraft:air')];
+        this.airRuntimeId = BlockRuntimeIds.getByName('minecraft:air');
+        this.palette = palette ?? [this.airRuntimeId];
         const useByteIndices = this.palette.length <= MAX_BYTE_INDEX_PALETTE_SIZE;
         if (
             ownsIndices &&
@@ -59,6 +62,15 @@ export default class BlockStorage {
             if (blocks) this.blocks.set(blocks);
         }
         this.paletteIndex = new Map(this.palette.map((runtimeId, index) => [runtimeId, index]));
+
+        if (this.palette.length === 1) {
+            this.nonAirBlocks = this.palette[0] === this.airRuntimeId ? 0 : BLOCKS_PER_SUBCHUNK;
+        } else {
+            this.nonAirBlocks = 0;
+            for (const index of this.blocks) {
+                if (this.palette[index] !== this.airRuntimeId) this.nonAirBlocks++;
+            }
+        }
     }
 
     /**
@@ -101,9 +113,14 @@ export default class BlockStorage {
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
+        const slot = BlockStorage.getIndex(bx, by, bz);
+        const previous = this.palette[this.blocks[slot]!]!;
         // Adding the 257th state may replace the byte array, so resolve the slot before indexing it.
         const paletteIndex = this.getOrAddPaletteIndex(runtimeId);
-        this.blocks[BlockStorage.getIndex(bx, by, bz)] = paletteIndex;
+        this.blocks[slot] = paletteIndex;
+
+        if (previous === this.airRuntimeId && runtimeId !== this.airRuntimeId) this.nonAirBlocks++;
+        else if (previous !== this.airRuntimeId && runtimeId === this.airRuntimeId) this.nonAirBlocks--;
     }
 
     /**
@@ -269,7 +286,7 @@ export default class BlockStorage {
     }
 
     public isEmpty(): boolean {
-        // A one-entry palette is uniform; only uniform air can be omitted from the chunk.
-        return this.palette.length === 1 && this.palette[0] === BlockRuntimeIds.getByName('minecraft:air');
+        // Removed states stay in a palette, so count live non-air blocks instead of trusting its size.
+        return this.nonAirBlocks === 0;
     }
 }
