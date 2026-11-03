@@ -3252,7 +3252,8 @@ export class World implements Service {
         return this.name;
     }
     public getFormattedName(): string {
-        return `§b'${this.name}'/${this.generator.constructor.name}§r`;
+        // Data-driven generators are per-stem object views, whose constructor is only `Object`.
+        return `§b'${this.name}'/${this.stem.generator.type}§r`;
     }
 
     /**

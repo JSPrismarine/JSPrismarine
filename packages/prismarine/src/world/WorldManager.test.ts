@@ -196,7 +196,7 @@ describe('WorldManager', () => {
     });
 
     it('loads every `worlds` entry as a level, the `level-name` one as the default', async () => {
-        const { manager } = buildManager('main', { other: entryOf(), main: entryOf() });
+        const { manager, logged } = buildManager('main', { other: entryOf(), main: entryOf() });
         await manager.enable();
 
         expect(manager.getLevels().map((level) => level.name)).toEqual(['main', 'other']);
@@ -204,6 +204,7 @@ describe('WorldManager', () => {
         expect(manager.getDefaultWorld()).toBe(manager.getDefaultLevel().loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getWorldByName('other')).toBe(manager.getLevel('other')?.loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getLevels().flatMap((level) => [...level.worlds()])).toHaveLength(2);
+        expect(logged).toContain("Loading §b'main'/jsprismarine:test§r as default world!");
 
         await manager.disable();
         expect(manager.getLevels()).toEqual([]);
