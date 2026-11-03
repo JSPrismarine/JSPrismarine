@@ -504,7 +504,12 @@ export const panic = goal<PanicParams>({
         const walk = walkTo(support, {
             find: () => {
                 if (support.flag('on_fire') || params.preferWater) {
-                    const water = support.world.blocks?.({ identifiers: ['minecraft:water'], range: 5, height: 4 })[0];
+                    const water = support.world.blocks?.({
+                        identifiers: ['minecraft:water'],
+                        range: 5,
+                        height: 4,
+                        limit: 1
+                    })[0];
                     if (water !== undefined) return centerOf(water.position);
                 }
                 return support.navigator.randomTarget(5, 4, () => support.random());
@@ -681,7 +686,8 @@ export const avoidBlock = goal<AvoidBlockParams>({
                 const found = support.world.blocks?.({
                     identifiers: params.targetBlocks,
                     range: params.searchRange,
-                    height: params.searchHeight
+                    height: params.searchHeight,
+                    limit: 1
                 })[0];
                 if (found === undefined) return false;
                 const here = support.position();
@@ -863,7 +869,8 @@ const walkToBlock = (support: GoalSupport, params: MoveToBlockParams): Goal => {
             const found = support.world.blocks?.({
                 identifiers: params.targetBlocks,
                 range: params.searchRange,
-                height: params.searchHeight
+                height: params.searchHeight,
+                limit: 1
             });
             const block = found?.slice(0, Math.max(1, params.searchCount))[0];
             if (block === undefined) return undefined;

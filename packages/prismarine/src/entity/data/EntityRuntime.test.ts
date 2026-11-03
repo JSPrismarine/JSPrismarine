@@ -298,6 +298,44 @@ describe('EntityRuntime', () => {
             expect(withEmptyIdentifiers[0]?.position).toEqual({ x: 0, y: FLOOR_Y + 1, z: 0 });
             expect(distances).toEqual([...distances].sort((a, b) => a - b));
         });
+
+        it('returns the same nearest block as the full sort across generated query boxes and ties', () => {
+            const world = new TestEntityWorld();
+            for (let x = -5; x <= 5; x += 1) {
+                for (let y = FLOOR_Y - 2; y <= FLOOR_Y + 3; y += 1) {
+                    for (let z = -5; z <= 5; z += 1) {
+                        world.setBlock({ x, y, z }, (x + y + z) % 2 === 0 ? 'minecraft:stone' : 'minecraft:dirt');
+                    }
+                }
+            }
+            const { runtime } = runtimeOf(world);
+            const centers = [
+                { x: 0.1, y: FLOOR_Y + 1.2, z: 0.1 },
+                { x: 1.7, y: FLOOR_Y + 2.8, z: -1.4 },
+                { x: -2.2, y: FLOOR_Y - 0.1, z: 2.6 }
+            ];
+
+            for (const center of centers) {
+                for (const range of [0, 1, 2, 3]) {
+                    for (const height of [0, 1, 2]) {
+                        const query = { identifiers: ['minecraft:stone'], range, height };
+                        const complete = runtime.blocks(center, query);
+                        expect(runtime.blocks(center, { ...query, limit: 1 })).toEqual(complete.slice(0, 1));
+                    }
+                }
+            }
+
+            const tiedWorld = new TestEntityWorld();
+            tiedWorld.setBlock({ x: -1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            tiedWorld.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            const { runtime: tiedRuntime } = runtimeOf(tiedWorld);
+            const center = { x: 0, y: FLOOR_Y + 1, z: 0 };
+            const query = { identifiers: ['minecraft:stone'], range: 1, height: 0 };
+            const complete = tiedRuntime.blocks(center, query);
+
+            expect(complete[0]?.position).toEqual({ x: -1, y: FLOOR_Y + 1, z: 0 });
+            expect(tiedRuntime.blocks(center, { ...query, limit: 1 })).toEqual(complete.slice(0, 1));
+        });
     });
 
     describe('entity facts', () => {

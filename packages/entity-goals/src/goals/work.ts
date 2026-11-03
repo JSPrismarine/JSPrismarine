@@ -364,7 +364,7 @@ export const harvestFarmBlock = goal<FarmParams>({
         let crop: EntityPosition | undefined;
         return {
             canStart: () => {
-                const found = support.world.blocks?.({ range: 16, height: 1 })[0];
+                const found = support.world.blocks?.({ range: 16, height: 1, limit: 1 })[0];
                 crop = found === undefined ? undefined : centerOf(found.position);
                 return crop !== undefined;
             },
@@ -397,7 +397,12 @@ export const fertilizeFarmBlock = goal<FarmParams>({
         let crop: EntityPosition | undefined;
         return {
             canStart: () => {
-                const found = support.world.blocks?.({ identifiers: ['minecraft:wheat'], range: 16, height: 1 })[0];
+                const found = support.world.blocks?.({
+                    identifiers: ['minecraft:wheat'],
+                    range: 16,
+                    height: 1,
+                    limit: 1
+                })[0];
                 crop = found === undefined ? undefined : centerOf(found.position);
                 return crop !== undefined;
             },
@@ -461,7 +466,8 @@ export const raidGarden = goal<RaidGardenParams>({
                 const found = support.world.blocks?.({
                     identifiers: params.blocks,
                     range: params.searchRange,
-                    height: params.searchHeight
+                    height: params.searchHeight,
+                    limit: 1
                 })[0];
                 crop = found === undefined ? undefined : centerOf(found.position);
                 return crop !== undefined;
@@ -520,7 +526,8 @@ export const inspectBookshelf = goal<InspectBookshelfParams>({
                 const found = support.world.blocks?.({
                     identifiers: ['minecraft:bookshelf'],
                     range: params.searchRange,
-                    height: params.searchHeight
+                    height: params.searchHeight,
+                    limit: 1
                 })[0];
                 shelf = found === undefined ? undefined : centerOf(found.position);
                 return shelf !== undefined;
@@ -605,7 +612,8 @@ export const transportItems = goal<TransportItemsParams>({
                 const found = support.world.blocks?.({
                     identifiers: wanted,
                     range: params.searchDistance,
-                    height: params.searchDistance
+                    height: params.searchDistance,
+                    limit: 1
                 })[0];
                 container = found === undefined ? undefined : centerOf(found.position);
                 return container !== undefined;
@@ -704,7 +712,8 @@ export const randomSearchAndDig = goal<RandomSearchAndDigParams>({
                 const found = support.world.blocks?.({
                     identifiers: params.targetBlocks,
                     range: params.searchRangeXz,
-                    height: params.searchRangeY
+                    height: params.searchRangeY,
+                    limit: 1
                 })[0];
                 spot = found === undefined ? undefined : centerOf(found.position);
                 if (spot === undefined) support.fire(params.onFailDuringSearching);
@@ -790,7 +799,8 @@ export const layEgg = goal<LayEggParams>({
                 const found = support.world.blocks?.({
                     identifiers: params.targetBlocks,
                     range: params.searchRange,
-                    height: params.searchHeight
+                    height: params.searchHeight,
+                    limit: 1
                 })[0];
                 nest = found === undefined ? undefined : centerOf(found.position);
                 return nest !== undefined;
@@ -905,7 +915,8 @@ export const takeBlock = goal<TakeBlockParams>({
             const found = support.world.blocks?.({
                 identifiers: params.blocks,
                 range: Math.max(1, params.xzRange[1]),
-                height: Math.max(1, params.yRange[1])
+                height: Math.max(1, params.yRange[1]),
+                limit: 1
             })[0];
             if (found === undefined) return;
             support.world.breakBlock?.(found.position);
@@ -949,7 +960,8 @@ export const stompTurtleEgg = goal<StompTurtleEggParams>({
                 const found = support.world.blocks?.({
                     identifiers: ['minecraft:turtle_egg'],
                     range: params.searchRange,
-                    height: params.searchHeight
+                    height: params.searchHeight,
+                    limit: 1
                 })[0];
                 egg = found === undefined ? undefined : centerOf(found.position);
                 return egg !== undefined;

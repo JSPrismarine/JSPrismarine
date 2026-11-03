@@ -296,9 +296,15 @@ export const silverfishMergeWithStone = goal<GoalBody>({
     create: (_params, support) => ({
         canStart: () =>
             support.target() === undefined &&
-            (support.world.blocks?.({ identifiers: ['minecraft:stone'], range: 1, height: 1 }) ?? []).length > 0,
+            (support.world.blocks?.({ identifiers: ['minecraft:stone'], range: 1, height: 1, limit: 1 }) ?? []).length >
+                0,
         start: () => {
-            const stone = support.world.blocks?.({ identifiers: ['minecraft:stone'], range: 1, height: 1 })[0];
+            const stone = support.world.blocks?.({
+                identifiers: ['minecraft:stone'],
+                range: 1,
+                height: 1,
+                limit: 1
+            })[0];
             if (stone === undefined) return;
             support.world.setBlock?.(stone.position, 'minecraft:infested_stone');
             support.entity.remove('minecraft:behavior.silverfish_merge_with_stone');

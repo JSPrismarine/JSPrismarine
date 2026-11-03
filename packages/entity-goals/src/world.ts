@@ -107,6 +107,8 @@ export interface BlockQuery {
     readonly range: number;
     /** How far to look vertically, in blocks. */
     readonly height: number;
+    /** Maximum number of nearest matches to return; omitted returns every match. */
+    readonly limit?: number;
 }
 
 /** What one entity did to this one, as the hurt and revenge goals read it. */
@@ -141,7 +143,7 @@ export interface GoalWorld {
     players?(radius: number): readonly GoalMob[];
     /** Every item stack lying within the radius, nearest first. */
     items?(radius: number): readonly GoalItem[];
-    /** Every block matching the query, nearest first. */
+    /** Blocks matching the query, nearest first, up to its optional limit. */
     blocks?(query: BlockQuery): readonly GoalBlock[];
     /** Whether the entity has line of sight to the mob, for `must_see`. */
     canSee?(mob: GoalMob): boolean;

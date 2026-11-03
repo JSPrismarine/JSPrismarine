@@ -364,7 +364,7 @@ export const ocelotSitOnBlock = goal<{ readonly speedMultiplier: number }>({
 
         return {
             canStart: () => {
-                const found = support.world.blocks?.({ identifiers: perches, range: 8, height: 4 })[0];
+                const found = support.world.blocks?.({ identifiers: perches, range: 8, height: 4, limit: 1 })[0];
                 perch = found === undefined ? undefined : centerOf({ ...found.position, y: found.position.y + 1 });
                 return perch !== undefined;
             },
@@ -437,7 +437,12 @@ export const eatBlock = goal<EatBlockParams>({
                 const interval = support.flag('is_baby') ? BABY_EAT_INTERVAL : ADULT_EAT_INTERVAL;
                 if (!support.chance(1 / interval)) return false;
                 for (const pair of params.pairs) {
-                    const found = support.world.blocks?.({ identifiers: [pair.eatBlock], range: 1, height: 1 })[0];
+                    const found = support.world.blocks?.({
+                        identifiers: [pair.eatBlock],
+                        range: 1,
+                        height: 1,
+                        limit: 1
+                    })[0];
                     if (found === undefined) continue;
                     mouthful = pair;
                     block = found.position;

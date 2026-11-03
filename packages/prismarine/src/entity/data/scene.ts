@@ -85,7 +85,7 @@ export interface EntityScene {
     mobById(id: number): GoalMob | undefined;
     /** Item stacks lying within a radius, nearest first. */
     items(center: EntityPosition, radius: number): readonly GoalItem[];
-    /** Blocks matching a query around a position, nearest first. */
+    /** Blocks matching a query around a position, nearest first and up to its optional limit. */
     blocks(center: EntityPosition, query: BlockQuery): readonly GoalBlock[];
     /** The nearest point of interest of a kind, for the eleven goals that ask. */
     poi(kind: string, center: EntityPosition, radius: number): EntityPosition | undefined;

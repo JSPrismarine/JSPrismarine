@@ -10,6 +10,8 @@
  * adapter's per-read player-list mapping and report snapshot/view allocations.
  * Set `ENTITY_AI_BRAIN_MOBS=1` to spawn the twenty brain mobs and count measured
  * tag-registry scans and membership checks.
+ * Set `ENTITY_AI_AVOID_BLOCK=1` to run the piglin/hoglin 17×9×17 nearest-block
+ * query every five ticks and report matching query results.
  *
  * Run: node packages/prismarine/benchmarks/run.mjs \
  *        packages/prismarine/benchmarks/entityAi.bench.ts [mob counts...]
@@ -18,6 +20,8 @@
  * Player allocation run: ENTITY_AI_LIVE_PLAYERS=1 ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  * Brain-mob run: ENTITY_AI_BRAIN_MOBS=1 ENTITY_AI_TICKS=40 node \
+ *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
+ * Avoid-block query run: ENTITY_AI_AVOID_BLOCK=1 ENTITY_AI_TICKS=40 node \
  *        packages/prismarine/benchmarks/run.mjs packages/prismarine/benchmarks/entityAi.bench.ts 300
  */
 import type { EntityPosition, FilterEntityView } from '@jsprismarine/entities';
@@ -48,6 +52,7 @@ const FLOOR_Y = 63;
 const PRODUCTION_CHUNKS = process.env.ENTITY_AI_REAL_CHUNKS === '1';
 const PRODUCTION_PLAYERS = process.env.ENTITY_AI_LIVE_PLAYERS === '1';
 const BRAIN_MOB_PROFILE = process.env.ENTITY_AI_BRAIN_MOBS === '1';
+const AVOID_BLOCK_PROFILE = process.env.ENTITY_AI_AVOID_BLOCK === '1';
 const CHUNK_RADIUS = PRODUCTION_CHUNKS ? 10 : 0;
 const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
 const SPREAD = PRODUCTION_CHUNKS ? 320 : 64;
@@ -225,6 +230,7 @@ const BRAIN_MOB_MIX = BRAIN_MOBS.map(({ id }) => {
     const mapped = javaEntityTypeToBedrock(id);
     return mapped.kind === 'mapped' ? mapped.bedrock : id;
 });
+const AVOID_BLOCK_MIX = ['minecraft:piglin', 'minecraft:hoglin'] as const;
 
 interface TagScanCounts {
     enumerations: number;
@@ -281,6 +287,7 @@ const scenario = (count: number, seed: number) => {
     };
     const allocations = { playerLists: 0, playerViews: 0 };
     const tagScans: TagScanCounts = { enumerations: 0, membershipChecks: 0 };
+    const avoidBlockResults = { count: 0 };
     const host = benchHost(players, allocations);
 
     let content: ServerContent | undefined;
@@ -316,7 +323,7 @@ const scenario = (count: number, seed: number) => {
                       y: FLOOR_Y + 1,
                       z: (layout.nextFloat() - 0.5) * SPREAD
                   };
-        const mobs = BRAIN_MOB_PROFILE ? BRAIN_MOB_MIX : MIX;
+        const mobs = AVOID_BLOCK_PROFILE ? AVOID_BLOCK_MIX : BRAIN_MOB_PROFILE ? BRAIN_MOB_MIX : MIX;
         const entity = runtime.spawn(BREEDING_PAIRS > 0 ? 'minecraft:sheep' : mobs[index % mobs.length]!, at);
         if (entity !== undefined && BREEDING_PAIRS > 0) breedingIds.push(entity.id);
     }
@@ -330,6 +337,21 @@ const scenario = (count: number, seed: number) => {
         );
     }
 
+    if (AVOID_BLOCK_PROFILE) {
+        // Seed a nearby match for each subject so queries return the kind of candidate
+        // avoid_block consumes while still scanning the full search volume.
+        for (const entity of runtime.all()) {
+            world.blocks.set(
+                {
+                    x: Math.floor(entity.position.x),
+                    y: Math.floor(entity.position.y),
+                    z: Math.floor(entity.position.z)
+                },
+                { identifier: 'minecraft:soul_fire', states: {} }
+            );
+        }
+    }
+
     return {
         runtime,
         content,
@@ -337,6 +359,7 @@ const scenario = (count: number, seed: number) => {
         blockReads,
         allocations,
         tagScans,
+        avoidBlockResults,
         startBreeding: () => breedingIds.forEach((id) => runtime.setInLove(id, 400))
     };
 };
@@ -353,23 +376,52 @@ const run = (
     readonly playerViewsCreated: number;
     readonly measuredTagEnumerations: number;
     readonly measuredTagMembershipChecks: number;
+    readonly measuredAvoidBlockResults: number;
 } => {
-    const { runtime, walkPlayers, blockReads, allocations, tagScans, startBreeding } = scenario(count, seed);
+    const { runtime, walkPlayers, blockReads, allocations, tagScans, avoidBlockResults, startBreeding } = scenario(
+        count,
+        seed
+    );
+    const avoidBlockSubjects = AVOID_BLOCK_PROFILE
+        ? runtime
+              .all()
+              .filter((entity) => entity.identifier === 'minecraft:piglin' || entity.identifier === 'minecraft:hoglin')
+        : [];
+    const runAvoidBlockQueries = (tick: number): void => {
+        if (!AVOID_BLOCK_PROFILE || tick % 5 !== 0) return;
+        // #2779 keeps brain-only mobs out of Bedrock goal scheduling. Exercise the exact
+        // avoid_block query shape here without reintroducing those goals into runtime ticks.
+        for (const entity of avoidBlockSubjects) {
+            if (
+                runtime.blocks(entity.position, {
+                    identifiers: ['minecraft:soul_fire'],
+                    range: 8,
+                    height: 4,
+                    limit: 1
+                }).length > 0
+            ) {
+                avoidBlockResults.count += 1;
+            }
+        }
+    };
     const times: number[] = [];
     for (let tick = 0; tick < WARMUP; tick += 1) {
         walkPlayers(tick);
         runtime.tick(tick);
+        runAvoidBlockQueries(tick);
     }
 
     const readsBeforeMeasure = blockReads.count;
     const playerListsBeforeMeasure = allocations.playerLists;
     const tagEnumerationsBeforeMeasure = tagScans.enumerations;
     const tagMembershipChecksBeforeMeasure = tagScans.membershipChecks;
+    const avoidBlockResultsBeforeMeasure = avoidBlockResults.count;
     startBreeding();
     for (let tick = WARMUP; tick < tickCount; tick += 1) {
         walkPlayers(tick);
         const started = performance.now();
         runtime.tick(tick);
+        runAvoidBlockQueries(tick);
         times.push(performance.now() - started);
     }
     return {
@@ -378,7 +430,8 @@ const run = (
         measuredPlayerLists: allocations.playerLists - playerListsBeforeMeasure,
         playerViewsCreated: allocations.playerViews,
         measuredTagEnumerations: tagScans.enumerations - tagEnumerationsBeforeMeasure,
-        measuredTagMembershipChecks: tagScans.membershipChecks - tagMembershipChecksBeforeMeasure
+        measuredTagMembershipChecks: tagScans.membershipChecks - tagMembershipChecksBeforeMeasure,
+        measuredAvoidBlockResults: avoidBlockResults.count - avoidBlockResultsBeforeMeasure
     };
 };
 
@@ -411,13 +464,20 @@ const report = (count: number): void => {
             `${result.measuredBlockReads} measured block reads` +
             `${PRODUCTION_CHUNKS ? ` across ${CHUNK_COUNT} loaded chunks` : ''}` +
             `${PRODUCTION_PLAYERS ? `, ${result.measuredPlayerLists} measured player-list allocations, ${result.playerViewsCreated} cached player views` : ''}` +
-            `${BRAIN_MOB_PROFILE ? `, ${result.measuredTagEnumerations} tag enumerations, ${result.measuredTagMembershipChecks} tag membership checks` : ''})`
+            `${BRAIN_MOB_PROFILE ? `, ${result.measuredTagEnumerations} tag enumerations, ${result.measuredTagMembershipChecks} tag membership checks` : ''}` +
+            `${AVOID_BLOCK_PROFILE ? `, ${result.measuredAvoidBlockResults} avoid_block query results` : ''})`
     );
 };
 
 console.log(
     [
-        BRAIN_MOB_PROFILE ? 'brain mobs' : BREEDING_PAIRS > 0 ? 'breeding mobs' : 'mobs',
+        AVOID_BLOCK_PROFILE
+            ? 'avoid_block'
+            : BRAIN_MOB_PROFILE
+              ? 'brain mobs'
+              : BREEDING_PAIRS > 0
+                ? 'breeding mobs'
+                : 'mobs',
         'mean ms/tick',
         ' ms/mob',
         '   p50 ms',

@@ -1512,27 +1512,58 @@ export class EntityRuntime implements EntityScene {
         registration.remove();
     }
 
-    /** Every block matching a query around a position, nearest first. */
+    /** Blocks matching a query around a position, nearest first and up to its optional limit. */
     public blocks(center: EntityPosition, query: BlockQuery): readonly GoalBlock[] {
         // BlockQuery documents an empty identifier list as match-all, like an omitted list.
         const wanted =
             query.identifiers === undefined || query.identifiers.length === 0 ? undefined : new Set(query.identifiers);
+        const limit = query.limit === undefined ? undefined : Math.max(0, Math.floor(query.limit));
+        if (limit === 0) return [];
+
         const found: GoalBlock[] = [];
         const origin = blockPositionOf(center);
+        const position = { x: origin.x, y: origin.y, z: origin.z };
+        const navigation = this.navigation();
+
+        if (limit === 1) {
+            let nearest: GoalBlock | undefined;
+            let nearestDistance = Number.POSITIVE_INFINITY;
+            for (let dy = -query.height; dy <= query.height; dy += 1) {
+                position.y = origin.y + dy;
+                for (let dx = -query.range; dx <= query.range; dx += 1) {
+                    position.x = origin.x + dx;
+                    for (let dz = -query.range; dz <= query.range; dz += 1) {
+                        position.z = origin.z + dz;
+                        const identifier = navigation.blockAt(position);
+                        if (identifier === undefined || (wanted !== undefined && !wanted.has(identifier))) continue;
+
+                        const candidateDistance = distance(center, position);
+                        // A strict comparison keeps the first dy/dx/dz match when distances tie.
+                        if (nearest === undefined || candidateDistance < nearestDistance) {
+                            nearestDistance = candidateDistance;
+                            nearest = { position: { ...position }, identifier };
+                        }
+                    }
+                }
+            }
+            return nearest === undefined ? [] : [nearest];
+        }
 
         for (let dy = -query.height; dy <= query.height; dy += 1) {
+            position.y = origin.y + dy;
             for (let dx = -query.range; dx <= query.range; dx += 1) {
+                position.x = origin.x + dx;
                 for (let dz = -query.range; dz <= query.range; dz += 1) {
-                    const position = { x: origin.x + dx, y: origin.y + dy, z: origin.z + dz };
-                    const block = this.world.blocks.get(position);
-                    if (block === undefined) continue;
-                    if (wanted !== undefined && !wanted.has(block.identifier)) continue;
-                    found.push({ position, identifier: block.identifier });
+                    position.z = origin.z + dz;
+                    const identifier = navigation.blockAt(position);
+                    if (identifier === undefined || (wanted !== undefined && !wanted.has(identifier))) continue;
+                    found.push({ position: { ...position }, identifier });
                 }
             }
         }
 
-        return found.sort((a, b) => distance(center, a.position) - distance(center, b.position));
+        const sorted = found.sort((a, b) => distance(center, a.position) - distance(center, b.position));
+        return limit === undefined ? sorted : sorted.slice(0, limit);
     }
 
     /**
