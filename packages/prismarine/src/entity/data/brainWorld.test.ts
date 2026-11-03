@@ -32,22 +32,23 @@ describe('BrainWorld block tags', () => {
         expect(includes).toHaveBeenCalledTimes(2);
     });
 
-    it('finds the first matching block in Java Manhattan order and only accepts supported air', () => {
+    it('finds the nearest matching block in Java Manhattan order and only accepts supported air', () => {
         const world = new TestEntityWorld();
+        world.setBlock({ x: 0, y: FLOOR_Y - 1, z: 0 }, 'minecraft:soul_fire');
+        world.setBlock({ x: 0, y: FLOOR_Y + 1, z: 1 }, 'minecraft:soul_fire');
+        world.setBlock({ x: 0, y: FLOOR_Y + 1, z: -1 }, 'minecraft:soul_fire');
         world.setBlock({ x: -1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
-        world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
         const fixture = entityFixture(world);
         const brainWorld = fixture.runtime.brainWorld();
 
         const found = brainWorld.findBlock(
             { x: 0, y: FLOOR_Y + 1, z: 0 },
             1,
-            1,
-            (identifier) => identifier === 'minecraft:stone',
-            'manhattan'
+            2,
+            (identifier) => identifier === 'minecraft:soul_fire'
         );
 
-        expect(found).toEqual({ x: -1, y: FLOOR_Y + 1, z: 0 });
+        expect(found).toEqual({ x: 0, y: FLOOR_Y + 1, z: 1 });
         expect(brainWorld.canStandAt({ x: 0, y: FLOOR_Y + 1, z: 0 })).toBe(true);
         expect(brainWorld.canStandAt({ x: -1, y: FLOOR_Y + 1, z: 0 })).toBe(false);
     });

@@ -251,7 +251,7 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
             const tags = scene.content().tags;
             return contentTagsFor('block', identifier, tags);
         },
-        findBlock: (center, xzRange, yRange, test, ordering) => {
+        findBlock: (center, xzRange, yRange, test) => {
             const tags = scene.content().tags;
             const tagsByBlock = new Map<string, ReadonlySet<string>>();
             const blockTagsFor = (identifier: string): ReadonlySet<string> => {
@@ -268,20 +268,8 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
                 return block !== undefined && test(block.identifier, blockTagsFor(block.identifier), position);
             };
 
-            if (ordering === 'manhattan') {
-                for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {
-                    if (matches(position)) return position;
-                }
-                return undefined;
-            }
-
-            for (let dy = -yRange; dy <= yRange; dy += 1) {
-                for (let dx = -xzRange; dx <= xzRange; dx += 1) {
-                    for (let dz = -xzRange; dz <= xzRange; dz += 1) {
-                        const pos = { x: center.x + dx, y: center.y + dy, z: center.z + dz };
-                        if (matches(pos)) return pos;
-                    }
-                }
+            for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {
+                if (matches(position)) return position;
             }
             return undefined;
         },

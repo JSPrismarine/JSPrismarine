@@ -419,39 +419,13 @@ export class TestWorld implements BrainWorld {
         center: BlockPos,
         xzRange: number,
         yRange: number,
-        test: (block: string, tags: ReadonlySet<string>, position: BlockPos) => boolean,
-        ordering?: 'manhattan'
+        test: (block: string, tags: ReadonlySet<string>, position: BlockPos) => boolean
     ): BlockPos | undefined {
-        if (ordering === 'manhattan') {
-            for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {
-                const block = this.blocks.get(key(position));
-                if (block !== undefined && test(block, this.blockTagsAt(position), position)) return position;
-            }
-            return undefined;
+        for (const position of blockPositionsInManhattanOrder(center, xzRange, yRange)) {
+            const block = this.blocks.get(key(position));
+            if (block !== undefined && test(block, this.blockTagsAt(position), position)) return position;
         }
-
-        const found: BlockPos[] = [];
-        for (const [coords, block] of this.blocks) {
-            const pos = parseKey(coords);
-            if (
-                Math.abs(pos.x - center.x) > xzRange ||
-                Math.abs(pos.z - center.z) > xzRange ||
-                Math.abs(pos.y - center.y) > yRange
-            ) {
-                continue;
-            }
-            if (test(block, this.blockTagsAt(pos), pos)) {
-                found.push(pos);
-            }
-        }
-        found.sort(
-            (a, b) =>
-                Math.abs(a.x - center.x) +
-                Math.abs(a.y - center.y) +
-                Math.abs(a.z - center.z) -
-                (Math.abs(b.x - center.x) + Math.abs(b.y - center.y) + Math.abs(b.z - center.z))
-        );
-        return found[0];
+        return undefined;
     }
 
     /** Treats air over a placed block as an empty, supported standing position. */
@@ -551,9 +525,4 @@ export class TestWorld implements BrainWorld {
 
 function key(pos: BlockPos): string {
     return `${pos.x},${pos.y},${pos.z}`;
-}
-
-function parseKey(coords: string): BlockPos {
-    const [x, y, z] = coords.split(',').map(Number);
-    return { x: x ?? 0, y: y ?? 0, z: z ?? 0 };
 }

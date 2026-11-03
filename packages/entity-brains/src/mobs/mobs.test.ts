@@ -327,6 +327,21 @@ describe('the copper golem', () => {
         expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.speedModifier).toBe(COPPER_GOLEM.speedWhenIdling);
         expect(brain.getMemory(MemoryModuleTypes.VISITED_BLOCK_POSITIONS)).toHaveLength(1);
     });
+
+    it('chooses the nearest copper chest with Java’s negative-x tie order', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(COPPER_GOLEM_BRAIN, { world });
+        world.setBlock({ x: 5, y: 64, z: 0 }, 'minecraft:copper_chest', [COPPER_GOLEM.sourceBlockTag]);
+        world.setBlock({ x: -5, y: 64, z: 0 }, 'minecraft:copper_chest', [COPPER_GOLEM.sourceBlockTag]);
+
+        run(body, COPPER_GOLEM_BRAIN, 2);
+
+        expect(brain.getMemory(MemoryModuleTypes.WALK_TARGET)?.target.currentBlockPosition()).toEqual({
+            x: -5,
+            y: 64,
+            z: 0
+        });
+    });
 });
 
 describe('the creaking', () => {
@@ -458,6 +473,36 @@ describe('the frog', () => {
         brain.setMemory(MemoryModuleTypes.IS_PREGNANT, UNIT);
         run(body, FROG_BRAIN, 3);
         expect(brain.getActiveNonCoreActivity()).toBe(Activities.LAY_SPAWN);
+    });
+
+    it('checks adjacent water in Java order before laying spawn', () => {
+        const world = new TestWorld();
+        const { body, brain } = spawn(FROG_BRAIN, {
+            world,
+            entity: { conditions: [EntityCondition.ON_GROUND] }
+        });
+        brain.setMemory(MemoryModuleTypes.IS_PREGNANT, UNIT);
+        brain.setMemory(MemoryModuleTypes.WALK_TARGET, {
+            target: blockPosTracker({ x: 4, y: 64, z: 0 }),
+            speedModifier: 1,
+            closeEnoughDist: 0
+        });
+        world.setBlock({ x: 0, y: 64, z: 1 }, 'minecraft:water');
+        world.setBlock({ x: 0, y: 64, z: -1 }, 'minecraft:water');
+        const matchingPositions: string[] = [];
+        const findBlock = world.findBlock.bind(world);
+        vi.spyOn(world, 'findBlock').mockImplementation((center, xzRange, yRange, test) =>
+            findBlock(center, xzRange, yRange, (block, tags, position) => {
+                const matches = test(block, tags, position);
+                if (matches) matchingPositions.push(`${position.x},${position.y},${position.z}`);
+                return matches;
+            })
+        );
+
+        run(body, FROG_BRAIN, 1);
+
+        expect(matchingPositions).toEqual(['0,64,1']);
+        expect(world.gameEvents.map(({ event }) => event)).toContain('minecraft:block_place');
     });
 
     it('starts with a long jump cooldown drawn from TIME_BETWEEN_LONG_JUMPS, which is (100, 140)', () => {

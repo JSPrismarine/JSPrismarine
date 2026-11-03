@@ -273,8 +273,7 @@ export interface BrainWorld {
         center: BlockPos,
         xzRange: number,
         yRange: number,
-        test: (block: string, tags: ReadonlySet<string>, position: BlockPos) => boolean,
-        ordering?: 'manhattan'
+        test: (block: string, tags: ReadonlySet<string>, position: BlockPos) => boolean
     ): BlockPos | undefined;
     /** Whether Java would accept this position as a dry place to stand. */
     canStandAt(position: BlockPos): boolean;

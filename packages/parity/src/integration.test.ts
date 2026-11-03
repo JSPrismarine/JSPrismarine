@@ -1110,6 +1110,18 @@ describeFamily(
             }
         );
 
+        it('finds the nearest Java block in a search box with the Java tie order', { timeout: 180_000 }, () => {
+            const { runtime, world } = realStack();
+            const center = { x: 130, y: 64, z: 70 };
+            world.setBlock({ ...center, y: center.y - 2 }, 'minecraft:soul_fire');
+            world.setBlock({ ...center, z: center.z + 1 }, 'minecraft:soul_fire');
+            world.setBlock({ ...center, z: center.z - 1 }, 'minecraft:soul_fire');
+
+            const found = runtime.brainWorld().findBlock(center, 1, 2, (block) => block === 'minecraft:soul_fire');
+
+            expect(found).toEqual({ ...center, z: center.z + 1 });
+        });
+
         it('selects the nearest Java axolotl water and frog land targets', { timeout: 180_000 }, () => {
             const { runtime, world } = realStack();
             world.setBlock({ x: 103, y: 64, z: 0 }, 'minecraft:water');

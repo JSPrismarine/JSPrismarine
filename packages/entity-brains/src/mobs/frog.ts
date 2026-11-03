@@ -89,8 +89,7 @@ function tryFindLand(range: number, speedModifier: number): BehaviorControl {
                 range,
                 range,
                 (_block, _tags, position) =>
-                    (position.x !== center.x || position.z !== center.z) && context.world.canStandAt(position),
-                'manhattan'
+                    (position.x !== center.x || position.z !== center.z) && context.world.canStandAt(position)
             );
             nextSearchAt = now + 60;
             if (land !== undefined) {

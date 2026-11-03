@@ -151,29 +151,23 @@ function tryFindWater() {
             if (now < nextSearchAt) return true;
 
             let fallback: typeof center | undefined;
-            const water = context.world.findBlock(
-                center,
-                6,
-                6,
-                (block, _tags, position) => {
-                    if ((position.x === center.x && position.z === center.z) || block !== 'minecraft:water') {
-                        return false;
-                    }
-
-                    const above = context.world.blockAt({ ...position, y: position.y + 1 });
-                    if (above === 'minecraft:air' || above === 'minecraft:cave_air' || above === 'minecraft:void_air') {
-                        return true;
-                    }
-
-                    // Java keeps a distant water fallback while continuing to seek a cell with air above it.
-                    const dx = position.x + 0.5 - context.body.position.x;
-                    const dy = position.y + 0.5 - context.body.position.y;
-                    const dz = position.z + 0.5 - context.body.position.z;
-                    if (fallback === undefined && dx * dx + dy * dy + dz * dz >= 2.25) fallback = position;
+            const water = context.world.findBlock(center, 6, 6, (block, _tags, position) => {
+                if ((position.x === center.x && position.z === center.z) || block !== 'minecraft:water') {
                     return false;
-                },
-                'manhattan'
-            );
+                }
+
+                const above = context.world.blockAt({ ...position, y: position.y + 1 });
+                if (above === 'minecraft:air' || above === 'minecraft:cave_air' || above === 'minecraft:void_air') {
+                    return true;
+                }
+
+                // Java keeps a distant water fallback while continuing to seek a cell with air above it.
+                const dx = position.x + 0.5 - context.body.position.x;
+                const dy = position.y + 0.5 - context.body.position.y;
+                const dz = position.z + 0.5 - context.body.position.z;
+                if (fallback === undefined && dx * dx + dy * dy + dz * dz >= 2.25) fallback = position;
+                return false;
+            });
             nextSearchAt = now + 40;
             const targetPosition = water ?? fallback;
             if (targetPosition !== undefined) {

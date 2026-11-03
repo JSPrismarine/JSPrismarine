@@ -510,6 +510,21 @@ describe('BreezeAttackEntitySensor', () => {
 });
 
 describe('PiglinSpecificSensor', () => {
+    it('chooses the nearest repellent with Java’s positive-z tie order', () => {
+        const sensor = new PiglinSpecificSensor(
+            () => false,
+            () => false
+        );
+        const { world, context } = scene(sensor);
+        world.setBlock({ x: 0, y: 62, z: 0 }, 'minecraft:soul_torch', ['minecraft:piglin_repellents']);
+        world.setBlock({ x: 0, y: 64, z: 1 }, 'minecraft:soul_torch', ['minecraft:piglin_repellents']);
+        world.setBlock({ x: 0, y: 64, z: -1 }, 'minecraft:soul_torch', ['minecraft:piglin_repellents']);
+
+        scan(sensor, context);
+
+        expect(context.body.brain.getMemory(MemoryModuleTypes.NEAREST_REPELLENT)).toEqual({ x: 0, y: 64, z: 1 });
+    });
+
     it('writes ten memories from one pass, including the counts both sides use', () => {
         const living = new NearestLivingEntitySensor();
         const sensor = new PiglinSpecificSensor(
