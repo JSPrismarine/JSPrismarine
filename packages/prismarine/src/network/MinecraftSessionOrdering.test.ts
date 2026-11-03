@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
@@ -55,6 +55,11 @@ const fakeSession = () => {
 
 describe('network', () => {
     describe('MinecraftSession ordering', () => {
+        beforeEach(() => {
+            // Root Vitest reuses workers; earlier suites can leave fake timers active and stall setImmediate sends.
+            vi.useRealTimers();
+        });
+
         it('frames queued packets from the setImmediate fallback', async () => {
             const { framed, session } = fakeSession();
 
