@@ -23,6 +23,8 @@ export interface ContentRedstoneUpdateOptions {
 
 /** The power-change dispatcher and the cache invalidation the world lifecycle needs. */
 export interface ContentRedstoneUpdateHandlers {
+    /** Whether a block at this position has a resolved redstone hook. */
+    shouldDispatch?(at: BlockPosition, block: BlockRef): boolean;
     /** Dispatches a change in redstone power to the active content state. */
     dispatch(at: BlockPosition, block: BlockRef, power: number): void;
     /** Clears the cached reading after a block at this position changes. */
@@ -51,6 +53,15 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
     const dispatching = new Set<string>();
 
     return {
+        shouldDispatch(at, block) {
+            const live = world();
+            if (live === undefined) return false;
+            const stored = live.loadedBlockAt(at.x, at.y, at.z);
+            if (stored === undefined || stored.name !== block.name) return false;
+
+            const type = content.blocks.types.get(block.name);
+            return type?.state(stored.states).content.hooks.has('onRedstoneUpdate') ?? false;
+        },
         dispatch(at, block, power) {
             const live = world();
             if (live === undefined) return;

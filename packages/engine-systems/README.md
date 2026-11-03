@@ -27,6 +27,10 @@ engine.setBlockAndUpdate({ x: 0, y: 0, z: 0 }, block('minecraft:stone'));
 does not implement individual block behavior. The active block family's hooks handle placement,
 neighbor changes, scheduled ticks, and state transitions.
 
+Hosts can pass `shouldComputeRedstoneUpdate` to `createEngine` to skip power scans for states with no
+`onRedstoneUpdate` hook. `updateAround` runs the same notifications after a host has already written
+the block.
+
 ## Tick scheduling
 
 `TickScheduler` owns the block and fluid tick lists. A scheduled tick carries a trigger tick, a

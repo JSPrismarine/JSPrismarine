@@ -24,6 +24,11 @@ export interface EngineOptions {
      */
     onRedstoneUpdate?: (at: BlockPosition, block: BlockRef, power: number) => void;
     /**
+     * Whether an update at this position can reach a redstone hook. Returning false skips the
+     * neighbor power scan; omitted predicates keep the default behavior.
+     */
+    shouldComputeRedstoneUpdate?: (at: BlockPosition, block: BlockRef) => boolean;
+    /**
      * What to run when a random tick lands on a block, keyed by identifier.
      *
      * The engine supplies the draws; the handler owns the block behavior. The
@@ -38,6 +43,8 @@ export interface Engine {
     readonly updates: NeighborUpdates;
     /** Write a block and run its six neighbor updates. */
     setBlockAndUpdate(at: BlockPosition, to: BlockRef): void;
+    /** Run neighbor and redstone updates after the host has already written the changed block. */
+    updateAround(at: BlockPosition, changedBlockName: string): void;
     /**
      * Run one chunk tick's random ticks.
      *
@@ -64,25 +71,34 @@ export interface Engine {
 export const createEngine = (world: WorldAccess, options: EngineOptions = {}): Engine => {
     const randomTickHandlers = options.randomTickHandlers ?? {};
 
+    const reportRedstoneUpdate = (at: BlockPosition): void => {
+        if (options.onRedstoneUpdate === undefined) return;
+        const block = world.getBlock(at);
+        if (options.shouldComputeRedstoneUpdate?.(at, block) === false) return;
+        options.onRedstoneUpdate(at, block, bestNeighborSignal(world, at));
+    };
+
     const updates: NeighborUpdates = createNeighborUpdates(
         {
-            onNeighborChanged(at) {
-                const block = world.getBlock(at);
-                options.onRedstoneUpdate?.(at, block, bestNeighborSignal(world, at));
-            }
+            onNeighborChanged: reportRedstoneUpdate
         },
         options.maxChainedNeighborUpdates ?? MAX_CHAINED_NEIGHBOR_UPDATES
     );
 
+    const updateAround = (at: BlockPosition, changedBlockName: string): void => {
+        updates.updateNeighborsAt(at, changedBlockName);
+        reportRedstoneUpdate(at);
+    };
+
     const setBlockAndUpdate = (at: BlockPosition, to: BlockRef): void => {
         world.setBlock(at, to, false);
-        updates.updateNeighborsAt(at, to.name);
-        options.onRedstoneUpdate?.(at, world.getBlock(at), bestNeighborSignal(world, at));
+        updateAround(at, to.name);
     };
 
     return {
         updates,
         setBlockAndUpdate,
+        updateAround,
         runRandomTicks(positions, sections, tickSpeed = DEFAULT_RANDOM_TICK_SPEED) {
             return runRandomTicks(
                 world,

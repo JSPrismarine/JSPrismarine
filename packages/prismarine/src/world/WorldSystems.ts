@@ -172,7 +172,8 @@ export class WorldSystems {
         this.lighting = new LightEngine(this.lightView());
         this.engine = createEngine(options.world, {
             randomTickHandlers: options.randomTickHandlers,
-            onRedstoneUpdate: options.redstoneUpdateHandlers?.dispatch
+            onRedstoneUpdate: options.redstoneUpdateHandlers?.dispatch,
+            shouldComputeRedstoneUpdate: options.redstoneUpdateHandlers?.shouldDispatch
         });
     }
 
@@ -180,12 +181,10 @@ export class WorldSystems {
      * Runs the six neighbor updates a block change causes and reports resulting power to
      * data-driven redstone hooks.
      *
-     * A world calls it after writing a block. The engine writes the block again on the way
-     * through, which costs a palette read and changes nothing, because it writes the block
-     * already standing there.
+     * A world calls it after writing a block, so this path does not write the block again.
      */
     public updateAround(at: BlockPosition, block: SystemBlock): void {
-        this.engine.setBlockAndUpdate(at, { name: block.name, states: block.states });
+        this.engine.updateAround(at, block.name);
     }
 
     /** Computes a newly loaded chunk's light and re-seeds across its neighbors' borders. */
