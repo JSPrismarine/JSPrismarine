@@ -246,6 +246,17 @@ describe('the flattened climate search tree', () => {
         expect(targets.map((target) => parameters.find(target))).toEqual([
             4, 7, 0, 7, 4, 0, 4, 4, 5, 8, 37, 4, 7, 0, 7, 4, 0, 4, 4, 5, 8
         ]);
+
+        const sharedTree = parameters.toSharedTree();
+        expect(sharedTree.bounds).toBeInstanceOf(SharedArrayBuffer);
+        expect(sharedTree.children).toBeInstanceOf(SharedArrayBuffer);
+        const forward = new ClimateParameterList(entries, undefined, sharedTree);
+        const backward = new ClimateParameterList(entries, undefined, sharedTree);
+        const forwardAnswers = targets.map((target) => forward.find(target));
+        const backwardAnswers = [...targets].reverse().map((target) => backward.find(target));
+
+        expect(forwardAnswers).toEqual(targets.map((target) => parameters.find(target)));
+        expect(backwardAnswers.reverse()).toEqual(forwardAnswers);
     });
 
     it('matches a prior-result-seeded brute-force search for one million random targets', () => {

@@ -165,6 +165,8 @@ export interface GenerationWorkerData {
     readonly setup: unknown;
     /** Optional benchmark buffer: one shared heap-used byte count per worker after its last task. */
     readonly workerHeapStats?: SharedArrayBuffer;
+    /** Optional benchmark buffer: a leading slot count, then first-task wall/CPU microseconds and heap bytes per worker. */
+    readonly workerStartupStats?: SharedArrayBuffer;
 }
 
 /** How a {@link GenerationPool} is built. */
@@ -202,6 +204,11 @@ export interface GenerationPoolOptions {
      * Each worker stores its isolate heap usage in bytes after its most recent task.
      */
     readonly workerHeapStats?: SharedArrayBuffer;
+    /**
+     * Optional `BigInt64Array` sink with one leading worker counter and three slots per worker:
+     * first-task elapsed wall microseconds, thread CPU microseconds, and heap-used bytes.
+     */
+    readonly workerStartupStats?: SharedArrayBuffer;
     /**
      * How many tasks may be with the workers at once, which defaults to one more than there are
      * workers.
@@ -372,7 +379,8 @@ class EmbeddedTaskRunner implements TaskRunner {
         this.workerData = {
             pipeline: workerModuleSpecifier(options.pipeline),
             setup: options.setup,
-            ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats })
+            ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats }),
+            ...(options.workerStartupStats === undefined ? {} : { workerStartupStats: options.workerStartupStats })
         };
     }
 
@@ -524,7 +532,8 @@ const piscinaRunner: TaskRunnerFactory = (options) => {
         workerData: {
             pipeline: workerModuleSpecifier(options.pipeline),
             setup: options.setup,
-            ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats })
+            ...(options.workerHeapStats === undefined ? {} : { workerHeapStats: options.workerHeapStats }),
+            ...(options.workerStartupStats === undefined ? {} : { workerStartupStats: options.workerStartupStats })
         } satisfies GenerationWorkerData
     });
 };

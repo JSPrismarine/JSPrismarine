@@ -84,6 +84,19 @@ describe('GenerationPool', () => {
         expect(Atomics.load(stats, 1)).toBeGreaterThan(0);
     }, 60_000);
 
+    it('reports first-task wall and thread CPU time when the benchmark buffer is requested', async () => {
+        const buffer = new SharedArrayBuffer(BigInt64Array.BYTES_PER_ELEMENT * 4);
+        const stats = new BigInt64Array(buffer);
+        pool = new GenerationPool({ pipeline: FAKE_PIPELINE, workers: 1, workerStartupStats: buffer });
+
+        await pool.run({ status: 'terrain', chunkX: 0, chunkZ: 0, dimension: 0 });
+
+        expect(Atomics.load(stats, 0)).toBe(1n);
+        expect(Atomics.load(stats, 1)).toBeGreaterThan(0n);
+        expect(Atomics.load(stats, 2)).toBeGreaterThan(0n);
+        expect(Atomics.load(stats, 3)).toBeGreaterThan(0n);
+    }, 60_000);
+
     it('runs a status body in a worker and moves the result back', async () => {
         pool = open(1, { seed: 1234 });
 

@@ -14,6 +14,8 @@
  * to break.
  */
 import { getHeapStatistics } from 'node:v8';
+import process from 'node:process';
+import { performance } from 'node:perf_hooks';
 import { threadId, workerData } from 'node:worker_threads';
 
 import Piscina from 'piscina';
@@ -61,9 +63,21 @@ const workerHeapStats =
         ? undefined
         : new Int32Array(workerDataFromParent.workerHeapStats);
 const workerHeapSlot = workerHeapStats === undefined ? undefined : Atomics.add(workerHeapStats, 0, 1) + 1;
+const workerStartupStats =
+    workerDataFromParent.workerStartupStats === undefined
+        ? undefined
+        : new BigInt64Array(workerDataFromParent.workerStartupStats);
+const workerStartupSlot = workerStartupStats === undefined ? undefined : Atomics.add(workerStartupStats, 0, 1n) + 1n;
 
 if (workerHeapStats !== undefined && workerHeapSlot !== undefined && workerHeapSlot >= workerHeapStats.length) {
     throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
+}
+if (
+    workerStartupStats !== undefined &&
+    workerStartupSlot !== undefined &&
+    workerStartupSlot > BigInt(Math.floor((workerStartupStats.length - 1) / 3))
+) {
+    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker startup stats buffer`);
 }
 
 const load = async (): Promise<WorkerPipeline> => {
@@ -87,8 +101,24 @@ const load = async (): Promise<WorkerPipeline> => {
  * @throws MissingPipelineFactoryError when the pool was pointed at a module that is not one.
  */
 export default async function runGenerationTask(task: GenerationTask): Promise<GenerationResult> {
+    const firstTask = pipeline === undefined;
+    const firstTaskStarted = firstTask && workerStartupStats !== undefined ? performance.now() : 0;
+    const firstTaskCpu = firstTask && workerStartupStats !== undefined ? process.threadCpuUsage() : undefined;
     pipeline ??= load();
     const result = await (await pipeline).run(task);
+
+    if (
+        firstTask &&
+        workerStartupStats !== undefined &&
+        workerStartupSlot !== undefined &&
+        firstTaskCpu !== undefined
+    ) {
+        const slot = 1 + Number(workerStartupSlot - 1n) * 3;
+        const cpu = process.threadCpuUsage(firstTaskCpu);
+        Atomics.store(workerStartupStats, slot, BigInt(Math.round((performance.now() - firstTaskStarted) * 1000)));
+        Atomics.store(workerStartupStats, slot + 1, BigInt(cpu.user + cpu.system));
+        Atomics.store(workerStartupStats, slot + 2, BigInt(getHeapStatistics().used_heap_size));
+    }
 
     if (workerHeapStats !== undefined && workerHeapSlot !== undefined) {
         Atomics.store(workerHeapStats, workerHeapSlot, getHeapStatistics().used_heap_size);

@@ -1,6 +1,6 @@
 import { normalizeIdentifier } from '../identifier';
 import { floorMod, quartToBlock } from '../math';
-import type { ClimateEntry } from './Climate';
+import type { ClimateEntry, SharedClimateParameterTree } from './Climate';
 import { ClimateParameterList, parseClimateParameterPoint } from './Climate';
 import type { ClimateSampler } from './ClimateSampler';
 
@@ -131,9 +131,14 @@ export class MultiNoiseBiomeSource implements BiomeSource {
      * Reads a `worldgen/multi_noise_biome_source_parameter_list` document, or the `biomes` list
      * a `multi_noise` biome source carries inline.
      *
+     * @param sharedTree - A preset's prebuilt search tree, if one is shared by the caller.
      * @throws When an entry is missing its `biome` or `parameters` field.
      */
-    public static fromJson(source: unknown, path = '<multi_noise>'): MultiNoiseBiomeSource {
+    public static fromJson(
+        source: unknown,
+        path = '<multi_noise>',
+        sharedTree?: SharedClimateParameterTree<string>
+    ): MultiNoiseBiomeSource {
         const list = Array.isArray(source)
             ? source
             : (() => {
@@ -156,7 +161,7 @@ export class MultiNoiseBiomeSource implements BiomeSource {
                 value: normalizeIdentifier(entry['biome'])
             };
         });
-        return new MultiNoiseBiomeSource(new ClimateParameterList(entries));
+        return new MultiNoiseBiomeSource(new ClimateParameterList(entries, undefined, sharedTree));
     }
 
     /** @inheritDoc */

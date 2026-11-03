@@ -5,7 +5,7 @@ import {
     MultiNoiseBiomeSource,
     TheEndBiomeSource
 } from '../biome/BiomeSource';
-import type { ClimateEntry, ClimateParameterPoint } from '../biome/Climate';
+import type { ClimateEntry, ClimateParameterPoint, SharedClimateParameterTree } from '../biome/Climate';
 import { ClimateParameterList, parseClimateParameterPoint } from '../biome/Climate';
 import { normalizeIdentifier } from '../identifier';
 import { asArray, asObject, inRange, integer, optional } from './json';
@@ -97,12 +97,14 @@ export const parseBiomeSourceDefinition = (json: unknown, path = '<biome_source>
  *
  * @param parameterLists - Raw parameter list documents, keyed by identifier.
  * @param path - Where the definition came from, for error messages.
+ * @param sharedParameterLists - Optional prebuilt trees for preset ids. Missing entries build locally.
  * @throws When a preset is not in `parameterLists`, or the type is not a Java biome source.
  */
 export const parseBiomeSource = (
     definition: BiomeSourceDefinition,
     parameterLists: ReadonlyMap<string, unknown>,
-    path = '<biome_source>'
+    path = '<biome_source>',
+    sharedParameterLists?: ReadonlyMap<string, SharedClimateParameterTree<string>>
 ): BiomeSource => {
     switch (definition.type) {
         case 'minecraft:multi_noise': {
@@ -113,7 +115,11 @@ export const parseBiomeSource = (
                         `${path}.preset: no multi_noise_biome_source_parameter_list named ${JSON.stringify(definition.preset)}`
                     );
                 }
-                return MultiNoiseBiomeSource.fromJson(list, definition.preset);
+                return MultiNoiseBiomeSource.fromJson(
+                    list,
+                    definition.preset,
+                    sharedParameterLists?.get(definition.preset)
+                );
             }
             const entries: ClimateEntry<string>[] = definition.biomes.map((entry) => ({
                 point: entry.parameters,

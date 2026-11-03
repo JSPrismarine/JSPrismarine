@@ -18,6 +18,7 @@
  * 1514 files each.
  */
 import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprismarine/chunkgen';
+import type { SharedClimateParameterTree } from '@jsprismarine/worldgen';
 
 import type { TerrainTaskInput } from './DataDrivenGenerator';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
@@ -32,6 +33,8 @@ import { readRegistryBundle } from './registryBundle';
 export interface TerrainPipelineSetup {
     /** The registries as bytes, shared rather than copied to each worker. */
     readonly registryBundle: SharedArrayBuffer;
+    /** Flattened climate indexes whose numeric arrays are shared across workers. */
+    readonly sharedClimateTrees?: ReadonlyMap<string, SharedClimateParameterTree<string>>;
     /** Whether the carvers run, which is part of Java's `terrain` status. */
     readonly carve: boolean;
 }
@@ -53,7 +56,8 @@ const isSetup = (value: unknown): value is TerrainPipelineSetup =>
     typeof value === 'object' &&
     value !== null &&
     'registryBundle' in value &&
-    value.registryBundle instanceof SharedArrayBuffer;
+    value.registryBundle instanceof SharedArrayBuffer &&
+    (!('sharedClimateTrees' in value) || value.sharedClimateTrees instanceof Map);
 
 /** Whether a task's input is a terrain task's, checked at the same boundary. */
 const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
@@ -81,6 +85,7 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
     const generator = new DataDrivenGenerator({
         registries: readRegistryBundle(setup.registryBundle),
+        ...(setup.sharedClimateTrees === undefined ? {} : { sharedClimateTrees: setup.sharedClimateTrees }),
         carve: setup.carve,
         // Nothing above `terrain` runs here, and a worker that laid structures out would repeat
         // work the main thread has already done and cached.

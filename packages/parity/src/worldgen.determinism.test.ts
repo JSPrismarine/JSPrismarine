@@ -1,6 +1,7 @@
 import {
     DataDrivenGenerator,
-    defaultChunkPipeline
+    defaultChunkPipeline,
+    defaultTerrainPipeline
 } from '@jsprismarine/prismarine/world/generators/datadriven/DataDrivenGenerator';
 import { chunkWorkerCount } from '@jsprismarine/prismarine/world/generators/chunkConcurrency';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -101,6 +102,54 @@ const environment = openGeneration();
 const fresh = (where: GenerationEnvironment): DataDrivenGenerator =>
     new DataDrivenGenerator({ registries: where.registries, templates: where.templates });
 
+const WORKER_SEED = 987_654_321;
+const WORKER_CHUNKS = [
+    [-96, 48],
+    [-95, 48],
+    [-96, 49],
+    [-95, 49]
+] as const;
+
+const terrainDigestForWorkers = async (workers: number, shareClimateTrees: boolean): Promise<string> => {
+    const options = {
+        registries: environment!.registries,
+        decorate: false,
+        structures: false,
+        terrain: {
+            pipeline: defaultTerrainPipeline(),
+            workers,
+            onUnavailable: (reason: string) => {
+                throw new Error(`Climate sharing parity needs ${workers} terrain workers: ${reason}`);
+            }
+        },
+        ...(shareClimateTrees ? {} : { sharedClimateTrees: new Map() })
+    };
+    const generator = new DataDrivenGenerator(options);
+    const order = workers % 2 === 0 ? [...WORKER_CHUNKS].reverse() : WORKER_CHUNKS;
+    try {
+        const digests = await Promise.all(
+            order.map(async ([chunkX, chunkZ]) => {
+                const chunk = await generator.generateChunk(chunkX, chunkZ, BigInt(WORKER_SEED));
+                const digest = captureChunk(
+                    {
+                        id: `worker/${workers}/${chunkX},${chunkZ}`,
+                        tier: 'terrain',
+                        why: 'climate tree sharing parity',
+                        seed: WORKER_SEED,
+                        chunkX,
+                        chunkZ
+                    },
+                    chunk
+                ).digest.digests;
+                return `${chunkX},${chunkZ}:${JSON.stringify(digest)}`;
+            })
+        );
+        return digests.sort().join('|');
+    } finally {
+        generator.stopGenerating();
+    }
+};
+
 /** What one subject's four generations produced, as digests over its block state names. */
 interface Readings {
     alone: string;
@@ -167,12 +216,49 @@ const shardPoolDigestsFor = async (workers: number): Promise<ReadonlyMap<string,
 
 describeFamily(FAMILIES.worldgenDeterminism, [REFERENCES.javaWorldgenData, REFERENCES.javaServerJar], () => {
     const readings = new Map<string, Readings>();
+    const workerDigests = new Map<string, string>();
 
     beforeAll(async () => {
         for (const subject of SUBJECTS) {
             readings.set(`${subject.seed}/${subject.chunkX},${subject.chunkZ}`, await readingsFor(subject));
         }
+        for (const workers of [1, 2, 4]) {
+            workerDigests.set(`shared:${workers}`, await terrainDigestForWorkers(workers, true));
+        }
+        workerDigests.set('local:2', await terrainDigestForWorkers(2, false));
     }, DETERMINISM_TIMEOUT);
+
+    it(
+        'keeps terrain digests across worker counts and the local climate-tree fallback',
+        () => {
+            const baseline = workerDigests.get('shared:1');
+            if (baseline === undefined) throw new Error('Missing one-worker climate-sharing digest');
+
+            const cases = [
+                ...[1, 2, 4].map((workers) => {
+                    const digest = workerDigests.get(`shared:${workers}`);
+                    return parityCase(
+                        `climate-workers:${workers}`,
+                        `${WORKER_SEED}/-96,48..-95,49`,
+                        `climate tree sharing with ${workers} worker${workers === 1 ? '' : 's'}`,
+                        digest === baseline
+                    );
+                }),
+                parityCase(
+                    'climate-local-fallback',
+                    `${WORKER_SEED}/-96,48..-95,49`,
+                    'local climate tree construction with two workers',
+                    workerDigests.get('local:2') === baseline
+                )
+            ];
+            reportParityCases(FAMILIES.worldgenDeterminism, import.meta.filename, cases);
+
+            expect(workerDigests.get('shared:2')).toBe(baseline);
+            expect(workerDigests.get('shared:4')).toBe(baseline);
+            expect(workerDigests.get('local:2')).toBe(baseline);
+        },
+        DETERMINISM_TIMEOUT
+    );
 
     describe.each(SUBJECTS)('$seed/$chunkX,$chunkZ, $why', (subject) => {
         const at = `${subject.seed}/${subject.chunkX},${subject.chunkZ}`;

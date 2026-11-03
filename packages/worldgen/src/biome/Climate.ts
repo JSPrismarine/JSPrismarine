@@ -191,6 +191,32 @@ interface FlatClimateTree<T> {
     readonly maxDepth: number;
 }
 
+/** The immutable search arrays a worker can map from the spawning thread. */
+export interface SharedClimateParameterTree<T> {
+    /** Min/max pairs for every node and axis. */
+    readonly bounds: SharedArrayBuffer;
+    /** Start of each node's child range. */
+    readonly childStarts: SharedArrayBuffer;
+    /** Number of children for each node. */
+    readonly childCounts: SharedArrayBuffer;
+    /** Child node indices in tree order. */
+    readonly children: SharedArrayBuffer;
+    /** Value index for each leaf, or -1 for a subtree. */
+    readonly valueIndices: SharedArrayBuffer;
+    /** First depth-first leaf rank below each node. */
+    readonly firstLeafRanks: SharedArrayBuffer;
+    /** One value per leaf, in flattened traversal order. */
+    readonly values: readonly T[];
+    /** Maximum number of nodes from the root through one leaf. */
+    readonly maxDepth: number;
+}
+
+const copyToSharedBuffer = (source: Float64Array | Int32Array | Uint32Array): SharedArrayBuffer => {
+    const shared = new SharedArrayBuffer(source.byteLength);
+    new Uint8Array(shared).set(new Uint8Array(source.buffer, source.byteOffset, source.byteLength));
+    return shared;
+};
+
 /** Flattens the object tree once so a lookup touches only typed arrays and a reusable stack. */
 const flattenTree = <T>(root: TreeNode<T>): FlatClimateTree<T> => {
     const nodes: TreeNode<T>[] = [];
@@ -372,6 +398,8 @@ export class ClimateParameterList<T> {
     private readonly valueIndices: Int32Array;
     private readonly firstLeafRanks: Uint32Array;
     private readonly values: T[];
+    private readonly maxDepth: number;
+    // Keep tie history and traversal scratch per instance so one worker's query order cannot affect another.
     private lastResult = -1;
     private readonly searchStack: {
         readonly nodes: Uint32Array;
@@ -385,26 +413,71 @@ export class ClimateParameterList<T> {
     public constructor(
         /** The boxes, in the order the data pack lists them. */
         public readonly entries: readonly ClimateEntry<T>[],
-        childrenPerNode = CLIMATE_CHILDREN_PER_NODE
+        childrenPerNode = CLIMATE_CHILDREN_PER_NODE,
+        /** A previously built search tree, whose numeric arrays are shared across threads. */
+        sharedTree?: SharedClimateParameterTree<T>
     ) {
         if (entries.length === 0) throw new RangeError('A climate parameter list needs at least one entry');
-        const leaves = entries.map((entry) => new TreeLeaf(entry.point, entry.value));
-        const tree = flattenTree(buildTree<T>(leaves, childrenPerNode));
-        this.bounds = tree.bounds;
-        this.childStarts = tree.childStarts;
-        this.childCounts = tree.childCounts;
-        this.children = tree.children;
-        this.valueIndices = tree.valueIndices;
-        this.firstLeafRanks = tree.firstLeafRanks;
-        this.values = tree.values;
+        if (sharedTree === undefined) {
+            const leaves = entries.map((entry) => new TreeLeaf(entry.point, entry.value));
+            const tree = flattenTree(buildTree<T>(leaves, childrenPerNode));
+            this.bounds = tree.bounds;
+            this.childStarts = tree.childStarts;
+            this.childCounts = tree.childCounts;
+            this.children = tree.children;
+            this.valueIndices = tree.valueIndices;
+            this.firstLeafRanks = tree.firstLeafRanks;
+            this.values = tree.values;
+            this.maxDepth = tree.maxDepth;
+        } else {
+            const nodeCount = sharedTree.childStarts.byteLength / Uint32Array.BYTES_PER_ELEMENT;
+            if (
+                !Number.isInteger(nodeCount) ||
+                nodeCount < 1 ||
+                sharedTree.childCounts.byteLength !== nodeCount * Uint32Array.BYTES_PER_ELEMENT ||
+                sharedTree.children.byteLength !== (nodeCount - 1) * Uint32Array.BYTES_PER_ELEMENT ||
+                sharedTree.valueIndices.byteLength !== nodeCount * Int32Array.BYTES_PER_ELEMENT ||
+                sharedTree.firstLeafRanks.byteLength !== nodeCount * Uint32Array.BYTES_PER_ELEMENT ||
+                sharedTree.bounds.byteLength !==
+                    nodeCount * CLIMATE_PARAMETER_COUNT * 2 * Float64Array.BYTES_PER_ELEMENT ||
+                sharedTree.values.length !== entries.length ||
+                !Number.isInteger(sharedTree.maxDepth) ||
+                sharedTree.maxDepth < 1
+            ) {
+                throw new RangeError('A shared climate tree does not match its climate entries');
+            }
+
+            this.bounds = new Float64Array(sharedTree.bounds);
+            this.childStarts = new Uint32Array(sharedTree.childStarts);
+            this.childCounts = new Uint32Array(sharedTree.childCounts);
+            this.children = new Uint32Array(sharedTree.children);
+            this.valueIndices = new Int32Array(sharedTree.valueIndices);
+            this.firstLeafRanks = new Uint32Array(sharedTree.firstLeafRanks);
+            this.values = [...sharedTree.values];
+            this.maxDepth = sharedTree.maxDepth;
+        }
         // Searches are synchronous, so one instance-owned stack avoids allocating a frame per lookup.
         this.searchStack = {
-            nodes: new Uint32Array(tree.maxDepth),
-            nextChildren: new Uint32Array(tree.maxDepth),
-            minimumDistances: new Float64Array(tree.maxDepth),
-            closestLeaves: new Int32Array(tree.maxDepth),
-            pendingChildren: new Uint32Array(tree.maxDepth),
-            pendingDistances: new Float64Array(tree.maxDepth)
+            nodes: new Uint32Array(this.maxDepth),
+            nextChildren: new Uint32Array(this.maxDepth),
+            minimumDistances: new Float64Array(this.maxDepth),
+            closestLeaves: new Int32Array(this.maxDepth),
+            pendingChildren: new Uint32Array(this.maxDepth),
+            pendingDistances: new Float64Array(this.maxDepth)
+        };
+    }
+
+    /** Copies the flattened search arrays into shared memory for reuse by worker threads. */
+    public toSharedTree(): SharedClimateParameterTree<T> {
+        return {
+            bounds: copyToSharedBuffer(this.bounds),
+            childStarts: copyToSharedBuffer(this.childStarts),
+            childCounts: copyToSharedBuffer(this.childCounts),
+            children: copyToSharedBuffer(this.children),
+            valueIndices: copyToSharedBuffer(this.valueIndices),
+            firstLeafRanks: copyToSharedBuffer(this.firstLeafRanks),
+            values: [...this.values],
+            maxDepth: this.maxDepth
         };
     }
 

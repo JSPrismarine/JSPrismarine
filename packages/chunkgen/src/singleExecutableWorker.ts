@@ -6,6 +6,8 @@
  * is another SEA asset, imported once per thread, and each result transfers its buffers back.
  */
 import { getHeapStatistics } from 'node:v8';
+import process from 'node:process';
+import { performance } from 'node:perf_hooks';
 import { parentPort, threadId, workerData } from 'node:worker_threads';
 
 import type { GenerationResult, GenerationTask, GenerationWorkerData, WorkerPipelineFactory } from './GenerationPool';
@@ -42,8 +44,17 @@ if (port === null) throw new Error('The embedded generation worker needs a paren
 const data = workerData as GenerationWorkerData;
 const heapStats = data.workerHeapStats === undefined ? undefined : new Int32Array(data.workerHeapStats);
 const heapSlot = heapStats === undefined ? undefined : Atomics.add(heapStats, 0, 1) + 1;
+const startupStats = data.workerStartupStats === undefined ? undefined : new BigInt64Array(data.workerStartupStats);
+const startupSlot = startupStats === undefined ? undefined : Atomics.add(startupStats, 0, 1n) + 1n;
 if (heapStats !== undefined && heapSlot !== undefined && heapSlot >= heapStats.length) {
     throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker heap stats buffer`);
+}
+if (
+    startupStats !== undefined &&
+    startupSlot !== undefined &&
+    startupSlot > BigInt(Math.floor((startupStats.length - 1) / 3))
+) {
+    throw new RangeError(`Worker ${threadId} has no slot in the chunk-worker startup stats buffer`);
 }
 
 const loadPipeline = async () => {
@@ -70,8 +81,18 @@ port.on('message', (message: TaskMessage) => {
     void (async () => {
         let reply: TaskReply;
         try {
+            const firstTask = pipeline === undefined;
+            const firstTaskStarted = firstTask && startupStats !== undefined ? performance.now() : 0;
+            const firstTaskCpu = firstTask && startupStats !== undefined ? process.threadCpuUsage() : undefined;
             pipeline ??= loadPipeline();
             const result = await (await pipeline).run(message.task);
+            if (firstTask && startupStats !== undefined && startupSlot !== undefined && firstTaskCpu !== undefined) {
+                const slot = 1 + Number(startupSlot - 1n) * 3;
+                const cpu = process.threadCpuUsage(firstTaskCpu);
+                Atomics.store(startupStats, slot, BigInt(Math.round((performance.now() - firstTaskStarted) * 1000)));
+                Atomics.store(startupStats, slot + 1, BigInt(cpu.user + cpu.system));
+                Atomics.store(startupStats, slot + 2, BigInt(getHeapStatistics().used_heap_size));
+            }
             if (heapStats !== undefined && heapSlot !== undefined) {
                 Atomics.store(heapStats, heapSlot, getHeapStatistics().used_heap_size);
             }

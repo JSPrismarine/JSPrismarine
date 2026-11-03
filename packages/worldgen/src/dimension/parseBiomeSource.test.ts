@@ -158,6 +158,22 @@ describe('parseBiomeSource', () => {
         expect(source.possibleBiomes()).toEqual(['minecraft:nether_wastes', 'minecraft:soul_sand_valley']);
     });
 
+    it('uses a shared preset tree when present and builds locally when it is missing', () => {
+        const lists = new Map<string, unknown>([['minecraft:nether', PARAMETERS]]);
+        const definition = { type: 'minecraft:multi_noise', preset: 'minecraft:nether' } as const;
+        const local = parseBiomeSource(definition, lists);
+        if (!(local instanceof MultiNoiseBiomeSource)) throw new Error('wrong biome source');
+        const sharedTrees = new Map([['minecraft:nether', local.parameters.toSharedTree()]]);
+
+        const shared = parseBiomeSource(definition, lists, '<biome_source>', sharedTrees);
+        const fallback = parseBiomeSource(definition, lists, '<biome_source>', new Map());
+
+        expect(shared).toBeInstanceOf(MultiNoiseBiomeSource);
+        expect(fallback).toBeInstanceOf(MultiNoiseBiomeSource);
+        expect(shared.possibleBiomes()).toEqual(local.possibleBiomes());
+        expect(fallback.possibleBiomes()).toEqual(local.possibleBiomes());
+    });
+
     it('builds a multi_noise source from inline biomes', () => {
         const definition = parseBiomeSourceDefinition({ type: 'minecraft:multi_noise', ...PARAMETERS });
         const source = parseBiomeSource(definition, noLists);
