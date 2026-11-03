@@ -2,7 +2,7 @@ import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WatchDirectory } from './Watcher';
 import { Watcher } from './Watcher';
 
@@ -96,6 +96,11 @@ afterEach(() => {
 });
 
 describe('Watcher', () => {
+    beforeEach(() => {
+        // The root Vitest config reuses workers; debounce waits must not inherit another suite's fake clock.
+        vi.useRealTimers();
+    });
+
     it('generates once on start and reports what it watches', async () => {
         const generate = vi.fn(async () => true);
         const packagesDir = makePackages();
