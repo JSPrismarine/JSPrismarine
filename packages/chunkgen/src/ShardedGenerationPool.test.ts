@@ -209,6 +209,17 @@ describe('the sharded generation pool', () => {
         await expect(answer).resolves.toEqual({ payload: null, transferList: [] });
     });
 
+    it('runs an owner-affinity task on its exact shard', async () => {
+        const { pool, runners } = open(3, { regionChunks: 8, stealAfter: 1000 });
+        const answer = pool.runOnShard(2, { status: 'structure_starts', chunkX: 0, chunkZ: 0, dimension: 0 });
+
+        await settle();
+        expect(shardHolding(runners, 0, 0)).toBe(2);
+
+        for (const runner of runners) runner.finishAll();
+        await expect(answer).resolves.toEqual({ payload: null, transferList: [] });
+    });
+
     it('counts what every shard is holding and waiting on', async () => {
         const { pool } = open(2, { regionChunks: 8, stealAfter: 1000, inFlight: 1 });
 

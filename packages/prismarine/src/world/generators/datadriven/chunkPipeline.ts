@@ -27,6 +27,7 @@ import type { GenerationResult, GenerationTask, WorkerPipeline } from '@jsprisma
 
 import type { PipelineKey, TerrainTaskInput } from './DataDrivenGenerator';
 import { DataDrivenGenerator, isPipelineKey } from './DataDrivenGenerator';
+import type { StructureStartCandidate, StructureStartPlanEntry } from './javaStructureStarts';
 import { findJavaTemplateSource } from './javaStructureTemplates';
 import { cacheRoot } from './javaWorldgenData';
 import { readRegistryBundle } from './registryBundle';
@@ -70,6 +71,16 @@ export interface ChunkTaskInput extends PipelineKey {
     readonly seed: string;
 }
 
+/** Candidates a stable owner shard should build before a chunk task begins. */
+export interface StructureStartTaskInput extends ChunkTaskInput {
+    readonly candidates: readonly StructureStartCandidate[];
+}
+
+/** A whole-chunk task may carry cloneable plans made by stable owner shards. */
+export interface FullChunkTaskInput extends ChunkTaskInput {
+    readonly structureStartPlans?: readonly StructureStartPlanEntry[];
+}
+
 /** What a `features` task carries besides its key and seed: the nine immutable terrain tiles it reads. */
 export interface FeatureTaskInput extends ChunkTaskInput {
     /** Terrain payloads in the feature view's row-major offset order. */
@@ -104,6 +115,69 @@ const isSetup = (value: unknown): value is ChunkPipelineSetup =>
 /** Whether a task's input is a chunk task's, checked at the same boundary. */
 const isChunkInput = (value: unknown): value is ChunkTaskInput =>
     isPipelineKey(value) && 'seed' in value && typeof value.seed === 'string';
+
+const isStructureStartCandidate = (value: unknown): value is StructureStartCandidate =>
+    typeof value === 'object' &&
+    value !== null &&
+    'set' in value &&
+    typeof value.set === 'string' &&
+    'chunkX' in value &&
+    typeof value.chunkX === 'number' &&
+    'chunkZ' in value &&
+    typeof value.chunkZ === 'number';
+
+const isStructureStartPlanEntry = (value: unknown): value is StructureStartPlanEntry => {
+    if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('set' in value) ||
+        typeof value.set !== 'string' ||
+        !('chunkX' in value) ||
+        typeof value.chunkX !== 'number' ||
+        !('chunkZ' in value) ||
+        typeof value.chunkZ !== 'number' ||
+        !('start' in value)
+    ) {
+        return false;
+    }
+    if (value.start === null) return true;
+
+    return (
+        typeof value.start === 'object' &&
+        value.start !== null &&
+        'structure' in value.start &&
+        typeof value.start.structure === 'string' &&
+        'set' in value.start &&
+        typeof value.start.set === 'string' &&
+        'chunkX' in value.start &&
+        typeof value.start.chunkX === 'number' &&
+        'chunkZ' in value.start &&
+        typeof value.start.chunkZ === 'number' &&
+        'pieces' in value.start &&
+        Array.isArray(value.start.pieces) &&
+        value.start.pieces.every(
+            (piece) =>
+                typeof piece === 'object' &&
+                piece !== null &&
+                'type' in piece &&
+                typeof piece.type === 'string' &&
+                'data' in piece
+        )
+    );
+};
+
+const isStructureStartPlanEntries = (value: unknown): value is readonly StructureStartPlanEntry[] =>
+    Array.isArray(value) && value.every(isStructureStartPlanEntry);
+
+const isStructureStartTaskInput = (value: unknown): value is StructureStartTaskInput =>
+    isChunkInput(value) &&
+    'candidates' in value &&
+    Array.isArray(value.candidates) &&
+    value.candidates.every(isStructureStartCandidate);
+
+const isFullChunkInput = (value: unknown): value is FullChunkTaskInput =>
+    isChunkInput(value) &&
+    (!('structureStartPlans' in value) || isStructureStartPlanEntries(value.structureStartPlans));
 
 /** Whether a task carries structure inputs along with its key and seed. */
 const isTerrainInput = (value: unknown): value is TerrainTaskInput =>
@@ -191,6 +265,23 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
 
     return {
         async run(task: GenerationTask): Promise<GenerationResult> {
+            if (task.status === 'structure_starts') {
+                if (!isStructureStartTaskInput(task.input)) {
+                    throw new TypeError(
+                        `The structure-start task at ${task.chunkX}, ${task.chunkZ} carries no candidate list, seed and pipeline key.`
+                    );
+                }
+
+                return {
+                    payload: generator.structureStartPlansFor(
+                        task.input.candidates,
+                        BigInt(task.input.seed),
+                        task.input
+                    ),
+                    transferList: []
+                };
+            }
+
             if (task.status === 'terrain') {
                 if (!isTerrainInput(task.input)) {
                     throw new TypeError(
@@ -229,9 +320,9 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
             }
 
             if (task.status === 'full') {
-                if (!isChunkInput(task.input)) {
+                if (!isFullChunkInput(task.input)) {
                     throw new TypeError(
-                        `The chunk task at ${task.chunkX}, ${task.chunkZ} carries no seed and pipeline key.`
+                        `The chunk task at ${task.chunkX}, ${task.chunkZ} carries no seed, pipeline key and valid start plans.`
                     );
                 }
 
@@ -239,7 +330,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                     task.chunkX,
                     task.chunkZ,
                     BigInt(task.input.seed),
-                    task.input
+                    task.input,
+                    task.input.structureStartPlans
                 );
                 return { payload: tile.payload, transferList: tile.transferList };
             }

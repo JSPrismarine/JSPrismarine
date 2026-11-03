@@ -23,6 +23,7 @@ import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 
 /** Java's six `VerticalPlacement` values, which decide the heightmap and the y search. */
 type VerticalPlacement =
@@ -363,3 +364,5 @@ class NetherrackSpread implements StructurePiece {
         return this.options.placement === 'in_nether' || existing.name !== 'minecraft:lava';
     }
 }
+
+registerStructurePieceFieldsCodec('ruined-portal.netherrack-spread', NetherrackSpread.prototype);

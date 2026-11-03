@@ -23,7 +23,7 @@ import type { Mirror, Placement, RandomSource, Rotation, TemplatePosition } from
 import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { DataMarker } from './javaStructureTemplatePiece';
-import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
+import { registerTemplatePieceMarkerHandler, TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
 
 /** Where in its chunk a mansion starts, Java's `START_OFFSET_IN_CHUNK`. */
@@ -1227,7 +1227,7 @@ const templatePieceOf = (part: MansionPiece, context: StructureBuildContext): St
         template,
         position: pivotedCorner([part.spot.x, part.spot.y, part.spot.z], base.size, placement, NO_PIVOT),
         placement,
-        onDataMarker: (marker, writer, random) => fillMarker(marker, writer, random, part.rotation)
+        markerAction: { type: 'woodland-mansion', data: part.rotation }
     });
 
     return piece.isPresent ? [piece] : [];
@@ -1278,3 +1278,10 @@ export const buildWoodlandMansion: StructureBuilder = (context): StructureLayout
         }
     };
 };
+
+registerTemplatePieceMarkerHandler('woodland-mansion', (marker, writer, random, data) => {
+    if (data !== 'none' && data !== 'clockwise_90' && data !== 'clockwise_180' && data !== 'counterclockwise_90') {
+        throw new TypeError('The woodland-mansion marker action needs a rotation.');
+    }
+    fillMarker(marker, writer, random, data);
+});

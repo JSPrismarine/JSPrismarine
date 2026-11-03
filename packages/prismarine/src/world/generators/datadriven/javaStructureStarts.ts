@@ -31,8 +31,14 @@ import {
 } from './javaStructurePlacement';
 import { structureRandomSeed } from './javaStructurePlacement';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
-import type { StructureLevel, StructurePiece } from './javaStructureWorld';
-import { boxTouchesChunk, unionOf } from './javaStructureWorld';
+import type { StructureLevel, StructurePiece, StructurePiecePlan } from './javaStructureWorld';
+import {
+    boxTouchesChunk,
+    freezeStructurePlanData,
+    structurePieceFromPlan,
+    structurePiecePlanOf,
+    unionOf
+} from './javaStructureWorld';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 
 /** How far Java looks for a start that reaches into the chunk being generated. */
@@ -115,6 +121,28 @@ export interface StructureStart {
     readonly locatePosition: { readonly x: number; readonly y: number; readonly z: number };
 }
 
+/** One candidate start identified without assembling its pieces. */
+export interface StructureStartCandidate {
+    /** The structure set that offered the candidate chunk. */
+    readonly set: string;
+    /** The candidate start chunk x. */
+    readonly chunkX: number;
+    /** The candidate start chunk z. */
+    readonly chunkZ: number;
+}
+
+/** Structured-clone-safe layout data for one accepted structure start. */
+export type StructureStartPlan = Omit<StructureStart, 'pieces'> & {
+    /** Piece data in Java's placement order, without worker-local methods or references. */
+    readonly pieces: readonly StructurePiecePlan[];
+};
+
+/** A candidate result, including a cached rejection so another worker does not rebuild it. */
+export interface StructureStartPlanEntry extends StructureStartCandidate {
+    /** Null records the same rejected/empty result as the source cache. */
+    readonly start: StructureStartPlan | null;
+}
+
 /** What {@link StructureStartSource.locate} is asked to find. */
 export interface StructureSearchOptions {
     /** The chunk the search radiates out from. */
@@ -162,6 +190,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  */
 export class StructureStartSource {
     private readonly sets: readonly NamedStructureSet[];
+    private readonly setsById: ReadonlyMap<string, NamedStructureSet>;
     private readonly biomesOf: (structure: string) => ReadonlySet<string>;
     private readonly pools = new Map<string, TemplatePool | undefined>();
     private readonly starts = new Map<string, StructureStart | null>();
@@ -188,6 +217,7 @@ export class StructureStartSource {
         };
 
         this.sets = loadStructureSets(options.registries.structureSets, this.biomesOf, options.isPossibleBiome);
+        this.setsById = new Map(this.sets.map((named) => [named.id, named]));
 
         for (const [id, document] of options.registries.structures) {
             const named = stepOf(isRecord(document) ? document.step : undefined);
@@ -216,6 +246,84 @@ export class StructureStartSource {
     /** The structure sets this dimension uses, which is what the placement scan runs over. */
     public usedSets(): readonly NamedStructureSet[] {
         return this.sets;
+    }
+
+    /**
+     * Candidate starts that may be queried while generating a rectangular chunk region.
+     *
+     * Every target chunk queries the eight-chunk reference window around it. Expanding the
+     * requested region by that radius produces the exact union, so callers can plan starts before
+     * dispatch without assembling any layout on the coordinator thread.
+     * @param minChunkX - Minimum target chunk x.
+     * @param minChunkZ - Minimum target chunk z.
+     * @param maxChunkX - Maximum target chunk x.
+     * @param maxChunkZ - Maximum target chunk z.
+     * @returns Candidates in the union of all target chunks' reference windows.
+     */
+    public candidatesForRegion(
+        minChunkX: number,
+        minChunkZ: number,
+        maxChunkX: number,
+        maxChunkZ: number
+    ): readonly StructureStartCandidate[] {
+        const range = {
+            minChunkX: minChunkX - REFERENCE_RADIUS,
+            minChunkZ: minChunkZ - REFERENCE_RADIUS,
+            maxChunkX: maxChunkX + REFERENCE_RADIUS,
+            maxChunkZ: maxChunkZ + REFERENCE_RADIUS
+        };
+        const candidates: StructureStartCandidate[] = [];
+        for (const named of this.sets) {
+            for (const candidate of candidateChunksIn(named.set.placement, this.options.seed, range)) {
+                candidates.push({ set: named.id, chunkX: candidate.x, chunkZ: candidate.z });
+            }
+        }
+        return candidates;
+    }
+
+    /**
+     * Builds the requested starts and returns their cloneable plans, caching positive and negative results.
+     * @param candidates - Candidate starts assigned to this worker.
+     * @returns One plan or rejection record for each candidate.
+     */
+    public plansForCandidates(candidates: readonly StructureStartCandidate[]): readonly StructureStartPlanEntry[] {
+        return candidates.map((candidate) => {
+            const named = this.setsById.get(candidate.set);
+            if (named === undefined) throw new TypeError(`Unknown structure set ${candidate.set}.`);
+            const start = this.startAt(named, candidate.chunkX, candidate.chunkZ);
+            const entry: StructureStartPlanEntry = {
+                ...candidate,
+                start: start === null ? null : this.planOf(start)
+            };
+            freezeStructurePlanData(entry);
+            return entry;
+        });
+    }
+
+    /**
+     * Installs worker-produced plans before a chunk task starts asking for structure references.
+     * @param entries - Plans or rejection records returned by owner workers.
+     */
+    public installPlans(entries: readonly StructureStartPlanEntry[]): void {
+        for (const entry of entries) {
+            const key = `${entry.set}@${entry.chunkX},${entry.chunkZ}`;
+            if (
+                entry.start !== null &&
+                (entry.start.set !== entry.set ||
+                    entry.start.chunkX !== entry.chunkX ||
+                    entry.start.chunkZ !== entry.chunkZ)
+            ) {
+                throw new TypeError(`The structure-start plan does not match ${key}.`);
+            }
+            if (this.starts.has(key)) continue;
+            if (!this.setsById.has(entry.set)) throw new TypeError(`Unknown structure set ${entry.set}.`);
+            // structuredClone does not preserve Object.freeze. Re-freeze each worker message
+            // before decoded pieces retain references to its nested layout fields.
+            freezeStructurePlanData(entry);
+            const start = entry.start === null ? null : this.startFromPlan(entry.start);
+            if (this.starts.size >= CACHE_LIMIT) this.starts.clear();
+            this.starts.set(key, start);
+        }
     }
 
     /**
@@ -394,5 +502,37 @@ export class StructureStartSource {
 
         this.pools.set(identifier, pool);
         return pool;
+    }
+
+    private planOf(start: StructureStart): StructureStartPlan {
+        const plan: StructureStartPlan = structuredClone({
+            structure: start.structure,
+            set: start.set,
+            chunkX: start.chunkX,
+            chunkZ: start.chunkZ,
+            step: start.step,
+            terrainAdaptation: start.terrainAdaptation,
+            boundingBox: start.boundingBox,
+            pieces: start.pieces.map(structurePiecePlanOf),
+            origin: start.origin,
+            locatePosition: start.locatePosition
+        });
+        freezeStructurePlanData(plan);
+        return plan;
+    }
+
+    private startFromPlan(plan: StructureStartPlan): StructureStart {
+        return {
+            structure: plan.structure,
+            set: plan.set,
+            chunkX: plan.chunkX,
+            chunkZ: plan.chunkZ,
+            step: plan.step,
+            terrainAdaptation: plan.terrainAdaptation,
+            boundingBox: plan.boundingBox,
+            pieces: plan.pieces.map((piece) => structurePieceFromPlan(piece, { templates: this.options.templates })),
+            origin: plan.origin,
+            locatePosition: plan.locatePosition
+        };
     }
 }

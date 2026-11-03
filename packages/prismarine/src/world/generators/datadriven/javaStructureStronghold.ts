@@ -35,6 +35,7 @@ import { createLegacyRandom, largeFeatureSeed } from '@jsprismarine/structures';
 
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 import { movedBox, unionOf } from './javaStructureWorld';
 
 /** The way a piece was entered, which is the only orientation a stronghold piece has. */
@@ -1617,3 +1618,15 @@ const strongholdPieces = (
 
     return [];
 };
+
+registerStructurePieceFieldsCodec('stronghold.stairs-down', StairsDown.prototype);
+registerStructurePieceFieldsCodec('stronghold.straight', Straight.prototype);
+registerStructurePieceFieldsCodec('stronghold.prison-hall', PrisonHall.prototype);
+registerStructurePieceFieldsCodec('stronghold.turn', Turn.prototype);
+registerStructurePieceFieldsCodec('stronghold.room-crossing', RoomCrossing.prototype);
+registerStructurePieceFieldsCodec('stronghold.straight-stairs-down', StraightStairsDown.prototype);
+registerStructurePieceFieldsCodec('stronghold.five-crossing', FiveCrossing.prototype);
+registerStructurePieceFieldsCodec('stronghold.chest-corridor', ChestCorridor.prototype);
+registerStructurePieceFieldsCodec('stronghold.library', Library.prototype);
+registerStructurePieceFieldsCodec('stronghold.portal-room', PortalRoom.prototype);
+registerStructurePieceFieldsCodec('stronghold.filler-corridor', FillerCorridor.prototype);

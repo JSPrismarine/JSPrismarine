@@ -24,7 +24,7 @@ import type { Placement, Rotation, TemplatePosition } from '@jsprismarine/struct
 import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { DataMarker } from './javaStructureTemplatePiece';
-import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
+import { registerTemplatePieceMarkerHandler, TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructureWriter } from './javaStructureWorld';
 
 /** Where in its chunk a city starts, Java's `START_OFFSET_IN_CHUNK`. */
@@ -422,7 +422,7 @@ const cityPiece = (
         // Java's `makeSettings`: `STRUCTURE_BLOCK` for an overwriting piece and
         // `STRUCTURE_AND_AIR` for a floor whose air must leave the storey below it alone.
         overwrite,
-        onDataMarker: (marker, writer) => fillMarker(marker, writer, rotation)
+        markerAction: { type: 'end-city', data: rotation }
     });
 
     return { name, position, rotation, piece, genDepth: 0 };
@@ -468,3 +468,10 @@ const elytraFrame = (): NBTTagCompound => {
     frame.addChild(item);
     return frame;
 };
+
+registerTemplatePieceMarkerHandler('end-city', (marker, writer, _random, data) => {
+    if (data !== 'none' && data !== 'clockwise_90' && data !== 'clockwise_180' && data !== 'counterclockwise_90') {
+        throw new TypeError('The end-city marker action needs a rotation.');
+    }
+    fillMarker(marker, writer, data);
+});

@@ -19,8 +19,12 @@ import { sampleStructureHeight } from './javaStructureHeight';
 import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { TemplatePieceOptions } from './javaStructureTemplatePiece';
+import {
+    registerTemplatePieceMarkerHandler,
+    registerTemplatePiecePostPlacementHandler
+} from './javaStructureTemplatePiece';
 import { TemplatePiece, pivotedCorner } from './javaStructureTemplatePiece';
-import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import type { StructurePiece } from './javaStructureWorld';
 
 /** Java's `Util.getRandom`: one entry of an array, by a single draw. */
 const randomOf = <T>(values: readonly T[], random: RandomSource): T => values[random.nextInt(values.length)]!;
@@ -131,15 +135,7 @@ export const buildShipwreck: StructureBuilder = (context): StructureLayout | und
                 // Java's ShipwreckPiece uses STRUCTURE_AND_AIR, leaving the water or shore
                 // terrain under the template's air blocks in place.
                 overwrite: false,
-                onDataMarker: (marker, writer) => {
-                    const table = SHIPWRECK_CHESTS[marker.value];
-                    if (table !== undefined) {
-                        writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
-                            id: 'minecraft:chest',
-                            lootTable: table
-                        });
-                    }
-                }
+                markerAction: { type: 'shipwreck' }
             });
         }
     };
@@ -245,33 +241,22 @@ const iglooPiece = (
         template,
         position,
         placement,
-        onDataMarker: (marker, writer) => {
-            if (marker.value !== 'chest') return;
-
-            writer.setBlock(marker.x, marker.y, marker.z, { name: 'minecraft:air', properties: {} });
-            writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
-                id: 'minecraft:chest',
-                lootTable: 'minecraft:chests/igloo_chest'
-            });
-        },
+        markerAction: { type: 'igloo' },
         ...(name === 'top'
             ? {
                   // Java caps the ladder hole with snow when the dome has no basement under it.
-                  onPlaced: (writer: StructureWriter) => {
-                      const hole = pivotedCorner(
-                          [position[0], position[1], position[2]],
-                          base.size,
-                          placement,
-                          [0, 0, 0]
-                      );
-                      const spot = capPosition(hole, base.size, placement);
-                      const below = writer.blockAt(spot.x, spot.y - 1, spot.z);
-                      if (below.name !== 'minecraft:air' && below.name !== 'minecraft:ladder') {
-                          writer.setBlock(spot.x, spot.y, spot.z, {
-                              name: 'minecraft:snow_block',
-                              properties: {}
-                          });
-                      }
+                  postPlacementAction: {
+                      type: 'igloo-snow-cap',
+                      data: (() => {
+                          const hole = pivotedCorner(
+                              [position[0], position[1], position[2]],
+                              base.size,
+                              placement,
+                              [0, 0, 0]
+                          );
+                          const spot = capPosition(hole, base.size, placement);
+                          return [spot.x, spot.y, spot.z] as const;
+                      })()
                   }
               }
             : {})
@@ -356,16 +341,7 @@ export const buildOceanRuin: StructureBuilder = (context): StructureLayout | und
                 // Java's OceanRuinPiece uses STRUCTURE_AND_AIR, leaving the sea or terrain under
                 // the template's air blocks in place.
                 overwrite: false,
-                onDataMarker: (marker, writer) => {
-                    if (marker.value !== 'chest') return;
-
-                    writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
-                        id: 'minecraft:chest',
-                        lootTable: large
-                            ? 'minecraft:chests/underwater_ruin_big'
-                            : 'minecraft:chests/underwater_ruin_small'
-                    });
-                }
+                markerAction: { type: 'ocean-ruin', data: { large } }
             });
         }
     };
@@ -401,6 +377,52 @@ export const buildNetherFossil: StructureBuilder = (context): StructureLayout | 
         }
     };
 };
+
+registerTemplatePieceMarkerHandler('shipwreck', (marker, writer) => {
+    const table = SHIPWRECK_CHESTS[marker.value];
+    if (table !== undefined) {
+        writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
+            id: 'minecraft:chest',
+            lootTable: table
+        });
+    }
+});
+
+registerTemplatePieceMarkerHandler('igloo', (marker, writer) => {
+    if (marker.value !== 'chest') return;
+
+    writer.setBlock(marker.x, marker.y, marker.z, { name: 'minecraft:air', properties: {} });
+    writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
+        id: 'minecraft:chest',
+        lootTable: 'minecraft:chests/igloo_chest'
+    });
+});
+
+registerTemplatePiecePostPlacementHandler('igloo-snow-cap', (_piece, writer, _random, data) => {
+    if (!Array.isArray(data) || data.length !== 3 || !data.every((value) => typeof value === 'number')) {
+        throw new TypeError('The igloo snow-cap action needs an x, y, z position.');
+    }
+    const [x, y, z] = data;
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
+        throw new TypeError('The igloo snow-cap action needs an x, y, z position.');
+    }
+    const below = writer.blockAt(x, y - 1, z);
+    if (below.name !== 'minecraft:air' && below.name !== 'minecraft:ladder') {
+        writer.setBlock(x, y, z, { name: 'minecraft:snow_block', properties: {} });
+    }
+});
+
+registerTemplatePieceMarkerHandler('ocean-ruin', (marker, writer, _random, data) => {
+    if (marker.value !== 'chest') return;
+    if (typeof data !== 'object' || data === null || !('large' in data) || typeof data.large !== 'boolean') {
+        throw new TypeError('The ocean-ruin marker action needs its large flag.');
+    }
+
+    writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
+        id: 'minecraft:chest',
+        lootTable: data.large ? 'minecraft:chests/underwater_ruin_big' : 'minecraft:chests/underwater_ruin_small'
+    });
+});
 
 const numberAt = (definition: Record<string, unknown>, key: string, fallback: number): number =>
     typeof definition[key] === 'number' ? definition[key] : fallback;

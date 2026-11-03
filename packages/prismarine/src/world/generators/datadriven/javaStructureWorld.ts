@@ -13,6 +13,8 @@
 import type { BlockEntityRequest, BlockState, HeightmapType } from '@jsprismarine/features';
 import type { BedrockBlockState, BoundingBox, JigsawJunction, RandomSource } from '@jsprismarine/structures';
 
+import type { StructureTemplateStore } from './javaStructureTemplatePiece';
+
 /** What laying a structure out needs to know about the world, before any chunk exists. */
 export interface StructureLevel {
     /** The lowest y the dimension generates. */
@@ -89,14 +91,145 @@ export interface StructurePiece {
     /**
      * Writes the piece.
      *
-     * A piece stays in the worker that built it: this method cannot cross a structured-clone
-     * boundary, and each destination chunk gives it a different writer and structure random.
+     * The executable piece is rebuilt on the destination worker from a cloneable layout plan.
+     * Each destination chunk gives it a different writer and structure random, so neither belongs
+     * in that plan.
      *
      * @param random - The chunk's structure random, reseeded per chunk the way Java reseeds it,
      *   so a piece that spans two chunks draws two streams exactly as Java does.
      */
     place(writer: StructureWriter, random: RandomSource): void;
 }
+
+/** Worker-local resources needed to rebuild executable pieces from a shared layout plan. */
+export interface StructurePieceTransferContext {
+    /** A receiving worker's own template store. */
+    readonly templates: StructureTemplateStore;
+}
+
+/** Cloneable layout data for one piece; executable methods and destination state stay local. */
+export interface StructurePiecePlan {
+    /** Stable codec name registered by the module that owns the piece class. */
+    readonly type: string;
+    /** Cloneable fields captured when the structure was laid out. */
+    readonly data: unknown;
+}
+
+interface StructurePieceTransferCodec<T extends StructurePiece> {
+    readonly type: string;
+    readonly prototype: object;
+    readonly encode: (piece: T) => unknown;
+    readonly decode: (data: unknown, context: StructurePieceTransferContext) => T;
+}
+
+interface RegisteredStructurePieceTransferCodec {
+    readonly type: string;
+    readonly prototype: object;
+    readonly encode: (piece: StructurePiece) => unknown;
+    readonly decode: (data: unknown, context: StructurePieceTransferContext) => StructurePiece;
+}
+
+const pieceCodecsByType = new Map<string, RegisteredStructurePieceTransferCodec>();
+const pieceCodecsByPrototype = new Map<object, RegisteredStructurePieceTransferCodec>();
+
+/**
+ * Freezes cloneable plan records so the broker cannot accidentally cache placement mutations.
+ * @param value - The cloneable plan value to freeze recursively.
+ */
+export const freezeStructurePlanData = (value: unknown): void => {
+    const seen = new WeakSet<object>();
+    const freeze = (current: unknown): void => {
+        if (typeof current !== 'object' || current === null || seen.has(current)) return;
+        if (ArrayBuffer.isView(current) || current instanceof ArrayBuffer) return;
+        seen.add(current);
+        for (const child of Object.values(current)) freeze(child);
+        Object.freeze(current);
+    };
+    freeze(value);
+};
+
+/**
+ * Registers the data codec for one piece implementation.
+ *
+ * Each worker has its own class prototype and template store. Only encoded fields cross the
+ * boundary, then the receiver rebuilds a local piece that gets its writer and random stream only
+ * when {@link StructurePiece.place} runs for a destination chunk.
+ * @param codec - The stable type, exact prototype, and plain-data encoder and decoder.
+ */
+export const registerStructurePieceTransferCodec = <T extends StructurePiece>(
+    codec: StructurePieceTransferCodec<T>
+): void => {
+    if (pieceCodecsByType.has(codec.type) || pieceCodecsByPrototype.has(codec.prototype)) {
+        throw new Error(`The structure-piece transfer codec ${codec.type} is already registered.`);
+    }
+
+    // Each codec is selected by its exact prototype, then held in one erased registry for lookup.
+    // These wrappers are the type boundary that connects that runtime identity back to T.
+    const registered: RegisteredStructurePieceTransferCodec = {
+        type: codec.type,
+        prototype: codec.prototype,
+        encode: (piece) => codec.encode(piece as T),
+        decode: (data, context) => codec.decode(data, context)
+    };
+    pieceCodecsByType.set(codec.type, registered);
+    pieceCodecsByPrototype.set(codec.prototype, registered);
+};
+
+/**
+ * Registers the codec used by pieces whose own fields are all cloneable layout data.
+ * @param type - Stable piece codec name.
+ * @param prototype - Exact runtime prototype used to select the codec.
+ */
+export const registerStructurePieceFieldsCodec = <T extends StructurePiece>(type: string, prototype: object): void => {
+    registerStructurePieceTransferCodec<T>({
+        type,
+        prototype,
+        encode: (piece) => Object.fromEntries(Object.entries(piece)),
+        decode: (data) => {
+            if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+                throw new TypeError(`The ${type} structure-piece plan has no field record.`);
+            }
+
+            // The decoder restores a registered prototype over the cloneable fields. This is the
+            // only class boundary in the plan: constructors are deliberately not run, because
+            // they draw layout randomness and would shift Java's stream a second time.
+            return Object.assign(Object.create(prototype), data);
+        }
+    });
+};
+
+/**
+ * Copies one executable piece into its immutable, structured-clone-safe layout form.
+ * @param piece - The piece built during structure layout.
+ * @returns A cloneable plan that contains no writer or random state.
+ */
+export const structurePiecePlanOf = (piece: StructurePiece): StructurePiecePlan => {
+    const prototype = Object.getPrototypeOf(piece) as object | null;
+    const codec = prototype === null ? undefined : pieceCodecsByPrototype.get(prototype);
+    if (codec === undefined) throw new TypeError(`No transfer codec is registered for ${piece.constructor.name}.`);
+
+    // The codec registry is keyed by the exact runtime prototype, so this cast only restores the
+    // generic type erased by that registry. Any non-cloneable state fails here before a worker
+    // task is queued instead of disappearing silently in structured clone.
+    const data = structuredClone(codec.encode(piece));
+    freezeStructurePlanData(data);
+    return Object.freeze({ type: codec.type, data });
+};
+
+/**
+ * Rebuilds a piece with the receiving worker's class code and world-local template store.
+ * @param plan - The cloneable layout data for the piece.
+ * @param context - Worker-local resources needed by the piece.
+ * @returns An executable piece with no destination writer or random stream attached.
+ */
+export const structurePieceFromPlan = (
+    plan: StructurePiecePlan,
+    context: StructurePieceTransferContext
+): StructurePiece => {
+    const codec = pieceCodecsByType.get(plan.type);
+    if (codec === undefined) throw new TypeError(`No transfer codec is registered for ${plan.type}.`);
+    return codec.decode(plan.data, context);
+};
 
 /** A box holding nothing, which an empty piece list collapses to. */
 export const EMPTY_BOX: BoundingBox = {

@@ -107,8 +107,15 @@ import { SampleContextPool } from './SampleContextPool';
 import { asStructureRandom } from './javaStructureRandom';
 import { chunkWriteBox, createRegionStructureWriter } from './javaStructureRegion';
 import { createTagExpander } from './javaStructurePlacement';
-import type { StructureBuilder, StructureStart } from './javaStructureStarts';
+import type {
+    StructureBuilder,
+    StructureStart,
+    StructureStartCandidate,
+    StructureStartPlan,
+    StructureStartPlanEntry
+} from './javaStructureStarts';
 import { StructureStartSource } from './javaStructureStarts';
+import { StructureStartPlanBroker, structureStartOwnerOf } from './javaStructurePlanBroker';
 import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
@@ -508,6 +515,8 @@ interface SeededPipeline {
     readonly biomeDecoration: ReadonlyMap<string, BiomeDecoration>;
     /** The structure starts this world has, or undefined when structures are turned off. */
     readonly structures?: StructureStartSource;
+    /** Coalesces structure plan requests across simultaneous chunk jobs for this seed and key. */
+    readonly structurePlanBroker: StructureStartPlanBroker;
     /** The bare terrain the structures were laid out against. */
     readonly level: ReturnType<typeof createNoiseStructureLevel>;
     readonly carversOf: (biome: string) => readonly CarverConfig[];
@@ -733,6 +742,51 @@ const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] =
 
     // The structural check above is the runtime boundary for a result produced by our worker.
     return value as RegionChunkPatch[];
+};
+
+const isPosition = (value: unknown): value is { readonly x: number; readonly y: number; readonly z: number } =>
+    isRecord(value) && typeof value.x === 'number' && typeof value.y === 'number' && typeof value.z === 'number';
+
+const isBoundingBox = (value: unknown): value is BoundingBox =>
+    isRecord(value) &&
+    typeof value.minX === 'number' &&
+    typeof value.minY === 'number' &&
+    typeof value.minZ === 'number' &&
+    typeof value.maxX === 'number' &&
+    typeof value.maxY === 'number' &&
+    typeof value.maxZ === 'number';
+
+const isStructureStartPlan = (value: unknown): value is StructureStartPlan =>
+    isRecord(value) &&
+    typeof value.structure === 'string' &&
+    typeof value.set === 'string' &&
+    typeof value.chunkX === 'number' &&
+    typeof value.chunkZ === 'number' &&
+    typeof value.step === 'string' &&
+    typeof value.terrainAdaptation === 'string' &&
+    isBoundingBox(value.boundingBox) &&
+    Array.isArray(value.pieces) &&
+    value.pieces.every((piece) => isRecord(piece) && typeof piece.type === 'string' && 'data' in piece) &&
+    isPosition(value.origin) &&
+    isPosition(value.locatePosition);
+
+const isStructureStartPlanEntry = (value: unknown): value is StructureStartPlanEntry =>
+    isRecord(value) &&
+    typeof value.set === 'string' &&
+    typeof value.chunkX === 'number' &&
+    typeof value.chunkZ === 'number' &&
+    'start' in value &&
+    (value.start === null || isStructureStartPlan(value.start));
+
+/** Narrows a planner-worker response at the structured-clone boundary. */
+const structureStartPlansFromWorker = (value: unknown): readonly StructureStartPlanEntry[] => {
+    if (!Array.isArray(value) || !value.every(isStructureStartPlanEntry)) {
+        throw new TypeError('A structure-start worker returned an invalid plan list.');
+    }
+
+    // The guards above verify the plan envelope. Piece data stays opaque to this boundary and is
+    // validated by its registered codec when the receiving worker reconstructs each piece.
+    return value as StructureStartPlanEntry[];
 };
 
 /**
@@ -1109,15 +1163,39 @@ export class DataDrivenGenerator implements Generator {
 
         let result;
         try {
+            const priority = this.urgencyOf(pipeline, cx, cz);
+            const structures = pipeline.structures;
+            const structureStartPlans =
+                structures === undefined || pool.workers === 1
+                    ? []
+                    : await pipeline.structurePlanBroker.plansFor(
+                          structures.candidatesForRegion(cx - 2, cz - 2, cx + 2, cz + 2),
+                          (candidate) => structureStartOwnerOf(candidate, pool.workers),
+                          async (owner, candidates) => {
+                              const planned = await pool.runOnShard(
+                                  owner,
+                                  {
+                                      status: 'structure_starts',
+                                      chunkX: cx,
+                                      chunkZ: cz,
+                                      dimension: pipeline.dimension.bedrockId,
+                                      input: { ...this.taskInput(pipeline), candidates }
+                                  },
+                                  priority
+                              );
+                              return structureStartPlansFromWorker(planned.payload);
+                          }
+                      );
+
             result = await pool.run(
                 {
                     status: 'full',
                     chunkX: cx,
                     chunkZ: cz,
                     dimension: pipeline.dimension.bedrockId,
-                    input: this.taskInput(pipeline)
+                    input: { ...this.taskInput(pipeline), structureStartPlans }
                 },
-                this.urgencyOf(pipeline, cx, cz)
+                priority
             );
             this.chunkPoolAnswered = true;
         } catch (error) {
@@ -1340,6 +1418,7 @@ export class DataDrivenGenerator implements Generator {
      * @param cz - Chunk z.
      * @param seed - The world seed, which with the key pins the pipeline.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
+     * @param structureStartPlans - Layout data already built by their stable owner shards.
      * @returns The merged region, copying its cached terrain buffers and transferring its new biome buffers.
      * @throws When the ladder reached `full` without leaving a region, which would mean a
      * status body stopped writing one.
@@ -1348,9 +1427,11 @@ export class DataDrivenGenerator implements Generator {
         cx: number,
         cz: number,
         seed: bigint,
-        key: PipelineKey = this.defaultKey
+        key: PipelineKey = this.defaultKey,
+        structureStartPlans: readonly StructureStartPlanEntry[] = []
     ): Promise<GenerationRegionTransfer> {
         const pipeline = this.pipelineFor(key, seed);
+        pipeline.structures?.installPlans(structureStartPlans);
         this.retain(pipeline, cx, cz);
 
         const staged = await pipeline.scheduler.generate(cx, cz, 'full');
@@ -1472,6 +1553,63 @@ export class DataDrivenGenerator implements Generator {
         key: PipelineKey = this.defaultKey
     ): readonly StructureStart[] {
         return this.pipelineFor(key, seed).structures?.startsFor(chunkX, chunkZ) ?? [];
+    }
+
+    /**
+     * Candidate starts in the reference window of a rectangular chunk region, without building them.
+     * @param minChunkX - The region's minimum chunk x.
+     * @param minChunkZ - The region's minimum chunk z.
+     * @param maxChunkX - The region's maximum chunk x.
+     * @param maxChunkZ - The region's maximum chunk z.
+     * @param seed - The world seed.
+     * @param key - The dimension and settings. Defaults to the instance's own.
+     * @returns Candidate starts whose layout may be referenced by a chunk in the region.
+     */
+    public structureStartCandidatesForRegion(
+        minChunkX: number,
+        minChunkZ: number,
+        maxChunkX: number,
+        maxChunkZ: number,
+        seed = 0n,
+        key: PipelineKey = this.defaultKey
+    ): readonly StructureStartCandidate[] {
+        return (
+            this.pipelineFor(key, seed).structures?.candidatesForRegion(minChunkX, minChunkZ, maxChunkX, maxChunkZ) ??
+            []
+        );
+    }
+
+    /**
+     * Builds structure starts on this worker and returns their cloneable layout plans.
+     * @param candidates - The starts this worker owns.
+     * @param seed - The world seed.
+     * @param key - The dimension and settings. Defaults to the instance's own.
+     * @returns Each accepted layout, or a null result when Java rejects the candidate.
+     */
+    public structureStartPlansFor(
+        candidates: readonly StructureStartCandidate[],
+        seed: bigint,
+        key: PipelineKey = this.defaultKey
+    ): readonly StructureStartPlanEntry[] {
+        const structures = this.pipelineFor(key, seed).structures;
+        if (structures === undefined) {
+            return candidates.map((candidate) => ({ ...candidate, start: null }));
+        }
+        return structures.plansForCandidates(candidates);
+    }
+
+    /**
+     * Installs coordinator-produced plans before a worker starts generating a chunk.
+     * @param entries - The starts and rejected candidates returned by owner workers.
+     * @param seed - The world seed.
+     * @param key - The dimension and settings. Defaults to the instance's own.
+     */
+    public installStructureStartPlans(
+        entries: readonly StructureStartPlanEntry[],
+        seed: bigint,
+        key: PipelineKey = this.defaultKey
+    ): void {
+        this.pipelineFor(key, seed).structures?.installPlans(entries);
     }
 
     /** @inheritDoc */
@@ -2704,6 +2842,7 @@ export class DataDrivenGenerator implements Generator {
                               : { onBuildStart: this.options.onStructureStartBuild })
                       })
                   }),
+            structurePlanBroker: new StructureStartPlanBroker(),
             carversOf: this.carverLookup(),
             climateOf,
             oracle,

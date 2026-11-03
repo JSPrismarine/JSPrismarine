@@ -23,6 +23,7 @@ import type { BoundingBox, RandomSource } from '@jsprismarine/structures';
 
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 import { movedBox, unionOf } from './javaStructureWorld';
 
 /** The y the whole shaft is built at before it is settled, Java's `MAGIC_START_Y`. */
@@ -515,7 +516,6 @@ class MineshaftCorridor extends MineshaftPiece {
     private readonly hasRails: boolean;
     private readonly spiderCorridor: boolean;
     private readonly sections: number;
-    private placedSpawner = false;
 
     public constructor(
         depth: number,
@@ -588,6 +588,10 @@ class MineshaftCorridor extends MineshaftPiece {
     public place(writer: StructureWriter, random: RandomSource): void {
         if (this.isInInvalidLocation(writer)) return;
 
+        // A piece plan is shared across destination workers, but this guard belongs to one
+        // chunk's placement and random stream. Keeping it on the cached piece made earlier chunk
+        // placement suppress later chunks' Java draws based on which worker ran first.
+        let placedSpawner = false;
         const far = this.sections * CORRIDOR_SECTION - 1;
         const planks = this.turned(this.wood.planks);
         const log = this.turned(this.wood.log);
@@ -615,7 +619,7 @@ class MineshaftCorridor extends MineshaftPiece {
             if (random.nextInt(100) === 0) this.createChest(writer, random, 2, 0, z - 1);
             if (random.nextInt(100) === 0) this.createChest(writer, random, 0, 0, z + 1);
 
-            if (this.spiderCorridor && !this.placedSpawner) this.placeSpawner(writer, random, z);
+            if (this.spiderCorridor && !placedSpawner) placedSpawner = this.placeSpawner(writer, random, z);
         }
 
         for (let x = 0; x <= 2; x++) {
@@ -677,19 +681,25 @@ class MineshaftCorridor extends MineshaftPiece {
         if (this.isInterior(writer, x, y, z)) this.maybeBlock(writer, random, chance, x, y, z, cobweb);
     }
 
-    /** The one cave spider spawner a spider corridor holds, drawn near one of its supports. */
-    private placeSpawner(writer: StructureWriter, random: RandomSource, z: number): void {
+    /**
+     * The one cave spider spawner a spider corridor holds, drawn near one of its supports.
+     * @param writer - This destination chunk's clipped writer.
+     * @param random - This destination chunk's structure random stream.
+     * @param z - The corridor support section to try.
+     * @returns Whether this destination placed the spawner.
+     */
+    private placeSpawner(writer: StructureWriter, random: RandomSource, z: number): boolean {
         const spawnerZ = z - 1 + random.nextInt(3);
-        if (!this.isInterior(writer, 1, 0, spawnerZ)) return;
+        if (!this.isInterior(writer, 1, 0, spawnerZ)) return false;
         // Java guards this with the chunk clip so a neighboring chunk cannot claim the spawner.
         // The write's own answer says the same thing.
-        if (!this.setBlock(writer, SPAWNER, 1, 0, spawnerZ)) return;
+        if (!this.setBlock(writer, SPAWNER, 1, 0, spawnerZ)) return false;
 
-        this.placedSpawner = true;
         writer.setBlockEntity(this.worldX(1, spawnerZ), this.worldY(0), this.worldZ(1, spawnerZ), {
             id: 'minecraft:mob_spawner',
             spawnEntity: 'minecraft:cave_spider'
         });
+        return true;
     }
 
     /** Java's `placeDoubleLowerOrUpperSupport`: both ends of a plank floor get carried. */
@@ -1202,3 +1212,8 @@ export const buildMineshaft: StructureBuilder = (context): StructureLayout | und
         pieces: () => graph.pieces
     };
 };
+
+registerStructurePieceFieldsCodec('mineshaft.corridor', MineshaftCorridor.prototype);
+registerStructurePieceFieldsCodec('mineshaft.crossing', MineshaftCrossing.prototype);
+registerStructurePieceFieldsCodec('mineshaft.stairs', MineshaftStairs.prototype);
+registerStructurePieceFieldsCodec('mineshaft.room', MineshaftRoom.prototype);

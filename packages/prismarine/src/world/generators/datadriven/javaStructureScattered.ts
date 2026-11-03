@@ -33,6 +33,7 @@ import { rotateDirection } from '@jsprismarine/structures';
 import { rotationOf } from './javaStructureJigsaw';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 import { boxFromSize } from './javaStructureWorld';
 
 // ---------------------------------------------------------------------------
@@ -237,13 +238,13 @@ const PASSABLE_COLUMN: ReadonlySet<string> = new Set([
  * and `+z` into it, and the mapping into the world is this class's whole job.
  */
 abstract class ScatteredPiece implements StructurePiece {
-    private readonly transform: StateTransform;
-
     protected constructor(
         public readonly boundingBox: BoundingBox,
         private readonly facing: PieceFacing
-    ) {
-        this.transform = STATE_TRANSFORMS[facing];
+    ) {}
+
+    private get transform(): StateTransform {
+        return STATE_TRANSFORMS[this.facing];
     }
 
     /** Writes the piece's blocks, in Java's own order so the random stream matches. */
@@ -832,3 +833,8 @@ export const buildBuriedTreasure: StructureBuilder = (context): StructureLayout 
         // piece list reports the same way Java's `StructureStart.isValid` does.
         return y === undefined ? [] : [new BuriedTreasurePiece(x, y, z)];
     });
+
+registerStructurePieceFieldsCodec('scattered.desert-pyramid', DesertPyramidPiece.prototype);
+registerStructurePieceFieldsCodec('scattered.jungle-temple', JungleTemplePiece.prototype);
+registerStructurePieceFieldsCodec('scattered.swamp-hut', SwampHutPiece.prototype);
+registerStructurePieceFieldsCodec('scattered.buried-treasure', BuriedTreasurePiece.prototype);

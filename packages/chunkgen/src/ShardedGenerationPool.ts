@@ -153,6 +153,29 @@ export class ShardedGenerationPool {
         return this.shardFor(task).run(task, priority);
     }
 
+    /**
+     * Runs an affinity task on one exact shard, preserving that worker's local cache.
+     *
+     * Most generation work uses {@link ShardedGenerationPool.run}'s region routing and stealing.
+     * A cache-owner task must stay on its assigned shard, because moving it would rebuild the
+     * cached value on another worker.
+     *
+     * @param shard - Zero-based shard index.
+     * @param task - The status, position and input for that worker.
+     * @param priority - Which queue band the task enters.
+     * @returns What the owning worker produced.
+     * @throws RangeError when the shard index is outside this pool.
+     */
+    public async runOnShard(
+        shard: number,
+        task: GenerationTask,
+        priority: GenerationPriority = 'immediate'
+    ): Promise<GenerationResult> {
+        const owner = this.shards[shard];
+        if (owner === undefined) throw new RangeError(`Shard ${shard} is outside this pool.`);
+        return owner.run(task, priority);
+    }
+
     /** Drops every waiting task a predicate rejects, in every shard. @returns How many went. */
     public cancel(wanted: (task: GenerationTask) => boolean): number {
         return this.shards.reduce((total, shard) => total + shard.cancel(wanted), 0);

@@ -97,6 +97,46 @@ const SHARD_POOL_SUBJECTS = [
         chunkZ: 23,
         tier: 'full',
         why: 'east side of an ancient city crossing shard regions'
+    },
+    {
+        id: '1234/12,128/full',
+        seed: 1234,
+        chunkX: 12,
+        chunkZ: 128,
+        tier: 'full',
+        why: 'west end of a mineshaft crossing shard regions'
+    },
+    {
+        id: '1234/16,128/full',
+        seed: 1234,
+        chunkX: 16,
+        chunkZ: 128,
+        tier: 'full',
+        why: 'a mineshaft chunk holding its cave spider spawner'
+    },
+    {
+        id: '1234/20,128/full',
+        seed: 1234,
+        chunkX: 20,
+        chunkZ: 128,
+        tier: 'full',
+        why: 'east end of the same mineshaft'
+    },
+    {
+        id: '1234/16,124/full',
+        seed: 1234,
+        chunkX: 16,
+        chunkZ: 124,
+        tier: 'full',
+        why: 'north edge of the same mineshaft'
+    },
+    {
+        id: '1234/16,133/full',
+        seed: 1234,
+        chunkX: 16,
+        chunkZ: 133,
+        tier: 'full',
+        why: 'south edge of the same mineshaft'
     }
 ] as const satisfies readonly CorpusChunk[];
 

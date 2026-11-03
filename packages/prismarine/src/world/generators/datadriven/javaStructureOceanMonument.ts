@@ -31,6 +31,7 @@ import type { BoundingBox, RandomSource } from '@jsprismarine/structures';
 
 import type { StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 import { boxFromSize, movedBox } from './javaStructureWorld';
 
 // ---------------------------------------------------------------------------
@@ -1839,3 +1840,16 @@ export const buildOceanMonument: StructureBuilder = (context): StructureLayout |
         }
     };
 };
+
+registerStructurePieceFieldsCodec('monument.entry-room', EntryRoom.prototype);
+registerStructurePieceFieldsCodec('monument.core-room', CoreRoom.prototype);
+registerStructurePieceFieldsCodec('monument.simple-room', SimpleRoom.prototype);
+registerStructurePieceFieldsCodec('monument.simple-top-room', SimpleTopRoom.prototype);
+registerStructurePieceFieldsCodec('monument.double-x-room', DoubleXRoom.prototype);
+registerStructurePieceFieldsCodec('monument.double-xy-room', DoubleXYRoom.prototype);
+registerStructurePieceFieldsCodec('monument.double-y-room', DoubleYRoom.prototype);
+registerStructurePieceFieldsCodec('monument.double-yz-room', DoubleYZRoom.prototype);
+registerStructurePieceFieldsCodec('monument.double-z-room', DoubleZRoom.prototype);
+registerStructurePieceFieldsCodec('monument.wing-room', WingRoom.prototype);
+registerStructurePieceFieldsCodec('monument.penthouse', Penthouse.prototype);
+registerStructurePieceFieldsCodec('monument.building', MonumentBuilding.prototype);

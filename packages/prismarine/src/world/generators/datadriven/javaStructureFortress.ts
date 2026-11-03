@@ -33,6 +33,7 @@ import { createLegacyRandom } from '@jsprismarine/structures';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import { chestFacing, makeBoundingBox, orientBox, orientedState } from './javaStructureStronghold';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceFieldsCodec } from './javaStructureWorld';
 import { movedBox, unionOf } from './javaStructureWorld';
 
 /** The way a piece was entered, which is the only orientation a fortress piece has. */
@@ -1246,3 +1247,17 @@ const fortressPieces = (context: StructureBuildContext, x: number, z: number): r
     settleInsideHeights(layout.pieces, random);
     return layout.pieces;
 };
+
+registerStructurePieceFieldsCodec('fortress.bridge-straight', BridgeStraight.prototype);
+registerStructurePieceFieldsCodec('fortress.bridge-crossing', BridgeCrossing.prototype);
+registerStructurePieceFieldsCodec('fortress.bridge-end-filler', BridgeEndFiller.prototype);
+registerStructurePieceFieldsCodec('fortress.room-crossing', RoomCrossing.prototype);
+registerStructurePieceFieldsCodec('fortress.stairs-room', StairsRoom.prototype);
+registerStructurePieceFieldsCodec('fortress.monster-throne', MonsterThrone.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-entrance', CastleEntrance.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-stalk-room', CastleStalkRoom.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-small-corridor', CastleSmallCorridor.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-small-corridor-crossing', CastleSmallCorridorCrossing.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-small-corridor-turn', CastleSmallCorridorTurn.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-corridor-stairs', CastleCorridorStairs.prototype);
+registerStructurePieceFieldsCodec('fortress.castle-corridor-t-balcony', CastleCorridorTBalcony.prototype);

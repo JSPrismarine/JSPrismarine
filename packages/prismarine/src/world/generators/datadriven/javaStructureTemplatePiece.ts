@@ -36,7 +36,8 @@ import {
 } from '@jsprismarine/structures';
 
 import { javaBlockEntityTypeForBedrockBlock } from '../../../blockentity/bedrockBlockEntityIds';
-import type { StructurePiece, StructureWriter } from './javaStructureWorld';
+import type { StructurePiece, StructurePieceTransferContext, StructureWriter } from './javaStructureWorld';
+import { registerStructurePieceTransferCodec } from './javaStructureWorld';
 import { boxFromSize } from './javaStructureWorld';
 import type { TemplateSource } from './javaTemplatePlacement';
 
@@ -63,6 +64,54 @@ export interface DataMarker {
     readonly y: number;
     readonly z: number;
 }
+
+/** Serializable name and arguments for a worker-local template-piece action. */
+export interface TemplatePieceAction {
+    /** Stable action id registered by the structure builder module. */
+    readonly type: string;
+    /** Cloneable data the registered handler needs, such as a rotation or loot-table choice. */
+    readonly data?: unknown;
+}
+
+type TemplatePieceActionHandler = (
+    marker: DataMarker,
+    writer: StructureWriter,
+    random: RandomSource,
+    data: unknown
+) => void;
+type TemplatePiecePostPlacementHandler = (
+    piece: TemplatePiece,
+    writer: StructureWriter,
+    random: RandomSource,
+    data: unknown
+) => void;
+
+const markerHandlers = new Map<string, TemplatePieceActionHandler>();
+const postPlacementHandlers = new Map<string, TemplatePiecePostPlacementHandler>();
+
+/**
+ * Registers a marker callback that can be named in a transferable template-piece plan.
+ * @param type - Stable marker action id stored in piece plans.
+ * @param handler - Worker-local callback invoked at the original marker placement point.
+ */
+export const registerTemplatePieceMarkerHandler = (type: string, handler: TemplatePieceActionHandler): void => {
+    if (markerHandlers.has(type)) throw new Error(`The template marker handler ${type} is already registered.`);
+    markerHandlers.set(type, handler);
+};
+
+/**
+ * Registers a post-placement callback that can be named in a transferable template-piece plan.
+ * @param type - Stable post-placement action id stored in piece plans.
+ * @param handler - Worker-local callback invoked after the template is placed.
+ */
+export const registerTemplatePiecePostPlacementHandler = (
+    type: string,
+    handler: TemplatePiecePostPlacementHandler
+): void => {
+    if (postPlacementHandlers.has(type))
+        throw new Error(`The template post-placement handler ${type} is already registered.`);
+    postPlacementHandlers.set(type, handler);
+};
 
 /** A template ready to place: its data markers lifted out and the blocks that remain. */
 export interface PreparedTemplate {
@@ -226,6 +275,10 @@ export interface TemplatePieceOptions {
     readonly ignoresTerrainAdaptation?: boolean;
     /** Jigsaw junctions Java stores on this pool element piece. */
     readonly junctions?: StructurePiece['junctions'];
+    /** A registered marker action in place of a callback closure that cannot cross worker threads. */
+    readonly markerAction?: TemplatePieceAction;
+    /** A registered after-placement action in place of a callback closure that cannot be cloned. */
+    readonly postPlacementAction?: TemplatePieceAction;
     /**
      * Handles one data marker, which is how a legacy structure fills in a chest, a spawner or a
      * decoration from code. Java's `TemplateStructurePiece.handleDataMarker`.
@@ -352,17 +405,50 @@ export class TemplatePiece implements StructurePiece {
         this.placeEntities(writer);
 
         const handler = this.options.onDataMarker;
-        if (handler !== undefined) {
+        const markerAction = this.options.markerAction;
+        if (handler !== undefined || markerAction !== undefined) {
             for (const marker of prepared.markers) {
-                handler(
-                    { value: marker.value, x: originX + marker.x, y: originY + marker.y, z: originZ + marker.z },
-                    writer,
-                    random
-                );
+                const worldMarker = {
+                    value: marker.value,
+                    x: originX + marker.x,
+                    y: originY + marker.y,
+                    z: originZ + marker.z
+                };
+                handler?.(worldMarker, writer, random);
+                if (markerAction !== undefined) {
+                    const action = markerHandlers.get(markerAction.type);
+                    if (action === undefined) {
+                        throw new TypeError(`No template marker handler is registered for ${markerAction.type}.`);
+                    }
+                    action(worldMarker, writer, random, markerAction.data);
+                }
             }
         }
 
         this.options.onPlaced?.(writer, random);
+        const postPlacementAction = this.options.postPlacementAction;
+        if (postPlacementAction !== undefined) {
+            const action = postPlacementHandlers.get(postPlacementAction.type);
+            if (action === undefined) {
+                throw new TypeError(
+                    `No template post-placement handler is registered for ${postPlacementAction.type}.`
+                );
+            }
+            action(this, writer, random, postPlacementAction.data);
+        }
+    }
+
+    /**
+     * Returns the cloneable template layout fields without the world-local store or callbacks.
+     *
+     * @internal
+     */
+    public transferableOptions(): Omit<TemplatePieceOptions, 'store' | 'onDataMarker' | 'onPlaced'> {
+        const { store: _store, onDataMarker, onPlaced, ...options } = this.options;
+        if (onDataMarker !== undefined || onPlaced !== undefined) {
+            throw new TypeError(`Template ${this.options.template} uses a callback that has no transfer action.`);
+        }
+        return options;
     }
 
     /**
@@ -395,6 +481,25 @@ export class TemplatePiece implements StructurePiece {
         }
     }
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+registerStructurePieceTransferCodec<TemplatePiece>({
+    type: 'template',
+    prototype: TemplatePiece.prototype,
+    encode: (piece) => piece.transferableOptions(),
+    decode: (data, context: StructurePieceTransferContext) => {
+        if (!isRecord(data) || typeof data.template !== 'string' || !Array.isArray(data.position)) {
+            throw new TypeError('The template structure-piece plan is invalid.');
+        }
+
+        // The plan was produced by transferableOptions and structured-cloned by the worker
+        // boundary. Reattaching the local store is the only worker-specific field a template piece
+        // needs; writer, random, and callbacks remain scoped to placement.
+        return new TemplatePiece({ ...data, store: context.templates } as TemplatePieceOptions);
+    }
+});
 
 /** The yaw a saved entity faces, out of the two-float `Rotation` list Java writes. */
 const savedYaw = (nbt: NBTTagCompound): number => {

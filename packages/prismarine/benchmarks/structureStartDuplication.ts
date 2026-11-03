@@ -1,9 +1,10 @@
 /**
- * Counts structure-start cache misses under the sharded pool's real routing rule.
+ * Counts structure-start cache misses with and without shared owner-shard plans.
  *
- * Run `pnpm --filter @jsprismarine/prismarine run bench:structure-starts`. The six shard runners
- * keep independent generators and caches, like six workers. Their task bodies run in-process,
- * which isolates duplicate layout work from worker startup while reporting aggregate process CPU.
+ * Run `pnpm --filter @jsprismarine/prismarine run bench:structure-starts`. The in-process shard
+ * runners retain independent generators like real workers. The shared cases use the same
+ * coordinator broker and owner-affinity tasks as whole-chunk generation, while the baseline
+ * sends whole chunks directly and lets each worker build its own starts.
  */
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
@@ -11,7 +12,21 @@ import { performance } from 'node:perf_hooks';
 import type { GenerationResult, GenerationTask, TaskRunnerFactory } from '@jsprismarine/chunkgen';
 import { ShardedGenerationPool } from '@jsprismarine/chunkgen';
 
-import { DataDrivenGenerator } from '../src/world/generators/datadriven/DataDrivenGenerator';
+import { Dimensions } from '../src/world/Dimension';
+import {
+    DataDrivenGenerator,
+    isPipelineKey,
+    pipelineDimensionOf
+} from '../src/world/generators/datadriven/DataDrivenGenerator';
+import type { PipelineKey } from '../src/world/generators/datadriven/DataDrivenGenerator';
+import type {
+    StructureStartCandidate,
+    StructureStartPlanEntry
+} from '../src/world/generators/datadriven/javaStructureStarts';
+import {
+    StructureStartPlanBroker,
+    structureStartOwnerOf
+} from '../src/world/generators/datadriven/javaStructurePlanBroker';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
 import {
     cacheRoot,
@@ -23,7 +38,7 @@ const SEED = 1234n;
 const REGION_CHUNKS = 8;
 const STEAL_AFTER = 2;
 const REQUESTED_SIDE = 8;
-const WORKER_COUNTS = [1, 6] as const;
+const WORKERS = 6;
 
 const sources = findJavaWorldgenSources();
 if (sources === undefined) {
@@ -36,6 +51,11 @@ if (sources === undefined) {
 
 const registries = loadJavaWorldgenRegistries(sources);
 const templates = findJavaTemplateSource(cacheRoot(), registries.processorLists);
+const key: PipelineKey = {
+    noiseSettings: 'minecraft:overworld',
+    biomeSource: { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' },
+    dimension: pipelineDimensionOf(Dimensions.Overworld)
+};
 
 interface ShardMetrics {
     readonly builds: Array<{ key: string; elapsedMs: number }>;
@@ -44,6 +64,7 @@ interface ShardMetrics {
 
 interface CaseResult {
     readonly workers: number;
+    readonly sharedPlans: boolean;
     readonly elapsedMs: number;
     readonly processCpuMs: number;
     readonly totalBuildStarts: number;
@@ -53,12 +74,45 @@ interface CaseResult {
     readonly uniqueTerrainTiles: number;
     readonly duplicateTerrainTiles: number;
     readonly totalLayoutMs: number;
-    readonly uniqueLayoutMs: number;
     readonly duplicateLayoutMs: number;
     readonly digest: string;
+    readonly chunkDigests: readonly { readonly x: number; readonly z: number; readonly digest: string }[];
 }
 
-const runCase = async (workers: number): Promise<CaseResult> => {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isCandidate = (value: unknown): value is StructureStartCandidate =>
+    isRecord(value) &&
+    typeof value.set === 'string' &&
+    typeof value.chunkX === 'number' &&
+    typeof value.chunkZ === 'number';
+
+const isPlanEntry = (value: unknown): value is StructureStartPlanEntry =>
+    isRecord(value) &&
+    typeof value.set === 'string' &&
+    typeof value.chunkX === 'number' &&
+    typeof value.chunkZ === 'number' &&
+    'start' in value &&
+    (value.start === null || isRecord(value.start));
+
+const planEntriesFromWorker = (payload: unknown): readonly StructureStartPlanEntry[] => {
+    if (!Array.isArray(payload) || !payload.every(isPlanEntry)) {
+        throw new TypeError('The structure benchmark received an invalid owner plan list.');
+    }
+    // This is the runner's worker-message boundary. The guard checks the envelope; piece data is
+    // validated by its registered codec when the destination generator installs the plan.
+    return structuredClone(payload);
+};
+
+const inputFor = (value: unknown): PipelineKey & { readonly seed: string } => {
+    if (!isPipelineKey(value) || !isRecord(value) || typeof value.seed !== 'string') {
+        throw new TypeError('The structure benchmark task has no seed and pipeline key.');
+    }
+    return { ...value, seed: value.seed };
+};
+
+const runCase = async (workers: number, sharedPlans: boolean): Promise<CaseResult> => {
     const shards: ShardMetrics[] = [];
     const runnerFactory: TaskRunnerFactory = () => {
         const metrics: ShardMetrics = { builds: [], terrainTiles: [] };
@@ -77,7 +131,33 @@ const runCase = async (workers: number): Promise<CaseResult> => {
         return {
             threads: [generator],
             async run(task: GenerationTask): Promise<GenerationResult> {
-                const chunk = await generator.generateChunk(task.chunkX, task.chunkZ, SEED);
+                const received = structuredClone(task);
+                const input = inputFor(received.input);
+                if (received.status === 'structure_starts') {
+                    if (
+                        !isRecord(received.input) ||
+                        !Array.isArray(received.input.candidates) ||
+                        !received.input.candidates.every(isCandidate)
+                    ) {
+                        throw new TypeError('The structure benchmark owner task has no candidate list.');
+                    }
+                    return {
+                        payload: structuredClone(
+                            generator.structureStartPlansFor(received.input.candidates, BigInt(input.seed), input)
+                        ),
+                        transferList: []
+                    };
+                }
+
+                if (received.status !== 'full') {
+                    throw new TypeError(`Unexpected benchmark task status ${received.status}.`);
+                }
+                const structureStartPlans =
+                    isRecord(received.input) && 'structureStartPlans' in received.input
+                        ? planEntriesFromWorker(received.input.structureStartPlans)
+                        : [];
+                generator.installStructureStartPlans(structureStartPlans, BigInt(input.seed), input);
+                const chunk = await generator.generateChunk(received.chunkX, received.chunkZ, BigInt(input.seed));
                 const payload = createHash('sha256').update(chunk.networkSerialize()).digest('hex');
                 return { payload, transferList: [] };
             },
@@ -96,21 +176,54 @@ const runCase = async (workers: number): Promise<CaseResult> => {
         },
         runnerFactory
     );
+    const coordinator = sharedPlans && workers > 1 ? new DataDrivenGenerator({ registries, templates }) : undefined;
+    const broker = sharedPlans && workers > 1 ? new StructureStartPlanBroker() : undefined;
+    const taskInput = { ...key, seed: SEED.toString() };
+    const coordinates = Array.from({ length: REQUESTED_SIDE * REQUESTED_SIDE }, (_unused, index) => ({
+        x: index % REQUESTED_SIDE,
+        z: Math.trunc(index / REQUESTED_SIDE)
+    }));
+    // Exercise the same reversed multi-worker ordering as the whole-chunk parity corpus.
+    const order = workers === 1 ? coordinates : [...coordinates].reverse();
     const cpuBefore = process.cpuUsage();
     const started = performance.now();
     let results: Array<{ x: number; z: number; digest: string }>;
+
     try {
         results = await Promise.all(
-            Array.from({ length: REQUESTED_SIDE * REQUESTED_SIDE }, async (_unused, index) => {
-                const x = index % REQUESTED_SIDE;
-                const z = Math.trunc(index / REQUESTED_SIDE);
-                const result = await pool.run({ status: 'full', chunkX: x, chunkZ: z, dimension: 0 });
-                if (typeof result.payload !== 'string')
-                    throw new TypeError('The structure benchmark returned no layout digest');
+            order.map(async ({ x, z }) => {
+                const structureStartPlans =
+                    coordinator === undefined || broker === undefined
+                        ? []
+                        : await broker.plansFor(
+                              coordinator.structureStartCandidatesForRegion(x - 2, z - 2, x + 2, z + 2, SEED),
+                              (candidate) => structureStartOwnerOf(candidate, workers),
+                              async (owner, candidates) => {
+                                  const planned = await pool.runOnShard(owner, {
+                                      status: 'structure_starts',
+                                      chunkX: x,
+                                      chunkZ: z,
+                                      dimension: key.dimension.bedrockId,
+                                      input: { ...taskInput, candidates }
+                                  });
+                                  return planEntriesFromWorker(planned.payload);
+                              }
+                          );
+                const result = await pool.run({
+                    status: 'full',
+                    chunkX: x,
+                    chunkZ: z,
+                    dimension: key.dimension.bedrockId,
+                    input: { ...taskInput, structureStartPlans }
+                });
+                if (typeof result.payload !== 'string') {
+                    throw new TypeError('The structure benchmark returned no chunk digest.');
+                }
                 return { x, z, digest: result.payload };
             })
         );
     } finally {
+        coordinator?.stopGenerating();
         await pool.destroy();
     }
     const cpu = process.cpuUsage(cpuBefore);
@@ -121,15 +234,16 @@ const runCase = async (workers: number): Promise<CaseResult> => {
         totalLayoutMs += build.elapsedMs;
         if (!firstBuildMs.has(build.key)) firstBuildMs.set(build.key, build.elapsedMs);
     }
-    const totalBuildStarts = shards.reduce((total, shard) => total + shard.builds.length, 0);
     const terrainTiles = shards.flatMap((shard) => shard.terrainTiles);
     const uniqueTerrainTiles = new Set(terrainTiles).size;
-    const uniqueLayoutMs = Array.from(firstBuildMs.values()).reduce((total, elapsedMs) => total + elapsedMs, 0);
+    const totalBuildStarts = shards.reduce((total, shard) => total + shard.builds.length, 0);
     const digest = createHash('sha256');
-    for (const result of results) digest.update(`${result.x},${result.z}\0${result.digest}\0`);
+    const orderedResults = [...results].sort((left, right) => left.x - right.x || left.z - right.z);
+    for (const result of orderedResults) digest.update(`${result.x},${result.z}\0${result.digest}\0`);
 
     return {
         workers,
+        sharedPlans,
         elapsedMs: performance.now() - started,
         processCpuMs: (cpu.user + cpu.system) / 1000,
         totalBuildStarts,
@@ -139,14 +253,48 @@ const runCase = async (workers: number): Promise<CaseResult> => {
         uniqueTerrainTiles,
         duplicateTerrainTiles: terrainTiles.length - uniqueTerrainTiles,
         totalLayoutMs,
-        uniqueLayoutMs,
-        duplicateLayoutMs: totalLayoutMs - uniqueLayoutMs,
-        digest: digest.digest('hex')
+        duplicateLayoutMs:
+            totalLayoutMs - Array.from(firstBuildMs.values()).reduce((total, elapsedMs) => total + elapsedMs, 0),
+        digest: digest.digest('hex'),
+        chunkDigests: results
     };
 };
 
-const cases = await Promise.all(WORKER_COUNTS.map(runCase));
-if (cases[0]?.digest !== cases[1]?.digest) throw new Error('Structure layouts changed across shard counts');
+const baselineSix = await runCase(WORKERS, false);
+process.stdout.write(
+    `${JSON.stringify({
+        benchmarkCase: 'worker-local',
+        workers: baselineSix.workers,
+        totalBuildStarts: baselineSix.totalBuildStarts,
+        uniqueBuildStarts: baselineSix.uniqueBuildStarts,
+        duplicateBuildStarts: baselineSix.duplicateBuildStarts,
+        digest: baselineSix.digest
+    })}\n`
+);
+const sharedSix = await runCase(WORKERS, true);
+process.stdout.write(
+    `${JSON.stringify({
+        benchmarkCase: 'owner-planned',
+        workers: sharedSix.workers,
+        totalBuildStarts: sharedSix.totalBuildStarts,
+        uniqueBuildStarts: sharedSix.uniqueBuildStarts,
+        duplicateBuildStarts: sharedSix.duplicateBuildStarts,
+        digest: sharedSix.digest
+    })}\n`
+);
+if (baselineSix.digest !== sharedSix.digest) {
+    const plannedByChunk = new Map(sharedSix.chunkDigests.map(({ x, z, digest }) => [`${x},${z}`, digest]));
+    const mismatches = baselineSix.chunkDigests
+        .filter(({ x, z, digest }) => plannedByChunk.get(`${x},${z}`) !== digest)
+        .slice(0, 10)
+        .map(({ x, z, digest }) => ({ x, z, workerLocal: digest, ownerPlanned: plannedByChunk.get(`${x},${z}`) }));
+    throw new Error(
+        `Structure chunk digests changed with shared plans: ${JSON.stringify({ workerLocal: baselineSix.digest, ownerPlanned: sharedSix.digest, mismatches })}`
+    );
+}
+if (sharedSix.totalBuildStarts >= baselineSix.totalBuildStarts) {
+    throw new Error('Shared structure plans did not reduce six-worker structure-start builds');
+}
 
 process.stdout.write(
     `${JSON.stringify({
@@ -155,8 +303,9 @@ process.stdout.write(
         requestedChunks: REQUESTED_SIDE * REQUESTED_SIDE,
         regionChunks: REGION_CHUNKS,
         stealAfter: STEAL_AFTER,
-        execution: 'in-process sharded generation with independent worker-local generators',
-        cases,
-        matchingLayoutDigest: cases[0]?.digest
+        execution: 'in-process shard runners with independent worker-local generators',
+        cases: [baselineSix, sharedSix].map(({ chunkDigests: _chunkDigests, ...result }) => result),
+        matchingChunkDigest: baselineSix.digest,
+        sixWorkerBuildsRemoved: baselineSix.totalBuildStarts - sharedSix.totalBuildStarts
     })}\n`
 );
