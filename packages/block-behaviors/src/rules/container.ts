@@ -25,9 +25,14 @@ export const CONTAINER_SLOTS: Readonly<Record<string, number>> = {
     dropper: 9,
     crafter: 9,
     hopper: 5,
+    // Each cooker twice, because lighting one swaps it for its own `lit_` block and the
+    // burning furnace holds the same three slots the cold one did.
     furnace: 3,
+    lit_furnace: 3,
     blast_furnace: 3,
+    lit_blast_furnace: 3,
     smoker: 3,
+    lit_smoker: 3,
     brewing_stand: 5,
     decorated_pot: 1,
     chiseled_bookshelf: 6,

@@ -437,6 +437,35 @@ describe('a block container a player can put things in', () => {
         await level.disable();
     }, 120_000);
 
+    // The lit furnace is its own block, and a slot count that fell back to a chest's 27 put a
+    // 27-slot backing behind the three-slot furnace screen, which the client drew as empty.
+    it('shows a burning furnace holding what it is cooking', async () => {
+        const scene = await buildScene('lit-contents');
+        const { server, world, level, blocks } = scene;
+        const player = buildPlayer(world, server, 'Smelter');
+
+        blocks.setBlock(FURNACE, 'minecraft:lit_furnace');
+        blocks.setBlockData(FURNACE, {
+            items: [
+                { identifier: 'minecraft:iron_ore', count: 4 },
+                { identifier: 'minecraft:coal', count: 2 },
+                { identifier: 'minecraft:iron_ingot', count: 1 }
+            ],
+            capacity: 3
+        });
+
+        const contents = openContainerContents(player, FURNACE, 'minecraft:lit_furnace');
+
+        expect(contents).toHaveLength(3);
+        expect(contents.map((entry) => entry.getItem().getName())).toEqual([
+            'minecraft:iron_ore',
+            'minecraft:coal',
+            'minecraft:iron_ingot'
+        ]);
+
+        await level.disable();
+    }, 120_000);
+
     it('smelts an input in a lit furnace over world ticks', async () => {
         const scene = await buildScene('smelting');
         const { server, world, level, blocks } = scene;
