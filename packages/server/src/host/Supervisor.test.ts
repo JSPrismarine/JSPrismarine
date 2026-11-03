@@ -41,12 +41,37 @@ class FakeChild implements ServerChild {
     }
 
     public async running(): Promise<void> {
-        this.server.send({ type: 'lifecycle', v: 1, state: 'running' });
-        await settle();
+        await this.lifecycle('running');
+    }
+
+    public async stopping(): Promise<void> {
+        await this.lifecycle('stopping');
+    }
+
+    private lifecycle(state: 'running' | 'stopping'): Promise<void> {
+        const received = new Promise<void>((resolve) => {
+            let unsubscribe = (): void => {};
+            unsubscribe = this.link.onMessage((message) => {
+                if (message.type !== 'lifecycle' || message.state !== state) return;
+                unsubscribe();
+                resolve();
+            });
+        });
+        this.server.send({ type: 'lifecycle', v: 1, state });
+        return received;
     }
 }
 
-const settle = () => new Promise((done) => setTimeout(done, 0));
+// These tests await the supervisor's observable state changes instead of zero-delay timers,
+// which can remain fake when Vitest reuses a worker for unrelated test files.
+const nextChildLink = (supervisor: Supervisor): Promise<NonNullable<Supervisor['serverLink']>> =>
+    new Promise((resolve) => {
+        let unsubscribe = (): void => {};
+        unsubscribe = supervisor.onLink((link) => {
+            unsubscribe();
+            resolve(link);
+        });
+    });
 
 const setup = (options: { canRestart?: boolean; failSpawns?: number } = {}) => {
     const children: FakeChild[] = [];
@@ -79,8 +104,7 @@ const setup = (options: { canRestart?: boolean; failSpawns?: number } = {}) => {
 
 describe('Supervisor', () => {
     beforeEach(() => {
-        // The root Vitest config reuses workers, so restore real timers in case another suite
-        // leaves fake timers active; these tests use queueMicrotask and zero-delay timers.
+        // The root Vitest config reuses workers; restore real timers before this suite's IPC microtasks.
         vi.useRealTimers();
     });
 
@@ -133,8 +157,9 @@ describe('Supervisor', () => {
         expect(children[0]?.stop).toHaveBeenCalledTimes(1);
         expect(children).toHaveLength(1);
 
+        const restarted = nextChildLink(supervisor);
         children[0]?.exit(0);
-        await settle();
+        await restarted;
 
         expect(children).toHaveLength(2);
         expect(supervisor.serverLink).toBe(children[1]?.link);
@@ -152,8 +177,9 @@ describe('Supervisor', () => {
         expect(children).toHaveLength(1);
         expect(children[0]?.stop).toHaveBeenCalledTimes(1);
 
+        const restarted = nextChildLink(supervisor);
         children[0]?.exit(0);
-        await settle();
+        await restarted;
         expect(children).toHaveLength(2);
     });
 
@@ -162,15 +188,15 @@ describe('Supervisor', () => {
         await supervisor.start();
 
         children[0]?.exit(1);
-        await settle();
 
         expect(states()).toEqual(['1:starting', '1:crashed', '1:waiting']);
         expect(supervisor.state).toBe('waiting');
         expect(exit).not.toHaveBeenCalled();
         expect(supervisor.serverLink).toBeUndefined();
 
+        const restarted = nextChildLink(supervisor);
         supervisor.restart('packages/alpha/src/a.ts');
-        await settle();
+        await restarted;
         expect(children).toHaveLength(2);
         expect(states().at(-1)).toBe('2:starting');
     });
@@ -194,8 +220,9 @@ describe('Supervisor', () => {
         expect(events).toContainEqual({ type: 'supervisor.output', stream: 'stderr', text: 'spawn EAGAIN' });
         expect(exit).not.toHaveBeenCalled();
 
+        const restarted = nextChildLink(supervisor);
         supervisor.restart('packages/alpha/src/a.ts');
-        await settle();
+        await restarted;
         expect(children).toHaveLength(1);
         expect(supervisor.state).toBe('starting');
     });
@@ -260,7 +287,6 @@ describe('Supervisor', () => {
         supervisor.restart('change');
         supervisor.stop();
         children[0]?.exit(0);
-        await settle();
 
         expect(children).toHaveLength(1);
         expect(exit).toHaveBeenCalledWith(0);
@@ -320,8 +346,7 @@ describe('Supervisor', () => {
         await supervisor.start();
         await children[0]?.running();
 
-        children[0]?.server.send({ type: 'lifecycle', v: 1, state: 'stopping' });
-        await settle();
+        await children[0]?.stopping();
         supervisor.stop();
 
         expect(states()).toEqual(['1:starting', '1:running', '1:stopping']);
