@@ -36,23 +36,28 @@ export const blockPlacement: Scenario = {
         }
         await client.input({ look: { yaw: 0, pitch: 21, frames: 0 } });
 
-        const place = async (slot: number): Promise<void> => {
+        /** Right clicks with `slot` selected until `block` stands on the target, since the first click after a reset can be dropped. */
+        const placeUntil = async (slot: number, block: string): Promise<string> => {
             await client.input({ hotbar: slot });
             await sleep(300);
-            await client.input({ press: ['MouseRight'], press_frames: 3 });
-            await sleep(100);
-            await client.input({ release: ['MouseRight'] });
-            await sleep(400);
+            let reply = '';
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+                await client.input({ press: ['MouseRight'], press_frames: 3 });
+                await sleep(100);
+                await client.input({ release: ['MouseRight'] });
+                await sleep(400);
+                reply = await blockAt(server, FIXTURE_X, 65, 2, block);
+                if (/Found the block at/.test(reply)) break;
+            }
+            return reply;
         };
 
-        await place(2);
-        const cobble = await blockAt(server, FIXTURE_X, 65, 2, 'minecraft:cobblestone');
+        const cobble = await placeUntil(2, 'minecraft:cobblestone');
         assert.match(cobble, /Found the block at/, `hotbar slot 2 should have placed cobblestone: ${cobble}`);
 
         server.command(`setblock ${FIXTURE_X} 65 2 minecraft:air`);
         await sleep(300);
-        await place(1);
-        const dirt = await blockAt(server, FIXTURE_X, 65, 2, 'minecraft:dirt');
+        const dirt = await placeUntil(1, 'minecraft:dirt');
         assert.match(dirt, /Found the block at/, `hotbar slot 1 should have placed dirt: ${dirt}`);
 
         log('right click placed the block from the selected hotbar slot');
