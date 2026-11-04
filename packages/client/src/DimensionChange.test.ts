@@ -46,6 +46,8 @@ beforeAll(async () => {
         path.join(stateRoot, 'config.json'),
         JSON.stringify({
             'online-mode': false,
+            // This fixture tests travel between dimensions, not spawn-area generation.
+            'preload-radius': 0,
             worlds: {
                 world: {
                     preset: 'minecraft:flat',
