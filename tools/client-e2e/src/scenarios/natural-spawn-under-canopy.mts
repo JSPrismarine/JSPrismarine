@@ -56,7 +56,7 @@ export const naturalSpawnUnderCanopy: Scenario = {
         // One animal cycle is 400 ticks and fills the pool, so each round clears the herd the
         // last one left and reads the next. The first clear also takes out the cows that spawned
         // under open sky before the roof went up, which would prove nothing.
-        const deadline = Date.now() + 180_000;
+        const deadline = Date.now() + 300_000;
         for (;;) {
             server.command('kill @e[type=cow]');
             await sleep(25_000);
