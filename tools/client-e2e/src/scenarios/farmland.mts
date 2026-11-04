@@ -73,11 +73,17 @@ export const farmland: Scenario = {
         const planted = await waitForBlock(server, { ...SOIL, y: SOIL.y + 1 }, 'minecraft:wheat', 5_000);
         assert.match(planted, /Found the block at/, `the seeds planted wheat on the farmland: ${planted}`);
 
-        // Fresh farmland is dry. Water three blocks away is inside the four-block range, so a
-        // random tick moistens it; one block a tick means the full seven can take a while.
-        server.command(`setblock ${SOIL.x + 3} ${SOIL.y} ${SOIL.z} minecraft:water`);
-        const moist = await waitForBlock(server, SOIL, 'minecraft:farmland ["moisturized_amount"=7]', 180_000);
-        assert.match(moist, /Found the block at/, `water within four blocks moistened the farmland: ${moist}`);
+        // Fresh farmland is dry. Water three blocks away is inside the four-block range, so one
+        // random tick moistens it. At the default speed a block waits minutes for that tick and
+        // the check fails by chance, so speed the ticks up for the wait and restore them after.
+        server.command('gamerule random_tick_speed 100');
+        try {
+            server.command(`setblock ${SOIL.x + 3} ${SOIL.y} ${SOIL.z} minecraft:water`);
+            const moist = await waitForBlock(server, SOIL, 'minecraft:farmland ["moisturized_amount"=7]', 60_000);
+            assert.match(moist, /Found the block at/, `water within four blocks moistened the farmland: ${moist}`);
+        } finally {
+            server.command('gamerule random_tick_speed 3');
+        }
 
         await client.screenshot(path.join(artifacts, 'farmland.png'));
         log('the client tilled, planted, and the field drew moisture from the water');
