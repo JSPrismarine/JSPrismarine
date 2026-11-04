@@ -4,6 +4,7 @@ import { CreditsState, PacketIdentifier, PositionMode } from '@jsprismarine/prot
 import { Config, Position, Server } from '@jsprismarine/prismarine';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -40,6 +41,21 @@ let stateRoot: string;
 let server: Server | null = null;
 let port = 0;
 const clients: Client[] = [];
+
+const withinPhase = async <T>(phase: string, operation: () => Promise<T>, timeoutMs = 30_000): Promise<T> => {
+    // The outer Vitest timeout only identifies this test; a native deadline names the server phase that stalled.
+    const controller = new AbortController();
+    try {
+        return await Promise.race([
+            operation(),
+            delay(timeoutMs, undefined, { signal: controller.signal }).then(() => {
+                throw new Error(`Credits integration phase timed out: ${phase}`);
+            })
+        ]);
+    } finally {
+        controller.abort();
+    }
+};
 
 beforeAll(async () => {
     stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-client-credits-'));
@@ -120,18 +136,20 @@ describe('leaving the End through the exit portal on a real server', () => {
         const answered: ShowCreditsPayload[] = [];
         client.on('credits', (credits: ShowCreditsPayload) => answered.push(credits));
 
-        await client.connect();
+        await withinPhase('client login', () => client.connect());
         const player = playerNamed('CreditsTester');
         const overworld = player.getWorld();
         expect(overworld.getDimension().bedrockId).toBe(OVERWORLD);
-        const spawn = await overworld.getSpawnPosition();
+        const spawn = await withinPhase('load Overworld spawn', () => overworld.getSpawnPosition());
 
         // Into the End first: the exit portal only exists there. The client's dimension change
         // responder closes the screen once the first End chunk is in.
-        const end = await overworld.getLevel().world('minecraft:the_end');
-        await player
-            .getNetworkSession()
-            .changeWorld({ world: end, position: new Position(0.5, 60, 0.5, end), yaw: 0, pitch: 0 });
+        const end = await withinPhase('load End dimension', () => overworld.getLevel().world('minecraft:the_end'));
+        await withinPhase('move player to End', () =>
+            player
+                .getNetworkSession()
+                .changeWorld({ world: end, position: new Position(0.5, 60, 0.5, end), yaw: 0, pitch: 0 })
+        );
         await vi.waitFor(() => expect(changes).toHaveLength(1), { timeout: 20_000, interval: 50 });
         expect(changes[0]!.dimension).toBe(THE_END);
         expect(player.getWorld()).toBe(end);
@@ -139,7 +157,9 @@ describe('leaving the End through the exit portal on a real server', () => {
         // The exit portal block at the player's feet. The next tick touches it, and the End's
         // zero transition delay resolves the trip at once - into the credits, not a change.
         const feet = Math.floor(player.getFeetY());
-        expect(await end.setBlockByName(0, feet, 0, 'minecraft:end_portal')).toBe(true);
+        expect(
+            await withinPhase('place exit portal', () => end.setBlockByName(0, feet, 0, 'minecraft:end_portal'))
+        ).toBe(true);
 
         // The server starts the credits and holds the change until the answer.
         await vi.waitFor(() => expect(received.some((p) => p.id === PacketIdentifier.SHOW_CREDITS)).toBe(true), {
