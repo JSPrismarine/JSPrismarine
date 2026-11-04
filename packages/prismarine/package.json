@@ -76,6 +76,7 @@
         "bench:session-outbound": "node benchmarks/run.mjs benchmarks/sessionOutbound.bench.ts",
         "bench:network": "node benchmarks/run.mjs benchmarks/blockProximity.bench.ts",
         "bench:movement-idle": "node benchmarks/run.mjs benchmarks/idleMovement.bench.ts",
+        "bench:chunk-completions": "node --import tsx benchmarks/playerChunkDelivery.ts --completion-queue",
         "bench:client-cache": "node --import tsx benchmarks/clientBlobCache.ts",
         "bench:subchunk-request": "node --import tsx benchmarks/subChunkRequestDelivery.ts",
         "bench:chunk-batches": "node --import tsx benchmarks/chunkBatchCache.ts",
