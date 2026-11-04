@@ -84,7 +84,8 @@ describe('the command set', () => {
         // This digest covers command nodes, argument shapes, aliases, overload ordering,
         // flattening notes, and the complete usage walk against Java's pinned command data.
         // The old value did not match either this branch or master; both produce this digest.
-        expect(digest).toBe('659f94c741c712246abab04997954e0ae0fb513c');
+        // Master's `/tick` command added a Java-only node, so the digest was repinned to include it.
+        expect(digest).toBe('73e78bc8f56c32b1172d2e0254e3fc6e17c47e42');
     });
 });
 
