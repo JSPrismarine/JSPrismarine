@@ -9,3 +9,4 @@ export * from './world/adapter';
 export * from './world/notWired';
 export * from './world/unwired';
 export * from './world/views';
+export * from './world/sourceBinding';

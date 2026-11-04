@@ -8,6 +8,7 @@ import { fixtureContentOptions } from '../testing';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import { singleDimension } from './adapter';
 import { NotWiredError } from './notWired';
+import { createRebindableServerWorldSource } from './sourceBinding';
 import { unwiredWorld } from './unwired';
 import { contentWorldViews } from './views';
 
@@ -156,6 +157,19 @@ describe('the content world views', () => {
 
         expect(snapshotWorld.writes).toEqual([]);
         expect(currentWorld.writes).toEqual([{ x: 1, y: 2, z: 3 }]);
+    });
+
+    it('redirects captured content views when a snapshot world source is rebound', () => {
+        const initialWorld = stubWorld();
+        const restoredWorld = stubWorld();
+        const binding = createRebindableServerWorldSource(singleDimension(initialWorld.adapter));
+        const content = buildServerContent(fixtureContentOptions({ world: binding.source }));
+
+        binding.bind(singleDimension(restoredWorld.adapter));
+        content.world.blockWorld.at('minecraft:nether').setBlock({ x: 1, y: 2, z: 3 }, 'minecraft:stone');
+
+        expect(initialWorld.writes).toEqual([]);
+        expect(restoredWorld.writes).toEqual([{ x: 1, y: 2, z: 3 }]);
     });
 
     it('answers a block behavior’s property lookup out of the resolved block types', () => {

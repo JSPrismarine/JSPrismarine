@@ -136,6 +136,15 @@ pnpm --filter @jsprismarine/prismarine run bench:trends -- --scenarios startup -
 inside `resolveBlocks()` with the default vanilla stack. The [benchmark notes](benchmarks/block-state-allocation.md)
 record the baseline comparison, current PR head measurements, and commands for reproducing both.
 
+## Content snapshot benchmark
+
+`pnpm run bench:content-snapshot` compares fresh content builds with a V8 startup snapshot. The
+snapshot keeps resolved seed-independent registries and a rebindable world source; each restored
+process redirects captured world views to its own adapter and rebuilds seed-bound Java and Bedrock
+loot streams. The benchmark checks content digests and registry identity across seeds, and reports
+custom-pack invalidation. Pass `-- --vanilla` to use the fetched default pack stack instead of the
+small fixture.
+
 ## Terrain proto cache
 
 Callers that construct `DataDrivenGenerator` can opt into a bounded disk cache for immutable

@@ -5,7 +5,7 @@ import type { Definitions } from '@jsprismarine/packs';
 import { reportProgress } from '../../../../.test/reportProgress';
 import { describe, expect, it } from 'vitest';
 
-import { buildServerContent } from './ServerContent';
+import { buildServerContent, rebindServerContentSeed } from './ServerContent';
 import { definitionOf, definitionsOf, emptyDefinitions } from './ContentOptions';
 import { FIXTURE_BLOCKS, fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from './testing';
 
@@ -109,6 +109,60 @@ describe('buildServerContent', () => {
         }
 
         expect(lootStreams[0]).not.toBe(lootStreams[1]);
+    });
+
+    it('reuses seed-independent registries while rebuilding seed-bound loot streams', () => {
+        const definitions = fixtureDefinitions();
+        const lootTablesJava = new Map(definitions.lootTablesJava);
+        lootTablesJava.set(
+            'snapshot:seeded',
+            definitionOf(
+                'lootTablesJava',
+                'snapshot:seeded',
+                {
+                    type: 'minecraft:chest',
+                    random_sequence: 'snapshot:seeded',
+                    pools: [
+                        {
+                            rolls: 1,
+                            entries: [
+                                { type: 'minecraft:item', name: 'minecraft:stone', weight: 1 },
+                                { type: 'minecraft:item', name: 'minecraft:redstone_lamp', weight: 1 }
+                            ]
+                        }
+                    ]
+                },
+                'snapshot-fixture'
+            )
+        );
+        const snapshot = buildServerContent(
+            fixtureContentOptions({
+                load: () => ({ definitions: { ...definitions, lootTablesJava }, diagnostics: [] })
+            })
+        );
+
+        for (const seed of [1n, 42n]) {
+            const restored = rebindServerContentSeed(snapshot, seed);
+            const fresh = buildServerContent(
+                fixtureContentOptions({
+                    seed,
+                    load: () => ({ definitions: { ...definitions, lootTablesJava }, diagnostics: [] })
+                })
+            );
+
+            expect(restored.blocks).toBe(snapshot.blocks);
+            expect(restored.items).toBe(snapshot.items);
+            expect(restored.entities).toBe(snapshot.entities);
+            expect(restored.recipes).toBe(snapshot.recipes);
+            expect(restored.loot).not.toBe(snapshot.loot);
+            expect(restored.equipmentLoot).not.toBe(snapshot.equipmentLoot);
+            expect(restored.loot.worldSeed).toBe(seed);
+            expect(restored.equipmentLoot.worldSeed).toBe(seed);
+            expect(restored.loot.saveRandomState()).toEqual(fresh.loot.saveRandomState());
+            expect(restored.loot.roll('snapshot:seeded').map(({ id, count }) => [id, count])).toEqual(
+                fresh.loot.roll('snapshot:seeded').map(({ id, count }) => [id, count])
+            );
+        }
     });
 
     it('loads Bedrock item tags and component bodies without replacing Java defaults', () => {

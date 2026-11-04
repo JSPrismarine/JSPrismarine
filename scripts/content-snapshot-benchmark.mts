@@ -1,10 +1,11 @@
 /**
- * Builds a user-land V8 snapshot and compares fresh content builds with restored inputs.
+ * Builds a user-land V8 snapshot and compares fresh builds with restored resolved registries.
  *
  * Run `pnpm run bench:content-snapshot`. The fixture does not need Mojang's fetched packs, and
- * every restored run rebuilds its world and seed-bound registries before checking the digests.
+ * restored runs rebind world views and rebuild seed-bound loot before checking the digests.
  * Pass `--vanilla` to use the fetched vanilla packs, or `--no-snapshot` to exercise the
- * fresh-build fallback path. The snapshot stores composed definitions, not live registries.
+ * fresh-build fallback path. The snapshot retains resolved static registries and a rebindable
+ * world source; each restored process owns fresh loot random streams.
  */
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -107,6 +108,7 @@ try {
         readonly lateBoundMs?: readonly number[];
         readonly snapshotBuildMs?: number;
         readonly noHandlesOrWorkers: boolean | null;
+        readonly resolvedRegistriesReused: boolean | null;
         readonly freshBuildStable: boolean;
         readonly contentEquivalent: boolean | null;
     }[] = [];
@@ -139,6 +141,8 @@ try {
             restored === undefined
                 ? null
                 : restored.every((sample) => sample.snapshotGenerationOpenedNoHandlesOrWorkers === true);
+        const resolvedRegistriesReused =
+            restored === undefined ? null : restored.every((sample) => sample.reusesSnapshotRegistries === true);
 
         reports.push({
             seed,
@@ -162,6 +166,7 @@ try {
                   }),
             ...(restored?.[0] === undefined ? {} : { snapshotBuildMs: Number(restored[0].snapshotBuildMs) }),
             noHandlesOrWorkers,
+            resolvedRegistriesReused,
             freshBuildStable,
             contentEquivalent
         });
@@ -210,7 +215,10 @@ try {
     const failedChecks =
         reports.some(
             (report) =>
-                !report.freshBuildStable || report.contentEquivalent === false || report.noHandlesOrWorkers === false
+                !report.freshBuildStable ||
+                report.contentEquivalent === false ||
+                report.noHandlesOrWorkers === false ||
+                report.resolvedRegistriesReused === false
         ) ||
         customInvalidates === false ||
         seedIndependentDataMatches === false ||
@@ -241,7 +249,7 @@ try {
             customFallback === undefined ? null : sameDigest(customFallback, customFresh),
         seedIndependentDataMatches: seedIndependentDataMatches ?? null,
         seedBoundLootStateChanges: seedBoundLootStateChanges ?? null,
-        sharedRuntimeContent: false
+        resolvedRegistriesReusedAcrossSeeds: reports.every((report) => report.resolvedRegistriesReused === true)
     };
     process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
     if (failedChecks) process.exitCode = 1;

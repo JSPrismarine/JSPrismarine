@@ -109,6 +109,8 @@ export interface ServerContentEntities {
 export interface ServerContent {
     /** SHA-256 of the effective definition files and built-in content tables used by this build. */
     readonly contentFingerprint: string;
+    /** Whether invalid content made the build fail instead of being reported as diagnostics. */
+    readonly strict: boolean;
     /** The composed pack stack, before any domain resolved it. */
     readonly definitions: Definitions;
     /** Everything the load and every resolve reported, in build order. */
@@ -471,6 +473,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
 
     const content: ServerContent = {
         contentFingerprint,
+        strict,
         definitions,
         diagnostics,
         world,
@@ -513,6 +516,37 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
 
     built = content;
     return content;
+};
+
+/**
+ * Rebinds the seed-dependent loot streams on a snapshot of the resolved content registries.
+ *
+ * Blocks, items, entities, recipes, behaviors, and world views stay shared with the snapshot.
+ * Loot registries are rebuilt because their named random streams are keyed by the current world
+ * seed; compiling them here also preserves strict validation before the server starts.
+ *
+ * @param snapshot - Resolved content captured with a rebindable world source.
+ * @param seed - The seed used for this server's loot sequences.
+ * @returns A content object that reuses the snapshot registries and owns fresh loot streams.
+ */
+export const rebindServerContentSeed = (snapshot: ServerContent, seed: bigint): ServerContent => {
+    const javaLoot = new LootRegistry(
+        { ...snapshot.definitions, lootTables: javaLootTables(snapshot.definitions.lootTablesJava) },
+        {
+            worldSeed: seed,
+            enchantments: (random) => createEnchantmentView(snapshot.enchantments, { random }),
+            items: itemStackOpsFor(snapshot.items.types),
+            strict: snapshot.strict
+        }
+    );
+    const equipmentLoot = new LootRegistry(
+        { ...snapshot.definitions, lootTables: bedrockLootTables(snapshot.definitions.lootTables) },
+        { worldSeed: seed, items: itemStackOpsFor(snapshot.items.types), strict: snapshot.strict }
+    );
+    javaLoot.validate();
+    equipmentLoot.validate();
+
+    return { ...snapshot, loot: javaLoot, equipmentLoot };
 };
 
 /**

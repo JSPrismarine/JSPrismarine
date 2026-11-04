@@ -1,12 +1,10 @@
 /**
- * Bounded user-land startup snapshot experiment over content-builder inputs.
+ * Bounded user-land startup snapshot experiment over resolved content registries.
  *
- * The snapshot stores composed input definitions and seed-zero digests. A restored process
- * always builds fresh runtime registries for its seed and world, so the cached loot registry or
- * world views are never shared between runs. `--vanilla` uses the fetched default pack stack;
- * otherwise, a small fixture keeps the experiment runnable without external data. This measures
- * input restoration and late binding, not reuse of resolved runtime registries: those registries
- * close over world adapters and seed-bound loot services and cannot safely be shared as-is.
+ * The snapshot stores resolved static registries behind a rebindable world source. A restored
+ * process rebuilds seed-bound loot registries, while existing world views route to its current
+ * adapter. `--vanilla` uses the fetched default pack stack; otherwise, a small fixture keeps the
+ * experiment runnable without external data.
  */
 import { performance } from 'node:perf_hooks';
 import { startupSnapshot } from 'node:v8';
@@ -14,13 +12,16 @@ import { startupSnapshot } from 'node:v8';
 import type { Definitions } from '@jsprismarine/packs';
 
 import { definitionOf } from '../src/content/ContentOptions';
-import { buildServerContent } from '../src/content/ServerContent';
+import { buildServerContent, rebindServerContentSeed } from '../src/content/ServerContent';
 import {
     fixtureBlockPalette,
     fixtureContentOptions,
     fixtureDefinitions,
     fixtureItemDefinitions
 } from '../src/content/testing';
+import type { ServerWorldSource } from '../src/content/world/adapter';
+import { createRebindableServerWorldSource } from '../src/content/world/sourceBinding';
+import { unwiredWorldSource } from '../src/content/world/unwired';
 
 const SNAPSHOT_SCHEMA = 1;
 
@@ -186,10 +187,15 @@ const withCustomPack = (definitions: Definitions): Definitions => {
 };
 
 /** Builds runtime registries from cached definitions with a new seed and world adapter. */
-const buildContent = (definitions: Definitions, seed: bigint): ReturnType<typeof buildServerContent> => {
+const buildContent = (
+    definitions: Definitions,
+    seed: bigint,
+    world: ServerWorldSource = unwiredWorldSource({ seed })
+): ReturnType<typeof buildServerContent> => {
     if (useVanillaInputs) {
         return buildServerContent({
             seed,
+            world,
             stack: [],
             load: () => ({ definitions, diagnostics: [] })
         });
@@ -198,6 +204,7 @@ const buildContent = (definitions: Definitions, seed: bigint): ReturnType<typeof
     return buildServerContent(
         fixtureContentOptions({
             seed,
+            world,
             load: () => ({ definitions, diagnostics: [] }),
             blockPalette: fixtureBlockPalette(),
             itemDefinitions: fixtureItemDefinitions()
@@ -243,15 +250,18 @@ const useVanillaInputs = process.env.JSP_CONTENT_SNAPSHOT_VANILLA === '1';
 
 interface SnapshotInputs {
     readonly definitions: Definitions;
+    readonly content: ReturnType<typeof buildServerContent>;
+    readonly world: ReturnType<typeof createRebindableServerWorldSource>;
     readonly manifest: SnapshotManifest;
 }
 
-/** Builds and retains only the seed-independent pack inputs in the startup snapshot. */
+/** Builds and retains resolved seed-independent registries plus their rebindable world source. */
 const createSnapshotInputs = (): SnapshotInputs => {
     const startedAt = performance.now();
+    const world = createRebindableServerWorldSource(unwiredWorldSource({ seed: 0n }));
     const seedZeroContent = useVanillaInputs
-        ? buildServerContent({ seed: 0n })
-        : buildContent(withSeededLoot(fixtureDefinitions()), 0n);
+        ? buildServerContent({ seed: 0n, world: world.source })
+        : buildContent(withSeededLoot(fixtureDefinitions()), 0n, world.source);
     const definitions = seedZeroContent.definitions;
     const activeResources = process.getActiveResourcesInfo();
     // PipeWrap is the benchmark process's stdout/stderr; every other active resource is unexpected.
@@ -269,12 +279,17 @@ const createSnapshotInputs = (): SnapshotInputs => {
         activeResources,
         forbiddenResources
     };
-    return { definitions, manifest };
+    return { definitions, content: seedZeroContent, world, manifest };
 };
 
 if (startupSnapshot.isBuildingSnapshot()) {
     const snapshotInputs = createSnapshotInputs();
-    const { definitions: snapshotDefinitions, manifest } = snapshotInputs;
+    const {
+        definitions: snapshotDefinitions,
+        content: snapshotContent,
+        world: snapshotWorld,
+        manifest
+    } = snapshotInputs;
     startupSnapshot.setDeserializeMainFunction(() => {
         const nodeStartedAtMs = process.uptime() * 1000;
         const inputValidationStartedAt = performance.now();
@@ -292,9 +307,20 @@ if (startupSnapshot.isBuildingSnapshot()) {
         const requestedPackDefinitions =
             process.env.JSP_CONTENT_SNAPSHOT_CUSTOM === '1' ? currentDefinitions : undefined;
         let cacheHit = matches;
-        let restored = cacheHit
-            ? buildContent(snapshotDefinitions, seed)
-            : buildFreshContent(seed, requestedPackDefinitions);
+        let snapshotRestoreFailure: string | undefined;
+        let restored: ReturnType<typeof buildServerContent>;
+        if (cacheHit) {
+            try {
+                snapshotWorld.bind(unwiredWorldSource({ seed }));
+                restored = rebindServerContentSeed(snapshotContent, seed);
+            } catch (error) {
+                cacheHit = false;
+                snapshotRestoreFailure = error instanceof Error ? error.message : String(error);
+                restored = buildFreshContent(seed, requestedPackDefinitions);
+            }
+        } else {
+            restored = buildFreshContent(seed, requestedPackDefinitions);
+        }
         if (cacheHit && restored.contentFingerprint !== manifest.contentFingerprint) {
             // The input hash can stay the same while resolver code or built-in tables change.
             // Fall back to the current source instead of trusting a stale derived registry.
@@ -330,9 +356,15 @@ if (startupSnapshot.isBuildingSnapshot()) {
             contentDigest: restoredContentDigest,
             sameStaticDigest,
             sameContentDigest,
+            reusesSnapshotRegistries:
+                restored.blocks === snapshotContent.blocks &&
+                restored.items === snapshotContent.items &&
+                restored.entities === snapshotContent.entities &&
+                restored.recipes === snapshotContent.recipes,
             snapshotContentFingerprintMatches,
             snapshotSeedZeroMatches,
             snapshotBuildMs: manifest.buildMs,
+            snapshotRestoreFailure,
             snapshotGenerationActiveResources: manifest.activeResources,
             snapshotGenerationOpenedNoHandlesOrWorkers: manifest.forbiddenResources.length === 0
         };
