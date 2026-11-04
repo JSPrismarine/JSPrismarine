@@ -1,7 +1,10 @@
 const CONTROL_BYTES = Int32Array.BYTES_PER_ELEMENT * 4;
 const RECORD_LENGTH_BYTES = 4;
 
-/** A bounded single-producer/single-consumer byte queue shared between two threads. */
+/**
+ * A bounded single-producer/single-consumer byte queue shared between two threads.
+ * The four atomic control slots hold the write cursor, read cursor, high-water mark, and full-write count.
+ */
 export default class SharedByteRing {
     private readonly shared: SharedArrayBuffer;
     private readonly control: Int32Array;
@@ -58,6 +61,7 @@ export default class SharedByteRing {
             return false;
         }
 
+        // Publish the end cursor only after every record byte is copied, so readers never observe a partial write.
         this.writeUInt32(writeAt, length);
         let offset = writeAt + RECORD_LENGTH_BYTES;
         for (const part of parts) {
