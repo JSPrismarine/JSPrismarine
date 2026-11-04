@@ -76,7 +76,7 @@ export default defineConfig({
         // Vitest's 5 s default is shorter than what a few suites need once the whole monorepo
         // forks at once: booting a server in `Server.test.ts` takes 2.7 s on its own and three
         // times that under load. Those runs are slow, not hung, so the timeout is what has to give.
-        testTimeout: 30_000,
+        testTimeout: 60_000,
 
         setupFiles: [`${__dirname}/.test/vitest.setup.ts`],
 

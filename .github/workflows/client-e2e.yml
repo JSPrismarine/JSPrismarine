@@ -273,6 +273,7 @@ jobs:
                   RECORD: ${{ (inputs.record || github.event_name == 'pull_request' || github.event_name == 'push') && matrix.protocol == needs.protocol-matrix.outputs.latest && '--record' || '' }}
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.protocol }}
+                  NODE_OPTIONS: --max-old-space-size=4096
               run: |
                   # shellcheck disable=SC2086
                   pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --concurrency 1 $RECORD $SCENARIOS
@@ -348,6 +349,7 @@ jobs:
                   COMPRESSION: ${{ matrix.compression }}
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
                   PROTOCOL: ${{ matrix.protocol }}
+                  NODE_OPTIONS: --max-old-space-size=4096
               run: pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --compression-algorithm "$COMPRESSION" --concurrency 1
 
             - name: 📤 Upload evidence
