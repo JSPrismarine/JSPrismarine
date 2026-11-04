@@ -112,6 +112,24 @@ const worldOf = (loaded: ReadonlyArray<{ x: number; z: number }> = [{ x: 0, z: 0
 
 describe('world', () => {
     describe('WorldSystems', () => {
+        it('exposes the shared random tick state without changing its draw sequence', () => {
+            const systems = new WorldSystems({
+                view: {
+                    dimension: Dimensions.Overworld,
+                    blockAt: () => AIR,
+                    loadedChunks: () => [],
+                    shouldInitializeLight: () => false,
+                    randomTickSpeed: () => 1,
+                    randomTickChunks: () => [{ x: 0, z: 0, sections: [0] }]
+                },
+                world: createTestWorld()
+            });
+
+            expect(systems.getRandomTickState()).toBe(0);
+            systems.tick(1);
+            expect(systems.getRandomTickState()).toBe(1013904223);
+        });
+
         describe('light', () => {
             it('lights the blocks around a torch once the chunk is known', () => {
                 const { blocks, systemsOf } = worldOf();

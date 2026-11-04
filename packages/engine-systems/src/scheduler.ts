@@ -133,6 +133,16 @@ export class TickList {
         return this.queue.length;
     }
 
+    /**
+     * Copies the pending ticks in drain order for diagnostics and replay comparisons.
+     *
+     * This sorts a copy, leaving the live queue order untouched. Each position is copied too,
+     * so callers cannot mutate a queued tick through the returned state.
+     */
+    snapshot(): readonly ScheduledTick[] {
+        return [...this.queue].sort(drainOrder).map((tick) => ({ ...tick, at: { ...tick.at } }));
+    }
+
     /** Remove every queued tick at one position, which a destroyed block needs. */
     clearAt(at: BlockPosition): void {
         for (let i = this.queue.length - 1; i >= 0; i--) {
@@ -199,6 +209,11 @@ export class TickScheduler {
     /** One of the two tick lists. */
     list(kind: TickKind): TickList {
         return this.lists[kind];
+    }
+
+    /** Copies pending block and fluid ticks without changing their live drain order. */
+    snapshot(): { readonly block: readonly ScheduledTick[]; readonly fluid: readonly ScheduledTick[] } {
+        return { block: this.lists.block.snapshot(), fluid: this.lists.fluid.snapshot() };
     }
 
     /**

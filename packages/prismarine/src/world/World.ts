@@ -3269,14 +3269,18 @@ export class World implements Service {
     }
 
     /**
-     * Hashes loaded chunks and live entity state for one replay tick.
+     * Hashes loaded chunks, selected pending simulation work, and live entity state for one replay
+     * tick.
      *
      * Chunks include blocks, biomes, and block entities. Player inventories are included because
-     * duplicate or missing stacks can leave every other world field unchanged.
+     * duplicate or missing stacks can leave every other world field unchanged. Scheduler queues
+     * are copied in processing order; lighting is represented by queue depth only, so this digest
+     * compares those boundaries but cannot restore them.
      */
     public replayStateDigest(): string {
         const hash = createHash('sha256');
         const level = this.getLevel();
+        const pendingLighting = this.systems.lighting.pending;
         hash.update(
             JSON.stringify({
                 dimension: this.getDimension().id,
@@ -3290,7 +3294,15 @@ export class World implements Service {
                 // packed position because request arrival order is not world state.
                 pendingChunkLoads: [...this.loading]
                     .map(([position, load]) => [position, load.urgency.value] as const)
-                    .sort(([left], [right]) => left - right)
+                    .sort(([left], [right]) => left - right),
+                // Physics updates interact in order, and due() leaves the tail after its 4096-update budget.
+                pendingBlockUpdates: this.blockUpdates.snapshot(),
+                // The scheduler snapshot keeps Java's separate block and fluid lists and tick order.
+                pendingScheduledTicks: this.systems.ticks.snapshot(),
+                // Random tick positions use Java's own stateful generator, separate from server RNG.
+                randomTickState: this.systems.getRandomTickState(),
+                // Keep the digest cost bounded; the lighting queue can contain a large flood.
+                pendingLighting: { queued: pendingLighting.queued, deferred: pendingLighting.deferred }
             })
         );
 

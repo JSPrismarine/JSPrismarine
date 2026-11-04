@@ -128,6 +128,32 @@ describe('TickList', () => {
         expect(list.willTickThisTick(at(1), 'second')).toBe(false);
     });
 
+    it('snapshots pending ticks in drain order without exposing the live queue', () => {
+        const list = new TickList();
+        list.schedule(at(3), 'later', 8);
+        list.schedule(at(2), 'earlier-late-priority', 3, TICK_PRIORITIES.LOW);
+        list.schedule(at(1), 'earlier-high-priority', 3, TICK_PRIORITIES.HIGH);
+
+        const snapshot = list.snapshot();
+
+        expect(
+            snapshot.map(({ type, at: position, triggerTick, priority, subTickOrder }) => [
+                type,
+                position,
+                triggerTick,
+                priority,
+                subTickOrder
+            ])
+        ).toEqual([
+            ['earlier-high-priority', at(1), 3, TICK_PRIORITIES.HIGH, 2],
+            ['earlier-late-priority', at(2), 3, TICK_PRIORITIES.LOW, 1],
+            ['later', at(3), 8, TICK_PRIORITIES.NORMAL, 0]
+        ]);
+        Reflect.set(snapshot[0]!.at, 'x', 99);
+        expect(list.snapshot()[0]!.at.x).toBe(1);
+        expect(list.count()).toBe(3);
+    });
+
     it('leaves a tick scheduled during the batch for a later game tick', () => {
         const list = new TickList();
         list.schedule(at(0), 'chain', 1);
@@ -243,6 +269,17 @@ describe('TickList', () => {
 });
 
 describe('TickScheduler', () => {
+    it('snapshots block and fluid queues separately', () => {
+        const scheduler = new TickScheduler();
+        scheduler.list('fluid').schedule(at(0), 'minecraft:water', 4);
+        scheduler.list('block').schedule(at(1), 'minecraft:repeater', 3);
+
+        expect(scheduler.snapshot()).toEqual({
+            block: [{ type: 'minecraft:repeater', at: at(1), triggerTick: 3, priority: 0, subTickOrder: 0 }],
+            fluid: [{ type: 'minecraft:water', at: at(0), triggerTick: 4, priority: 0, subTickOrder: 0 }]
+        });
+    });
+
     it('runs every block tick before any fluid tick, as ServerLevel.tick does', () => {
         const scheduler = new TickScheduler();
         scheduler.list('fluid').schedule(at(0), 'minecraft:water', 1, TICK_PRIORITIES.EXTREMELY_HIGH);

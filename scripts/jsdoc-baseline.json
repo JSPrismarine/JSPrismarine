@@ -753,8 +753,6 @@
     "packages/prismarine/src/world/BaseGenerator.ts exported class `BaseGenerator`",
     "packages/prismarine/src/world/BlockPosition.ts exported class `BlockPosition`",
     "packages/prismarine/src/world/BlockPosition.ts public method `BlockPosition.fromVector3`",
-    "packages/prismarine/src/world/BlockUpdateScheduler.ts exported class `BlockUpdateScheduler`",
-    "packages/prismarine/src/world/BlockUpdateScheduler.ts exported interface `BlockUpdate`",
     "packages/prismarine/src/world/BlockUpdateScheduler.ts public method `BlockUpdateScheduler.clear`",
     "packages/prismarine/src/world/ChunkScheduler.ts public method `ChunkScheduler.add`",
     "packages/prismarine/src/world/ChunkScheduler.ts public method `ChunkScheduler.remove`",

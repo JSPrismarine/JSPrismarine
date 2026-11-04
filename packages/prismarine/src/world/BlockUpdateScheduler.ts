@@ -29,12 +29,14 @@ interface PendingUpdate {
     readonly update: BlockUpdate;
 }
 
+/** Integer world coordinates queued for a block-physics check. */
 export interface BlockUpdate {
     x: number;
     y: number;
     z: number;
 }
 
+/** Coalesces delayed block-physics checks and drains them within a per-tick budget. */
 export class BlockUpdateScheduler {
     /**
      * Pending updates, keyed by position so duplicate schedules update their due time in place.
@@ -90,6 +92,16 @@ export class BlockUpdateScheduler {
     /** How many updates are waiting, for tests and diagnostics. */
     public size(): number {
         return this.pending.size;
+    }
+
+    /**
+     * Copies pending positions and due ticks in their processing order.
+     *
+     * Map insertion order is meaningful: when the per-tick budget leaves work queued, the next
+     * positions processed depend on this order.
+     */
+    public snapshot(): readonly { readonly dueTick: number; readonly position: BlockUpdate }[] {
+        return [...this.pending.values()].map(({ at, update }) => ({ dueTick: at, position: { ...update } }));
     }
 
     public clear(): void {

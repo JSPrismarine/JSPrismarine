@@ -44,6 +44,11 @@ export class BlockRandomPositions {
         this.state = seed | 0;
     }
 
+    /** Returns the current signed 32-bit state for replay comparisons. */
+    snapshot(): number {
+        return this.state;
+    }
+
     /**
      * The next position inside one section.
      *

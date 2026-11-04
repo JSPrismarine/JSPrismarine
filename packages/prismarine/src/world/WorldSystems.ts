@@ -239,6 +239,11 @@ export class WorldSystems {
         return this.lighting.pending.queued === 0;
     }
 
+    /** Reads Java's shared random tick position state without drawing another position. */
+    public getRandomTickState(): number {
+        return this.randomPositions.snapshot();
+    }
+
     /** Reads block light, initializing and settling an otherwise deferred loaded chunk on demand. */
     public getBlockLight(x: number, y: number, z: number): number {
         this.ensureLightForRead(x, y, z);

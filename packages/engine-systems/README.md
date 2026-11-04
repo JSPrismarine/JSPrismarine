@@ -36,7 +36,9 @@ the block.
 `TickScheduler` owns the block and fluid tick lists. A scheduled tick carries a trigger tick, a
 priority, and insertion order. Ticks drain by trigger tick, then priority, then insertion order;
 the per tick budget defaults to Java's 65536 for each list. The host drains the scheduler and
-dispatches each tick to the active block family's `onTick` hook.
+dispatches each tick to the active block family's `onTick` hook. `TickList.snapshot()` and
+`TickScheduler.snapshot()` return copies of pending work in stable order for diagnostics and replay
+comparisons; they do not restore a queue.
 
 `TickList` uses one queue for the whole world. Java shards each list by chunk and merges those
 shards while draining, so a backlog can produce a different order. This queue runs the oldest due
@@ -60,7 +62,9 @@ published, so the full-cube fallback remains an approximation for partial blocks
 The driver draws `random_tick_speed` positions from each selected section using Java's
 `Level.getBlockRandomPos` step, `state * 3 + 1013904223`. Positions are drawn with replacement;
 a position whose block does not take random ticks still consumes its draw. Block behavior comes
-from the active family's random tick hook.
+from the active family's random tick hook. `BlockRandomPositions.snapshot()` reads the signed
+32-bit generator state without drawing another position; it supports replay comparisons but does
+not restore the generator.
 
 ## Explosions
 

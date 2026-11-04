@@ -58,18 +58,22 @@ before enabling it. Once the level has loaded the snapshot, call
 restore RNG state. The manifest validates the snapshot digest, and providers without snapshot
 support reject capture and restore. LevelDB replaces records in one database batch, then restores
 metadata and player files, so restore is not atomic; discard the target if a file operation fails
-after the database write. The snapshot covers persisted data, but not runtime state or pending
-simulation work, and does not fingerprint executable server or plugin code. Capturing also fails
-when the server uses a custom random callback without a serializable state contract. A
+after the database write. The provider snapshot covers persisted data, but not runtime state or
+pending simulation work, and does not fingerprint executable server or plugin code. Capturing also
+fails when the server uses a custom random callback without a serializable state contract. A
 `NetworkDispatcher` can feed each record back through its decoded handler path; the built-in
 server exposes that method through
 `server.getKernel().get(networkToken).replayInboundRecord?.(record, tickOffset)`. The caller must
 restore matching connections and advance the server to each recorded tick. Pass an
 `OutboundPacketTrace` as `outboundPacketRecorder` to the `Server` constructor to capture encoded
 clientbound packets and compare their per-tick digests. `World.replayStateDigest()` hashes loaded
-chunks, pending chunk load coordinates and priorities, entities, level weather and rules, and
-player inventories for a per-tick comparison; it does not cover unloaded chunks or every pending
-simulation subsystem.
+chunks, pending chunk load coordinates and priorities, block update positions and due ticks,
+scheduled block and fluid ticks, the Java random tick generator state, light queue depth, entities,
+level weather and rules, and player inventories. Scheduler entries retain their trigger time,
+priority, and insertion order. Light work is represented by queue depth to keep each digest bounded,
+so the digest does not identify queued light nodes. These digest fields detect divergence but do not
+restore pending work or the per-world random tick generator. It also does not cover unloaded chunks
+or every pending simulation subsystem.
 
 `packages/client/src/SessionReplay.test.ts` exercises the live replay path with two flat replay
 worlds using seed `2847`. It captures a provider snapshot before client login, restores that
@@ -81,9 +85,10 @@ timing does not change the world digest. Login remains live because the trace do
 connection lifecycle or pre-login sessions; the test maps the captured connection order and input
 entity id onto each live session. Its per-tick outbound digest normalizes process-local actor ids
 by the logged-in players and by first-seen packet order for other actors before hashing packet
-bytes. The test does not cover frame grouping, in-memory runtime or pending simulation state, or
-Java-verified entity update order. Packet bytes and snapshots may include player data, so keep
-capture opt-in and protect any trace or manifest you store. The packet benchmark measures
+bytes. The test does not cover frame grouping, restoration of in-memory runtime or pending
+simulation state, complete lighting work queues, or Java-verified entity update order. Packet bytes
+and snapshots may include player data, so keep capture opt-in and protect any trace or manifest you
+store. The packet benchmark measures
 dispatcher recording and replay CPU plus serialized packet-trace storage, but it does not measure
 world ticks or digests.
 

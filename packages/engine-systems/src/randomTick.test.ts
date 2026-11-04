@@ -17,6 +17,14 @@ describe('BlockRandomPositions', () => {
         expect(new BlockRandomPositions().next(0, 0, 0)).toEqual({ x: 7, y: 11, z: 12 });
     });
 
+    it('snapshots the LCG state without advancing it', () => {
+        const positions = new BlockRandomPositions();
+
+        expect(positions.snapshot()).toBe(0);
+        positions.next(0, 0, 0);
+        expect(positions.snapshot()).toBe(1013904223);
+    });
+
     it('offsets every draw by the section corner', () => {
         const base = new BlockRandomPositions().next(0, 0, 0);
         const moved = new BlockRandomPositions().next(32, -64, 16);
