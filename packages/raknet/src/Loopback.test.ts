@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ClientSocket from './ClientSocket';
 import LoopbackSocket, { LOOPBACK_MTU_SIZE, MAX_FRAME_CONTENT_BYTE_LENGTH } from './LoopbackSocket';
@@ -37,10 +38,12 @@ beforeEach(() => {
 });
 
 const until = async (predicate: () => boolean, timeoutMs = 3_000) => {
-    const deadline = Date.now() + timeoutMs;
+    // These tests need real socket and loopback progress even when another suite has
+    // replaced global timers or Date; the Node timer import and hrtime bypass that clock.
+    const deadline = process.hrtime.bigint() + BigInt(timeoutMs) * 1_000_000n;
     while (!predicate()) {
-        if (Date.now() > deadline) return false;
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        if (process.hrtime.bigint() > deadline) return false;
+        await delay(5);
     }
     return true;
 };
@@ -97,7 +100,8 @@ const udpPair = async (
     client.on('encapsulated', (frame: Frame) => clientInbox.push(frame.content));
 
     const clientSession = await client.connect('127.0.0.1', port);
-    await until(() => server.getSessions().length === 1);
+    const connected = await until(() => server.getSessions()[0]?.getState() === SessionStatus.CONNECTED, 5_000);
+    if (!connected) throw new Error('UDP server session did not reach CONNECTED before the pair was returned');
 
     return { serverSession: () => server.getSessions()[0], clientSession, serverInbox, clientInbox };
 };
@@ -112,6 +116,8 @@ const loopbackPair = async (): Promise<Pair> => {
     loopback.client.on('encapsulated', (frame: Frame) => clientInbox.push(frame.content));
 
     const clientSession = await loopback.connect();
+    const connected = await until(() => loopback.server.getSession()?.getState() === SessionStatus.CONNECTED);
+    if (!connected) throw new Error('Loopback server session did not reach CONNECTED before the pair was returned');
 
     return { serverSession: () => loopback.server.getSession(), clientSession, serverInbox, clientInbox };
 };
