@@ -161,13 +161,19 @@ describe.each([
 
         pair.clientSession.sendFrame(gameFrame(payload));
         pair.clientSession.sendFrameQueue();
-        expect(await until(() => pair.serverInbox.length === 1, 8_000)).toBe(true);
+        expect(
+            await until(() => pair.serverInbox.length === 1, 8_000),
+            `server did not reassemble payload; inbox=${pair.serverInbox.length}, state=${pair.serverSession()?.getState()}`
+        ).toBe(true);
         expect(pair.serverInbox[0]!.equals(payload)).toBe(true);
 
         const session = pair.serverSession()!;
         session.sendFrame(gameFrame(payload));
         session.sendFrameQueue();
-        expect(await until(() => pair.clientInbox.length === 1, 8_000)).toBe(true);
+        expect(
+            await until(() => pair.clientInbox.length === 1, 8_000),
+            `client did not reassemble payload; inbox=${pair.clientInbox.length}, state=${pair.clientSession.getState()}`
+        ).toBe(true);
         expect(pair.clientInbox[0]!.equals(payload)).toBe(true);
     });
 
@@ -177,7 +183,8 @@ describe.each([
         pair.clientSession.sendConnectedPing();
         pair.clientSession.sendFrameQueue();
 
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        // The response window is real elapsed time, independent of any suite's fake clock.
+        await delay(150);
         expect(pair.clientInbox.map((buffer) => buffer[0])).not.toContain(MessageIdentifiers.CONNECTED_PONG);
     });
 });
@@ -225,7 +232,10 @@ describe('LoopbackSocket specifics', () => {
         pair.clientSession.sendFrame(gameFrame(payload));
         pair.clientSession.sendFrameQueue();
 
-        expect(await until(() => pair.serverInbox.length === 1)).toBe(true);
+        expect(
+            await until(() => pair.serverInbox.length === 1),
+            `loopback server did not reassemble chunk batch; inbox=${pair.serverInbox.length}, state=${pair.serverSession()?.getState()}`
+        ).toBe(true);
         expect(pair.serverInbox[0]!.equals(payload)).toBe(true);
         // 24000 / 8163 is three fragments here, against seventeen at a negotiated 1464.
         expect(Math.ceil(payload.byteLength / LoopbackSocket.maxFragmentSize)).toBe(3);
@@ -276,7 +286,10 @@ describe('LoopbackSocket specifics', () => {
         const clientSession = await loopback.connect();
         clientSession.disconnect('leaving');
 
-        expect(await until(() => closed.length === 1)).toBe(true);
+        expect(
+            await until(() => closed.length === 1),
+            `close notification count=${closed.length}, client state=${clientSession.getState()}, server state=${loopback.server.getSession()?.getState()}`
+        ).toBe(true);
         expect(loopback.client.getSession()).toBeNull();
     });
 });
