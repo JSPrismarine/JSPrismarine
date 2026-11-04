@@ -123,6 +123,8 @@ describe('modules/ticker', () => {
             expect(harness.warnings).toEqual([]);
         } finally {
             await handle.stop();
+            timeout.mockRestore();
+            immediate.mockRestore();
         }
     });
 
@@ -227,6 +229,8 @@ describe('modules/ticker', () => {
             expect(harness.warnings).toEqual([]);
         } finally {
             await handle.stop();
+            timeout.mockRestore();
+            immediate.mockRestore();
         }
     });
 

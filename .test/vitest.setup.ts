@@ -6,6 +6,9 @@ import { afterEach, vi, beforeEach } from 'vitest';
 // just stubbed, and every such suite opened `jsp/worlds/<name>/db` instead. LevelDB takes a
 // directory lock, so under a parallel run they refused each other.
 beforeEach(() => {
+    // Reset reused worker clocks before a test can inherit fake timers from another file.
+    vi.useRealTimers();
+
     if (process.env.JSP_DIR === undefined) vi.stubEnv('JSP_DIR', 'jsp');
 });
 
