@@ -1,15 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { memoryLinkPair } from './memoryLink';
 
 type Ping = { type: 'ping'; n: number };
 type Pong = { type: 'pong'; n: number };
 
-const settled = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-beforeEach(() => {
-    // Vitest reuses workers; another suite's fake clock can stall these real-time waits.
-    vi.useRealTimers();
-});
+const flushMicrotasks = () => Promise.resolve();
 
 describe('memoryLinkPair', () => {
     it('delivers messages to the other end asynchronously, in order', async () => {
@@ -24,7 +19,8 @@ describe('memoryLinkPair', () => {
         expect(right.send({ type: 'ping', n: 3 })).toBe(true);
         expect(seenByRight).toEqual([]);
 
-        await settled();
+        // Promise checkpoints drain delivery jobs without depending on fakeable timer APIs.
+        await flushMicrotasks();
         expect(seenByRight).toEqual([
             { type: 'pong', n: 1 },
             { type: 'pong', n: 2 }
@@ -39,12 +35,12 @@ describe('memoryLinkPair', () => {
         right.onMessage(() => calls.push('second'));
 
         left.send({ type: 'pong', n: 1 });
-        await settled();
+        await flushMicrotasks();
         expect(calls).toEqual(['first', 'second']);
 
         off();
         left.send({ type: 'pong', n: 2 });
-        await settled();
+        await flushMicrotasks();
         expect(calls).toEqual(['first', 'second', 'second']);
     });
 
@@ -66,7 +62,25 @@ describe('memoryLinkPair', () => {
         expect(rightClosed).toHaveBeenCalledTimes(1);
         expect(left.send({ type: 'pong', n: 2 })).toBe(false);
 
-        await settled();
+        await flushMicrotasks();
         expect(received).not.toHaveBeenCalled();
+    });
+
+    it('delivers messages when the test clock is fake', async () => {
+        vi.useFakeTimers({ toFake: ['setTimeout'] });
+        try {
+            const [left, right] = memoryLinkPair<Ping, Pong>();
+            const received: Pong[] = [];
+            right.onMessage((message) => received.push(message));
+
+            left.send({ type: 'pong', n: 1 });
+            expect(received).toEqual([]);
+
+            await flushMicrotasks();
+
+            expect(received).toEqual([{ type: 'pong', n: 1 }]);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
