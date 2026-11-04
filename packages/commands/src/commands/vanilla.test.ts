@@ -101,6 +101,23 @@ describe('the entity commands', () => {
         expect(results).toEqual([1]);
     });
 
+    it('/summon reports a failure instead of claiming it summoned the entity', () => {
+        const feedback: string[] = [];
+        const errors: string[] = [];
+        const host = testCommandHost({ entities: { summon: () => undefined } });
+        const registry = registerVanillaCommands();
+        const source = createCommandSource({
+            host,
+            permissionLevel: 4,
+            onFeedback: (message) => feedback.push(message),
+            onError: (message) => errors.push(message)
+        });
+
+        expect(registry.getDispatcher().execute('summon minecraft:pig', source)).toEqual([0]);
+        expect(feedback).toEqual([]);
+        expect(errors).toEqual(['Unable to summon entity']);
+    });
+
     it('/summon uses the dimension selected by execute in', () => {
         let options: unknown;
         run('execute in nether run summon minecraft:pig', {
