@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryLinkPair } from './memoryLink';
 
 type Ping = { type: 'ping'; n: number };
 type Pong = { type: 'pong'; n: number };
 
 const settled = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+beforeEach(() => {
+    // Vitest reuses workers; another suite's fake clock can stall these real-time waits.
+    vi.useRealTimers();
+});
 
 describe('memoryLinkPair', () => {
     it('delivers messages to the other end asynchronously, in order', async () => {
