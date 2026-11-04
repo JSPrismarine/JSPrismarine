@@ -81,18 +81,28 @@ export default defineConfig({
 
         setupFiles: [`${__dirname}/.test/vitest.setup.ts`],
 
-        // The shared fork above keeps one worker's globals across files. OpenTUI's native
-        // renderer holds process-global state, and `inputBar.test.ts` hung on CI only when an
-        // earlier file's renderer was still alive in its worker. The console package therefore
-        // gets a fresh process per file; everything else keeps the shared-worker speed-up.
+        // The shared worker above keeps its globals and mocked modules across files. Two
+        // families of suites cannot live with that, and each hung on CI only, when an earlier
+        // file's leftovers were still in the worker they landed in:
+        // - the console package, because OpenTUI's native renderer holds process-global state
+        //   (`inputBar.test.ts` timed out creating one);
+        // - the client package, because its suites boot a real server on a real UDP socket and
+        //   several `Server` suites in the prismarine package leave `@jsprismarine/raknet`
+        //   mocked (`Login.test.ts` timed out waiting on a mocked listener).
+        // They get a fresh process per file; everything else keeps the shared-worker speed-up.
         projects: [
             {
                 extends: true,
-                test: { name: 'console', include: ['packages/console/**/*.test.ts'], exclude, isolate: true }
+                test: {
+                    name: 'isolated',
+                    include: ['packages/console/**/*.test.ts', 'packages/client/**/*.test.ts'],
+                    exclude,
+                    isolate: true
+                }
             },
             {
                 extends: true,
-                test: { name: 'default', exclude: [...exclude, 'packages/console/**'] }
+                test: { name: 'default', exclude: [...exclude, 'packages/console/**', 'packages/client/**'] }
             }
         ],
 
