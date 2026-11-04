@@ -215,7 +215,7 @@ interface Fixture {
 }
 
 /** A `World` reduced to what a destruction touches: no disk, no network, everything else real. */
-const liveWorld = (content: () => ServerContent | undefined): Fixture => {
+const liveWorld = (content: () => ServerContent | undefined, getRandom: () => RandomSource): Fixture => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
     const rules = new Map<string, GameRuleEntry>();
@@ -256,6 +256,8 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
         addEntity: async (entity: Entity) => void spawned.push(entity),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
+            // Block destruction and blasts must share the fixture's seeded world RNG.
+            getRandom: () => () => getRandom().nextFloat(),
             getLogger: () => ({
                 debug: () => {},
                 error: (error: unknown) => {
@@ -298,7 +300,10 @@ describe('a block the world destroyed', () => {
 
     beforeEach(() => {
         let built: ServerContent | undefined;
-        ({ world, chunk, spawned, rules } = liveWorld(() => built));
+        ({ world, chunk, spawned, rules } = liveWorld(
+            () => built,
+            () => random
+        ));
 
         const source = serverWorldSource({
             worldFor: () => world,
