@@ -156,4 +156,106 @@ describe('modules/ticker', () => {
             await handle.stop();
         }
     });
+
+    describe('tick control', () => {
+        it('ticks at the rate it was given', async () => {
+            const harness = buildHarness();
+            harness.ticker.setTickRate(100);
+            const handle = await startTestModule(tickerModule(harness.ticker));
+            try {
+                await vi.advanceTimersByTimeAsync(1000);
+                expect(harness.ticker.getTick()).toBeGreaterThanOrEqual(95);
+                expect(harness.ticker.getTick()).toBeLessThanOrEqual(105);
+            } finally {
+                await handle.stop();
+            }
+        });
+
+        it('switches rate on a running loop without repaying the old schedule', async () => {
+            const harness = buildHarness();
+            const handle = await startTestModule(tickerModule(harness.ticker));
+            try {
+                await vi.advanceTimersByTimeAsync(1000);
+                const before = harness.ticker.getTick();
+                harness.ticker.setTickRate(200);
+                await vi.advanceTimersByTimeAsync(1000);
+                const gained = harness.ticker.getTick() - before;
+                expect(gained).toBeGreaterThanOrEqual(185);
+                expect(gained).toBeLessThanOrEqual(215);
+            } finally {
+                await handle.stop();
+            }
+        });
+
+        it('freezes the world and the functions but keeps counting ticks and emitting the event', async () => {
+            const updates: number[] = [];
+            const functions: number[] = [];
+            const harness = buildHarness({
+                getWorlds: () => [{ getName: () => 'w', update: async (tick) => void updates.push(tick) }],
+                tickFunctions: async () => void functions.push(1)
+            });
+            const handle = await startTestModule(tickerModule(harness.ticker));
+            try {
+                await vi.advanceTimersByTimeAsync(TICK_MS * 2);
+                harness.ticker.setFrozen(true);
+                const worldTicks = updates.length;
+                const eventTicks = harness.tickEvents.length;
+                await vi.advanceTimersByTimeAsync(TICK_MS * 5);
+
+                expect(updates).toHaveLength(worldTicks);
+                expect(functions).toHaveLength(worldTicks);
+                expect(harness.tickEvents.length).toBeGreaterThan(eventTicks);
+
+                harness.ticker.setFrozen(false);
+                await vi.advanceTimersByTimeAsync(TICK_MS * 2);
+                expect(updates.length).toBeGreaterThan(worldTicks);
+            } finally {
+                await handle.stop();
+            }
+        });
+
+        it('steps a frozen world by the ticks asked for and then holds still again', async () => {
+            const updates: number[] = [];
+            const harness = buildHarness({
+                getWorlds: () => [{ getName: () => 'w', update: async (tick) => void updates.push(tick) }]
+            });
+            const handle = await startTestModule(tickerModule(harness.ticker));
+            try {
+                harness.ticker.setFrozen(true);
+                await vi.advanceTimersByTimeAsync(TICK_MS * 2);
+                const before = updates.length;
+
+                expect(harness.ticker.step(3)).toBe(true);
+                await vi.advanceTimersByTimeAsync(TICK_MS * 10);
+                expect(updates.length - before).toBe(3);
+                expect(harness.ticker.stopStep()).toBe(false);
+            } finally {
+                await handle.stop();
+            }
+        });
+
+        it('refuses to step a world that is running', () => {
+            expect(buildHarness().ticker.step(3)).toBe(false);
+        });
+
+        it('sprints through the ticks without waiting, then returns to the target rate', async () => {
+            const harness = buildHarness();
+            const handle = await startTestModule(tickerModule(harness.ticker));
+            try {
+                await vi.advanceTimersByTimeAsync(0);
+                const before = harness.ticker.getTick();
+                harness.ticker.sprint(100);
+                // A zero delay is one millisecond on a timer, so the burst runs a tick a step.
+                for (let step = 0; step < TICK_MS + 110; step++) await vi.advanceTimersByTimeAsync(1);
+                expect(harness.ticker.getTick() - before).toBeGreaterThanOrEqual(100);
+
+                const after = harness.ticker.getTick();
+                await vi.advanceTimersByTimeAsync(TICK_MS * 4);
+                expect(harness.ticker.getTick() - after).toBeLessThanOrEqual(5);
+                expect(harness.ticker.stopSprint()).toBe(false);
+            } finally {
+                await handle.stop();
+            }
+        });
+    });
 });

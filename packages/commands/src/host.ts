@@ -443,6 +443,26 @@ export interface AnimationRequest {
     readonly controller?: string;
 }
 
+/** What `/tick` asks of the tick loop. */
+export interface TickCommandHost {
+    /** The ticks per second the loop aims for. */
+    rate(): number;
+    setRate(rate: number): void;
+    /** How long a tick's work has been taking, in milliseconds, averaged over recent ticks. */
+    tickMs(): number;
+    /** The measured ticks per second. */
+    measuredRate(): number;
+    frozen(): boolean;
+    setFrozen(frozen: boolean): void;
+    /** @returns False when the world is not frozen. */
+    step(ticks: number): boolean;
+    /** @returns False when no step was running. */
+    stopStep(): boolean;
+    sprint(ticks: number): void;
+    /** @returns False when no sprint was running. */
+    stopSprint(): boolean;
+}
+
 /** The administrative verbs a command needs. */
 export interface ServerCommandHost {
     addOperator(player: EntityRef): boolean;
@@ -451,6 +471,7 @@ export interface ServerCommandHost {
     listPlayers(): readonly EntityRef[];
     stop(): void;
     reload(): void;
+    readonly ticking: TickCommandHost;
     transfer(player: EntityRef, host: string, port: number): boolean;
     /** Unlocks or locks recipes for players. */
     recipes(players: readonly EntityRef[], recipe: string, give: boolean): number;

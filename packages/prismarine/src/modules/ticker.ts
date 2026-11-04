@@ -17,7 +17,10 @@ type LateTickProfile = {
 /** Refreshes the process title often enough to show recent tick health without writing every second. */
 const PROCESS_TITLE_UPDATE_INTERVAL_SECONDS = 5;
 
-const MINECRAFT_TICK_TIME_MS = 1000 / 20;
+/** The tick rate a server runs at until `/tick rate` changes it. */
+export const DEFAULT_TICK_RATE = 20;
+
+const MINECRAFT_TICK_TIME_MS = 1000 / DEFAULT_TICK_RATE;
 
 /**
  * How far behind schedule the loop may fall before it stops trying to make the time
@@ -130,6 +133,29 @@ export interface Ticker {
     getTickMs(): number;
 }
 
+/** What `/tick` can do to the loop: the rate it aims for, whether the world advances, and bursts of ticks. */
+export interface TickControl {
+    /** The ticks per second the loop aims for. */
+    getTickRate(): number;
+    /** Sets the target ticks per second; a loop that is sprinting keeps sprinting. */
+    setTickRate(rate: number): void;
+    /** Whether the world and functions are held still. Tick events and chunk sends carry on. */
+    isFrozen(): boolean;
+    setFrozen(frozen: boolean): void;
+    /**
+     * Runs `ticks` ticks of a frozen world, then freezes it again.
+     *
+     * @returns False when the world is not frozen, so there is nothing to step.
+     */
+    step(ticks: number): boolean;
+    /** Ends a step early. @returns False when no step was running. */
+    stopStep(): boolean;
+    /** Runs `ticks` ticks back to back, then returns to the target rate. */
+    sprint(ticks: number): void;
+    /** Ends a sprint early. @returns False when no sprint was running. */
+    stopSprint(): boolean;
+}
+
 /**
  * The fixed-epoch tick loop. `start()` begins ticking immediately (unless the
  * server runs with ticking disabled) and `stop()` clears the pending timer; the
@@ -137,13 +163,19 @@ export interface Ticker {
  * schedule restarts from a fresh epoch instead of repaying the downtime as a
  * catch-up burst.
  */
-export class ServerTicker implements Ticker {
+export class ServerTicker implements Ticker, TickControl {
     private readonly server: TickerServer;
     private tickerTimer: NodeJS.Timeout | undefined;
     private running = false;
     private tps = 20;
     private tickMs = 0;
     private currentTick = 0n;
+    private tickRate = DEFAULT_TICK_RATE;
+    private frozen = false;
+    private stepsLeft = 0;
+    private sprintLeft = 0;
+    /** Set when the period changes, so the next deadline counts from the moment it did. */
+    private rebaseSchedule = false;
 
     public constructor(server: TickerServer) {
         this.server = server;
@@ -162,6 +194,47 @@ export class ServerTicker implements Ticker {
     /** The smoothed per-tick work duration in milliseconds; see {@link Ticker.getTickMs}. */
     public getTickMs(): number {
         return Number.parseFloat(this.tickMs.toFixed(2));
+    }
+
+    public getTickRate(): number {
+        return this.tickRate;
+    }
+
+    public setTickRate(rate: number): void {
+        this.tickRate = rate;
+        this.rebaseSchedule = true;
+    }
+
+    public isFrozen(): boolean {
+        return this.frozen;
+    }
+
+    public setFrozen(frozen: boolean): void {
+        this.frozen = frozen;
+        this.stepsLeft = 0;
+    }
+
+    public step(ticks: number): boolean {
+        if (!this.frozen) return false;
+        this.stepsLeft = ticks;
+        return true;
+    }
+
+    public stopStep(): boolean {
+        const stepping = this.stepsLeft > 0;
+        this.stepsLeft = 0;
+        return stepping;
+    }
+
+    public sprint(ticks: number): void {
+        this.sprintLeft = ticks;
+    }
+
+    public stopSprint(): boolean {
+        const sprinting = this.sprintLeft > 0;
+        this.sprintLeft = 0;
+        this.rebaseSchedule = true;
+        return sprinting;
     }
 
     /** Starts the loop; a no-op when ticking is disabled or the loop already runs. */
@@ -191,7 +264,7 @@ export class ServerTicker implements Ticker {
         // actually holding 50ms. Everything leaving the tick in a batch - entity
         // movement, chunk sends - went out in pairs separated by silence.
         let epoch = now();
-        const epochTick = this.currentTick;
+        let epochTick = this.currentTick;
         let nextTickExpectedStartAt = epoch;
 
         // Completion times of the ticks within the last second, oldest first.
@@ -234,11 +307,15 @@ export class ServerTicker implements Ticker {
 
                 const ticksPerSecond = 1000 / MINECRAFT_TICK_TIME_MS;
 
+                // A frozen world holds still, but a step lets some ticks through.
+                const advancing = !this.frozen || this.stepsLeft > 0;
+                if (this.frozen && this.stepsLeft > 0) this.stepsLeft--;
+
                 // Update all worlds.
                 phaseStartedAt = now();
                 try {
                     await Promise.all(
-                        server.getWorlds().map(async (world) => {
+                        (advancing ? server.getWorlds() : []).map(async (world) => {
                             const worldStartedAt = now();
                             const endWorldProfile = startProfileSpan(profileOwner, `World.update:${world.getName()}`);
                             try {
@@ -261,7 +338,7 @@ export class ServerTicker implements Ticker {
                 // worlds, as Java runs it, so a function sees the world the tick left.
                 const endFunctionsProfile = startProfileSpan(profileOwner, 'Server.tickFunctions');
                 try {
-                    await server.tickFunctions();
+                    if (advancing) await server.tickFunctions();
                 } finally {
                     endFunctionsProfile();
                 }
@@ -318,7 +395,20 @@ export class ServerTicker implements Ticker {
                 // One correction, against one deadline. Deadlines count from the tick
                 // this start resumed at, so a restarted loop is not billed for the
                 // ticks that ran before its epoch.
-                let sleepTime = epoch + Number(this.currentTick - epochTick) * MINECRAFT_TICK_TIME_MS - endTime;
+                if (this.rebaseSchedule) {
+                    this.rebaseSchedule = false;
+                    epoch = endTime;
+                    epochTick = this.currentTick;
+                }
+                let sleepTime = epoch + (Number(this.currentTick - epochTick) * 1000) / this.tickRate - endTime;
+                if (this.sprintLeft > 0) {
+                    // Back to back: no sleeping, and no debt carried out of the burst.
+                    this.sprintLeft--;
+                    if (this.sprintLeft === 0) this.rebaseSchedule = true;
+                    epoch = endTime;
+                    epochTick = this.currentTick;
+                    sleepTime = 0;
+                }
                 if (sleepTime <= 0) {
                     lateTickProfiles.push({
                         elapsedMs,
@@ -342,7 +432,7 @@ export class ServerTicker implements Ticker {
                     epoch += behindBy;
                     sleepTime = 0;
                     logger.warn(
-                        `Can't keep up! Skipping ${(behindBy / MINECRAFT_TICK_TIME_MS).toFixed(0)} ticks (${behindBy.toFixed(0)} ms behind)`,
+                        `Can't keep up! Skipping ${(behindBy / (1000 / this.tickRate)).toFixed(0)} ticks (${behindBy.toFixed(0)} ms behind)`,
                         'Server/tick'
                     );
                     logger.verbose(summarizeLateTicks(lateTickProfiles), 'Server/tick');

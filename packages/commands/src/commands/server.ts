@@ -1,7 +1,7 @@
 /**
  * The chat and administration commands: `/say`, `/me`, `/tell`, `/tellraw`,
  * `/title`, `/op`, `/deop`, `/kick`, `/list`, `/stop`, `/reload`,
- * `/transfer`, `/help` and `/recipe`.
+ * `/transfer`, `/help`, `/recipe` and `/tick`.
  *
  * Bedrock splits plain text from rich text where Java does not: `/tell` takes
  * a message and `/tellraw` takes a `rawtext` object, and the same split
@@ -13,6 +13,7 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import {
     entityArgument,
     enumArgument,
+    floatArgument,
     integerArgument,
     jsonArgument,
     messageArgument,
@@ -168,6 +169,11 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
         ),
         { description: 'Sends players to another server.', ...ADMIN }
     );
+
+    registry.register(tickTree(), {
+        description: 'Queries or changes the tick rate, freezes the world, steps it or sprints.',
+        ...ADMIN
+    });
 
     registry.register(
         lit('help')
@@ -331,4 +337,95 @@ const recipes = (context: Context, give: boolean): number => {
         give
     );
     return report(current, changed, `${give ? 'Unlocked' : 'Locked'} ${changed} recipes`);
+};
+
+/** The Java `/tick` tree: `query`, `rate`, `freeze`, `unfreeze`, `step` and `sprint`. */
+const tickTree = () =>
+    lit('tick')
+        .then(lit('query').executes(command(queryTick)))
+        .then(
+            lit('rate').then(
+                arg('rate', floatArgument({ min: 1, max: 10_000 })).executes(
+                    command((context) => {
+                        const current = source(context);
+                        const rate = value<number>(context, 'rate');
+                        current.host.server.ticking.setRate(rate);
+                        return report(current, rate, `Set the target tick rate to ${rate} per second`);
+                    })
+                )
+            )
+        )
+        .then(
+            lit('freeze').executes(
+                command((context) => {
+                    const current = source(context);
+                    current.host.server.ticking.setFrozen(true);
+                    return report(current, 1, 'The game is frozen');
+                })
+            )
+        )
+        .then(
+            lit('unfreeze').executes(
+                command((context) => {
+                    const current = source(context);
+                    current.host.server.ticking.setFrozen(false);
+                    return report(current, 1, 'The game is running normally');
+                })
+            )
+        )
+        .then(
+            lit('step')
+                .executes(command((context) => stepTicks(context, 1)))
+                .then(lit('stop').executes(command((context) => stopTick(context, 'step'))))
+                .then(
+                    arg('time', timeArgument({ min: 1 })).executes(
+                        command((context) => stepTicks(context, value<number>(context, 'time')))
+                    )
+                )
+        )
+        .then(
+            lit('sprint')
+                .then(lit('stop').executes(command((context) => stopTick(context, 'sprint'))))
+                .then(
+                    arg('time', timeArgument({ min: 1 })).executes(
+                        command((context) => {
+                            const current = source(context);
+                            const ticks = value<number>(context, 'time');
+                            current.host.server.ticking.sprint(ticks);
+                            return report(current, ticks, `Sprinting ${ticks} ticks`);
+                        })
+                    )
+                )
+        );
+
+const queryTick = (context: Context): number => {
+    const current = source(context);
+    const ticking = current.host.server.ticking;
+    const rate = ticking.rate();
+    current.sendFeedback(ticking.frozen() ? 'The game is frozen' : 'The game is running normally');
+    current.sendFeedback(`Target tick rate: ${rate} per second`);
+    current.sendFeedback(
+        `Average time per tick: ${ticking.tickMs().toFixed(1)} ms (Target: ${(1000 / rate).toFixed(1)} ms)`
+    );
+    return Math.round(ticking.measuredRate());
+};
+
+/** Java freezes the world first, so a step works from a running game as well. */
+const stepTicks = (context: Context, ticks: number): number => {
+    const current = source(context);
+    const ticking = current.host.server.ticking;
+    ticking.setFrozen(true);
+    ticking.step(ticks);
+    return report(current, ticks, `Stepping ${ticks} tick${ticks === 1 ? '' : 's'}`);
+};
+
+const stopTick = (context: Context, what: 'step' | 'sprint'): number => {
+    const current = source(context);
+    const ticking = current.host.server.ticking;
+    const stopped = what === 'step' ? ticking.stopStep() : ticking.stopSprint();
+    return report(
+        current,
+        stopped ? 1 : 0,
+        stopped ? `Stopped ${what === 'step' ? 'stepping' : 'sprinting'}` : `No ${what} in progress`
+    );
 };

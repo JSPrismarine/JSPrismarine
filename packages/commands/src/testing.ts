@@ -125,6 +125,18 @@ const server = (): ServerCommandHost => ({
     listPlayers: () => [],
     stop: () => {},
     reload: () => {},
+    ticking: {
+        rate: () => 20,
+        setRate: () => {},
+        tickMs: () => 0,
+        measuredRate: () => 20,
+        frozen: () => false,
+        setFrozen: () => {},
+        step: () => false,
+        stopStep: () => false,
+        sprint: () => {},
+        stopSprint: () => false
+    },
     transfer: () => false,
     recipes: () => 0,
     sendMessage: () => {},
