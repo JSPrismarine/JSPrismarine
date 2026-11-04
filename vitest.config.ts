@@ -81,6 +81,21 @@ export default defineConfig({
 
         setupFiles: [`${__dirname}/.test/vitest.setup.ts`],
 
+        // The shared fork above keeps one worker's globals across files. OpenTUI's native
+        // renderer holds process-global state, and `inputBar.test.ts` hung on CI only when an
+        // earlier file's renderer was still alive in its worker. The console package therefore
+        // gets a fresh process per file; everything else keeps the shared-worker speed-up.
+        projects: [
+            {
+                extends: true,
+                test: { name: 'console', include: ['packages/console/**/*.test.ts'], exclude, isolate: true }
+            },
+            {
+                extends: true,
+                test: { name: 'default', exclude: [...exclude, 'packages/console/**'] }
+            }
+        ],
+
         coverage: {
             all: true,
             exclude,
