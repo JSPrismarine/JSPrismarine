@@ -34,6 +34,7 @@ import { damage } from './scenarios/damage.mts';
 import { fallDamage } from './scenarios/fall-damage.mts';
 import { title } from './scenarios/title.mts';
 import { blockPlacement } from './scenarios/block-placement.mts';
+import { deathRespawn } from './scenarios/death-respawn.mts';
 import { movement } from './scenarios/movement.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -57,6 +58,7 @@ const suites: ScenarioSuite[] = [
             spawn,
             movement,
             jump,
+            deathRespawn,
             blockPlacement,
             title,
             fallDamage,
