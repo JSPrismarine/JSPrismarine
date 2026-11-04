@@ -42,7 +42,7 @@ export const blockPlacement: Scenario = {
             await sleep(300);
             let reply = '';
             for (let attempt = 0; attempt < 3; attempt += 1) {
-                await client.input({ press: ['MouseRight'], press_frames: 3 });
+                await client.input({ press: ['MouseRight'], press_frames: 1 });
                 await sleep(100);
                 await client.input({ release: ['MouseRight'] });
                 await sleep(400);
@@ -55,7 +55,11 @@ export const blockPlacement: Scenario = {
         const cobble = await placeUntil(2, 'minecraft:cobblestone');
         assert.match(cobble, /Found the block at/, `hotbar slot 2 should have placed cobblestone: ${cobble}`);
 
-        server.command(`setblock ${FIXTURE_X} 65 2 minecraft:air`);
+        // A click that auto-repeats leaves a second block against the first; clear both so the
+        // next ray lands on the stone again.
+        await client.input({ release_all: true });
+        await sleep(500);
+        server.command(`fill ${FIXTURE_X} 65 1 ${FIXTURE_X} 65 2 minecraft:air`);
         await sleep(300);
         const dirt = await placeUntil(1, 'minecraft:dirt');
         assert.match(dirt, /Found the block at/, `hotbar slot 1 should have placed dirt: ${dirt}`);
