@@ -17,6 +17,7 @@ import { DIRECTIONS, opposite, relative } from './world';
 
 const BUTTON_PRESSED_STATE = 'button_pressed_bit';
 const LEVER_OPEN_STATE = 'open_bit';
+const LEVER_DIRECTION_STATE = 'lever_direction';
 const OBSERVER_POWERED_STATE = 'powered_bit';
 const SIGNAL_STATE = 'redstone_signal';
 const FACING_STATE = 'facing_direction';
@@ -55,7 +56,21 @@ const directionState = (block: BlockRef, state: string, fallback: Direction): Di
 
 const facingOf = (block: BlockRef): Direction => directionState(block, FACING_STATE, 'north');
 const attachmentOf = (block: BlockRef): Direction => directionState(block, ATTACHMENT_STATE, 'down');
-const connectedDirectionOf = (block: BlockRef): Direction => opposite(attachmentOf(block));
+/**
+ * The direction from a lever's support block to the lever, which is the one way it powers that
+ * block strongly. Bedrock names it in `lever_direction`: a wall lever by the way it faces, and a
+ * floor or ceiling lever by the axis it swings on.
+ */
+const leverConnectedDirection = (block: BlockRef): Direction => {
+    const value = block.states[LEVER_DIRECTION_STATE];
+    if (typeof value !== 'string') return 'up';
+    if (value.startsWith('up_')) return 'up';
+    if (value.startsWith('down_')) return 'down';
+    return DIRECTIONS_BY_NAME[value] ?? 'up';
+};
+
+const connectedDirectionOf = (block: BlockRef): Direction =>
+    block.name === LEVER ? leverConnectedDirection(block) : opposite(attachmentOf(block));
 const isButton = (name: string): boolean => name.endsWith('_button');
 const isPressurePlate = (name: string): boolean => name.endsWith('_pressure_plate');
 const isDaylightDetector = (name: string): boolean =>
