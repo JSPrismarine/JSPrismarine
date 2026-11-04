@@ -62,7 +62,8 @@ const contentDigest = (content: ReturnType<typeof buildServerContent>, includeLo
         const staticDigest = content.contentFingerprint;
         if (!includeLoot) return staticDigest;
         const loot = content.loot.roll('minecraft:chests/simple_dungeon').map(({ id, count }) => [id, count]);
-        return hash(JSON.stringify([staticDigest, loot]));
+        // A single result can match by chance; the saved state includes the actual world seed.
+        return hash(JSON.stringify([staticDigest, loot, content.loot.saveRandomState()]));
     }
 
     const stoneRuntimeId = content.blocks.palette.runtimeId('minecraft:stone');
@@ -108,7 +109,8 @@ const contentDigest = (content: ReturnType<typeof buildServerContent>, includeLo
             ? Array.from({ length: 24 }, () =>
                   content.loot.roll('prototype:seeded').map((stack) => [stack.id, stack.count])
               )
-            : undefined
+            : undefined,
+        lootRandomState: includeLoot ? content.loot.saveRandomState() : undefined
     };
     return hash(JSON.stringify(stableData(summary)) ?? '');
 };

@@ -199,7 +199,7 @@ try {
             : firstSeed.freshStaticDigest === secondSeed.freshStaticDigest &&
               (firstSeed.restoredStaticDigest === undefined ||
                   firstSeed.restoredStaticDigest === secondSeed.restoredStaticDigest);
-    const seedBoundLootChanges =
+    const seedBoundLootStateChanges =
         firstSeed === undefined || secondSeed === undefined || !snapshotAvailable
             ? undefined
             : firstSeed.freshContentDigest !== secondSeed.freshContentDigest &&
@@ -214,7 +214,7 @@ try {
         ) ||
         customInvalidates === false ||
         seedIndependentDataMatches === false ||
-        seedBoundLootChanges === false;
+        seedBoundLootStateChanges === false;
     const output = {
         node: process.version,
         v8: process.versions.v8,
@@ -240,7 +240,7 @@ try {
         customSnapshotFallbackDigestMatchesFresh:
             customFallback === undefined ? null : sameDigest(customFallback, customFresh),
         seedIndependentDataMatches: seedIndependentDataMatches ?? null,
-        seedBoundLootChanges: seedBoundLootChanges ?? null,
+        seedBoundLootStateChanges: seedBoundLootStateChanges ?? null,
         sharedRuntimeContent: false
     };
     process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);

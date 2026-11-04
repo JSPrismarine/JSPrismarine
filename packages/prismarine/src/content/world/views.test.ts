@@ -1,3 +1,6 @@
+import { deserialize, serialize } from 'node:v8';
+
+import type { Definitions } from '@jsprismarine/packs';
 import { describe, expect, it } from 'vitest';
 
 import { buildServerContent } from '../ServerContent';
@@ -134,6 +137,25 @@ describe('the content world views', () => {
         replacementActions.setBlock({ x: 1, y: 2, z: 3 }, 'minecraft:stone');
         expect(overworld.writes).toEqual([]);
         expect(replacementWrites).toEqual([{ x: 1, y: 2, z: 3 }]);
+    });
+
+    it('binds restored definition data to the current world adapter', () => {
+        const snapshotWorld = stubWorld();
+        const snapshotContent = contentFor(snapshotWorld.adapter);
+        const restoredDefinitions: Definitions = deserialize(serialize(snapshotContent.definitions));
+        const currentWorld = stubWorld();
+        const restoredContent = buildServerContent(
+            fixtureContentOptions({
+                seed: 42n,
+                world: singleDimension(currentWorld.adapter),
+                load: () => ({ definitions: restoredDefinitions, diagnostics: [] })
+            })
+        );
+
+        restoredContent.world.blockWorld.at('minecraft:nether').setBlock({ x: 1, y: 2, z: 3 }, 'minecraft:stone');
+
+        expect(snapshotWorld.writes).toEqual([]);
+        expect(currentWorld.writes).toEqual([{ x: 1, y: 2, z: 3 }]);
     });
 
     it('answers a block behavior’s property lookup out of the resolved block types', () => {

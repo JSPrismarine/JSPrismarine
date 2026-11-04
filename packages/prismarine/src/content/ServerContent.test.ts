@@ -1,4 +1,7 @@
+import { deserialize, serialize } from 'node:v8';
+
 import { PackLoadError } from '@jsprismarine/packs';
+import type { Definitions } from '@jsprismarine/packs';
 import { reportProgress } from '../../../../.test/reportProgress';
 import { describe, expect, it } from 'vitest';
 
@@ -39,6 +42,73 @@ describe('buildServerContent', () => {
         expect(repeated.contentFingerprint).toMatch(/^[0-9a-f]{64}$/);
         expect(repeated.contentFingerprint).toBe(buildServerContent(fixtureContentOptions()).contentFingerprint);
         expect(changed.contentFingerprint).not.toBe(repeated.contentFingerprint);
+    });
+
+    it('rebuilds production registries from snapshot data and binds loot to the restored seed', () => {
+        const sourceDefinitions = fixtureDefinitions();
+        const lootTablesJava = new Map(sourceDefinitions.lootTablesJava);
+        lootTablesJava.set(
+            'snapshot:seeded',
+            definitionOf(
+                'lootTablesJava',
+                'snapshot:seeded',
+                {
+                    type: 'minecraft:chest',
+                    random_sequence: 'snapshot:seeded',
+                    pools: [
+                        {
+                            rolls: 1,
+                            entries: [
+                                { type: 'minecraft:item', name: 'minecraft:stone', weight: 1 },
+                                { type: 'minecraft:item', name: 'minecraft:redstone_lamp', weight: 1 }
+                            ]
+                        }
+                    ]
+                },
+                'snapshot-fixture'
+            )
+        );
+        const definitions = { ...sourceDefinitions, lootTablesJava };
+        const snapshotBuild = buildServerContent(
+            fixtureContentOptions({ seed: 0n, load: () => ({ definitions, diagnostics: [] }) })
+        );
+        // The startup snapshot keeps plain pack data; resolving it again reconstructs world closures and loot streams.
+        const restoredDefinitions: Definitions = deserialize(serialize(snapshotBuild.definitions));
+        const lootStreams: string[] = [];
+
+        for (const seed of [1n, 42n]) {
+            const restored = buildServerContent(
+                fixtureContentOptions({ seed, load: () => ({ definitions: restoredDefinitions, diagnostics: [] }) })
+            );
+            const fresh = buildServerContent(
+                fixtureContentOptions({ seed, load: () => ({ definitions, diagnostics: [] }) })
+            );
+
+            expect(restored).not.toBe(snapshotBuild);
+            expect(restored.world).not.toBe(snapshotBuild.world);
+            expect(restored.blocks.types).not.toBe(snapshotBuild.blocks.types);
+            expect(restored.loot).not.toBe(snapshotBuild.loot);
+            expect(restored.equipmentLoot).not.toBe(snapshotBuild.equipmentLoot);
+            expect(restored.contentFingerprint).toBe(fresh.contentFingerprint);
+            expect([...restored.blocks.types.keys()]).toEqual([...fresh.blocks.types.keys()]);
+            expect([...restored.items.registry.keys()]).toEqual([...fresh.items.registry.keys()]);
+            expect([...restored.entities.registry.keys()]).toEqual([...fresh.entities.registry.keys()]);
+            expect(restored.recipes.recipes.map((recipe) => recipe.id)).toEqual(
+                fresh.recipes.recipes.map((recipe) => recipe.id)
+            );
+            expect(restored.loot.ids).toEqual(fresh.loot.ids);
+            expect(restored.loot.worldSeed).toBe(seed);
+            expect(restored.equipmentLoot.worldSeed).toBe(seed);
+            expect(restored.loot.roll('snapshot:seeded').map(({ id, count }) => [id, count])).toEqual(
+                fresh.loot.roll('snapshot:seeded').map(({ id, count }) => [id, count])
+            );
+            const state = restored.loot.saveRandomState();
+            expect(state.worldSeed).toBe(seed.toString());
+            expect(state).toEqual(fresh.loot.saveRandomState());
+            lootStreams.push(JSON.stringify(state.streams));
+        }
+
+        expect(lootStreams[0]).not.toBe(lootStreams[1]);
     });
 
     it('loads Bedrock item tags and component bodies without replacing Java defaults', () => {
