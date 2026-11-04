@@ -44,6 +44,10 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import { inertEntityRuntime, testContent } from '../../testing/entityServer';
+import type { DataEntity, MobBody } from '../../entity/data/DataEntity';
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import type { LiveBodies } from '../../entity/data/liveBodies';
+import type { LiveEntityRuntime } from '../../entity/data/live';
 import { collectAsyncCommands } from '../Command';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
@@ -443,6 +447,24 @@ describe('the server command host', () => {
             expect(pig.setPosition).toHaveBeenCalledWith(
                 expect.objectContaining({ position: expect.objectContaining({ x: 10, y: 70, z: 10 }) })
             );
+        });
+
+        it('teleports the runtime entity behind a data-driven mob, which owns where it stands', async () => {
+            const pig = mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 64, 0));
+            const teleportTo = vi.fn();
+            const body = { yaw: 0, pitch: 0, teleportTo };
+            vi.spyOn(fixture.world, 'dataEntities').mockReturnValue(
+                stub<LiveEntityRuntime>({
+                    bodies: stub<LiveBodies>({ entityIdOf: () => 7 }),
+                    runtime: stub<EntityRuntime>({ byId: () => stub<DataEntity>({ body: stub<MobBody>(body) }) })
+                })
+            );
+
+            await expect(fixture.run('tp @e 10 70 10')).resolves.toBe(1);
+
+            expect(teleportTo).toHaveBeenCalledWith({ x: 10, y: 70, z: 10 });
+            // Written to the body alone, the runtime would put the mob straight back next tick.
+            expect(pig.setPosition).not.toHaveBeenCalled();
         });
 
         it('moves a player into another dimension at the requested position, in one move', async () => {

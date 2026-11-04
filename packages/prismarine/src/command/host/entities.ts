@@ -20,6 +20,7 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import { normalizeStatusEffectId } from '../../entity/StatusEffect';
+import type { DataEntity } from '../../entity/data/DataEntity';
 import type { Entity } from '../../entity/Entity';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { eyePositionAt } from '../../entity/Human';
@@ -172,6 +173,13 @@ const summonDataEntity = (
     return entityRefOf(body);
 };
 
+/** The runtime entity behind a body, or undefined when the body is not a data-driven mob. */
+const dataEntityOf = (entity: Entity): DataEntity | undefined => {
+    const live = entity.getWorld().dataEntities();
+    const id = live.bodies.entityIdOf(entity);
+    return id === undefined ? undefined : live.runtime.byId(id);
+};
+
 /**
  * The identifier a typed entity name actually spawns under.
  *
@@ -280,21 +288,35 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             // The coordinates are feet, as Java reads them. A player's position is their
             // eyes, so it is raised here the way `changeWorld` raises its arrival; every
             // other entity's position is already its feet.
-            const move = async () =>
-                entity instanceof Player
-                    ? entity.setPosition({
-                          position: eyePositionAt(vectorOf(position)),
-                          type: PositionMode.Teleport,
-                          yaw: rotation.yaw,
-                          pitch: rotation.pitch,
-                          headYaw: rotation.yaw
-                      })
-                    : entity.setPosition({
-                          position: vectorOf(position),
-                          yaw: rotation.yaw,
-                          pitch: rotation.pitch,
-                          headYaw: rotation.yaw
-                      });
+            const move = async () => {
+                if (entity instanceof Player) {
+                    return entity.setPosition({
+                        position: eyePositionAt(vectorOf(position)),
+                        type: PositionMode.Teleport,
+                        yaw: rotation.yaw,
+                        pitch: rotation.pitch,
+                        headYaw: rotation.yaw
+                    });
+                }
+
+                // A data-driven mob's runtime owns where it stands and writes that onto the
+                // body every tick, so moving the body alone is undone on the next one. The
+                // runtime entity is what moves, and its body follows as a teleport.
+                const driven = dataEntityOf(entity);
+                if (driven !== undefined) {
+                    driven.body.yaw = rotation.yaw;
+                    driven.body.pitch = rotation.pitch;
+                    driven.body.teleportTo({ x: position.x, y: position.y, z: position.z });
+                    return;
+                }
+
+                return entity.setPosition({
+                    position: vectorOf(position),
+                    yaw: rotation.yaw,
+                    pitch: rotation.pitch,
+                    headYaw: rotation.yaw
+                });
+            };
 
             // Only a player can change world here; `Entity.setPosition` keeps
             // the world it is in, which is why `/tp` across dimensions is a
