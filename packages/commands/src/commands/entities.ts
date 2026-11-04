@@ -44,6 +44,13 @@ const CHEATS = {
     requiresCheats: true
 } as const;
 
+/** Reports a `/summon`, naming the failure when the host could not create the entity. */
+const reportSummon = (current: CommandSource, summoned: unknown): number => {
+    if (summoned !== undefined) return report(current, 1, 'Summoned new entity');
+    current.sendError('Unable to summon entity');
+    return 0;
+};
+
 /** Registers the 13 entity commands. */
 export const registerEntityCommands = (registry: CommandRegistry<CommandSource>): void => {
     const content = registry.getContent();
@@ -60,7 +67,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                             current.rotation,
                             { dimension: current.dimension }
                         );
-                        return report(current, summoned === undefined ? 0 : 1, 'Summoned new entity');
+                        return reportSummon(current, summoned);
                     })
                 )
                 .then(
@@ -74,7 +81,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                                     current.rotation,
                                     { dimension: current.dimension }
                                 );
-                                return report(current, summoned === undefined ? 0 : 1, 'Summoned new entity');
+                                return reportSummon(current, summoned);
                             })
                         )
                         .then(
@@ -87,7 +94,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                                         current.rotation,
                                         { nbt: value(context, 'nbt'), dimension: current.dimension }
                                     );
-                                    return report(current, summoned === undefined ? 0 : 1, 'Summoned new entity');
+                                    return reportSummon(current, summoned);
                                 })
                             )
                         )
