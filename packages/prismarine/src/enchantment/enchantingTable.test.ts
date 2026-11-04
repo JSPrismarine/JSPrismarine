@@ -114,14 +114,14 @@ const worldOf = (blocks: ReadonlyMap<string, string> = new Map()) =>
         getPlayers: () => []
     });
 
-const scene = (built: ServerContent, world = worldOf()) => {
+const scene = (built: ServerContent, world = worldOf(), random: () => number = () => 0.5) => {
     const sent: NetworkPacket[] = [];
     const attributes = new Attributes(Attributes.getPlayerDefaults());
 
     const player: Player = stub<Player>({
         getType: () => 'minecraft:player',
         getName: () => 'tester',
-        getServer: () => stub<Server>({ getContent: () => built }),
+        getServer: () => stub<Server>({ getContent: () => built, getRandom: () => random }),
         getWorld: () => world,
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
@@ -144,6 +144,15 @@ const scene = (built: ServerContent, world = worldOf()) => {
 const pickaxe = () => new Item({ name: 'minecraft:diamond_pickaxe' });
 
 describe('the enchanting table', () => {
+    it('uses the server random stream for new and rerolled seeds', () => {
+        const draws = [0.25, 0.75];
+        const { player } = scene(content(), worldOf(), () => draws.shift() ?? 0);
+
+        expect(enchantmentSeedOf(player)).toBe(Math.floor(0.25 * 0x7fffffff));
+        expect(rerollEnchantmentSeed(player)).toBe(Math.floor(0.75 * 0x7fffffff));
+        expect(draws).toEqual([]);
+    });
+
     it('offers the same three rows for the same seed, which is what keeps them still', () => {
         const registry = content().enchantments;
 

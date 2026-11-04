@@ -127,7 +127,9 @@ const scene = (open: OpenBlockContainer) => {
 
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
-        getContent: () => built
+        getContent: () => built,
+        // Table seed creation and post-enchant rerolls share the server RNG, so keep this path repeatable.
+        getRandom: () => () => 0.25
     });
 
     const player: Player = stub<Player>({

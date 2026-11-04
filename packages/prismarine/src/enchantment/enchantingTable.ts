@@ -28,6 +28,7 @@ import type { EnchantmentInstance, ItemEnchantOption } from '@jsprismarine/proto
 import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
 import type { BlockPosition } from './bookshelves';
+import { randomOf } from '../utils/Random';
 
 /** An enchanting table always shows three rows, even when some of them are empty. */
 export const ENCHANTING_SLOTS = 3;
@@ -44,7 +45,10 @@ const HELD_GROUPS: ReadonlySet<string> = new Set(['mainhand', 'offhand', 'hand']
 const seeds = new WeakMap<Player, number>();
 
 /** A fresh seed, in the 32-bit range Java's own reroll produces. */
-const freshSeed = (): number => Math.floor(Math.random() * 0x7fffffff);
+const freshSeed = (player: Player): number => {
+    // Use the checkpointed server stream so table creation and rerolls replay with the same seed.
+    return Math.floor(randomOf(player.getServer())() * 0x7fffffff);
+};
 
 /**
  * The player's enchantment seed, drawn once and then kept.
@@ -56,14 +60,14 @@ export const enchantmentSeedOf = (player: Player, stored?: number): number => {
     const held = seeds.get(player);
     if (held !== undefined) return held;
 
-    const seed = stored ?? freshSeed();
+    const seed = stored ?? freshSeed(player);
     seeds.set(player, seed);
     return seed;
 };
 
 /** Draws a new seed, which is what Java does the moment something is enchanted. */
 export const rerollEnchantmentSeed = (player: Player): number => {
-    const seed = freshSeed();
+    const seed = freshSeed(player);
     seeds.set(player, seed);
     return seed;
 };
