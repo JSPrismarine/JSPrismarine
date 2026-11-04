@@ -178,17 +178,26 @@ describe('WorkerServerSocket', () => {
         const handoffStarted = Date.now();
         await delay(250);
         let metrics = server.getMetrics();
+        const frameDeadline = Date.now() + 5_000;
+        // Don't poll the inbound ring here: the game-thread handoff must stay blocked while
+        // the worker sends frames and handles reliability feedback.
+        while (clientFrames.length < 8 && Date.now() < frameDeadline) {
+            await delay(2);
+            metrics = server.getMetrics();
+        }
+        expect(clientFrames).toHaveLength(8);
+
+        // The client timer is independent of the worker under test. Drive its ACK pass after
+        // observing delivery so a loaded test runner cannot starve that unrelated timer.
+        clientSession.update();
         const sampleDeadline = Date.now() + 5_000;
-        // Observe the worker's replies before requiring an RTT sample; don't poll the inbound
-        // ring here, because that would end the game-thread handoff this test is measuring.
-        while ((clientFrames.length < 8 || metrics.roundTripSamples === 0) && Date.now() < sampleDeadline) {
+        while (metrics.roundTripSamples === 0 && Date.now() < sampleDeadline) {
             await delay(2);
             metrics = server.getMetrics();
         }
 
         const handoffDurationMs = Date.now() - handoffStarted;
         expect(metrics.inbound.queuedBytes).toBeGreaterThan(0);
-        expect(clientFrames).toHaveLength(8);
         expect(metrics.roundTripSamples).toBeGreaterThan(0);
         expect(metrics.maxRoundTripMs).toBeLessThan(handoffDurationMs);
         expect(metrics.retransmissions).toBe(0);
