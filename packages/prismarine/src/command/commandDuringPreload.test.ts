@@ -27,6 +27,7 @@ vi.mock('@jsprismarine/raknet', async (importActual) => {
     const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
         this.start = vi.fn();
         this.on = vi.fn();
+        this.kill = vi.fn();
     });
     return {
         ...(await importActual<typeof import('@jsprismarine/raknet')>()),
@@ -136,7 +137,6 @@ describe('a command typed while the start region is still generating', () => {
         process.env.JSP_DIR = root;
 
         server = new Server({ logger: new Logger(), config: debugConfig('preloading'), headless: true });
-        vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
         server
             .getWorldManager()
             .getGeneratorFactories()
@@ -159,8 +159,9 @@ describe('a command typed while the start region is still generating', () => {
 
     afterAll(async () => {
         open();
+        // Shutdown cancels the rest of this fixture's nine-chunk preload instead of waiting for it to fill.
+        await server.shutdown({ stayAlive: true });
         await booting.catch(() => {});
-        await server.getWorldManager().getDefaultWorld().getProvider().disable();
         rmSync(root, { recursive: true, force: true });
         if (previousDir === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previousDir;
