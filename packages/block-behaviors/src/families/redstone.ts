@@ -668,6 +668,9 @@ export const redstoneFamily = defineFamily(
                     setStates(world, block, { open_bit: open });
                     world.playSound(block.position, 'random.click');
                     world.notifyNeighbors(block.position);
+                    // The lever powers the block it hangs on, so what sits against that block
+                    // has to hear about the flip too, as Java's `updateNeighbours` sends it.
+                    world.notifyNeighbors(offset(block.position, leverSupportFace(block)));
                     return true;
                 }
                 case 'powered_repeater':

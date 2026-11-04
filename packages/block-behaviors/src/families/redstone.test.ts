@@ -231,6 +231,16 @@ describe('redstoneFamily: the rest of the components', () => {
         expect(harness.dimension.notified).toContainEqual(origin);
     });
 
+    it('tells the neighbors of the block a flipped lever hangs on', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:lever');
+        harness.dimension.set(origin, 'minecraft:lever', { open_bit: false, lever_direction: 'north' });
+
+        expect(harness.interact(origin)).toBe(true);
+
+        // `north` hangs the lever on the block to its south.
+        expect(harness.dimension.notified).toContainEqual({ x: origin.x, y: origin.y, z: origin.z + 1 });
+    });
+
     it('faces a placed lectern toward the placer', () => {
         // Java's `LecternBlock.getStateForPlacement` opposes the placer's horizontal
         // direction, and the Geyser-derived table carries a lectern's Java `facing` into
