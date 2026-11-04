@@ -1,10 +1,12 @@
 /**
- * Bounded user-land startup snapshot experiment over the real content builder's fixtures.
+ * Bounded user-land startup snapshot experiment over content-builder inputs.
  *
  * The snapshot stores composed input definitions and seed-zero digests. A restored process
  * always builds fresh runtime registries for its seed and world, so the cached loot registry or
- * world views are never shared between runs. This measures input restoration and late binding;
- * it does not claim that sharing the live `ServerContent` object is safe.
+ * world views are never shared between runs. `--vanilla` uses the fetched default pack stack;
+ * otherwise, a small fixture keeps the experiment runnable without external data. This measures
+ * input restoration and late binding, not reuse of resolved runtime registries: those registries
+ * close over world adapters and seed-bound loot services and cannot safely be shared as-is.
  */
 import { performance } from 'node:perf_hooks';
 import { startupSnapshot } from 'node:v8';
@@ -24,9 +26,11 @@ const SNAPSHOT_SCHEMA = 1;
 
 interface SnapshotManifest {
     readonly schema: number;
+    readonly inputKind: 'fixture' | 'vanilla';
     readonly nodeVersion: string;
     readonly v8Version: string;
     readonly definitionsFingerprint: string;
+    readonly contentFingerprint: string;
     readonly seedZeroStaticDigest: string;
     readonly seedZeroContentDigest: string;
     readonly buildMs: number;
@@ -52,8 +56,15 @@ const definitionsFingerprint = (definitions: Definitions): string => {
     return JSON.stringify(normalized);
 };
 
-/** A deterministic digest for the public registry values exercised by the prototype. */
+/** A deterministic digest for the content and seeded loot exercised by the prototype. */
 const contentDigest = (content: ReturnType<typeof buildServerContent>, includeLoot: boolean): string => {
+    if (useVanillaInputs) {
+        const staticDigest = content.contentFingerprint;
+        if (!includeLoot) return staticDigest;
+        const loot = content.loot.roll('minecraft:chests/simple_dungeon').map(({ id, count }) => [id, count]);
+        return hash(JSON.stringify([staticDigest, loot]));
+    }
+
     const stoneRuntimeId = content.blocks.palette.runtimeId('minecraft:stone');
     const pickaxeId = content.items.registry.idOf('minecraft:diamond_pickaxe');
     const summary = {
@@ -172,9 +183,17 @@ const withCustomPack = (definitions: Definitions): Definitions => {
     return { ...definitions, biomes };
 };
 
-/** Builds the public content graph from one input snapshot and binds fresh seed and world views. */
-const buildContent = (definitions: Definitions, seed: bigint): ReturnType<typeof buildServerContent> =>
-    buildServerContent(
+/** Builds runtime registries from cached definitions with a new seed and world adapter. */
+const buildContent = (definitions: Definitions, seed: bigint): ReturnType<typeof buildServerContent> => {
+    if (useVanillaInputs) {
+        return buildServerContent({
+            seed,
+            stack: [],
+            load: () => ({ definitions, diagnostics: [] })
+        });
+    }
+
+    return buildServerContent(
         fixtureContentOptions({
             seed,
             load: () => ({ definitions, diagnostics: [] }),
@@ -182,6 +201,14 @@ const buildContent = (definitions: Definitions, seed: bigint): ReturnType<typeof
             itemDefinitions: fixtureItemDefinitions()
         })
     );
+};
+
+/** Rebuilds from the current source when a saved input cannot be trusted. */
+const buildFreshContent = (seed: bigint, definitions?: Definitions): ReturnType<typeof buildServerContent> => {
+    if (definitions !== undefined) return buildContent(definitions, seed);
+    if (useVanillaInputs) return buildServerContent({ seed });
+    return buildContent(withSeededLoot(fixtureDefinitions()), seed);
+};
 
 /** Adds a seeded loot table so the experiment can detect a seed leaking through restoration. */
 const withSeededLoot = (definitions: Definitions): Definitions => {
@@ -210,57 +237,89 @@ const withSeededLoot = (definitions: Definitions): Definitions => {
     return { ...definitions, lootTablesJava };
 };
 
-const snapshotDefinitions = withSeededLoot(fixtureDefinitions());
+const useVanillaInputs = process.env.JSP_CONTENT_SNAPSHOT_VANILLA === '1';
 
-const createSnapshotManifest = (): SnapshotManifest => {
+interface SnapshotInputs {
+    readonly definitions: Definitions;
+    readonly manifest: SnapshotManifest;
+}
+
+/** Builds and retains only the seed-independent pack inputs in the startup snapshot. */
+const createSnapshotInputs = (): SnapshotInputs => {
     const startedAt = performance.now();
-    const seedZeroContent = buildContent(snapshotDefinitions, 0n);
+    const seedZeroContent = useVanillaInputs
+        ? buildServerContent({ seed: 0n })
+        : buildContent(withSeededLoot(fixtureDefinitions()), 0n);
+    const definitions = seedZeroContent.definitions;
     const activeResources = process.getActiveResourcesInfo();
     // PipeWrap is the benchmark process's stdout/stderr; every other active resource is unexpected.
     const forbiddenResources = activeResources.filter((resource) => resource !== 'PipeWrap');
-    return {
+    const manifest = {
         schema: SNAPSHOT_SCHEMA,
+        inputKind: useVanillaInputs ? ('vanilla' as const) : ('fixture' as const),
         nodeVersion: process.versions.node,
         v8Version: process.versions.v8,
-        definitionsFingerprint: definitionsFingerprint(snapshotDefinitions),
+        definitionsFingerprint: definitionsFingerprint(definitions),
+        contentFingerprint: seedZeroContent.contentFingerprint,
         seedZeroStaticDigest: contentDigest(seedZeroContent, false),
         seedZeroContentDigest: contentDigest(seedZeroContent, true),
         buildMs: performance.now() - startedAt,
         activeResources,
         forbiddenResources
     };
+    return { definitions, manifest };
 };
 
 if (startupSnapshot.isBuildingSnapshot()) {
-    const manifest = createSnapshotManifest();
+    const snapshotInputs = createSnapshotInputs();
+    const { definitions: snapshotDefinitions, manifest } = snapshotInputs;
     startupSnapshot.setDeserializeMainFunction(() => {
         const nodeStartedAtMs = process.uptime() * 1000;
+        const inputValidationStartedAt = performance.now();
         const seed = BigInt(process.env.JSP_CONTENT_SNAPSHOT_SEED ?? '0');
         const currentDefinitions =
             process.env.JSP_CONTENT_SNAPSHOT_CUSTOM === '1' ? withCustomPack(snapshotDefinitions) : snapshotDefinitions;
         const matches =
             manifest.schema === SNAPSHOT_SCHEMA &&
+            manifest.inputKind === (useVanillaInputs ? 'vanilla' : 'fixture') &&
             manifest.nodeVersion === process.versions.node &&
             manifest.v8Version === process.versions.v8 &&
             manifest.definitionsFingerprint === definitionsFingerprint(currentDefinitions);
-        const definitions = matches ? snapshotDefinitions : currentDefinitions;
+        const inputValidationMs = performance.now() - inputValidationStartedAt;
         const lateBoundStartedAt = performance.now();
-        const restored = buildContent(definitions, seed);
+        const requestedPackDefinitions =
+            process.env.JSP_CONTENT_SNAPSHOT_CUSTOM === '1' ? currentDefinitions : undefined;
+        let cacheHit = matches;
+        let restored = cacheHit
+            ? buildContent(snapshotDefinitions, seed)
+            : buildFreshContent(seed, requestedPackDefinitions);
+        if (cacheHit && restored.contentFingerprint !== manifest.contentFingerprint) {
+            // The input hash can stay the same while resolver code or built-in tables change.
+            // Fall back to the current source instead of trusting a stale derived registry.
+            cacheHit = false;
+            restored = buildFreshContent(seed, requestedPackDefinitions);
+        }
         const lateBoundBuildMs = performance.now() - lateBoundStartedAt;
-        const fresh = buildContent(currentDefinitions, seed);
+        // Capture comparable cold-start completion before the parity-only fresh build below.
+        const snapshotContentBuiltAtMs = process.uptime() * 1000;
+        const fresh = buildFreshContent(seed, requestedPackDefinitions);
         const restoredStaticDigest = contentDigest(restored, false);
         const restoredContentDigest = contentDigest(restored, true);
         const freshStaticDigest = contentDigest(fresh, false);
         const freshContentDigest = contentDigest(fresh, true);
         const sameStaticDigest = restoredStaticDigest === freshStaticDigest;
         const sameContentDigest = restoredContentDigest === freshContentDigest;
+        const snapshotContentFingerprintMatches =
+            !cacheHit || restored.contentFingerprint === manifest.contentFingerprint;
         const snapshotSeedZeroMatches =
-            seed !== 0n || !matches || restoredContentDigest === manifest.seedZeroContentDigest;
+            seed !== 0n || !cacheHit || restoredContentDigest === manifest.seedZeroContentDigest;
         const result = {
             mode: 'snapshot-restore',
             seed: seed.toString(),
-            cacheHit: matches,
+            cacheHit,
             snapshotRestoreToCallbackMs: nodeStartedAtMs,
+            snapshotInputValidationMs: inputValidationMs,
+            snapshotContentBuiltAtMs,
             lateBoundBuildMs,
             cachedSeedZeroStaticDigest: manifest.seedZeroStaticDigest,
             cachedSeedZeroContentDigest: manifest.seedZeroContentDigest,
@@ -269,26 +328,38 @@ if (startupSnapshot.isBuildingSnapshot()) {
             contentDigest: restoredContentDigest,
             sameStaticDigest,
             sameContentDigest,
+            snapshotContentFingerprintMatches,
             snapshotSeedZeroMatches,
             snapshotBuildMs: manifest.buildMs,
             snapshotGenerationActiveResources: manifest.activeResources,
             snapshotGenerationOpenedNoHandlesOrWorkers: manifest.forbiddenResources.length === 0
         };
         process.stdout.write(`${JSON.stringify(result)}\n`);
-        if (!sameStaticDigest || !sameContentDigest || !snapshotSeedZeroMatches) process.exitCode = 1;
+        if (!sameStaticDigest || !sameContentDigest || !snapshotContentFingerprintMatches || !snapshotSeedZeroMatches) {
+            process.exitCode = 1;
+        }
     });
 } else {
     const seed = BigInt(process.env.JSP_CONTENT_SNAPSHOT_SEED ?? '0');
-    const definitions =
-        process.env.JSP_CONTENT_SNAPSHOT_CUSTOM === '1' ? withCustomPack(snapshotDefinitions) : snapshotDefinitions;
     const startedAt = performance.now();
-    const content = buildContent(definitions, seed);
+    const customPack = process.env.JSP_CONTENT_SNAPSHOT_CUSTOM === '1';
+    let content: ReturnType<typeof buildServerContent>;
+    if (useVanillaInputs && !customPack) {
+        content = buildServerContent({ seed });
+    } else if (useVanillaInputs) {
+        const vanillaDefinitions = buildServerContent({ seed: 0n }).definitions;
+        content = buildContent(withCustomPack(vanillaDefinitions), seed);
+    } else {
+        const definitions = withSeededLoot(fixtureDefinitions());
+        content = buildContent(customPack ? withCustomPack(definitions) : definitions, seed);
+    }
     process.stdout.write(
         `${JSON.stringify({
             mode: 'fresh-build',
             seed: seed.toString(),
             processStartupMs: process.uptime() * 1000,
             contentBuildMs: performance.now() - startedAt,
+            contentFingerprint: content.contentFingerprint,
             staticDigest: contentDigest(content, false),
             contentDigest: contentDigest(content, true)
         })}\n`

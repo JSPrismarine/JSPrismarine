@@ -1,9 +1,10 @@
 /**
- * Builds a small user-land V8 snapshot and compares fresh content builds with restored inputs.
+ * Builds a user-land V8 snapshot and compares fresh content builds with restored inputs.
  *
  * Run `pnpm run bench:content-snapshot`. The fixture does not need Mojang's fetched packs, and
  * every restored run rebuilds its world and seed-bound registries before checking the digests.
- * Pass `--no-snapshot` to exercise the fresh-build fallback path.
+ * Pass `--vanilla` to use the fetched vanilla packs, or `--no-snapshot` to exercise the
+ * fresh-build fallback path. The snapshot stores composed definitions, not live registries.
  */
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -14,6 +15,12 @@ import { rolldown } from 'rolldown';
 
 const repositoryRoot = process.cwd();
 const entry = join(repositoryRoot, 'packages/prismarine/benchmarks/contentSnapshotEntry.ts');
+const scriptArguments = process.argv.slice(2).filter((argument) => argument !== '--');
+const useVanillaInputs = scriptArguments.includes('--vanilla');
+const allowedArguments = new Set(['--vanilla', '--no-snapshot']);
+const unknownArguments = scriptArguments.filter((argument) => !allowedArguments.has(argument));
+if (unknownArguments.length > 0) throw new Error(`Unknown argument(s): ${unknownArguments.join(', ')}`);
+const modeEnvironment = useVanillaInputs ? { JSP_CONTENT_SNAPSHOT_VANILLA: '1' } : {};
 const workspace = mkdtempSync(join(tmpdir(), 'jsprismarine-content-snapshot-'));
 const bundlePath = join(workspace, 'content-snapshot.cjs');
 const blobPath = join(workspace, 'content-snapshot.blob');
@@ -66,15 +73,18 @@ try {
     await bundle.write({ file: bundlePath, format: 'cjs', codeSplitting: false });
     await bundle.close();
 
-    const forceFreshFallback = process.argv.includes('--no-snapshot');
+    const forceFreshFallback = scriptArguments.includes('--no-snapshot');
+    const snapshotBuildStartedAt = performance.now();
     const snapshotBuild = forceFreshFallback
         ? undefined
         : spawnSync(process.execPath, [`--snapshot-blob=${blobPath}`, '--build-snapshot', bundlePath], {
               cwd: repositoryRoot,
+              env: { ...process.env, ...modeEnvironment },
               encoding: 'utf8',
               maxBuffer: 16 * 1024 * 1024,
               timeout: 120_000
           });
+    const snapshotBuildWallMs = performance.now() - snapshotBuildStartedAt;
     let snapshotAvailable = snapshotBuild?.status === 0;
     let snapshotFailure =
         snapshotBuild === undefined
@@ -92,6 +102,8 @@ try {
         readonly freshStartupMs: readonly number[];
         readonly freshMs: readonly number[];
         readonly restoredMs?: readonly number[];
+        readonly inputValidationMs?: readonly number[];
+        readonly restoredContentBuiltMs?: readonly number[];
         readonly lateBoundMs?: readonly number[];
         readonly snapshotBuildMs?: number;
         readonly noHandlesOrWorkers: boolean | null;
@@ -100,12 +112,14 @@ try {
     }[] = [];
 
     for (const seed of ['0', '1']) {
-        const fresh = Array.from({ length: runs }, () => run([bundlePath], { JSP_CONTENT_SNAPSHOT_SEED: seed }));
+        const fresh = Array.from({ length: runs }, () =>
+            run([bundlePath], { ...modeEnvironment, JSP_CONTENT_SNAPSHOT_SEED: seed })
+        );
         let restored: SnapshotRun[] | undefined;
         if (snapshotAvailable) {
             try {
                 restored = Array.from({ length: runs }, () =>
-                    run([`--snapshot-blob=${blobPath}`], { JSP_CONTENT_SNAPSHOT_SEED: seed })
+                    run([`--snapshot-blob=${blobPath}`], { ...modeEnvironment, JSP_CONTENT_SNAPSHOT_SEED: seed })
                 );
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
@@ -142,6 +156,8 @@ try {
                 ? {}
                 : {
                       restoredMs: restored.map((sample) => Number(sample.snapshotRestoreToCallbackMs)),
+                      inputValidationMs: restored.map((sample) => Number(sample.snapshotInputValidationMs)),
+                      restoredContentBuiltMs: restored.map((sample) => Number(sample.snapshotContentBuiltAtMs)),
                       lateBoundMs: restored.map((sample) => Number(sample.lateBoundBuildMs))
                   }),
             ...(restored?.[0] === undefined ? {} : { snapshotBuildMs: Number(restored[0].snapshotBuildMs) }),
@@ -155,6 +171,7 @@ try {
     if (snapshotAvailable) {
         try {
             customFallback = run([`--snapshot-blob=${blobPath}`], {
+                ...modeEnvironment,
                 JSP_CONTENT_SNAPSHOT_SEED: '0',
                 JSP_CONTENT_SNAPSHOT_CUSTOM: '1'
             });
@@ -166,6 +183,7 @@ try {
         }
     }
     const customFresh = run([bundlePath], {
+        ...modeEnvironment,
         JSP_CONTENT_SNAPSHOT_SEED: '0',
         JSP_CONTENT_SNAPSHOT_CUSTOM: '1'
     });
@@ -200,9 +218,11 @@ try {
     const output = {
         node: process.version,
         v8: process.versions.v8,
+        inputKind: useVanillaInputs ? 'vanilla' : 'fixture',
         snapshotAvailable,
         ...(snapshotFailure === undefined ? {} : { snapshotFailure }),
         runsPerMode: runs,
+        snapshotBuildWallMs,
         reports: reports.map((report) => ({
             ...report,
             freshStartupMedianMs: median(report.freshStartupMs),
@@ -211,6 +231,8 @@ try {
                 ? {}
                 : {
                       snapshotRestoreMedianMs: median(report.restoredMs),
+                      snapshotInputValidationMedianMs: median(report.inputValidationMs ?? []),
+                      snapshotContentBuiltMedianMs: median(report.restoredContentBuiltMs ?? []),
                       lateBoundMedianMs: median(report.lateBoundMs ?? [])
                   })
         })),
