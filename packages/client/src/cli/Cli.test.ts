@@ -92,6 +92,8 @@ describe('against a real server', () => {
     let server: Server | null = null;
     const port = 19280;
 
+    // This boots the full server while the monorepo test selector forks many suites; under
+    // runner contention, cold bootstrap can exceed a minute even though this file passes alone.
     beforeAll(async () => {
         stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-cli-'));
         vi.stubEnv('JSP_DIR', stateRoot);
@@ -102,7 +104,7 @@ describe('against a real server', () => {
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
         await server.bootstrap('127.0.0.1', port);
-    }, 60_000);
+    }, 120_000);
 
     afterAll(() => {
         server?.getRaknet()?.kill();
