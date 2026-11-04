@@ -30,6 +30,7 @@ import { recipeBook } from './scenarios/recipe-book.mts';
 import { jump } from './scenarios/jump.mts';
 import { gait } from './scenarios/gait.mts';
 import { lookDirection } from './scenarios/look-direction.mts';
+import { damage } from './scenarios/damage.mts';
 import { movement } from './scenarios/movement.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -53,6 +54,7 @@ const suites: ScenarioSuite[] = [
             spawn,
             movement,
             jump,
+            damage,
             lookDirection,
             gait,
             chat,
