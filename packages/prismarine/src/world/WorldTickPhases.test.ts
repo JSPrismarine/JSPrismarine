@@ -172,8 +172,12 @@ describe('world', () => {
             const started: string[] = [];
             let firstFinished = false;
             let finishFirst = () => {};
+            let signalFirstStarted = () => {};
             const firstUpdateGate = new Promise<void>((resolve) => {
                 finishFirst = resolve;
+            });
+            const firstUpdateStarted = new Promise<void>((resolve) => {
+                signalFirstStarted = resolve;
             });
             const { world } = worldTicking({
                 entities: [
@@ -184,6 +188,7 @@ describe('world', () => {
                         claimUpdate: () => true,
                         update: async () => {
                             started.push('first');
+                            signalFirstStarted();
                             await firstUpdateGate;
                             firstFinished = true;
                         }
@@ -207,6 +212,9 @@ describe('world', () => {
             });
 
             const update = world.update(1);
+            await firstUpdateStarted;
+            // Keep the first callback suspended while proving the next roster entry has not started.
+            expect(started).toEqual(['first']);
             finishFirst();
             await update;
 
