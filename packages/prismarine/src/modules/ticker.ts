@@ -196,40 +196,48 @@ export class ServerTicker implements Ticker, TickControl {
         return Number.parseFloat(this.tickMs.toFixed(2));
     }
 
+    /** The ticks per second the loop aims for. */
     public getTickRate(): number {
         return this.tickRate;
     }
 
+    /** Sets the target ticks per second; the schedule restarts from now at the new period. */
     public setTickRate(rate: number): void {
         this.tickRate = rate;
         this.rebaseSchedule = true;
     }
 
+    /** Whether the world and functions are held still. */
     public isFrozen(): boolean {
         return this.frozen;
     }
 
+    /** Freezes or unfreezes the world, dropping any step in progress. */
     public setFrozen(frozen: boolean): void {
         this.frozen = frozen;
         this.stepsLeft = 0;
     }
 
+    /** Lets `ticks` ticks through a frozen world; false when the world is running. */
     public step(ticks: number): boolean {
         if (!this.frozen) return false;
         this.stepsLeft = ticks;
         return true;
     }
 
+    /** Ends a step early; false when none was running. */
     public stopStep(): boolean {
         const stepping = this.stepsLeft > 0;
         this.stepsLeft = 0;
         return stepping;
     }
 
+    /** Runs `ticks` ticks back to back, then returns to the target rate. */
     public sprint(ticks: number): void {
         this.sprintLeft = ticks;
     }
 
+    /** Ends a sprint early; false when none was running. */
     public stopSprint(): boolean {
         const sprinting = this.sprintLeft > 0;
         this.sprintLeft = 0;
