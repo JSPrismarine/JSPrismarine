@@ -22,7 +22,7 @@ const blockAt = async (
 
 /** Sends one right click and releases the button before the next action. */
 const rightClick = async (client: Parameters<Scenario['run']>[0]['client']): Promise<void> => {
-    await client.input({ press: ['MouseRight'], press_frames: 3 });
+    await client.input({ press: ['MouseRight'], press_frames: 1 });
     await sleep(100);
     await client.input({ release: ['MouseRight'] });
     await sleep(300);
