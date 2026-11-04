@@ -130,6 +130,17 @@ describe('world', () => {
             expect(systems.getRandomTickState()).toBe(1013904223);
         });
 
+        it('restores the shared random tick state at a replay boundary', () => {
+            const systems = new WorldSystems({
+                view: { dimension: Dimensions.Overworld, blockAt: () => undefined, loadedChunks: () => [] },
+                world: createTestWorld()
+            });
+
+            systems.restoreRandomTickState(1_013_904_223);
+
+            expect(systems.getRandomTickState()).toBe(1_013_904_223);
+        });
+
         describe('light', () => {
             it('lights the blocks around a torch once the chunk is known', () => {
                 const { blocks, systemsOf } = worldOf();

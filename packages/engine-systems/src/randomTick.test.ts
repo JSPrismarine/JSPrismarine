@@ -25,6 +25,25 @@ describe('BlockRandomPositions', () => {
         expect(positions.snapshot()).toBe(1013904223);
     });
 
+    it('restores a captured LCG state without changing its next position', () => {
+        const captured = new BlockRandomPositions(1234);
+        const state = captured.snapshot();
+        const expected = captured.next(16, 32, 48);
+        const restored = new BlockRandomPositions(9999);
+
+        restored.restore(state);
+
+        expect(restored.snapshot()).toBe(state);
+        expect(restored.next(16, 32, 48)).toEqual(expected);
+    });
+
+    it('rejects values outside the saved LCG state range', () => {
+        const positions = new BlockRandomPositions();
+
+        expect(() => positions.restore(0x8000_0000)).toThrow(RangeError);
+        expect(() => positions.restore(Number.NaN)).toThrow(RangeError);
+    });
+
     it('offsets every draw by the section corner', () => {
         const base = new BlockRandomPositions().next(0, 0, 0);
         const moved = new BlockRandomPositions().next(32, -64, 16);

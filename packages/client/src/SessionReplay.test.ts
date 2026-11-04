@@ -46,6 +46,7 @@ interface CapturedSession {
     readonly moverRuntimeId: bigint;
     readonly moverStart: Position;
     readonly movement: readonly InboundPacketRecord[];
+    readonly replayRandomTickState: number;
     readonly initialStateManifest: Buffer;
     readonly inboundPayloadBytes: number;
     readonly inboundSerializedBytes: number;
@@ -335,6 +336,10 @@ const captureSession = async (
         captureInitialState: true,
         serializableRandom: true
     });
+    const randomTickStateByTick = new Map<number, number>();
+    const recordRandomTickState = (event: { getTick(): number }): void => {
+        randomTickStateByTick.set(event.getTick(), live.world.getSystems().getRandomTickState());
+    };
     try {
         const initialStateManifest = live.initialStateManifest;
         if (initialStateManifest === undefined) throw new Error('Replay initial-state manifest was not captured');
@@ -342,7 +347,7 @@ const captureSession = async (
         if (startGame === null) throw new Error('Mover did not receive StartGame');
         const moverStart = positionOf(startGame.position);
         const firstSendTick = live.server.getTick() + 4;
-
+        live.server.on('tick', recordRandomTickState);
         for (let index = 0; index < MOVEMENT_COUNT; index += 1) {
             await waitForTick(live.server, firstSendTick + index * 4);
             await live.mover.getSession().send(
@@ -368,16 +373,24 @@ const captureSession = async (
         if (movement.length !== MOVEMENT_COUNT) {
             throw new Error(`Captured ${movement.length} movement packets, expected ${MOVEMENT_COUNT}`);
         }
+        const firstMovement = movement[0];
+        if (firstMovement === undefined) throw new Error('The captured movement segment is empty');
+        const replayRandomTickState = randomTickStateByTick.get(firstMovement.tick - SAMPLE_LEAD_TICKS);
+        if (replayRandomTickState === undefined) {
+            throw new Error(`No random tick state was recorded at tick ${firstMovement.tick - SAMPLE_LEAD_TICKS}`);
+        }
 
         return {
             moverRuntimeId: startGame.runtimeEntityId,
             moverStart,
             movement,
+            replayRandomTickState,
             initialStateManifest,
             inboundPayloadBytes: live.inbound.getPayloadBytes(),
             inboundSerializedBytes: live.inbound.serialize().byteLength
         };
     } finally {
+        live.server.removeListener('tick', recordRandomTickState);
         await live.close();
     }
 };
@@ -521,6 +534,12 @@ const replaySession = async (
                 measurementStart = { wallMs: performance.now(), cpu: process.cpuUsage() };
             }
             if (tick >= sampleStart && tick <= sampleEnd && instrumented) {
+                if (tick === sampleStart) {
+                    // Login and asynchronous chunk startup are outside the recorded play-phase trace.
+                    // Restore the captured counter at the segment boundary so their variable draw
+                    // counts cannot shift every later Java random-tick position.
+                    live.world.getSystems().restoreRandomTickState(captured.replayRandomTickState);
+                }
                 if (measureCosts) {
                     const digestWallStarted = performance.now();
                     const digestCpuStarted = process.cpuUsage();

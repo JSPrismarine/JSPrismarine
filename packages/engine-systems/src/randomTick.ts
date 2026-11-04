@@ -49,6 +49,15 @@ export class BlockRandomPositions {
         return this.state;
     }
 
+    /** Restores a captured signed 32-bit state without drawing a position. */
+    restore(state: number): void {
+        if (!Number.isInteger(state) || state < -0x8000_0000 || state > 0x7fff_ffff) {
+            throw new RangeError('Random tick state must be a signed 32-bit integer');
+        }
+
+        this.state = state;
+    }
+
     /**
      * The next position inside one section.
      *

@@ -63,8 +63,9 @@ The driver draws `random_tick_speed` positions from each selected section using 
 `Level.getBlockRandomPos` step, `state * 3 + 1013904223`. Positions are drawn with replacement;
 a position whose block does not take random ticks still consumes its draw. Block behavior comes
 from the active family's random tick hook. `BlockRandomPositions.snapshot()` reads the signed
-32-bit generator state without drawing another position; it supports replay comparisons but does
-not restore the generator.
+32-bit generator state without drawing another position, and `restore()` reinstates a captured
+state without drawing. Replay harnesses can restore the counter at a recorded segment boundary
+when setup work before that segment was not captured.
 
 ## Explosions
 

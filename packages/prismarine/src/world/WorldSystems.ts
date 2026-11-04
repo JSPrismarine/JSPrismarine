@@ -244,6 +244,11 @@ export class WorldSystems {
         return this.randomPositions.snapshot();
     }
 
+    /** Restores Java's world-wide random tick draw counter at a replay boundary. */
+    public restoreRandomTickState(state: number): void {
+        this.randomPositions.restore(state);
+    }
+
     /** Reads block light, initializing and settling an otherwise deferred loaded chunk on demand. */
     public getBlockLight(x: number, y: number, z: number): number {
         this.ensureLightForRead(x, y, z);
