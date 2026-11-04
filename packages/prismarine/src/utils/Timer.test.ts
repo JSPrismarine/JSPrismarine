@@ -32,10 +32,14 @@ describe('utils', () => {
             expect(() => timer.getResult()).toThrow('You need to stop the timer before getting the result.');
         });
 
-        it('returns the correct duration in ms', async () => {
-            await new Promise((resolve) => setTimeout(resolve, 110));
-            const duration = timer.stop();
-            expect(duration).toBeGreaterThanOrEqual(100);
+        it('returns the correct duration in ms', () => {
+            // Fixed hrtime samples test elapsed conversion without depending on runner scheduling.
+            const hrtime = vi.spyOn(process, 'hrtime');
+            hrtime.mockReturnValueOnce([1, 0]);
+            timer.reset();
+            hrtime.mockReturnValueOnce([0, 110_000_000]);
+
+            expect(timer.stop()).toBe(110);
         });
     });
 });
