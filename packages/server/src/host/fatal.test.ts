@@ -13,7 +13,12 @@ afterEach(() => {
 
 type FatalEvents = { uncaughtException: [Error]; unhandledRejection: [unknown] };
 
-const flush = () => new Promise((done) => setTimeout(done, 0));
+// Fatal handling chains only promise callbacks, so drain those directly without depending on
+// a timer that another shared Vitest worker may have replaced.
+const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+};
 
 const setup = (close = vi.fn(async () => {})) => {
     const source = new EventEmitter<FatalEvents>();
