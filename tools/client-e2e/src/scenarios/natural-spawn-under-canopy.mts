@@ -40,7 +40,13 @@ export const naturalSpawnUnderCanopy: Scenario = {
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
 
         const { from, to } = REGION;
-        server.command(`fill ${from} ${CANOPY_Y} ${from} ${to} ${CANOPY_Y} ${to} minecraft:oak_leaves`);
+        // One fill of the whole roof holds the tick for seconds on a loaded machine, long enough
+        // for the server to drop the client, and nothing spawns without a player. Fill it row by
+        // row, with a breath between rows, so the connection keeps being served.
+        for (let z = from; z <= to; z += 1) {
+            server.command(`fill ${from} ${CANOPY_Y} ${z} ${to} ${CANOPY_Y} ${z} minecraft:oak_leaves`);
+            await sleep(30);
+        }
         // Leaves with no log within six blocks decay on a random tick, and a canopy that came
         // down while the spawn pass was running would prove nothing either way.
         for (let x = from; x <= to; x += LOG_SPACING) {
