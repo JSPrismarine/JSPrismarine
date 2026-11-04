@@ -247,6 +247,9 @@ const withSeededLoot = (definitions: Definitions): Definitions => {
 };
 
 const useVanillaInputs = process.env.JSP_CONTENT_SNAPSHOT_VANILLA === '1';
+// Older Node releases may not expose V8's startup-snapshot API; they use the fresh-build path.
+const isBuildingSnapshot =
+    typeof startupSnapshot?.isBuildingSnapshot === 'function' && startupSnapshot.isBuildingSnapshot();
 
 interface SnapshotInputs {
     readonly definitions: Definitions;
@@ -282,7 +285,7 @@ const createSnapshotInputs = (): SnapshotInputs => {
     return { definitions, content: seedZeroContent, world, manifest };
 };
 
-if (startupSnapshot.isBuildingSnapshot()) {
+if (isBuildingSnapshot) {
     const snapshotInputs = createSnapshotInputs();
     const {
         definitions: snapshotDefinitions,

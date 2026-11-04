@@ -249,7 +249,9 @@ try {
             customFallback === undefined ? null : sameDigest(customFallback, customFresh),
         seedIndependentDataMatches: seedIndependentDataMatches ?? null,
         seedBoundLootStateChanges: seedBoundLootStateChanges ?? null,
-        resolvedRegistriesReusedAcrossSeeds: reports.every((report) => report.resolvedRegistriesReused === true)
+        resolvedRegistriesReusedAcrossSeeds: snapshotAvailable
+            ? reports.every((report) => report.resolvedRegistriesReused === true)
+            : null
     };
     process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
     if (failedChecks) process.exitCode = 1;
