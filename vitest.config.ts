@@ -66,7 +66,12 @@ export default defineConfig({
         passWithNoTests: true,
         silent: false,
         globals: true,
-        isolate: false,
+        // Each file gets a fresh process. Sharing a worker across files let one file's leftovers
+        // (a mocked `@jsprismarine/raknet`, fake timers, OpenTUI's process-global native renderer,
+        // a socket or ticker nobody closed) hang whichever file landed in the same worker next,
+        // and only on CI where the scheduling differed: `inputBar`, `Login` and `ClientHandshake`
+        // each timed out in turn. Chasing the leaker file by file did not converge.
+        isolate: true,
         reporters: [...reporters, ...extraReporters],
         outputFile: {
             junit: './junit.xml'
@@ -80,31 +85,6 @@ export default defineConfig({
         testTimeout: 60_000,
 
         setupFiles: [`${__dirname}/.test/vitest.setup.ts`],
-
-        // The shared worker above keeps its globals and mocked modules across files. Two
-        // families of suites cannot live with that, and each hung on CI only, when an earlier
-        // file's leftovers were still in the worker they landed in:
-        // - the console package, because OpenTUI's native renderer holds process-global state
-        //   (`inputBar.test.ts` timed out creating one);
-        // - the client package, because its suites boot a real server on a real UDP socket and
-        //   several `Server` suites in the prismarine package leave `@jsprismarine/raknet`
-        //   mocked (`Login.test.ts` timed out waiting on a mocked listener).
-        // They get a fresh process per file; everything else keeps the shared-worker speed-up.
-        projects: [
-            {
-                extends: true,
-                test: {
-                    name: 'isolated',
-                    include: ['packages/console/**/*.test.ts', 'packages/client/**/*.test.ts'],
-                    exclude,
-                    isolate: true
-                }
-            },
-            {
-                extends: true,
-                test: { name: 'default', exclude: [...exclude, 'packages/console/**', 'packages/client/**'] }
-            }
-        ],
 
         coverage: {
             all: true,
