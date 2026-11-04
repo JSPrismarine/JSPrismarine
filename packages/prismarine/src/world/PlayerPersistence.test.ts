@@ -14,7 +14,7 @@ import path from 'node:path';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type Console from '../Console';
@@ -350,6 +350,29 @@ describe('a player logging out and back in', () => {
 
             expect(whileLoading).not.toBe(beforeLoad);
             expect(world.replayStateDigest()).not.toBe(whileLoading);
+        } finally {
+            await level.disable();
+        }
+    });
+
+    it('fails replay capture when an online player record could not be saved', async () => {
+        const server = testServer();
+        const level = buildLevel(server, 'capture-player-save-failure');
+        await level.enable();
+
+        try {
+            const world = await level.world(OVERWORLD_STEM_ID);
+            const player = buildPlayer(world, server, UUID.fromString('00000000-0000-4000-8000-000000000003'));
+            const getPlayers = vi.spyOn(world, 'getPlayers').mockReturnValue([player]);
+
+            const failure = new Error('player write failed');
+            const writePlayerData = vi.spyOn(level.getProvider(), 'writePlayerData').mockRejectedValue(failure);
+            try {
+                await expect(level.captureReplayInitialState()).rejects.toBe(failure);
+            } finally {
+                writePlayerData.mockRestore();
+                getPlayers.mockRestore();
+            }
         } finally {
             await level.disable();
         }

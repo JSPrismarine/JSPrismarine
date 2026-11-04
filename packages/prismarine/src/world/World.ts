@@ -3408,6 +3408,11 @@ export class World implements Service {
      * save, and the next pass tries the failed chunk again.
      */
     public async saveChunks(): Promise<void> {
+        await this.writeChunks(false);
+    }
+
+    /** Writes changed chunks, failing when a replay checkpoint could not persist one. */
+    private async writeChunks(requireSuccess: boolean): Promise<void> {
         const timer = new Timer();
         this.server.getLogger().info(`Saving chunks for level ${this.getFormattedName()}`);
 
@@ -3432,6 +3437,8 @@ export class World implements Service {
                             `Failed to save chunk ${chunk.getX()},${chunk.getZ()}; it remains dirty for a later retry`
                         );
                     this.server.getLogger().error(error);
+                    // Replay capture cannot use this chunk's stale persisted state as its baseline.
+                    if (requireSuccess) throw error;
                 }
             }
 
@@ -3450,6 +3457,21 @@ export class World implements Service {
      */
     public async save(): Promise<void> {
         await this.enqueueSave();
+    }
+
+    /**
+     * Saves players and chunks for a replay checkpoint, propagating persistence errors.
+     *
+     * Ordinary autosaves log failed writes and retry them later. A replay snapshot must fail
+     * instead, because copying the provider after a swallowed error would capture stale state.
+     */
+    public async saveForReplay(): Promise<void> {
+        await this.enqueueSave(async () => {
+            // Wait for every player write before returning, so a failed capture cannot leave
+            // another record write running while the provider snapshot is abandoned.
+            for (const player of this.getPlayers()) await this.savePlayerData(player, true);
+            await this.writeChunks(true);
+        });
     }
 
     /**
@@ -3635,8 +3657,10 @@ export class World implements Service {
     /**
      * Writes a player's record into the level, filed under {@link World.playerDataKey} and
      * stamped with this world's dimension so the next login puts them back here.
+     *
+     * @param requireSuccess - Propagate a persistence error when creating a replay checkpoint.
      */
-    public async savePlayerData(player: Player): Promise<void> {
+    public async savePlayerData(player: Player, requireSuccess = false): Promise<void> {
         const data = {
             // Serialised explicitly: the uuid is a parsed object now, and letting JSON have
             // its way with it would write out the four raw parts instead of the identity.
@@ -3683,7 +3707,7 @@ export class World implements Service {
             savedAt: Date.now()
         } satisfies WorldPlayerData;
 
-        await this.level.savePlayerData(World.playerDataKey(player), data);
+        await this.level.savePlayerData(World.playerDataKey(player), data, requireSuccess);
     }
 
     /**

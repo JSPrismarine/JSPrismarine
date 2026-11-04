@@ -578,7 +578,8 @@ export class Level {
             throw new Error(`Provider '${this.provider.constructor.name}' cannot capture replay snapshots`);
         }
 
-        await Promise.all([...this.worlds()].map((world) => world.save()));
+        // Replay checkpoints cannot accept the ordinary save path's swallowed write failures.
+        await Promise.all([...this.worlds()].map((world) => world.saveForReplay()));
         // Replay capture must fail on a metadata write error; the regular save path only logs it.
         await this.writeLevelData();
         const snapshot = Buffer.from(capture.call(this.provider));
@@ -935,9 +936,14 @@ export class Level {
      * connection closes some time after the provider has gone, so a save arrives once more per
      * player with nothing left to write to; the shutdown's own save wrote them while they were
      * still online.
+     *
+     * @param requireSuccess - Propagate a persistence error when creating a replay checkpoint.
      */
-    public async savePlayerData(key: string, data: WorldPlayerData): Promise<void> {
+    public async savePlayerData(key: string, data: WorldPlayerData, requireSuccess = false): Promise<void> {
         if (this.closed) {
+            if (requireSuccess) {
+                throw new Error(`Cannot save replay player data for ${key} after level ${this.name} closed`);
+            }
             this.server.getLogger().debug(`${key} left after ${this.name} closed`, 'Level/savePlayerData');
             return;
         }
@@ -956,6 +962,7 @@ export class Level {
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save player data for ${key}`);
             this.server.getLogger().error(error);
+            if (requireSuccess) throw error;
         }
     }
 

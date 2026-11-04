@@ -481,6 +481,23 @@ describe('Level', () => {
             }
         });
 
+        it('fails replay capture when a loaded chunk could not be saved', async () => {
+            const { level, provider } = buildLevel('capture-chunk-save-failure');
+            await level.enable();
+            const world = await level.world(OVERWORLD_STEM_ID);
+            const chunk = await world.getChunk(0, 0);
+            chunk.markChanged();
+
+            const failure = new Error('chunk write failed');
+            const writeChunk = vi.spyOn(provider, 'writeChunk').mockRejectedValue(failure);
+            try {
+                await expect(level.captureReplayInitialState()).rejects.toBe(failure);
+            } finally {
+                writeChunk.mockRestore();
+                await level.disable();
+            }
+        });
+
         it('answers null for a player record the save has no entry for', async () => {
             const { level } = buildLevel('players');
             await level.enable();
