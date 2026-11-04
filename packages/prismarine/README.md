@@ -71,17 +71,26 @@ keeps login live because no API restores the initial world or pre-login session 
 the captured connection order and input entity id onto each live session. Its per-tick outbound
 digest normalizes process-local actor ids by the logged-in players and by first-seen packet order
 for other actors before hashing the packet bytes.
-It does not cover session login replay, frame grouping, nonloaded world state, Java-verified entity
-update order, or recorder and digest cost during live world ticks. Close those gaps by adding
-restorable world state, content fingerprints, and RNG state; recording connection lifecycle and
-frame boundaries; extending the digest's world-state coverage; proving entity update order against
-Java; and measuring live tick, snapshot, and digest costs. Packet bytes may contain login identity
-data, so keep capture opt-in and protect any trace you store. The packet benchmark measures
-dispatcher recording and replay CPU plus serialized packet-trace storage; it does not measure
-snapshot or world-digest costs. Run
+It does not cover session login replay, frame grouping, unloaded world state, or Java-verified
+entity update order. The initial-state manifest verifies loaded world digests but cannot restore
+world data. Packet bytes may contain login identity data, so keep capture opt-in and protect any
+trace you store. The packet benchmark measures dispatcher recording and replay CPU plus serialized
+packet-trace storage, but it does not measure world ticks or digests.
+
+The performance-tagged case in `packages/client/src/SessionReplay.test.ts` replays the same fixed
+movement trace with packet recording and per-tick digests disabled, then enabled. Both runs log in
+first; the baseline installs no packet recorders and maps the mover from its captured connection id,
+since the mover connects first in both runs. It reports tick CPU and wall time, per-tick world and outbound digest CPU,
+checkpoint manifest capture and verification plus RNG-restore cost, and trace and manifest sizes.
+The manifest size does not include a world snapshot because the current format stores digests and
+cannot restore world data. Outbound trace size is a JSON record estimate, not a measurement of its
+in-memory JavaScript objects. Run
 `pnpm --filter @jsprismarine/client exec vitest run --config vitest.config.ts src/SessionReplay.test.ts`
-to run the live replay test, or `pnpm --filter @jsprismarine/prismarine run bench:inbound-packets`
-to reproduce the packet benchmark.
+to run the live replay test, or add
+`-t "reports replay instrumentation cost against an unrecorded baseline"` to that command to run
+the performance measurement. Run
+`pnpm --filter @jsprismarine/prismarine run bench:inbound-packets` to reproduce the packet-only
+benchmark.
 
 ## JSON Schemas
 

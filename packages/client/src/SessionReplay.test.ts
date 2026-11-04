@@ -17,7 +17,12 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { describe, expect, it, vi } from 'vitest';
+import {
+    deserializeReplayInitialStateManifest,
+    serializeReplayInitialStateManifest
+} from '@jsprismarine/prismarine/network/ReplayManifest';
 
 // Some other server suites replace RakNet in a reused worker. This test needs the real socket
 // path, so clear that mock before the server module is loaded.
@@ -38,6 +43,8 @@ interface CapturedSession {
     readonly moverRuntimeId: bigint;
     readonly moverStart: Position;
     readonly movement: readonly InboundPacketRecord[];
+    readonly inboundPayloadBytes: number;
+    readonly inboundSerializedBytes: number;
 }
 
 interface GatedPacketTrace {
@@ -195,10 +202,26 @@ const replayPacketDigestsByTick = (
     );
 };
 
+/** Estimates serialized outbound trace size; OutboundPacketTrace does not define a storage format. */
+const outboundJsonRecordBytes = (records: readonly OutboundPacketRecord[]): number =>
+    Buffer.byteLength(
+        JSON.stringify(
+            records.map((record) => ({
+                connectionId: record.connectionId,
+                sequence: record.sequence,
+                tick: record.tick,
+                protocolVersion: record.protocolVersion,
+                packetName: record.packetName,
+                payload: Buffer.from(record.payload).toString('base64')
+            }))
+        )
+    );
+
 const openSession = async (
     port: number,
     moverAuth: OfflineAuthProvider,
-    observerAuth: OfflineAuthProvider
+    observerAuth: OfflineAuthProvider,
+    options: { readonly serializableRandom?: boolean; readonly recordPackets?: boolean } = {}
 ): Promise<LiveSession> => {
     const stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-session-replay-'));
     vi.stubEnv('JSP_DIR', stateRoot);
@@ -219,10 +242,11 @@ const openSession = async (
         logger: new Logger('error'),
         config: new Config(),
         headless: true,
-        inboundPacketRecorder: inbound,
-        outboundPacketRecorder: outbound.recorder
+        ...(options.recordPackets === false
+            ? {}
+            : { inboundPacketRecorder: inbound, outboundPacketRecorder: outbound.recorder })
     });
-    server.setRandom(seededRandom(Number(SESSION_SEED)));
+    if (!options.serializableRandom) server.setRandom(seededRandom(Number(SESSION_SEED)));
 
     const mover = new Client({
         host: '127.0.0.1',
@@ -241,6 +265,13 @@ const openSession = async (
 
     try {
         await server.bootstrap('127.0.0.1', port);
+        if (options.serializableRandom) {
+            const randomState = server.getReplayRandomState();
+            server.restoreReplayRandomState({
+                ...randomState,
+                server: { ...randomState.server, state: Number(SESSION_SEED) }
+            });
+        }
         const world = server.getWorldManager().getWorldByName('world');
         if (world === null) throw new Error('The default world did not load');
         // This flat fixture is a slime-spawn biome; disable natural spawning before clients join
@@ -309,7 +340,13 @@ const captureSession = async (
             throw new Error(`Captured ${movement.length} movement packets, expected ${MOVEMENT_COUNT}`);
         }
 
-        return { moverRuntimeId: startGame.runtimeEntityId, moverStart, movement };
+        return {
+            moverRuntimeId: startGame.runtimeEntityId,
+            moverStart,
+            movement,
+            inboundPayloadBytes: live.inbound.getPayloadBytes(),
+            inboundSerializedBytes: live.inbound.serialize().byteLength
+        };
     } finally {
         await live.close();
     }
@@ -319,9 +356,19 @@ const replaySession = async (
     port: number,
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider,
-    captured: CapturedSession
+    captured: CapturedSession,
+    options: {
+        readonly measureCosts?: boolean;
+        readonly instrumented?: boolean;
+        readonly serializableRandom?: boolean;
+    } = {}
 ) => {
-    const live = await openSession(port, moverAuth, observerAuth);
+    const measureCosts = options.measureCosts ?? false;
+    const instrumented = options.instrumented ?? true;
+    const live = await openSession(port, moverAuth, observerAuth, {
+        serializableRandom: options.serializableRandom,
+        recordPackets: !measureCosts || instrumented
+    });
     try {
         const startGame = live.mover.getStartGame();
         if (startGame === null) throw new Error('Replay mover did not receive StartGame');
@@ -345,8 +392,12 @@ const replaySession = async (
             }
         }
 
-        const moverConnectionId = live.inbound.records().find((record) => record.sequence === 0)?.connectionId;
-        if (moverConnectionId === undefined) throw new Error('Replay server captured no accepted client packets');
+        // The baseline installs no recorder. The mover still gets the source id because it logs in
+        // first and the dispatcher assigns connection ids in admission order.
+        const moverConnectionId = instrumented
+            ? live.inbound.records().find((record) => record.sequence === 0)?.connectionId
+            : captured.movement[0]?.connectionId;
+        if (moverConnectionId === undefined) throw new Error('Replay session has no mover connection id');
         const mover = live.world.getPlayers().find((player) => player.getName() === 'ReplayMover');
         if (mover === undefined) throw new Error('Replay mover is missing from the world');
         let moveEvents = 0;
@@ -392,6 +443,33 @@ const replaySession = async (
         const sampleEnd = lastReplayTick + SAMPLE_TRAIL_TICKS;
         const worldDigests = new Map<number, string>();
         const replayErrors: string[] = [];
+        let measurementStart: { readonly wallMs: number; readonly cpu: NodeJS.CpuUsage } | undefined;
+        let measurementEnd: { readonly wallMs: number; readonly cpu: NodeJS.CpuUsage } | undefined;
+        let worldDigestWallMs = 0;
+        let worldDigestCpuMs = 0;
+        let checkpoint:
+            | {
+                  readonly wallMs: number;
+                  readonly cpuMs: number;
+                  readonly serializedBytes: number;
+              }
+            | undefined;
+        if (measureCosts && instrumented) {
+            // The manifest verifies loaded state and restores RNG only; this does not measure a
+            // world-data snapshot copy or restore.
+            const level = live.world.getLevel();
+            const wallStarted = performance.now();
+            const cpuStarted = process.cpuUsage();
+            const manifest = level.captureReplayInitialState();
+            const serializedManifest = serializeReplayInitialStateManifest(manifest);
+            level.restoreReplayRandomState(deserializeReplayInitialStateManifest(serializedManifest));
+            const cpu = process.cpuUsage(cpuStarted);
+            checkpoint = {
+                wallMs: performance.now() - wallStarted,
+                cpuMs: (cpu.user + cpu.system) / 1000,
+                serializedBytes: serializedManifest.byteLength
+            };
+        }
         const networking = live.server.getKernel().get(networkToken);
         if (networking.replayInboundRecord === undefined) {
             throw new Error('The server networking module cannot replay packets');
@@ -405,9 +483,23 @@ const replaySession = async (
         });
         const onTick = async (event: { getTick(): number }): Promise<void> => {
             const tick = event.getTick();
-            if (tick === sampleStart) live.outbound.setEnabled(true);
-            if (tick >= sampleStart && tick <= sampleEnd) {
-                worldDigests.set(tick - REPLAY_START_TICK, live.world.replayStateDigest());
+            if (tick === sampleStart && instrumented) live.outbound.setEnabled(true);
+            // Tick events run before world updates, so stop here to exclude the tick after the sample.
+            if (measureCosts && instrumented && tick === sampleEnd + 1) live.outbound.setEnabled(false);
+            if (measureCosts && tick === sampleStart) {
+                measurementStart = { wallMs: performance.now(), cpu: process.cpuUsage() };
+            }
+            if (tick >= sampleStart && tick <= sampleEnd && instrumented) {
+                if (measureCosts) {
+                    const digestWallStarted = performance.now();
+                    const digestCpuStarted = process.cpuUsage();
+                    worldDigests.set(tick - REPLAY_START_TICK, live.world.replayStateDigest());
+                    const digestCpu = process.cpuUsage(digestCpuStarted);
+                    worldDigestWallMs += performance.now() - digestWallStarted;
+                    worldDigestCpuMs += (digestCpu.user + digestCpu.system) / 1000;
+                } else {
+                    worldDigests.set(tick - REPLAY_START_TICK, live.world.replayStateDigest());
+                }
             }
 
             for (const record of recordsByTick.get(tick) ?? []) {
@@ -417,7 +509,14 @@ const replaySession = async (
                     replayErrors.push(error instanceof Error ? error.message : String(error));
                 }
             }
-            if (tick === sampleEnd) resolveComplete();
+            if (measureCosts && tick === sampleEnd + 1) {
+                if (measurementStart === undefined) throw new Error('Replay cost sample did not start');
+                measurementEnd = {
+                    wallMs: performance.now(),
+                    cpu: process.cpuUsage(measurementStart.cpu)
+                };
+                resolveComplete();
+            } else if (!measureCosts && tick === sampleEnd) resolveComplete();
         };
 
         expect(live.server.getTick()).toBeLessThan(sampleStart);
@@ -432,28 +531,86 @@ const replaySession = async (
         }
         if (replayErrors.length > 0) throw new Error(`Replay rejected packets: ${replayErrors.join('; ')}`);
 
-        const worldSeries = Array.from({ length: sampleEnd - sampleStart + 1 }, (_unused, index) => {
-            const tick = sampleStart + index;
-            const digest = worldDigests.get(tick - REPLAY_START_TICK);
-            if (digest === undefined) throw new Error(`No world digest was captured at tick ${tick}`);
-            return [tick - REPLAY_START_TICK, digest] as const;
-        });
-        const packetDigests = replayPacketDigestsByTick(live.outbound.trace, stableRuntimeIds);
-        const packetSeries = Array.from({ length: sampleEnd - sampleStart + 1 }, (_unused, index) => {
-            const tick = sampleStart + index;
-            return [tick - REPLAY_START_TICK, packetDigests.get(tick) ?? null] as const;
-        });
+        const worldSeries = instrumented
+            ? Array.from({ length: sampleEnd - sampleStart + 1 }, (_unused, index) => {
+                  const tick = sampleStart + index;
+                  const digest = worldDigests.get(tick - REPLAY_START_TICK);
+                  if (digest === undefined) throw new Error(`No world digest was captured at tick ${tick}`);
+                  return [tick - REPLAY_START_TICK, digest] as const;
+              })
+            : [];
+        let outboundDigestWallMs = 0;
+        let outboundDigestCpuMs = 0;
+        let packetDigests: ReadonlyMap<number, string> = new Map();
+        if (instrumented && measureCosts) {
+            const outboundDigestWallStarted = performance.now();
+            const outboundDigestCpuStarted = process.cpuUsage();
+            packetDigests = replayPacketDigestsByTick(live.outbound.trace, stableRuntimeIds);
+            const outboundDigestCpu = process.cpuUsage(outboundDigestCpuStarted);
+            outboundDigestWallMs = performance.now() - outboundDigestWallStarted;
+            outboundDigestCpuMs = (outboundDigestCpu.user + outboundDigestCpu.system) / 1000;
+        } else if (instrumented) {
+            packetDigests = replayPacketDigestsByTick(live.outbound.trace, stableRuntimeIds);
+        }
+        const packetSeries = instrumented
+            ? Array.from({ length: sampleEnd - sampleStart + 1 }, (_unused, index) => {
+                  const tick = sampleStart + index;
+                  return [tick - REPLAY_START_TICK, packetDigests.get(tick) ?? null] as const;
+              })
+            : [];
         const finalPosition = mover.getPosition();
+        const finalWorldDigest = measureCosts ? live.world.replayStateDigest() : undefined;
+        const outboundRecords = live.outbound.trace.records();
+        const outboundJsonBytes = measureCosts ? outboundJsonRecordBytes(outboundRecords) : 0;
+        if (measureCosts && measurementStart === undefined) throw new Error('Replay cost sample did not start');
+        if (measureCosts && measurementEnd === undefined) throw new Error('Replay cost sample did not end');
+        const sampleTicks = sampleEnd + 1 - sampleStart;
+        const tickCpuMs =
+            measurementEnd?.cpu === undefined ? 0 : (measurementEnd.cpu.user + measurementEnd.cpu.system) / 1000;
+        const tickWallMs =
+            measurementStart === undefined || measurementEnd === undefined
+                ? 0
+                : measurementEnd.wallMs - measurementStart.wallMs;
 
         return {
             worldSeries,
             packetSeries,
             moveEvents,
+            finalWorldDigest,
             finalMoverPosition: {
                 x: finalPosition.getX(),
                 y: finalPosition.getY(),
                 z: finalPosition.getZ()
-            }
+            },
+            ...(measureCosts
+                ? {
+                      measurements: {
+                          sampleTicks,
+                          tickCpuMs,
+                          tickWallMs,
+                          worldDigestCalls: worldSeries.length,
+                          worldDigestWallMs,
+                          worldDigestCpuMs,
+                          outboundDigestTicks: packetDigests.size,
+                          outboundDigestWallMs,
+                          outboundDigestCpuMs,
+                          checkpoint,
+                          storage: {
+                              inputTracePayloadBytes: captured.inboundPayloadBytes,
+                              inputTraceSerializedBytes: captured.inboundSerializedBytes,
+                              replayTracePayloadBytes: live.inbound.getPayloadBytes(),
+                              replayTraceSerializedBytes: live.inbound.serialize().byteLength,
+                              outboundPayloadBytes: live.outbound.trace.getPayloadBytes(),
+                              outboundJsonRecordBytes: outboundJsonBytes,
+                              manifestBytes: checkpoint?.serializedBytes ?? 0,
+                              estimatedArtifactBytes:
+                                  captured.inboundSerializedBytes +
+                                  outboundJsonBytes +
+                                  (checkpoint?.serializedBytes ?? 0)
+                          }
+                      }
+                  }
+                : {})
         };
     } finally {
         await live.close();
@@ -483,6 +640,95 @@ describe('live session replay', () => {
                 expect(second.worldSeries).toEqual(first.worldSeries);
                 expect(second.packetSeries).toEqual(first.packetSeries);
                 expect(first.packetSeries.some(([, digest]) => digest !== null)).toBe(true);
+            } finally {
+                random.mockRestore();
+                vi.unstubAllEnvs();
+            }
+        }
+    );
+
+    it(
+        'reports replay instrumentation cost against an unrecorded baseline',
+        { tags: ['real-data', 'performance'], timeout: 120_000 },
+        async () => {
+            const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+            const moverAuth = new OfflineAuthProvider({ displayName: 'ReplayMover', identity: MOVER_ID });
+            const observerAuth = new OfflineAuthProvider({ displayName: 'ReplayObserver', identity: OBSERVER_ID });
+
+            try {
+                const captured = await captureSession(moverAuth, observerAuth);
+                const baseline = await replaySession(PORT_BASE + 3, moverAuth, observerAuth, captured, {
+                    measureCosts: true,
+                    instrumented: false,
+                    serializableRandom: true
+                });
+                const instrumented = await replaySession(PORT_BASE + 4, moverAuth, observerAuth, captured, {
+                    measureCosts: true,
+                    instrumented: true,
+                    serializableRandom: true
+                });
+                if (baseline.measurements === undefined || instrumented.measurements === undefined) {
+                    throw new Error('Replay cost measurements are missing');
+                }
+                if (baseline.finalWorldDigest !== instrumented.finalWorldDigest) {
+                    throw new Error('Instrumented replay changed the fixed workload world digest');
+                }
+                expect(baseline.moveEvents).toBe(MOVEMENT_COUNT);
+                expect(instrumented.moveEvents).toBe(MOVEMENT_COUNT);
+                expect(baseline.finalMoverPosition).toEqual(instrumented.finalMoverPosition);
+                expect(instrumented.packetSeries.some(([, digest]) => digest !== null)).toBe(true);
+                expect(instrumented.measurements.worldDigestCalls).toBe(instrumented.measurements.sampleTicks);
+                expect(instrumented.measurements.checkpoint?.serializedBytes).toBeGreaterThan(0);
+                expect(instrumented.measurements.storage.inputTraceSerializedBytes).toBeGreaterThan(0);
+                expect(instrumented.measurements.storage.outboundJsonRecordBytes).toBeGreaterThan(0);
+
+                const baselineCpuUsPerTick =
+                    (baseline.measurements.tickCpuMs * 1000) / baseline.measurements.sampleTicks;
+                const instrumentedCpuUsPerTick =
+                    (instrumented.measurements.tickCpuMs * 1000) / instrumented.measurements.sampleTicks;
+                process.stdout.write(
+                    `session-replay-costs ${JSON.stringify({
+                        workload: { seed: SESSION_SEED, movementPackets: MOVEMENT_COUNT },
+                        baseline: {
+                            tickCpuUs: Number(baselineCpuUsPerTick.toFixed(2)),
+                            tickWallMs: Number(baseline.measurements.tickWallMs.toFixed(3))
+                        },
+                        instrumented: {
+                            tickCpuUs: Number(instrumentedCpuUsPerTick.toFixed(2)),
+                            tickWallMs: Number(instrumented.measurements.tickWallMs.toFixed(3)),
+                            worldDigestCpuUsPerTick: Number(
+                                (
+                                    (instrumented.measurements.worldDigestCpuMs * 1000) /
+                                    instrumented.measurements.sampleTicks
+                                ).toFixed(2)
+                            ),
+                            worldDigestWallUsPerTick: Number(
+                                (
+                                    (instrumented.measurements.worldDigestWallMs * 1000) /
+                                    instrumented.measurements.sampleTicks
+                                ).toFixed(2)
+                            ),
+                            outboundDigestCpuUsPerTick: Number(
+                                (
+                                    (instrumented.measurements.outboundDigestCpuMs * 1000) /
+                                    instrumented.measurements.sampleTicks
+                                ).toFixed(2)
+                            ),
+                            outboundDigestWallUsPerTick: Number(
+                                (
+                                    (instrumented.measurements.outboundDigestWallMs * 1000) /
+                                    instrumented.measurements.sampleTicks
+                                ).toFixed(2)
+                            ),
+                            checkpointCpuMs: Number((instrumented.measurements.checkpoint?.cpuMs ?? 0).toFixed(3)),
+                            checkpointWallMs: Number((instrumented.measurements.checkpoint?.wallMs ?? 0).toFixed(3)),
+                            storage: instrumented.measurements.storage
+                        },
+                        instrumentationTickCpuOverheadUsPerTick: Number(
+                            (instrumentedCpuUsPerTick - baselineCpuUsPerTick).toFixed(2)
+                        )
+                    })}\n`
+                );
             } finally {
                 random.mockRestore();
                 vi.unstubAllEnvs();
