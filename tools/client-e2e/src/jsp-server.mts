@@ -153,6 +153,29 @@ export const startServer = async (
             4
         )}\n`
     );
+    fs.writeFileSync(
+        path.join(behaviorPack, 'entities', 'pig.json'),
+        `${JSON.stringify(
+            {
+                format_version: '1.21.0',
+                'minecraft:entity': {
+                    description: {
+                        identifier: 'minecraft:pig',
+                        is_spawnable: true,
+                        is_summonable: true
+                    },
+                    components: {
+                        'minecraft:health': { value: 10, max: 10 },
+                        'minecraft:collision_box': { width: 0.9, height: 0.9 },
+                        'minecraft:physics': { has_gravity: true, has_collision: true },
+                        'minecraft:type_family': { family: ['pig', 'mob'] }
+                    }
+                }
+            },
+            null,
+            4
+        )}\n`
+    );
     if (options.naturalCowSpawning) {
         fs.writeFileSync(
             path.join(behaviorPack, 'entities', 'cow.json'),
