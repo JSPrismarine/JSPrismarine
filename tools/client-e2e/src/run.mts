@@ -27,6 +27,7 @@ import { farmland } from './scenarios/farmland.mts';
 import { furnace } from './scenarios/furnace.mts';
 import { litFurnace } from './scenarios/lit-furnace.mts';
 import { recipeBook } from './scenarios/recipe-book.mts';
+import { jump } from './scenarios/jump.mts';
 import { movement } from './scenarios/movement.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -49,6 +50,7 @@ const suites: ScenarioSuite[] = [
         scenarios: [
             spawn,
             movement,
+            jump,
             chat,
             miningDrops,
             edgeChunkBlockChange,
