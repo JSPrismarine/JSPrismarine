@@ -90,6 +90,7 @@
         "bench:structure-starts": "node --import tsx benchmarks/structureStartDuplication.ts",
         "bench:inbound-frame": "node --import tsx benchmarks/inboundFrameOverhead.bench.ts",
         "bench:packet-batch": "node --import tsx benchmarks/packetBatch.bench.mjs",
+        "bench:compression-negotiation": "node --import tsx benchmarks/compressionNegotiation.bench.ts",
         "bench:world-keys": "node benchmarks/run.mjs benchmarks/worldMapKeys.bench.ts",
         "bench:block-hot-paths": "node benchmarks/run.mjs benchmarks/blockHotPaths.bench.ts",
         "bench:block-entity-write": "node benchmarks/run.mjs benchmarks/blockEntityWrite.bench.ts",
