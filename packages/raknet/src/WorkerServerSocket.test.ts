@@ -175,7 +175,6 @@ describe('WorkerServerSocket', () => {
 
         // This is the game-thread handoff interval. The client socket still handles UDP, while
         // the worker continues ACKs, reliability updates, and the bounded inbound queue.
-        const handoffStarted = Date.now();
         await delay(250);
         let metrics = server.getMetrics();
         const frameDeadline = Date.now() + 5_000;
@@ -196,10 +195,11 @@ describe('WorkerServerSocket', () => {
             metrics = server.getMetrics();
         }
 
-        const handoffDurationMs = Date.now() - handoffStarted;
         expect(metrics.inbound.queuedBytes).toBeGreaterThan(0);
+        // The RTT clock starts when frames are sent, before the handoff wait. Comparing that full
+        // RTT to the later wait duration includes unrelated setup time and flakes under load.
+        // A sample before pollInbound is the deterministic proof that the worker processed ACKs.
         expect(metrics.roundTripSamples).toBeGreaterThan(0);
-        expect(metrics.maxRoundTripMs).toBeLessThan(handoffDurationMs);
         expect(metrics.retransmissions).toBe(0);
 
         server.pollInbound();
