@@ -61,6 +61,10 @@ export const placementOverlap: Scenario = {
         const control = await blockAt(server, PLACEMENT_OFFSET_X, 65, 2, 'minecraft:dirt');
         assert.match(control, /Found the block at/, `ordinary client placement reached the server: ${control}`);
 
+        // A click still held or queued when the dirt comes back places it against the first block
+        // and leaves nothing to refuse, so let go of every control and let the client settle first.
+        await client.input({ release_all: true });
+        await sleep(500);
         const rearmed = server.waitForLine(/placement-overlap-rearmed/, 10_000);
         server.command(`replaceitem entity ${playerName} slot.hotbar 0 minecraft:dirt 1`);
         server.command('say placement-overlap-rearmed');
