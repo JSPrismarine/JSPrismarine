@@ -53,6 +53,8 @@ export const DEFAULT_CHUNK_COMPLETION_BUDGET_MS = 2;
  * tasks cannot be preempted, so the budget can be exceeded by at most that task's duration.
  */
 export class ChunkCompletionQueue implements ChunkCompletionScheduler {
+    // Three of every five turns serve player-visible work; reserving one each for background and
+    // idle work prevents either lane from starving during a continuous join burst.
     private static readonly lanes: readonly GenerationPriority[] = [
         'immediate',
         'immediate',
