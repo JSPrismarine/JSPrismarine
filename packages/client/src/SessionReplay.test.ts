@@ -7,9 +7,11 @@ import type {
     OutboundPacketRecord,
     OutboundPacketRecorder
 } from '@jsprismarine/prismarine/network/OutboundPacketTrace';
+import type { ReplayInitialStateManifest } from '@jsprismarine/prismarine/network/ReplayManifest';
 import { OutboundPacketTrace } from '@jsprismarine/prismarine/network/OutboundPacketTrace';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
 import type { World } from '@jsprismarine/prismarine/world/World';
+import LevelDB from '@jsprismarine/prismarine/world/providers/leveldb/LevelDB';
 import { MovePlayerPacket, PositionMode } from '@jsprismarine/protocol';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
@@ -21,6 +23,7 @@ import { performance } from 'node:perf_hooks';
 import { describe, expect, it, vi } from 'vitest';
 import {
     deserializeReplayInitialStateManifest,
+    restoreReplayInitialStateSnapshot,
     serializeReplayInitialStateManifest
 } from '@jsprismarine/prismarine/network/ReplayManifest';
 
@@ -43,6 +46,7 @@ interface CapturedSession {
     readonly moverRuntimeId: bigint;
     readonly moverStart: Position;
     readonly movement: readonly InboundPacketRecord[];
+    readonly initialStateManifest: Buffer;
     readonly inboundPayloadBytes: number;
     readonly inboundSerializedBytes: number;
 }
@@ -60,6 +64,7 @@ interface LiveSession {
     readonly outbound: GatedPacketTrace;
     readonly mover: Client;
     readonly observer: Client;
+    readonly initialStateManifest?: Buffer;
     close(): Promise<void>;
 }
 
@@ -221,7 +226,12 @@ const openSession = async (
     port: number,
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider,
-    options: { readonly serializableRandom?: boolean; readonly recordPackets?: boolean } = {}
+    options: {
+        readonly serializableRandom?: boolean;
+        readonly recordPackets?: boolean;
+        readonly captureInitialState?: boolean;
+        readonly initialState?: ReplayInitialStateManifest;
+    } = {}
 ): Promise<LiveSession> => {
     const stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-session-replay-'));
     vi.stubEnv('JSP_DIR', stateRoot);
@@ -264,6 +274,10 @@ const openSession = async (
     });
 
     try {
+        if (options.initialState !== undefined) {
+            const provider = new LevelDB(path.join(stateRoot, 'worlds', 'world'), server);
+            await restoreReplayInitialStateSnapshot(provider, options.initialState);
+        }
         await server.bootstrap('127.0.0.1', port);
         if (options.serializableRandom) {
             const randomState = server.getReplayRandomState();
@@ -277,6 +291,15 @@ const openSession = async (
         // This flat fixture is a slime-spawn biome; disable natural spawning before clients join
         // so the digest compares the scripted session rather than unrelated mob spawn timing.
         world.getGameRuleManager().setGameRule('doMobSpawning', false, true);
+        const initialStateManifest = options.captureInitialState
+            ? serializeReplayInitialStateManifest(await world.getLevel().captureReplayInitialState())
+            : undefined;
+        if (options.initialState !== undefined) {
+            const level = world.getLevel();
+            level.setTicks(options.initialState.level.tick);
+            level.getWeather().restore(options.initialState.level.weather);
+            level.restoreReplayRandomState(options.initialState);
+        }
         await mover.connect();
         await observer.connect();
 
@@ -287,6 +310,7 @@ const openSession = async (
             outbound,
             mover,
             observer,
+            ...(initialStateManifest === undefined ? {} : { initialStateManifest }),
             close: async () => {
                 mover.disconnect();
                 observer.disconnect();
@@ -307,8 +331,13 @@ const captureSession = async (
     moverAuth: OfflineAuthProvider,
     observerAuth: OfflineAuthProvider
 ): Promise<CapturedSession> => {
-    const live = await openSession(PORT_BASE, moverAuth, observerAuth);
+    const live = await openSession(PORT_BASE, moverAuth, observerAuth, {
+        captureInitialState: true,
+        serializableRandom: true
+    });
     try {
+        const initialStateManifest = live.initialStateManifest;
+        if (initialStateManifest === undefined) throw new Error('Replay initial-state manifest was not captured');
         const startGame = live.mover.getStartGame();
         if (startGame === null) throw new Error('Mover did not receive StartGame');
         const moverStart = positionOf(startGame.position);
@@ -344,6 +373,7 @@ const captureSession = async (
             moverRuntimeId: startGame.runtimeEntityId,
             moverStart,
             movement,
+            initialStateManifest,
             inboundPayloadBytes: live.inbound.getPayloadBytes(),
             inboundSerializedBytes: live.inbound.serialize().byteLength
         };
@@ -365,9 +395,11 @@ const replaySession = async (
 ) => {
     const measureCosts = options.measureCosts ?? false;
     const instrumented = options.instrumented ?? true;
+    const initialState = deserializeReplayInitialStateManifest(captured.initialStateManifest);
     const live = await openSession(port, moverAuth, observerAuth, {
         serializableRandom: options.serializableRandom,
-        recordPackets: !measureCosts || instrumented
+        recordPackets: !measureCosts || instrumented,
+        initialState
     });
     try {
         const startGame = live.mover.getStartGame();
@@ -406,8 +438,8 @@ const replaySession = async (
         };
         live.server.on('playerMove', onMove);
 
-        // The trace has no session snapshot, so each replay logs in normally first. Re-number this
-        // play-phase segment because replay's order and sequence counters begin at the live session.
+        // The trace starts at the first movement, so replay logs in normally before feeding the
+        // captured play-phase segment. Re-number it because replay counters begin at the live session.
         // Runtime entity ids are process-local, so decode and re-encode this input with the mover's
         // id from the fresh server while preserving every other recorded movement field.
         const records = captured.movement.map((record, index) => {
@@ -455,12 +487,11 @@ const replaySession = async (
               }
             | undefined;
         if (measureCosts && instrumented) {
-            // The manifest verifies loaded state and restores RNG only; this does not measure a
-            // world-data snapshot copy or restore.
+            // Capture and serialization measure the provider snapshot copy alongside the loaded-state digests.
             const level = live.world.getLevel();
             const wallStarted = performance.now();
             const cpuStarted = process.cpuUsage();
-            const manifest = level.captureReplayInitialState();
+            const manifest = await level.captureReplayInitialState();
             const serializedManifest = serializeReplayInitialStateManifest(manifest);
             level.restoreReplayRandomState(deserializeReplayInitialStateManifest(serializedManifest));
             const cpu = process.cpuUsage(cpuStarted);
@@ -602,11 +633,11 @@ const replaySession = async (
                               replayTraceSerializedBytes: live.inbound.serialize().byteLength,
                               outboundPayloadBytes: live.outbound.trace.getPayloadBytes(),
                               outboundJsonRecordBytes: outboundJsonBytes,
-                              manifestBytes: checkpoint?.serializedBytes ?? 0,
+                              manifestBytes: captured.initialStateManifest.byteLength,
                               estimatedArtifactBytes:
                                   captured.inboundSerializedBytes +
                                   outboundJsonBytes +
-                                  (checkpoint?.serializedBytes ?? 0)
+                                  captured.initialStateManifest.byteLength
                           }
                       }
                   }

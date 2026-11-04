@@ -15,7 +15,7 @@ import { Generator as GeneratorType } from '@jsprismarine/minecraft';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
@@ -465,6 +465,20 @@ describe('Level', () => {
             const back = await reopened.level.world(OVERWORLD_STEM_ID);
             expect(back.getKnownSpawnPosition()).toEqual(new Vector3(12, 70, -8));
             await reopened.level.disable();
+        });
+
+        it('fails replay capture when the provider cannot save level metadata', async () => {
+            const { level, provider } = buildLevel('capture-save-failure');
+            await level.enable();
+
+            const failure = new Error('provider write failed');
+            const writeWorldData = vi.spyOn(provider, 'writeWorldData').mockRejectedValue(failure);
+            try {
+                await expect(level.captureReplayInitialState()).rejects.toBe(failure);
+            } finally {
+                writeWorldData.mockRestore();
+                await level.disable();
+            }
         });
 
         it('answers null for a player record the save has no entry for', async () => {

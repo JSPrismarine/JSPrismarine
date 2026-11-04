@@ -152,6 +152,81 @@ describe('world', () => {
             expect(fs.readFileSync(path.join(worldPath, 'levelname.txt'), 'utf8')).toBe('MyWorld');
         });
 
+        it('restores all persisted records and metadata from a replay snapshot', async () => {
+            const sourcePath = scratch();
+            const source = harness(sourcePath, 'ReplayWorld');
+            const worldData = {
+                spawn: { x: 7, y: 68, z: -9 },
+                gameRules: [['keepInventory', [true, false]]],
+                weather: {
+                    clearWeatherTime: 0,
+                    rainTime: 120,
+                    thunderTime: 60,
+                    raining: true,
+                    thundering: false
+                }
+            } satisfies WorldPersistenceData;
+            const playerData: WorldPlayerData = {
+                uuid: 'snapshot-player',
+                username: 'SnapshotPlayer',
+                gamemode: 'Creative',
+                position: { x: 1.25, y: 64.5, z: -3.75, pitch: 4, yaw: 90, headYaw: 91 }
+            };
+
+            await source.provider.enable();
+            await source.provider.writeWorldData(worldData);
+            await source.provider.writePlayerData('snapshot-xuid', playerData);
+            source.provider.saveLevelData({ spawn: worldData.spawn, time: 712 });
+            const sourcePlayerDataPath = path.join(sourcePath, 'playerdata');
+            fs.mkdirSync(sourcePlayerDataPath);
+            fs.writeFileSync(path.join(sourcePlayerDataPath, 'fallback-xuid.json'), '{"username":"Fallback"}');
+            const snapshot = Buffer.from(source.provider.captureReplaySnapshot());
+            await source.provider.disable();
+
+            const targetPath = scratch();
+            const stale = harness(targetPath, 'StaleWorld');
+            await stale.provider.enable();
+            await stale.provider.writeWorldData({ gameRules: [['keepInventory', [false, true]]] });
+            await stale.provider.writePlayerData('stale-xuid', { ...playerData, username: 'StalePlayer' });
+            stale.provider.saveLevelData({ time: 99 });
+            const stalePlayerDataPath = path.join(targetPath, 'playerdata');
+            fs.mkdirSync(stalePlayerDataPath);
+            fs.writeFileSync(path.join(stalePlayerDataPath, 'stale-xuid.json'), '{"username":"Stale"}');
+            await stale.provider.disable();
+
+            const restored = harness(targetPath, 'ReplayWorld');
+            await restored.provider.restoreReplaySnapshot(snapshot);
+            await restored.provider.enable();
+
+            expect(await restored.provider.readWorldData()).toEqual(worldData);
+            expect(restored.provider.readLevelData()?.time).toBe(712);
+            expect(await restored.provider.readPlayerData('snapshot-xuid')).toEqual(playerData);
+            expect(await restored.provider.readPlayerData('stale-xuid')).toBeNull();
+            expect(fs.readFileSync(path.join(targetPath, 'playerdata', 'fallback-xuid.json'), 'utf8')).toBe(
+                '{"username":"Fallback"}'
+            );
+            expect(fs.existsSync(path.join(targetPath, 'playerdata', 'stale-xuid.json'))).toBe(false);
+            expect(Buffer.from(restored.provider.captureReplaySnapshot())).toEqual(snapshot);
+            await restored.provider.disable();
+        });
+
+        it('validates replay snapshots before touching storage and rejects restore while enabled', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+
+            await expect(provider.restoreReplaySnapshot(Buffer.from('{'))).rejects.toThrow(
+                'Invalid LevelDB replay snapshot JSON'
+            );
+            expect(fs.existsSync(path.join(worldPath, 'db'))).toBe(false);
+
+            await provider.enable();
+            const snapshot = provider.captureReplaySnapshot();
+            await expect(provider.restoreReplaySnapshot(snapshot)).rejects.toThrow(
+                'Cannot restore a replay snapshot while the LevelDB provider is enabled'
+            );
+            await provider.disable();
+        });
+
         it('writes a level.dat the game can read', async () => {
             const worldPath = scratch();
             const { provider } = harness(worldPath, 'MyWorld');

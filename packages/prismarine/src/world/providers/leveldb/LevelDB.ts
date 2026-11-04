@@ -10,6 +10,7 @@ import { blockSchemas } from '@jsprismarine/minecraft';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import EntitySerializer from '../../../entity/EntitySerializer';
+import { PLAYER_DATA_FOLDER } from '../../WorldPaths';
 import {
     ChunkTag,
     decodeChunkKey,
@@ -24,6 +25,10 @@ import {
 } from './LevelDBKeys';
 import {
     LEVEL_DAT_STORAGE_VERSION,
+    LEVEL_DAT_BACKUP_FILE_NAME,
+    LEVEL_DAT_FILE_NAME,
+    LEVEL_NAME_FILE_NAME,
+    decodeLevelDat,
     flatWorldLayersOf,
     levelDatGeneratorOf,
     readLevelDat,
@@ -73,6 +78,113 @@ const DEFAULT_NETHER_SCALE = Dimensions.Nether.java.coordinateScale;
 
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
+const REPLAY_SNAPSHOT_FORMAT = 'jsprismarine-leveldb-replay-snapshot';
+const REPLAY_SNAPSHOT_VERSION = 1;
+const REPLAY_SNAPSHOT_FILES = [LEVEL_DAT_FILE_NAME, LEVEL_DAT_BACKUP_FILE_NAME, LEVEL_NAME_FILE_NAME] as const;
+
+interface LevelDBReplaySnapshot {
+    readonly format: typeof REPLAY_SNAPSHOT_FORMAT;
+    readonly version: typeof REPLAY_SNAPSHOT_VERSION;
+    readonly entries: readonly (readonly [key: string, value: string])[];
+    readonly playerData: readonly (readonly [name: string, contents: string])[];
+    readonly files: {
+        readonly 'level.dat': string | null;
+        readonly 'level.dat_old': string | null;
+        readonly 'levelname.txt': string | null;
+    };
+}
+
+const recordOf = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isCanonicalBase64 = (value: unknown): value is string =>
+    typeof value === 'string' && Buffer.from(value, 'base64').toString('base64') === value;
+
+const decodeReplaySnapshot = (bytes: Uint8Array): LevelDBReplaySnapshot => {
+    let value: unknown;
+    try {
+        value = JSON.parse(Buffer.from(bytes).toString('utf8'));
+    } catch {
+        throw new TypeError('Invalid LevelDB replay snapshot JSON');
+    }
+
+    if (
+        !recordOf(value) ||
+        value['format'] !== REPLAY_SNAPSHOT_FORMAT ||
+        value['version'] !== REPLAY_SNAPSHOT_VERSION ||
+        !Array.isArray(value['entries']) ||
+        !Array.isArray(value['playerData']) ||
+        !recordOf(value['files'])
+    ) {
+        throw new TypeError('Unsupported or invalid LevelDB replay snapshot');
+    }
+
+    const entries: [string, string][] = [];
+    const seenKeys = new Set<string>();
+    for (const entry of value['entries']) {
+        if (!Array.isArray(entry) || entry.length !== 2) {
+            throw new TypeError('Invalid LevelDB replay snapshot entry');
+        }
+
+        const key = entry[0];
+        const item = entry[1];
+        if (!isCanonicalBase64(key) || !isCanonicalBase64(item) || seenKeys.has(key)) {
+            throw new TypeError('Invalid LevelDB replay snapshot entry');
+        }
+        seenKeys.add(key);
+        entries.push([key, item]);
+    }
+
+    const files = value['files'];
+    const levelDat = files['level.dat'];
+    const levelDatOld = files['level.dat_old'];
+    const levelName = files['levelname.txt'];
+    if (
+        !isCanonicalBase64(levelDat) ||
+        !(levelDatOld === null || isCanonicalBase64(levelDatOld)) ||
+        !isCanonicalBase64(levelName)
+    ) {
+        throw new TypeError('Invalid LevelDB replay snapshot files');
+    }
+    try {
+        decodeLevelDat(Buffer.from(levelDat, 'base64'));
+    } catch {
+        throw new TypeError('Invalid LevelDB replay snapshot level.dat');
+    }
+
+    const playerData: [string, string][] = [];
+    const seenPlayerFiles = new Set<string>();
+    for (const entry of value['playerData']) {
+        if (!Array.isArray(entry) || entry.length !== 2) {
+            throw new TypeError('Invalid LevelDB replay snapshot player data');
+        }
+
+        const name = entry[0];
+        const contents = entry[1];
+        if (
+            typeof name !== 'string' ||
+            name.length === 0 ||
+            name !== path.basename(name) ||
+            name.includes('/') ||
+            name.includes('\\') ||
+            !name.endsWith('.json') ||
+            !isCanonicalBase64(contents) ||
+            seenPlayerFiles.has(name)
+        ) {
+            throw new TypeError('Invalid LevelDB replay snapshot player data');
+        }
+        seenPlayerFiles.add(name);
+        playerData.push([name, contents]);
+    }
+
+    return {
+        format: REPLAY_SNAPSHOT_FORMAT,
+        version: REPLAY_SNAPSHOT_VERSION,
+        entries,
+        playerData,
+        files: { 'level.dat': levelDat, 'level.dat_old': levelDatOld, 'levelname.txt': levelName }
+    };
+};
 
 /**
  * Whether the save's owner is a whole `Level`, which knows its dimension types, rather than the
@@ -116,6 +228,112 @@ export default class LevelDB extends BaseProvider {
     public override async disable(): Promise<void> {
         await this.database?.close();
         this.database = null;
+    }
+
+    /**
+     * Captures LevelDB records, provider metadata, and fallback player records.
+     * @throws {Error} When the fallback player-data directory contains unsupported entries.
+     */
+    public captureReplaySnapshot(): Uint8Array {
+        const database = this.requireDatabase();
+        const entries = [...database.entries()].map(
+            ([key, value]) => [key.toString('base64'), value.toString('base64')] as const
+        );
+        const readFile = (name: (typeof REPLAY_SNAPSHOT_FILES)[number]): string | null => {
+            const file = path.join(this.getPath(), name);
+            return fs.existsSync(file) ? fs.readFileSync(file).toString('base64') : null;
+        };
+        const playerDataPath = path.join(this.getPath(), PLAYER_DATA_FOLDER);
+        const playerData = fs.existsSync(playerDataPath)
+            ? fs
+                  .readdirSync(playerDataPath, { withFileTypes: true })
+                  .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0))
+                  .map((entry) => {
+                      if (!entry.isFile() || !entry.name.endsWith('.json')) {
+                          throw new Error(`Cannot capture unsupported replay player data entry '${entry.name}'`);
+                      }
+                      return [
+                          entry.name,
+                          fs.readFileSync(path.join(playerDataPath, entry.name)).toString('base64')
+                      ] as const;
+                  })
+            : [];
+
+        const snapshot: LevelDBReplaySnapshot = {
+            format: REPLAY_SNAPSHOT_FORMAT,
+            version: REPLAY_SNAPSHOT_VERSION,
+            entries,
+            playerData,
+            files: {
+                'level.dat': readFile('level.dat'),
+                'level.dat_old': readFile('level.dat_old'),
+                'levelname.txt': readFile('levelname.txt')
+            }
+        };
+        return Buffer.from(JSON.stringify(snapshot), 'utf8');
+    }
+
+    /**
+     * Replaces this world's persisted records and metadata before LevelDB opens them.
+     *
+     * The database records are replaced in one LevelDB write batch. Bedrock stores level
+     * metadata and fallback player records beside that database, so restoring those files cannot
+     * join the same transaction. A filesystem error after the batch commits can leave the target
+     * partly restored; discard that target instead of opening it.
+     *
+     * @param bytes - A snapshot returned by {@link LevelDB.captureReplaySnapshot}.
+     * @throws {TypeError} When the bytes do not contain a supported LevelDB snapshot.
+     * @throws {Error} When this provider is enabled, its player-data path is invalid, or a file write fails.
+     */
+    public async restoreReplaySnapshot(bytes: Uint8Array): Promise<void> {
+        if (this.database !== null)
+            throw new Error('Cannot restore a replay snapshot while the LevelDB provider is enabled');
+
+        const snapshot = decodeReplaySnapshot(bytes);
+        const playerDataPath = path.join(this.getPath(), PLAYER_DATA_FOLDER);
+        if (fs.existsSync(playerDataPath)) {
+            const playerDataStats = fs.lstatSync(playerDataPath);
+            if (playerDataStats.isSymbolicLink() || !playerDataStats.isDirectory()) {
+                throw new Error('Cannot restore replay player data into a non-directory path');
+            }
+        }
+
+        const database = await Database.open(path.join(this.getPath(), DATABASE_DIRECTORY));
+        try {
+            const batch = new WriteBatch();
+            for (const key of database.keys()) batch.del(key);
+            for (const [key, value] of snapshot.entries) {
+                batch.put(Buffer.from(key, 'base64'), Buffer.from(value, 'base64'));
+            }
+            database.write(batch);
+        } finally {
+            await database.close();
+        }
+
+        for (const [name, encoded] of REPLAY_SNAPSHOT_FILES.map((file) => [file, snapshot.files[file]] as const)) {
+            const file = path.join(this.getPath(), name);
+            if (encoded === null) {
+                fs.rmSync(file, { force: true });
+                continue;
+            }
+
+            const temporary = `${file}.replay-restore.${randomBytes(8).toString('hex')}.tmp`;
+            fs.writeFileSync(temporary, Buffer.from(encoded, 'base64'), { flag: 'wx' });
+            fs.rmSync(file, { force: true });
+            fs.renameSync(temporary, file);
+        }
+
+        if (fs.existsSync(playerDataPath)) {
+            for (const entry of fs.readdirSync(playerDataPath, { withFileTypes: true })) {
+                if (entry.name.endsWith('.json')) {
+                    fs.rmSync(path.join(playerDataPath, entry.name), { force: true, recursive: true });
+                }
+            }
+        }
+        if (snapshot.playerData.length > 0) fs.mkdirSync(playerDataPath, { recursive: true });
+        for (const [name, contents] of snapshot.playerData) {
+            fs.writeFileSync(path.join(playerDataPath, name), Buffer.from(contents, 'base64'));
+        }
     }
 
     /**

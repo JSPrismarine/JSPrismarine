@@ -47,12 +47,21 @@ the order returned by `records()`, awaiting each `replayInboundRecord()` call be
 `serialize()` writes a versioned JSON trace, and
 `InboundPacketTrace.deserialize()` reads it back, including traces in the previous format version.
 The packet trace is separate from the initial-state manifest. `Level.captureReplayInitialState()`
-records effective content and world-generation fingerprints, serializable RNG state, and digests
-for ready loaded worlds. `Level.restoreReplayRandomState()` verifies that boundary and restores RNG
-state, but does not restore world data: the manifest is non-atomic, excludes unloaded persistent
-state, and does not fingerprint executable server or plugin code. Capturing also fails when the
-server uses a custom random callback without a serializable state contract. A `NetworkDispatcher`
-can feed each record back through its decoded handler path; the built-in server exposes that method through
+saves ready worlds, then records effective content and world-generation fingerprints, serializable
+RNG state, loaded-world digests, and a provider snapshot of persisted data. The built-in LevelDB
+provider captures every database record, `level.dat`, `level.dat_old`, `levelname.txt`, and fallback
+player-data JSON, including persisted chunks that were unloaded. Restore it with
+`restoreReplayInitialStateSnapshot(provider, manifest)` into a newly constructed, disabled provider
+before enabling it. Once the level has loaded the snapshot, call
+`Level.restoreReplayRandomState(manifest)` to verify level metadata and loaded-world digests, then
+restore RNG state. The manifest validates the snapshot digest, and providers without snapshot
+support reject capture and restore. LevelDB replaces records in one database batch, then restores
+metadata and player files, so restore is not atomic; discard the target if a file operation fails
+after the database write. The snapshot covers persisted data, but not runtime state or pending
+simulation work, and does not fingerprint executable server or plugin code. Capturing also fails
+when the server uses a custom random callback without a serializable state contract. A
+`NetworkDispatcher` can feed each record back through its decoded handler path; the built-in
+server exposes that method through
 `server.getKernel().get(networkToken).replayInboundRecord?.(record, tickOffset)`. The caller must
 restore matching connections and advance the server to each recorded tick. Pass an
 `OutboundPacketTrace` as `outboundPacketRecorder` to the `Server` constructor to capture encoded
@@ -61,30 +70,30 @@ chunks, pending chunk load coordinates and priorities, entities, level weather a
 player inventories for a per-tick comparison; it does not cover unloaded chunks or every pending
 simulation subsystem.
 
-`packages/client/src/SessionReplay.test.ts` exercises the live replay path with two fresh flat
-replay worlds using seed `2847`. It captures four scripted `MovePlayerPacket` records from a real
-client, logs the same two identities into each replay world, then replays the play-phase movement
-segment through `networkToken`. The test compares the world and outbound packet digests at each
-tick. It seeds `Server` randomness, fixes the remaining global random calls, and disables natural
-mob spawning in the flat fixture so unrelated spawn timing does not change the world digest. It
-keeps login live because no API restores the initial world or pre-login session yet; the test maps
-the captured connection order and input entity id onto each live session. Its per-tick outbound
-digest normalizes process-local actor ids by the logged-in players and by first-seen packet order
-for other actors before hashing the packet bytes.
-It does not cover session login replay, frame grouping, unloaded world state, or Java-verified
-entity update order. The initial-state manifest verifies loaded world digests but cannot restore
-world data. Packet bytes may contain login identity data, so keep capture opt-in and protect any
-trace you store. The packet benchmark measures dispatcher recording and replay CPU plus serialized
-packet-trace storage, but it does not measure world ticks or digests.
+`packages/client/src/SessionReplay.test.ts` exercises the live replay path with two flat replay
+worlds using seed `2847`. It captures a provider snapshot before client login, restores that
+snapshot into both replay worlds, then replays four scripted `MovePlayerPacket` records from a real
+client through `networkToken`. The test logs the same two identities into each world and compares
+world and outbound packet digests at each tick. It seeds `Server` randomness, fixes the remaining
+global random calls, and disables natural mob spawning in the flat fixture so unrelated spawn
+timing does not change the world digest. Login remains live because the trace does not restore
+connection lifecycle or pre-login sessions; the test maps the captured connection order and input
+entity id onto each live session. Its per-tick outbound digest normalizes process-local actor ids
+by the logged-in players and by first-seen packet order for other actors before hashing packet
+bytes. The test does not cover frame grouping, in-memory runtime or pending simulation state, or
+Java-verified entity update order. Packet bytes and snapshots may include player data, so keep
+capture opt-in and protect any trace or manifest you store. The packet benchmark measures
+dispatcher recording and replay CPU plus serialized packet-trace storage, but it does not measure
+world ticks or digests.
 
 The performance-tagged case in `packages/client/src/SessionReplay.test.ts` replays the same fixed
 movement trace with packet recording and per-tick digests disabled, then enabled. Both runs log in
 first; the baseline installs no packet recorders and maps the mover from its captured connection id,
-since the mover connects first in both runs. It reports tick CPU and wall time, per-tick world and outbound digest CPU,
-checkpoint manifest capture and verification plus RNG-restore cost, and trace and manifest sizes.
-The manifest size does not include a world snapshot because the current format stores digests and
-cannot restore world data. Outbound trace size is a JSON record estimate, not a measurement of its
-in-memory JavaScript objects. Run
+since the mover connects first in both runs. It reports tick CPU and wall time, per-tick world and
+outbound digest CPU, checkpoint snapshot capture, manifest validation and RNG-restore cost, and
+trace and manifest sizes. Manifest size includes the provider snapshot. Snapshot restore runs during
+world setup outside this measurement. Outbound trace size is a JSON record estimate, not a
+measurement of its in-memory JavaScript objects. Run
 `pnpm --filter @jsprismarine/client exec vitest run --config vitest.config.ts src/SessionReplay.test.ts`
 to run the live replay test, or add
 `-t "reports replay instrumentation cost against an unrecorded baseline"` to that command to run

@@ -37,6 +37,17 @@ export default interface Provider extends Service {
     /** True only when `writeChunk` persists terrain, block entities, and actors for later reload. */
     readonly supportsChunkUnload?: boolean;
 
+    /** Captures the provider's persisted state for replay, or leaves replay snapshots unsupported. */
+    captureReplaySnapshot?(): Uint8Array;
+
+    /**
+     * Restores a provider snapshot before the provider is enabled and its worlds are loaded.
+     *
+     * @param snapshot - Bytes returned by {@link Provider.captureReplaySnapshot}.
+     * @throws {Error} When the snapshot is invalid or this provider is already enabled.
+     */
+    restoreReplaySnapshot?(snapshot: Uint8Array): Promise<void>;
+
     /**
      * Returns the path to the world folder.
      */

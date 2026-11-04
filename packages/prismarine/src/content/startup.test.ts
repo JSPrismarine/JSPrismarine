@@ -124,7 +124,7 @@ describe('the server building its content at startup', () => {
 
         const server = await bootstrap('replay-state');
         const level = server.getWorldManager().getDefaultWorld().getLevel();
-        const manifest = level.captureReplayInitialState();
+        const manifest = await level.captureReplayInitialState();
         const restored = deserializeReplayInitialStateManifest(serializeReplayInitialStateManifest(manifest));
         const expected = server.getRandom()();
         server.getRandom()();
@@ -134,11 +134,13 @@ describe('the server building its content at startup', () => {
         expect(restored).toEqual(manifest);
         expect(server.getRandom()()).toBe(expected);
         expect(manifest.storageBoundary).toMatchObject({
-            kind: 'loaded-world-digests-only',
-            includesUnloadedPersistentState: false,
-            atomic: false,
-            restoresWorldState: false
+            kind: 'provider-snapshot',
+            includesUnloadedPersistentState: true,
+            captureAtomic: true,
+            restoreAtomic: false,
+            restoresWorldState: true
         });
+        expect(Buffer.from(manifest.storageBoundary.snapshot, 'base64')).not.toHaveLength(0);
         await expect(() => server.shutdown()).not.toThrow();
     }, 60_000);
 });

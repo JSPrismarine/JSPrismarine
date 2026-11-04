@@ -6,9 +6,10 @@ import type { SeededRandomState } from '@jsprismarine/predicates';
 import type { RandomSequencesState } from '../command/host/randomSequences';
 import type { ServerReplayRandomState } from '../Server';
 import type { SavedWeather } from '../world/Weather';
+import type Provider from '../world/providers/Provider';
 
 const MANIFEST_FORMAT = 'jsprismarine-replay-initial-state';
-const MANIFEST_VERSION = 1;
+const MANIFEST_VERSION = 2;
 
 /** One resolved dimension input needed to identify the initial level setup. */
 export interface ReplayDimensionManifest {
@@ -27,13 +28,20 @@ export interface ReplayGameRuleManifest {
     readonly editable: boolean;
 }
 
-/** The persistent-world boundary this manifest can verify. */
+/** The persisted provider state required to recreate this replay's initial save. */
 export interface ReplayStorageBoundary {
     readonly provider: string;
-    readonly kind: 'loaded-world-digests-only';
-    readonly includesUnloadedPersistentState: false;
-    readonly atomic: false;
-    readonly restoresWorldState: false;
+    readonly kind: 'provider-snapshot';
+    readonly includesUnloadedPersistentState: true;
+    /** The provider reads its logical state as one synchronous snapshot. */
+    readonly captureAtomic: true;
+    /** False because LevelDB records and its metadata files use separate storage writes. */
+    readonly restoreAtomic: false;
+    readonly restoresWorldState: true;
+    /** Base64-encoded bytes returned by the named provider. */
+    readonly snapshot: string;
+    /** SHA-256 of the decoded snapshot bytes. */
+    readonly snapshotDigest: string;
 }
 
 /** Versioned metadata and digests captured at the start of a replay run. */
@@ -85,6 +93,32 @@ export const deserializeReplayInitialStateManifest = (bytes: Uint8Array): Replay
 
     if (!isManifest(value)) throw new TypeError('Unsupported or invalid replay initial-state manifest');
     return value;
+};
+
+/**
+ * Restores the persisted part of a replay boundary before its provider opens the world.
+ *
+ * @param provider - A new, disabled provider of the same type that captured the manifest.
+ * @param manifest - The validated initial-state manifest to restore.
+ * @throws {TypeError} When the manifest or snapshot digest is invalid.
+ * @throws {Error} When the provider differs or does not support replay restoration.
+ */
+export const restoreReplayInitialStateSnapshot = async (
+    provider: Provider,
+    manifest: ReplayInitialStateManifest
+): Promise<void> => {
+    if (!isManifest(manifest)) throw new TypeError('Invalid replay initial-state manifest');
+    if (provider.constructor.name !== manifest.storageBoundary.provider) {
+        throw new Error('Replay snapshot provider does not match the manifest');
+    }
+
+    const restore = provider.restoreReplaySnapshot;
+    if (restore === undefined) {
+        throw new Error(`Provider '${manifest.storageBoundary.provider}' cannot restore replay snapshots`);
+    }
+
+    const snapshot = Buffer.from(manifest.storageBoundary.snapshot, 'base64');
+    await restore.call(provider, snapshot);
 };
 
 const stableData = (value: unknown, ancestors = new WeakSet<object>()): unknown => {
@@ -192,6 +226,29 @@ const isWeather = (value: unknown): value is SavedWeather =>
     typeof value['raining'] === 'boolean' &&
     typeof value['thundering'] === 'boolean';
 
+const isCanonicalBase64 = (value: unknown): value is string =>
+    typeof value === 'string' && value.length > 0 && Buffer.from(value, 'base64').toString('base64') === value;
+
+const isStorageBoundary = (
+    value: Record<string, unknown>
+): value is Record<string, unknown> & ReplayStorageBoundary => {
+    if (
+        typeof value['provider'] !== 'string' ||
+        value['kind'] !== 'provider-snapshot' ||
+        value['includesUnloadedPersistentState'] !== true ||
+        value['captureAtomic'] !== true ||
+        value['restoreAtomic'] !== false ||
+        value['restoresWorldState'] !== true ||
+        !isCanonicalBase64(value['snapshot']) ||
+        !isFingerprint(value['snapshotDigest'])
+    ) {
+        return false;
+    }
+
+    const digest = createHash('sha256').update(Buffer.from(value['snapshot'], 'base64')).digest('hex');
+    return digest === value['snapshotDigest'];
+};
+
 const isManifest = (value: unknown): value is ReplayInitialStateManifest => {
     if (
         !isObject(value) ||
@@ -237,11 +294,7 @@ const isManifest = (value: unknown): value is ReplayInitialStateManifest => {
             (entry) =>
                 Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && isFingerprint(entry[1])
         ) &&
-        typeof storage['provider'] === 'string' &&
-        storage['kind'] === 'loaded-world-digests-only' &&
-        storage['includesUnloadedPersistentState'] === false &&
-        storage['atomic'] === false &&
-        storage['restoresWorldState'] === false
+        isStorageBoundary(storage)
     );
 };
 

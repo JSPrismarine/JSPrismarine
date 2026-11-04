@@ -16,6 +16,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { Vector3 } from '@jsprismarine/math';
 import { Generator as GeneratorType } from '@jsprismarine/minecraft';
@@ -40,6 +41,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { WorldWeather } from './Weather';
 import { World } from './World';
+import { PLAYER_DATA_FOLDER } from './WorldPaths';
 import type { WorldData } from './World';
 import type { DragonFightState, LegacyWorldEntity, WorldPersistenceData } from './WorldPersistence';
 import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from './WorldPersistence';
@@ -48,8 +50,6 @@ import { isFlatGenerator, isNoiseGenerator, legacyWorldPersistenceDataOf } from 
 const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
 
 /** Where a player record goes when the provider has no player storage of its own. */
-const PLAYER_DATA_FOLDER = 'playerdata';
-
 /** The biome a custom dimension is announced with when its stem names none. */
 const DEFAULT_ANNOUNCED_BIOME = 'minecraft:plains';
 
@@ -563,8 +563,25 @@ export class Level {
         return this.weather;
     }
 
-    /** Captures a versioned replay boundary for level metadata, active inputs, random state, and loaded-world digests. */
-    public captureReplayInitialState(): ReplayInitialStateManifest {
+    /**
+     * Saves and captures the provider-backed initial state for a replay.
+     *
+     * The provider snapshot includes persisted records for loaded and unloaded chunks. Restore it
+     * into a fresh provider before that provider opens, then validate and restore the random state
+     * with {@link Level.restoreReplayRandomState}.
+     *
+     * @throws {Error} When the provider cannot capture replay snapshots or persisted state cannot be saved.
+     */
+    public async captureReplayInitialState(): Promise<ReplayInitialStateManifest> {
+        const capture = this.provider.captureReplaySnapshot;
+        if (capture === undefined) {
+            throw new Error(`Provider '${this.provider.constructor.name}' cannot capture replay snapshots`);
+        }
+
+        await Promise.all([...this.worlds()].map((world) => world.save()));
+        // Replay capture must fail on a metadata write error; the regular save path only logs it.
+        await this.writeLevelData();
+        const snapshot = Buffer.from(capture.call(this.provider));
         const { activeContentFingerprint, worldgenFingerprint } = this.replayInputFingerprints();
         const gameRules = [...this.gameRuleManager.getGameRules()]
             .map(([name, [value, editable]]) => ({ name, value, editable }))
@@ -577,7 +594,7 @@ export class Level {
 
         return {
             format: 'jsprismarine-replay-initial-state',
-            version: 1,
+            version: 2,
             level: {
                 name: this.name,
                 seed: this.seed.toString(),
@@ -591,15 +608,15 @@ export class Level {
             activeContentFingerprint,
             randomState: this.server.getReplayRandomState(),
             loadedWorldDigests: this.replayWorldDigests(),
-            // The provider writes chunks, entity records, and level metadata through separate calls.
-            // These digests reject a mismatched starting world, but they cannot recreate it or
-            // claim that concurrent LevelDB updates formed one atomic snapshot.
             storageBoundary: {
                 provider: this.provider.constructor.name,
-                kind: 'loaded-world-digests-only',
-                includesUnloadedPersistentState: false,
-                atomic: false,
-                restoresWorldState: false
+                kind: 'provider-snapshot',
+                includesUnloadedPersistentState: true,
+                captureAtomic: true,
+                restoreAtomic: false,
+                restoresWorldState: true,
+                snapshot: snapshot.toString('base64'),
+                snapshotDigest: createHash('sha256').update(snapshot).digest('hex')
             }
         };
     }
@@ -784,35 +801,40 @@ export class Level {
      * where it is. Overwriting a real spawn point with a guess would be worse than the gap.
      */
     public async saveLevelData(): Promise<void> {
+        try {
+            await this.writeLevelData();
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save level data for ${this.name}`);
+            this.server.getLogger().error(error);
+        }
+    }
+
+    /** Writes provider and level.dat state, propagating errors to replay snapshot capture. */
+    private async writeLevelData(): Promise<void> {
         const spawn = this.spawn;
         if (spawn === null) {
             this.server.getLogger().debug(`No spawn point to save for ${this.name}`, 'Level/saveLevelData');
         }
 
         const stems = Object.fromEntries(this.stems);
-        try {
-            const stored = (await this.provider.readWorldData()) ?? {};
-            const dragonFight = this.dragonFightState();
-            const data: WorldPersistenceData = {
-                ...stored,
-                ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
-                gameRules: Array.from(this.gameRuleManager.getGameRules()),
-                weather: this.weather.saved(),
-                ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
-                worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
-                ...(dragonFight === undefined ? {} : { dragonFight })
-            };
-            await this.provider.writeWorldData(data);
-            this.provider.saveLevelData({
-                ...(spawn ? { spawn: data.spawn } : {}),
-                time: this.currentTick,
-                stems,
-                netherScale: this.netherScale()
-            });
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save level data for ${this.name}`);
-            this.server.getLogger().error(error);
-        }
+        const stored = (await this.provider.readWorldData()) ?? {};
+        const dragonFight = this.dragonFightState();
+        const data: WorldPersistenceData = {
+            ...stored,
+            ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
+            gameRules: Array.from(this.gameRuleManager.getGameRules()),
+            weather: this.weather.saved(),
+            ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
+            worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
+            ...(dragonFight === undefined ? {} : { dragonFight })
+        };
+        await this.provider.writeWorldData(data);
+        this.provider.saveLevelData({
+            ...(spawn ? { spawn: data.spawn } : {}),
+            time: this.currentTick,
+            stems,
+            netherScale: this.netherScale()
+        });
     }
 
     /** The dragon fight the save held, which the End world's fight starts from. */
