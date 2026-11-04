@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
 
 import { flattenCommandTree } from '../flatten';
-import type { CommandHost, CommandSource, EntityRef } from '../host';
+import type { CommandHost, CommandSource, EntityRef, TickCommandHost } from '../host';
 import { createCommandSource } from '../host';
 import { buildAvailableCommands } from '../packet';
 import { parseSelector } from '../selector';
@@ -738,6 +738,68 @@ describe('the data-driven commands', () => {
 });
 
 describe('the chat and administration commands', () => {
+    describe('/tick', () => {
+        const ticking = () => {
+            const calls: unknown[] = [];
+            const server = {
+                ticking: {
+                    rate: () => 20,
+                    setRate: (rate) => void calls.push(['rate', rate]),
+                    tickMs: () => 0,
+                    measuredRate: () => 20,
+                    frozen: () => false,
+                    setFrozen: (frozen) => void calls.push(['frozen', frozen]),
+                    step: (ticks) => calls.push(['step', ticks]) > 0,
+                    stopStep: () => false,
+                    sprint: (ticks) => void calls.push(['sprint', ticks]),
+                    stopSprint: () => true
+                }
+            } satisfies { ticking: TickCommandHost };
+            return { calls, server };
+        };
+
+        it('rate sets the target ticks per second', () => {
+            const { calls, server } = ticking();
+            run('tick rate 100', { server });
+            expect(calls).toEqual([['rate', 100]]);
+        });
+
+        it('rate refuses a value outside 1 to 10000', () => {
+            expect(() => run('tick rate 0')).toThrow();
+            expect(() => run('tick rate 10001')).toThrow();
+        });
+
+        it('freeze and unfreeze flip the frozen flag', () => {
+            const { calls, server } = ticking();
+            run('tick freeze', { server });
+            run('tick unfreeze', { server });
+            expect(calls).toEqual([
+                ['frozen', true],
+                ['frozen', false]
+            ]);
+        });
+
+        it('step freezes the world and runs one tick, or as many as the time says', () => {
+            const { calls, server } = ticking();
+            run('tick step', { server });
+            run('tick step 2s', { server });
+            expect(calls).toEqual([
+                ['frozen', true],
+                ['step', 1],
+                ['frozen', true],
+                ['step', 40]
+            ]);
+        });
+
+        it('sprint runs the ticks and sprint stop ends the burst', () => {
+            const { calls, server } = ticking();
+            run('tick sprint 100', { server });
+            const { results } = run('tick sprint stop', { server });
+            expect(calls).toEqual([['sprint', 100]]);
+            expect(results).toEqual([1]);
+        });
+    });
+
     it('/say addresses every player online', () => {
         const sent: unknown[] = [];
         run('say hello world', {

@@ -144,6 +144,19 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
         stop: () => carryOut(server.shutdown({ stayAlive: true }), undefined),
         reload: () => carryOut(server.reload(), undefined),
 
+        ticking: {
+            rate: () => server.getTickControl().getTickRate(),
+            setRate: (rate) => server.getTickControl().setTickRate(rate),
+            tickMs: () => server.getTickMs(),
+            measuredRate: () => server.getTPS(),
+            frozen: () => server.getTickControl().isFrozen(),
+            setFrozen: (frozen) => server.getTickControl().setFrozen(frozen),
+            step: (ticks) => server.getTickControl().step(ticks),
+            stopStep: () => server.getTickControl().stopStep(),
+            sprint: (ticks) => server.getTickControl().sprint(ticks),
+            stopSprint: () => server.getTickControl().stopSprint()
+        },
+
         transfer: (ref, host, port) => {
             const player = resolvePlayer(server, ref);
             if (player === undefined) return false;

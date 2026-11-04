@@ -76,7 +76,7 @@ export const SHARED_COMMAND_NAMES: readonly string[] = [
  * runtime cannot work without them. Bedrock has no parameter type for most of
  * their arguments, so the flattener degrades those to a string and says so.
  */
-export const JAVA_ONLY_COMMAND_NAMES: readonly string[] = ['attribute', 'data', 'item', 'random', 'return'];
+export const JAVA_ONLY_COMMAND_NAMES: readonly string[] = ['attribute', 'data', 'item', 'random', 'return', 'tick'];
 
 /**
  * The Bedrock commands Java has no counterpart for that this package
