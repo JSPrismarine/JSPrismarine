@@ -221,6 +221,44 @@ describe('world', () => {
             expect(started).toEqual(['first', 'second']);
         });
 
+        it('uses the roster insertion order that Java 26.3 entity ticks preserve', async () => {
+            const started: bigint[] = [];
+            const firstInserted = stubOf(Player, {
+                getPosition: () => new Position(0, 64, 0, world),
+                getType: () => 'minecraft:player',
+                getRuntimeId: () => 2n,
+                claimUpdate: () => true,
+                update: async () => {
+                    started.push(2n);
+                }
+            });
+            const secondInserted = stubOf(Player, {
+                getPosition: () => new Position(0, 64, 0, world),
+                getType: () => 'minecraft:player',
+                getRuntimeId: () => 1n,
+                claimUpdate: () => true,
+                update: async () => {
+                    started.push(1n);
+                }
+            });
+            const { world } = worldTicking({ entities: [firstInserted, secondInserted] });
+            Object.assign(world, {
+                entities: new Map([
+                    [2, firstInserted],
+                    [1, secondInserted]
+                ]),
+                getEntities: World.prototype.getEntities,
+                touchPortals: async () => {},
+                flushEntityAttributes: async () => {},
+                updateTracking: async () => {}
+            });
+
+            // Java 26.3 EntityTickList uses Int2ObjectLinkedOpenHashMap and iterates its values.
+            await world.update(1);
+
+            expect(started).toEqual([2n, 1n]);
+        });
+
         it('closes every world profiling span when profiling is enabled', async () => {
             const directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-world-profile-'));
             vi.stubEnv('JSP_DIR', directory);
