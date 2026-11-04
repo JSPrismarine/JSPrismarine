@@ -1042,7 +1042,11 @@ export class World implements Service {
 
         const endEntityUpdatesProfile = startProfile?.(`World.entityUpdates:${this.name}`);
         try {
-            await Promise.all(tickingEntities.map((entity) => entity.update(tick)));
+            // Java completes each entity's tick callback before visiting the next ID. These
+            // updates are asynchronous in JS, so awaiting each one prevents overlapping mutations
+            // (such as two item entities merging and both being collected) from making replay
+            // outcomes depend on promise scheduling.
+            for (const entity of tickingEntities) await entity.update(tick);
         } finally {
             endEntityUpdatesProfile?.();
         }

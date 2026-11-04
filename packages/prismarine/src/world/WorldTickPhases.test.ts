@@ -168,10 +168,13 @@ describe('world', () => {
             ]);
         });
 
-        it('starts concurrent entity updates in the world roster order', async () => {
+        it('finishes entity updates in roster order before starting the next entity', async () => {
             const started: string[] = [];
-            let active = 0;
-            let maximumActive = 0;
+            let firstFinished = false;
+            let finishFirst = () => {};
+            const firstUpdateGate = new Promise<void>((resolve) => {
+                finishFirst = resolve;
+            });
             const { world } = worldTicking({
                 entities: [
                     stubOf(Player, {
@@ -181,10 +184,8 @@ describe('world', () => {
                         claimUpdate: () => true,
                         update: async () => {
                             started.push('first');
-                            active += 1;
-                            maximumActive = Math.max(maximumActive, active);
-                            await Promise.resolve();
-                            active -= 1;
+                            await firstUpdateGate;
+                            firstFinished = true;
                         }
                     }),
                     stubOf(Player, {
@@ -194,10 +195,7 @@ describe('world', () => {
                         claimUpdate: () => true,
                         update: async () => {
                             started.push('second');
-                            active += 1;
-                            maximumActive = Math.max(maximumActive, active);
-                            await Promise.resolve();
-                            active -= 1;
+                            expect(firstFinished).toBe(true);
                         }
                     })
                 ]
@@ -208,12 +206,11 @@ describe('world', () => {
                 updateTracking: async () => {}
             });
 
-            await world.update(1);
+            const update = world.update(1);
+            finishFirst();
+            await update;
 
-            // Promise.all invokes updates in roster order while letting both promises overlap.
-            // This pins start order only; completion remains concurrent as before.
             expect(started).toEqual(['first', 'second']);
-            expect(maximumActive).toBe(2);
         });
 
         it('closes every world profiling span when profiling is enabled', async () => {
