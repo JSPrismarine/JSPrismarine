@@ -401,6 +401,29 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             return carryOut(player.getNetworkSession().sendInventory(), removed);
         },
 
+        countItems: (ref, identifier, _data) => {
+            const player = resolvePlayer(server, ref);
+            if (player === undefined) return 0;
+
+            const wanted =
+                identifier === undefined
+                    ? undefined
+                    : identifier.includes(':')
+                      ? identifier
+                      : `minecraft:${identifier}`;
+            const inventory = player.getInventory();
+            let found = 0;
+
+            for (let slot = 0; slot < inventory.getSlotCount(); slot += 1) {
+                const entry = inventory.getEntry(slot);
+                if (entry === null) continue;
+                if (wanted !== undefined && entry.getItem().getName() !== wanted) continue;
+                found += entry.getCount();
+            }
+
+            return found;
+        },
+
         addEffect: (ref, effect, seconds, amplifier, hideParticles) => {
             const entity = resolveEntity(server, ref);
             if (entity === undefined) return false;

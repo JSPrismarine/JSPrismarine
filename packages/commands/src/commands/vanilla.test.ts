@@ -317,6 +317,75 @@ describe('the entity commands', () => {
         expect(results).toEqual([17]);
     });
 
+    it('/clear with a max count of 0 reports the matching count and removes nothing', () => {
+        const counted: unknown[] = [];
+        let clearCalls = 0;
+        const feedback: string[] = [];
+        const { results } = run(
+            'clear @a minecraft:dirt 0',
+            {
+                entities: {
+                    select: () => [testEntity()],
+                    countItems: (_player, item, data) => {
+                        counted.push({ item, data });
+                        return 1;
+                    },
+                    clearItems: () => {
+                        clearCalls += 1;
+                        return 0;
+                    }
+                }
+            },
+            { feedback }
+        );
+
+        expect(counted).toEqual([{ item: 'minecraft:dirt', data: undefined }]);
+        expect(clearCalls).toBe(0);
+        expect(results).toEqual([1]);
+        expect(feedback).toEqual(['Found 1 matching item']);
+    });
+
+    it('/clear with a max count of 0 and no matching items reports the zero as an error', () => {
+        const feedback: string[] = [];
+        const errors: string[] = [];
+        const host = testCommandHost({
+            entities: { select: () => [testEntity()], countItems: () => 0 }
+        });
+        const registry = registerVanillaCommands();
+        const source = createCommandSource({
+            host,
+            permissionLevel: 4,
+            onFeedback: (message) => feedback.push(message),
+            onError: (message) => errors.push(message)
+        });
+
+        expect(registry.getDispatcher().execute('clear @a minecraft:dirt 0', source)).toEqual([0]);
+        expect(feedback).toEqual([]);
+        expect(errors).toEqual(['Found 0 matching items']);
+    });
+
+    it('/clear with a positive max count still removes through clearItems', () => {
+        const cleared: unknown[] = [];
+        let countCalls = 0;
+        const { results } = run('clear @a minecraft:dirt 2', {
+            entities: {
+                select: () => [testEntity()],
+                countItems: () => {
+                    countCalls += 1;
+                    return 0;
+                },
+                clearItems: (_player, item, data, maxCount) => {
+                    cleared.push({ item, data, maxCount });
+                    return 2;
+                }
+            }
+        });
+
+        expect(cleared).toEqual([{ item: 'minecraft:dirt', data: undefined, maxCount: 2 }]);
+        expect(countCalls).toBe(0);
+        expect(results).toEqual([2]);
+    });
+
     it('/effect give defaults the seconds and amplifier the way Java does', () => {
         const applied: unknown[] = [];
         run('effect give @s minecraft:speed', {
