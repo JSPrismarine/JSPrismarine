@@ -40,6 +40,10 @@ export const dimensionsScenario: Scenario = {
                 await sleep(250);
             }
 
+            // The loading screen first. The next teleport is refused while this change is still
+            // waiting for it to close, and the chunk count is no signal: a return to a dimension
+            // the client has visited still holds the columns it had, so it is met at once.
+            await client.waitForScreenAbsent('Loading', 60_000);
             await client.waitFor({ chunks_loaded: { radius: 2 } }, 60_000);
             state = await client.state();
             const position = vec3(state, 'server_position');
