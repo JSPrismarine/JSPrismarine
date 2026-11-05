@@ -43,6 +43,7 @@ export const dimensionsScenario: Scenario = {
                     `client stayed in dimension ${JSON.stringify(state.dimension)} after teleporting to ${destination.id}`
                 );
                 if (Date.now() >= nextAsk) {
+                    log(`the change to ${destination.id} did not start, asking again`);
                     teleport();
                     nextAsk = Date.now() + 5_000;
                 }
