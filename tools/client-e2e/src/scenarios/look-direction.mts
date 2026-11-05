@@ -30,10 +30,18 @@ export const lookDirection: Scenario = {
 
             await client.input({ look: { yaw: heading.yaw, pitch: 0, frames: 0 } });
             await client.input({ move: { forward: 1 } });
-            await sleep(1_000);
+            // Walk until the distance is covered rather than for a fixed second: a loaded CI
+            // client has been measured walking 1.3 blocks in that second, a third of what a
+            // walking player covers, and the heading is what this scenario is about.
+            const walkDeadline = Date.now() + 8_000;
+            let feet = vec3(await client.state(), 'feet');
+            while ((feet[heading.axis] - 0.5) * heading.sign <= 2 && Date.now() < walkDeadline) {
+                await sleep(250);
+                feet = vec3(await client.state(), 'feet');
+            }
             await client.input({ move: { forward: 0 }, release_all: true });
 
-            const feet = vec3(await client.state(), 'feet');
+            feet = vec3(await client.state(), 'feet');
             const along = (feet[heading.axis] - 0.5) * heading.sign;
             const across = Math.abs(feet[heading.axis === 0 ? 2 : 0] - 0.5);
             assert.ok(along > 2, `facing yaw ${heading.yaw} moved ${along.toFixed(2)} along ${heading.name}`);
