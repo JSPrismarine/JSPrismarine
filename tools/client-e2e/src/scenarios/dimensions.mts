@@ -26,7 +26,12 @@ export const dimensionsScenario: Scenario = {
                 `execute in ${destination.id} run fill ${platform.from} ${platform.y} ${platform.from} ` +
                     `${platform.to} ${platform.y} ${platform.to} minecraft:stone`
             );
-            server.command(`execute in ${destination.id} run teleport ${playerName} ${x} ${y} ${z}`);
+            const teleport = (): void =>
+                server.command(`execute in ${destination.id} run teleport ${playerName} ${x} ${y} ${z}`);
+            teleport();
+            // A change the server is still finishing refuses the next one, so ask again until
+            // the client is there.
+            let nextAsk = Date.now() + 5_000;
 
             const deadline = Date.now() + 30_000;
             let state: Record<string, unknown>;
@@ -37,6 +42,10 @@ export const dimensionsScenario: Scenario = {
                     Date.now() < deadline,
                     `client stayed in dimension ${JSON.stringify(state.dimension)} after teleporting to ${destination.id}`
                 );
+                if (Date.now() >= nextAsk) {
+                    teleport();
+                    nextAsk = Date.now() + 5_000;
+                }
                 await sleep(250);
             }
 
