@@ -61,7 +61,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
     const actorSounds: number[] = [];
     /** Every sound played by name rather than by level sound event. */
     const namedSounds: string[] = [];
-    /** Every debug line the server logged. */
+    /** Every debug and warning line the server logged. */
     const logged: string[] = [];
     /** What the world was asked to do with the player, in order: `save`, `remove`, `add`. */
     const roster: string[] = [];
@@ -75,7 +75,11 @@ export const fakePlayer = ({ underwater = false, worlds: others = [] }: FakePlay
         getTick: () => 0,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
         getLogger: () =>
-            stub<Logger>({ debug: (...message) => void logged.push(String(message[0] ?? '')), verbose: () => {} }),
+            stub<Logger>({
+                debug: (...message) => void logged.push(String(message[0] ?? '')),
+                warn: (...message) => void logged.push(String(message[0] ?? '')),
+                verbose: () => {}
+            }),
         // What leaving and a change of game mode tell everyone else.
         getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
         broadcastPacket: async () => {},

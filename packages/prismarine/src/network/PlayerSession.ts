@@ -192,6 +192,15 @@ export interface PendingDimensionChange {
     arrival: Arrival;
 }
 
+/**
+ * Ticks a client has to close the loading screen of a dimension change before the server
+ * finishes the change for it: a minute, well past the slowest world build.
+ *
+ * A client that never reports `EndLoadingScreen` would otherwise keep every later change held
+ * and its own input dropped for as long as it stayed connected.
+ */
+const LOADING_SCREEN_TIMEOUT_TICKS = 1200;
+
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
 
@@ -356,7 +365,7 @@ export default class PlayerSession {
      * The world change the client is still loading into, with the dimension name it left for
      * the advancement hook. See {@link PlayerSession.changeWorld}.
      */
-    private pendingChange: (PendingDimensionChange & { left: string }) | undefined;
+    private pendingChange: (PendingDimensionChange & { left: string; sinceTick: number }) | undefined;
     /** The move a caller asked for while {@link pendingChange} was open, run once it closes. */
     private queuedChange: Arrival | undefined;
 
@@ -561,7 +570,19 @@ export default class PlayerSession {
      * makes a moving player see entities appear within a tick rather than on the next interval.
      * @param {number} _tick - The current server tick.
      */
-    public async update(_tick: number): Promise<void> {
+    public async update(tick: number): Promise<void> {
+        const pending = this.pendingChange;
+        if (pending !== undefined && tick - pending.sinceTick >= LOADING_SCREEN_TIMEOUT_TICKS) {
+            this.server
+                .getLogger()
+                .warn(
+                    `${this.player.getName()} never closed loading screen ${pending.loadingScreenId} of the change to ${pending.arrival.world.getName()}; finishing it for them`,
+                    'PlayerSession/update'
+                );
+            this.endLoadingScreen(pending.loadingScreenId);
+            await this.completeDimensionChange(pending.loadingScreenId);
+        }
+
         if (!this.player.viewDistance) return;
 
         const position = this.player.getPosition();
@@ -1869,7 +1890,7 @@ export default class PlayerSession {
         if (left.bedrockId === target.bedrockId) await this.detourFrom(target.bedrockId, eyes);
 
         const loadingScreenId = this.beginLoadingScreen();
-        this.pendingChange = { loadingScreenId, arrival, left: left.name };
+        this.pendingChange = { loadingScreenId, arrival, left: left.name, sinceTick: this.server.getTick() };
         await this.send(
             new ChangeDimensionPacket({
                 dimension: target.bedrockId,

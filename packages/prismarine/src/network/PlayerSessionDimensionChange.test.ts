@@ -262,6 +262,24 @@ describe('PlayerSession.changeWorld', () => {
         expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
 
+    it('finishes a change the client never closes, and carries out the move held behind it', async () => {
+        const { player, roster, level, logged } = fakePlayer();
+        const session = player.getNetworkSession();
+        const first = worldOf(Dimensions.Nether, roster, level);
+        const second = worldOf(Dimensions.TheEnd, roster, level);
+
+        await session.changeWorld(arrivalIn(first));
+        await session.changeWorld(arrivalIn(second));
+
+        await session.update(1199);
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(first);
+
+        await session.update(1200);
+        expect(logged.some((line) => line.includes('never closed loading screen'))).toBe(true);
+        expect(player.getWorld()).toBe(second);
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
+    });
+
     it('sends a change to a custom dimension id announced to the client', async () => {
         const { player, roster, sent } = fakePlayer();
         const session = player.getNetworkSession();
