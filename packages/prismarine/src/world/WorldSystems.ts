@@ -439,10 +439,16 @@ export class WorldSystems {
     }
 
     private ensureLightForRead(x: number, y: number, z: number): void {
-        if (this.lighting.hasChunk(x >> 4, z >> 4) || this.view.blockAt(x, y, z) === undefined) return;
+        if (!this.lighting.hasChunk(x >> 4, z >> 4)) {
+            if (this.view.blockAt(x, y, z) === undefined) return;
+            this.initializeLightChunk(x >> 4, z >> 4);
+        }
 
-        this.initializeLightChunk(x >> 4, z >> 4);
-        this.lighting.flush();
+        // A chunk the ring already initialized can still have its flood queued behind the
+        // per-tick budget, and a read of it would see too little light: cows refused to spawn
+        // for as long as the flood ran. Finishing the queue here is the work the following ticks
+        // would have done anyway, and costs nothing once it is empty.
+        if (this.lighting.pending.queued > 0) this.lighting.flush();
     }
 
     private initializeLightChunk(chunkX: number, chunkZ: number): void {

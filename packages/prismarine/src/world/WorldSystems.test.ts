@@ -422,6 +422,20 @@ describe('world', () => {
                 expect(randomTickReads).toBe(1);
             });
 
+            it('settles a queued flood before answering a light read', () => {
+                const { blocks, systemsOf } = worldOf();
+                const systems = systemsOf();
+
+                blocks.set(key(8, 40, 8), GLOWSTONE);
+                systems.onChunkLoaded(0, 0);
+
+                // No tick has spent the light budget, so the flood is still queued. A reader that
+                // saw it half done would refuse a spawn the settled world allows.
+                expect(systems.lighting.pending.queued).toBeGreaterThan(0);
+                expect(systems.getBlockLight(10, 40, 8)).toBeGreaterThan(0);
+                expect(systems.lighting.pending.queued).toBe(0);
+            });
+
             it('stops the flood at an opaque block', () => {
                 const { blocks, systemsOf } = worldOf();
                 const systems = systemsOf();
