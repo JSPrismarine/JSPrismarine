@@ -257,6 +257,29 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-jsp-sources-
 
+            # The server reads the vanilla datapack (recipes, entities, loot, worldgen) from the
+            # data generator's output. Without it the scenarios that need a smelting recipe, a
+            # cow or a hoe's farmland run against 0 recipes and 4 entities and fail, and the
+            # `worldgen-spawn` suite cannot boot.
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Cache generated Java data
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine/java
+                      node_modules/.cache/jsprismarine/java-reports
+                      node_modules/.cache/jsprismarine/java-structures
+                      node_modules/.cache/jsprismarine/vanilla-datapack
+                  key: ${{ runner.os }}-jsp-java-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**') }}
+
+            - name: 🏭 Prepare the Java data
+              run: pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
+
             - name: Resolve the cache key
               id: pin
               env:
@@ -339,6 +362,29 @@ jobs:
                   key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
                   restore-keys: |
                       ${{ runner.os }}-jsp-sources-
+
+            # The server reads the vanilla datapack (recipes, entities, loot, worldgen) from the
+            # data generator's output. Without it the scenarios that need a smelting recipe, a
+            # cow or a hoe's farmland run against 0 recipes and 4 entities and fail, and the
+            # `worldgen-spawn` suite cannot boot.
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Cache generated Java data
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      node_modules/.cache/jsprismarine/java
+                      node_modules/.cache/jsprismarine/java-reports
+                      node_modules/.cache/jsprismarine/java-structures
+                      node_modules/.cache/jsprismarine/vanilla-datapack
+                  key: ${{ runner.os }}-jsp-java-data-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/utils/java/**', 'packages/bedrock-data/utils/java-dump/**') }}
+
+            - name: 🏭 Prepare the Java data
+              run: pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
 
             - name: Resolve the Cinnabar cache key
               id: pin
