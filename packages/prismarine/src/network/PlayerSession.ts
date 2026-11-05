@@ -230,6 +230,9 @@ export interface OpenBlockContainer {
     bookshelfPower: number;
 }
 
+/** The first protocol whose clients read the sub chunk request limit as a count, not a highest index. */
+const SUB_CHUNK_LIMIT_IS_COUNT_SINCE = 2225;
+
 export default class PlayerSession {
     private connection: ClientConnection;
     private readonly server: Server;
@@ -719,7 +722,7 @@ export default class PlayerSession {
                             chunkX: chunk.getX(),
                             chunkZ: chunk.getZ(),
                             dimension: chunk.getDimension().bedrockId,
-                            subChunkCount: chunk.getNetworkSubChunkRequestLimit(),
+                            subChunkCount: this.subChunkRequestLimitFor(chunk),
                             clientSubChunkRequestsEnabled: true,
                             cached: false,
                             payload
@@ -941,6 +944,24 @@ export default class PlayerSession {
     private queueChunkNow(queued: QueuedChunk): void {
         this.chunkSendQueue.push(queued);
         this.queuedChunkBytes += queued.memoryBytes;
+    }
+
+    /**
+     * The `Client Request SubChunk Limit` to send a client for a chunk.
+     *
+     * A 2225 client needs the count of sub chunks to request: told 0 for a column that fills only
+     * its lowest sub chunk, like a flat world, it asks for nothing, never receives its floor and
+     * falls out of the world. A 2193 client is left on the highest index it has always been sent.
+     * Given the count it does request the floor, and then never finishes its join, so its
+     * `SubChunk` responses are not being accepted for a reason not yet found; until that is, a
+     * 2193 client in a world one sub chunk tall still gets no floor. Both measured with the e2e
+     * client built for each protocol.
+     */
+    private subChunkRequestLimitFor(chunk: Chunk): number {
+        const count = chunk.getNetworkSubChunkRequestLimit();
+        return this.connection.codec.context.protocolVersion >= SUB_CHUNK_LIMIT_IS_COUNT_SINCE
+            ? count
+            : Math.max(0, count - 1);
     }
 
     private prepareQueuedChunk(chunk: Chunk): QueuedChunk {

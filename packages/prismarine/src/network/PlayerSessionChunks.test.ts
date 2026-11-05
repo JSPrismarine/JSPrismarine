@@ -19,6 +19,7 @@ import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
 import Codec2193 from './codec/Codec2193';
+import Codec2225 from './codec/Codec2225';
 
 /**
  * The chunk queue's lifecycle, which is the part of `PlayerSession` a moving player exercises
@@ -186,42 +187,52 @@ describe('network', () => {
             expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(payload.byteLength);
         });
 
-        it('sends a request-mode chunk skeleton without duplicating biome or subchunk blobs', async () => {
-            const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
-            chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
-            const world = stub<World>({ getLoadedChunk: () => chunk });
-            const playerWithWorld = stub<Player>({
-                viewDistance: 2,
-                getPosition: () => new Position(0, 64, 0, world),
-                getWorld: () => world,
-                isOnline: () => true
-            });
-            const sentBatches: NetworkPacket<unknown>[][] = [];
-            const connection = stub<ClientConnection>({
-                codec: Codec2193,
-                sendDataPacket: async () => {},
-                sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
-            });
-            const cacheSession = new PlayerSession(server, connection, playerWithWorld);
-            cacheSession.setClientCacheEnabled(true);
-            const payload = chunk.networkSerializeRequestSkeleton();
-            cacheSession.tryDeliverLoaded(1, 2);
+        // A 2225 client needs the count of sub chunks to request, so a column that fills one sub
+        // chunk says 1; a 2193 client stays on the highest index, 0, because given the count it
+        // never finishes its join.
+        it.each([
+            ['2193', Codec2193, (count: number) => Math.max(0, count - 1)],
+            ['2225', Codec2225, (count: number) => count]
+        ] as const)(
+            'sends a request-mode chunk skeleton for a %s client without duplicating blobs',
+            async (_protocol, codec, limitFor) => {
+                const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
+                chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
+                const world = stub<World>({ getLoadedChunk: () => chunk });
+                const playerWithWorld = stub<Player>({
+                    viewDistance: 2,
+                    getPosition: () => new Position(0, 64, 0, world),
+                    getWorld: () => world,
+                    isOnline: () => true
+                });
+                const sentBatches: NetworkPacket<unknown>[][] = [];
+                const connection = stub<ClientConnection>({
+                    codec,
+                    sendDataPacket: async () => {},
+                    sendSharedCompressedBatchAsync: async (_content, packets) => void sentBatches.push([...packets])
+                });
+                const cacheSession = new PlayerSession(server, connection, playerWithWorld);
+                cacheSession.setClientCacheEnabled(true);
+                const payload = chunk.networkSerializeRequestSkeleton();
+                cacheSession.tryDeliverLoaded(1, 2);
 
-            await cacheSession.flush();
+                await cacheSession.flush();
 
-            const chunkPacket = sentBatches
-                .flat()
-                .find((packet): packet is LevelChunkPacket => packet instanceof LevelChunkPacket);
-            const chunkData = chunkPacket?.getPacketData();
-            expect(chunkData).toMatchObject({
-                cached: false,
-                clientSubChunkRequestsEnabled: true,
-                subChunkCount: chunk.getNetworkSubChunkRequestLimit(),
-                payload
-            });
-            if (chunkData === null || chunkData === undefined) throw new Error('LevelChunk packet data is unavailable');
-            expect(chunkData.blobHashes).toBeUndefined();
-        });
+                const chunkPacket = sentBatches
+                    .flat()
+                    .find((packet): packet is LevelChunkPacket => packet instanceof LevelChunkPacket);
+                const chunkData = chunkPacket?.getPacketData();
+                expect(chunkData).toMatchObject({
+                    cached: false,
+                    clientSubChunkRequestsEnabled: true,
+                    subChunkCount: limitFor(chunk.getNetworkSubChunkRequestLimit()),
+                    payload
+                });
+                if (chunkData === null || chunkData === undefined)
+                    throw new Error('LevelChunk packet data is unavailable');
+                expect(chunkData.blobHashes).toBeUndefined();
+            }
+        );
 
         it('answers missing, invalid, and repeated requests with request-mode results', async () => {
             const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);

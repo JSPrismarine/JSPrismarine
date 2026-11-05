@@ -330,9 +330,10 @@ export default class Chunk {
      * How many sub chunks, counted up from the bottom of the client range, a client in request
      * mode may fetch with `SubChunkRequestPacket`.
      *
-     * A count and not the index of the last one. A column that only fills its lowest sub chunk,
-     * like a flat world, must say 1: said as an index it is 0, which a client reads as nothing to
-     * request, so it never asks for the floor under it and falls out of the world.
+     * A count and not the index of the last one, which is how a 2225 client reads it: a column
+     * that only fills its lowest sub chunk, like a flat world, must say 1, as an index it is 0
+     * and that client requests nothing, so it never gets the floor under it and falls out of the
+     * world. A 2193 client is still sent the index; `PlayerSession` makes that adjustment per client.
      */
     public getNetworkSubChunkRequestLimit(): number {
         return this.getNetworkSubChunkCount();
