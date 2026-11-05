@@ -55,9 +55,17 @@ const protocolCacheDirectory = (protocolVersion: number): string => path.resolve
 export const buildDirectory = (protocolVersion: number): string =>
     path.join(protocolCacheDirectory(protocolVersion), 'build');
 
-/** Cargo's final target directory for one protocol, outside all cinnabar checkouts. */
+/**
+ * Whether the build goes through mr boxington (`mbx`), which keeps its own shared compiler cache
+ * and builds into the checkout's own `target/`, instead of the donor-seeded directories below.
+ */
+const usesMbx = (): boolean => process.env.JSP_CINNABAR_MBX === '1';
+
+/** Cargo's final target directory for one protocol: outside all checkouts, unless `mbx` builds. */
 export const targetDirectory = (protocolVersion: number): string =>
-    path.join(protocolCacheDirectory(protocolVersion), 'target');
+    usesMbx()
+        ? path.join(checkoutDir(readPin(protocolVersion), protocolVersion), 'target')
+        : path.join(protocolCacheDirectory(protocolVersion), 'target');
 
 /** Client path that preserves Cinnabar's development-checkout root detection. */
 export const developmentClientBinary = (checkout: string): string => path.join(checkout, 'target', 'debug', 'cinnabar');
@@ -239,42 +247,48 @@ export const ensureBuilt = (checkout: string, protocolVersion: number): void => 
         return;
     }
 
-    for (const tool of ['cargo', 'go', 'make'] as const) {
+    for (const tool of [usesMbx() ? 'mbx' : 'cargo', 'go', 'make'] as const) {
         if (!commandExists(tool)) throw new Error(`building cinnabar needs ${tool} on PATH`);
     }
     if (!commandExists('ffmpeg')) {
         console.warn('ffmpeg is not on PATH; the client builds, but record_start will fail');
     }
-    seedFromDonor(protocolVersion);
-    fs.mkdirSync(cargoBuildDir, { recursive: true });
+    if (!usesMbx()) {
+        seedFromDonor(protocolVersion);
+        fs.mkdirSync(cargoBuildDir, { recursive: true });
+    }
     fs.mkdirSync(targetDir, { recursive: true });
-    const sharedCompilerCacheEnv = commandExists('sccache')
-        ? {
-              RUSTC_WRAPPER: process.env.RUSTC_WRAPPER ?? 'sccache',
-              // Strip both source and protocol-specific artifact roots so shared crate keys match.
-              SCCACHE_BASEDIRS: [process.env.SCCACHE_BASEDIRS, checkout, protocolCache]
-                  .filter(Boolean)
-                  .join(path.delimiter),
-              ...(process.env.SCCACHE_GHA_ENABLED === 'true'
-                  ? {}
-                  : { SCCACHE_DIR: process.env.SCCACHE_DIR ?? path.join(cacheRoot(), 'sccache') })
-          }
-        : {};
-    const buildEnv = {
-        ...process.env,
-        ...sharedCompilerCacheEnv,
-        CARGO_BUILD_JOBS: process.env.CARGO_BUILD_JOBS ?? '2',
-        CARGO_BUILD_BUILD_DIR: cargoBuildDir,
-        CARGO_BUILD_TARGET_DIR: targetDir,
-        CARGO_TARGET_DIR: targetDir
-    };
+    const sharedCompilerCacheEnv =
+        !usesMbx() && commandExists('sccache')
+            ? {
+                  RUSTC_WRAPPER: process.env.RUSTC_WRAPPER ?? 'sccache',
+                  // Strip both source and protocol-specific artifact roots so shared crate keys match.
+                  SCCACHE_BASEDIRS: [process.env.SCCACHE_BASEDIRS, checkout, protocolCache]
+                      .filter(Boolean)
+                      .join(path.delimiter),
+                  ...(process.env.SCCACHE_GHA_ENABLED === 'true'
+                      ? {}
+                      : { SCCACHE_DIR: process.env.SCCACHE_DIR ?? path.join(cacheRoot(), 'sccache') })
+              }
+            : {};
+    const buildEnv = usesMbx()
+        ? { ...process.env, CARGO_BUILD_JOBS: process.env.CARGO_BUILD_JOBS ?? '2' }
+        : {
+              ...process.env,
+              ...sharedCompilerCacheEnv,
+              CARGO_BUILD_JOBS: process.env.CARGO_BUILD_JOBS ?? '2',
+              CARGO_BUILD_BUILD_DIR: cargoBuildDir,
+              CARGO_BUILD_TARGET_DIR: targetDir,
+              CARGO_TARGET_DIR: targetDir
+          };
+    const cargo = usesMbx() ? 'mbx' : 'cargo';
     // On CI, rustup installs the version the checkout's rust-toolchain.toml pins. Locally the
     // ambient toolchain builds the checkout as-is, even where rustup is also installed.
     if (process.env.CI && commandExists('rustup')) run('rustup', ['toolchain', 'install'], checkout);
 
     run('make', ['assets'], checkout, buildEnv);
-    run('cargo', ['build', '-p', 'cinnabar', '--features', 'developer-control'], checkout, buildEnv);
-    run('cargo', ['build', '-p', 'cinnabar-mcp'], checkout, buildEnv);
+    run(cargo, ['build', '-p', 'cinnabar', '--features', 'developer-control'], checkout, buildEnv);
+    run(cargo, ['build', '-p', 'cinnabar-mcp'], checkout, buildEnv);
     run('go', ['build', '-o', built.core, './core/cmd/bedrock-core'], checkout);
 
     ensureDevelopmentLinks(checkout, built);

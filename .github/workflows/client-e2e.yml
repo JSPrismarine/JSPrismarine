@@ -173,17 +173,6 @@ jobs:
                   key: ${{ steps.pin.outputs.key }}
                   lookup-only: true
 
-            # A pin change misses the exact key but restores the previous pin's build, so cargo
-            # only recompiles what differs.
-            - name: Restore the previous pin's build
-              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: ${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}
-                  key: ${{ steps.pin.outputs.key }}
-                  restore-keys: |
-                      ${{ runner.os }}-cinnabar-v${{ matrix.protocol }}-
-
             - name: 📦 Install
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               uses: ./.github/common/install
@@ -194,29 +183,52 @@ jobs:
                   go-version: 'stable'
                   cache: false
 
-            - name: Prepare the shared Rust compiler cache
+            # mr boxington caches Cargo's compiler outputs by their inputs, so a pin change
+            # recompiles only what differs and the cache is shared across protocols and runs.
+            # It caches the checkout's own `target/`, so the checkout has to exist first.
+            - name: Clone the pinned cinnabar checkout
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              uses: Mozilla-Actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+              id: checkout
+              run: |
+                  dir="$(pnpm --silent --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL" --checkout-only | tail -n 1)"
+                  echo "dir=${dir}" >> "$GITHUB_OUTPUT"
+              env:
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar-build
+                  PROTOCOL: ${{ matrix.protocol }}
+
+            - name: Set up mr boxington
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              uses: jdx/mr-boxington-action@88acf2bb50552c7c508cbac13e5f8c576b95b1de # v1.7.3
               with:
-                  version: v0.18.0
+                  working-directory: ${{ steps.checkout.outputs.dir }}
+                  cache-links: true
 
             - name: 🔨 Build the pinned cinnabar client
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
               run: pnpm --filter @jsprismarine/client-e2e run ensure -- --protocol "$PROTOCOL"
               env:
-                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar-build
+                  JSP_CINNABAR_MBX: '1'
                   PROTOCOL: ${{ matrix.protocol }}
-                  RUSTC_WRAPPER: sccache
-                  SCCACHE_GHA_ENABLED: 'true'
 
-            # Cargo's intermediate directory is about 14 GB (2.6 GB compressed) and only a compile
-            # reads it: the e2e jobs need the checkout, the stamp and the three binaries under
-            # `target/`, which `ensureBuilt` accepts without it. Two such entries pushed the
-            # repository over its 10 GB cache limit and were evicted before any PR could restore
-            # them. sccache keeps recompiles cheap after a pin change.
-            - name: Drop cargo's intermediate build directory
+            # The e2e jobs need the checkout, the stamp and the three binaries, not the compiler
+            # outputs mr boxington caches on its own. Staging them apart keeps this entry small
+            # and leaves `target/` whole for mr boxington's save when the job ends.
+            - name: Stage what the e2e jobs need
               if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
-              run: rm -rf "${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build"
+              run: |
+                  src="${{ runner.temp }}/jsprismarine/cinnabar-build/v${PROTOCOL}"
+                  dst="${{ runner.temp }}/jsprismarine/cinnabar/v${PROTOCOL}"
+                  repo="${{ steps.checkout.outputs.dir }}"
+                  staged="${dst}/${repo#"${src}"/}"
+                  mkdir -p "${staged}/target/debug"
+                  rsync -a --exclude '/target' "${repo}/" "${staged}/"
+                  for binary in cinnabar cinnabar-mcp bedrock-core; do
+                      cp "${repo}/target/debug/${binary}" "${staged}/target/debug/${binary}"
+                  done
+                  cp "${src}/.jsprismarine-e2e-stamp" "${dst}/"
+              env:
+                  PROTOCOL: ${{ matrix.protocol }}
 
             # Save on every ref. A PR's entry is only visible to that PR, which is enough for the
             # e2e jobs below; master's entries are what other PRs fall back to.
@@ -305,6 +317,7 @@ jobs:
                   # Both expand unquoted below: empty vanishes, and scenarios word-split by design.
                   # run.mts calls ensureCinnabar too; it finds the restored build and compiles nothing.
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  JSP_CINNABAR_MBX: '1'
                   RECORD: ${{ (inputs.record || github.event_name == 'pull_request' || github.event_name == 'push') && matrix.protocol == needs.protocol-matrix.outputs.latest && '--record' || '' }}
                   SCENARIOS: ${{ inputs.scenarios || needs.protocol-matrix.outputs.scenarios }}
                   PROTOCOL: ${{ matrix.protocol }}
@@ -406,6 +419,7 @@ jobs:
               env:
                   COMPRESSION: ${{ matrix.compression }}
                   JSP_CINNABAR_CACHE_DIR: ${{ runner.temp }}/jsprismarine/cinnabar
+                  JSP_CINNABAR_MBX: '1'
                   PROTOCOL: ${{ matrix.protocol }}
                   NODE_OPTIONS: --max-old-space-size=4096
               run: pnpm run e2e:client -- --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --compression-algorithm "$COMPRESSION" --concurrency 1

@@ -1,15 +1,24 @@
 /** CLI: resolve, build, and version-check the pinned cinnabar checkout, then print its paths. */
 import { parseArgs } from 'node:util';
 
-import { ensureCinnabar } from './cinnabar.mts';
+import { checkoutDir, ensureCheckout, ensureCinnabar, readPin, servedProtocols } from './cinnabar.mts';
 
 const { values } = parseArgs({
     args: process.argv.slice(2).filter((argument) => argument !== '--'),
-    options: { protocol: { type: 'string' } }
+    options: { protocol: { type: 'string' }, 'checkout-only': { type: 'boolean' } }
 });
 const protocolVersion = values.protocol === undefined ? undefined : Number(values.protocol);
 if (protocolVersion !== undefined && (!Number.isSafeInteger(protocolVersion) || protocolVersion <= 0)) {
     throw new Error('--protocol must be a positive integer');
+}
+
+if (values['checkout-only']) {
+    // Clones the pin and prints where, so a workflow can point a cache at the checkout before the build.
+    const served = protocolVersion ?? servedProtocols().at(-1)!;
+    const pin = readPin(served);
+    ensureCheckout(pin, served);
+    console.log(checkoutDir(pin, served));
+    process.exit(0);
 }
 
 const { checkout, binaries, clientBinary, target } = ensureCinnabar(protocolVersion);
