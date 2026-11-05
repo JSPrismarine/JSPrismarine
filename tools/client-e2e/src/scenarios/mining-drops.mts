@@ -33,8 +33,16 @@ export const miningDrops: Scenario = {
             server.command(`setblock ${x} ${y} ${z} ${block}`);
             await sleep(250);
 
+            // Hold until the server has broken the block: a bare hand takes longer on gravel than
+            // on dirt, and a loaded runner takes longer than either.
             await client.input({ hold: ['key.attack'] });
-            await sleep(1_250);
+            const brokeBy = Date.now() + 15_000;
+            for (;;) {
+                const reply = server.waitForLine(/Found the block at|The block is |That chunk is not loaded/, 10_000);
+                server.command(`testforblock ${x} ${y} ${z} minecraft:air`);
+                if (/Found the block at/.test(await reply) || Date.now() > brokeBy) break;
+                await sleep(250);
+            }
             await client.input({ release_all: true });
 
             let visibleDrops = itemActorCount(await client.state());

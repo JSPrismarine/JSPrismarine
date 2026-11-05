@@ -76,6 +76,9 @@ export const placementOverlap: Scenario = {
         await sleep(300);
         await client.input({ look: { yaw: 0, pitch: 85, frames: 0 } });
         await rightClick(client);
+        // Give the server time to answer the click, so the check below sees its verdict and
+        // not the world from before it arrived.
+        await sleep(1_000);
         const overlap = await blockAt(server, PLACEMENT_OFFSET_X, 64, 0, 'minecraft:air');
         assert.match(overlap, /Found the block at/, `overlapping placement left the target air: ${overlap}`);
 

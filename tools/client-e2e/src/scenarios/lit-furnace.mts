@@ -105,20 +105,30 @@ export const litFurnace: Scenario = {
 
         await client.input({ look: { yaw: 0, pitch: 29, frames: 0 } });
         await client.input({ hold: ['key.attack'] });
-        await sleep(2_500);
+        const brokeBy = Date.now() + 15_000;
+        let gone = await blockReply(server, 'air');
+        while (!/Found the block at/.test(gone) && Date.now() < brokeBy) {
+            await sleep(250);
+            gone = await blockReply(server, 'air');
+        }
         await client.input({ release_all: true });
 
-        const gone = await blockReply(server, 'air');
         assert.match(gone, /Found the block at/, `the lit furnace was mined away: ${gone}`);
 
         // The furnace item itself, not the ore and coal that spill out of any broken
         // container: standing on the break site puts the drops in the hotbar, and clear
         // counts them.
         server.command(`teleport ${playerName} 0.5 64 2.5`);
-        await sleep(3_000);
-        const pickedUp = server.waitForLine(/Removed \d+ items|Could not/, 10_000);
-        server.command(`clear ${playerName} minecraft:furnace 64`);
-        const furnaceDrop = await pickedUp;
+        // The drop is picked up some ticks after the player stands on it, so ask until it is in.
+        const pickupBy = Date.now() + 15_000;
+        let furnaceDrop: string;
+        for (;;) {
+            await sleep(500);
+            const pickedUp = server.waitForLine(/Removed \d+ items|Could not/, 10_000);
+            server.command(`clear ${playerName} minecraft:furnace 64`);
+            furnaceDrop = await pickedUp;
+            if (/Removed [1-9]/.test(furnaceDrop) || Date.now() > pickupBy) break;
+        }
         assert.match(furnaceDrop, /Removed [1-9]/, `mining the lit furnace dropped a furnace: ${furnaceDrop}`);
 
         const movedOre = server.waitForLine(/Removed \d+ items|Could not/, 10_000);

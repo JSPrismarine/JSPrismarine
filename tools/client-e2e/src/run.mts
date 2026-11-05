@@ -248,6 +248,10 @@ const resetBetweenScenarios = async (
     server.command(`execute in minecraft:overworld run teleport ${playerName} 0.5 64 0.5`);
     server.command(`say ${reset}`);
     await resetComplete;
+    // A scenario starts with the first hotbar slot selected and no control held, whatever the
+    // one before it left behind.
+    await client.input({ release_all: true });
+    await client.input({ hotbar: 1 });
     await client.input({ look: { yaw: 0, pitch: 0, frames: 0 } });
     await client.waitFor('in_world', 30_000);
     await client.waitForScreenAbsent('Loading', 30_000);
