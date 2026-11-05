@@ -75,6 +75,22 @@ describe('world', () => {
             }
         });
 
+        it('lets a client in request mode fetch the one sub chunk a flat column fills', () => {
+            // Said as the index of the last sub chunk this was 0 for a column that fills only its
+            // lowest one, which a client reads as nothing to request: it never asked for its floor.
+            const dimension = Dimensions.Overworld;
+            const flat = new Chunk(0, 0, new Map(), dimension);
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) flat.fillColumn(x, z, dimension.minY, dimension.minY + 3, stone());
+            }
+
+            expect(flat.getNetworkSubChunkCount()).toBe(1);
+            expect(flat.getNetworkSubChunkRequestLimit()).toBe(1);
+
+            const tall = build(dimension);
+            expect(tall.getNetworkSubChunkRequestLimit()).toBe(tall.getNetworkSubChunkCount());
+        });
+
         it('reports the same sub chunk count the payload carries', () => {
             const chunk = build();
             const payload = chunk.networkSerialize();

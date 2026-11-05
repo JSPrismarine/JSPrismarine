@@ -326,9 +326,16 @@ export default class Chunk {
         return new SubChunkHeightmapData(heightMapType, heightMap, HeightMapDataType.ALL_COPIED);
     }
 
-    /** Highest requestable index relative to the bottom of the LevelChunk's client range. */
+    /**
+     * How many sub chunks, counted up from the bottom of the client range, a client in request
+     * mode may fetch with `SubChunkRequestPacket`.
+     *
+     * A count and not the index of the last one. A column that only fills its lowest sub chunk,
+     * like a flat world, must say 1: said as an index it is 0, which a client reads as nothing to
+     * request, so it never asks for the floor under it and falls out of the world.
+     */
     public getNetworkSubChunkRequestLimit(): number {
-        return Math.max(0, this.getNetworkSubChunkCount() - 1);
+        return this.getNetworkSubChunkCount();
     }
 
     private heightmapForNetwork(): Uint16Array {

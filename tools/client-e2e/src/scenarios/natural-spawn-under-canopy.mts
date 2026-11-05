@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { advanceTicks, sleep, vec3 } from '../scenario.mts';
 
 /** The y a mob stands at in the flat world: bedrock at -64, two of dirt, then the grass block. */
 const SURFACE_Y = -60;
@@ -19,11 +19,11 @@ const CANOPY_Y = SURFACE_Y + 6;
  */
 const REGION = { from: -64, to: 79 };
 
-/** The ticks per second the server runs at while it waits for animal cycles. */
-const TICK_RATE = 100;
+/** Ticks one round lets through: a bit more than one animal cycle, which is 400. */
+const ROUND_TICKS = 500;
 
-/** Wall time for a bit more than one animal cycle of 400 ticks at that rate. */
-const CYCLE_WAIT_MS = 6_000;
+/** Rounds to try before giving up; each is a fresh herd at the same fixed world seed. */
+const MAX_ROUNDS = 20;
 
 /** How far apart the logs holding the canopy up stand, which is twice a leaf's decay distance. */
 const LOG_SPACING = 12;
@@ -60,30 +60,26 @@ export const naturalSpawnUnderCanopy: Scenario = {
         }
 
         // One animal cycle is 400 ticks and fills the pool, so each round clears the herd the
-        // last one left and reads the next. The server runs at TICK_RATE ticks a second to get
-        // through them quickly. The first clear also takes out the cows that spawned
-        // under open sky before the roof went up, which would prove nothing.
-        server.command(`tick rate ${TICK_RATE}`);
-        try {
-            const deadline = Date.now() + 120_000;
-            for (;;) {
-                server.command('kill @e[type=cow]');
-                await sleep(CYCLE_WAIT_MS);
+        // last one left and runs a few cycles' worth of ticks before reading the next. Counting
+        // ticks keeps the number of spawn attempts per round the same on every run. The first
+        // clear also takes out the cows that spawned under open sky before the roof went up,
+        // which would prove nothing.
+        let found = false;
+        for (let round = 0; round < MAX_ROUNDS && !found; round += 1) {
+            server.command('kill @e[type=cow]');
+            await advanceTicks(server, ROUND_TICKS);
 
-                const checked = server.waitForLine(/natural-spawn-canopy-checked/, 15_000);
-                server.command(
-                    'execute as @e[type=cow] at @s if block ~ ~-1 ~ minecraft:grass_block ' +
-                        `if block ~ ${CANOPY_Y} ~ minecraft:oak_leaves run say natural-spawn-canopy-found`
-                );
-                server.command('say natural-spawn-canopy-checked');
-                await checked;
+            const checked = server.waitForLine(/natural-spawn-canopy-checked/, 15_000);
+            server.command(
+                'execute as @e[type=cow] at @s if block ~ ~-1 ~ minecraft:grass_block ' +
+                    `if block ~ ${CANOPY_Y} ~ minecraft:oak_leaves run say natural-spawn-canopy-found`
+            );
+            server.command('say natural-spawn-canopy-checked');
+            await checked;
 
-                if (server.lines.some((line) => line.includes('natural-spawn-canopy-found'))) break;
-                assert.ok(Date.now() < deadline, 'no natural cow ever stood on the grass under the canopy');
-            }
-        } finally {
-            server.command('tick rate 20');
+            found = server.lines.some((line) => line.includes('natural-spawn-canopy-found'));
         }
+        assert.ok(found, `no natural cow stood on the grass under the canopy in ${MAX_ROUNDS} rounds`);
 
         // The cow may have spawned 64 blocks out, beyond what the client has been sent, so
         // bring one over to where the player can see it.

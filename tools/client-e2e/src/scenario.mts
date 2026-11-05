@@ -40,6 +40,41 @@ export interface Scenario {
 /** Waits for `ms` of wall-clock time; both the server and the client keep simulating. */
 export const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** The world's game time in ticks, which is what `time query gametime` answers. */
+export const gameTime = async (server: JspServer): Promise<number> => {
+    const reply = server.waitForLine(/The time is \d+/, 10_000);
+    server.command('time query gametime');
+    return Number(/The time is (\d+)/.exec(await reply)?.[1]);
+};
+
+/**
+ * Lets the world run exactly `ticks` ticks, however long the machine takes to run them.
+ *
+ * Anything chance decides - a natural spawn, a random tick - is a function of the world's seed
+ * and the number of ticks that have passed, so a scenario that counts ticks gets the same
+ * outcome on every run, where one that sleeps for wall-clock seconds gets however many ticks a
+ * loaded runner happened to fit in them. The server sprints, running the ticks back to back
+ * rather than at 20 a second.
+ *
+ * @param server - The server whose world advances.
+ * @param ticks - How many ticks to let through.
+ * @param timeoutMs - Wall-clock budget for the sprint; a world that cannot finish it fails.
+ */
+export const advanceTicks = async (server: JspServer, ticks: number, timeoutMs = 120_000): Promise<void> => {
+    const start = await gameTime(server);
+    if (!Number.isFinite(start)) throw new Error('the server did not answer `time query gametime`');
+    server.command(`tick sprint ${ticks}`);
+
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        const now = await gameTime(server);
+        if (now - start >= ticks) return;
+        if (Date.now() >= deadline)
+            throw new Error(`the world ran ${now - start} of ${ticks} ticks in ${timeoutMs} ms`);
+        await sleep(200);
+    }
+};
+
 /** Reads `[x, y, z]` out of a state snapshot key such as `feet` or `server_position`. */
 export const vec3 = (state: Record<string, unknown>, key: string): [number, number, number] => {
     const value = state[key];

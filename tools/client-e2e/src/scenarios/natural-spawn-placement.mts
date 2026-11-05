@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 
 import type { Scenario } from '../scenario.mts';
-import { sleep, vec3 } from '../scenario.mts';
+import { advanceTicks, sleep, vec3 } from '../scenario.mts';
+
+/** Ticks between two spawn cycles of an animal pool, from `spawnConstants.json`. */
+const ANIMAL_CYCLE_TICKS = 400;
+
+/** Cycles to let through; each tries 24 positions around the player at a fixed world seed. */
+const SPAWN_CYCLES = 5;
 
 export const naturalSpawnPlacement: Scenario = {
     name: 'natural-spawn-placement',
@@ -22,7 +28,10 @@ export const naturalSpawnPlacement: Scenario = {
         }
 
         await client.waitFor({ chunks_loaded: { radius: 2 } }, 30_000);
-        await client.waitFor({ entity: { matches: 'cow', radius: 80 } }, 120_000);
+        // An animal pool runs one cycle every 400 ticks, so five of them are 2000. Counting
+        // ticks rather than waiting for a cow to turn up makes the number of spawn attempts the
+        // same on every run, whatever the machine does with the time.
+        await advanceTicks(server, ANIMAL_CYCLE_TICKS * SPAWN_CYCLES);
 
         const found = server.waitForLine(/Found [1-9]\d* entities/, 10_000);
         server.command('testfor @e[type=cow]');
@@ -41,6 +50,12 @@ export const naturalSpawnPlacement: Scenario = {
             !server.lines.some((line) => line.includes('natural-spawn-placement-unsupported')),
             'all natural cows stand above grass'
         );
+
+        // The herd spawns up to 64 blocks out, further than the server tells a client about, so
+        // asking the client for "a cow" asks where chance put the herd. Bring one to the player
+        // instead: that still proves the client draws a naturally spawned cow.
+        server.command('teleport @e[type=cow,limit=1] 0.5 -60 4.5');
+        await client.waitFor({ entity: { matches: 'cow', radius: 80 } }, 60_000);
 
         await client.screenshot(path.join(artifacts, 'natural-spawn.png'));
         log('the client saw a natural cow and every cow had grass beneath it');
