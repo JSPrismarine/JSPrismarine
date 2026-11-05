@@ -62,7 +62,10 @@ on:
 
 concurrency:
     group: client-e2e-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
-    cancel-in-progress: true
+    # A newer pull request push supersedes the old run, but a push to a branch must finish: the
+    # Cinnabar build takes about an hour cold, so every master push that cancelled its
+    # predecessor meant the build cache was never saved and no pull request could restore it.
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
     contents: read
@@ -205,6 +208,15 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
                   RUSTC_WRAPPER: sccache
                   SCCACHE_GHA_ENABLED: 'true'
+
+            # Cargo's intermediate directory is about 14 GB (2.6 GB compressed) and only a compile
+            # reads it: the e2e jobs need the checkout, the stamp and the three binaries under
+            # `target/`, which `ensureBuilt` accepts without it. Two such entries pushed the
+            # repository over its 10 GB cache limit and were evicted before any PR could restore
+            # them. sccache keeps recompiles cheap after a pin change.
+            - name: Drop cargo's intermediate build directory
+              if: ${{ steps.cinnabar-cache.outputs.cache-hit != 'true' }}
+              run: rm -rf "${{ runner.temp }}/jsprismarine/cinnabar/v${{ matrix.protocol }}/build"
 
             # Save on every ref. A PR's entry is only visible to that PR, which is enough for the
             # e2e jobs below; master's entries are what other PRs fall back to.
