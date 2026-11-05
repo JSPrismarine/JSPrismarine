@@ -112,7 +112,6 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
             return simulated;
         };
         world['tickCookingStations'] = (references) => {
-            if (!world['lightingReadyForSimulation']()) return;
             for (const chunk of world['chunks'].values()) {
                 if (!references.simulates(chunk.getX(), chunk.getZ())) continue;
                 for (const blockEntity of [...chunk.getBlockEntities()]) {
@@ -123,7 +122,6 @@ const makeWorld = (legacyChunkScan: boolean, output: Output): World => {
             }
         };
         world['tickSpawners'] = (references) => {
-            if (!world['lightingReadyForSimulation']()) return;
             for (const chunk of world['chunks'].values()) {
                 if (!references.simulates(chunk.getX(), chunk.getZ())) continue;
                 for (const blockEntity of [...chunk.getBlockEntities()]) {

@@ -396,7 +396,7 @@ describe('world', () => {
                 expect(blockReads).toBeGreaterThan(0);
             });
 
-            it('waits for light to settle before drawing random ticks', () => {
+            it('draws random ticks on the first tick, before the light flood settles', () => {
                 const { blocks, view, world } = worldOf();
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++) blocks.set(key(x, 40, z), STONE);
@@ -416,14 +416,9 @@ describe('world', () => {
                     world
                 });
 
-                let tick = 1;
-                systems.tick(tick++);
-                expect(randomTickReads).toBe(0);
-                while (!systems.isLightingSettled && tick < 100) systems.tick(tick++);
-                expect(systems.isLightingSettled).toBe(true);
-                expect(randomTickReads).toBe(0);
-
-                systems.tick(tick);
+                // Simulation does not wait for light: a join floods more nodes than the per-tick
+                // budget spends in minutes, and a frozen world is worse than briefly stale light.
+                systems.tick(1);
                 expect(randomTickReads).toBe(1);
             });
 

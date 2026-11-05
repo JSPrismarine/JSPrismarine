@@ -295,43 +295,42 @@ export class WorldSystems {
     }
 
     /**
-     * Advances one world tick, pausing scheduled and random chunk work until the active light
-     * ring settles, then spending this tick's light budget.
+     * Advances one world tick, then spends this tick's light budget.
+     *
+     * Scheduled and random ticks do not wait for the light flood to settle. It is budgeted over
+     * later ticks and can be thousands of ticks long after a join, and Java does not freeze a
+     * world's block updates for light either; a reader that needs a settled value goes through
+     * {@link WorldSystems.getSkyLight} or {@link WorldSystems.getBlockLight}, which settle the
+     * chunk it reads on demand.
      */
     public tick(currentTick: number): WorldSystemsReport {
         this.prepareLighting();
 
-        // A chunk's simulation boundary is one chunk inside the initialized light ring. Keep
-        // simulation paused while its light flood is budgeted over later ticks.
-        const lightingSettled = this.isLightingSettled;
-        const scheduled = lightingSettled
-            ? this.ticks.tick(
-                  currentTick,
-                  (kind: TickKind, tick: ScheduledTick) => {
-                      const activeBlock =
-                          kind === 'fluid' ? this.view.blockAt(tick.at.x, tick.at.y, tick.at.z) : undefined;
-                      const activeFluidType =
-                          activeBlock !== undefined && isLiquid(activeBlock.name) ? activeBlock.name : undefined;
-                      const contentType = activeFluidType ?? tick.type;
-                      const contentHandler = this.blockTickHandlers?.[contentType];
-                      if (kind === 'fluid') {
-                          // The block list runs first. If both lists contain a tick for the
-                          // same active liquid, that earlier pass already advanced it. Resolve
-                          // by the current block because queued ticks can name a previous
-                          // source or flowing state.
-                          if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
-                          contentHandler?.(tick.at);
-                          return;
-                      }
-                      contentHandler?.(tick.at);
-                  },
-                  SCHEDULED_TICK_BUDGET_PER_TICK
-              )
-            : 0;
+        const scheduled = this.ticks.tick(
+            currentTick,
+            (kind: TickKind, tick: ScheduledTick) => {
+                const activeBlock = kind === 'fluid' ? this.view.blockAt(tick.at.x, tick.at.y, tick.at.z) : undefined;
+                const activeFluidType =
+                    activeBlock !== undefined && isLiquid(activeBlock.name) ? activeBlock.name : undefined;
+                const contentType = activeFluidType ?? tick.type;
+                const contentHandler = this.blockTickHandlers?.[contentType];
+                if (kind === 'fluid') {
+                    // The block list runs first. If both lists contain a tick for the
+                    // same active liquid, that earlier pass already advanced it. Resolve
+                    // by the current block because queued ticks can name a previous
+                    // source or flowing state.
+                    if (this.ticks.list('block').hasScheduledTick(tick.at, contentType)) return;
+                    contentHandler?.(tick.at);
+                    return;
+                }
+                contentHandler?.(tick.at);
+            },
+            SCHEDULED_TICK_BUDGET_PER_TICK
+        );
 
         return {
             scheduled,
-            randomTicked: lightingSettled ? this.runRandomTicks() : 0,
+            randomTicked: this.runRandomTicks(),
             light: this.lighting.flush(LIGHT_BUDGET_PER_TICK)
         };
     }

@@ -810,8 +810,6 @@ export class World implements Service {
 
     /** Advances cooking block entities in chunks that are currently simulated. */
     private tickCookingStations(playerChunkRefCounts: PlayerChunkRefCounts): void {
-        if (!this.lightingReadyForSimulation()) return;
-
         const content = this.server.getContent?.();
         if (content === undefined) return;
 
@@ -874,8 +872,6 @@ export class World implements Service {
      * holding the chunk and the next save both see it.
      */
     private tickSpawners(playerChunkRefCounts: PlayerChunkRefCounts): void {
-        if (!this.lightingReadyForSimulation()) return;
-
         // Resolved on the first spawner met rather than up front: most ticks of most worlds
         // meet none, and this pass should cost them nothing.
         let random: (() => number) | undefined;
@@ -973,8 +969,13 @@ export class World implements Service {
         // before the sand under it fell away.
         const endBlockUpdatesProfile = startProfile?.(`World.blockUpdates:${this.name}`);
         try {
+            // Light outside the simulation ring is initialized on demand when something reads it,
+            // and the ring's own flood finishes over the ticks that follow. Simulation does not
+            // wait for it: a join queues tens of millions of light nodes at 4096 a tick, so waiting
+            // froze every entity, spawner and furnace for minutes (the client e2e scenarios caught
+            // players that never landed, furnaces that never lit and cows that never spawned).
             this.systems.prepareLighting?.();
-            if (this.lightingReadyForSimulation()) await this.runBlockUpdates();
+            await this.runBlockUpdates();
         } finally {
             endBlockUpdatesProfile?.();
         }
@@ -995,7 +996,6 @@ export class World implements Service {
         this.tickCookingStations(playerChunkRefCounts);
         this.tickSpawners(playerChunkRefCounts);
         const isPositionTicking = (x: number, z: number): boolean =>
-            this.lightingReadyForSimulation() &&
             playerChunkRefCounts.simulates(CoordinateUtils.fromBlockToChunk(x), CoordinateUtils.fromBlockToChunk(z));
         const entities = this.getEntities();
 
@@ -2415,8 +2415,6 @@ export class World implements Service {
      * sections.
      */
     public randomTickChunks(): RandomTickChunk[] {
-        if (!this.lightingReadyForSimulation()) return [];
-
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
         if (this.players.size === 0) return [];
@@ -2458,11 +2456,6 @@ export class World implements Service {
         }
         this.simulationChunksCache = { coverageRevision, loadedRevision, chunks };
         return chunks;
-    }
-
-    /** Whether the current simulation area can safely read light-dependent world state. */
-    private lightingReadyForSimulation(): boolean {
-        return this.systems.isLightingSettled ?? true;
     }
 
     private chunkNeedsLight(chunkX: number, chunkZ: number): boolean {
