@@ -162,7 +162,7 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
               run: |
                   commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
-                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+                  echo "key=${RUNNER_OS}-cinnabar-mbx-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
             # Only look the entry up: a hit means the build is done, and the e2e job downloads it.
             - name: Look for an existing build
@@ -298,7 +298,7 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
               run: |
                   commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
-                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+                  echo "key=${RUNNER_OS}-cinnabar-mbx-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
             # cinnabar-build guarantees this entry exists, so a miss is a workflow bug, not a reason to compile.
             - name: Restore the cinnabar build
@@ -405,7 +405,7 @@ jobs:
                   PROTOCOL: ${{ matrix.protocol }}
               run: |
                   commit="$(node -p 'JSON.parse(require("node:fs").readFileSync("tools/client-e2e/cinnabar.json", "utf8")).versions[process.env.PROTOCOL].commit')"
-                  echo "key=${RUNNER_OS}-cinnabar-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
+                  echo "key=${RUNNER_OS}-cinnabar-mbx-v${PROTOCOL}-${commit}" >> "$GITHUB_OUTPUT"
 
             # The primary e2e matrix builds this exact pinned client once for each protocol.
             - name: Restore the pinned Cinnabar build
