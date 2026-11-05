@@ -230,8 +230,15 @@ export interface OpenBlockContainer {
     bookshelfPower: number;
 }
 
-/** The first protocol whose clients read the sub chunk request limit as a count, not a highest index. */
-const SUB_CHUNK_LIMIT_IS_COUNT_SINCE = 2225;
+/**
+ * The first protocol whose clients are sent chunks in request mode, a skeleton and then the sub
+ * chunks they ask for.
+ *
+ * A 2225 client completes its join that way. A 2193 client does not: it requests the sub chunks
+ * and then never closes its loading screen, in any world tall enough to have more than one, so
+ * it is sent whole chunks instead. Both measured with the e2e client built for each protocol.
+ */
+const SUB_CHUNK_REQUESTS_SINCE = 2225;
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -711,6 +718,7 @@ export default class PlayerSession {
         try {
             await publisherSend;
             const compressionLevel = this.server.getConfig().getPacketCompressionLevel();
+            const requestMode = this.usesSubChunkRequests();
             for (const { chunk, payload, revision } of chunksToSend) {
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
@@ -722,15 +730,17 @@ export default class PlayerSession {
                             chunkX: chunk.getX(),
                             chunkZ: chunk.getZ(),
                             dimension: chunk.getDimension().bedrockId,
-                            subChunkCount: this.subChunkRequestLimitFor(chunk),
-                            clientSubChunkRequestsEnabled: true,
+                            subChunkCount: requestMode
+                                ? chunk.getNetworkSubChunkRequestLimit()
+                                : chunk.getNetworkSubChunkCount(),
+                            clientSubChunkRequestsEnabled: requestMode,
                             cached: false,
                             payload
                         })
                     ],
                     this.connection.compressionAlgorithm,
                     this.connection.compressionThreshold,
-                    'request-mode'
+                    requestMode ? 'request-mode' : 'uncached'
                 );
 
                 // Shared compression is safe; framing and encryption remain ordered per connection.
@@ -946,26 +956,15 @@ export default class PlayerSession {
         this.queuedChunkBytes += queued.memoryBytes;
     }
 
-    /**
-     * The `Client Request SubChunk Limit` to send a client for a chunk.
-     *
-     * A 2225 client needs the count of sub chunks to request: told 0 for a column that fills only
-     * its lowest sub chunk, like a flat world, it asks for nothing, never receives its floor and
-     * falls out of the world. A 2193 client is left on the highest index it has always been sent.
-     * Given the count it does request the floor, and then never finishes its join, so its
-     * `SubChunk` responses are not being accepted for a reason not yet found; until that is, a
-     * 2193 client in a world one sub chunk tall still gets no floor. Both measured with the e2e
-     * client built for each protocol.
-     */
-    private subChunkRequestLimitFor(chunk: Chunk): number {
-        const count = chunk.getNetworkSubChunkRequestLimit();
-        return this.connection.codec.context.protocolVersion >= SUB_CHUNK_LIMIT_IS_COUNT_SINCE
-            ? count
-            : Math.max(0, count - 1);
+    /** Whether this client is sent chunks in request mode; see {@link SUB_CHUNK_REQUESTS_SINCE}. */
+    private usesSubChunkRequests(): boolean {
+        return this.connection.codec.context.protocolVersion >= SUB_CHUNK_REQUESTS_SINCE;
     }
 
     private prepareQueuedChunk(chunk: Chunk): QueuedChunk {
-        const payload = chunk.networkSerializeRequestSkeleton();
+        const payload = this.usesSubChunkRequests()
+            ? chunk.networkSerializeRequestSkeleton()
+            : chunk.networkSerialize();
         return {
             chunk,
             payload,

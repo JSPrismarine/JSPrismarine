@@ -141,7 +141,11 @@ describe('network', () => {
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
-            const residentSession = new PlayerSession(server, stub<ClientConnection>(), playerWithWorld);
+            const residentSession = new PlayerSession(
+                server,
+                stub<ClientConnection>({ codec: Codec2225 }),
+                playerWithWorld
+            );
             const payloadBytes = chunk.networkSerialize().byteLength;
 
             expect(residentSession.tryDeliverLoaded(1, 2)).toEqual({ kind: 'queued', queuedBytes: payloadBytes });
@@ -164,7 +168,7 @@ describe('network', () => {
                 getPosition: () => stub<Position>({ getX: () => 0, getZ: () => 0 }),
                 getWorld: () => world
             });
-            const cacheSession = new PlayerSession(server, stub<ClientConnection>(), cachePlayer);
+            const cacheSession = new PlayerSession(server, stub<ClientConnection>({ codec: Codec2225 }), cachePlayer);
             const payload = chunk.networkSerializeRequestSkeleton();
             cacheSession.setClientCacheEnabled(true);
 
@@ -187,15 +191,15 @@ describe('network', () => {
             expect(Reflect.get(cacheSession, 'queuedChunkBytes')).toBe(payload.byteLength);
         });
 
-        // A 2225 client needs the count of sub chunks to request, so a column that fills one sub
-        // chunk says 1; a 2193 client stays on the highest index, 0, because given the count it
-        // never finishes its join.
+        // A 2225 client is sent a skeleton and fetches the sub chunks itself, told how many it may
+        // request. A 2193 client is sent whole chunks: asked to fetch them it never finishes
+        // joining a world with more than one sub chunk.
         it.each([
-            ['2193', Codec2193, (count: number) => Math.max(0, count - 1)],
-            ['2225', Codec2225, (count: number) => count]
+            ['2193', Codec2193, false],
+            ['2225', Codec2225, true]
         ] as const)(
-            'sends a request-mode chunk skeleton for a %s client without duplicating blobs',
-            async (_protocol, codec, limitFor) => {
+            'sends a %s client its chunk the way that protocol is verified',
+            async (_protocol, codec, requests) => {
                 const chunk = new Chunk(1, 2, new Map(), Dimensions.Overworld);
                 chunk.setBlockRuntimeId(1, 70, 2, BlockRuntimeIds.getByName('minecraft:stone'));
                 const world = stub<World>({ getLoadedChunk: () => chunk });
@@ -213,7 +217,7 @@ describe('network', () => {
                 });
                 const cacheSession = new PlayerSession(server, connection, playerWithWorld);
                 cacheSession.setClientCacheEnabled(true);
-                const payload = chunk.networkSerializeRequestSkeleton();
+                const payload = requests ? chunk.networkSerializeRequestSkeleton() : chunk.networkSerialize();
                 cacheSession.tryDeliverLoaded(1, 2);
 
                 await cacheSession.flush();
@@ -224,8 +228,8 @@ describe('network', () => {
                 const chunkData = chunkPacket?.getPacketData();
                 expect(chunkData).toMatchObject({
                     cached: false,
-                    clientSubChunkRequestsEnabled: true,
-                    subChunkCount: limitFor(chunk.getNetworkSubChunkRequestLimit()),
+                    clientSubChunkRequestsEnabled: requests,
+                    subChunkCount: requests ? chunk.getNetworkSubChunkRequestLimit() : chunk.getNetworkSubChunkCount(),
                     payload
                 });
                 if (chunkData === null || chunkData === undefined)
