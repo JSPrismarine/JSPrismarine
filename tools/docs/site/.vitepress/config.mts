@@ -1,10 +1,16 @@
 import { defineConfig } from 'vitepress';
+import mcfunction from './mcfunction.tmLanguage.json';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 
 export default defineConfig({
     title: 'JSPrismarine',
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
     base: '/JSPrismarine/',
+    markdown: {
+        // Shiki ships no grammar for mcfunction, so fences in the package
+        // READMEs fall back to plain text; register the local one.
+        languages: [mcfunction]
+    },
     themeConfig: {
         nav: [
             { text: 'Guide', link: '/guide/running' },
