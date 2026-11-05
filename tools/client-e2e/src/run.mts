@@ -122,7 +122,29 @@ const { values, positionals } = parseArgs({
 });
 
 const allScenarios = suites.flatMap((suite) => suite.scenarios);
-const requestedNames = positionals.length ? positionals : allScenarios.map((scenario) => scenario.name);
+
+/**
+ * Whether Mojang's world generation data is on this machine. The `worldgen-spawn` suite boots a
+ * noise-generated Overworld from it, and its server dies at startup without it. The E2E jobs do
+ * not fetch it, because that is a JDK, a 62 MB jar and a data generator run, so a default run
+ * leaves the suite out here rather than failing every job on a missing prerequisite.
+ */
+const worldgenDataReady = await (async (): Promise<boolean> => {
+    try {
+        const cache = await import('../../../packages/bedrock-data/utils/java/worldgen-cache.ts');
+        const source = await cache.loadJavaServerSource();
+        return cache.worldgenCacheComplete(cache.worldgenCachePaths(source.version));
+    } catch {
+        return false;
+    }
+})();
+const worldgenSpawnName = worldgenSpawn.name;
+if (!positionals.length && !worldgenDataReady) {
+    console.log(`${worldgenSpawnName}: skipped, the Java world generation data is not fetched on this machine`);
+}
+const requestedNames = positionals.length
+    ? positionals
+    : allScenarios.map((scenario) => scenario.name).filter((name) => name !== worldgenSpawnName || worldgenDataReady);
 const availableNames = new Set(allScenarios.map((scenario) => scenario.name));
 const unknownNames = requestedNames.filter((name) => !availableNames.has(name));
 if (unknownNames.length > 0) {
