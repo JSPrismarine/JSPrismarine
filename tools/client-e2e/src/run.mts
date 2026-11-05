@@ -302,7 +302,13 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             muteAudio: !values.record
         });
 
-        const joined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), 120_000);
+        // A suite that boots the Java noise Overworld generates real terrain and runs the climate
+        // spawn search before the first join, which took a minute on a developer machine and
+        // longer than two minutes on a CI runner.
+        const joinBudgetMs = suite.scenarios.some((scenario) => scenario.serverOptions?.worldgenSpawn === true)
+            ? 360_000
+            : 120_000;
+        const joined = suiteServer.waitForLine(new RegExp(`${playerName} joined the game`), joinBudgetMs);
         const measureChunkJoin = suite.scenarios.some((scenario) => scenario.name === cachedChunkDelivery.name);
         const connectStarted = performance.now();
         await client.connect(suiteServer.port);
@@ -335,9 +341,9 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             await client.waitFor('in_world', 120_000);
             await client.waitFor({ chunks_loaded: { radius: 2 } }, 120_000);
         } else {
-            await client.waitFor('in_world', 120_000);
+            await client.waitFor('in_world', joinBudgetMs);
         }
-        await client.waitForScreenAbsent('Loading', 120_000);
+        await client.waitForScreenAbsent('Loading', joinBudgetMs);
         await joined;
         console.log(`${suite.name}: join ok`);
 
