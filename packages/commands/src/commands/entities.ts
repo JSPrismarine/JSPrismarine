@@ -630,6 +630,16 @@ const clear = (context: Context, item: string | undefined, maxCount: number): nu
         : current.entity === undefined
           ? []
           : [current.entity];
+    // A max count of 0 is Java's query form: it removes nothing and reports
+    // how many matching items the targets hold, so a command can count a
+    // stack without changing it.
+    if (maxCount === 0) {
+        const found = targets.reduce(
+            (total, entity) => total + current.host.entities.countItems(entity, item, undefined),
+            0
+        );
+        return report(current, found, `Found ${found} matching item${found === 1 ? '' : 's'}`);
+    }
     const removed = targets.reduce(
         (total, entity) => total + current.host.entities.clearItems(entity, item, undefined, maxCount),
         0

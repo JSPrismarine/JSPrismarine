@@ -38,6 +38,7 @@ const entities = (): EntityCommandHost => ({
     setGameMode: () => false,
     giveItem: () => 0,
     clearItems: () => 0,
+    countItems: () => 0,
     addEffect: () => false,
     clearEffect: () => 0,
     enchant: () => false,

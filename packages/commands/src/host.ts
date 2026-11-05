@@ -125,6 +125,8 @@ export interface EntityCommandHost {
     giveItem(player: EntityRef, item: string, count: number, data: number): number;
     /** @returns How many items were removed. */
     clearItems(player: EntityRef, item: string | undefined, data: number | undefined, maxCount: number): number;
+    /** @returns How many items match, without removing any of them. */
+    countItems(player: EntityRef, item: string | undefined, data: number | undefined): number;
     addEffect(entity: EntityRef, effect: string, seconds: number, amplifier: number, hideParticles: boolean): boolean;
     /** @returns How many effects were cleared. */
     clearEffect(entity: EntityRef, effect?: string): number;
