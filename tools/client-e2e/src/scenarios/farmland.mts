@@ -56,6 +56,8 @@ export const farmland: Scenario = {
 
         // Down at the grass two blocks south, which is where the crosshair stays all scenario.
         await client.input({ look: { yaw: 0, pitch: 46, frames: 0 } });
+        // The client keeps the slot an earlier scenario selected, so ask for the hoe's slot.
+        await client.input({ hotbar: 0 });
         await sleep(250);
 
         await client.input({ press: ['MouseRight'], press_frames: 3 });
