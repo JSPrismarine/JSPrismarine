@@ -1,0 +1,80 @@
+{
+    "name": "mcfunction",
+    "patterns": [
+        {
+            "include": "#comment"
+        },
+        {
+            "include": "#macro"
+        },
+        {
+            "include": "#command"
+        },
+        {
+            "include": "#selector"
+        },
+        {
+            "include": "#string"
+        },
+        {
+            "include": "#resource"
+        },
+        {
+            "include": "#number"
+        },
+        {
+            "include": "#boolean"
+        }
+    ],
+    "repository": {
+        "boolean": {
+            "match": "\\b(true|false)\\b",
+            "name": "constant.language.mcfunction"
+        },
+        "command": {
+            "captures": {
+                "1": {
+                    "name": "keyword.operator.mcfunction"
+                },
+                "2": {
+                    "name": "entity.name.function.mcfunction"
+                }
+            },
+            "match": "^(\\s*\\$?\\s*)([a-z][a-z0-9_]*)\\b"
+        },
+        "comment": {
+            "captures": {
+                "1": {
+                    "name": "comment.line.number-sign.mcfunction"
+                }
+            },
+            "match": "^\\s*(#.*)$"
+        },
+        "macro": {
+            "captures": {
+                "1": {
+                    "name": "variable.parameter.mcfunction"
+                }
+            },
+            "match": "\\$\\(([A-Za-z0-9_.-]+)\\)",
+            "name": "variable.parameter.mcfunction"
+        },
+        "number": {
+            "match": "-?\\b\\d+(\\.\\d+)?[bslfd]?\\b",
+            "name": "constant.numeric.mcfunction"
+        },
+        "resource": {
+            "match": "\\b[a-z0-9_.-]+:[a-z0-9_/.-]+\\b",
+            "name": "support.constant.mcfunction"
+        },
+        "selector": {
+            "match": "@[aeprs]\\b",
+            "name": "variable.language.mcfunction"
+        },
+        "string": {
+            "match": "\"([^\"\\\\]|\\\\.)*\"",
+            "name": "string.quoted.double.mcfunction"
+        }
+    },
+    "scopeName": "source.mcfunction"
+}
