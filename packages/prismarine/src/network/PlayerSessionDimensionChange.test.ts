@@ -52,6 +52,8 @@ const worldOf = (dimension: DimensionType, roster: string[] = [], level?: Level)
             return level;
         },
         addEntity: async () => void roster.push('add'),
+        savePlayerData: async () => void roster.push('save'),
+        removeEntity: async () => void roster.push('remove'),
         broadcastMove: async () => {},
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(8, 70, 8),
@@ -219,11 +221,11 @@ describe('PlayerSession.changeWorld', () => {
         for (const id of ids) expect(session.endLoadingScreen(id!)).toBe(true);
     });
 
-    it('refuses a second change while the first is still pending, leaving every roster alone', async () => {
-        const { player, roster, sent, logged } = fakePlayer();
+    it('refuses a portal change while the first is still pending, leaving every roster alone', async () => {
+        const { player, roster, sent, logged, level } = fakePlayer();
         const session = player.getNetworkSession();
-        const first = worldOf(Dimensions.Nether, roster);
-        const second = worldOf(Dimensions.TheEnd, roster);
+        const first = worldOf(Dimensions.Nether, roster, level);
+        const second = worldOf(Dimensions.TheEnd, roster, level);
 
         await session.changeWorld(arrivalIn(first));
         const pending = session.pendingDimensionChange();
@@ -231,13 +233,33 @@ describe('PlayerSession.changeWorld', () => {
 
         // A player who arrived inside the exit portal is ticked while the client still shows
         // the loading screen, and is in the portal again once the cooldown runs out.
-        await session.changeWorld(arrivalIn(second));
+        await session.changeWorld(arrivalIn(second), { whenPending: 'drop' });
 
         expect(roster).toEqual(['save', 'remove', 'add']);
         expect(sent).toHaveLength(0);
         expect(player.getWorld()).toBe(first);
         expect(session.pendingDimensionChange()).toBe(pending);
         expect(logged.at(-1)).toContain('pending');
+
+        // Nothing was held, so closing the screen leaves the player where the first change put them.
+        await session.completeDimensionChange(pending!.loadingScreenId);
+        expect(player.getWorld()).toBe(first);
+    });
+
+    it('holds a second change made while the first is pending and carries it out once it closes', async () => {
+        const { player, roster, level } = fakePlayer();
+        const session = player.getNetworkSession();
+        const first = worldOf(Dimensions.Nether, roster, level);
+        const second = worldOf(Dimensions.TheEnd, roster, level);
+
+        await session.changeWorld(arrivalIn(first));
+        await session.changeWorld(arrivalIn(second));
+        expect(player.getWorld()).toBe(first);
+
+        await session.completeDimensionChange(session.pendingDimensionChange()!.loadingScreenId);
+
+        expect(player.getWorld()).toBe(second);
+        expect(session.pendingDimensionChange()?.arrival.world).toBe(second);
     });
 
     it('sends a change to a custom dimension id announced to the client', async () => {

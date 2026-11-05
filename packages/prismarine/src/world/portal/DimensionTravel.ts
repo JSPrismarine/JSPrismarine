@@ -166,7 +166,7 @@ export class DimensionTravel {
                 return;
             }
 
-            await entity.getNetworkSession().changeWorld(arrival);
+            await entity.getNetworkSession().changeWorld(arrival, { whenPending: 'drop' });
             return;
         }
 
